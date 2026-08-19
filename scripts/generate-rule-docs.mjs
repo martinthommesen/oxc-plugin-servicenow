@@ -8,6 +8,9 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const { ruleCatalog } = await import(
   pathToFileURL(join(root, "src/catalog.ts")).href
 );
+const { DEFAULT_FLUENT_MANIFEST } = await import(
+  pathToFileURL(join(root, "src/fluent/manifest.ts")).href
+);
 
 await mkdir(join(root, "docs/rules"), { recursive: true });
 
@@ -33,7 +36,11 @@ ${rule.description}
 - **Preset:** ${rule.preset || "off"}
 - **Default severity:** ${rule.severity}
 - **Fixable:** ${rule.fixable ? "yes" : "no"}
-- **Suggestions:** ${rule.hasSuggestions ? "yes" : "no"}
+- **Suggestions:** ${rule.hasSuggestions ? "yes" : "no"}${
+    rule.family === "fluent"
+      ? `\n- **Fluent manifest:** ${DEFAULT_FLUENT_MANIFEST.version}`
+      : ""
+  }
 
 ## Incorrect
 

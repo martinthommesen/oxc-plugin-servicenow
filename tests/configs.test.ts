@@ -8,15 +8,18 @@ describe("configs", () => {
   it("recommended enables the core classic + Fluent rules", () => {
     assert.equal(recommendedRules["servicenow/no-hardcoded-sysid"], "error");
     assert.equal(recommendedRules["servicenow/require-fluent-id"], "error");
-    assert.equal(recommendedRules["servicenow/no-unsupported-syntax"], "error");
+    assert.equal(recommendedRules["servicenow/require-query-before-next"], "error");
+    assert.equal(recommendedRules["servicenow/no-unsupported-syntax"], undefined);
     assert.equal(recommendedRules["servicenow/no-sync-glideajax"], "error");
     assert.equal(recommendedRules["servicenow/no-hardcoded-table-names"], undefined);
+    assert.equal(recommendedRules["servicenow/validate-gliderecord-calls"], undefined);
   });
 
   it("strict adds optional rules", () => {
-    assert.equal(strictRules["servicenow/no-hardcoded-table-names"], "warn");
+    assert.equal(strictRules["servicenow/no-hardcoded-table-names"], undefined);
     assert.equal(strictRules["servicenow/no-weak-references"], "error");
-    assert.equal(strictRules["servicenow/prefer-now-include"], "error");
+    assert.equal(strictRules["servicenow/prefer-now-include"], "warn");
+    assert.equal(strictRules["servicenow/prefer-glideaggregate"], "warn");
   });
 
   it("oxfmt recommended has Fluent and classic overrides", () => {

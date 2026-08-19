@@ -19,7 +19,9 @@ ServiceNow apps now live in two worlds at once.
 
 Fluent `.now.ts` files are **declarative metadata**. They should import from `@servicenow/sdk/core`, declare `$id: Now.ID['…']`, and keep business logic out of the metadata object.
 
-Classic scripts still run on a **restricted engine**. Promises, `async/await`, BigInt, `.at()`, `WeakMap`, and `Packages.*` are either missing or dangerous. `current.update()` in a Business Rule retriggers the rule engine. Client-side `GlideRecord` is slow and often blocked. Hardcoded sys_ids rot the moment the app is installed on another instance.
+Classic scripts still run on a **restricted, mode-dependent engine**. Compatibility and ES5 Standards reject many modern features. ES2021 supports Promise, async/await, and optional chaining, but still disallows async iteration, WeakRef, and FinalizationRegistry. `current.update()` in a Business Rule retriggers the rule engine. Client-side `GlideRecord` is slow and often blocked. Hardcoded sys_ids rot the moment the app is installed on another instance.
+
+This package does **not** treat every non-Fluent file as ES5. Unknown JavaScript mode stays unknown. Mode-specific rules skip rather than guess.
 
 Existing ESLint plugins (`eslint-plugin-servicenow`, `eslint-plugin-sn`) cover parts of the classic world and nothing of Fluent. This package covers both, on the Oxc toolchain.
 
@@ -34,28 +36,24 @@ Existing ESLint plugins (`eslint-plugin-servicenow`, `eslint-plugin-sn`) cover p
   "jsPlugins": [
     { "name": "servicenow", "specifier": "oxc-plugin-servicenow" }
   ],
+  "settings": {
+    "servicenow": {
+      "javascriptMode": "unknown"
+    }
+  },
   "rules": {
     "servicenow/no-hardcoded-sysid": "error",
-    "servicenow/no-promise": "error",
-    "servicenow/no-async-await": "error",
-    "servicenow/no-bigint": "error",
-    "servicenow/prefer-glideaggregate": "warn",
-    "servicenow/no-client-gliderecord": "error",
+    "servicenow/no-packages-calls": "error",
     "servicenow/no-gs-now": "error",
-    "servicenow/validate-gliderecord-calls": "warn",
+    "servicenow/require-query-before-next": "error",
+    "servicenow/no-client-gliderecord": "error",
     "servicenow/no-br-current-update": "error",
+    "servicenow/no-sync-glideajax": "error",
+    "servicenow/no-async-iterators": "error",
+    "servicenow/no-weak-references": "error",
     "servicenow/fluent-proper-imports": "error",
     "servicenow/fluent-directives": "warn",
-    "servicenow/prefer-now-include": "warn",
-    "servicenow/require-fluent-id": "error",
-    "servicenow/fluent-naming-convention": "warn",
-    "servicenow/no-complex-fluent-logic": "warn",
-    "servicenow/no-at-method": "warn",
-    "servicenow/no-packages-calls": "error",
-    "servicenow/no-typed-arrays": "error",
-    "servicenow/no-proxy": "error",
-    "servicenow/no-unsupported-syntax": "error",
-    "servicenow/no-sync-glideajax": "error"
+    "servicenow/require-fluent-id": "error"
   }
 }
 ```
@@ -75,12 +73,19 @@ export default defineConfig({
 
 > oxlint JS plugins are **alpha**. Custom file parsers and type-aware rules are not supported. This plugin stays within the supported ESTree visitor API. See [JS plugins](https://oxc.rs/docs/guide/usage/linter/js-plugins.html) and [writing JS plugins](https://oxc.rs/docs/guide/usage/linter/writing-js-plugins.html).
 
-### Recommended vs strict
+### Presets
 
 | Preset | Intent |
 | --- | --- |
-| `configs.recommendedRules` | High-signal rules. Safe to turn on for an existing app. |
-| `configs.strictRules` | Recommended + `no-hardcoded-table-names`, weak-refs, async iterators, and several warns promoted to errors. |
+| `configs.recommendedRules` | High-confidence rules that stay quiet when the runtime mode or surface is unknown. |
+| `configs.classicEs5Rules` | Compatibility / ES5 engine bans (Promise, async/await, `?.`, WeakMap, …). |
+| `configs.es2021Rules` | Features still disallowed after ES2021 (async iteration, WeakRef, BigInt64Array). |
+| `configs.clientRules` | Client-side API rules. |
+| `configs.businessRuleRules` | Business Rule rules. |
+| `configs.fluentRules` | Fluent `.now.ts` metadata rules. |
+| `configs.strictRules` | Recommended plus warn-level performance and naming guidance. Does not promote heuristics to errors. |
+| `configs.policyRules` | Optional organizational policy (`no-hardcoded-table-names`, `no-complex-fluent-logic`). |
+| `configs.securityRules` | Opt-in privilege-sensitive rules. Empty until those rules ship. |
 
 ---
 
@@ -149,23 +154,53 @@ The flat presets set `files` so ESLint 10 opens classic `*.js` / `*.cjs` / `*.mj
 
 oxlint parses TypeScript itself. ESLint uses its default JS parser, so type annotations (`import type`, `: string`) in `.now.ts` fail to parse. Add [`typescript-eslint`](https://typescript-eslint.io/getting-started/) in your own config if you lint typed Fluent.
 
-To run these rules on server TypeScript (`src/server/**/*.ts`), add a `files` override. Those files usually also need `settings.servicenow.ecmaLatest` or `// @sn-es-latest`.
+To run these rules on server TypeScript (`src/server/**/*.ts`), add a `files` override. Set `settings.servicenow.javascriptMode` to `es2021` or `es5` for those files. `ecmaLatest` and `// @sn-es-latest` still map to `es2021` for one major-release cycle.
 
 ---
 
-## Settings
+## Runtime context
 
-Configure once. Every rule reads `settings.servicenow`.
+The plugin models four independent dimensions. It does not collapse them into one `scriptType`.
+
+| Dimension | Values | Why it matters |
+| --- | --- | --- |
+| Authoring form | classic / Fluent | Instance script versus SDK metadata |
+| JavaScript mode | Compatibility / ES5 / ES2021 / unknown | Language-feature support |
+| Surface | client / server / Business Rule / UI Action / Script Include / scheduled / fix | Available APIs |
+| Scope | global / scoped / unknown | API availability |
+| Confidence | explicit / filename / inferred / unknown | Whether mode-specific rules may run |
+
+Authority order: explicit settings, then filename conventions, then conservative source inference. Unknown JavaScript mode never assumes ES5.
+
+UI Actions can be client, server, or mixed:
 
 ```jsonc
 {
   "settings": {
     "servicenow": {
+      "surfaces": ["ui-action", "client"]
+    }
+  }
+}
+```
+
+## Settings
+
+Configure once. Invalid keys, types, or conflicting values throw a configuration error with the full path.
+
+```jsonc
+{
+  "settings": {
+    "servicenow": {
+      "javascriptMode": "es2021",
+      "surfaces": ["business-rule"],
+      "scope": "scoped",
+      "scopePrefix": "x_acme",
       "allowedSysIds": ["97c04b3b1b12100043ab85e5bd0713e2"],
       "allowedTables": ["x_acme_widget"],
-      "scriptType": "auto",
-      "ecmaLatest": false,
-      "scopePrefix": "x_acme"
+      "release": "zurich",
+      "fluentSdkVersion": "4.1.0",
+      "businessRuleSourceFormat": "full-script"
     }
   }
 }
@@ -173,20 +208,49 @@ Configure once. Every rule reads `settings.servicenow`.
 
 | Field | Meaning |
 | --- | --- |
-| `allowedSysIds` | sys_ids that `no-hardcoded-sysid` will ignore |
-| `allowedTables` | table names that `no-hardcoded-table-names` will ignore |
-| `scriptType` | `"auto"` (default) or force `client` / `server` / `business-rule` / `script-include` / `ui-action` / `fluent` |
-| `ecmaLatest` | skip classic-engine bans (`no-promise`, `no-async-await`, …) |
-| `scopePrefix` | e.g. `x_acme` — used by the Fluent naming rule |
+| `javascriptMode` | `compatibility`, `es5`, `es2021`, or `unknown` (default) |
+| `authoring` | `classic`, `fluent`, or `auto` |
+| `surfaces` | `auto` or an array such as `["ui-action","client"]` |
+| `scope` | `global`, `scoped`, or `unknown` |
+| `scopePrefix` | Application scope prefix such as `x_acme` |
+| `allowedSysIds` | 32-character lowercase sys_ids that `no-hardcoded-sysid` ignores |
+| `allowedTables` | Table names that `no-hardcoded-table-names` ignores |
+| `release` | ServiceNow release identifier used for versioned knowledge |
+| `fluentSdkVersion` | Fluent SDK semver the manifest should evaluate |
+| `businessRuleSourceFormat` | `full-script`, `body-only`, or `unknown` |
+| `scriptType` | **Deprecated.** Use `authoring` and `surfaces`. |
+| `ecmaLatest` | **Deprecated.** `true` maps to `javascriptMode: "es2021"`. `false` does not assume ES5. |
 
-Per-file escape hatch for modern server modules:
+Mixed-repository composition:
 
-```js
-// @sn-es-latest
-const result = await other();
+```ts
+import { defineConfig } from "oxlint";
+import { configs } from "oxc-plugin-servicenow";
+
+export default defineConfig({
+  jsPlugins: [{ name: "servicenow", specifier: "oxc-plugin-servicenow" }],
+  rules: configs.recommendedRules,
+  overrides: [
+    {
+      files: ["src/server/**/*.js", "**/*.si.js"],
+      settings: { servicenow: { javascriptMode: "es2021", surfaces: ["server"] } },
+      rules: configs.es2021Rules,
+    },
+    {
+      files: ["**/*.br.js"],
+      settings: { servicenow: { javascriptMode: "es5", surfaces: ["business-rule"] } },
+      rules: { ...configs.classicEs5Rules, ...configs.businessRuleRules },
+    },
+    {
+      files: ["**/*.client.js"],
+      settings: { servicenow: { surfaces: ["client"] } },
+      rules: configs.clientRules,
+    },
+  ],
+});
 ```
 
-Fluent `.now.ts` files skip engine bans automatically.
+Per-file `// @sn-es-latest` still maps to `es2021` with inferred confidence. Prefer `javascriptMode` in settings.
 
 ---
 
@@ -197,39 +261,43 @@ Fluent `.now.ts` files skip engine bans automatically.
 | Rule | Preset | Fix | What it catches |
 | --- | --- | --- | --- |
 | [`no-hardcoded-sysid`](docs/rules/no-hardcoded-sysid.md) | recommended | | 32-char hex sys_ids |
-| [`prefer-glideaggregate`](docs/rules/prefer-glideaggregate.md) | recommended | suggest | `getRowCount()` / iterate-to-count |
-| [`no-client-gliderecord`](docs/rules/no-client-gliderecord.md) | recommended | | `GlideRecord` in client scripts |
-| [`no-gs-now`](docs/rules/no-gs-now.md) | recommended | suggest | `gs.now()` / `gs.nowDateTime()` |
-| [`validate-gliderecord-calls`](docs/rules/validate-gliderecord-calls.md) | recommended | | `.next()` without `.query()`, ignored return values |
-| [`no-br-current-update`](docs/rules/no-br-current-update.md) | recommended | | `current.update()` |
-| [`no-hardcoded-table-names`](docs/rules/no-hardcoded-table-names.md) | strict | | string-literal table names |
+| [`prefer-glideaggregate`](docs/rules/prefer-glideaggregate.md) | strict | | `getRowCount()` / iterate-to-count on proven GlideRecord bindings |
+| [`no-client-gliderecord`](docs/rules/no-client-gliderecord.md) | recommended | | platform `GlideRecord` in client scripts |
+| [`no-gs-now`](docs/rules/no-gs-now.md) | recommended | | `gs.now()` / `gs.nowDateTime()` when `gs` is the platform global |
+| [`require-query-before-next`](docs/rules/require-query-before-next.md) | recommended | | `.next()` without `.query()` / `.get()` on every path |
+| [`validate-gliderecord-calls`](docs/rules/validate-gliderecord-calls.md) | off (deprecated) | | temporary alias of query-before-next plus unused insert/update/get/next |
+| [`no-br-current-update`](docs/rules/no-br-current-update.md) | recommended | | `current.update()` in Business Rules |
+| [`no-hardcoded-table-names`](docs/rules/no-hardcoded-table-names.md) | policy | | string-literal table names |
 | [`no-packages-calls`](docs/rules/no-packages-calls.md) | recommended | | `Packages.*` Java bridge |
 | [`no-sync-glideajax`](docs/rules/no-sync-glideajax.md) | recommended | | `GlideAjax.getXMLWait()` |
 
-### Classic engine (Rhino / ES5)
+### Instance engine (mode-specific)
 
-| Rule | Preset | Fix | What it catches |
-| --- | --- | --- | --- |
-| [`no-promise`](docs/rules/no-promise.md) | recommended | | `new Promise`, `Promise.*`, `.then` |
-| [`no-async-await`](docs/rules/no-async-await.md) | recommended | | `async` / `await` |
-| [`no-bigint`](docs/rules/no-bigint.md) | recommended | | `10n`, `BigInt()` |
-| [`no-at-method`](docs/rules/no-at-method.md) | recommended | suggest | `.at()` |
-| [`no-weak-references`](docs/rules/no-weak-references.md) | strict | | `WeakMap` / `WeakSet` / `WeakRef` |
-| [`no-async-iterators`](docs/rules/no-async-iterators.md) | strict | | `for await…of`, async generators |
-| [`no-typed-arrays`](docs/rules/no-typed-arrays.md) | recommended | | `Int8Array`, `DataView`, … |
-| [`no-proxy`](docs/rules/no-proxy.md) | recommended | | `new Proxy`, `Proxy.revocable` |
-| [`no-unsupported-syntax`](docs/rules/no-unsupported-syntax.md) | recommended | | `?.`, `??`, `||=`, `#private`, lookbehind |
+These rules run only when `javascriptMode` is known, except features that ServiceNow documents as disallowed in every instance mode.
+
+| Rule | Preset | What it catches |
+| --- | --- | --- |
+| [`no-promise`](docs/rules/no-promise.md) | classic-es5 | platform `Promise` constructor and static methods |
+| [`no-async-await`](docs/rules/no-async-await.md) | classic-es5 | `async` / `await` |
+| [`no-bigint`](docs/rules/no-bigint.md) | classic-es5 | `10n`, platform `BigInt()` |
+| [`no-at-method`](docs/rules/no-at-method.md) | classic-es5 | `.at()` |
+| [`no-weak-collections`](docs/rules/no-weak-collections.md) | classic-es5 | platform `WeakMap` / `WeakSet` |
+| [`no-weak-references`](docs/rules/no-weak-references.md) | recommended | platform `WeakRef` / `FinalizationRegistry` (all instance modes) |
+| [`no-async-iterators`](docs/rules/no-async-iterators.md) | recommended | `for await…of`, async generators (all instance modes) |
+| [`no-typed-arrays`](docs/rules/no-typed-arrays.md) | classic-es5 | TypedArray constructors; BigInt64Array also in ES2021 |
+| [`no-proxy`](docs/rules/no-proxy.md) | classic-es5 | platform `Proxy` |
+| [`no-unsupported-syntax`](docs/rules/no-unsupported-syntax.md) | classic-es5 | `?.`, `??`, `||=`, private instance members, lookbehind |
 
 ### Fluent (`.now.ts`)
 
 | Rule | Preset | Fix | What it catches |
 | --- | --- | --- | --- |
-| [`fluent-proper-imports`](docs/rules/fluent-proper-imports.md) | recommended | fix | imports not from `@servicenow/sdk/core` |
-| [`fluent-directives`](docs/rules/fluent-directives.md) | recommended | | `@fluent-ignore` / `@fluent-disable-sync` typos |
-| [`prefer-now-include`](docs/rules/prefer-now-include.md) | recommended | | large inline `script` / HTML / CSS |
-| [`require-fluent-id`](docs/rules/require-fluent-id.md) | recommended | | missing `$id`, raw sys_id `$id` |
-| [`fluent-naming-convention`](docs/rules/fluent-naming-convention.md) | recommended | | file / `Now.ID` / table export names |
-| [`no-complex-fluent-logic`](docs/rules/no-complex-fluent-logic.md) | recommended | | loops, classes, try/catch in metadata |
+| [`fluent-proper-imports`](docs/rules/fluent-proper-imports.md) | recommended | | imports that do not match the versioned SDK manifest |
+| [`fluent-directives`](docs/rules/fluent-directives.md) | recommended | | `@fluent-ignore`, `@fluent-disable-sync`, `@fluent-disable-sync-for-file` |
+| [`prefer-now-include`](docs/rules/prefer-now-include.md) | strict | | large inline `script` / HTML / CSS |
+| [`require-fluent-id`](docs/rules/require-fluent-id.md) | recommended | | missing `$id` where the manifest requires it |
+| [`fluent-naming-convention`](docs/rules/fluent-naming-convention.md) | strict | | file / `Now.ID` / table export names |
+| [`no-complex-fluent-logic`](docs/rules/no-complex-fluent-logic.md) | policy | | loops, classes, try/catch in metadata |
 
 ---
 
@@ -310,11 +378,11 @@ script: Now.include("../server/log-state-change.server.js"),
 | `sn/no-gs-now` | `servicenow/no-gs-now` |
 | `sn/no-client-gliderecord` | `servicenow/no-client-gliderecord` |
 | `sn/no-gr-count-iterate` | `servicenow/prefer-glideaggregate` |
-| `sn/validate-gliderecord-calls` | `servicenow/validate-gliderecord-calls` |
+| `sn/validate-gliderecord-calls` | `servicenow/require-query-before-next` |
 | `sn/no-br-current-update` | `servicenow/no-br-current-update` |
 | `servicenow/no-at-method` | `servicenow/no-at-method` |
 | `servicenow/no-packages-calls` | `servicenow/no-packages-calls` |
-| `servicenow/no-weak-references` | `servicenow/no-weak-references` |
+| `servicenow/no-weak-references` | `servicenow/no-weak-references` + `servicenow/no-weak-collections` |
 | `servicenow/no-proxy-internal-calls` | `servicenow/no-proxy` |
 | `servicenow/no-regexp-lookbehind` / `no-private-class-methods` | `servicenow/no-unsupported-syntax` |
 | *(none)* | `servicenow/no-sync-glideajax` |
@@ -332,7 +400,8 @@ script: Now.include("../server/log-state-change.server.js"),
 
 - [ServiceNow Fluent](https://servicenow.github.io/sdk/guides/fluent-overview)
 - [ServiceNow SDK 3.0 / `Now.include`](https://www.servicenow.com/community/servicenow-ide-sdk-and-fluent/announcing-servicenow-sdk-3-0/ta-p/3216612)
-- [JavaScript engine feature support](https://docs.servicenow.com/bundle/utah-api-reference/page/script/JavaScript-engine-upgrade/reference/javascript-engine-feature-support.html)
+- [JavaScript modes](https://www.servicenow.com/docs/r/xanadu/api-reference/scripts/c_JS_modes.html)
+- [JavaScript engine feature support (Zurich)](https://www.servicenow.com/docs/r/zurich/api-reference/scripts/javascript-engine-feature-support.html)
 - [Avoid `current.update()` in Business Rules (KB0715782)](https://support.servicenow.com/kb?id=kb_article_view&sysparm_article=KB0715782)
 - [oxlint JS plugins](https://oxc.rs/docs/guide/usage/linter/js-plugins.html)
 - [oxfmt configuration](https://oxc.rs/docs/guide/usage/formatter/config.html)
@@ -351,6 +420,28 @@ These are platform limits, not bugs in this package:
 
 ---
 
+## Migrating to 2.0.0
+
+2.0.0 is a major release because presets and settings change behavior.
+
+1. Replace `settings.servicenow.ecmaLatest` with `javascriptMode`.
+2. Replace `settings.servicenow.scriptType` with `authoring` and `surfaces`.
+3. Remove ES5-only rules from a context-neutral `recommended` map. Add `configs.classicEs5Rules` where the app is Compatibility or ES5.
+4. Replace `validate-gliderecord-calls` with `require-query-before-next`.
+5. Do not expect autofixes from `no-gs-now`, `prefer-glideaggregate`, `no-at-method`, `no-weak-references`, or `fluent-proper-imports`.
+6. Treat unknown mode as unknown. Valid ES2021 code must not be rejected unless you opt into `classic-es5`.
+
+## Tested compatibility
+
+| Component | Tested range |
+| --- | --- |
+| Node | 20 and 22 (CI) |
+| oxlint | 1.79.x (`>=1.79.0 <2`) |
+| ESLint | 10.x (`>=9`) |
+| oxfmt | optional peer `>=0.16.0` |
+| ServiceNow engine tables | Zurich feature-support document |
+| Fluent directives | Official Fluent API reference (Australia) |
+
 ## Development
 
 ```bash
@@ -358,6 +449,8 @@ npm install
 npm test
 npm run typecheck
 npm run build
+npm run docs
+npm run manifest:check
 ```
 
 Rules live in `src/rules/`. Each rule has:
@@ -366,7 +459,11 @@ Rules live in `src/rules/`. Each rule has:
 - `meta.docs` / `meta.messages`
 - unit tests under `tests/rules/`
 
-The test harness walks an [oxc-parser](https://www.npmjs.com/package/oxc-parser) ESTree AST so CI does not need the oxlint native binary.
+Use `getScriptContext` and `analyzeProvenance`. Do not match platform APIs by name alone.
+
+Autofixes require proof that the rewrite preserves semantics, plus exact output, syntax-validity, idempotence, and comment-preservation tests. Otherwise emit a diagnostic only.
+
+The test harness walks an [oxc-parser](https://www.npmjs.com/package/oxc-parser) ESTree AST. CI also runs the built plugin under real oxlint and ESLint.
 
 ## License
 

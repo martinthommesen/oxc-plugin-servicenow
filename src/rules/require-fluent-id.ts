@@ -1,9 +1,12 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
-import { FLUENT_ENTITIES_REQUIRING_ID, ruleDocsUrl } from "../constants.js";
+import { ruleDocsUrl } from "../constants.js";
 import { getName, getStringValue, isNowIdAccess, objectProperty, objectPropertyValue } from "../utils/ast.js";
-import { isFluentFile } from "../utils/filenames.js";
+import { apisByName } from "../fluent/index.js";
+import { isFluentContext } from "../context/index.js";
+import { objectOptionAt } from "../settings/index.js";
 import { isSysId } from "../utils/sysid.js";
+import { beginRuleFile } from "./helpers.js";
 
 export interface RequireFluentIdOptions {
   preferNowId?: boolean;
@@ -14,8 +17,7 @@ export const requireFluentId = defineRule({
     type: "problem",
     docs: {
       description:
-        "Require Fluent entities to declare `$id`, preferably via `Now.ID['descriptive-key']`.",
-      recommended: "recommended",
+        "Require Fluent entities to declare `$id` when the SDK manifest marks the API as requiring an id. Prefer `Now.ID['descriptive-key']`.",
       url: ruleDocsUrl("require-fluent-id"),
     },
     schema: [
@@ -29,7 +31,7 @@ export const requireFluentId = defineRule({
     ],
     messages: {
       missing:
-        "`{{api}}()` is missing `$id`. Fluent uses `$id` to track the record in `keys.ts` across syncs. Add `$id: Now.ID['{{hint}}']`.",
+        "`{{api}}()` is missing `$id`. The Fluent SDK manifest requires `$id` for this API so `keys.ts` can track the record. Add `$id: Now.ID['{{hint}}']`.",
       preferNowId:
         "Prefer `$id: Now.ID['descriptive-key']` over a raw {{kind}}. Named IDs survive export / import and stay readable in diffs.",
       rawSysId:
@@ -38,16 +40,22 @@ export const requireFluentId = defineRule({
   },
   createOnce(context) {
     let preferNowId: boolean;
+    const apis = apisByName();
 
     return {
       before() {
-        if (!isFluentFile(context.filename)) return false;
-        preferNowId = (context.options[0] as RequireFluentIdOptions | undefined)?.preferNowId !== false;
+        const { context: script } = beginRuleFile(context);
+        if (!isFluentContext(script)) return false;
+        preferNowId =
+          objectOptionAt<RequireFluentIdOptions>(context, 0, new Set(["preferNowId"]), {}).preferNowId !==
+          false;
       },
       CallExpression(node) {
         const call = node as ESTree.CallExpression;
         const api = getName(call.callee);
-        if (!api || !FLUENT_ENTITIES_REQUIRING_ID.has(api)) return;
+        if (!api) return;
+        const capability = apis.get(api);
+        if (!capability || capability.idRequirement !== "required") return;
         const arg = call.arguments[0];
         if (!arg || arg.type !== "ObjectExpression") return;
 

@@ -1,0 +1,25 @@
+{
+  "$schema": "../../../../node_modules/oxlint/configuration_schema.json",
+  "jsPlugins": [
+    { "name": "servicenow", "specifier": "../../../.." }
+  ],
+  "settings": {
+    "servicenow": {
+      "scopePrefix": "x_acme"
+    }
+  },
+  "rules": {
+    "servicenow/no-hardcoded-sysid": "error",
+    "servicenow/no-packages-calls": "error",
+    "servicenow/no-gs-now": "error",
+    "servicenow/require-query-before-next": "error",
+    "servicenow/no-client-gliderecord": "error",
+    "servicenow/no-br-current-update": "error",
+    "servicenow/no-sync-glideajax": "error",
+    "servicenow/no-async-iterators": "error",
+    "servicenow/no-weak-references": "error",
+    "servicenow/fluent-proper-imports": "error",
+    "servicenow/fluent-directives": "warn",
+    "servicenow/require-fluent-id": "error"
+  }
+}

@@ -1,8 +1,9 @@
 import { defineRule } from "@oxlint/plugins";
 import type { Context, ESTree } from "@oxlint/plugins";
-import { BUILTIN_TABLES, GLIDE_RECORD_CTORS, ruleDocsUrl } from "../constants.js";
-import { getStringValue, isNewNamed } from "../utils/ast.js";
-import { getSettings, optionAt } from "../utils/settings.js";
+import { BUILTIN_TABLES, ruleDocsUrl } from "../constants.js";
+import { getName, getStringValue } from "../utils/ast.js";
+import { objectOptionAt } from "../settings/index.js";
+import { beginRuleFile } from "./helpers.js";
 
 export interface NoHardcodedTableNamesOptions {
   allowedTables?: string[];
@@ -10,19 +11,20 @@ export interface NoHardcodedTableNamesOptions {
 }
 
 function allowed(context: Context, options: NoHardcodedTableNamesOptions): Set<string> {
-  const settings = getSettings(context);
-  const names = [...(settings.allowedTables ?? []), ...(options.allowedTables ?? [])];
+  const { context: script } = beginRuleFile(context);
+  const names = [...script.settings.allowedTables, ...(options.allowedTables ?? [])];
   if (options.allowBuiltins) names.push(...BUILTIN_TABLES);
   return new Set(names);
 }
+
+const CTORS = ["GlideRecord", "GlideRecordSecure", "GlideAggregate"] as const;
 
 export const noHardcodedTableNames = defineRule({
   meta: {
     type: "suggestion",
     docs: {
       description:
-        "Disallow string-literal table names in GlideRecord / GlideRecordSecure / GlideAggregate constructors. Prefer named constants.",
-      recommended: "strict",
+        "Disallow string-literal table names in platform GlideRecord / GlideRecordSecure / GlideAggregate constructors. Prefer named constants.",
       url: ruleDocsUrl("no-hardcoded-table-names"),
     },
     schema: [
@@ -45,15 +47,22 @@ export const noHardcodedTableNames = defineRule({
 
     return {
       before() {
-        allow = allowed(context, optionAt<NoHardcodedTableNamesOptions>(context, 0, {}));
+        allow = allowed(
+          context,
+          objectOptionAt<NoHardcodedTableNamesOptions>(
+            context,
+            0,
+            new Set(["allowedTables", "allowBuiltins"]),
+            {},
+          ),
+        );
       },
       NewExpression(node) {
-        if (
-          !GLIDE_RECORD_CTORS.some((ctor) => isNewNamed(node, ctor)) &&
-          !isNewNamed(node, "GlideAggregate")
-        ) {
-          return;
-        }
+        const { analysis } = beginRuleFile(context);
+        const callee = (node as ESTree.NewExpression).callee as ESTree.Node;
+        const name = getName(callee);
+        if (!name || !CTORS.includes(name as (typeof CTORS)[number])) return;
+        if (!analysis.isPlatformGlobal(callee)) return;
         const first = (node as ESTree.NewExpression).arguments[0];
         if (!first || first.type === "SpreadElement") return;
         const table = getStringValue(first);

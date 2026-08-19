@@ -1,13 +1,17 @@
 import { PLUGIN_NAME, ruleDocsUrl } from "./constants.js";
 import type { RuleName } from "./rules/index.js";
+import type { ServiceNowSettings } from "./types.js";
 
 export type RuleFamily = "classic" | "fluent" | "engine";
-export type RulePreset = "recommended" | "strict" | false;
+export type RulePreset = "recommended" | "strict" | "classic-es5" | "es2021" | false;
+
+const ES5: ServiceNowSettings = { javascriptMode: "es5" };
 
 export interface RuleExample {
   name: string;
   filename?: string;
   code: string;
+  settings?: ServiceNowSettings;
 }
 
 export interface RuleCatalogEntry {
@@ -65,17 +69,18 @@ export const ruleCatalog: RuleCatalogEntry[] = [
   entry("no-promise", {
     title: "No Promise",
     family: "engine",
-    preset: "recommended",
+    preset: "classic-es5",
     severity: "error",
     fixable: false,
     hasSuggestions: false,
     description:
-      "The classic ServiceNow JavaScript engine does not implement Promises. Stay synchronous, or opt the file into ES latest.",
+      "Compatibility and ES5 Standards modes do not implement Promises. The rule is silent when JavaScript mode is unknown or ES2021. Local `Promise` bindings are ignored.",
     bad: [
       {
-        name: "constructor and then",
+        name: "constructor",
         filename: "script-include.js",
-        code: `var p = new Promise(function (resolve) { resolve(1); });\np.then(function (value) { gs.info(value); });`,
+        settings: ES5,
+        code: `var p = new Promise(function (resolve) { resolve(1); });`,
       },
     ],
     good: [
@@ -89,15 +94,16 @@ export const ruleCatalog: RuleCatalogEntry[] = [
   entry("no-async-await", {
     title: "No async/await",
     family: "engine",
-    preset: "recommended",
+    preset: "classic-es5",
     severity: "error",
     fixable: false,
     hasSuggestions: false,
-    description: "async/await is not implemented on the classic engine.",
+    description: "async/await is not implemented in Compatibility or ES5 Standards mode.",
     bad: [
       {
         name: "async function",
         filename: "script-include.js",
+        settings: ES5,
         code: `async function loadIncident(id) {\n  return await fetchIncident(id);\n}`,
       },
     ],
@@ -112,21 +118,21 @@ export const ruleCatalog: RuleCatalogEntry[] = [
   entry("no-bigint", {
     title: "No BigInt",
     family: "engine",
-    preset: "recommended",
+    preset: "classic-es5",
     severity: "error",
     fixable: false,
     hasSuggestions: false,
-    description: "BigInt literals and `BigInt()` are unsupported on the classic engine.",
-    bad: [{ name: "literal", filename: "script-include.js", code: `var n = 9007199254740993n;` }],
+    description: "BigInt literals and `BigInt()` are unsupported in Compatibility or ES5 Standards mode.",
+    bad: [{ name: "literal", filename: "script-include.js", settings: ES5, code: `var n = 9007199254740993n;` }],
     good: [{ name: "number", filename: "script-include.js", code: `var n = 9007199254740991;` }],
   }),
   entry("prefer-glideaggregate", {
     title: "Prefer GlideAggregate",
     family: "classic",
-    preset: "recommended",
+    preset: "strict",
     severity: "warn",
     fixable: false,
-    hasSuggestions: true,
+    hasSuggestions: false,
     description:
       "`GlideRecord.getRowCount()` (and iterate-to-count loops) load every matching row. `GlideAggregate` counts in the database.",
     bad: [
@@ -174,7 +180,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
     preset: "recommended",
     severity: "error",
     fixable: false,
-    hasSuggestions: true,
+    hasSuggestions: false,
     description:
       "`gs.now()` and `gs.nowDateTime()` return timezone-sensitive display strings. `gs.now()` is also gone from client scripts since London. Prefer `new GlideDateTime()`.",
     bad: [
@@ -189,15 +195,39 @@ export const ruleCatalog: RuleCatalogEntry[] = [
       },
     ],
   }),
+  entry("require-query-before-next", {
+    title: "Require query before next",
+    family: "classic",
+    preset: "recommended",
+    severity: "error",
+    fixable: false,
+    hasSuggestions: false,
+    description:
+      "Require a proven GlideRecord binding to call `.query()` or `.get()` before `.next()`. `chooseWindow()` does not execute a query. Ambiguous branches are silent.",
+    bad: [
+      {
+        name: "next without query",
+        filename: "incident.br.js",
+        code: `var gr = new GlideRecord("incident");\ngr.addActiveQuery();\ngr.next();`,
+      },
+    ],
+    good: [
+      {
+        name: "query + checked next",
+        filename: "incident.br.js",
+        code: `var gr = new GlideRecord("incident");\ngr.addActiveQuery();\ngr.query();\nwhile (gr.next()) {\n  gs.info(gr.number);\n}`,
+      },
+    ],
+  }),
   entry("validate-gliderecord-calls", {
     title: "Validate GlideRecord calls",
     family: "classic",
-    preset: "recommended",
+    preset: false,
     severity: "warn",
     fixable: false,
     hasSuggestions: false,
     description:
-      "Require `.query()` / `.get()` before `.next()`, and require the return values of `insert`, `update`, `get`, and `next` to be checked.",
+      "Deprecated alias. Prefer `require-query-before-next`. Still reports missing query-before-next and unused insert/update/get/next returns. `chooseWindow()` does not open a cursor.",
     bad: [
       {
         name: "next without query",
@@ -221,7 +251,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
     fixable: false,
     hasSuggestions: false,
     description:
-      "`current.update()` retriggers other Business Rules and can recurse. Set fields on `current` and let the platform save. Reports on Business Rule and `src/server/**` files. UI Actions are exempt. Override with `settings.servicenow.scriptType`.",
+      "`current.update()` retriggers other Business Rules and can recurse. Set fields on `current` and let the platform save. Reports only when the file is a Business Rule. Shadowed `current` bindings are ignored.",
     bad: [
       {
         name: "current.update",
@@ -240,12 +270,12 @@ export const ruleCatalog: RuleCatalogEntry[] = [
   entry("no-hardcoded-table-names", {
     title: "No hardcoded table names",
     family: "classic",
-    preset: "strict",
+    preset: false,
     severity: "warn",
     fixable: false,
     hasSuggestions: false,
     description:
-      "String-literal table names in `GlideRecord` / `GlideRecordSecure` / `GlideAggregate` are hard to rename. Prefer named constants or Fluent table exports.",
+      "Optional organizational policy. String-literal table names in `GlideRecord` / `GlideRecordSecure` / `GlideAggregate` are hard to rename. Prefer named constants or Fluent table exports.",
     bad: [
       {
         name: "literal table",
@@ -266,7 +296,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
     family: "fluent",
     preset: "recommended",
     severity: "error",
-    fixable: true,
+    fixable: false,
     hasSuggestions: false,
     description: "Fluent entity and column APIs must be imported from `@servicenow/sdk/core`.",
     bad: [
@@ -292,7 +322,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
     fixable: false,
     hasSuggestions: false,
     description:
-      "Validate `@fluent-ignore` and `@fluent-disable-sync`, catch typos, and reject `@ts-ignore` as a Fluent suppress.",
+      "Validate `@fluent-ignore`, `@fluent-disable-sync`, and `@fluent-disable-sync-for-file`, catch typos, and reject `@ts-ignore` as a Fluent suppress.",
     bad: [
       {
         name: "typo + ts-ignore",
@@ -311,7 +341,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
   entry("prefer-now-include", {
     title: "Prefer Now.include()",
     family: "fluent",
-    preset: "recommended",
+    preset: "strict",
     severity: "warn",
     fixable: false,
     hasSuggestions: false,
@@ -359,7 +389,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
   entry("fluent-naming-convention", {
     title: "Fluent naming convention",
     family: "fluent",
-    preset: "recommended",
+    preset: "strict",
     severity: "warn",
     fixable: false,
     hasSuggestions: false,
@@ -383,12 +413,12 @@ export const ruleCatalog: RuleCatalogEntry[] = [
   entry("no-complex-fluent-logic", {
     title: "No complex Fluent logic",
     family: "fluent",
-    preset: "recommended",
+    preset: false,
     severity: "warn",
     fixable: false,
     hasSuggestions: false,
     description:
-      "`.now.ts` files should declare metadata. Loops, classes, try/catch, and multi-statement functions belong in `src/server/`.",
+      "Optional architectural policy. `.now.ts` files should declare metadata. Loops, classes, try/catch, and multi-statement functions belong in `src/server/`. Not enabled in recommended or strict.",
     bad: [
       {
         name: "runtime loop",
@@ -407,12 +437,12 @@ export const ruleCatalog: RuleCatalogEntry[] = [
   entry("no-at-method", {
     title: "No .at()",
     family: "engine",
-    preset: "recommended",
-    severity: "warn",
+    preset: "classic-es5",
+    severity: "error",
     fixable: false,
-    hasSuggestions: true,
-    description: "`.at()` is not implemented on the classic engine.",
-    bad: [{ name: "at", filename: "script-include.js", code: `var last = list.at(-1);` }],
+    hasSuggestions: false,
+    description: "`.at()` is not implemented in Compatibility or ES5 Standards mode.",
+    bad: [{ name: "at", filename: "script-include.js", settings: ES5, code: `var last = list.at(-1);` }],
     good: [{ name: "index", filename: "script-include.js", code: `var last = list[list.length - 1];` }],
   }),
   entry("no-packages-calls", {
@@ -440,28 +470,42 @@ export const ruleCatalog: RuleCatalogEntry[] = [
     ],
   }),
   entry("no-weak-references", {
-    title: "No weak references",
-    family: "engine",
-    preset: "strict",
-    severity: "error",
-    fixable: false,
-    hasSuggestions: false,
-    description: "WeakMap / WeakSet / WeakRef / FinalizationRegistry are unsupported classically.",
-    bad: [{ name: "WeakMap", filename: "script-include.js", code: `var cache = new WeakMap();` }],
-    good: [{ name: "Map", filename: "script-include.js", code: `var cache = new Map();` }],
-  }),
-  entry("no-typed-arrays", {
-    title: "No TypedArray / DataView",
+    title: "No WeakRef / FinalizationRegistry",
     family: "engine",
     preset: "recommended",
     severity: "error",
     fixable: false,
     hasSuggestions: false,
-    description: "TypedArray and DataView constructors are unsupported on the classic engine.",
+    description:
+      "WeakRef and FinalizationRegistry are disallowed in every instance JavaScript mode, including ES2021.",
+    bad: [{ name: "WeakRef", filename: "script-include.js", code: `var ref = new WeakRef(obj);` }],
+    good: [{ name: "Map", filename: "script-include.js", code: `var cache = new Map();` }],
+  }),
+  entry("no-weak-collections", {
+    title: "No WeakMap / WeakSet",
+    family: "engine",
+    preset: "classic-es5",
+    severity: "error",
+    fixable: false,
+    hasSuggestions: false,
+    description: "WeakMap and WeakSet are disallowed in Compatibility and ES5 Standards mode. ES2021 supports them.",
+    bad: [{ name: "WeakMap", filename: "script-include.js", settings: ES5, code: `var cache = new WeakMap();` }],
+    good: [{ name: "Map", filename: "script-include.js", settings: ES5, code: `var cache = new Map();` }],
+  }),
+  entry("no-typed-arrays", {
+    title: "No TypedArray / DataView",
+    family: "engine",
+    preset: "classic-es5",
+    severity: "error",
+    fixable: false,
+    hasSuggestions: false,
+    description:
+      "TypedArray and DataView constructors are unsupported in Compatibility and ES5 Standards mode. ES2021 still rejects BigInt64Array / BigUint64Array.",
     bad: [
       {
         name: "Int8Array",
         filename: "script-include.js",
+        settings: ES5,
         code: `var bytes = new Int8Array(16);`,
       },
     ],
@@ -470,27 +514,28 @@ export const ruleCatalog: RuleCatalogEntry[] = [
   entry("no-proxy", {
     title: "No Proxy",
     family: "engine",
-    preset: "recommended",
+    preset: "classic-es5",
     severity: "error",
     fixable: false,
     hasSuggestions: false,
-    description: "`Proxy` is unsupported on the classic engine.",
-    bad: [{ name: "new Proxy", filename: "script-include.js", code: `var p = new Proxy(target, handler);` }],
+    description: "`Proxy` is unsupported in Compatibility and ES5 Standards mode.",
+    bad: [{ name: "new Proxy", filename: "script-include.js", settings: ES5, code: `var p = new Proxy(target, handler);` }],
     good: [{ name: "plain object", filename: "script-include.js", code: `var p = { prop: value };` }],
   }),
   entry("no-unsupported-syntax", {
     title: "No unsupported ES-latest syntax",
     family: "engine",
-    preset: "recommended",
+    preset: "classic-es5",
     severity: "error",
     fixable: false,
     hasSuggestions: false,
     description:
-      "Optional chaining, nullish coalescing, logical assignment, private class members, and RegExp lookbehind are unsupported classically.",
+      "Optional chaining, nullish coalescing, logical assignment, private instance members, and RegExp lookbehind are unsupported in Compatibility and ES5 Standards mode.",
     bad: [
       {
         name: "optional chaining and ??",
         filename: "script-include.js",
+        settings: ES5,
         code: `var name = current.caller_id?.name ?? "unknown";`,
       },
     ],
@@ -529,11 +574,11 @@ export const ruleCatalog: RuleCatalogEntry[] = [
   entry("no-async-iterators", {
     title: "No async iterators",
     family: "engine",
-    preset: "strict",
+    preset: "recommended",
     severity: "error",
     fixable: false,
     hasSuggestions: false,
-    description: "`for await…of` and async generators are unsupported classically.",
+    description: "`for await…of` and async generators are disallowed in every instance JavaScript mode, including ES2021.",
     bad: [
       {
         name: "for await",

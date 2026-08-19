@@ -1,9 +1,9 @@
 # servicenow/no-async-iterators
 
-`for await…of` and async generators are unsupported classically.
+`for await…of` and async generators are disallowed in every instance JavaScript mode, including ES2021.
 
 - **Family:** engine
-- **Preset:** strict
+- **Preset:** recommended
 - **Default severity:** error
 - **Fixable:** no
 - **Suggestions:** no

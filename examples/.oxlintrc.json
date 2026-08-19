@@ -5,40 +5,21 @@
   ],
   "settings": {
     "servicenow": {
-      "scopePrefix": "x_acme",
-      "ecmaLatest": false
+      "scopePrefix": "x_acme"
     }
   },
   "rules": {
     "servicenow/no-hardcoded-sysid": "error",
-    "servicenow/no-promise": "error",
-    "servicenow/no-async-await": "error",
-    "servicenow/no-bigint": "error",
-    "servicenow/prefer-glideaggregate": "warn",
-    "servicenow/no-client-gliderecord": "error",
+    "servicenow/no-packages-calls": "error",
     "servicenow/no-gs-now": "error",
-    "servicenow/validate-gliderecord-calls": "warn",
+    "servicenow/require-query-before-next": "error",
+    "servicenow/no-client-gliderecord": "error",
     "servicenow/no-br-current-update": "error",
+    "servicenow/no-sync-glideajax": "error",
+    "servicenow/no-async-iterators": "error",
+    "servicenow/no-weak-references": "error",
     "servicenow/fluent-proper-imports": "error",
     "servicenow/fluent-directives": "warn",
-    "servicenow/prefer-now-include": "warn",
-    "servicenow/require-fluent-id": "error",
-    "servicenow/fluent-naming-convention": "warn",
-    "servicenow/no-complex-fluent-logic": "warn",
-    "servicenow/no-at-method": "warn",
-    "servicenow/no-packages-calls": "error",
-    "servicenow/no-typed-arrays": "error",
-    "servicenow/no-proxy": "error",
-    "servicenow/no-unsupported-syntax": "error",
-    "servicenow/no-sync-glideajax": "error"
-  },
-  "overrides": [
-    {
-      "files": ["**/*.now.ts"],
-      "rules": {
-        "servicenow/no-promise": "off",
-        "servicenow/no-async-await": "off"
-      }
-    }
-  ]
+    "servicenow/require-fluent-id": "error"
+  }
 }

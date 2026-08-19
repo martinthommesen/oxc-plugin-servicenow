@@ -1,7 +1,9 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
-import { GLIDE_RECORD_CTORS, ruleDocsUrl } from "../constants.js";
-import { declaredName, getName, isNewNamed, memberName } from "../utils/ast.js";
+import { ruleDocsUrl } from "../constants.js";
+import { getName } from "../utils/ast.js";
+import { staticPropertyName } from "../analysis/index.js";
+import { beginRuleFile } from "./helpers.js";
 
 interface GrBinding {
   counted: boolean;
@@ -17,8 +19,7 @@ function emptyBinding(): GrBinding {
 function isIncrement(node: ESTree.Node): boolean {
   if (node.type === "UpdateExpression") return true;
   if (node.type === "AssignmentExpression") {
-    const op = (node as ESTree.AssignmentExpression).operator;
-    return op === "+=";
+    return (node as ESTree.AssignmentExpression).operator === "+=";
   }
   return false;
 }
@@ -28,14 +29,12 @@ export const preferGlideaggregate = defineRule({
     type: "suggestion",
     docs: {
       description:
-        "Prefer GlideAggregate for counting records instead of GlideRecord.getRowCount() or iterate-to-count loops.",
-      recommended: "recommended",
+        "Prefer GlideAggregate for counting records instead of proven GlideRecord.getRowCount() or iterate-to-count loops.",
       url: ruleDocsUrl("prefer-glideaggregate"),
     },
-    hasSuggestions: true,
     messages: {
       getRowCount:
-        "`{{name}}.getRowCount()` loads every matching row. Use `GlideAggregate` with `addAggregate('COUNT')` instead.",
+        "`{{name}}.getRowCount()` loads every matching row. Use `GlideAggregate` with `addAggregate('COUNT')` instead. This diagnostic does not rewrite the query; copy filters by hand.",
       iterateCount:
         "`{{name}}` is only iterated to count rows. Use `GlideAggregate` — it is dramatically faster on large tables.",
     },
@@ -48,48 +47,48 @@ export const preferGlideaggregate = defineRule({
         bindings = new Map();
       },
       VariableDeclarator(node) {
+        const { analysis } = beginRuleFile(context);
         const decl = node as ESTree.VariableDeclarator;
-        const name = declaredName(decl);
-        if (name && decl.init && GLIDE_RECORD_CTORS.some((ctor) => isNewNamed(decl.init, ctor))) {
+        const name = getName(decl.id);
+        if (!name || !decl.init) return;
+        const proven = analysis.ofExpression(decl.init);
+        if (proven?.kind === "GlideRecord" && !proven.invalid) {
           bindings.set(name, emptyBinding());
         }
       },
       AssignmentExpression(node) {
+        const { analysis } = beginRuleFile(context);
         const assign = node as ESTree.AssignmentExpression;
         const name = getName(assign.left);
-        if (name && GLIDE_RECORD_CTORS.some((ctor) => isNewNamed(assign.right, ctor))) {
+        if (!name) return;
+        const proven = analysis.ofExpression(assign.right);
+        if (proven?.kind === "GlideRecord" && !proven.invalid) {
           bindings.set(name, emptyBinding());
+        } else if (name && bindings.has(name)) {
+          bindings.delete(name);
         }
       },
       CallExpression(node) {
         const call = node as ESTree.CallExpression;
-        const member = memberName(call.callee);
-        if (!member) return;
-        const binding = bindings.get(member.object);
+        if (call.callee.type !== "MemberExpression") return;
+        const member = call.callee as ESTree.MemberExpression;
+        const object = getName(member.object);
+        const property = staticPropertyName(member);
+        if (!object || !property) return;
+        const binding = bindings.get(object);
         if (!binding) return;
 
-        if (member.property === "getRowCount") {
+        if (property === "getRowCount") {
           binding.counted = true;
           binding.countNode = node;
           context.report({
             node,
             messageId: "getRowCount",
-            data: { name: member.object },
-            suggest: [
-              {
-                desc: `Replace with GlideAggregate COUNT on ${member.object}`,
-                fix(fixer) {
-                  return fixer.replaceText(
-                    node,
-                    `(function () { var __ga = new GlideAggregate(${member.object}.getTableName ? ${member.object}.getTableName() : '/* table */'); __ga.addAggregate('COUNT'); __ga.query(); return __ga.next() ? parseInt(__ga.getAggregate('COUNT'), 10) : 0; })()`,
-                  );
-                },
-              },
-            ],
+            data: { name: object },
           });
         }
 
-        if (member.property === "next") {
+        if (property === "next") {
           binding.iterated = true;
         }
       },
@@ -115,9 +114,12 @@ export const preferGlideaggregate = defineRule({
     function checkLoopBody(node: ESTree.WhileStatement | ESTree.ForStatement) {
       const test = node.test;
       if (!test || test.type !== "CallExpression") return;
-      const member = memberName((test as ESTree.CallExpression).callee);
-      if (!member || member.property !== "next") return;
-      const binding = bindings.get(member.object);
+      const callee = (test as ESTree.CallExpression).callee;
+      if (callee.type !== "MemberExpression") return;
+      const object = getName((callee as ESTree.MemberExpression).object);
+      const property = staticPropertyName(callee);
+      if (!object || property !== "next") return;
+      const binding = bindings.get(object);
       if (!binding) return;
 
       const body = node.body;

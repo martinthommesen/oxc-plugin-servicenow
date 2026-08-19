@@ -18,10 +18,12 @@ import { noProxy } from "./no-proxy.js";
 import { noSyncGlideajax } from "./no-sync-glideajax.js";
 import { noTypedArrays } from "./no-typed-arrays.js";
 import { noUnsupportedSyntax } from "./no-unsupported-syntax.js";
+import { noWeakCollections } from "./no-weak-collections.js";
 import { noWeakReferences } from "./no-weak-references.js";
 import { preferGlideaggregate } from "./prefer-glideaggregate.js";
 import { preferNowInclude } from "./prefer-now-include.js";
 import { requireFluentId } from "./require-fluent-id.js";
+import { requireQueryBeforeNext } from "./require-query-before-next.js";
 import { validateGliderecordCalls } from "./validate-gliderecord-calls.js";
 
 export const rules = {
@@ -32,6 +34,7 @@ export const rules = {
   "prefer-glideaggregate": preferGlideaggregate,
   "no-client-gliderecord": noClientGliderecord,
   "no-gs-now": noGsNow,
+  "require-query-before-next": requireQueryBeforeNext,
   "validate-gliderecord-calls": validateGliderecordCalls,
   "no-br-current-update": noBrCurrentUpdate,
   "no-hardcoded-table-names": noHardcodedTableNames,
@@ -44,6 +47,7 @@ export const rules = {
   "no-at-method": noAtMethod,
   "no-packages-calls": noPackagesCalls,
   "no-weak-references": noWeakReferences,
+  "no-weak-collections": noWeakCollections,
   "no-async-iterators": noAsyncIterators,
   "no-typed-arrays": noTypedArrays,
   "no-proxy": noProxy,

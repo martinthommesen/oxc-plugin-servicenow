@@ -2,6 +2,10 @@ import assert from "node:assert/strict";
 import { parseSync } from "oxc-parser";
 import { applyRules, type LintMessage, type LintSourceOptions } from "../../src/runtime/apply-rules.js";
 import type { RuleName } from "../../src/rules/index.js";
+import type { ServiceNowSettings } from "../../src/types.js";
+
+export const ES5: ServiceNowSettings = { javascriptMode: "es5" };
+export const ES2021: ServiceNowSettings = { javascriptMode: "es2021" };
 
 export interface RunOptions extends LintSourceOptions {
   filename?: string;

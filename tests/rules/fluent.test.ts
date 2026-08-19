@@ -1,5 +1,5 @@
 import { describe, it } from "node:test";
-import { assertFix, assertInvalid, assertValid } from "../helpers/rule-tester.js";
+import { assertInvalid, assertValid, lint } from "../helpers/rule-tester.js";
 
 const NOW = "file.now.ts";
 
@@ -36,19 +36,44 @@ describe("fluent-proper-imports", () => {
     });
   });
 
-  it("rewrites a wrong-module import to @servicenow/sdk/core", () => {
-    assertFix(
-      `import { BusinessRule } from "@servicenow/sdk";`,
-      "fluent-proper-imports",
-      `import { BusinessRule } from "@servicenow/sdk/core";`,
-      { filename: NOW },
-    );
+  it("does not rewrite a wrong-module import", () => {
+    const messages = lint(`import { BusinessRule } from "@servicenow/sdk";`, "fluent-proper-imports", {
+      filename: NOW,
+    });
+    if (!messages.every((message) => message.fixedSource === undefined)) {
+      throw new Error("expected no autofix");
+    }
   });
 
   it("allows a Fluent call above its hoisted import", () => {
     assertValid(
       'Table({ name: "x_a" });\nimport { Table } from "@servicenow/sdk/core";',
       "fluent-proper-imports",
+      { filename: NOW },
+    );
+  });
+
+  it("allows an aliased core import", () => {
+    assertValid(
+      `import { BusinessRule as BR } from "@servicenow/sdk/core";\nBR({ $id: Now.ID["x"], table: "incident" });`,
+      "fluent-proper-imports",
+      { filename: NOW },
+    );
+  });
+
+  it("allows a namespace import from core", () => {
+    assertValid(
+      `import * as core from "@servicenow/sdk/core";\ncore.BusinessRule({ $id: Now.ID["x"], table: "incident" });`,
+      "fluent-proper-imports",
+      { filename: NOW },
+    );
+  });
+
+  it("flags a namespace import from the wrong module", () => {
+    assertInvalid(
+      `import * as sdk from "@servicenow/sdk";\nsdk.BusinessRule({ $id: Now.ID["x"], table: "incident" });`,
+      "fluent-proper-imports",
+      { messageId: "wrongModule" },
       { filename: NOW },
     );
   });
@@ -184,6 +209,23 @@ describe("fluent-directives", () => {
     assertValid(
       `// @fluent-disable-sync\nimport { Record } from "@servicenow/sdk/core";\nRecord({ $id: Now.ID["x"], table: "incident", data: {} });\n`,
       "fluent-directives",
+      { filename: NOW },
+    );
+  });
+
+  it("allows @fluent-disable-sync-for-file on the first line", () => {
+    assertValid(
+      `// @fluent-disable-sync-for-file\nimport { Record } from "@servicenow/sdk/core";\nRecord({ $id: Now.ID["x"], table: "incident", data: {} });\n`,
+      "fluent-directives",
+      { filename: NOW },
+    );
+  });
+
+  it("flags @fluent-disable-sync-for-file after the first line", () => {
+    assertInvalid(
+      `import { Record } from "@servicenow/sdk/core";\n// @fluent-disable-sync-for-file\nRecord({ $id: Now.ID["x"], table: "incident", data: {} });\n`,
+      "fluent-directives",
+      { messageId: "firstLine" },
       { filename: NOW },
     );
   });

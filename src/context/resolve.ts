@@ -1,0 +1,252 @@
+import type { Context } from "@oxlint/plugins";
+import { fallbackComments } from "../utils/ast.js";
+import { getValidatedSettingsResult } from "../settings/index.js";
+import type {
+  ContextConfidence,
+  ContextSourceMap,
+  JavaScriptMode,
+  ScriptAuthoring,
+  ScriptKind,
+  ScriptSurface,
+  ServiceNowScriptContext,
+  SettingsDeprecation,
+  ValidatedServiceNowSettings,
+} from "../types.js";
+import {
+  ES_LATEST_IN_COMMENT,
+  authoringFromFilename,
+  isFluentFile,
+  looksLikeClientSource,
+  surfacesFromFilename,
+} from "./filename.js";
+
+const CONFIDENCE_RANK: Record<ContextConfidence, number> = {
+  unknown: 0,
+  inferred: 1,
+  filename: 2,
+  explicit: 3,
+};
+
+function stronger(left: ContextConfidence, right: ContextConfidence): ContextConfidence {
+  return CONFIDENCE_RANK[left] >= CONFIDENCE_RANK[right] ? left : right;
+}
+
+function weakest(sources: ContextSourceMap): ContextConfidence {
+  return [sources.authoring, sources.surfaces, sources.javascriptMode, sources.scope].reduce(
+    (min, item) => (CONFIDENCE_RANK[item] < CONFIDENCE_RANK[min] ? item : min),
+  );
+}
+
+function kindToSurface(kind: ScriptKind): ScriptSurface | undefined {
+  switch (kind) {
+    case "client":
+    case "business-rule":
+    case "script-include":
+    case "server":
+    case "ui-action":
+      return kind;
+    case "fluent":
+    case "unknown":
+      return undefined;
+    default: {
+      const _exhaustive: never = kind;
+      return _exhaustive;
+    }
+  }
+}
+
+function commentsOf(context: Context): Array<{ value: string }> {
+  const sourceCode = context.sourceCode as {
+    getAllComments?: () => Array<{ value: string }>;
+    text: string;
+  };
+  if (typeof sourceCode.getAllComments === "function") {
+    return sourceCode.getAllComments();
+  }
+  return fallbackComments(sourceCode.text);
+}
+
+function hasEsLatestPragma(context: Context): boolean {
+  return commentsOf(context).some((comment) => ES_LATEST_IN_COMMENT.test(comment.value));
+}
+
+function resolveAuthoring(
+  filename: string,
+  settings: ValidatedServiceNowSettings,
+): { authoring: ScriptAuthoring; confidence: ContextConfidence } {
+  if (settings.authoring !== "auto") {
+    return { authoring: settings.authoring, confidence: "explicit" };
+  }
+  if (settings.scriptType === "fluent") {
+    return { authoring: "fluent", confidence: "explicit" };
+  }
+  const fromFile = authoringFromFilename(filename);
+  if (fromFile) {
+    return { authoring: fromFile, confidence: "filename" };
+  }
+  return { authoring: "classic", confidence: "unknown" };
+}
+
+function resolveSurfaces(
+  filename: string,
+  sourceText: string,
+  settings: ValidatedServiceNowSettings,
+  authoring: ScriptAuthoring,
+): { surfaces: Set<ScriptSurface>; confidence: ContextConfidence } {
+  if (authoring === "fluent") {
+    return { surfaces: new Set(), confidence: "filename" };
+  }
+
+  if (settings.surfaces !== "auto") {
+    return { surfaces: new Set(settings.surfaces), confidence: "explicit" };
+  }
+
+  if (settings.scriptType !== "auto" && settings.scriptType !== "unknown" && settings.scriptType !== "fluent") {
+    const surface = kindToSurface(settings.scriptType);
+    return { surfaces: new Set(surface ? [surface] : []), confidence: "explicit" };
+  }
+
+  const fromFile = surfacesFromFilename(filename);
+  if (fromFile.length > 0) {
+    return { surfaces: new Set(fromFile), confidence: "filename" };
+  }
+
+  if (looksLikeClientSource(sourceText)) {
+    return { surfaces: new Set<ScriptSurface>(["client"]), confidence: "inferred" };
+  }
+
+  return { surfaces: new Set(), confidence: "unknown" };
+}
+
+function resolveJavaScriptMode(
+  context: Context,
+  settings: ValidatedServiceNowSettings,
+  authoring: ScriptAuthoring,
+  deprecations: SettingsDeprecation[],
+): { mode: JavaScriptMode; confidence: ContextConfidence } {
+  if (settings.javascriptMode !== undefined) {
+    return { mode: settings.javascriptMode, confidence: "explicit" };
+  }
+  if (settings.ecmaLatest === true) {
+    return { mode: "es2021", confidence: "explicit" };
+  }
+  if (authoring === "fluent" || isFluentFile(context.filename)) {
+    return { mode: "unknown", confidence: "filename" };
+  }
+  if (hasEsLatestPragma(context)) {
+    deprecations.push({
+      path: "@sn-es-latest",
+      message:
+        "`@sn-es-latest` is a repository convention, not ServiceNow metadata. Set `settings.servicenow.javascriptMode` instead. The pragma maps to `es2021` for one major-release cycle.",
+    });
+    return { mode: "es2021", confidence: "inferred" };
+  }
+  return { mode: "unknown", confidence: "unknown" };
+}
+
+export function resolveScriptContext(context: Context): ServiceNowScriptContext {
+  const { settings, deprecations } = getValidatedSettingsResult(context);
+  const filename = context.filename;
+  const sourceText = context.sourceCode.text;
+
+  const authoring = resolveAuthoring(filename, settings);
+  const surfaces = resolveSurfaces(filename, sourceText, settings, authoring.authoring);
+  const localDeprecations = [...deprecations];
+  const javascriptMode = resolveJavaScriptMode(context, settings, authoring.authoring, localDeprecations);
+  const scopeConfidence: ContextConfidence = settings.scope === "unknown" ? "unknown" : "explicit";
+
+  const sources: ContextSourceMap = {
+    authoring: authoring.confidence,
+    surfaces: surfaces.confidence,
+    javascriptMode: javascriptMode.confidence,
+    scope: scopeConfidence,
+  };
+
+  return {
+    authoring: authoring.authoring,
+    surfaces: surfaces.surfaces,
+    javascriptMode: javascriptMode.mode,
+    scope: settings.scope,
+    confidence: stronger(weakest(sources), stronger(authoring.confidence, surfaces.confidence)),
+    sources,
+    businessRuleSourceFormat: settings.businessRuleSourceFormat,
+    settings,
+    deprecations: localDeprecations,
+  };
+}
+
+export function hasSurface(ctx: ServiceNowScriptContext, surface: ScriptSurface): boolean {
+  return ctx.surfaces.has(surface);
+}
+
+export function isFluentContext(ctx: ServiceNowScriptContext): boolean {
+  return ctx.authoring === "fluent";
+}
+
+export function isInstanceScript(ctx: ServiceNowScriptContext): boolean {
+  return ctx.authoring === "classic";
+}
+
+export function javascriptModeIs(
+  ctx: ServiceNowScriptContext,
+  ...modes: JavaScriptMode[]
+): boolean {
+  return modes.includes(ctx.javascriptMode);
+}
+
+/**
+ * Mode-specific engine rules run only when the mode is known and is one of `modes`.
+ * Unknown mode never assumes ES5.
+ */
+export function appliesInJavaScriptModes(
+  ctx: ServiceNowScriptContext,
+  modes: readonly JavaScriptMode[],
+): boolean {
+  if (!isInstanceScript(ctx)) return false;
+  if (ctx.javascriptMode === "unknown") return false;
+  return modes.includes(ctx.javascriptMode);
+}
+
+/**
+ * Features that ServiceNow documents as unsupported in every instance mode
+ * may run when the file is an instance script, including unknown mode.
+ */
+export function appliesToInstanceScripts(ctx: ServiceNowScriptContext): boolean {
+  return isInstanceScript(ctx);
+}
+
+const SURFACE_MIN: Record<ContextConfidence, number> = {
+  unknown: 0,
+  inferred: 1,
+  filename: 2,
+  explicit: 3,
+};
+
+export function appliesOnSurface(
+  ctx: ServiceNowScriptContext,
+  surface: ScriptSurface,
+  minimum: ContextConfidence = "inferred",
+): boolean {
+  if (isFluentContext(ctx)) return false;
+  if (!ctx.surfaces.has(surface)) return false;
+  return SURFACE_MIN[ctx.sources.surfaces] >= SURFACE_MIN[minimum];
+}
+
+let memoFilename: string | undefined;
+let memoText: string | undefined;
+let memoSettings: ValidatedServiceNowSettings | undefined;
+let memoContext: ServiceNowScriptContext | undefined;
+
+export function getScriptContext(context: Context): ServiceNowScriptContext {
+  const settings = getValidatedSettingsResult(context).settings;
+  const { filename } = context;
+  const text = context.sourceCode.text;
+  if (filename === memoFilename && text === memoText && settings === memoSettings && memoContext) {
+    return memoContext;
+  }
+  memoFilename = filename;
+  memoText = text;
+  memoSettings = settings;
+  memoContext = resolveScriptContext(context);
+  return memoContext;
+}

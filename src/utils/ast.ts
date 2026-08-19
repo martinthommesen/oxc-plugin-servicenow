@@ -198,29 +198,51 @@ export function fallbackComments(text: string): Array<{ value: string; start: nu
   return out;
 }
 
+/** Keys that are not syntactic children. ESLint AST nodes also store `parent`. */
+export const WALK_SKIP_KEYS = new Set([
+  "type",
+  "loc",
+  "range",
+  "span",
+  "start",
+  "end",
+  "parent",
+  "comments",
+  "tokens",
+  "leadingComments",
+  "trailingComments",
+  "innerComments",
+]);
+
 /**
  * Depth-first walk. `ancestors` is mutated so `getAncestors()` can read the
  * parent chain while a visitor is running (current node is last).
+ *
+ * Host ASTs may attach `parent` and comment/token lists. Those keys are
+ * skipped, and already-visited nodes are not entered again.
  */
 export function walk(
   node: AnyNode,
   visitors: Record<string, ((node: ESTree.Node) => void) | undefined>,
   ancestors: ESTree.Node[] = [],
+  seen: WeakSet<object> = new WeakSet(),
 ): void {
   if (!isNode(node)) return;
+  if (seen.has(node)) return;
+  seen.add(node);
   const typed = node as ESTree.Node;
   ancestors.push(typed);
   visitors[typed.type]?.(typed);
 
   for (const key of Object.keys(node)) {
-    if (key === "type" || key === "loc" || key === "range" || key === "span") continue;
+    if (WALK_SKIP_KEYS.has(key)) continue;
     const value = (node as unknown as Record<string, unknown>)[key];
     if (Array.isArray(value)) {
       for (const child of value) {
-        if (isNode(child)) walk(child, visitors, ancestors);
+        if (isNode(child)) walk(child, visitors, ancestors, seen);
       }
     } else if (isNode(value)) {
-      walk(value, visitors, ancestors);
+      walk(value, visitors, ancestors, seen);
     }
   }
 

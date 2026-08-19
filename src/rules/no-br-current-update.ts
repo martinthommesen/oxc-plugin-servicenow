@@ -1,17 +1,17 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
-import { isCallTo } from "../utils/ast.js";
-import type { ScriptKind } from "../types.js";
-import { classifyFromContext } from "../utils/filenames.js";
+import { getName } from "../utils/ast.js";
+import { staticPropertyName } from "../analysis/index.js";
+import { appliesOnSurface } from "../context/index.js";
+import { beginRuleFile } from "./helpers.js";
 
 export const noBrCurrentUpdate = defineRule({
   meta: {
     type: "problem",
     docs: {
       description:
-        "Disallow `current.update()` in Business Rules and `src/server/**` scripts. It retriggers other rules and can recurse.",
-      recommended: "recommended",
+        "Disallow `current.update()` in Business Rules. It retriggers other rules and can recurse. UI Actions and Script Includes are not Business Rules.",
       url: ruleDocsUrl("no-br-current-update"),
     },
     messages: {
@@ -20,15 +20,20 @@ export const noBrCurrentUpdate = defineRule({
     },
   },
   createOnce(context) {
-    let kind: ScriptKind;
     return {
       before() {
-        kind = classifyFromContext(context);
-        if (kind !== "business-rule" && kind !== "server") return false;
+        const { context: script } = beginRuleFile(context);
+        if (!appliesOnSurface(script, "business-rule")) return false;
       },
       CallExpression(node) {
-        if (!isCallTo(node, "current", "update")) return;
-        context.report({ node: node as ESTree.Node, messageId: "update" });
+        const { analysis } = beginRuleFile(context);
+        const call = node as ESTree.CallExpression;
+        if (call.callee.type !== "MemberExpression") return;
+        const member = call.callee as ESTree.MemberExpression;
+        if (getName(member.object) !== "current") return;
+        if (!analysis.isPlatformGlobal(member.object as ESTree.Node)) return;
+        if (staticPropertyName(member) !== "update") return;
+        context.report({ node, messageId: "update" });
       },
     };
   },

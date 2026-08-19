@@ -1,12 +1,12 @@
 # servicenow/no-at-method
 
-`.at()` is not implemented on the classic engine.
+`.at()` is not implemented in Compatibility or ES5 Standards mode.
 
 - **Family:** engine
-- **Preset:** recommended
-- **Default severity:** warn
+- **Preset:** classic-es5
+- **Default severity:** error
 - **Fixable:** no
-- **Suggestions:** yes
+- **Suggestions:** no
 
 ## Incorrect
 

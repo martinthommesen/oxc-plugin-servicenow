@@ -2,7 +2,8 @@ import { defineRule } from "@oxlint/plugins";
 import type { Context, ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
 import { getName, getStringValue } from "../utils/ast.js";
-import { getSettings, optionAt } from "../utils/settings.js";
+import { objectOptionAt } from "../settings/index.js";
+import { beginRuleFile } from "./helpers.js";
 import { findSysIds, looksLikeMd5Context } from "../utils/sysid.js";
 
 export interface NoHardcodedSysIdOptions {
@@ -11,9 +12,9 @@ export interface NoHardcodedSysIdOptions {
 }
 
 function allowedSet(context: Context, options: NoHardcodedSysIdOptions): Set<string> {
-  const settings = getSettings(context);
+  const { context: script } = beginRuleFile(context);
   return new Set(
-    [...(settings.allowedSysIds ?? []), ...(options.allowedSysIds ?? [])].map((id) =>
+    [...script.settings.allowedSysIds, ...(options.allowedSysIds ?? [])].map((id) =>
       id.toLowerCase(),
     ),
   );
@@ -70,7 +71,12 @@ export const noHardcodedSysid = defineRule({
 
     return {
       before() {
-        const options = optionAt<NoHardcodedSysIdOptions>(context, 0, {});
+        const options = objectOptionAt<NoHardcodedSysIdOptions>(
+          context,
+          0,
+          new Set(["allowedSysIds", "ignoreHashNames"]),
+          {},
+        );
         allowed = allowedSet(context, options);
         ignoreHashNames = options.ignoreHashNames !== false;
         lastBinding = null;

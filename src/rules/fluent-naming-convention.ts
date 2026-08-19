@@ -2,8 +2,10 @@ import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
 import { getName, getStringValue, nowIdKey, objectPropertyValue } from "../utils/ast.js";
-import { basename, isFluentFile } from "../utils/filenames.js";
-import { getSettings, optionAt } from "../utils/settings.js";
+import { basename } from "../utils/filenames.js";
+import { objectOptionAt } from "../settings/index.js";
+import { isFluentContext } from "../context/index.js";
+import { beginRuleFile } from "./helpers.js";
 
 export interface FluentNamingOptions {
   idStyle?: "kebab-case" | "snake_case" | "either";
@@ -57,11 +59,17 @@ export const fluentNamingConvention = defineRule({
 
     return {
       before() {
-        if (!isFluentFile(context.filename)) return false;
-        const options = optionAt<FluentNamingOptions>(context, 0, {});
+        const { context: script } = beginRuleFile(context);
+        if (!isFluentContext(script)) return false;
+        const options = objectOptionAt<FluentNamingOptions>(
+          context,
+          0,
+          new Set(["idStyle", "fileStyle"]),
+          {},
+        );
         idStyle = options.idStyle ?? "kebab-case";
         fileStyle = options.fileStyle ?? "kebab-case";
-        scopePrefix = getSettings(context).scopePrefix;
+        scopePrefix = script.settings.scopePrefix;
 
         const file = basename(context.filename);
         const stem = file.replace(/\.now\.tsx?$/i, "");

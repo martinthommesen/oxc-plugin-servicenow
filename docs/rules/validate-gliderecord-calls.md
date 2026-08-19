@@ -1,9 +1,9 @@
 # servicenow/validate-gliderecord-calls
 
-Require `.query()` / `.get()` before `.next()`, and require the return values of `insert`, `update`, `get`, and `next` to be checked.
+Deprecated alias. Prefer `require-query-before-next`. Still reports missing query-before-next and unused insert/update/get/next returns. `chooseWindow()` does not open a cursor.
 
 - **Family:** classic
-- **Preset:** recommended
+- **Preset:** off
 - **Default severity:** warn
 - **Fixable:** no
 - **Suggestions:** no

@@ -1,6 +1,22 @@
 import { definePlugin, eslintCompatPlugin } from "@oxlint/plugins";
 import { recommended, recommendedRules } from "./configs/recommended.js";
 import { strict, strictRules } from "./configs/strict.js";
+import {
+  businessRule,
+  businessRuleRules,
+  classicEs5,
+  classicEs5Rules,
+  client,
+  clientRules,
+  es2021,
+  es2021Rules,
+  fluent,
+  fluentRules,
+  policy,
+  policyRules,
+  security,
+  securityRules,
+} from "./configs/profiles.js";
 import { PACKAGE_NAME, PACKAGE_VERSION, PLUGIN_NAME } from "./constants.js";
 import { rules } from "./rules/index.js";
 
@@ -31,33 +47,45 @@ const ESLINT_FLAT_FILES = [
   "**/*.now.tsx",
 ];
 
+function flatConfig(name: string, rulesMap: typeof recommendedRules) {
+  return {
+    name: `${PLUGIN_NAME}/${name}`,
+    files: ESLINT_FLAT_FILES,
+    plugins: { [PLUGIN_NAME]: plugin },
+    rules: rulesMap,
+  };
+}
+
 export const configs = {
   recommended,
   strict,
+  classicEs5,
+  es2021,
+  client,
+  businessRule,
+  fluent,
+  policy,
+  security,
   recommendedRules,
   strictRules,
+  classicEs5Rules,
+  es2021Rules,
+  clientRules,
+  businessRuleRules,
+  fluentRules,
+  policyRules,
+  securityRules,
   /**
    * ESLint 9 flat-config objects. Spread into `export default [ ... ]`.
-   *
-   * @example
-   * ```js
-   * import servicenow from "oxc-plugin-servicenow";
-   * export default [servicenow.configs.flat.recommended];
-   * ```
    */
   flat: {
-    recommended: {
-      name: `${PLUGIN_NAME}/recommended`,
-      files: ESLINT_FLAT_FILES,
-      plugins: { [PLUGIN_NAME]: plugin },
-      rules: recommendedRules,
-    },
-    strict: {
-      name: `${PLUGIN_NAME}/strict`,
-      files: ESLINT_FLAT_FILES,
-      plugins: { [PLUGIN_NAME]: plugin },
-      rules: strictRules,
-    },
+    recommended: flatConfig("recommended", recommendedRules),
+    strict: flatConfig("strict", strictRules),
+    classicEs5: flatConfig("classic-es5", classicEs5Rules),
+    es2021: flatConfig("es2021", es2021Rules),
+    client: flatConfig("client", clientRules),
+    businessRule: flatConfig("business-rule", businessRuleRules),
+    fluent: flatConfig("fluent", fluentRules),
   },
 };
 
@@ -70,6 +98,17 @@ export { recommendedOxfmtConfig, recommended as oxfmtRecommended } from "./oxfmt
 export { applyRules } from "./runtime/apply-rules.js";
 export { ruleCatalog } from "./catalog.js";
 export { PACKAGE_NAME, PACKAGE_VERSION, PLUGIN_NAME } from "./constants.js";
-export type { ServiceNowSettings, ScriptKind, RuleConfigMap } from "./types.js";
+export { getScriptContext, resolveScriptContext } from "./context/index.js";
+export { validateServiceNowSettings, ServiceNowSettingsError, ServiceNowConfigError } from "./settings/index.js";
+export { DEFAULT_FLUENT_MANIFEST } from "./fluent/index.js";
+export { ENGINE_FEATURES } from "./engine/index.js";
+export type {
+  ServiceNowSettings,
+  ServiceNowScriptContext,
+  ScriptKind,
+  ScriptSurface,
+  JavaScriptMode,
+  RuleConfigMap,
+} from "./types.js";
 export type { RuleName } from "./rules/index.js";
 export type { LintMessage, LintSourceOptions } from "./runtime/apply-rules.js";

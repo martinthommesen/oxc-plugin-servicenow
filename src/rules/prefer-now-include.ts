@@ -2,8 +2,9 @@ import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { FLUENT_LARGE_CONTENT_KEYS, ruleDocsUrl } from "../constants.js";
 import { getStringValue, isNowIncludeCall, propertyKeyName } from "../utils/ast.js";
-import { isFluentFile } from "../utils/filenames.js";
-import { optionAt } from "../utils/settings.js";
+import { objectOptionAt } from "../settings/index.js";
+import { isFluentContext } from "../context/index.js";
+import { beginRuleFile } from "./helpers.js";
 
 export interface PreferNowIncludeOptions {
   maxLines?: number;
@@ -44,8 +45,14 @@ export const preferNowInclude = defineRule({
 
     return {
       before() {
-        if (!isFluentFile(context.filename)) return false;
-        const options = optionAt<PreferNowIncludeOptions>(context, 0, {});
+        const { context: script } = beginRuleFile(context);
+        if (!isFluentContext(script)) return false;
+        const options = objectOptionAt<PreferNowIncludeOptions>(
+          context,
+          0,
+          new Set(["maxLines", "maxChars"]),
+          {},
+        );
         maxLines = options.maxLines ?? 8;
         maxChars = options.maxChars ?? 400;
       },

@@ -5,8 +5,9 @@ Fluent entity and column APIs must be imported from `@servicenow/sdk/core`.
 - **Family:** fluent
 - **Preset:** recommended
 - **Default severity:** error
-- **Fixable:** yes
+- **Fixable:** no
 - **Suggestions:** no
+- **Fluent manifest:** sdk-docs-2026-03
 
 ## Incorrect
 

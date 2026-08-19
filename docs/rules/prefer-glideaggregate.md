@@ -3,10 +3,10 @@
 `GlideRecord.getRowCount()` (and iterate-to-count loops) load every matching row. `GlideAggregate` counts in the database.
 
 - **Family:** classic
-- **Preset:** recommended
+- **Preset:** strict
 - **Default severity:** warn
 - **Fixable:** no
-- **Suggestions:** yes
+- **Suggestions:** no
 
 ## Incorrect
 

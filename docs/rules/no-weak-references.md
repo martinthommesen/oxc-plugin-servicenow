@@ -1,19 +1,19 @@
 # servicenow/no-weak-references
 
-WeakMap / WeakSet / WeakRef / FinalizationRegistry are unsupported classically.
+WeakRef and FinalizationRegistry are disallowed in every instance JavaScript mode, including ES2021.
 
 - **Family:** engine
-- **Preset:** strict
+- **Preset:** recommended
 - **Default severity:** error
 - **Fixable:** no
 - **Suggestions:** no
 
 ## Incorrect
 
-### ❌ WeakMap
+### ❌ WeakRef
 
 ```js
-var cache = new WeakMap();
+var ref = new WeakRef(obj);
 ```
 
 ## Correct

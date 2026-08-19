@@ -1,15 +1,15 @@
 import { describe, it } from "node:test";
-import { assertInvalid, assertValid } from "../helpers/rule-tester.js";
+import { assertInvalid, assertValid, ES5 } from "../helpers/rule-tester.js";
 
 const RULE = "no-async-await" as const;
 
 describe(RULE, () => {
   it("flags async functions", () => {
-    assertInvalid(`async function load() { return 1; }`, RULE, { messageId: "asyncFn" });
+    assertInvalid(`async function load() { return 1; }`, RULE, { messageId: "asyncFn" }, { settings: ES5 });
   });
 
   it("flags await", () => {
-    assertInvalid(`async function load() { await other(); }`, RULE, { count: 2 });
+    assertInvalid(`async function load() { await other(); }`, RULE, { count: 2 }, { settings: ES5 });
   });
 
   it("allows sync functions", () => {
