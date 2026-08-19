@@ -37,18 +37,20 @@ if (large >= 2000) {
   throw new Error(`large fixture exceeded 2000ms (${large}ms)`);
 }
 
-writeFileSync(
-  join(root, "docs/performance-baseline.json"),
-  `${JSON.stringify(
-    {
-      date: "2026-08-19",
-      node: process.version,
-      oxlintPeer: ">=1.79.0 <2",
-      command: "npm run bench",
-      rows,
-      thresholdMs: 2000,
-    },
-    null,
-    2,
-  )}\n`,
-);
+if (process.argv.includes("--write")) {
+  writeFileSync(
+    join(root, "docs/performance-baseline.json"),
+    `${JSON.stringify(
+      {
+        date: new Date().toISOString().slice(0, 10),
+        node: process.version,
+        oxlintPeer: ">=1.79.0 <2",
+        command: "npm run bench",
+        rows,
+        thresholdMs: 2000,
+      },
+      null,
+      2,
+    )}\n`,
+  );
+}

@@ -10,6 +10,8 @@ npm run bench
 
 The command generates deterministic GlideRecord blocks (20, 80, and 200 instances) and times `applyRules`.
 
+`docs/performance-baseline.json` stores the last recorded result for the tested Node and oxlint peer range. Update that file with `npm run bench -- --write` when provenance, path-sensitive analysis, or the recommended rule set changes.
+
 `npm test` also runs `tests/perf/benchmark.test.ts`, which fails if 80 blocks take 2000 ms or more.
 
 ## Release gate
@@ -25,4 +27,4 @@ Those thresholds detect quadratic scans. They are not nanosecond budgets.
 
 Rules return `false` from `before()` when the file surface or JavaScript mode does not apply. Whole-file analyses run from a `Program` visitor so oxlint does not drop diagnostics.
 
-Record a new baseline in the pull request when you change provenance, path-sensitive analysis, or the recommended rule set.
+Record a new baseline in the pull request when you change provenance, path-sensitive analysis, or the recommended rule set. Commit `docs/performance-baseline.json` with that change.
