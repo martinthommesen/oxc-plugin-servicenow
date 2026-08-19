@@ -9,7 +9,7 @@ export const noGsNow = defineRule({
     type: "problem",
     docs: {
       description:
-        "Disallow `gs.now()`. It is unsupported on the client since London and timezone-unsafe on the server.",
+        "Disallow `gs.now()` and `gs.nowDateTime()`. They are timezone-unsafe, and `gs.now()` is unsupported on the client since London.",
       recommended: "recommended",
       url: ruleDocsUrl("no-gs-now"),
     },
@@ -20,14 +20,18 @@ export const noGsNow = defineRule({
         "`gs.now()` has not been available in client scripts since London. Use `new GlideDateTime()` (or a display value from the server).",
       server:
         "`gs.now()` returns a display string in the session timezone and is easy to misuse. Prefer `new GlideDateTime()`.",
+      nowDateTime:
+        "`gs.nowDateTime()` returns a display string in the session timezone. Prefer `new GlideDateTime()`.",
     },
   },
   createOnce(context) {
     return {
       CallExpression(node) {
-        if (!isCallTo(node, "gs", "now")) return;
+        const isNow = isCallTo(node, "gs", "now");
+        const isNowDateTime = isCallTo(node, "gs", "nowDateTime");
+        if (!isNow && !isNowDateTime) return;
         const kind = classifyFromContext(context);
-        const messageId = kind === "client" ? "client" : "server";
+        const messageId = isNowDateTime ? "nowDateTime" : kind === "client" ? "client" : "server";
         context.report({
           node,
           messageId,

@@ -51,7 +51,11 @@ Existing ESLint plugins (`eslint-plugin-servicenow`, `eslint-plugin-sn`) cover p
     "servicenow/fluent-naming-convention": "warn",
     "servicenow/no-complex-fluent-logic": "warn",
     "servicenow/no-at-method": "warn",
-    "servicenow/no-packages-calls": "error"
+    "servicenow/no-packages-calls": "error",
+    "servicenow/no-typed-arrays": "error",
+    "servicenow/no-proxy": "error",
+    "servicenow/no-unsupported-syntax": "error",
+    "servicenow/no-sync-glideajax": "error"
   }
 }
 ```
@@ -189,11 +193,12 @@ Fluent `.now.ts` files skip engine bans automatically.
 | [`no-hardcoded-sysid`](docs/rules/no-hardcoded-sysid.md) | recommended | | 32-char hex sys_ids |
 | [`prefer-glideaggregate`](docs/rules/prefer-glideaggregate.md) | recommended | suggest | `getRowCount()` / iterate-to-count |
 | [`no-client-gliderecord`](docs/rules/no-client-gliderecord.md) | recommended | | `GlideRecord` in client scripts |
-| [`no-gs-now`](docs/rules/no-gs-now.md) | recommended | fix | `gs.now()` |
+| [`no-gs-now`](docs/rules/no-gs-now.md) | recommended | fix | `gs.now()` / `gs.nowDateTime()` |
 | [`validate-gliderecord-calls`](docs/rules/validate-gliderecord-calls.md) | recommended | | `.next()` without `.query()`, ignored return values |
 | [`no-br-current-update`](docs/rules/no-br-current-update.md) | recommended | | `current.update()` |
 | [`no-hardcoded-table-names`](docs/rules/no-hardcoded-table-names.md) | strict | | string-literal table names |
 | [`no-packages-calls`](docs/rules/no-packages-calls.md) | recommended | | `Packages.*` Java bridge |
+| [`no-sync-glideajax`](docs/rules/no-sync-glideajax.md) | recommended | | `GlideAjax.getXMLWait()` |
 
 ### Classic engine (Rhino / ES5)
 
@@ -205,6 +210,9 @@ Fluent `.now.ts` files skip engine bans automatically.
 | [`no-at-method`](docs/rules/no-at-method.md) | recommended | suggest | `.at()` |
 | [`no-weak-references`](docs/rules/no-weak-references.md) | strict | | `WeakMap` / `WeakSet` / `WeakRef` |
 | [`no-async-iterators`](docs/rules/no-async-iterators.md) | strict | | `for await…of`, async generators |
+| [`no-typed-arrays`](docs/rules/no-typed-arrays.md) | recommended | | `Int8Array`, `DataView`, … |
+| [`no-proxy`](docs/rules/no-proxy.md) | recommended | | `new Proxy`, `Proxy.revocable` |
+| [`no-unsupported-syntax`](docs/rules/no-unsupported-syntax.md) | recommended | | `?.`, `??`, `||=`, `#private`, lookbehind |
 
 ### Fluent (`.now.ts`)
 
@@ -292,7 +300,7 @@ script: Now.include("../server/log-state-change.server.js"),
 | `servicenow/no-hardcoded-sysids` | `servicenow/no-hardcoded-sysid` |
 | `servicenow/no-promise` | `servicenow/no-promise` |
 | `servicenow/no-async-await` | `servicenow/no-async-await` |
-| `servicenow/no-bigint-and-dataview` | `servicenow/no-bigint` |
+| `servicenow/no-bigint-and-dataview` | `servicenow/no-bigint` + `servicenow/no-typed-arrays` |
 | `sn/no-gs-now` | `servicenow/no-gs-now` |
 | `sn/no-client-gliderecord` | `servicenow/no-client-gliderecord` |
 | `sn/no-gr-count-iterate` | `servicenow/prefer-glideaggregate` |
@@ -301,6 +309,9 @@ script: Now.include("../server/log-state-change.server.js"),
 | `servicenow/no-at-method` | `servicenow/no-at-method` |
 | `servicenow/no-packages-calls` | `servicenow/no-packages-calls` |
 | `servicenow/no-weak-references` | `servicenow/no-weak-references` |
+| `servicenow/no-proxy-internal-calls` | `servicenow/no-proxy` |
+| `servicenow/no-regexp-lookbehind` / `no-private-class-methods` | `servicenow/no-unsupported-syntax` |
+| *(none)* | `servicenow/no-sync-glideajax` |
 | *(none)* | `servicenow/fluent-*` and `prefer-now-include` |
 
 1. Install `oxc-plugin-servicenow` + `oxlint`.

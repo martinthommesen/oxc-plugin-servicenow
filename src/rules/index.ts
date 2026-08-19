@@ -14,6 +14,10 @@ import { noHardcodedSysid } from "./no-hardcoded-sysid.js";
 import { noHardcodedTableNames } from "./no-hardcoded-table-names.js";
 import { noPackagesCalls } from "./no-packages-calls.js";
 import { noPromise } from "./no-promise.js";
+import { noProxy } from "./no-proxy.js";
+import { noSyncGlideajax } from "./no-sync-glideajax.js";
+import { noTypedArrays } from "./no-typed-arrays.js";
+import { noUnsupportedSyntax } from "./no-unsupported-syntax.js";
 import { noWeakReferences } from "./no-weak-references.js";
 import { preferGlideaggregate } from "./prefer-glideaggregate.js";
 import { preferNowInclude } from "./prefer-now-include.js";
@@ -41,6 +45,10 @@ export const rules = {
   "no-packages-calls": noPackagesCalls,
   "no-weak-references": noWeakReferences,
   "no-async-iterators": noAsyncIterators,
+  "no-typed-arrays": noTypedArrays,
+  "no-proxy": noProxy,
+  "no-unsupported-syntax": noUnsupportedSyntax,
+  "no-sync-glideajax": noSyncGlideajax,
 } satisfies Record<string, Rule>;
 
 export type RuleName = keyof typeof rules;

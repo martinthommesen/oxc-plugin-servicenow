@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.1.0 — 2026-08-19
+
+### Fixes
+
+- `prefer-glideaggregate` no longer treats `if (gr.next())` as an iterate-to-count loop
+- `no-br-current-update` skips UI Action files (`*.ui-action.js`, `sys_ui_action`, …)
+- `package-lock.json` now matches `package.json`, so `npm ci` works in CI
+
+### oxlint
+
+- `no-gs-now` also flags `gs.nowDateTime()`
+- New recommended rules: `no-typed-arrays`, `no-proxy`, `no-unsupported-syntax`, `no-sync-glideajax`
+- Fluent factory list now includes `AliasTemplate`, `InboundEmailAction`, `CatalogItemRecordProducer`, `StateModel`, and `UiFormatter`
+
+### Tooling
+
+- Catalog examples are executed as tests
+- `npm run docs` / `npm run docs:check` regenerate and verify `docs/rules/`
+
 ## 1.0.0 — 2026-08-19
 
 Initial public release.

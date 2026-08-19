@@ -1,6 +1,6 @@
 # servicenow/no-gs-now
 
-`gs.now()` was removed from client scripts in London and is timezone-unsafe on the server. Prefer `new GlideDateTime()`.
+`gs.now()` and `gs.nowDateTime()` return timezone-sensitive display strings. `gs.now()` is also gone from client scripts since London. Prefer `new GlideDateTime()`.
 
 - **Family:** classic
 - **Preset:** recommended
@@ -14,6 +14,12 @@
 
 ```js
 current.u_opened = gs.now();
+```
+
+### ❌ gs.nowDateTime
+
+```js
+current.u_opened = gs.nowDateTime();
 ```
 
 ## Correct

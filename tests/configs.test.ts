@@ -8,6 +8,8 @@ describe("configs", () => {
   it("recommended enables the core classic + Fluent rules", () => {
     assert.equal(recommendedRules["servicenow/no-hardcoded-sysid"], "error");
     assert.equal(recommendedRules["servicenow/require-fluent-id"], "error");
+    assert.equal(recommendedRules["servicenow/no-unsupported-syntax"], "error");
+    assert.equal(recommendedRules["servicenow/no-sync-glideajax"], "error");
     assert.equal(recommendedRules["servicenow/no-hardcoded-table-names"], undefined);
   });
 

@@ -176,8 +176,11 @@ export const ruleCatalog: RuleCatalogEntry[] = [
     fixable: true,
     hasSuggestions: true,
     description:
-      "`gs.now()` was removed from client scripts in London and is timezone-unsafe on the server. Prefer `new GlideDateTime()`.",
-    bad: [{ name: "gs.now", filename: "incident.br.js", code: `current.u_opened = gs.now();` }],
+      "`gs.now()` and `gs.nowDateTime()` return timezone-sensitive display strings. `gs.now()` is also gone from client scripts since London. Prefer `new GlideDateTime()`.",
+    bad: [
+      { name: "gs.now", filename: "incident.br.js", code: `current.u_opened = gs.now();` },
+      { name: "gs.nowDateTime", filename: "incident.br.js", code: `current.u_opened = gs.nowDateTime();` },
+    ],
     good: [
       {
         name: "GlideDateTime",
@@ -218,7 +221,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
     fixable: false,
     hasSuggestions: false,
     description:
-      "`current.update()` retriggers other Business Rules and can recurse. Set fields on `current` and let the platform save.",
+      "`current.update()` retriggers other Business Rules and can recurse. Set fields on `current` and let the platform save. UI Actions are exempt.",
     bad: [
       {
         name: "current.update",
@@ -446,6 +449,82 @@ export const ruleCatalog: RuleCatalogEntry[] = [
     description: "WeakMap / WeakSet / WeakRef / FinalizationRegistry are unsupported classically.",
     bad: [{ name: "WeakMap", filename: "script-include.js", code: `var cache = new WeakMap();` }],
     good: [{ name: "Map", filename: "script-include.js", code: `var cache = new Map();` }],
+  }),
+  entry("no-typed-arrays", {
+    title: "No TypedArray / DataView",
+    family: "engine",
+    preset: "recommended",
+    severity: "error",
+    fixable: false,
+    hasSuggestions: false,
+    description: "TypedArray and DataView constructors are unsupported on the classic engine.",
+    bad: [
+      {
+        name: "Int8Array",
+        filename: "script-include.js",
+        code: `var bytes = new Int8Array(16);`,
+      },
+    ],
+    good: [{ name: "plain array", filename: "script-include.js", code: `var bytes = [0, 1, 2];` }],
+  }),
+  entry("no-proxy", {
+    title: "No Proxy",
+    family: "engine",
+    preset: "recommended",
+    severity: "error",
+    fixable: false,
+    hasSuggestions: false,
+    description: "`Proxy` is unsupported on the classic engine.",
+    bad: [{ name: "new Proxy", filename: "script-include.js", code: `var p = new Proxy(target, handler);` }],
+    good: [{ name: "plain object", filename: "script-include.js", code: `var p = { prop: value };` }],
+  }),
+  entry("no-unsupported-syntax", {
+    title: "No unsupported ES-latest syntax",
+    family: "engine",
+    preset: "recommended",
+    severity: "error",
+    fixable: false,
+    hasSuggestions: false,
+    description:
+      "Optional chaining, nullish coalescing, logical assignment, private class members, and RegExp lookbehind are unsupported classically.",
+    bad: [
+      {
+        name: "optional chaining and ??",
+        filename: "script-include.js",
+        code: `var name = current.caller_id?.name ?? "unknown";`,
+      },
+    ],
+    good: [
+      {
+        name: "explicit check",
+        filename: "script-include.js",
+        code: `var name = current.caller_id ? current.caller_id.name : "unknown";`,
+      },
+    ],
+  }),
+  entry("no-sync-glideajax", {
+    title: "No synchronous GlideAjax",
+    family: "classic",
+    preset: "recommended",
+    severity: "error",
+    fixable: false,
+    hasSuggestions: false,
+    description:
+      "`getXMLWait()` blocks the browser and does not work in Service Portal. Use `getXML()` / `getXMLAnswer()`.",
+    bad: [
+      {
+        name: "getXMLWait",
+        filename: "incident.client.js",
+        code: `var ga = new GlideAjax("x_acme.UserUtils");\nga.addParam("sysparm_name", "getUser");\nvar xml = ga.getXMLWait();\nvar answer = xml.documentElement.getAttribute("answer");`,
+      },
+    ],
+    good: [
+      {
+        name: "getXMLAnswer",
+        filename: "incident.client.js",
+        code: `var ga = new GlideAjax("x_acme.UserUtils");\nga.addParam("sysparm_name", "getUser");\nga.getXMLAnswer(function (answer) {\n  g_form.setValue("caller_id", answer);\n});`,
+      },
+    ],
   }),
   entry("no-async-iterators", {
     title: "No async iterators",

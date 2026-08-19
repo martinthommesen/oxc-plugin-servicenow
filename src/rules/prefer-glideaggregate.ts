@@ -11,7 +11,7 @@ interface GrBinding {
 }
 
 function emptyBinding(): GrBinding {
-  return { counted: false, iterated: false, onlyIncremented: true, countNode: null };
+  return { counted: false, iterated: false, onlyIncremented: false, countNode: null };
 }
 
 function isIncrement(node: ESTree.Node): boolean {
@@ -124,16 +124,18 @@ export const preferGlideaggregate = defineRule({
       const statements =
         body.type === "BlockStatement" ? (body as ESTree.BlockStatement).body : [body];
       const meaningful = statements.filter((stmt) => stmt.type !== "EmptyStatement");
-      if (meaningful.length === 0) {
+      const onlyIncremented =
+        meaningful.length === 0 ||
+        meaningful.every((stmt) => {
+          if (stmt.type === "ExpressionStatement") {
+            return isIncrement((stmt as ESTree.ExpressionStatement).expression as ESTree.Node);
+          }
+          return false;
+        });
+      if (onlyIncremented) {
         binding.onlyIncremented = true;
-        return;
+        binding.countNode = node;
       }
-      binding.onlyIncremented = meaningful.every((stmt) => {
-        if (stmt.type === "ExpressionStatement") {
-          return isIncrement((stmt as ESTree.ExpressionStatement).expression as ESTree.Node);
-        }
-        return false;
-      });
     }
   },
 });
