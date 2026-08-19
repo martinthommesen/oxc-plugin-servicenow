@@ -20,6 +20,7 @@
 - Rule catalog placements now generate preset maps, README rule tables, and recommended oxlintrc copies. `npm run docs` deletes stale rule pages.
 - Packed-package consumer test installs `npm pack` output and runs oxlint against the published exports.
 - Contributor docs: `npm run validate`, rule-authoring guide, compatibility matrix, and non-goals policy.
+- `npm test` lists `*.test.ts` files so Node 20 CI does not treat a quoted glob as a missing path.
 
 ### Breaking — 2.0.0 foundation
 

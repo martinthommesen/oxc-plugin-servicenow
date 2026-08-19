@@ -10,6 +10,8 @@ npm run validate
 
 That command runs typecheck, build, tests (including oxlint, ESLint, oxfmt, profile fixtures, and the packed-package consumer), generated-doc consistency, and the Fluent manifest check.
 
+`npm test` runs `scripts/run-tests.mjs`. That script lists every `*.test.ts` file and passes the list to `tsx --test`. Do not use a quoted `tests/**/*.test.ts` glob. Node 20 treats that path as one missing file.
+
 ## Add a rule
 
 1. Create `src/rules/<name>.ts` with `defineRule` and `createOnce`.
