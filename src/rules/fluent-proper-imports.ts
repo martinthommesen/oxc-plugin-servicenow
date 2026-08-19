@@ -40,12 +40,14 @@ export const fluentProperImports = defineRule({
   createOnce(context) {
     let importedFromCore: Set<string>;
     let importedElsewhere: Map<string, ESTree.Node>;
+    let pendingCalls: Array<{ node: ESTree.Node; name: string }>;
 
     return {
       before() {
         if (!isFluentFile(context.filename)) return false;
         importedFromCore = new Set();
         importedElsewhere = new Map();
+        pendingCalls = [];
       },
       ImportDeclaration(node) {
         const decl = node as ESTree.ImportDeclaration;
@@ -72,12 +74,16 @@ export const fluentProperImports = defineRule({
       CallExpression(node) {
         const name = getName((node as ESTree.CallExpression).callee);
         if (!name || !FLUENT_IMPORT_SET.has(name)) return;
-        if (importedFromCore.has(name) || importedElsewhere.has(name)) return;
-        context.report({
+        pendingCalls.push({
           node: (node as ESTree.CallExpression).callee as unknown as ESTree.Node,
-          messageId: "missingCore",
-          data: { name },
+          name,
         });
+      },
+      after() {
+        for (const { node, name } of pendingCalls) {
+          if (importedFromCore.has(name) || importedElsewhere.has(name)) continue;
+          context.report({ node, messageId: "missingCore", data: { name } });
+        }
       },
     };
   },
