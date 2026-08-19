@@ -23,11 +23,20 @@ function hasCurrentPreviousParams(callee: { params: unknown[] }): boolean {
   return paramName(callee.params[0]) === "current" && paramName(callee.params[1]) === "previous";
 }
 
+function unwrap(node: unknown): unknown {
+  let current = node;
+  while (isNode(current) && current.type === "ParenthesizedExpression") {
+    current = (current as { expression: unknown }).expression;
+  }
+  return current;
+}
+
 function isWrapperExpression(node: unknown): boolean {
   if (!isNode(node) || node.type !== "CallExpression") return false;
   const call = node as ESTree.CallExpression;
   if (!isCurrentPreviousCall(call.arguments)) return false;
-  const callee = call.callee;
+  const callee = unwrap(call.callee);
+  if (!isNode(callee)) return false;
   if (callee.type !== "FunctionExpression" && callee.type !== "ArrowFunctionExpression") {
     return false;
   }
@@ -36,7 +45,7 @@ function isWrapperExpression(node: unknown): boolean {
 
 function isWrapperStatement(node: ESTree.Node): boolean {
   if (node.type === "ExpressionStatement") {
-    return isWrapperExpression((node as ESTree.ExpressionStatement).expression);
+    return isWrapperExpression(unwrap((node as ESTree.ExpressionStatement).expression));
   }
   return false;
 }
