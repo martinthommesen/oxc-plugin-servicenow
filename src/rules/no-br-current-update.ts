@@ -27,7 +27,7 @@ export const noBrCurrentUpdate = defineRule({
       },
       CallExpression(node) {
         if (!isCallTo(node, "current", "update")) return;
-        if (kind === "client" || kind === "ui-action") return;
+        if (kind !== "business-rule" && kind !== "server") return;
         context.report({ node: node as ESTree.Node, messageId: "update" });
       },
     };
