@@ -53,6 +53,14 @@ describe("validate-gliderecord-calls", () => {
     );
   });
 
+  it("flags next() without query() on GlideRecordSecure", () => {
+    assertInvalid(
+      'var gr = new GlideRecordSecure("incident"); gr.next();',
+      "validate-gliderecord-calls",
+      { messageId: "missingQuery" },
+    );
+  });
+
   it("flags unused insert() return", () => {
     assertInvalid(
       `var gr = new GlideRecord("incident");\ngr.initialize();\ngr.insert();`,
@@ -71,9 +79,29 @@ describe("validate-gliderecord-calls", () => {
 
 describe("no-br-current-update", () => {
   it("flags current.update()", () => {
-    assertInvalid(`current.state = 2;\ncurrent.update();`, "no-br-current-update", {
-      messageId: "update",
-    });
+    assertInvalid(
+      `current.state = 2;\ncurrent.update();`,
+      "no-br-current-update",
+      { messageId: "update" },
+      { filename: "incident.br.js" },
+    );
+  });
+
+  it("allows current.update() in unclassified files", () => {
+    assertValid("current.update();", "no-br-current-update", { filename: "utils.js" });
+  });
+
+  it("allows current.update() in a Script Include", () => {
+    assertValid("current.update();", "no-br-current-update", { filename: "helper.si.js" });
+  });
+
+  it("flags current.update() when scriptType forces a Business Rule", () => {
+    assertInvalid(
+      "current.update();",
+      "no-br-current-update",
+      { messageId: "update" },
+      { filename: "misc.js", settings: { scriptType: "business-rule" } },
+    );
   });
 
   it("allows field assignment", () => {
@@ -90,6 +118,12 @@ describe("no-br-current-update", () => {
 describe("no-hardcoded-table-names", () => {
   it("flags string table names", () => {
     assertInvalid(`var gr = new GlideRecord("x_acme_widget");`, "no-hardcoded-table-names", {
+      messageId: "literal",
+    });
+  });
+
+  it("flags string table names on GlideRecordSecure", () => {
+    assertInvalid('var gr = new GlideRecordSecure("incident");', "no-hardcoded-table-names", {
       messageId: "literal",
     });
   });
@@ -133,6 +167,22 @@ describe("engine extras", () => {
     assertInvalid(`var n = Packages.java.lang.System.nanoTime();`, "no-packages-calls", {
       messageId: "packages",
     });
+  });
+
+  it("no-packages-calls reports a Packages chain once", () => {
+    assertInvalid('var s = new Packages.java.lang.String("x");', "no-packages-calls", { count: 1 });
+  });
+
+  it("no-packages-calls allows Packages as an object key", () => {
+    assertValid("var o = { Packages: 1 };", "no-packages-calls");
+  });
+
+  it("no-packages-calls allows a Packages member on another object", () => {
+    assertValid("var x = lib.Packages;", "no-packages-calls");
+  });
+
+  it("no-packages-calls allows a local Packages binding", () => {
+    assertValid("var Packages = 2; var y = Packages;", "no-packages-calls");
   });
 
   it("no-weak-references flags WeakMap", () => {
