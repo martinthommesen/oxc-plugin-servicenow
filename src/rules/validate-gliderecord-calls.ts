@@ -1,6 +1,6 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
-import { GLIDE_MUTATING_METHODS, ruleDocsUrl } from "../constants.js";
+import { GLIDE_MUTATING_METHODS, GLIDE_RECORD_CTORS, ruleDocsUrl } from "../constants.js";
 import { declaredName, getName, isNewNamed, memberName } from "../utils/ast.js";
 
 const CHECKED = new Set<string>(GLIDE_MUTATING_METHODS);
@@ -44,14 +44,14 @@ export const validateGliderecordCalls = defineRule({
       VariableDeclarator(node) {
         const decl = node as ESTree.VariableDeclarator;
         const name = declaredName(decl);
-        if (name && decl.init && isNewNamed(decl.init, "GlideRecord")) {
+        if (name && decl.init && GLIDE_RECORD_CTORS.some((ctor) => isNewNamed(decl.init, ctor))) {
           bindings.set(name, { opened: false });
         }
       },
       AssignmentExpression(node) {
         const assign = node as ESTree.AssignmentExpression;
         const name = getName(assign.left);
-        if (name && isNewNamed(assign.right, "GlideRecord")) {
+        if (name && GLIDE_RECORD_CTORS.some((ctor) => isNewNamed(assign.right, ctor))) {
           bindings.set(name, { opened: false });
         }
       },

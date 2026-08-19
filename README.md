@@ -145,6 +145,12 @@ export default [servicenow.configs.flat.recommended];
 export default [servicenow.configs.flat.strict];
 ```
 
+The flat presets set `files` so ESLint 10 opens classic `*.js` / `*.cjs` / `*.mjs` and Fluent `*.now.ts` / `*.now.tsx`. ESLint 10's default glob is JS/CJS/MJS only.
+
+oxlint parses TypeScript itself. ESLint uses its default JS parser, so type annotations (`import type`, `: string`) in `.now.ts` fail to parse. Add [`typescript-eslint`](https://typescript-eslint.io/getting-started/) in your own config if you lint typed Fluent.
+
+To run these rules on server TypeScript (`src/server/**/*.ts`), add a `files` override. Those files usually also need `settings.servicenow.ecmaLatest` or `// @sn-es-latest`.
+
 ---
 
 ## Settings
@@ -169,7 +175,7 @@ Configure once. Every rule reads `settings.servicenow`.
 | --- | --- |
 | `allowedSysIds` | sys_ids that `no-hardcoded-sysid` will ignore |
 | `allowedTables` | table names that `no-hardcoded-table-names` will ignore |
-| `scriptType` | `"auto"` (default) or force `client` / `server` / `business-rule` / `fluent` |
+| `scriptType` | `"auto"` (default) or force `client` / `server` / `business-rule` / `script-include` / `ui-action` / `fluent` |
 | `ecmaLatest` | skip classic-engine bans (`no-promise`, `no-async-await`, …) |
 | `scopePrefix` | e.g. `x_acme` — used by the Fluent naming rule |
 
@@ -193,7 +199,7 @@ Fluent `.now.ts` files skip engine bans automatically.
 | [`no-hardcoded-sysid`](docs/rules/no-hardcoded-sysid.md) | recommended | | 32-char hex sys_ids |
 | [`prefer-glideaggregate`](docs/rules/prefer-glideaggregate.md) | recommended | suggest | `getRowCount()` / iterate-to-count |
 | [`no-client-gliderecord`](docs/rules/no-client-gliderecord.md) | recommended | | `GlideRecord` in client scripts |
-| [`no-gs-now`](docs/rules/no-gs-now.md) | recommended | fix | `gs.now()` / `gs.nowDateTime()` |
+| [`no-gs-now`](docs/rules/no-gs-now.md) | recommended | suggest | `gs.now()` / `gs.nowDateTime()` |
 | [`validate-gliderecord-calls`](docs/rules/validate-gliderecord-calls.md) | recommended | | `.next()` without `.query()`, ignored return values |
 | [`no-br-current-update`](docs/rules/no-br-current-update.md) | recommended | | `current.update()` |
 | [`no-hardcoded-table-names`](docs/rules/no-hardcoded-table-names.md) | strict | | string-literal table names |

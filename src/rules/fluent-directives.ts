@@ -1,5 +1,6 @@
 import { defineRule } from "@oxlint/plugins";
 import { FLUENT_DIRECTIVE_TYPOS, KNOWN_FLUENT_DIRECTIVES, ruleDocsUrl } from "../constants.js";
+import { fallbackComments } from "../utils/ast.js";
 import { isFluentFile } from "../utils/filenames.js";
 
 const DIRECTIVE = /@([A-Za-z][\w-]*)/g;
@@ -21,18 +22,6 @@ function commentsOf(context: {
   return fallbackComments(context.sourceCode.text);
 }
 
-function fallbackComments(text: string): Comment[] {
-  const out: Comment[] = [];
-  const re = /\/\*[\s\S]*?\*\/|\/\/[^\n]*/g;
-  let match: RegExpExecArray | null;
-  while ((match = re.exec(text))) {
-    const raw = match[0];
-    const value = raw.startsWith("//") ? raw.slice(2) : raw.slice(2, -2);
-    out.push({ value, start: match.index, end: match.index + raw.length });
-  }
-  return out;
-}
-
 export const fluentDirectives = defineRule({
   meta: {
     type: "suggestion",
@@ -42,7 +31,6 @@ export const fluentDirectives = defineRule({
       recommended: "recommended",
       url: ruleDocsUrl("fluent-directives"),
     },
-    hasSuggestions: true,
     messages: {
       unknown:
         "Unknown Fluent directive `@{{name}}`. Supported directives: `@fluent-ignore`, `@fluent-disable-sync`.",

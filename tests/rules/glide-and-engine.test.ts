@@ -1,8 +1,14 @@
+import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { assertInvalid, assertValid } from "../helpers/rule-tester.js";
+import {
+  assertInvalid,
+  assertSuggestion,
+  assertValid,
+  lint,
+} from "../helpers/rule-tester.js";
 
 describe("no-gs-now", () => {
-  it("flags gs.now() and is fixable", () => {
+  it("flags gs.now()", () => {
     assertInvalid(`var when = gs.now();`, "no-gs-now", { messageId: "server" });
   });
 
@@ -19,12 +25,37 @@ describe("no-gs-now", () => {
   it("allows GlideDateTime", () => {
     assertValid(`var when = new GlideDateTime();`, "no-gs-now");
   });
+
+  it("suggests the display-string rewrite first and has no autofix", () => {
+    assertSuggestion(
+      "current.u_opened = gs.now();",
+      "no-gs-now",
+      /getDisplayValue/,
+      "current.u_opened = new GlideDateTime().getDisplayValue();",
+    );
+    assertSuggestion(
+      "current.u_opened = gs.now();",
+      "no-gs-now",
+      "Replace with new GlideDateTime()",
+      "current.u_opened = new GlideDateTime();",
+    );
+    const messages = lint("current.u_opened = gs.now();", "no-gs-now");
+    assert.ok(messages.every((message) => message.fixedSource === undefined));
+  });
 });
 
 describe("validate-gliderecord-calls", () => {
   it("flags next() without query()", () => {
     assertInvalid(
       `var gr = new GlideRecord("incident");\ngr.addActiveQuery();\ngr.next();`,
+      "validate-gliderecord-calls",
+      { messageId: "missingQuery" },
+    );
+  });
+
+  it("flags next() without query() on GlideRecordSecure", () => {
+    assertInvalid(
+      'var gr = new GlideRecordSecure("incident"); gr.next();',
       "validate-gliderecord-calls",
       { messageId: "missingQuery" },
     );
@@ -48,9 +79,35 @@ describe("validate-gliderecord-calls", () => {
 
 describe("no-br-current-update", () => {
   it("flags current.update()", () => {
-    assertInvalid(`current.state = 2;\ncurrent.update();`, "no-br-current-update", {
-      messageId: "update",
+    assertInvalid(
+      `current.state = 2;\ncurrent.update();`,
+      "no-br-current-update",
+      { messageId: "update" },
+      { filename: "incident.br.js" },
+    );
+  });
+
+  it("flags current.update() in src/server", () => {
+    assertInvalid("current.update();", "no-br-current-update", { messageId: "update" }, {
+      filename: "src/server/incident.js",
     });
+  });
+
+  it("allows current.update() in unclassified files", () => {
+    assertValid("current.update();", "no-br-current-update", { filename: "utils.js" });
+  });
+
+  it("allows current.update() in a Script Include", () => {
+    assertValid("current.update();", "no-br-current-update", { filename: "helper.si.js" });
+  });
+
+  it("flags current.update() when scriptType forces a Business Rule", () => {
+    assertInvalid(
+      "current.update();",
+      "no-br-current-update",
+      { messageId: "update" },
+      { filename: "misc.js", settings: { scriptType: "business-rule" } },
+    );
   });
 
   it("allows field assignment", () => {
@@ -71,6 +128,12 @@ describe("no-hardcoded-table-names", () => {
     });
   });
 
+  it("flags string table names on GlideRecordSecure", () => {
+    assertInvalid('var gr = new GlideRecordSecure("incident");', "no-hardcoded-table-names", {
+      messageId: "literal",
+    });
+  });
+
   it("allows identifiers", () => {
     assertValid(`var gr = new GlideRecord(TABLE.WIDGET);`, "no-hardcoded-table-names");
   });
@@ -87,10 +150,45 @@ describe("engine extras", () => {
     assertInvalid(`var last = items.at(-1);`, "no-at-method", { messageId: "at" });
   });
 
+  it("no-at-method suggests index access for a non-negative literal", () => {
+    assertSuggestion("var last = list.at(2);", "no-at-method", /index access/i, "var last = list[2];");
+  });
+
+  it("no-at-method suggests length-relative access for a negative index", () => {
+    assertSuggestion(
+      "var last = list.at(-1);",
+      "no-at-method",
+      /index access/i,
+      "var last = list[list.length - 1];",
+    );
+  });
+
+  it("no-at-method does not suggest rewriting a side-effecting receiver", () => {
+    const messages = lint("getComputed().at(-1);", "no-at-method");
+    assert.ok(messages.some((message) => message.messageId === "at"));
+    assert.ok(messages.every((message) => !message.suggestions || message.suggestions.length === 0));
+  });
+
   it("no-packages-calls flags Packages", () => {
     assertInvalid(`var n = Packages.java.lang.System.nanoTime();`, "no-packages-calls", {
       messageId: "packages",
     });
+  });
+
+  it("no-packages-calls reports a Packages chain once", () => {
+    assertInvalid('var s = new Packages.java.lang.String("x");', "no-packages-calls", { count: 1 });
+  });
+
+  it("no-packages-calls allows Packages as an object key", () => {
+    assertValid("var o = { Packages: 1 };", "no-packages-calls");
+  });
+
+  it("no-packages-calls allows a Packages member on another object", () => {
+    assertValid("var x = lib.Packages;", "no-packages-calls");
+  });
+
+  it("no-packages-calls allows a local Packages binding", () => {
+    assertValid("var Packages = 2; var y = Packages;", "no-packages-calls");
   });
 
   it("no-weak-references flags WeakMap", () => {

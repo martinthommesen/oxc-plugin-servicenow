@@ -1,6 +1,6 @@
 import { defineRule } from "@oxlint/plugins";
 import type { Context, ESTree } from "@oxlint/plugins";
-import { BUILTIN_TABLES, ruleDocsUrl } from "../constants.js";
+import { BUILTIN_TABLES, GLIDE_RECORD_CTORS, ruleDocsUrl } from "../constants.js";
 import { getStringValue, isNewNamed } from "../utils/ast.js";
 import { getSettings, optionAt } from "../utils/settings.js";
 
@@ -21,7 +21,7 @@ export const noHardcodedTableNames = defineRule({
     type: "suggestion",
     docs: {
       description:
-        "Disallow string-literal table names in GlideRecord / GlideAggregate constructors. Prefer named constants.",
+        "Disallow string-literal table names in GlideRecord / GlideRecordSecure / GlideAggregate constructors. Prefer named constants.",
       recommended: "strict",
       url: ruleDocsUrl("no-hardcoded-table-names"),
     },
@@ -48,7 +48,12 @@ export const noHardcodedTableNames = defineRule({
         allow = allowed(context, optionAt<NoHardcodedTableNamesOptions>(context, 0, {}));
       },
       NewExpression(node) {
-        if (!isNewNamed(node, "GlideRecord") && !isNewNamed(node, "GlideAggregate")) return;
+        if (
+          !GLIDE_RECORD_CTORS.some((ctor) => isNewNamed(node, ctor)) &&
+          !isNewNamed(node, "GlideAggregate")
+        ) {
+          return;
+        }
         const first = (node as ESTree.NewExpression).arguments[0];
         if (!first || first.type === "SpreadElement") return;
         const table = getStringValue(first);

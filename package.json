@@ -27,7 +27,7 @@
   "type": "module",
   "sideEffects": false,
   "engines": {
-    "node": ">=18.18.0"
+    "node": ">=20.19.0"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -39,7 +39,8 @@
     },
     "./oxfmt": {
       "types": "./dist/oxfmt/index.d.ts",
-      "import": "./dist/oxfmt/index.js"
+      "import": "./dist/oxfmt/index.js",
+      "default": "./dist/oxfmt/index.js"
     },
     "./oxfmt.recommended.json": "./oxfmt.recommended.json",
     "./package.json": "./package.json"
@@ -54,8 +55,10 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "clean": "rm -rf dist",
+    "prepack": "npm run clean && npm run build",
     "prepublishOnly": "npm run clean && npm run build && npm test",
-    "test": "tsx --test tests/*.test.ts tests/rules/*.test.ts",
+    "test": "tsx --test \"tests/**/*.test.ts\"",
+    "test:integration": "tsx --test \"tests/integration/**/*.test.ts\"",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "docs": "tsx scripts/generate-rule-docs.mjs",
     "docs:check": "tsx scripts/generate-rule-docs.mjs && git diff --exit-code -- docs/rules"
@@ -66,7 +69,7 @@
   "peerDependencies": {
     "eslint": ">=9.0.0",
     "oxfmt": ">=0.16.0",
-    "oxlint": ">=1.0.0"
+    "oxlint": ">=1.79.0 <2"
   },
   "peerDependenciesMeta": {
     "eslint": {
@@ -81,7 +84,9 @@
   },
   "devDependencies": {
     "@types/node": "^22.16.5",
+    "eslint": "^10.8.1",
     "oxc-parser": "^0.145.0",
+    "oxlint": "1.79.0",
     "tsx": "^4.19.0",
     "typescript": "^5.8.0"
   }

@@ -24,4 +24,12 @@ describe(RULE, () => {
       filename: "incident.br.js",
     });
   });
+
+  it("allows GlideRecord in a display Business Rule that writes g_scratchpad", () => {
+    assertValid(
+      `var gr = new GlideRecord("incident");\ngr.query();\ng_scratchpad.count = 1;`,
+      RULE,
+      { filename: "display-stuff.br.js" },
+    );
+  });
 });

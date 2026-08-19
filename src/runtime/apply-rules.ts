@@ -3,7 +3,7 @@ import { PLUGIN_NAME } from "../constants.js";
 import { rules as allRules } from "../rules/index.js";
 import type { RuleName } from "../rules/index.js";
 import type { ServiceNowSettings } from "../types.js";
-import { isNode, walk } from "../utils/ast.js";
+import { fallbackComments, isNode, walk } from "../utils/ast.js";
 
 export interface LintMessage {
   ruleId: string;
@@ -14,6 +14,52 @@ export interface LintMessage {
   column: number;
   endLine?: number;
   endColumn?: number;
+  /** Source after applying the diagnostic's own fix, if it provided one. */
+  fixedSource?: string;
+  suggestions?: Array<{ desc: string; fixedSource: string }>;
+}
+
+type FixEdit = { range: [number, number]; text: string };
+
+const fixer = {
+  replaceText: (n: { start?: number; end?: number }, text: string) =>
+    ({ range: [n.start ?? 0, n.end ?? 0] as [number, number], text }),
+  replaceTextRange: (range: [number, number], text: string) => ({ range, text }),
+  insertTextBefore: (n: { start?: number }, text: string) =>
+    ({ range: [n.start ?? 0, n.start ?? 0] as [number, number], text }),
+  insertTextAfter: (n: { end?: number }, text: string) =>
+    ({ range: [n.end ?? 0, n.end ?? 0] as [number, number], text }),
+  remove: (n: { start?: number; end?: number }) =>
+    ({ range: [n.start ?? 0, n.end ?? 0] as [number, number], text: "" }),
+};
+
+function applyFixes(
+  source: string,
+  raw: FixEdit | FixEdit[] | null | undefined,
+  ruleId: string,
+): string | undefined {
+  if (raw == null) return undefined;
+  const edits = Array.isArray(raw) ? raw : [raw];
+  if (edits.length === 0) return undefined;
+  const sorted = edits
+    .slice()
+    .sort((a, b) => b.range[0] - a.range[0] || b.range[1] - a.range[1]);
+  for (let i = 0; i < sorted.length; i++) {
+    const current = sorted[i]!;
+    for (let j = i + 1; j < sorted.length; j++) {
+      const other = sorted[j]!;
+      if (current.range[0] < other.range[1] && other.range[0] < current.range[1]) {
+        throw new Error(
+          `${ruleId}: overlapping fix ranges ${JSON.stringify(current.range)} and ${JSON.stringify(other.range)}`,
+        );
+      }
+    }
+  }
+  let result = source;
+  for (const edit of sorted) {
+    result = result.slice(0, edit.range[0]) + edit.text + result.slice(edit.range[1]);
+  }
+  return result;
 }
 
 export interface LintSourceOptions {
@@ -55,18 +101,6 @@ function locFromNode(node: { start?: number; end?: number; loc?: { start: { line
   return { line: a.line, column: a.column, endLine: b.line, endColumn: b.column };
 }
 
-function fallbackComments(text: string): Array<{ value: string; start: number; end: number }> {
-  const out: Array<{ value: string; start: number; end: number }> = [];
-  const re = /\/\*[\s\S]*?\*\/|\/\/[^\n]*/g;
-  let match: RegExpExecArray | null;
-  while ((match = re.exec(text))) {
-    const raw = match[0];
-    const value = raw.startsWith("//") ? raw.slice(2) : raw.slice(2, -2);
-    out.push({ value, start: match.index, end: match.index + raw.length });
-  }
-  return out;
-}
-
 /**
  * Run selected (or all) plugin rules against a pre-parsed ESTree AST.
  *
@@ -96,7 +130,7 @@ export function applyRules(
     getAllComments() {
       return comments;
     },
-    getAncestors() {
+    getAncestors(_node?: unknown) {
       return ancestors.slice(0, -1);
     },
   };
@@ -124,6 +158,8 @@ export function applyRules(
         node?: { start?: number; end?: number; loc?: { start: { line: number; column: number }; end?: { line: number; column: number } } };
         loc?: { start: { line: number; column: number }; end?: { line: number; column: number } };
         data?: Record<string, string | number | boolean | bigint | null | undefined>;
+        fix?: (f: typeof fixer) => FixEdit | FixEdit[] | null | undefined;
+        suggest?: Array<{ desc: string; fix: (f: typeof fixer) => FixEdit | FixEdit[] | null | undefined }>;
       }) {
         const meta = rule.meta as { messages?: Record<string, string> } | undefined;
         const template =
@@ -141,12 +177,31 @@ export function applyRules(
           : diagnostic.node
             ? locFromNode(diagnostic.node, source)
             : { line: 1, column: 0 };
+        const ruleId = `${PLUGIN_NAME}/${name}`;
+        let fixedSource: string | undefined;
+        let suggestions: Array<{ desc: string; fixedSource: string }> | undefined;
+        try {
+          if (diagnostic.fix) {
+            fixedSource = applyFixes(source, diagnostic.fix(fixer), ruleId);
+          }
+          if (diagnostic.suggest) {
+            suggestions = diagnostic.suggest.map((item) => ({
+              desc: item.desc,
+              fixedSource: applyFixes(source, item.fix(fixer), ruleId) ?? source,
+            }));
+          }
+        } catch (error) {
+          const detail = error instanceof Error ? error.message : String(error);
+          throw new Error(`fixer failed for ${ruleId}: ${detail}`, { cause: error });
+        }
         messages.push({
-          ruleId: `${PLUGIN_NAME}/${name}`,
+          ruleId,
           message: interpolate(template, diagnostic.data ?? undefined),
           messageId: diagnostic.messageId ?? undefined,
           severity: "error",
           ...loc,
+          fixedSource,
+          suggestions,
         });
       },
     } as unknown as Context;

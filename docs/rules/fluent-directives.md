@@ -6,7 +6,7 @@ Validate `@fluent-ignore` and `@fluent-disable-sync`, catch typos, and reject `@
 - **Preset:** recommended
 - **Default severity:** warn
 - **Fixable:** no
-- **Suggestions:** yes
+- **Suggestions:** no
 
 ## Incorrect
 

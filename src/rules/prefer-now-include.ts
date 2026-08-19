@@ -1,7 +1,7 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { FLUENT_LARGE_CONTENT_KEYS, ruleDocsUrl } from "../constants.js";
-import { getName, getStringValue, isNowIncludeCall } from "../utils/ast.js";
+import { getStringValue, isNowIncludeCall, propertyKeyName } from "../utils/ast.js";
 import { isFluentFile } from "../utils/filenames.js";
 import { optionAt } from "../utils/settings.js";
 
@@ -51,7 +51,7 @@ export const preferNowInclude = defineRule({
       },
       Property(node) {
         const prop = node as unknown as ESTree.ObjectProperty;
-        const key = prop.computed ? getStringValue(prop.key) : getName(prop.key);
+        const key = propertyKeyName(prop);
         if (!key || !FLUENT_LARGE_CONTENT_KEYS.has(key)) return;
         if (isNowIncludeCall(prop.value)) return;
         if (prop.value.type === "Identifier") return;

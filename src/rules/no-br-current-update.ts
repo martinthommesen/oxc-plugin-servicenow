@@ -2,6 +2,7 @@ import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
 import { isCallTo } from "../utils/ast.js";
+import type { ScriptKind } from "../types.js";
 import { classifyFromContext } from "../utils/filenames.js";
 
 export const noBrCurrentUpdate = defineRule({
@@ -9,7 +10,7 @@ export const noBrCurrentUpdate = defineRule({
     type: "problem",
     docs: {
       description:
-        "Disallow `current.update()` in Business Rules. It retriggers other rules and can recurse.",
+        "Disallow `current.update()` in Business Rules and `src/server/**` scripts. It retriggers other rules and can recurse.",
       recommended: "recommended",
       url: ruleDocsUrl("no-br-current-update"),
     },
@@ -19,11 +20,14 @@ export const noBrCurrentUpdate = defineRule({
     },
   },
   createOnce(context) {
+    let kind: ScriptKind;
     return {
+      before() {
+        kind = classifyFromContext(context);
+        if (kind !== "business-rule" && kind !== "server") return false;
+      },
       CallExpression(node) {
         if (!isCallTo(node, "current", "update")) return;
-        const kind = classifyFromContext(context);
-        if (kind === "client" || kind === "ui-action") return;
         context.report({ node: node as ESTree.Node, messageId: "update" });
       },
     };

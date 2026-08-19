@@ -2,6 +2,7 @@ import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
 import { isCallTo } from "../utils/ast.js";
+import type { ScriptKind } from "../types.js";
 import { classifyFromContext } from "../utils/filenames.js";
 
 export const noGsNow = defineRule({
@@ -13,7 +14,6 @@ export const noGsNow = defineRule({
       recommended: "recommended",
       url: ruleDocsUrl("no-gs-now"),
     },
-    fixable: "code",
     hasSuggestions: true,
     messages: {
       client:
@@ -25,30 +25,30 @@ export const noGsNow = defineRule({
     },
   },
   createOnce(context) {
+    let kind: ScriptKind;
     return {
+      before() {
+        kind = classifyFromContext(context);
+      },
       CallExpression(node) {
         const isNow = isCallTo(node, "gs", "now");
         const isNowDateTime = isCallTo(node, "gs", "nowDateTime");
         if (!isNow && !isNowDateTime) return;
-        const kind = classifyFromContext(context);
         const messageId = isNowDateTime ? "nowDateTime" : kind === "client" ? "client" : "server";
         context.report({
           node,
           messageId,
-          fix(fixer) {
-            return fixer.replaceText(node as ESTree.Node, "new GlideDateTime()");
-          },
           suggest: [
-            {
-              desc: "Replace with new GlideDateTime()",
-              fix(fixer) {
-                return fixer.replaceText(node as ESTree.Node, "new GlideDateTime()");
-              },
-            },
             {
               desc: "Replace with new GlideDateTime().getDisplayValue()",
               fix(fixer) {
                 return fixer.replaceText(node as ESTree.Node, "new GlideDateTime().getDisplayValue()");
+              },
+            },
+            {
+              desc: "Replace with new GlideDateTime()",
+              fix(fixer) {
+                return fixer.replaceText(node as ESTree.Node, "new GlideDateTime()");
               },
             },
           ],

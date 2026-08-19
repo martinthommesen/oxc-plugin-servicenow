@@ -1,5 +1,5 @@
 import { describe, it } from "node:test";
-import { assertInvalid, assertValid } from "../helpers/rule-tester.js";
+import { assertFix, assertInvalid, assertValid } from "../helpers/rule-tester.js";
 
 const NOW = "file.now.ts";
 
@@ -35,6 +35,23 @@ describe("fluent-proper-imports", () => {
       filename: "legacy.js",
     });
   });
+
+  it("rewrites a wrong-module import to @servicenow/sdk/core", () => {
+    assertFix(
+      `import { BusinessRule } from "@servicenow/sdk";`,
+      "fluent-proper-imports",
+      `import { BusinessRule } from "@servicenow/sdk/core";`,
+      { filename: NOW },
+    );
+  });
+
+  it("allows a Fluent call above its hoisted import", () => {
+    assertValid(
+      'Table({ name: "x_a" });\nimport { Table } from "@servicenow/sdk/core";',
+      "fluent-proper-imports",
+      { filename: NOW },
+    );
+  });
 });
 
 describe("require-fluent-id", () => {
@@ -63,6 +80,14 @@ describe("require-fluent-id", () => {
       { filename: NOW },
     );
   });
+
+  it("allows a quoted $id key", () => {
+    assertValid(
+      'import { BusinessRule } from "@servicenow/sdk/core";\nBusinessRule({ "$id": Now.ID["x"], table: "incident", name: "n" });',
+      "require-fluent-id",
+      { filename: NOW },
+    );
+  });
 });
 
 describe("prefer-now-include", () => {
@@ -80,6 +105,16 @@ describe("prefer-now-include", () => {
     assertValid(
       `import { BusinessRule } from "@servicenow/sdk/core";\nBusinessRule({ $id: Now.ID["x"], script: Now.include("./x.server.js") });`,
       "prefer-now-include",
+      { filename: NOW },
+    );
+  });
+
+  it("flags a large payload under a quoted script key", () => {
+    const script = Array.from({ length: 10 }, (_, i) => `    gs.info(${i});`).join("\\n");
+    assertInvalid(
+      `import { BusinessRule } from "@servicenow/sdk/core";\nBusinessRule({ $id: Now.ID["x"], "script": \`${script}\` });`,
+      "prefer-now-include",
+      { messageId: "large" },
       { filename: NOW },
     );
   });

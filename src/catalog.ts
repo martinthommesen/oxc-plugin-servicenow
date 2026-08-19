@@ -173,7 +173,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
     family: "classic",
     preset: "recommended",
     severity: "error",
-    fixable: true,
+    fixable: false,
     hasSuggestions: true,
     description:
       "`gs.now()` and `gs.nowDateTime()` return timezone-sensitive display strings. `gs.now()` is also gone from client scripts since London. Prefer `new GlideDateTime()`.",
@@ -221,7 +221,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
     fixable: false,
     hasSuggestions: false,
     description:
-      "`current.update()` retriggers other Business Rules and can recurse. Set fields on `current` and let the platform save. UI Actions are exempt.",
+      "`current.update()` retriggers other Business Rules and can recurse. Set fields on `current` and let the platform save. Reports on Business Rule and `src/server/**` files. UI Actions are exempt. Override with `settings.servicenow.scriptType`.",
     bad: [
       {
         name: "current.update",
@@ -245,7 +245,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
     fixable: false,
     hasSuggestions: false,
     description:
-      "String-literal table names in `GlideRecord` / `GlideAggregate` are hard to rename. Prefer named constants or Fluent table exports.",
+      "String-literal table names in `GlideRecord` / `GlideRecordSecure` / `GlideAggregate` are hard to rename. Prefer named constants or Fluent table exports.",
     bad: [
       {
         name: "literal table",
@@ -267,7 +267,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
     preset: "recommended",
     severity: "error",
     fixable: true,
-    hasSuggestions: true,
+    hasSuggestions: false,
     description: "Fluent entity and column APIs must be imported from `@servicenow/sdk/core`.",
     bad: [
       {
@@ -290,7 +290,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
     preset: "recommended",
     severity: "warn",
     fixable: false,
-    hasSuggestions: true,
+    hasSuggestions: false,
     description:
       "Validate `@fluent-ignore` and `@fluent-disable-sync`, catch typos, and reject `@ts-ignore` as a Fluent suppress.",
     bad: [
@@ -338,7 +338,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
     preset: "recommended",
     severity: "error",
     fixable: false,
-    hasSuggestions: true,
+    hasSuggestions: false,
     description:
       "Fluent entities must declare `$id`. Prefer `Now.ID['descriptive-key']` so `keys.ts` stays readable.",
     bad: [

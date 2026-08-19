@@ -24,4 +24,8 @@ describe(RULE, () => {
   it("ignores obvious hash bindings by default", () => {
     assertValid(`var md5 = "${ID}";`, RULE);
   });
+
+  it("does not treat uppercase 32-hex as a sys_id", () => {
+    assertValid('var f = "D41D8CD98F00B204E9800998ECF8427E";', RULE);
+  });
 });

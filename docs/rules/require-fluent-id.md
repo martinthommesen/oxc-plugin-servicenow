@@ -6,7 +6,7 @@ Fluent entities must declare `$id`. Prefer `Now.ID['descriptive-key']` so `keys.
 - **Preset:** recommended
 - **Default severity:** error
 - **Fixable:** no
-- **Suggestions:** yes
+- **Suggestions:** no
 
 ## Incorrect
 
