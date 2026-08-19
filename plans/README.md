@@ -17,7 +17,7 @@ vetted findings that did not get plans — promote any of them on request.
 | 002  | Fix script-type classification, pragma detection, and per-file cost | P1 | M | 001 (soft) | DONE |
 | 003  | Make the autofix/suggestion surface honest, safe, and tested | P1 | M | 001 (soft) | DONE |
 | 004  | Fix five confirmed rule-level correctness bugs | P2 | M | 001 (soft) | DONE |
-| 005  | Harden CI, packaging metadata, and the release path | P2 | M | 001 (soft) | TODO |
+| 005  | Harden CI, packaging metadata, and the release path | P2 | M | 001 (soft) | DONE |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) | REJECTED (with one-line rationale)
 
