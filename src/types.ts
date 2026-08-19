@@ -44,6 +44,7 @@ export type ScriptKind =
   | "business-rule"
   | "script-include"
   | "server"
+  | "ui-action"
   | "unknown";
 
 export type RuleModule = Rule;

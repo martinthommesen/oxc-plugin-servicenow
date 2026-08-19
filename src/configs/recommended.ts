@@ -20,6 +20,10 @@ export const recommendedRules: RuleConfigMap = {
   [`${PLUGIN_NAME}/no-complex-fluent-logic`]: "warn",
   [`${PLUGIN_NAME}/no-at-method`]: "warn",
   [`${PLUGIN_NAME}/no-packages-calls`]: "error",
+  [`${PLUGIN_NAME}/no-typed-arrays`]: "error",
+  [`${PLUGIN_NAME}/no-proxy`]: "error",
+  [`${PLUGIN_NAME}/no-unsupported-syntax`]: "error",
+  [`${PLUGIN_NAME}/no-sync-glideajax`]: "error",
 };
 
 export const recommended = {

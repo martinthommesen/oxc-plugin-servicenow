@@ -26,7 +26,11 @@
     "servicenow/fluent-naming-convention": "warn",
     "servicenow/no-complex-fluent-logic": "warn",
     "servicenow/no-at-method": "warn",
-    "servicenow/no-packages-calls": "error"
+    "servicenow/no-packages-calls": "error",
+    "servicenow/no-typed-arrays": "error",
+    "servicenow/no-proxy": "error",
+    "servicenow/no-unsupported-syntax": "error",
+    "servicenow/no-sync-glideajax": "error"
   },
   "overrides": [
     {

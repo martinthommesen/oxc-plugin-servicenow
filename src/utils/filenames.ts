@@ -6,6 +6,7 @@ import { getSettings } from "./settings.js";
 const CLIENT_FILE = /(\.client\.|\.cs\.|client[-_.]?script|catalog[-_.]?client|ui[-_.]?script|ui_script|on[-_]?change|on[-_]?load|on[-_]?submit|ui[-_.]?policy)/i;
 const BR_FILE = /(business[-_.]?rule|\.br\.|sys_script[^_]|\/br\/)/i;
 const SI_FILE = /(script[-_.]?include|\.si\.|\/script-include)/i;
+const UI_ACTION_FILE = /(ui[-_.]?action|\.ua\.|sys_ui_action)/i;
 const SERVER_DIR = /(?:^|[\\/])(?:src[\\/])?server[\\/]/i;
 
 const ES_LATEST_PRAGMA = /(?:^|\n)\s*(?:\/\/|\/\*)\s*@sn-es-latest\b/;
@@ -42,6 +43,7 @@ export function classifyFile(
   }
 
   if (isFluentFile(filename)) return "fluent";
+  if (UI_ACTION_FILE.test(filename)) return "ui-action";
   if (CLIENT_FILE.test(filename) || looksLikeClientSource(sourceText)) return "client";
   if (BR_FILE.test(filename)) return "business-rule";
   if (SI_FILE.test(filename)) return "script-include";

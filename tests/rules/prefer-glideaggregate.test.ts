@@ -26,4 +26,18 @@ describe(RULE, () => {
       { messageId: "iterateCount" },
     );
   });
+
+  it("does not treat if (gr.next()) as iterate-to-count", () => {
+    assertValid(
+      `var gr = new GlideRecord("incident");\ngr.query();\nif (gr.next()) {\n  gs.info(gr.number);\n}`,
+      RULE,
+    );
+  });
+
+  it("does not flag a loop that reads fields", () => {
+    assertValid(
+      `var gr = new GlideRecord("incident");\ngr.query();\nwhile (gr.next()) {\n  gs.info(gr.number);\n}`,
+      RULE,
+    );
+  });
 });

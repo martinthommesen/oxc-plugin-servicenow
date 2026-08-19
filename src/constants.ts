@@ -3,7 +3,7 @@ export const PLUGIN_NAME = "servicenow";
 
 export const PACKAGE_NAME = "oxc-plugin-servicenow";
 
-export const PACKAGE_VERSION = "1.0.0";
+export const PACKAGE_VERSION = "1.1.0";
 
 export const DOCS_BASE_URL =
   "https://github.com/martinthommesen/oxc-plugin-servicenow/blob/main/docs/rules";
@@ -18,13 +18,16 @@ export function ruleDocsUrl(ruleName: string): string {
  */
 export const FLUENT_CORE_APIS = [
   "Acl",
+  "AliasTemplate",
   "ApplicationMenu",
   "BusinessRule",
   "CatalogClientScript",
   "CatalogItem",
+  "CatalogItemRecordProducer",
   "ClientScript",
   "CrossScopePrivilege",
   "DatabaseIndex",
+  "InboundEmailAction",
   "Module",
   "Property",
   "Record",
@@ -36,8 +39,10 @@ export const FLUENT_CORE_APIS = [
   "ScriptInclude",
   "SPMenu",
   "SPWidget",
+  "StateModel",
   "Table",
   "UiAction",
+  "UiFormatter",
   "UiPage",
   "UiPolicy",
 ] as const;
@@ -79,12 +84,15 @@ export const FLUENT_CORE_MODULE = "@servicenow/sdk/core";
  */
 export const FLUENT_ENTITIES_REQUIRING_ID: ReadonlySet<string> = new Set([
   "Acl",
+  "AliasTemplate",
   "ApplicationMenu",
   "BusinessRule",
   "CatalogClientScript",
   "CatalogItem",
+  "CatalogItemRecordProducer",
   "ClientScript",
   "CrossScopePrivilege",
+  "InboundEmailAction",
   "Module",
   "Property",
   "Record",
@@ -96,7 +104,9 @@ export const FLUENT_ENTITIES_REQUIRING_ID: ReadonlySet<string> = new Set([
   "ScriptInclude",
   "SPMenu",
   "SPWidget",
+  "StateModel",
   "UiAction",
+  "UiFormatter",
   "UiPage",
   "UiPolicy",
 ]);

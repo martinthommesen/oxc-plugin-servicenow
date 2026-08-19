@@ -23,7 +23,7 @@ export const noBrCurrentUpdate = defineRule({
       CallExpression(node) {
         if (!isCallTo(node, "current", "update")) return;
         const kind = classifyFromContext(context);
-        if (kind === "client") return;
+        if (kind === "client" || kind === "ui-action") return;
         context.report({ node: node as ESTree.Node, messageId: "update" });
       },
     };
