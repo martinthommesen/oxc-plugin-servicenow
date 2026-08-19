@@ -715,6 +715,176 @@ export const ruleCatalog: RuleCatalogEntry[] = [
       },
     ],
   }),
+  entry("no-glideelement-in-collection", {
+    title: "No GlideElement in a collection",
+    family: "classic",
+    preset: "recommended",
+    severity: "error",
+    fixable: false,
+    hasSuggestions: false,
+    description:
+      "Direct GlideRecord field access is a GlideElement tied to the cursor. Do not `push` / `unshift` it inside a `.next()` loop. Evidence: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html",
+    bad: [
+      {
+        name: "push field",
+        filename: "incident.br.js",
+        code: `var numbers = [];\nvar incident = new GlideRecord("incident");\nincident.query();\nwhile (incident.next()) {\n  numbers.push(incident.number);\n}`,
+      },
+    ],
+    good: [
+      {
+        name: "getValue",
+        filename: "incident.br.js",
+        code: `var numbers = [];\nvar incident = new GlideRecord("incident");\nincident.query();\nwhile (incident.next()) {\n  numbers.push(incident.getValue("number"));\n}`,
+      },
+    ],
+  }),
+  entry("no-gliderecord-query-modifier-after-query", {
+    title: "No query modifier after query",
+    family: "classic",
+    preset: "recommended",
+    severity: "error",
+    fixable: false,
+    hasSuggestions: false,
+    description:
+      "Filters and result-shaping calls after `query()` do not change the open cursor. Report when `next()` consumes that cursor first.",
+    bad: [
+      {
+        name: "addQuery after query",
+        filename: "incident.br.js",
+        code: `var incident = new GlideRecord("incident");\nincident.query();\nincident.addQuery("active", true);\nwhile (incident.next()) {\n  gs.info(incident.number);\n}`,
+      },
+    ],
+    good: [
+      {
+        name: "filter then query",
+        filename: "incident.br.js",
+        code: `var incident = new GlideRecord("incident");\nincident.addQuery("active", true);\nincident.query();\nwhile (incident.next()) {\n  gs.info(incident.number);\n}`,
+      },
+    ],
+  }),
+  entry("require-business-rule-wrapper", {
+    title: "Require Business Rule wrapper",
+    family: "classic",
+    preset: "recommended",
+    severity: "error",
+    fixable: false,
+    hasSuggestions: false,
+    description:
+      "Full-script Business Rules must wrap logic in the standard IIFE so top-level variables do not leak. The rule is silent unless `businessRuleSourceFormat` is `full-script`.",
+    bad: [
+      {
+        name: "unwrapped",
+        filename: "incident.br.js",
+        settings: { businessRuleSourceFormat: "full-script" },
+        code: `var targetGroup = gs.getProperty("x_acme.target_group");\nif (current.assignment_group.nil()) {\n  current.assignment_group = targetGroup;\n}`,
+      },
+    ],
+    good: [
+      {
+        name: "IIFE wrapper",
+        filename: "incident.br.js",
+        settings: { businessRuleSourceFormat: "full-script" },
+        code: `(function executeRule(current, previous) {\n  var targetGroup = gs.getProperty("x_acme.target_group");\n  if (current.assignment_group.nil()) {\n    current.assignment_group = targetGroup;\n  }\n})(current, previous);`,
+      },
+    ],
+  }),
+  entry("no-display-value-date-comparison", {
+    title: "No display-value date comparison",
+    family: "classic",
+    preset: "strict",
+    severity: "warn",
+    fixable: false,
+    hasSuggestions: false,
+    description:
+      "Do not relationally compare `GlideDateTime.getDisplayValue()` strings. Use `getNumericValue()` or a date-aware API.",
+    bad: [
+      {
+        name: "display string compare",
+        filename: "incident.br.js",
+        code: `var start = new GlideDateTime(current.start_date);\nvar end = new GlideDateTime(current.end_date);\nif (start.getDisplayValue() > end.getDisplayValue()) {\n  gs.addErrorMessage("Start must be before end");\n}`,
+      },
+    ],
+    good: [
+      {
+        name: "numeric compare",
+        filename: "incident.br.js",
+        code: `var start = new GlideDateTime(current.start_date);\nvar end = new GlideDateTime(current.end_date);\nif (start.getNumericValue() > end.getNumericValue()) {\n  gs.addErrorMessage("Start must be before end");\n}`,
+      },
+    ],
+  }),
+  entry("no-unfiltered-gliderecord-bulk-operation", {
+    title: "No unfiltered GlideRecord bulk operation",
+    family: "classic",
+    preset: "recommended",
+    severity: "warn",
+    fixable: false,
+    hasSuggestions: false,
+    description:
+      "`updateMultiple()` / `deleteMultiple()` without a proven filter can touch every row. `query`, `orderBy`, and `setLimit` are not filters.",
+    bad: [
+      {
+        name: "deleteMultiple with no filter",
+        filename: "incident.br.js",
+        code: `var staging = new GlideRecord("x_acme_staging");\nstaging.deleteMultiple();`,
+      },
+    ],
+    good: [
+      {
+        name: "filtered updateMultiple",
+        filename: "incident.br.js",
+        code: `var task = new GlideRecord("task");\ntask.addQuery("active", false);\ntask.setValue("u_migrated", true);\ntask.updateMultiple();`,
+      },
+    ],
+  }),
+  entry("no-gliderecord-query-in-loop", {
+    title: "No GlideRecord query in a cursor loop",
+    family: "classic",
+    preset: "strict",
+    severity: "warn",
+    fixable: false,
+    hasSuggestions: false,
+    description:
+      "A `query()` or `get()` inside `while (outer.next())` is an N+1 pattern. Starts as a warning because some lookups cannot be batched.",
+    bad: [
+      {
+        name: "nested get",
+        filename: "incident.br.js",
+        code: `var incident = new GlideRecord("incident");\nincident.query();\nwhile (incident.next()) {\n  var caller = new GlideRecord("sys_user");\n  caller.get(incident.getValue("caller_id"));\n  gs.info(caller.getDisplayValue());\n}`,
+      },
+    ],
+    good: [
+      {
+        name: "display value",
+        filename: "incident.br.js",
+        code: `var incident = new GlideRecord("incident");\nincident.query();\nwhile (incident.next()) {\n  gs.info(incident.getDisplayValue("caller_id"));\n}`,
+      },
+    ],
+  }),
+  entry("no-system-query-bypass", {
+    title: "Review system query ACL bypass",
+    family: "classic",
+    preset: false,
+    severity: "warn",
+    fixable: false,
+    hasSuggestions: false,
+    description:
+      "Opt-in security review for documented ACL-bypass query APIs: `addSystemQuery`, `addSystemEncodedQuery`, `addSystemOrderBy`, `addSystemOrderByDesc`.",
+    bad: [
+      {
+        name: "addSystemQuery",
+        filename: "incident.br.js",
+        code: `var user = new GlideRecord("sys_user");\nuser.addSystemQuery("active", true);\nuser.query();`,
+      },
+    ],
+    good: [
+      {
+        name: "addQuery",
+        filename: "incident.br.js",
+        code: `var user = new GlideRecord("sys_user");\nuser.addQuery("active", true);\nuser.query();`,
+      },
+    ],
+  }),
   entry("no-sync-glideajax", {
     title: "No synchronous GlideAjax",
     family: "classic",

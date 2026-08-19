@@ -102,6 +102,11 @@ export { getScriptContext, resolveScriptContext } from "./context/index.js";
 export { validateServiceNowSettings, ServiceNowSettingsError, ServiceNowConfigError } from "./settings/index.js";
 export { DEFAULT_FLUENT_MANIFEST } from "./fluent/index.js";
 export { ENGINE_FEATURES } from "./engine/index.js";
+export {
+  GLIDE_API_RELEASE,
+  GLIDE_RECORD_METHODS,
+  GLIDE_SYSTEM_BYPASS_METHODS,
+} from "./glide/index.js";
 export type {
   ServiceNowSettings,
   ServiceNowScriptContext,

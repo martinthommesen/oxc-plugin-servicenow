@@ -10,8 +10,14 @@ import { noBrCurrentUpdate } from "./no-br-current-update.js";
 import { noClientGliderecord } from "./no-client-gliderecord.js";
 import { noComplexFluentLogic } from "./no-complex-fluent-logic.js";
 import { noDeleteMultipleWithWindowing } from "./no-delete-multiple-with-windowing.js";
+import { noDisplayValueDateComparison } from "./no-display-value-date-comparison.js";
 import { noDuplicateFluentId } from "./no-duplicate-fluent-id.js";
 import { noGlideajaxGetanswer } from "./no-glideajax-getanswer.js";
+import { noGlideelementInCollection } from "./no-glideelement-in-collection.js";
+import { noGliderecordQueryInLoop } from "./no-gliderecord-query-in-loop.js";
+import { noGliderecordQueryModifierAfterQuery } from "./no-gliderecord-query-modifier-after-query.js";
+import { noSystemQueryBypass } from "./no-system-query-bypass.js";
+import { noUnfilteredGliderecordBulkOperation } from "./no-unfiltered-gliderecord-bulk-operation.js";
 import { noGsNow } from "./no-gs-now.js";
 import { noNowIdAsReference } from "./no-now-id-as-reference.js";
 import { noHardcodedSysid } from "./no-hardcoded-sysid.js";
@@ -26,6 +32,7 @@ import { noWeakCollections } from "./no-weak-collections.js";
 import { noWeakReferences } from "./no-weak-references.js";
 import { preferGlideaggregate } from "./prefer-glideaggregate.js";
 import { preferNowInclude } from "./prefer-now-include.js";
+import { requireBusinessRuleWrapper } from "./require-business-rule-wrapper.js";
 import { requireCallbackForGetreference } from "./require-callback-for-getreference.js";
 import { requireFluentId } from "./require-fluent-id.js";
 import { requireGlideajaxSysparmName } from "./require-glideajax-sysparm-name.js";
@@ -67,6 +74,13 @@ export const rules = {
   "no-now-id-as-reference": noNowIdAsReference,
   "no-glideajax-getanswer": noGlideajaxGetanswer,
   "no-duplicate-fluent-id": noDuplicateFluentId,
+  "no-glideelement-in-collection": noGlideelementInCollection,
+  "no-gliderecord-query-modifier-after-query": noGliderecordQueryModifierAfterQuery,
+  "require-business-rule-wrapper": requireBusinessRuleWrapper,
+  "no-display-value-date-comparison": noDisplayValueDateComparison,
+  "no-unfiltered-gliderecord-bulk-operation": noUnfilteredGliderecordBulkOperation,
+  "no-gliderecord-query-in-loop": noGliderecordQueryInLoop,
+  "no-system-query-bypass": noSystemQueryBypass,
 } satisfies Record<string, Rule>;
 
 export type RuleName = keyof typeof rules;

@@ -25,6 +25,10 @@ export const recommendedRules: RuleConfigMap = {
   [id("no-now-id-as-reference")]: "error",
   [id("no-glideajax-getanswer")]: "error",
   [id("no-duplicate-fluent-id")]: "error",
+  [id("no-glideelement-in-collection")]: "error",
+  [id("no-gliderecord-query-modifier-after-query")]: "error",
+  [id("require-business-rule-wrapper")]: "error",
+  [id("no-unfiltered-gliderecord-bulk-operation")]: "warn",
   [id("no-async-iterators")]: "error",
   [id("no-weak-references")]: "error",
   [id("fluent-proper-imports")]: "error",
@@ -67,6 +71,9 @@ export const businessRuleRules: RuleConfigMap = {
   [id("require-query-before-next")]: "error",
   [id("no-delete-multiple-with-windowing")]: "error",
   [id("validate-glideaggregate-calls")]: "error",
+  [id("require-business-rule-wrapper")]: "error",
+  [id("no-glideelement-in-collection")]: "error",
+  [id("no-gliderecord-query-modifier-after-query")]: "error",
 };
 
 export const fluentRules: RuleConfigMap = {
@@ -86,6 +93,8 @@ export const strictRules: RuleConfigMap = {
   [id("prefer-glideaggregate")]: "warn",
   [id("prefer-now-include")]: "warn",
   [id("fluent-naming-convention")]: "warn",
+  [id("no-display-value-date-comparison")]: "warn",
+  [id("no-gliderecord-query-in-loop")]: "warn",
 };
 
 /** Organizational policy. Not part of recommended or strict. */
@@ -94,5 +103,7 @@ export const policyRules: RuleConfigMap = {
   [id("no-complex-fluent-logic")]: "warn",
 };
 
-/** Privilege-sensitive APIs. Empty until Phase 3 security rules land. */
-export const securityRules: RuleConfigMap = {};
+/** Privilege-sensitive APIs. Review diagnostics, not automatic bans. */
+export const securityRules: RuleConfigMap = {
+  [id("no-system-query-bypass")]: "warn",
+};

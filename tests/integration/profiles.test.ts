@@ -12,6 +12,8 @@ const invalidDir = path.join(profilesDir, "invalid");
 const recommendedConfig = path.join(profilesDir, "configs/recommended.oxlintrc.json");
 const classicEs5Config = path.join(profilesDir, "configs/classic-es5.oxlintrc.json");
 const es2021Config = path.join(profilesDir, "configs/es2021.oxlintrc.json");
+const fullScriptConfig = path.join(profilesDir, "configs/recommended-full-script.oxlintrc.json");
+const securityConfig = path.join(profilesDir, "configs/security.oxlintrc.json");
 const mixedDir = path.join(profilesDir, "mixed");
 
 function validFiles(): string[] {
@@ -167,5 +169,71 @@ describe("profile fixtures", () => {
   it("mixed-repository recommended oxlint is silent", () => {
     const report = runOxlint(path.join(mixedDir, ".oxlintrc.json"), [mixedDir]);
     assert.deepEqual(pluginRulesFor(report), [], JSON.stringify(report.diagnostics, null, 2));
+  });
+
+  it("recommended flags Phase 3 server rules", () => {
+    const element = pluginRulesFor(
+      runOxlint(recommendedConfig, [path.join(invalidDir, "glideelement-push.br.js")]),
+    );
+    const late = pluginRulesFor(
+      runOxlint(recommendedConfig, [path.join(invalidDir, "late-modifier.br.js")]),
+    );
+    const bulk = pluginRulesFor(
+      runOxlint(recommendedConfig, [path.join(invalidDir, "unfiltered-bulk.br.js")]),
+    );
+    assert.ok(
+      element.includes("servicenow/no-glideelement-in-collection"),
+      `glideelement-push: ${element.join(", ") || "(none)"}`,
+    );
+    assert.ok(
+      late.includes("servicenow/no-gliderecord-query-modifier-after-query"),
+      `late-modifier: ${late.join(", ") || "(none)"}`,
+    );
+    assert.ok(
+      bulk.includes("servicenow/no-unfiltered-gliderecord-bulk-operation"),
+      `unfiltered-bulk: ${bulk.join(", ") || "(none)"}`,
+    );
+  });
+
+  it("recommended stays silent on body-only Business Rule source", () => {
+    const rules = pluginRulesFor(runOxlint(recommendedConfig, [path.join(invalidDir, "unwrapped.br.js")]));
+    assert.ok(!rules.includes("servicenow/require-business-rule-wrapper"), rules.join(", "));
+  });
+
+  it("full-script settings enable the Business Rule wrapper rule", () => {
+    const rules = pluginRulesFor(runOxlint(fullScriptConfig, [path.join(invalidDir, "unwrapped.br.js")]));
+    assert.ok(
+      rules.includes("servicenow/require-business-rule-wrapper"),
+      `unwrapped: ${rules.join(", ") || "(none)"}`,
+    );
+  });
+
+  it("security profile flags documented ACL-bypass methods", () => {
+    const recommended = pluginRulesFor(
+      runOxlint(recommendedConfig, [path.join(invalidDir, "system-query.br.js")]),
+    );
+    const security = pluginRulesFor(
+      runOxlint(securityConfig, [path.join(invalidDir, "system-query.br.js")]),
+    );
+    assert.ok(!recommended.includes("servicenow/no-system-query-bypass"));
+    assert.ok(
+      security.includes("servicenow/no-system-query-bypass"),
+      `system-query: ${security.join(", ") || "(none)"}`,
+    );
+  });
+
+  it("recommended ESLint flags Phase 3 rules", () => {
+    const cases: Array<[string, string]> = [
+      ["glideelement-push.br.js", "servicenow/no-glideelement-in-collection"],
+      ["late-modifier.br.js", "servicenow/no-gliderecord-query-modifier-after-query"],
+      ["unfiltered-bulk.br.js", "servicenow/no-unfiltered-gliderecord-bulk-operation"],
+    ];
+    for (const [file, ruleId] of cases) {
+      const code = readFileSync(path.join(invalidDir, file), "utf8");
+      const ids = eslintRecommended(code, file)
+        .map((message) => message.ruleId)
+        .filter((id): id is string => Boolean(id));
+      assert.ok(ids.includes(ruleId), `${file}: missing ${ruleId} (got ${ids.join(", ") || "(none)"})`);
+    }
   });
 });

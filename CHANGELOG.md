@@ -5,6 +5,10 @@
 ### oxlint
 
 - New recommended rules: `no-delete-multiple-with-windowing`, `require-callback-for-getreference`, `require-glideajax-sysparm-name`, `validate-glideaggregate-calls`, `no-now-id-as-reference`, `no-glideajax-getanswer`, `no-duplicate-fluent-id`.
+- New recommended rules: `no-glideelement-in-collection`, `no-gliderecord-query-modifier-after-query`, `require-business-rule-wrapper`. `no-unfiltered-gliderecord-bulk-operation` is recommended at warn.
+- New strict/warn rules: `no-display-value-date-comparison`, `no-gliderecord-query-in-loop`.
+- New opt-in `configs.securityRules` rule: `no-system-query-bypass`.
+- Versioned Zurich GlideRecord method table in `src/glide/manifest.ts` drives filter, modifier, and ACL-bypass names.
 
 ### Breaking — 2.0.0 foundation
 

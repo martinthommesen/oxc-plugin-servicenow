@@ -56,6 +56,10 @@ Existing ESLint plugins (`eslint-plugin-servicenow`, `eslint-plugin-sn`) cover p
     "servicenow/no-now-id-as-reference": "error",
     "servicenow/no-glideajax-getanswer": "error",
     "servicenow/no-duplicate-fluent-id": "error",
+    "servicenow/no-glideelement-in-collection": "error",
+    "servicenow/no-gliderecord-query-modifier-after-query": "error",
+    "servicenow/require-business-rule-wrapper": "error",
+    "servicenow/no-unfiltered-gliderecord-bulk-operation": "warn",
     "servicenow/no-async-iterators": "error",
     "servicenow/no-weak-references": "error",
     "servicenow/fluent-proper-imports": "error",
@@ -92,7 +96,7 @@ export default defineConfig({
 | `configs.fluentRules` | Fluent `.now.ts` metadata rules. |
 | `configs.strictRules` | Recommended plus warn-level performance and naming guidance. Does not promote heuristics to errors. |
 | `configs.policyRules` | Optional organizational policy (`no-hardcoded-table-names`, `no-complex-fluent-logic`). |
-| `configs.securityRules` | Opt-in privilege-sensitive rules. Empty until those rules ship. |
+| `configs.securityRules` | Opt-in privilege-sensitive review rules such as `no-system-query-bypass`. |
 
 ---
 
@@ -282,6 +286,13 @@ Per-file `// @sn-es-latest` still maps to `es2021` with inferred confidence. Pre
 | [`require-glideajax-sysparm-name`](docs/rules/require-glideajax-sysparm-name.md) | recommended | | GlideAjax request without `sysparm_name` |
 | [`validate-glideaggregate-calls`](docs/rules/validate-glideaggregate-calls.md) | recommended | | GlideAggregate `next` / `getAggregate` before `query`, or unknown tuple |
 | [`no-glideajax-getanswer`](docs/rules/no-glideajax-getanswer.md) | recommended | | `GlideAjax.getAnswer()` |
+| [`no-glideelement-in-collection`](docs/rules/no-glideelement-in-collection.md) | recommended | | `push` / `unshift` of a cursor-bound GlideElement |
+| [`no-gliderecord-query-modifier-after-query`](docs/rules/no-gliderecord-query-modifier-after-query.md) | recommended | | query modifier after `query()` / `get()` then `next()` |
+| [`require-business-rule-wrapper`](docs/rules/require-business-rule-wrapper.md) | recommended | | full-script Business Rule without the `current` / `previous` IIFE |
+| [`no-unfiltered-gliderecord-bulk-operation`](docs/rules/no-unfiltered-gliderecord-bulk-operation.md) | recommended | | `updateMultiple` / `deleteMultiple` with no proven filter |
+| [`no-display-value-date-comparison`](docs/rules/no-display-value-date-comparison.md) | strict | | relational compare of `GlideDateTime.getDisplayValue()` |
+| [`no-gliderecord-query-in-loop`](docs/rules/no-gliderecord-query-in-loop.md) | strict | | `query()` / `get()` inside `while (outer.next())` |
+| [`no-system-query-bypass`](docs/rules/no-system-query-bypass.md) | security | | documented `addSystem*` ACL-bypass query APIs |
 
 ### Instance engine (mode-specific)
 
