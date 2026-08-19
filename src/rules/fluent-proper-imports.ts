@@ -30,7 +30,6 @@ export const fluentProperImports = defineRule({
       url: ruleDocsUrl("fluent-proper-imports"),
     },
     fixable: "code",
-    hasSuggestions: true,
     messages: {
       wrongModule:
         "Import `{{names}}` from `@servicenow/sdk/core`, not `{{source}}`. Fluent entity APIs live on the `/core` entry.",

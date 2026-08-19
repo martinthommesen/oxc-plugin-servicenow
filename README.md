@@ -193,7 +193,7 @@ Fluent `.now.ts` files skip engine bans automatically.
 | [`no-hardcoded-sysid`](docs/rules/no-hardcoded-sysid.md) | recommended | | 32-char hex sys_ids |
 | [`prefer-glideaggregate`](docs/rules/prefer-glideaggregate.md) | recommended | suggest | `getRowCount()` / iterate-to-count |
 | [`no-client-gliderecord`](docs/rules/no-client-gliderecord.md) | recommended | | `GlideRecord` in client scripts |
-| [`no-gs-now`](docs/rules/no-gs-now.md) | recommended | fix | `gs.now()` / `gs.nowDateTime()` |
+| [`no-gs-now`](docs/rules/no-gs-now.md) | recommended | suggest | `gs.now()` / `gs.nowDateTime()` |
 | [`validate-gliderecord-calls`](docs/rules/validate-gliderecord-calls.md) | recommended | | `.next()` without `.query()`, ignored return values |
 | [`no-br-current-update`](docs/rules/no-br-current-update.md) | recommended | | `current.update()` |
 | [`no-hardcoded-table-names`](docs/rules/no-hardcoded-table-names.md) | strict | | string-literal table names |

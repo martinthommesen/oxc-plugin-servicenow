@@ -173,7 +173,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
     family: "classic",
     preset: "recommended",
     severity: "error",
-    fixable: true,
+    fixable: false,
     hasSuggestions: true,
     description:
       "`gs.now()` and `gs.nowDateTime()` return timezone-sensitive display strings. `gs.now()` is also gone from client scripts since London. Prefer `new GlideDateTime()`.",
@@ -267,7 +267,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
     preset: "recommended",
     severity: "error",
     fixable: true,
-    hasSuggestions: true,
+    hasSuggestions: false,
     description: "Fluent entity and column APIs must be imported from `@servicenow/sdk/core`.",
     bad: [
       {
@@ -290,7 +290,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
     preset: "recommended",
     severity: "warn",
     fixable: false,
-    hasSuggestions: true,
+    hasSuggestions: false,
     description:
       "Validate `@fluent-ignore` and `@fluent-disable-sync`, catch typos, and reject `@ts-ignore` as a Fluent suppress.",
     bad: [
@@ -338,7 +338,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
     preset: "recommended",
     severity: "error",
     fixable: false,
-    hasSuggestions: true,
+    hasSuggestions: false,
     description:
       "Fluent entities must declare `$id`. Prefer `Now.ID['descriptive-key']` so `keys.ts` stays readable.",
     bad: [

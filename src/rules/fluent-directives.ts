@@ -42,7 +42,6 @@ export const fluentDirectives = defineRule({
       recommended: "recommended",
       url: ruleDocsUrl("fluent-directives"),
     },
-    hasSuggestions: true,
     messages: {
       unknown:
         "Unknown Fluent directive `@{{name}}`. Supported directives: `@fluent-ignore`, `@fluent-disable-sync`.",

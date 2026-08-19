@@ -1,8 +1,15 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
-import { memberName } from "../utils/ast.js";
+import { getName, getStringValue } from "../utils/ast.js";
 import { usesClassicEngine } from "../utils/filenames.js";
+
+function numericLiteralValue(node: unknown): number | null {
+  if (!node || typeof node !== "object") return null;
+  const rec = node as { type?: string; value?: unknown };
+  if (rec.type !== "Literal" && rec.type !== "NumericLiteral") return null;
+  return typeof rec.value === "number" ? rec.value : null;
+}
 
 export const noAtMethod = defineRule({
   meta: {
@@ -23,28 +30,40 @@ export const noAtMethod = defineRule({
         if (!usesClassicEngine(context)) return false;
       },
       CallExpression(node) {
-        const member = memberName((node as ESTree.CallExpression).callee);
-        if (!member || member.property !== "at") return;
-        const arg = (node as ESTree.CallExpression).arguments[0];
+        const call = node as ESTree.CallExpression;
+        if (call.callee.type !== "MemberExpression") return;
+        const callee = call.callee as ESTree.MemberExpression;
+        const property = callee.computed
+          ? getStringValue(callee.property)
+          : getName(callee.property);
+        if (property !== "at") return;
+        const arg = call.arguments[0];
+        const obj = context.sourceCode.getText(callee.object as unknown as ESTree.Node);
+
+        let replacement: string | undefined;
+        const positive = numericLiteralValue(arg);
+        if (arg && arg.type !== "SpreadElement" && positive !== null && positive >= 0) {
+          replacement = `${obj}[${positive}]`;
+        } else if (arg && arg.type === "UnaryExpression" && arg.operator === "-") {
+          const k = numericLiteralValue((arg as ESTree.UnaryExpression).argument);
+          if (k !== null && k > 0 && callee.object.type === "Identifier") {
+            replacement = `${obj}[${obj}.length - ${k}]`;
+          }
+        }
+
         context.report({
           node,
           messageId: "at",
-          suggest:
-            arg && arg.type !== "SpreadElement"
-              ? [
-                  {
-                    desc: "Replace with an index access",
-                    fix(fixer) {
-                      const obj = context.sourceCode.getText(
-                        ((node as ESTree.CallExpression).callee as ESTree.MemberExpression)
-                          .object as unknown as ESTree.Node,
-                      );
-                      const index = context.sourceCode.getText(arg as unknown as ESTree.Node);
-                      return fixer.replaceText(node, `${obj}[${index}]`);
-                    },
+          suggest: replacement
+            ? [
+                {
+                  desc: "Replace with an index access",
+                  fix(fixer) {
+                    return fixer.replaceText(node, replacement);
                   },
-                ]
-              : undefined,
+                },
+              ]
+            : undefined,
         });
       },
     };

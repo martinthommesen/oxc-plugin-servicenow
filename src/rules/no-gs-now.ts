@@ -14,7 +14,6 @@ export const noGsNow = defineRule({
       recommended: "recommended",
       url: ruleDocsUrl("no-gs-now"),
     },
-    fixable: "code",
     hasSuggestions: true,
     messages: {
       client:
@@ -39,20 +38,17 @@ export const noGsNow = defineRule({
         context.report({
           node,
           messageId,
-          fix(fixer) {
-            return fixer.replaceText(node as ESTree.Node, "new GlideDateTime()");
-          },
           suggest: [
-            {
-              desc: "Replace with new GlideDateTime()",
-              fix(fixer) {
-                return fixer.replaceText(node as ESTree.Node, "new GlideDateTime()");
-              },
-            },
             {
               desc: "Replace with new GlideDateTime().getDisplayValue()",
               fix(fixer) {
                 return fixer.replaceText(node as ESTree.Node, "new GlideDateTime().getDisplayValue()");
+              },
+            },
+            {
+              desc: "Replace with new GlideDateTime()",
+              fix(fixer) {
+                return fixer.replaceText(node as ESTree.Node, "new GlideDateTime()");
               },
             },
           ],

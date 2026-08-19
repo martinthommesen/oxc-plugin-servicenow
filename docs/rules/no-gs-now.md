@@ -5,7 +5,7 @@
 - **Family:** classic
 - **Preset:** recommended
 - **Default severity:** error
-- **Fixable:** yes
+- **Fixable:** no
 - **Suggestions:** yes
 
 ## Incorrect

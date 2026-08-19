@@ -27,7 +27,6 @@ export const requireFluentId = defineRule({
         },
       },
     ],
-    hasSuggestions: true,
     messages: {
       missing:
         "`{{api}}()` is missing `$id`. Fluent uses `$id` to track the record in `keys.ts` across syncs. Add `$id: Now.ID['{{hint}}']`.",
