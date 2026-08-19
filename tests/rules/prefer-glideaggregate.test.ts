@@ -12,6 +12,14 @@ describe(RULE, () => {
     );
   });
 
+  it("flags getRowCount on GlideRecordSecure", () => {
+    assertInvalid(
+      `var gr = new GlideRecordSecure("incident");\ngr.query();\nvar n = gr.getRowCount();`,
+      RULE,
+      { messageId: "getRowCount" },
+    );
+  });
+
   it("allows GlideAggregate", () => {
     assertValid(
       `var ga = new GlideAggregate("incident");\nga.addAggregate("COUNT");\nga.query();`,

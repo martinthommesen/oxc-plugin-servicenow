@@ -1,6 +1,7 @@
 import type { Context } from "@oxlint/plugins";
 import { CLIENT_GLOBALS_STRONG } from "../constants.js";
 import type { ScriptKind, ServiceNowSettings } from "../types.js";
+import { fallbackComments } from "./ast.js";
 import { getSettings } from "./settings.js";
 
 const CLIENT_FILE =
@@ -25,18 +26,6 @@ export function basename(filename: string): string {
   const normalized = normalizeFilename(filename);
   const parts = normalized.split("/");
   return parts[parts.length - 1] ?? normalized;
-}
-
-function fallbackComments(text: string): Array<{ value: string }> {
-  const out: Array<{ value: string }> = [];
-  const re = /\/\*[\s\S]*?\*\/|\/\/[^\n]*/g;
-  let match: RegExpExecArray | null;
-  while ((match = re.exec(text))) {
-    const raw = match[0];
-    const value = raw.startsWith("//") ? raw.slice(2) : raw.slice(2, -2);
-    out.push({ value });
-  }
-  return out;
 }
 
 export function hasEsLatestPragma(context: Context): boolean {

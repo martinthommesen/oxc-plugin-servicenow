@@ -3,7 +3,7 @@ import { PLUGIN_NAME } from "../constants.js";
 import { rules as allRules } from "../rules/index.js";
 import type { RuleName } from "../rules/index.js";
 import type { ServiceNowSettings } from "../types.js";
-import { isNode, walk } from "../utils/ast.js";
+import { fallbackComments, isNode, walk } from "../utils/ast.js";
 
 export interface LintMessage {
   ruleId: string;
@@ -99,18 +99,6 @@ function locFromNode(node: { start?: number; end?: number; loc?: { start: { line
   const a = lineCol(text, start);
   const b = lineCol(text, end);
   return { line: a.line, column: a.column, endLine: b.line, endColumn: b.column };
-}
-
-function fallbackComments(text: string): Array<{ value: string; start: number; end: number }> {
-  const out: Array<{ value: string; start: number; end: number }> = [];
-  const re = /\/\*[\s\S]*?\*\/|\/\/[^\n]*/g;
-  let match: RegExpExecArray | null;
-  while ((match = re.exec(text))) {
-    const raw = match[0];
-    const value = raw.startsWith("//") ? raw.slice(2) : raw.slice(2, -2);
-    out.push({ value, start: match.index, end: match.index + raw.length });
-  }
-  return out;
 }
 
 /**

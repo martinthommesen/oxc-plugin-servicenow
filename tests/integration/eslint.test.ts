@@ -24,14 +24,9 @@ const cleanFluent = readFileSync(path.join(repoRoot, "examples/incident-table.no
 
 function verify(code: string, filename: string) {
   const linter = new Linter({ configType: "flat" });
-  // ESLint 10's default files glob is **/*.{js,mjs,cjs}. Fluent fixtures are
-  // .now.ts; a files entry is required so recommended applies to them.
   return linter.verify(
     code,
-    [
-      { files: ["**/*.js", "**/*.ts"] },
-      configs.flat.recommended as unknown as import("eslint").Linter.Config,
-    ],
+    [configs.flat.recommended as unknown as import("eslint").Linter.Config],
     { filename },
   );
 }
@@ -73,5 +68,22 @@ describe("eslint host integration", () => {
   it("reports no diagnostics on the clean examples", () => {
     assert.deepEqual(verify(cleanBusinessRule, "classic-business-rule.js"), []);
     assert.deepEqual(verify(cleanFluent, "incident-table.now.ts"), []);
+  });
+
+  it("does not apply the preset to ordinary TypeScript", () => {
+    const messages = verify(badFluent, "app.ts");
+    assert.equal(
+      messages.some((message) => message.ruleId?.startsWith("servicenow/")),
+      false,
+    );
+  });
+
+  it("fatal-parses typed Fluent without a TypeScript parser", () => {
+    const messages = verify('const x: string = "a";\n', "table.now.ts");
+    assert.ok(
+      messages.some(
+        (message) => message.fatal === true && /Unexpected token :/.test(message.message),
+      ),
+    );
   });
 });

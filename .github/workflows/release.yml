@@ -20,9 +20,9 @@ jobs:
           registry-url: https://registry.npmjs.org
       - run: npm ci
       - run: npm run typecheck
+      - run: npm run build
       - run: npm test
       - run: npm run docs:check
-      - run: npm run build
       - name: Verify tag matches package version
         run: |
           test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"

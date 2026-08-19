@@ -185,6 +185,19 @@ export function commentText(comment: CommentLike): string {
   return comment.value.trim();
 }
 
+/** Extract `//` and `/*` comment bodies when `sourceCode.getAllComments` is missing. */
+export function fallbackComments(text: string): Array<{ value: string; start: number; end: number }> {
+  const out: Array<{ value: string; start: number; end: number }> = [];
+  const re = /\/\*[\s\S]*?\*\/|\/\/[^\n]*/g;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(text))) {
+    const raw = match[0];
+    const value = raw.startsWith("//") ? raw.slice(2) : raw.slice(2, -2);
+    out.push({ value, start: match.index, end: match.index + raw.length });
+  }
+  return out;
+}
+
 /**
  * Depth-first walk. `ancestors` is mutated so `getAncestors()` can read the
  * parent chain while a visitor is running (current node is last).

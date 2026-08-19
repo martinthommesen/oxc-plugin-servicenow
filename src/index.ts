@@ -22,6 +22,15 @@ const plugin = eslintCompatPlugin(defined) as typeof defined & {
   meta: { name: string; version: string };
 };
 
+// ESLint 10 defaults to JS/CJS/MJS only and would skip Fluent *.now.ts.
+const ESLINT_FLAT_FILES = [
+  "**/*.js",
+  "**/*.cjs",
+  "**/*.mjs",
+  "**/*.now.ts",
+  "**/*.now.tsx",
+];
+
 export const configs = {
   recommended,
   strict,
@@ -39,11 +48,13 @@ export const configs = {
   flat: {
     recommended: {
       name: `${PLUGIN_NAME}/recommended`,
+      files: ESLINT_FLAT_FILES,
       plugins: { [PLUGIN_NAME]: plugin },
       rules: recommendedRules,
     },
     strict: {
       name: `${PLUGIN_NAME}/strict`,
+      files: ESLINT_FLAT_FILES,
       plugins: { [PLUGIN_NAME]: plugin },
       rules: strictRules,
     },

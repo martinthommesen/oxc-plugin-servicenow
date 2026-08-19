@@ -221,7 +221,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
     fixable: false,
     hasSuggestions: false,
     description:
-      "`current.update()` retriggers other Business Rules and can recurse. Set fields on `current` and let the platform save. UI Actions are exempt.",
+      "`current.update()` retriggers other Business Rules and can recurse. Set fields on `current` and let the platform save. Reports on Business Rule and `src/server/**` files. UI Actions are exempt. Override with `settings.servicenow.scriptType`.",
     bad: [
       {
         name: "current.update",
@@ -245,7 +245,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
     fixable: false,
     hasSuggestions: false,
     description:
-      "String-literal table names in `GlideRecord` / `GlideAggregate` are hard to rename. Prefer named constants or Fluent table exports.",
+      "String-literal table names in `GlideRecord` / `GlideRecordSecure` / `GlideAggregate` are hard to rename. Prefer named constants or Fluent table exports.",
     bad: [
       {
         name: "literal table",

@@ -52,6 +52,14 @@ describe("plugin export", () => {
     assert.equal(configs.flat.strict.plugins.servicenow, plugin);
   });
 
+  it("flat configs apply to JavaScript and Fluent TypeScript", () => {
+    for (const config of [configs.flat.recommended, configs.flat.strict]) {
+      assert.ok(config.files.includes("**/*.js"), `${config.name} missing **/*.js`);
+      assert.ok(config.files.includes("**/*.now.ts"), `${config.name} missing **/*.now.ts`);
+      assert.ok(!config.files.includes("**/*.ts"), `${config.name} should not include **/*.ts`);
+    }
+  });
+
   it("catalog fixable and hasSuggestions match rule meta and real output", () => {
     for (const entry of ruleCatalog) {
       const rec = rules[entry.name] as {

@@ -8,7 +8,7 @@ import {
 } from "../helpers/rule-tester.js";
 
 describe("no-gs-now", () => {
-  it("flags gs.now() and is fixable", () => {
+  it("flags gs.now()", () => {
     assertInvalid(`var when = gs.now();`, "no-gs-now", { messageId: "server" });
   });
 
@@ -85,6 +85,12 @@ describe("no-br-current-update", () => {
       { messageId: "update" },
       { filename: "incident.br.js" },
     );
+  });
+
+  it("flags current.update() in src/server", () => {
+    assertInvalid("current.update();", "no-br-current-update", { messageId: "update" }, {
+      filename: "src/server/incident.js",
+    });
   });
 
   it("allows current.update() in unclassified files", () => {

@@ -145,6 +145,12 @@ export default [servicenow.configs.flat.recommended];
 export default [servicenow.configs.flat.strict];
 ```
 
+The flat presets set `files` so ESLint 10 opens classic `*.js` / `*.cjs` / `*.mjs` and Fluent `*.now.ts` / `*.now.tsx`. ESLint 10's default glob is JS/CJS/MJS only.
+
+oxlint parses TypeScript itself. ESLint uses its default JS parser, so type annotations (`import type`, `: string`) in `.now.ts` fail to parse. Add [`typescript-eslint`](https://typescript-eslint.io/getting-started/) in your own config if you lint typed Fluent.
+
+To run these rules on server TypeScript (`src/server/**/*.ts`), add a `files` override. Those files usually also need `settings.servicenow.ecmaLatest` or `// @sn-es-latest`.
+
 ---
 
 ## Settings

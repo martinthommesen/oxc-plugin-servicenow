@@ -1,6 +1,6 @@
 # servicenow/no-br-current-update
 
-`current.update()` retriggers other Business Rules and can recurse. Set fields on `current` and let the platform save. UI Actions are exempt.
+`current.update()` retriggers other Business Rules and can recurse. Set fields on `current` and let the platform save. Reports on Business Rule and `src/server/**` files. UI Actions are exempt. Override with `settings.servicenow.scriptType`.
 
 - **Family:** classic
 - **Preset:** recommended
