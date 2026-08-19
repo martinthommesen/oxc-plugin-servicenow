@@ -28,7 +28,7 @@ export interface ServiceNowSettings {
    * Force a script type. `"auto"` (default) classifies from the filename
    * and source markers (`g_form`, `.now.ts`, …).
    */
-  scriptType?: "auto" | "client" | "server" | "business-rule" | "fluent";
+  scriptType?: "auto" | ScriptKind;
   /**
    * When true, skip classic-engine bans (`no-promise`, `no-async-await`,
    * `no-bigint`, …). Use for Fluent server modules with `$meta.useEsLatest`.

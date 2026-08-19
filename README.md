@@ -169,7 +169,7 @@ Configure once. Every rule reads `settings.servicenow`.
 | --- | --- |
 | `allowedSysIds` | sys_ids that `no-hardcoded-sysid` will ignore |
 | `allowedTables` | table names that `no-hardcoded-table-names` will ignore |
-| `scriptType` | `"auto"` (default) or force `client` / `server` / `business-rule` / `fluent` |
+| `scriptType` | `"auto"` (default) or force `client` / `server` / `business-rule` / `script-include` / `ui-action` / `fluent` |
 | `ecmaLatest` | skip classic-engine bans (`no-promise`, `no-async-await`, …) |
 | `scopePrefix` | e.g. `x_acme` — used by the Fluent naming rule |
 

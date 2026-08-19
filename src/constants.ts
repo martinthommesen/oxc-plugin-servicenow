@@ -217,12 +217,16 @@ export const BUILTIN_TABLES: ReadonlySet<string> = new Set([
   "sysapproval_approver",
 ]);
 
-export const CLIENT_GLOBALS = [
+/** Client-side globals that only exist in browser scripts. Safe classification evidence. */
+export const CLIENT_GLOBALS_STRONG = [
   "g_form",
   "g_user",
   "g_list",
-  "g_scratchpad",
   "g_navigation",
   "g_tabs2Sections",
-  "gel",
 ] as const;
+
+/** Ambiguous globals: g_scratchpad is written by server-side display Business Rules; gel is short enough to collide. Never used for classification. */
+export const CLIENT_GLOBALS_WEAK = ["g_scratchpad", "gel"] as const;
+
+export const CLIENT_GLOBALS = [...CLIENT_GLOBALS_STRONG, ...CLIENT_GLOBALS_WEAK] as const;
