@@ -55,7 +55,8 @@
     "build": "tsc -p tsconfig.build.json",
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run clean && npm run build && npm test",
-    "test": "tsx --test tests/*.test.ts tests/rules/*.test.ts",
+    "test": "tsx --test \"tests/**/*.test.ts\"",
+    "test:integration": "tsx --test \"tests/integration/**/*.test.ts\"",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "docs": "tsx scripts/generate-rule-docs.mjs",
     "docs:check": "tsx scripts/generate-rule-docs.mjs && git diff --exit-code -- docs/rules"
