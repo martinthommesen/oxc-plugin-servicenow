@@ -68,6 +68,17 @@ describe("plugin export", () => {
       if (entry.preset === false) {
         assert.equal(inRecommended, false, `${entry.name} should stay off recommended`);
       }
+      for (const placement of entry.placements) {
+        if (placement.profile === "recommended") {
+          assert.equal(configs.recommendedRules[entry.ruleId], placement.severity);
+        }
+        if (placement.profile === "security") {
+          assert.equal(configs.securityRules[entry.ruleId], placement.severity);
+        }
+        if (placement.profile === "policy") {
+          assert.equal(configs.policyRules[entry.ruleId], placement.severity);
+        }
+      }
     }
   });
 

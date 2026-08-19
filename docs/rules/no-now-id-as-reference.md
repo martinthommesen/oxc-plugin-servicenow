@@ -4,14 +4,19 @@
 
 - **Family:** fluent
 - **Preset:** recommended
+- **Placements:** recommended (error), fluent (error)
 - **Default severity:** error
-- **Fixable:** no
+- **Fix safety:** diagnostic only
 - **Suggestions:** no
+- **Authoring:** fluent
+- **Surfaces:** Fluent `.now.ts` metadata only
+- **JavaScript mode:** Not instance-executed
+- **Implementation:** [`src/rules/no-now-id-as-reference.ts`](../../src/rules/no-now-id-as-reference.ts)
 - **Fluent manifest:** sdk-docs-2026-03
 
 ## Incorrect
 
-### ❌ Now.ID in another property
+### Incorrect: Now.ID in another property
 
 ```ts
 import { CatalogItem, VariableSet } from "@servicenow/sdk/core";
@@ -29,7 +34,7 @@ CatalogItem({
 
 ## Correct
 
-### ✅ factory object reference
+### Correct: factory object reference
 
 ```ts
 import { CatalogItem, VariableSet } from "@servicenow/sdk/core";
@@ -46,7 +51,16 @@ CatalogItem({
 });
 ```
 
+## Limitations
+
+When provenance, surface, or JavaScript mode is unknown, the rule stays silent instead of guessing.
+
+## Evidence
+
+- https://www.servicenow.com/docs/r/application-development/servicenow-sdk/fluent-constructs.html
+
 ## See also
 
-- [ServiceNow Fluent overview](https://servicenow.github.io/sdk/guides/fluent-overview)
+- [Contributor rule-authoring guide](../rule-authoring.md)
+- [Project non-goals](../non-goals.md)
 - [oxlint JS plugins](https://oxc.rs/docs/guide/usage/linter/js-plugins.html)

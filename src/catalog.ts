@@ -4,6 +4,27 @@ import type { ServiceNowSettings } from "./types.js";
 
 export type RuleFamily = "classic" | "fluent" | "engine";
 export type RulePreset = "recommended" | "strict" | "classic-es5" | "es2021" | false;
+export type RuleProfile =
+  | "recommended"
+  | "strict"
+  | "classic-es5"
+  | "es2021"
+  | "client"
+  | "business-rule"
+  | "fluent"
+  | "policy"
+  | "security";
+
+export interface RulePlacement {
+  profile: RuleProfile;
+  severity: "warn" | "error";
+}
+
+export interface RuleApplicability {
+  authoring: "classic" | "fluent" | "both";
+  surfaces: string;
+  javascriptMode: string;
+}
 
 const ES5: ServiceNowSettings = { javascriptMode: "es5" };
 
@@ -27,17 +48,106 @@ export interface RuleCatalogEntry {
   docsUrl: string;
   bad: RuleExample[];
   good: RuleExample[];
+  placements: readonly RulePlacement[];
+  applicability: RuleApplicability;
+  evidence: readonly string[];
+  limitations: string;
+  fixKind: "none" | "safe-fix" | "suggestion";
 }
 
-function entry(
-  name: RuleName,
-  rest: Omit<RuleCatalogEntry, "name" | "ruleId" | "docsUrl">,
-): RuleCatalogEntry {
+type RuleCatalogInput = Omit<
+  RuleCatalogEntry,
+  "name" | "ruleId" | "docsUrl" | "placements" | "applicability" | "evidence" | "limitations" | "fixKind"
+> & {
+  placements?: readonly RulePlacement[];
+  applicability?: Partial<RuleApplicability>;
+  evidence?: readonly string[];
+  limitations?: string;
+};
+
+const EXTRA_PLACEMENTS: Partial<Record<RuleName, readonly RulePlacement[]>> = {
+  "no-async-iterators": [
+    { profile: "classic-es5", severity: "error" },
+    { profile: "es2021", severity: "error" },
+  ],
+  "no-weak-references": [
+    { profile: "classic-es5", severity: "error" },
+    { profile: "es2021", severity: "error" },
+  ],
+  "no-typed-arrays": [{ profile: "es2021", severity: "error" }],
+  "no-client-gliderecord": [{ profile: "client", severity: "error" }],
+  "no-gs-now": [{ profile: "client", severity: "error" }],
+  "no-sync-glideajax": [{ profile: "client", severity: "error" }],
+  "require-callback-for-getreference": [{ profile: "client", severity: "error" }],
+  "require-glideajax-sysparm-name": [{ profile: "client", severity: "error" }],
+  "no-glideajax-getanswer": [{ profile: "client", severity: "error" }],
+  "no-br-current-update": [{ profile: "business-rule", severity: "error" }],
+  "require-query-before-next": [{ profile: "business-rule", severity: "error" }],
+  "no-delete-multiple-with-windowing": [{ profile: "business-rule", severity: "error" }],
+  "validate-glideaggregate-calls": [{ profile: "business-rule", severity: "error" }],
+  "require-business-rule-wrapper": [{ profile: "business-rule", severity: "error" }],
+  "no-glideelement-in-collection": [{ profile: "business-rule", severity: "error" }],
+  "no-gliderecord-query-modifier-after-query": [{ profile: "business-rule", severity: "error" }],
+  "fluent-proper-imports": [{ profile: "fluent", severity: "error" }],
+  "fluent-directives": [{ profile: "fluent", severity: "warn" }],
+  "require-fluent-id": [{ profile: "fluent", severity: "error" }],
+  "no-now-id-as-reference": [{ profile: "fluent", severity: "error" }],
+  "no-duplicate-fluent-id": [{ profile: "fluent", severity: "error" }],
+  "no-hardcoded-table-names": [{ profile: "policy", severity: "warn" }],
+  "no-complex-fluent-logic": [{ profile: "policy", severity: "warn" }],
+  "no-system-query-bypass": [{ profile: "security", severity: "warn" }],
+};
+
+function defaultApplicability(family: RuleFamily, preset: RulePreset): RuleApplicability {
+  if (family === "fluent") {
+    return {
+      authoring: "fluent",
+      surfaces: "Fluent `.now.ts` metadata only",
+      javascriptMode: "Not instance-executed",
+    };
+  }
+  if (family === "engine") {
+    return {
+      authoring: "classic",
+      surfaces: "Classic instance scripts. Fluent files are skipped.",
+      javascriptMode:
+        preset === "classic-es5"
+          ? "Runs when `javascriptMode` is `compatibility` or `es5`. Unknown mode stays silent."
+          : "Runs for documented all-mode bans, or when `javascriptMode` is known and the feature is unsupported.",
+    };
+  }
+  return {
+    authoring: "classic",
+    surfaces: "Classic instance scripts. Client-only rules skip server-only files. Fluent files are skipped.",
+    javascriptMode: "Independent of JavaScript mode unless the rule documents a mode gate.",
+  };
+}
+
+function evidenceFrom(description: string, extra: readonly string[] = []): string[] {
+  const found = [...description.matchAll(/https?:\/\/[^\s)]+/g)].map((match) => match[0].replace(/[.,]+$/, ""));
+  return [...new Set([...extra, ...found])];
+}
+
+function entry(name: RuleName, rest: RuleCatalogInput): RuleCatalogEntry {
+  const primary: RulePlacement[] =
+    rest.preset === false ? [] : [{ profile: rest.preset, severity: rest.severity }];
+  const extras = EXTRA_PLACEMENTS[name] ?? [];
+  const applicability = {
+    ...defaultApplicability(rest.family, rest.preset),
+    ...rest.applicability,
+  };
   return {
     name,
     ruleId: `${PLUGIN_NAME}/${name}`,
     docsUrl: ruleDocsUrl(name),
     ...rest,
+    placements: rest.placements ?? [...primary, ...extras],
+    applicability,
+    evidence: evidenceFrom(rest.description, rest.evidence),
+    limitations:
+      rest.limitations ??
+      "When provenance, surface, or JavaScript mode is unknown, the rule stays silent instead of guessing.",
+    fixKind: rest.fixable ? "safe-fix" : rest.hasSuggestions ? "suggestion" : "none",
   };
 }
 

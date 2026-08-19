@@ -269,60 +269,66 @@ Per-file `// @sn-es-latest` still maps to `es2021` with inferred confidence. Pre
 
 ### Classic ServiceNow
 
+<!-- generated:classic-rules:start -->
 | Rule | Preset | Fix | What it catches |
 | --- | --- | --- | --- |
-| [`no-hardcoded-sysid`](docs/rules/no-hardcoded-sysid.md) | recommended | | 32-char hex sys_ids |
-| [`prefer-glideaggregate`](docs/rules/prefer-glideaggregate.md) | strict | | `getRowCount()` / iterate-to-count on proven GlideRecord bindings |
-| [`no-client-gliderecord`](docs/rules/no-client-gliderecord.md) | recommended | | platform `GlideRecord` in client scripts |
-| [`no-gs-now`](docs/rules/no-gs-now.md) | recommended | | `gs.now()` / `gs.nowDateTime()` when `gs` is the platform global |
-| [`require-query-before-next`](docs/rules/require-query-before-next.md) | recommended | | `.next()` without `.query()` / `.get()` on every path |
-| [`validate-gliderecord-calls`](docs/rules/validate-gliderecord-calls.md) | off (deprecated) | | temporary alias of query-before-next plus unused insert/update/get/next |
-| [`no-br-current-update`](docs/rules/no-br-current-update.md) | recommended | | `current.update()` in Business Rules |
-| [`no-hardcoded-table-names`](docs/rules/no-hardcoded-table-names.md) | policy | | string-literal table names |
-| [`no-packages-calls`](docs/rules/no-packages-calls.md) | recommended | | `Packages.*` Java bridge |
-| [`no-sync-glideajax`](docs/rules/no-sync-glideajax.md) | recommended | | `GlideAjax.getXMLWait()` |
-| [`no-delete-multiple-with-windowing`](docs/rules/no-delete-multiple-with-windowing.md) | recommended | | `setLimit` / `chooseWindow` then `deleteMultiple()` |
-| [`require-callback-for-getreference`](docs/rules/require-callback-for-getreference.md) | recommended | | `g_form.getReference()` without a callback |
-| [`require-glideajax-sysparm-name`](docs/rules/require-glideajax-sysparm-name.md) | recommended | | GlideAjax request without `sysparm_name` |
-| [`validate-glideaggregate-calls`](docs/rules/validate-glideaggregate-calls.md) | recommended | | GlideAggregate `next` / `getAggregate` before `query`, or unknown tuple |
-| [`no-glideajax-getanswer`](docs/rules/no-glideajax-getanswer.md) | recommended | | `GlideAjax.getAnswer()` |
-| [`no-glideelement-in-collection`](docs/rules/no-glideelement-in-collection.md) | recommended | | `push` / `unshift` of a cursor-bound GlideElement |
-| [`no-gliderecord-query-modifier-after-query`](docs/rules/no-gliderecord-query-modifier-after-query.md) | recommended | | query modifier after `query()` / `get()` then `next()` |
-| [`require-business-rule-wrapper`](docs/rules/require-business-rule-wrapper.md) | recommended | | full-script Business Rule without the `current` / `previous` IIFE |
-| [`no-unfiltered-gliderecord-bulk-operation`](docs/rules/no-unfiltered-gliderecord-bulk-operation.md) | recommended | | `updateMultiple` / `deleteMultiple` with no proven filter |
-| [`no-display-value-date-comparison`](docs/rules/no-display-value-date-comparison.md) | strict | | relational compare of `GlideDateTime.getDisplayValue()` |
-| [`no-gliderecord-query-in-loop`](docs/rules/no-gliderecord-query-in-loop.md) | strict | | `query()` / `get()` inside `while (outer.next())` |
-| [`no-system-query-bypass`](docs/rules/no-system-query-bypass.md) | security | | documented `addSystem*` ACL-bypass query APIs |
+| [`no-hardcoded-sysid`](docs/rules/no-hardcoded-sysid.md) | recommended |  | Hardcoded 32-character sys_ids break when an app is installed on another instance |
+| [`prefer-glideaggregate`](docs/rules/prefer-glideaggregate.md) | strict |  | `GlideRecord.getRowCount()` (and iterate-to-count loops) load every matching row |
+| [`no-client-gliderecord`](docs/rules/no-client-gliderecord.md) | recommended |  | Client-side GlideRecord is slow, often blocked, and a security smell |
+| [`no-gs-now`](docs/rules/no-gs-now.md) | recommended |  | `gs.now()` and `gs.nowDateTime()` return timezone-sensitive display strings |
+| [`require-query-before-next`](docs/rules/require-query-before-next.md) | recommended |  | Require a proven GlideRecord binding to call `.query()` or `.get()` before `.next()` |
+| [`validate-gliderecord-calls`](docs/rules/validate-gliderecord-calls.md) | off |  | Deprecated alias |
+| [`no-br-current-update`](docs/rules/no-br-current-update.md) | recommended |  | `current.update()` retriggers other Business Rules and can recurse |
+| [`no-hardcoded-table-names`](docs/rules/no-hardcoded-table-names.md) | policy |  | Optional organizational policy |
+| [`no-packages-calls`](docs/rules/no-packages-calls.md) | recommended |  | The Rhino `Packages.*` Java bridge is unavailable in scoped apps and on the modern engine |
+| [`no-delete-multiple-with-windowing`](docs/rules/no-delete-multiple-with-windowing.md) | recommended |  | `setLimit()` and `chooseWindow()` do not limit `deleteMultiple()` |
+| [`require-callback-for-getreference`](docs/rules/require-callback-for-getreference.md) | recommended |  | `g_form.getReference(field)` without a callback is a synchronous server request |
+| [`require-glideajax-sysparm-name`](docs/rules/require-glideajax-sysparm-name.md) | recommended |  | GlideAjax requires `addParam("sysparm_name", method)` before `getXML` / `getXMLAnswer` / `getXMLWait` |
+| [`validate-glideaggregate-calls`](docs/rules/validate-glideaggregate-calls.md) | recommended |  | A proven GlideAggregate must call `query()` before `next()` or `getAggregate()` |
+| [`no-glideajax-getanswer`](docs/rules/no-glideajax-getanswer.md) | recommended |  | `getAnswer()` belongs to synchronous GlideAjax |
+| [`no-glideelement-in-collection`](docs/rules/no-glideelement-in-collection.md) | recommended |  | Direct GlideRecord field access is a GlideElement tied to the cursor |
+| [`no-gliderecord-query-modifier-after-query`](docs/rules/no-gliderecord-query-modifier-after-query.md) | recommended |  | Filters and result-shaping calls after `query()` do not change the open cursor |
+| [`require-business-rule-wrapper`](docs/rules/require-business-rule-wrapper.md) | recommended |  | Full-script Business Rules must wrap logic in the standard IIFE so top-level variables do not leak |
+| [`no-display-value-date-comparison`](docs/rules/no-display-value-date-comparison.md) | strict |  | Do not relationally compare `GlideDateTime.getDisplayValue()` strings |
+| [`no-unfiltered-gliderecord-bulk-operation`](docs/rules/no-unfiltered-gliderecord-bulk-operation.md) | recommended |  | `updateMultiple()` / `deleteMultiple()` without a proven filter can touch every row |
+| [`no-gliderecord-query-in-loop`](docs/rules/no-gliderecord-query-in-loop.md) | strict |  | A `query()` or `get()` inside `while (outer.next())` is an N+1 pattern |
+| [`no-system-query-bypass`](docs/rules/no-system-query-bypass.md) | security |  | Opt-in security review for documented ACL-bypass query APIs: `addSystemQuery`, `addSystemEncodedQuery`, `addSystemOrderBy`, `addSystemOrderByDesc` |
+| [`no-sync-glideajax`](docs/rules/no-sync-glideajax.md) | recommended |  | `getXMLWait()` blocks the browser and does not work in Service Portal |
+<!-- generated:classic-rules:end -->
 
 ### Instance engine (mode-specific)
 
 These rules run only when `javascriptMode` is known, except features that ServiceNow documents as disallowed in every instance mode.
 
+<!-- generated:engine-rules:start -->
 | Rule | Preset | What it catches |
 | --- | --- | --- |
-| [`no-promise`](docs/rules/no-promise.md) | classic-es5 | platform `Promise` constructor and static methods |
-| [`no-async-await`](docs/rules/no-async-await.md) | classic-es5 | `async` / `await` |
-| [`no-bigint`](docs/rules/no-bigint.md) | classic-es5 | `10n`, platform `BigInt()` |
-| [`no-at-method`](docs/rules/no-at-method.md) | classic-es5 | `.at()` |
-| [`no-weak-collections`](docs/rules/no-weak-collections.md) | classic-es5 | platform `WeakMap` / `WeakSet` |
-| [`no-weak-references`](docs/rules/no-weak-references.md) | recommended | platform `WeakRef` / `FinalizationRegistry` (all instance modes) |
-| [`no-async-iterators`](docs/rules/no-async-iterators.md) | recommended | `for await…of`, async generators (all instance modes) |
-| [`no-typed-arrays`](docs/rules/no-typed-arrays.md) | classic-es5 | TypedArray constructors; BigInt64Array also in ES2021 |
-| [`no-proxy`](docs/rules/no-proxy.md) | classic-es5 | platform `Proxy` |
-| [`no-unsupported-syntax`](docs/rules/no-unsupported-syntax.md) | classic-es5 | `?.`, `??`, `||=`, private instance members, lookbehind |
+| [`no-promise`](docs/rules/no-promise.md) | classic-es5 | Compatibility and ES5 Standards modes do not implement Promises |
+| [`no-async-await`](docs/rules/no-async-await.md) | classic-es5 | async/await is not implemented in Compatibility or ES5 Standards mode |
+| [`no-bigint`](docs/rules/no-bigint.md) | classic-es5 | BigInt literals and `BigInt()` are unsupported in Compatibility or ES5 Standards mode |
+| [`no-at-method`](docs/rules/no-at-method.md) | classic-es5 | `.at()` is not implemented in Compatibility or ES5 Standards mode |
+| [`no-weak-references`](docs/rules/no-weak-references.md) | recommended | WeakRef and FinalizationRegistry are disallowed in every instance JavaScript mode, including ES2021 |
+| [`no-weak-collections`](docs/rules/no-weak-collections.md) | classic-es5 | WeakMap and WeakSet are disallowed in Compatibility and ES5 Standards mode |
+| [`no-typed-arrays`](docs/rules/no-typed-arrays.md) | classic-es5 | TypedArray and DataView constructors are unsupported in Compatibility and ES5 Standards mode |
+| [`no-proxy`](docs/rules/no-proxy.md) | classic-es5 | `Proxy` is unsupported in Compatibility and ES5 Standards mode |
+| [`no-unsupported-syntax`](docs/rules/no-unsupported-syntax.md) | classic-es5 | Optional chaining, nullish coalescing, logical assignment, private instance members, and RegExp lookbehind are unsupported in Compatibility and ES5 Standards mode |
+| [`no-async-iterators`](docs/rules/no-async-iterators.md) | recommended | `for await…of` and async generators are disallowed in every instance JavaScript mode, including ES2021 |
+<!-- generated:engine-rules:end -->
 
 ### Fluent (`.now.ts`)
 
+<!-- generated:fluent-rules:start -->
 | Rule | Preset | Fix | What it catches |
 | --- | --- | --- | --- |
-| [`fluent-proper-imports`](docs/rules/fluent-proper-imports.md) | recommended | | imports that do not match the versioned SDK manifest |
-| [`fluent-directives`](docs/rules/fluent-directives.md) | recommended | | `@fluent-ignore`, `@fluent-disable-sync`, `@fluent-disable-sync-for-file` |
-| [`prefer-now-include`](docs/rules/prefer-now-include.md) | strict | | large inline `script` / HTML / CSS |
-| [`require-fluent-id`](docs/rules/require-fluent-id.md) | recommended | | missing `$id` where the manifest requires it |
-| [`fluent-naming-convention`](docs/rules/fluent-naming-convention.md) | strict | | file / `Now.ID` / table export names |
-| [`no-complex-fluent-logic`](docs/rules/no-complex-fluent-logic.md) | policy | | loops, classes, try/catch in metadata |
-| [`no-now-id-as-reference`](docs/rules/no-now-id-as-reference.md) | recommended | | `Now.ID` used as a reference instead of `$id` |
-| [`no-duplicate-fluent-id`](docs/rules/no-duplicate-fluent-id.md) | recommended | | duplicate static `Now.ID` keys used as `$id` |
+| [`fluent-proper-imports`](docs/rules/fluent-proper-imports.md) | recommended |  | Fluent entity and column APIs must be imported from `@servicenow/sdk/core` |
+| [`fluent-directives`](docs/rules/fluent-directives.md) | recommended |  | Validate `@fluent-ignore`, `@fluent-disable-sync`, and `@fluent-disable-sync-for-file`, catch typos, and reject `@ts-ignore` as a Fluent suppress |
+| [`prefer-now-include`](docs/rules/prefer-now-include.md) | strict |  | Large inline `script` / HTML / CSS payloads belong in their own file and should be loaded with `Now.include()` |
+| [`require-fluent-id`](docs/rules/require-fluent-id.md) | recommended |  | Fluent entities must declare `$id` |
+| [`fluent-naming-convention`](docs/rules/fluent-naming-convention.md) | strict |  | `.now.ts` files and `Now.ID` keys should be kebab-case |
+| [`no-complex-fluent-logic`](docs/rules/no-complex-fluent-logic.md) | policy |  | Optional architectural policy |
+| [`no-now-id-as-reference`](docs/rules/no-now-id-as-reference.md) | recommended |  | `Now.ID[...]` is a metadata identity, not a reference |
+| [`no-duplicate-fluent-id`](docs/rules/no-duplicate-fluent-id.md) | recommended |  | Two Fluent definitions that share the same static `Now.ID` key as `$id` collide |
+<!-- generated:fluent-rules:end -->
 
 ---
 
@@ -471,12 +477,12 @@ These are platform limits, not bugs in this package:
 
 ```bash
 npm install
-npm test
-npm run typecheck
-npm run build
-npm run docs
-npm run manifest:check
+npm run validate
 ```
+
+`npm run validate` runs typecheck, build, tests, generated-doc consistency, and the Fluent manifest check. Tests include oxlint, ESLint, oxfmt, profile fixtures, and a packed-package consumer.
+
+See [Contributing](CONTRIBUTING.md), [Write a ServiceNow lint rule](docs/rule-authoring.md), [Compatibility](docs/compatibility.md), and [Non-goals](docs/non-goals.md).
 
 Rules live in `src/rules/`. Each rule has:
 

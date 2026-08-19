@@ -4,14 +4,19 @@ Fluent entities must declare `$id`. Prefer `Now.ID['descriptive-key']` so `keys.
 
 - **Family:** fluent
 - **Preset:** recommended
+- **Placements:** recommended (error), fluent (error)
 - **Default severity:** error
-- **Fixable:** no
+- **Fix safety:** diagnostic only
 - **Suggestions:** no
+- **Authoring:** fluent
+- **Surfaces:** Fluent `.now.ts` metadata only
+- **JavaScript mode:** Not instance-executed
+- **Implementation:** [`src/rules/require-fluent-id.ts`](../../src/rules/require-fluent-id.ts)
 - **Fluent manifest:** sdk-docs-2026-03
 
 ## Incorrect
 
-### ❌ missing $id
+### Incorrect: missing $id
 
 ```ts
 import { BusinessRule } from "@servicenow/sdk/core";
@@ -26,7 +31,7 @@ BusinessRule({
 
 ## Correct
 
-### ✅ Now.ID
+### Correct: Now.ID
 
 ```ts
 import { BusinessRule } from "@servicenow/sdk/core";
@@ -40,7 +45,16 @@ BusinessRule({
 });
 ```
 
+## Limitations
+
+When provenance, surface, or JavaScript mode is unknown, the rule stays silent instead of guessing.
+
+## Evidence
+
+- None recorded. Add an authoritative ServiceNow or Oxc link before expanding this rule.
+
 ## See also
 
-- [ServiceNow Fluent overview](https://servicenow.github.io/sdk/guides/fluent-overview)
+- [Contributor rule-authoring guide](../rule-authoring.md)
+- [Project non-goals](../non-goals.md)
 - [oxlint JS plugins](https://oxc.rs/docs/guide/usage/linter/js-plugins.html)

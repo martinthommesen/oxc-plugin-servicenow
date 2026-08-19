@@ -3,15 +3,20 @@
 Optional architectural policy. `.now.ts` files should declare metadata. Loops, classes, try/catch, and multi-statement functions belong in `src/server/`. Not enabled in recommended or strict.
 
 - **Family:** fluent
-- **Preset:** off
+- **Preset:** policy
+- **Placements:** policy (warn)
 - **Default severity:** warn
-- **Fixable:** no
+- **Fix safety:** diagnostic only
 - **Suggestions:** no
+- **Authoring:** fluent
+- **Surfaces:** Fluent `.now.ts` metadata only
+- **JavaScript mode:** Not instance-executed
+- **Implementation:** [`src/rules/no-complex-fluent-logic.ts`](../../src/rules/no-complex-fluent-logic.ts)
 - **Fluent manifest:** sdk-docs-2026-03
 
 ## Incorrect
 
-### ❌ runtime loop
+### Incorrect: runtime loop
 
 ```ts
 import { Record } from "@servicenow/sdk/core";
@@ -27,7 +32,7 @@ for (var i = 0; i < 10; i++) {
 
 ## Correct
 
-### ✅ declarative records
+### Correct: declarative records
 
 ```ts
 import { Record } from "@servicenow/sdk/core";
@@ -39,7 +44,16 @@ Record({
 });
 ```
 
+## Limitations
+
+When provenance, surface, or JavaScript mode is unknown, the rule stays silent instead of guessing.
+
+## Evidence
+
+- None recorded. Add an authoritative ServiceNow or Oxc link before expanding this rule.
+
 ## See also
 
-- [ServiceNow Fluent overview](https://servicenow.github.io/sdk/guides/fluent-overview)
+- [Contributor rule-authoring guide](../rule-authoring.md)
+- [Project non-goals](../non-goals.md)
 - [oxlint JS plugins](https://oxc.rs/docs/guide/usage/linter/js-plugins.html)

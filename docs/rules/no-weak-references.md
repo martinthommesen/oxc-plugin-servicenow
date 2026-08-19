@@ -4,13 +4,18 @@ WeakRef and FinalizationRegistry are disallowed in every instance JavaScript mod
 
 - **Family:** engine
 - **Preset:** recommended
+- **Placements:** recommended (error), classic-es5 (error), es2021 (error)
 - **Default severity:** error
-- **Fixable:** no
+- **Fix safety:** diagnostic only
 - **Suggestions:** no
+- **Authoring:** classic
+- **Surfaces:** Classic instance scripts. Fluent files are skipped.
+- **JavaScript mode:** Runs for documented all-mode bans, or when `javascriptMode` is known and the feature is unsupported.
+- **Implementation:** [`src/rules/no-weak-references.ts`](../../src/rules/no-weak-references.ts)
 
 ## Incorrect
 
-### ❌ WeakRef
+### Incorrect: WeakRef
 
 ```js
 var ref = new WeakRef(obj);
@@ -18,13 +23,22 @@ var ref = new WeakRef(obj);
 
 ## Correct
 
-### ✅ Map
+### Correct: Map
 
 ```js
 var cache = new Map();
 ```
 
+## Limitations
+
+When provenance, surface, or JavaScript mode is unknown, the rule stays silent instead of guessing.
+
+## Evidence
+
+- None recorded. Add an authoritative ServiceNow or Oxc link before expanding this rule.
+
 ## See also
 
-- [ServiceNow Fluent overview](https://servicenow.github.io/sdk/guides/fluent-overview)
+- [Contributor rule-authoring guide](../rule-authoring.md)
+- [Project non-goals](../non-goals.md)
 - [oxlint JS plugins](https://oxc.rs/docs/guide/usage/linter/js-plugins.html)

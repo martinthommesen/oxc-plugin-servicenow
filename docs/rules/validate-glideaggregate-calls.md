@@ -4,13 +4,18 @@ A proven GlideAggregate must call `query()` before `next()` or `getAggregate()`.
 
 - **Family:** classic
 - **Preset:** recommended
+- **Placements:** recommended (error), business-rule (error)
 - **Default severity:** error
-- **Fixable:** no
+- **Fix safety:** diagnostic only
 - **Suggestions:** no
+- **Authoring:** classic
+- **Surfaces:** Classic instance scripts. Client-only rules skip server-only files. Fluent files are skipped.
+- **JavaScript mode:** Independent of JavaScript mode unless the rule documents a mode gate.
+- **Implementation:** [`src/rules/validate-glideaggregate-calls.ts`](../../src/rules/validate-glideaggregate-calls.ts)
 
 ## Incorrect
 
-### ❌ next before query
+### Incorrect: next before query
 
 ```js
 var count = new GlideAggregate("incident");
@@ -22,7 +27,7 @@ if (count.next()) {
 
 ## Correct
 
-### ✅ query then next
+### Correct: query then next
 
 ```js
 var count = new GlideAggregate("incident");
@@ -33,7 +38,16 @@ if (count.next()) {
 }
 ```
 
+## Limitations
+
+When provenance, surface, or JavaScript mode is unknown, the rule stays silent instead of guessing.
+
+## Evidence
+
+- None recorded. Add an authoritative ServiceNow or Oxc link before expanding this rule.
+
 ## See also
 
-- [ServiceNow Fluent overview](https://servicenow.github.io/sdk/guides/fluent-overview)
+- [Contributor rule-authoring guide](../rule-authoring.md)
+- [Project non-goals](../non-goals.md)
 - [oxlint JS plugins](https://oxc.rs/docs/guide/usage/linter/js-plugins.html)

@@ -4,13 +4,18 @@ A `query()` or `get()` inside `while (outer.next())` is an N+1 pattern. Starts a
 
 - **Family:** classic
 - **Preset:** strict
+- **Placements:** strict (warn)
 - **Default severity:** warn
-- **Fixable:** no
+- **Fix safety:** diagnostic only
 - **Suggestions:** no
+- **Authoring:** classic
+- **Surfaces:** Classic instance scripts. Client-only rules skip server-only files. Fluent files are skipped.
+- **JavaScript mode:** Independent of JavaScript mode unless the rule documents a mode gate.
+- **Implementation:** [`src/rules/no-gliderecord-query-in-loop.ts`](../../src/rules/no-gliderecord-query-in-loop.ts)
 
 ## Incorrect
 
-### ❌ nested get
+### Incorrect: nested get
 
 ```js
 var incident = new GlideRecord("incident");
@@ -24,7 +29,7 @@ while (incident.next()) {
 
 ## Correct
 
-### ✅ display value
+### Correct: display value
 
 ```js
 var incident = new GlideRecord("incident");
@@ -34,7 +39,16 @@ while (incident.next()) {
 }
 ```
 
+## Limitations
+
+When provenance, surface, or JavaScript mode is unknown, the rule stays silent instead of guessing.
+
+## Evidence
+
+- None recorded. Add an authoritative ServiceNow or Oxc link before expanding this rule.
+
 ## See also
 
-- [ServiceNow Fluent overview](https://servicenow.github.io/sdk/guides/fluent-overview)
+- [Contributor rule-authoring guide](../rule-authoring.md)
+- [Project non-goals](../non-goals.md)
 - [oxlint JS plugins](https://oxc.rs/docs/guide/usage/linter/js-plugins.html)

@@ -4,13 +4,18 @@ GlideAjax requires `addParam("sysparm_name", method)` before `getXML` / `getXMLA
 
 - **Family:** classic
 - **Preset:** recommended
+- **Placements:** recommended (error), client (error)
 - **Default severity:** error
-- **Fixable:** no
+- **Fix safety:** diagnostic only
 - **Suggestions:** no
+- **Authoring:** classic
+- **Surfaces:** Classic instance scripts. Client-only rules skip server-only files. Fluent files are skipped.
+- **JavaScript mode:** Independent of JavaScript mode unless the rule documents a mode gate.
+- **Implementation:** [`src/rules/require-glideajax-sysparm-name.ts`](../../src/rules/require-glideajax-sysparm-name.ts)
 
 ## Incorrect
 
-### ❌ missing sysparm_name
+### Incorrect: missing sysparm_name
 
 ```js
 var ajax = new GlideAjax("x_acme.UserLookup");
@@ -20,7 +25,7 @@ ajax.getXMLAnswer(handleAnswer);
 
 ## Correct
 
-### ✅ named method
+### Correct: named method
 
 ```js
 var ajax = new GlideAjax("x_acme.UserLookup");
@@ -29,7 +34,16 @@ ajax.addParam("sysparm_user_id", g_form.getValue("caller_id"));
 ajax.getXMLAnswer(handleAnswer);
 ```
 
+## Limitations
+
+When provenance, surface, or JavaScript mode is unknown, the rule stays silent instead of guessing.
+
+## Evidence
+
+- https://www.servicenow.com/docs/r/api-reference/scripts/p_AJAX.html
+
 ## See also
 
-- [ServiceNow Fluent overview](https://servicenow.github.io/sdk/guides/fluent-overview)
+- [Contributor rule-authoring guide](../rule-authoring.md)
+- [Project non-goals](../non-goals.md)
 - [oxlint JS plugins](https://oxc.rs/docs/guide/usage/linter/js-plugins.html)

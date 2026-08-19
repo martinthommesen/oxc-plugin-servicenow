@@ -9,6 +9,9 @@
 - New strict/warn rules: `no-display-value-date-comparison`, `no-gliderecord-query-in-loop`.
 - New opt-in `configs.securityRules` rule: `no-system-query-bypass`.
 - Versioned Zurich GlideRecord method table in `src/glide/manifest.ts` drives filter, modifier, and ACL-bypass names.
+- Rule catalog placements now generate preset maps, README rule tables, and recommended oxlintrc copies. `npm run docs` deletes stale rule pages.
+- Packed-package consumer test installs `npm pack` output and runs oxlint against the published exports.
+- Contributor docs: `npm run validate`, rule-authoring guide, compatibility matrix, and non-goals policy.
 
 ### Breaking — 2.0.0 foundation
 

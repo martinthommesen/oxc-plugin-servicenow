@@ -4,13 +4,18 @@ Require a proven GlideRecord binding to call `.query()` or `.get()` before `.nex
 
 - **Family:** classic
 - **Preset:** recommended
+- **Placements:** recommended (error), business-rule (error)
 - **Default severity:** error
-- **Fixable:** no
+- **Fix safety:** diagnostic only
 - **Suggestions:** no
+- **Authoring:** classic
+- **Surfaces:** Classic instance scripts. Client-only rules skip server-only files. Fluent files are skipped.
+- **JavaScript mode:** Independent of JavaScript mode unless the rule documents a mode gate.
+- **Implementation:** [`src/rules/require-query-before-next.ts`](../../src/rules/require-query-before-next.ts)
 
 ## Incorrect
 
-### ❌ next without query
+### Incorrect: next without query
 
 ```js
 var gr = new GlideRecord("incident");
@@ -20,7 +25,7 @@ gr.next();
 
 ## Correct
 
-### ✅ query + checked next
+### Correct: query + checked next
 
 ```js
 var gr = new GlideRecord("incident");
@@ -31,7 +36,16 @@ while (gr.next()) {
 }
 ```
 
+## Limitations
+
+When provenance, surface, or JavaScript mode is unknown, the rule stays silent instead of guessing.
+
+## Evidence
+
+- None recorded. Add an authoritative ServiceNow or Oxc link before expanding this rule.
+
 ## See also
 
-- [ServiceNow Fluent overview](https://servicenow.github.io/sdk/guides/fluent-overview)
+- [Contributor rule-authoring guide](../rule-authoring.md)
+- [Project non-goals](../non-goals.md)
 - [oxlint JS plugins](https://oxc.rs/docs/guide/usage/linter/js-plugins.html)

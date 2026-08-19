@@ -4,13 +4,18 @@ Compatibility and ES5 Standards modes do not implement Promises. The rule is sil
 
 - **Family:** engine
 - **Preset:** classic-es5
+- **Placements:** classic-es5 (error)
 - **Default severity:** error
-- **Fixable:** no
+- **Fix safety:** diagnostic only
 - **Suggestions:** no
+- **Authoring:** classic
+- **Surfaces:** Classic instance scripts. Fluent files are skipped.
+- **JavaScript mode:** Runs when `javascriptMode` is `compatibility` or `es5`. Unknown mode stays silent.
+- **Implementation:** [`src/rules/no-promise.ts`](../../src/rules/no-promise.ts)
 
 ## Incorrect
 
-### ❌ constructor
+### Incorrect: constructor
 
 ```js
 var p = new Promise(function (resolve) { resolve(1); });
@@ -18,7 +23,7 @@ var p = new Promise(function (resolve) { resolve(1); });
 
 ## Correct
 
-### ✅ synchronous Glide
+### Correct: synchronous Glide
 
 ```js
 var gr = new GlideRecord("incident");
@@ -27,7 +32,16 @@ if (gr.get(sysId)) {
 }
 ```
 
+## Limitations
+
+When provenance, surface, or JavaScript mode is unknown, the rule stays silent instead of guessing.
+
+## Evidence
+
+- None recorded. Add an authoritative ServiceNow or Oxc link before expanding this rule.
+
 ## See also
 
-- [ServiceNow Fluent overview](https://servicenow.github.io/sdk/guides/fluent-overview)
+- [Contributor rule-authoring guide](../rule-authoring.md)
+- [Project non-goals](../non-goals.md)
 - [oxlint JS plugins](https://oxc.rs/docs/guide/usage/linter/js-plugins.html)

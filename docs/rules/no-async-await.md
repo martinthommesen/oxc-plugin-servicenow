@@ -4,13 +4,18 @@ async/await is not implemented in Compatibility or ES5 Standards mode.
 
 - **Family:** engine
 - **Preset:** classic-es5
+- **Placements:** classic-es5 (error)
 - **Default severity:** error
-- **Fixable:** no
+- **Fix safety:** diagnostic only
 - **Suggestions:** no
+- **Authoring:** classic
+- **Surfaces:** Classic instance scripts. Fluent files are skipped.
+- **JavaScript mode:** Runs when `javascriptMode` is `compatibility` or `es5`. Unknown mode stays silent.
+- **Implementation:** [`src/rules/no-async-await.ts`](../../src/rules/no-async-await.ts)
 
 ## Incorrect
 
-### ❌ async function
+### Incorrect: async function
 
 ```js
 async function loadIncident(id) {
@@ -20,7 +25,7 @@ async function loadIncident(id) {
 
 ## Correct
 
-### ✅ sync function
+### Correct: sync function
 
 ```js
 function loadIncident(id) {
@@ -29,7 +34,16 @@ function loadIncident(id) {
 }
 ```
 
+## Limitations
+
+When provenance, surface, or JavaScript mode is unknown, the rule stays silent instead of guessing.
+
+## Evidence
+
+- None recorded. Add an authoritative ServiceNow or Oxc link before expanding this rule.
+
 ## See also
 
-- [ServiceNow Fluent overview](https://servicenow.github.io/sdk/guides/fluent-overview)
+- [Contributor rule-authoring guide](../rule-authoring.md)
+- [Project non-goals](../non-goals.md)
 - [oxlint JS plugins](https://oxc.rs/docs/guide/usage/linter/js-plugins.html)

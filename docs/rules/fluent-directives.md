@@ -4,14 +4,19 @@ Validate `@fluent-ignore`, `@fluent-disable-sync`, and `@fluent-disable-sync-for
 
 - **Family:** fluent
 - **Preset:** recommended
+- **Placements:** recommended (warn), fluent (warn)
 - **Default severity:** warn
-- **Fixable:** no
+- **Fix safety:** diagnostic only
 - **Suggestions:** no
+- **Authoring:** fluent
+- **Surfaces:** Fluent `.now.ts` metadata only
+- **JavaScript mode:** Not instance-executed
+- **Implementation:** [`src/rules/fluent-directives.ts`](../../src/rules/fluent-directives.ts)
 - **Fluent manifest:** sdk-docs-2026-03
 
 ## Incorrect
 
-### ❌ typo + ts-ignore
+### Incorrect: typo + ts-ignore
 
 ```ts
 // @ts-ignore
@@ -21,7 +26,7 @@ export const demo = 1;
 
 ## Correct
 
-### ✅ documented directive
+### Correct: documented directive
 
 ```ts
 // @fluent-disable-sync
@@ -34,7 +39,16 @@ Record({
 });
 ```
 
+## Limitations
+
+When provenance, surface, or JavaScript mode is unknown, the rule stays silent instead of guessing.
+
+## Evidence
+
+- None recorded. Add an authoritative ServiceNow or Oxc link before expanding this rule.
+
 ## See also
 
-- [ServiceNow Fluent overview](https://servicenow.github.io/sdk/guides/fluent-overview)
+- [Contributor rule-authoring guide](../rule-authoring.md)
+- [Project non-goals](../non-goals.md)
 - [oxlint JS plugins](https://oxc.rs/docs/guide/usage/linter/js-plugins.html)

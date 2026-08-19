@@ -4,13 +4,18 @@
 
 - **Family:** classic
 - **Preset:** strict
+- **Placements:** strict (warn)
 - **Default severity:** warn
-- **Fixable:** no
+- **Fix safety:** diagnostic only
 - **Suggestions:** no
+- **Authoring:** classic
+- **Surfaces:** Classic instance scripts. Client-only rules skip server-only files. Fluent files are skipped.
+- **JavaScript mode:** Independent of JavaScript mode unless the rule documents a mode gate.
+- **Implementation:** [`src/rules/prefer-glideaggregate.ts`](../../src/rules/prefer-glideaggregate.ts)
 
 ## Incorrect
 
-### ❌ getRowCount
+### Incorrect: getRowCount
 
 ```js
 var gr = new GlideRecord("incident");
@@ -21,7 +26,7 @@ var count = gr.getRowCount();
 
 ## Correct
 
-### ✅ GlideAggregate COUNT
+### Correct: GlideAggregate COUNT
 
 ```js
 var ga = new GlideAggregate("incident");
@@ -31,7 +36,16 @@ ga.query();
 var count = ga.next() ? parseInt(ga.getAggregate("COUNT"), 10) : 0;
 ```
 
+## Limitations
+
+When provenance, surface, or JavaScript mode is unknown, the rule stays silent instead of guessing.
+
+## Evidence
+
+- None recorded. Add an authoritative ServiceNow or Oxc link before expanding this rule.
+
 ## See also
 
-- [ServiceNow Fluent overview](https://servicenow.github.io/sdk/guides/fluent-overview)
+- [Contributor rule-authoring guide](../rule-authoring.md)
+- [Project non-goals](../non-goals.md)
 - [oxlint JS plugins](https://oxc.rs/docs/guide/usage/linter/js-plugins.html)

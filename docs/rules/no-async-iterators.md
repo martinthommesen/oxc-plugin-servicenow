@@ -4,13 +4,18 @@
 
 - **Family:** engine
 - **Preset:** recommended
+- **Placements:** recommended (error), classic-es5 (error), es2021 (error)
 - **Default severity:** error
-- **Fixable:** no
+- **Fix safety:** diagnostic only
 - **Suggestions:** no
+- **Authoring:** classic
+- **Surfaces:** Classic instance scripts. Fluent files are skipped.
+- **JavaScript mode:** Runs for documented all-mode bans, or when `javascriptMode` is known and the feature is unsupported.
+- **Implementation:** [`src/rules/no-async-iterators.ts`](../../src/rules/no-async-iterators.ts)
 
 ## Incorrect
 
-### ❌ for await
+### Incorrect: for await
 
 ```js
 async function drain(items) {
@@ -22,7 +27,7 @@ async function drain(items) {
 
 ## Correct
 
-### ✅ for of
+### Correct: for of
 
 ```js
 function drain(items) {
@@ -32,7 +37,16 @@ function drain(items) {
 }
 ```
 
+## Limitations
+
+When provenance, surface, or JavaScript mode is unknown, the rule stays silent instead of guessing.
+
+## Evidence
+
+- None recorded. Add an authoritative ServiceNow or Oxc link before expanding this rule.
+
 ## See also
 
-- [ServiceNow Fluent overview](https://servicenow.github.io/sdk/guides/fluent-overview)
+- [Contributor rule-authoring guide](../rule-authoring.md)
+- [Project non-goals](../non-goals.md)
 - [oxlint JS plugins](https://oxc.rs/docs/guide/usage/linter/js-plugins.html)

@@ -70,11 +70,17 @@ describe("oxlint host integration", () => {
   });
 
   it("reports no plugin diagnostics on the clean examples", () => {
-    const classic = runOxlint([path.join(repoRoot, "examples/classic-business-rule.js")]);
-    const fluent = runOxlint([path.join(repoRoot, "examples/incident-table.now.ts")]);
-    const classicPlugin = classic.diagnostics.filter((d) => pluginRuleId(d.code));
-    const fluentPlugin = fluent.diagnostics.filter((d) => pluginRuleId(d.code));
-    assert.deepEqual(classicPlugin, []);
-    assert.deepEqual(fluentPlugin, []);
+    const files = [
+      "classic-business-rule.js",
+      "full-script-business-rule.js",
+      "catalog-client.js",
+      "es2021-server.js",
+      "incident-table.now.ts",
+    ];
+    for (const file of files) {
+      const report = runOxlint([path.join(repoRoot, "examples", file)]);
+      const plugin = report.diagnostics.filter((diagnostic) => pluginRuleId(diagnostic.code));
+      assert.deepEqual(plugin, [], `${file}: ${JSON.stringify(plugin)}`);
+    }
   });
 });

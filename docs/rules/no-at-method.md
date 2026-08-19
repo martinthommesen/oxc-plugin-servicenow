@@ -4,13 +4,18 @@
 
 - **Family:** engine
 - **Preset:** classic-es5
+- **Placements:** classic-es5 (error)
 - **Default severity:** error
-- **Fixable:** no
+- **Fix safety:** diagnostic only
 - **Suggestions:** no
+- **Authoring:** classic
+- **Surfaces:** Classic instance scripts. Fluent files are skipped.
+- **JavaScript mode:** Runs when `javascriptMode` is `compatibility` or `es5`. Unknown mode stays silent.
+- **Implementation:** [`src/rules/no-at-method.ts`](../../src/rules/no-at-method.ts)
 
 ## Incorrect
 
-### ❌ at
+### Incorrect: at
 
 ```js
 var last = list.at(-1);
@@ -18,13 +23,22 @@ var last = list.at(-1);
 
 ## Correct
 
-### ✅ index
+### Correct: index
 
 ```js
 var last = list[list.length - 1];
 ```
 
+## Limitations
+
+When provenance, surface, or JavaScript mode is unknown, the rule stays silent instead of guessing.
+
+## Evidence
+
+- None recorded. Add an authoritative ServiceNow or Oxc link before expanding this rule.
+
 ## See also
 
-- [ServiceNow Fluent overview](https://servicenow.github.io/sdk/guides/fluent-overview)
+- [Contributor rule-authoring guide](../rule-authoring.md)
+- [Project non-goals](../non-goals.md)
 - [oxlint JS plugins](https://oxc.rs/docs/guide/usage/linter/js-plugins.html)

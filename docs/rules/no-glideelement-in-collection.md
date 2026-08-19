@@ -4,13 +4,18 @@ Direct GlideRecord field access is a GlideElement tied to the cursor. Do not `pu
 
 - **Family:** classic
 - **Preset:** recommended
+- **Placements:** recommended (error), business-rule (error)
 - **Default severity:** error
-- **Fixable:** no
+- **Fix safety:** diagnostic only
 - **Suggestions:** no
+- **Authoring:** classic
+- **Surfaces:** Classic instance scripts. Client-only rules skip server-only files. Fluent files are skipped.
+- **JavaScript mode:** Independent of JavaScript mode unless the rule documents a mode gate.
+- **Implementation:** [`src/rules/no-glideelement-in-collection.ts`](../../src/rules/no-glideelement-in-collection.ts)
 
 ## Incorrect
 
-### ❌ push field
+### Incorrect: push field
 
 ```js
 var numbers = [];
@@ -23,7 +28,7 @@ while (incident.next()) {
 
 ## Correct
 
-### ✅ getValue
+### Correct: getValue
 
 ```js
 var numbers = [];
@@ -34,7 +39,16 @@ while (incident.next()) {
 }
 ```
 
+## Limitations
+
+When provenance, surface, or JavaScript mode is unknown, the rule stays silent instead of guessing.
+
+## Evidence
+
+- https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html
+
 ## See also
 
-- [ServiceNow Fluent overview](https://servicenow.github.io/sdk/guides/fluent-overview)
+- [Contributor rule-authoring guide](../rule-authoring.md)
+- [Project non-goals](../non-goals.md)
 - [oxlint JS plugins](https://oxc.rs/docs/guide/usage/linter/js-plugins.html)

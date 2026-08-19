@@ -4,13 +4,18 @@ The Rhino `Packages.*` Java bridge is unavailable in scoped apps and on the mode
 
 - **Family:** classic
 - **Preset:** recommended
+- **Placements:** recommended (error)
 - **Default severity:** error
-- **Fixable:** no
+- **Fix safety:** diagnostic only
 - **Suggestions:** no
+- **Authoring:** classic
+- **Surfaces:** Classic instance scripts. Client-only rules skip server-only files. Fluent files are skipped.
+- **JavaScript mode:** Independent of JavaScript mode unless the rule documents a mode gate.
+- **Implementation:** [`src/rules/no-packages-calls.ts`](../../src/rules/no-packages-calls.ts)
 
 ## Incorrect
 
-### ❌ Packages call
+### Incorrect: Packages call
 
 ```js
 var result = Packages.com.glide.sys.GlideSystem.now();
@@ -18,13 +23,22 @@ var result = Packages.com.glide.sys.GlideSystem.now();
 
 ## Correct
 
-### ✅ Glide API
+### Correct: Glide API
 
 ```js
 var result = new GlideDateTime();
 ```
 
+## Limitations
+
+When provenance, surface, or JavaScript mode is unknown, the rule stays silent instead of guessing.
+
+## Evidence
+
+- None recorded. Add an authoritative ServiceNow or Oxc link before expanding this rule.
+
 ## See also
 
-- [ServiceNow Fluent overview](https://servicenow.github.io/sdk/guides/fluent-overview)
+- [Contributor rule-authoring guide](../rule-authoring.md)
+- [Project non-goals](../non-goals.md)
 - [oxlint JS plugins](https://oxc.rs/docs/guide/usage/linter/js-plugins.html)

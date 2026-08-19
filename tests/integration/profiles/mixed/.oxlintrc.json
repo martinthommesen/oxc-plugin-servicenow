@@ -1,7 +1,10 @@
 {
   "$schema": "../../../../node_modules/oxlint/configuration_schema.json",
   "jsPlugins": [
-    { "name": "servicenow", "specifier": "../../../.." }
+    {
+      "name": "servicenow",
+      "specifier": "../../../.."
+    }
   ],
   "settings": {
     "servicenow": {
@@ -10,12 +13,15 @@
   },
   "rules": {
     "servicenow/no-hardcoded-sysid": "error",
-    "servicenow/no-packages-calls": "error",
+    "servicenow/no-client-gliderecord": "error",
     "servicenow/no-gs-now": "error",
     "servicenow/require-query-before-next": "error",
-    "servicenow/no-client-gliderecord": "error",
     "servicenow/no-br-current-update": "error",
-    "servicenow/no-sync-glideajax": "error",
+    "servicenow/fluent-proper-imports": "error",
+    "servicenow/fluent-directives": "warn",
+    "servicenow/require-fluent-id": "error",
+    "servicenow/no-packages-calls": "error",
+    "servicenow/no-weak-references": "error",
     "servicenow/no-delete-multiple-with-windowing": "error",
     "servicenow/require-callback-for-getreference": "error",
     "servicenow/require-glideajax-sysparm-name": "error",
@@ -27,10 +33,7 @@
     "servicenow/no-gliderecord-query-modifier-after-query": "error",
     "servicenow/require-business-rule-wrapper": "error",
     "servicenow/no-unfiltered-gliderecord-bulk-operation": "warn",
-    "servicenow/no-async-iterators": "error",
-    "servicenow/no-weak-references": "error",
-    "servicenow/fluent-proper-imports": "error",
-    "servicenow/fluent-directives": "warn",
-    "servicenow/require-fluent-id": "error"
+    "servicenow/no-sync-glideajax": "error",
+    "servicenow/no-async-iterators": "error"
   }
 }

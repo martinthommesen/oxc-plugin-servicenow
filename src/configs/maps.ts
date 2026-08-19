@@ -1,88 +1,38 @@
-import { PLUGIN_NAME } from "../constants.js";
+import { ruleCatalog, type RuleProfile } from "../catalog.js";
 import type { RuleConfigMap } from "../types.js";
 
-function id(name: string): string {
-  return `${PLUGIN_NAME}/${name}`;
+function collect(profile: RuleProfile): RuleConfigMap {
+  const rules: RuleConfigMap = {};
+  for (const entry of ruleCatalog) {
+    for (const placement of entry.placements) {
+      if (placement.profile === profile) {
+        rules[entry.ruleId] = placement.severity;
+      }
+    }
+  }
+  return rules;
 }
 
 /**
  * High-confidence, context-neutral diagnostics.
  * Mode-specific engine bans are not included. Rules that need a surface skip
  * when that surface is unknown.
+ *
+ * Derived from `ruleCatalog` placements. Do not edit this map by hand.
  */
-export const recommendedRules: RuleConfigMap = {
-  [id("no-hardcoded-sysid")]: "error",
-  [id("no-packages-calls")]: "error",
-  [id("no-gs-now")]: "error",
-  [id("require-query-before-next")]: "error",
-  [id("no-client-gliderecord")]: "error",
-  [id("no-br-current-update")]: "error",
-  [id("no-sync-glideajax")]: "error",
-  [id("no-delete-multiple-with-windowing")]: "error",
-  [id("require-callback-for-getreference")]: "error",
-  [id("require-glideajax-sysparm-name")]: "error",
-  [id("validate-glideaggregate-calls")]: "error",
-  [id("no-now-id-as-reference")]: "error",
-  [id("no-glideajax-getanswer")]: "error",
-  [id("no-duplicate-fluent-id")]: "error",
-  [id("no-glideelement-in-collection")]: "error",
-  [id("no-gliderecord-query-modifier-after-query")]: "error",
-  [id("require-business-rule-wrapper")]: "error",
-  [id("no-unfiltered-gliderecord-bulk-operation")]: "warn",
-  [id("no-async-iterators")]: "error",
-  [id("no-weak-references")]: "error",
-  [id("fluent-proper-imports")]: "error",
-  [id("fluent-directives")]: "warn",
-  [id("require-fluent-id")]: "error",
-};
+export const recommendedRules: RuleConfigMap = collect("recommended");
 
 /** Compatibility / ES5 instance restrictions. */
-export const classicEs5Rules: RuleConfigMap = {
-  [id("no-promise")]: "error",
-  [id("no-async-await")]: "error",
-  [id("no-bigint")]: "error",
-  [id("no-at-method")]: "error",
-  [id("no-typed-arrays")]: "error",
-  [id("no-proxy")]: "error",
-  [id("no-weak-collections")]: "error",
-  [id("no-unsupported-syntax")]: "error",
-  [id("no-async-iterators")]: "error",
-  [id("no-weak-references")]: "error",
-};
+export const classicEs5Rules: RuleConfigMap = collect("classic-es5");
 
 /** Remaining platform restrictions after ES2021 is enabled. */
-export const es2021Rules: RuleConfigMap = {
-  [id("no-async-iterators")]: "error",
-  [id("no-weak-references")]: "error",
-  [id("no-typed-arrays")]: "error",
-};
+export const es2021Rules: RuleConfigMap = collect("es2021");
 
-export const clientRules: RuleConfigMap = {
-  [id("no-client-gliderecord")]: "error",
-  [id("no-sync-glideajax")]: "error",
-  [id("no-gs-now")]: "error",
-  [id("require-callback-for-getreference")]: "error",
-  [id("require-glideajax-sysparm-name")]: "error",
-  [id("no-glideajax-getanswer")]: "error",
-};
+export const clientRules: RuleConfigMap = collect("client");
 
-export const businessRuleRules: RuleConfigMap = {
-  [id("no-br-current-update")]: "error",
-  [id("require-query-before-next")]: "error",
-  [id("no-delete-multiple-with-windowing")]: "error",
-  [id("validate-glideaggregate-calls")]: "error",
-  [id("require-business-rule-wrapper")]: "error",
-  [id("no-glideelement-in-collection")]: "error",
-  [id("no-gliderecord-query-modifier-after-query")]: "error",
-};
+export const businessRuleRules: RuleConfigMap = collect("business-rule");
 
-export const fluentRules: RuleConfigMap = {
-  [id("fluent-proper-imports")]: "error",
-  [id("fluent-directives")]: "warn",
-  [id("require-fluent-id")]: "error",
-  [id("no-now-id-as-reference")]: "error",
-  [id("no-duplicate-fluent-id")]: "error",
-};
+export const fluentRules: RuleConfigMap = collect("fluent");
 
 /**
  * Strong but non-universal additions. Heuristic performance stays warn.
@@ -90,20 +40,11 @@ export const fluentRules: RuleConfigMap = {
  */
 export const strictRules: RuleConfigMap = {
   ...recommendedRules,
-  [id("prefer-glideaggregate")]: "warn",
-  [id("prefer-now-include")]: "warn",
-  [id("fluent-naming-convention")]: "warn",
-  [id("no-display-value-date-comparison")]: "warn",
-  [id("no-gliderecord-query-in-loop")]: "warn",
+  ...collect("strict"),
 };
 
 /** Organizational policy. Not part of recommended or strict. */
-export const policyRules: RuleConfigMap = {
-  [id("no-hardcoded-table-names")]: "warn",
-  [id("no-complex-fluent-logic")]: "warn",
-};
+export const policyRules: RuleConfigMap = collect("policy");
 
 /** Privilege-sensitive APIs. Review diagnostics, not automatic bans. */
-export const securityRules: RuleConfigMap = {
-  [id("no-system-query-bypass")]: "warn",
-};
+export const securityRules: RuleConfigMap = collect("security");
