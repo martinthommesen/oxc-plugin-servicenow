@@ -27,7 +27,7 @@
   "type": "module",
   "sideEffects": false,
   "engines": {
-    "node": ">=18.18.0"
+    "node": ">=20.19.0"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -39,7 +39,8 @@
     },
     "./oxfmt": {
       "types": "./dist/oxfmt/index.d.ts",
-      "import": "./dist/oxfmt/index.js"
+      "import": "./dist/oxfmt/index.js",
+      "default": "./dist/oxfmt/index.js"
     },
     "./oxfmt.recommended.json": "./oxfmt.recommended.json",
     "./package.json": "./package.json"
@@ -54,6 +55,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "clean": "rm -rf dist",
+    "prepack": "npm run clean && npm run build",
     "prepublishOnly": "npm run clean && npm run build && npm test",
     "test": "tsx --test \"tests/**/*.test.ts\"",
     "test:integration": "tsx --test \"tests/integration/**/*.test.ts\"",
@@ -67,7 +69,7 @@
   "peerDependencies": {
     "eslint": ">=9.0.0",
     "oxfmt": ">=0.16.0",
-    "oxlint": ">=1.0.0"
+    "oxlint": ">=1.79.0 <2"
   },
   "peerDependenciesMeta": {
     "eslint": {

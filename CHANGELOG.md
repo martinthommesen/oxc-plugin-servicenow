@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Compatibility
+
+- Raise the Node `engines` floor to `>=20.19.0`. Node 18 is EOL and was never tested.
+- Narrow the optional `oxlint` peer range to `>=1.79.0 <2`. The JS-plugin API this package uses shipped around oxlint 1.79.
+
 ## 1.1.0 — 2026-08-19
 
 ### Fixes
