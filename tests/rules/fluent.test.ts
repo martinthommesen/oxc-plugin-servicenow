@@ -1,5 +1,5 @@
 import { describe, it } from "node:test";
-import { assertInvalid, assertValid } from "../helpers/rule-tester.js";
+import { assertFix, assertInvalid, assertValid } from "../helpers/rule-tester.js";
 
 const NOW = "file.now.ts";
 
@@ -34,6 +34,15 @@ describe("fluent-proper-imports", () => {
     assertValid(`BusinessRule({ table: "incident" });`, "fluent-proper-imports", {
       filename: "legacy.js",
     });
+  });
+
+  it("rewrites a wrong-module import to @servicenow/sdk/core", () => {
+    assertFix(
+      `import { BusinessRule } from "@servicenow/sdk";`,
+      "fluent-proper-imports",
+      `import { BusinessRule } from "@servicenow/sdk/core";`,
+      { filename: NOW },
+    );
   });
 });
 

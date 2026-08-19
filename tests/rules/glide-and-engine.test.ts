@@ -1,5 +1,11 @@
+import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { assertInvalid, assertValid } from "../helpers/rule-tester.js";
+import {
+  assertInvalid,
+  assertSuggestion,
+  assertValid,
+  lint,
+} from "../helpers/rule-tester.js";
 
 describe("no-gs-now", () => {
   it("flags gs.now() and is fixable", () => {
@@ -18,6 +24,23 @@ describe("no-gs-now", () => {
 
   it("allows GlideDateTime", () => {
     assertValid(`var when = new GlideDateTime();`, "no-gs-now");
+  });
+
+  it("suggests the display-string rewrite first and has no autofix", () => {
+    assertSuggestion(
+      "current.u_opened = gs.now();",
+      "no-gs-now",
+      /getDisplayValue/,
+      "current.u_opened = new GlideDateTime().getDisplayValue();",
+    );
+    assertSuggestion(
+      "current.u_opened = gs.now();",
+      "no-gs-now",
+      "Replace with new GlideDateTime()",
+      "current.u_opened = new GlideDateTime();",
+    );
+    const messages = lint("current.u_opened = gs.now();", "no-gs-now");
+    assert.ok(messages.every((message) => message.fixedSource === undefined));
   });
 });
 
@@ -85,6 +108,25 @@ describe("no-hardcoded-table-names", () => {
 describe("engine extras", () => {
   it("no-at-method flags .at()", () => {
     assertInvalid(`var last = items.at(-1);`, "no-at-method", { messageId: "at" });
+  });
+
+  it("no-at-method suggests index access for a non-negative literal", () => {
+    assertSuggestion("var last = list.at(2);", "no-at-method", /index access/i, "var last = list[2];");
+  });
+
+  it("no-at-method suggests length-relative access for a negative index", () => {
+    assertSuggestion(
+      "var last = list.at(-1);",
+      "no-at-method",
+      /index access/i,
+      "var last = list[list.length - 1];",
+    );
+  });
+
+  it("no-at-method does not suggest rewriting a side-effecting receiver", () => {
+    const messages = lint("getComputed().at(-1);", "no-at-method");
+    assert.ok(messages.some((message) => message.messageId === "at"));
+    assert.ok(messages.every((message) => !message.suggestions || message.suggestions.length === 0));
   });
 
   it("no-packages-calls flags Packages", () => {

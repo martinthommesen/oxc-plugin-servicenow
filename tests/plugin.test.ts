@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import plugin, { configs, PACKAGE_NAME, PLUGIN_NAME, rules } from "../src/index.js";
 import { ruleCatalog } from "../src/catalog.js";
+import { lint } from "./helpers/rule-tester.js";
 
 describe("plugin export", () => {
   it("has the servicenow plugin name", () => {
@@ -41,5 +42,41 @@ describe("plugin export", () => {
   it("flat configs reference the plugin", () => {
     assert.equal(configs.flat.recommended.plugins.servicenow, plugin);
     assert.equal(configs.flat.strict.plugins.servicenow, plugin);
+  });
+
+  it("catalog fixable and hasSuggestions match rule meta and real output", () => {
+    for (const entry of ruleCatalog) {
+      const rec = rules[entry.name] as {
+        meta?: { fixable?: string | boolean; hasSuggestions?: boolean };
+      };
+      assert.equal(Boolean(rec.meta?.fixable), entry.fixable, `${entry.name} fixable mismatch`);
+      assert.equal(
+        Boolean(rec.meta?.hasSuggestions),
+        entry.hasSuggestions,
+        `${entry.name} hasSuggestions mismatch`,
+      );
+      if (!entry.fixable && !entry.hasSuggestions) continue;
+
+      let sawFix = false;
+      let sawSuggestion = false;
+      for (const example of entry.bad) {
+        const messages = lint(example.code, entry.name, {
+          filename: example.filename ?? "test.js",
+        });
+        if (messages.some((message) => message.fixedSource !== undefined)) sawFix = true;
+        if (messages.some((message) => (message.suggestions?.length ?? 0) > 0)) {
+          sawSuggestion = true;
+        }
+      }
+      if (entry.fixable) {
+        assert.ok(sawFix, `${entry.name} is fixable but no bad example produced fixedSource`);
+      }
+      if (entry.hasSuggestions) {
+        assert.ok(
+          sawSuggestion,
+          `${entry.name} hasSuggestions but no bad example produced suggestions`,
+        );
+      }
+    }
   });
 });
