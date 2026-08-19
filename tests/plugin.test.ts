@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
-import plugin, { configs, PACKAGE_NAME, PLUGIN_NAME, rules } from "../src/index.js";
+import plugin, { configs, PACKAGE_NAME, PACKAGE_VERSION, PLUGIN_NAME, rules } from "../src/index.js";
 import { ruleCatalog } from "../src/catalog.js";
 import { lint } from "./helpers/rule-tester.js";
 
@@ -8,6 +9,13 @@ describe("plugin export", () => {
   it("has the servicenow plugin name", () => {
     assert.equal(plugin.meta.name, PLUGIN_NAME);
     assert.equal(PACKAGE_NAME, "oxc-plugin-servicenow");
+  });
+
+  it("PACKAGE_VERSION matches package.json", () => {
+    const manifest = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as {
+      version: string;
+    };
+    assert.equal(PACKAGE_VERSION, manifest.version);
   });
 
   it("exports every catalogued rule", () => {
