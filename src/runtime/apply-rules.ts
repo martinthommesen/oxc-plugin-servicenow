@@ -142,7 +142,7 @@ export function applyRules(
     getAllComments() {
       return comments;
     },
-    getAncestors() {
+    getAncestors(_node?: unknown) {
       return ancestors.slice(0, -1);
     },
   };

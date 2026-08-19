@@ -1,6 +1,7 @@
 import { defineRule } from "@oxlint/plugins";
+import type { ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
-import { getName } from "../utils/ast.js";
+import { staticMemberChain } from "../utils/ast.js";
 
 export const noPackagesCalls = defineRule({
   meta: {
@@ -18,8 +19,17 @@ export const noPackagesCalls = defineRule({
   },
   createOnce(context) {
     return {
-      Identifier(node) {
-        if (getName(node) !== "Packages") return;
+      MemberExpression(node) {
+        const member = node as ESTree.MemberExpression;
+        const chain = staticMemberChain(member);
+        if (!chain || chain[0] !== "Packages") return;
+        // Only report the outermost member expression of the chain so
+        // Packages.java.lang.String yields one diagnostic, not three.
+        const ancestors = context.sourceCode.getAncestors(node);
+        const parent = ancestors[ancestors.length - 1] as ESTree.Node | undefined;
+        if (parent?.type === "MemberExpression" && parent.object === node) {
+          return;
+        }
         context.report({ node, messageId: "packages" });
       },
     };
