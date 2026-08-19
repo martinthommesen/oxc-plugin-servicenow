@@ -230,3 +230,6 @@ export const CLIENT_GLOBALS_STRONG = [
 export const CLIENT_GLOBALS_WEAK = ["g_scratchpad", "gel"] as const;
 
 export const CLIENT_GLOBALS = [...CLIENT_GLOBALS_STRONG, ...CLIENT_GLOBALS_WEAK] as const;
+
+/** Constructors that produce a GlideRecord-like cursor. */
+export const GLIDE_RECORD_CTORS = ["GlideRecord", "GlideRecordSecure"] as const;

@@ -48,7 +48,13 @@ export const noHardcodedTableNames = defineRule({
         allow = allowed(context, optionAt<NoHardcodedTableNamesOptions>(context, 0, {}));
       },
       NewExpression(node) {
-        if (!isNewNamed(node, "GlideRecord") && !isNewNamed(node, "GlideAggregate")) return;
+        if (
+          !isNewNamed(node, "GlideRecord") &&
+          !isNewNamed(node, "GlideRecordSecure") &&
+          !isNewNamed(node, "GlideAggregate")
+        ) {
+          return;
+        }
         const first = (node as ESTree.NewExpression).arguments[0];
         if (!first || first.type === "SpreadElement") return;
         const table = getStringValue(first);

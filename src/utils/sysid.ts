@@ -1,5 +1,5 @@
-const SYS_ID = /\b[0-9a-fA-F]{32}\b/g;
-const ALL_HEX = /^[0-9a-fA-F]{32}$/;
+const SYS_ID = /\b[0-9a-f]{32}\b/g;
+const ALL_HEX = /^[0-9a-f]{32}$/;
 
 /** ServiceNow sys_ids are 32-character lowercase hex strings. */
 export function isSysId(value: string): boolean {
