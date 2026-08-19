@@ -11,7 +11,14 @@ Full-script Business Rules must wrap logic in the standard IIFE so top-level var
 - **Authoring:** classic
 - **Surfaces:** Classic instance scripts. Client-only rules skip server-only files. Fluent files are skipped.
 - **JavaScript mode:** Independent of JavaScript mode unless the rule documents a mode gate.
+- **Last verified:** 2026-08-19
 - **Implementation:** [`src/rules/require-business-rule-wrapper.ts`](../../src/rules/require-business-rule-wrapper.ts)
+
+## Options
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| _(none)_ | | | This rule has no options. |
 
 ## Incorrect
 

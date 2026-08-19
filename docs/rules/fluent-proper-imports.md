@@ -11,8 +11,15 @@ Fluent entity and column APIs must be imported from `@servicenow/sdk/core`.
 - **Authoring:** fluent
 - **Surfaces:** Fluent `.now.ts` metadata only
 - **JavaScript mode:** Not instance-executed
+- **Last verified:** 2026-08-19
 - **Implementation:** [`src/rules/fluent-proper-imports.ts`](../../src/rules/fluent-proper-imports.ts)
 - **Fluent manifest:** sdk-docs-2026-03
+
+## Options
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| _(none)_ | | | This rule has no options. |
 
 ## Incorrect
 

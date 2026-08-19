@@ -11,7 +11,14 @@ async/await is not implemented in Compatibility or ES5 Standards mode.
 - **Authoring:** classic
 - **Surfaces:** Classic instance scripts. Fluent files are skipped.
 - **JavaScript mode:** Runs when `javascriptMode` is `compatibility` or `es5`. Unknown mode stays silent.
+- **Last verified:** 2026-08-19
 - **Implementation:** [`src/rules/no-async-await.ts`](../../src/rules/no-async-await.ts)
+
+## Options
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| _(none)_ | | | This rule has no options. |
 
 ## Incorrect
 

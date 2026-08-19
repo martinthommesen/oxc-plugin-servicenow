@@ -170,6 +170,7 @@ export function resolveScriptContext(context: Context): ServiceNowScriptContext 
     confidence: stronger(weakest(sources), stronger(authoring.confidence, surfaces.confidence)),
     sources,
     businessRuleSourceFormat: settings.businessRuleSourceFormat,
+    businessRuleWhen: settings.businessRuleWhen,
     settings,
     deprecations: localDeprecations,
   };

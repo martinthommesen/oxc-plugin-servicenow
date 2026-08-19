@@ -11,8 +11,15 @@ Two Fluent definitions that share the same static `Now.ID` key as `$id` collide.
 - **Authoring:** fluent
 - **Surfaces:** Fluent `.now.ts` metadata only
 - **JavaScript mode:** Not instance-executed
+- **Last verified:** 2026-08-19
 - **Implementation:** [`src/rules/no-duplicate-fluent-id.ts`](../../src/rules/no-duplicate-fluent-id.ts)
 - **Fluent manifest:** sdk-docs-2026-03
+
+## Options
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| _(none)_ | | | This rule has no options. |
 
 ## Incorrect
 

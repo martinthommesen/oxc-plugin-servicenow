@@ -78,6 +78,15 @@ async function writeRuleDocs() {
     const placements = rule.placements
       .map((placement) => `${placement.profile} (${placement.severity})`)
       .join(", ");
+    const options =
+      rule.options.length > 0
+        ? rule.options
+            .map(
+              (option) =>
+                `| \`${option.name}\` | ${option.type} | \`${option.default}\` | ${option.description} |`,
+            )
+            .join("\n")
+        : "| _(none)_ | | | This rule has no options. |";
     const md = `# ${rule.ruleId}
 
 ${rule.description}
@@ -91,9 +100,16 @@ ${rule.description}
 - **Authoring:** ${rule.applicability.authoring}
 - **Surfaces:** ${rule.applicability.surfaces}
 - **JavaScript mode:** ${rule.applicability.javascriptMode}
+- **Last verified:** ${rule.lastVerified}
 - **Implementation:** [\`src/rules/${rule.name}.ts\`](../../src/rules/${rule.name}.ts)${
       rule.family === "fluent" ? `\n- **Fluent manifest:** ${DEFAULT_FLUENT_MANIFEST.version}` : ""
     }
+
+## Options
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+${options}
 
 ## Incorrect
 
@@ -159,9 +175,24 @@ async function writeOxlintrcRules(path, specifierComment) {
   console.log("updated", specifierComment, path);
 }
 
+async function collectOxlintrcFiles(dir, found = []) {
+  for (const entry of await readdir(dir, { withFileTypes: true })) {
+    const path = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (entry.name === "node_modules" || entry.name === "invalid") continue;
+      await collectOxlintrcFiles(path, found);
+    } else if (entry.name === ".oxlintrc.json") {
+      found.push(path);
+    }
+  }
+  return found;
+}
+
 await writeRuleDocs();
 await writeReadmeTables();
-await writeOxlintrcRules(join(root, "examples/.oxlintrc.json"), "examples");
+for (const path of await collectOxlintrcFiles(join(root, "examples"))) {
+  await writeOxlintrcRules(path, "example");
+}
 await writeOxlintrcRules(
   join(root, "tests/integration/profiles/configs/recommended.oxlintrc.json"),
   "recommended fixture",

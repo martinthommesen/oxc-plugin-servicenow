@@ -56,9 +56,10 @@ export function assertInvalid(
 ): LintMessage[] {
   const messages = lint(code, rule, options);
   const count = expected.count ?? 1;
-  assert.ok(
-    messages.length >= count,
-    `Expected at least ${count} diagnostic(s), got ${messages.length}:\n${messages.map((m) => `  - ${m.messageId ?? "?"} ${m.message}`).join("\n")}`,
+  assert.equal(
+    messages.length,
+    count,
+    `Expected exactly ${count} diagnostic(s), got ${messages.length}:\n${messages.map((m) => `  - ${m.messageId ?? "?"} ${m.message}`).join("\n")}`,
   );
   if (expected.messageId) {
     assert.ok(

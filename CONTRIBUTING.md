@@ -13,11 +13,10 @@ That command runs typecheck, build, tests (including oxlint, ESLint, oxfmt, prof
 ## Add a rule
 
 1. Create `src/rules/<name>.ts` with `defineRule` and `createOnce`.
-2. Export it from `src/rules/index.ts`.
-3. Add one descriptor in `src/catalog.ts`. That file is the source of truth for identity, placements, examples, and evidence.
-4. Add tests in `tests/rules/` using the matrix in [Write a ServiceNow lint rule](docs/rule-authoring.md).
-5. Run `npm run docs`. It regenerates `docs/rules/`, README rule tables, and recommended oxlintrc copies.
-6. Run `npm run validate`.
+2. Add one descriptor in `src/catalog.ts` that imports that implementation. Identity, placements, examples, options, and evidence live there. `src/rules/index.ts` is generated from the catalog at load time.
+3. Add tests in `tests/rules/` using the matrix in [Write a ServiceNow lint rule](docs/rule-authoring.md).
+4. Run `npm run docs`. It regenerates `docs/rules/`, README rule tables, and recommended oxlintrc copies.
+5. Run `npm run validate`.
 
 Do not edit generated rule pages, README rule tables, or recommended `.oxlintrc.json` copies by hand.
 
@@ -42,4 +41,10 @@ Add a short Unreleased note in `CHANGELOG.md` for user-visible rule, preset, or 
 
 ## Release
 
-Tag `v<version>` after `package.json` matches that version. The release workflow publishes with npm provenance.
+1. Set `package.json` version and add a changelog section for that version.
+2. Tag `v<version>` on `main`. The tag must match `package.json`.
+3. `.github/workflows/release.yml` runs typecheck, build, tests (including packed-consumer), docs consistency, Fluent manifest check, tarball content inspection, and then `npm publish --provenance`.
+4. Publishing uses the npm trusted-publishing OIDC token (`id-token: write`). `NPM_TOKEN` is only a fallback.
+5. If publish fails after a green workflow, fix the registry/trust configuration and re-run the tag workflow. Do not publish from a pull request.
+
+Dependabot updates npm and GitHub Actions weekly. Oxc-related packages are grouped. Do not auto-merge those updates.

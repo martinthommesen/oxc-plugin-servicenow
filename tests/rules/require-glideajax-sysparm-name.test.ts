@@ -33,7 +33,7 @@ ajax.getXMLAnswer(handleAnswer);`,
 ajax.addParam("method", "getManager");
 ajax.getXMLAnswer(handleAnswer);`,
       RULE,
-      { messageId: "badPrefix" },
+      { messageId: "badPrefix", count: 2 },
       CLIENT,
     );
   });

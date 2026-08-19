@@ -4,6 +4,14 @@
 
 ### oxlint
 
+- Rule registry is derived from catalog descriptors. Adding a rule requires an implementation file, one catalog entry, and tests.
+- `PACKAGE_VERSION` is read from `package.json`.
+- New `settings.servicenow.businessRuleWhen` metadata. Default `unknown`.
+- New strict/warn rule: `prefer-setnocount-with-choosewindow`.
+- Packed-package consumer tests run oxlint, ESLint, and oxfmt from `npm pack` output.
+- Example projects cover Compatibility, ES5, ES2021, client, Business Rule, UI Action, Fluent, and mixed repositories.
+- Phase 5 research notes record implement/hold/reject decisions for issues #35–#40.
+
 - New recommended rules: `no-delete-multiple-with-windowing`, `require-callback-for-getreference`, `require-glideajax-sysparm-name`, `validate-glideaggregate-calls`, `no-now-id-as-reference`, `no-glideajax-getanswer`, `no-duplicate-fluent-id`.
 - New recommended rules: `no-glideelement-in-collection`, `no-gliderecord-query-modifier-after-query`, `require-business-rule-wrapper`. `no-unfiltered-gliderecord-bulk-operation` is recommended at warn.
 - New strict/warn rules: `no-display-value-date-comparison`, `no-gliderecord-query-in-loop`.

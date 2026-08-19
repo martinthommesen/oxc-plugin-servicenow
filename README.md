@@ -292,6 +292,7 @@ Per-file `// @sn-es-latest` still maps to `es2021` with inferred confidence. Pre
 | [`no-display-value-date-comparison`](docs/rules/no-display-value-date-comparison.md) | strict |  | Do not relationally compare `GlideDateTime.getDisplayValue()` strings |
 | [`no-unfiltered-gliderecord-bulk-operation`](docs/rules/no-unfiltered-gliderecord-bulk-operation.md) | recommended |  | `updateMultiple()` / `deleteMultiple()` without a proven filter can touch every row |
 | [`no-gliderecord-query-in-loop`](docs/rules/no-gliderecord-query-in-loop.md) | strict |  | A `query()` or `get()` inside `while (outer.next())` is an N+1 pattern |
+| [`prefer-setnocount-with-choosewindow`](docs/rules/prefer-setnocount-with-choosewindow.md) | strict |  | Zurich scoped GlideRecord documents that `query()` after `chooseWindow()` runs `COUNT(*)` unless `setNoCount()` or `setLimit()` skips it |
 | [`no-system-query-bypass`](docs/rules/no-system-query-bypass.md) | security |  | Opt-in security review for documented ACL-bypass query APIs: `addSystemQuery`, `addSystemEncodedQuery`, `addSystemOrderBy`, `addSystemOrderByDesc` |
 | [`no-sync-glideajax`](docs/rules/no-sync-glideajax.md) | recommended |  | `getXMLWait()` blocks the browser and does not work in Service Portal |
 <!-- generated:classic-rules:end -->
@@ -333,6 +334,19 @@ These rules run only when `javascriptMode` is known, except features that Servic
 ---
 
 ## Examples
+
+Runnable profile projects live under [`examples/`](examples/README.md):
+
+| Project | Context |
+| --- | --- |
+| [classic-compatibility](examples/classic-compatibility/) | Compatibility-mode server scripts |
+| [classic-es5](examples/classic-es5/) | ES5 Standards server scripts |
+| [es2021](examples/es2021/) | ES2021 server scripts |
+| [client](examples/client/) | Client Scripts and Catalog Client Scripts |
+| [business-rule](examples/business-rule/) | Full-script Business Rules |
+| [ui-action](examples/ui-action/) | Client, server, and mixed UI Actions |
+| [fluent](examples/fluent/) | Fluent `.now.ts` metadata |
+| [mixed](examples/mixed/) | One repository with several surfaces |
 
 ### Classic Business Rule — bad
 

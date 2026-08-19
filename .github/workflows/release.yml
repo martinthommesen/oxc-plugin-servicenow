@@ -23,9 +23,22 @@ jobs:
       - run: npm run build
       - run: npm test
       - run: npm run docs:check
+      - run: npm run manifest:check
       - name: Verify tag matches package version
         run: |
           test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
+      - name: Inspect packed tarball
+        run: |
+          tarball="$(npm pack --ignore-scripts --json | node -p "JSON.parse(require('fs').readFileSync(0,'utf8'))[0].filename")"
+          tar -tzf "$tarball" | tee pack-list.txt
+          grep -q '^package/dist/index.js$' pack-list.txt
+          grep -q '^package/oxfmt.recommended.json$' pack-list.txt
+          ! grep -q '^package/src/' pack-list.txt
+          ! grep -q '^package/tests/' pack-list.txt
+          rm -f "$tarball"
+      - name: Verify changelog mentions this version
+        run: |
+          node -e "const fs=require('fs'); const v=require('./package.json').version; if(!fs.readFileSync('CHANGELOG.md','utf8').includes(v)) { console.error('CHANGELOG.md must mention '+v); process.exit(1); }"
       - run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -60,6 +60,21 @@ describe("settings validation", () => {
       /scriptType/,
     );
   });
+
+  it("defaults Business Rule timing to unknown", () => {
+    const result = validateServiceNowSettings({});
+    assert.equal(result.settings.businessRuleWhen, "unknown");
+    assert.equal(result.settings.businessRuleSourceFormat, "unknown");
+  });
+
+  it("accepts an explicit Business Rule timing", () => {
+    const result = validateServiceNowSettings({ businessRuleWhen: "async" });
+    assert.equal(result.settings.businessRuleWhen, "async");
+  });
+
+  it("rejects an invalid Business Rule timing", () => {
+    assert.throws(() => validateServiceNowSettings({ businessRuleWhen: "sometime" }), /businessRuleWhen/);
+  });
 });
 
 describe("classifyFile compatibility", () => {

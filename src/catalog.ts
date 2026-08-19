@@ -1,5 +1,46 @@
+import type { Rule } from "@oxlint/plugins";
+import { fluentDirectives } from "./rules/fluent-directives.js";
+import { fluentNamingConvention } from "./rules/fluent-naming-convention.js";
+import { fluentProperImports } from "./rules/fluent-proper-imports.js";
+import { noAsyncAwait } from "./rules/no-async-await.js";
+import { noAsyncIterators } from "./rules/no-async-iterators.js";
+import { noAtMethod } from "./rules/no-at-method.js";
+import { noBigint } from "./rules/no-bigint.js";
+import { noBrCurrentUpdate } from "./rules/no-br-current-update.js";
+import { noClientGliderecord } from "./rules/no-client-gliderecord.js";
+import { noComplexFluentLogic } from "./rules/no-complex-fluent-logic.js";
+import { noDeleteMultipleWithWindowing } from "./rules/no-delete-multiple-with-windowing.js";
+import { noDisplayValueDateComparison } from "./rules/no-display-value-date-comparison.js";
+import { noDuplicateFluentId } from "./rules/no-duplicate-fluent-id.js";
+import { noGlideajaxGetanswer } from "./rules/no-glideajax-getanswer.js";
+import { noGlideelementInCollection } from "./rules/no-glideelement-in-collection.js";
+import { noGliderecordQueryInLoop } from "./rules/no-gliderecord-query-in-loop.js";
+import { noGliderecordQueryModifierAfterQuery } from "./rules/no-gliderecord-query-modifier-after-query.js";
+import { noGsNow } from "./rules/no-gs-now.js";
+import { noHardcodedSysid } from "./rules/no-hardcoded-sysid.js";
+import { noHardcodedTableNames } from "./rules/no-hardcoded-table-names.js";
+import { noNowIdAsReference } from "./rules/no-now-id-as-reference.js";
+import { noPackagesCalls } from "./rules/no-packages-calls.js";
+import { noPromise } from "./rules/no-promise.js";
+import { noProxy } from "./rules/no-proxy.js";
+import { noSyncGlideajax } from "./rules/no-sync-glideajax.js";
+import { noSystemQueryBypass } from "./rules/no-system-query-bypass.js";
+import { noTypedArrays } from "./rules/no-typed-arrays.js";
+import { noUnfilteredGliderecordBulkOperation } from "./rules/no-unfiltered-gliderecord-bulk-operation.js";
+import { noUnsupportedSyntax } from "./rules/no-unsupported-syntax.js";
+import { noWeakCollections } from "./rules/no-weak-collections.js";
+import { noWeakReferences } from "./rules/no-weak-references.js";
+import { preferGlideaggregate } from "./rules/prefer-glideaggregate.js";
+import { preferNowInclude } from "./rules/prefer-now-include.js";
+import { preferSetnocountWithChoosewindow } from "./rules/prefer-setnocount-with-choosewindow.js";
+import { requireBusinessRuleWrapper } from "./rules/require-business-rule-wrapper.js";
+import { requireCallbackForGetreference } from "./rules/require-callback-for-getreference.js";
+import { requireFluentId } from "./rules/require-fluent-id.js";
+import { requireGlideajaxSysparmName } from "./rules/require-glideajax-sysparm-name.js";
+import { requireQueryBeforeNext } from "./rules/require-query-before-next.js";
+import { validateGlideaggregateCalls } from "./rules/validate-glideaggregate-calls.js";
+import { validateGliderecordCalls } from "./rules/validate-gliderecord-calls.js";
 import { PLUGIN_NAME, ruleDocsUrl } from "./constants.js";
-import type { RuleName } from "./rules/index.js";
 import type { ServiceNowSettings } from "./types.js";
 
 export type RuleFamily = "classic" | "fluent" | "engine";
@@ -35,8 +76,16 @@ export interface RuleExample {
   settings?: ServiceNowSettings;
 }
 
+export interface RuleOptionDoc {
+  name: string;
+  type: string;
+  default: string;
+  description: string;
+}
+
 export interface RuleCatalogEntry {
-  name: RuleName;
+  name: string;
+  implementation: Rule;
   ruleId: string;
   title: string;
   family: RuleFamily;
@@ -53,19 +102,33 @@ export interface RuleCatalogEntry {
   evidence: readonly string[];
   limitations: string;
   fixKind: "none" | "safe-fix" | "suggestion";
+  options: readonly RuleOptionDoc[];
+  lastVerified: string;
 }
 
 type RuleCatalogInput = Omit<
   RuleCatalogEntry,
-  "name" | "ruleId" | "docsUrl" | "placements" | "applicability" | "evidence" | "limitations" | "fixKind"
+  | "name"
+  | "implementation"
+  | "ruleId"
+  | "docsUrl"
+  | "placements"
+  | "applicability"
+  | "evidence"
+  | "limitations"
+  | "fixKind"
+  | "options"
+  | "lastVerified"
 > & {
   placements?: readonly RulePlacement[];
   applicability?: Partial<RuleApplicability>;
   evidence?: readonly string[];
   limitations?: string;
+  options?: readonly RuleOptionDoc[];
+  lastVerified?: string;
 };
 
-const EXTRA_PLACEMENTS: Partial<Record<RuleName, readonly RulePlacement[]>> = {
+const EXTRA_PLACEMENTS: Partial<Record<string, readonly RulePlacement[]>> = {
   "no-async-iterators": [
     { profile: "classic-es5", severity: "error" },
     { profile: "es2021", severity: "error" },
@@ -128,7 +191,7 @@ function evidenceFrom(description: string, extra: readonly string[] = []): strin
   return [...new Set([...extra, ...found])];
 }
 
-function entry(name: RuleName, rest: RuleCatalogInput): RuleCatalogEntry {
+function entry<N extends string>(name: N, implementation: Rule, rest: RuleCatalogInput): RuleCatalogEntry & { name: N } {
   const primary: RulePlacement[] =
     rest.preset === false ? [] : [{ profile: rest.preset, severity: rest.severity }];
   const extras = EXTRA_PLACEMENTS[name] ?? [];
@@ -138,6 +201,7 @@ function entry(name: RuleName, rest: RuleCatalogInput): RuleCatalogEntry {
   };
   return {
     name,
+    implementation,
     ruleId: `${PLUGIN_NAME}/${name}`,
     docsUrl: ruleDocsUrl(name),
     ...rest,
@@ -148,11 +212,13 @@ function entry(name: RuleName, rest: RuleCatalogInput): RuleCatalogEntry {
       rest.limitations ??
       "When provenance, surface, or JavaScript mode is unknown, the rule stays silent instead of guessing.",
     fixKind: rest.fixable ? "safe-fix" : rest.hasSuggestions ? "suggestion" : "none",
+    options: rest.options ?? [],
+    lastVerified: rest.lastVerified ?? "2026-08-19",
   };
 }
 
-export const ruleCatalog: RuleCatalogEntry[] = [
-  entry("no-hardcoded-sysid", {
+export const ruleCatalog = [
+  entry("no-hardcoded-sysid", noHardcodedSysid, {
     title: "No hardcoded sys_id",
     family: "classic",
     preset: "recommended",
@@ -175,8 +241,22 @@ export const ruleCatalog: RuleCatalogEntry[] = [
         code: `var assignmentGroup = gs.getProperty("x_acme.default_assignment_group");\ncurrent.assignment_group = assignmentGroup;`,
       },
     ],
+    options: [
+      {
+        name: "allowedSysIds",
+        type: "string[]",
+        default: "[]",
+        description: "Additional sys_ids that this rule allows. Settings `allowedSysIds` are also allowed.",
+      },
+      {
+        name: "ignoreHashNames",
+        type: "boolean",
+        default: "true",
+        description: "Ignore 32-character hex strings next to names that look like MD5 hashes.",
+      },
+    ],
   }),
-  entry("no-promise", {
+  entry("no-promise", noPromise, {
     title: "No Promise",
     family: "engine",
     preset: "classic-es5",
@@ -201,7 +281,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
       },
     ],
   }),
-  entry("no-async-await", {
+  entry("no-async-await", noAsyncAwait, {
     title: "No async/await",
     family: "engine",
     preset: "classic-es5",
@@ -225,7 +305,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
       },
     ],
   }),
-  entry("no-bigint", {
+  entry("no-bigint", noBigint, {
     title: "No BigInt",
     family: "engine",
     preset: "classic-es5",
@@ -236,7 +316,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
     bad: [{ name: "literal", filename: "script-include.js", settings: ES5, code: `var n = 9007199254740993n;` }],
     good: [{ name: "number", filename: "script-include.js", code: `var n = 9007199254740991;` }],
   }),
-  entry("prefer-glideaggregate", {
+  entry("prefer-glideaggregate", preferGlideaggregate, {
     title: "Prefer GlideAggregate",
     family: "classic",
     preset: "strict",
@@ -260,7 +340,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
       },
     ],
   }),
-  entry("no-client-gliderecord", {
+  entry("no-client-gliderecord", noClientGliderecord, {
     title: "No client GlideRecord",
     family: "classic",
     preset: "recommended",
@@ -284,7 +364,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
       },
     ],
   }),
-  entry("no-gs-now", {
+  entry("no-gs-now", noGsNow, {
     title: "No gs.now()",
     family: "classic",
     preset: "recommended",
@@ -305,7 +385,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
       },
     ],
   }),
-  entry("require-query-before-next", {
+  entry("require-query-before-next", requireQueryBeforeNext, {
     title: "Require query before next",
     family: "classic",
     preset: "recommended",
@@ -329,7 +409,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
       },
     ],
   }),
-  entry("validate-gliderecord-calls", {
+  entry("validate-gliderecord-calls", validateGliderecordCalls, {
     title: "Validate GlideRecord calls",
     family: "classic",
     preset: false,
@@ -353,7 +433,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
       },
     ],
   }),
-  entry("no-br-current-update", {
+  entry("no-br-current-update", noBrCurrentUpdate, {
     title: "No current.update() in Business Rules",
     family: "classic",
     preset: "recommended",
@@ -377,7 +457,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
       },
     ],
   }),
-  entry("no-hardcoded-table-names", {
+  entry("no-hardcoded-table-names", noHardcodedTableNames, {
     title: "No hardcoded table names",
     family: "classic",
     preset: false,
@@ -400,8 +480,22 @@ export const ruleCatalog: RuleCatalogEntry[] = [
         code: `var TABLE = { WIDGET: "x_acme_widget" };\nvar gr = new GlideRecord(TABLE.WIDGET);`,
       },
     ],
+    options: [
+      {
+        name: "allowedTables",
+        type: "string[]",
+        default: "[]",
+        description: "Additional table names this rule allows. Settings `allowedTables` are also allowed.",
+      },
+      {
+        name: "allowBuiltins",
+        type: "boolean",
+        default: "false",
+        description: "Allow the built-in platform table list from `BUILTIN_TABLES`.",
+      },
+    ],
   }),
-  entry("fluent-proper-imports", {
+  entry("fluent-proper-imports", fluentProperImports, {
     title: "Fluent imports from @servicenow/sdk/core",
     family: "fluent",
     preset: "recommended",
@@ -424,7 +518,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
       },
     ],
   }),
-  entry("fluent-directives", {
+  entry("fluent-directives", fluentDirectives, {
     title: "Fluent directives",
     family: "fluent",
     preset: "recommended",
@@ -448,7 +542,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
       },
     ],
   }),
-  entry("prefer-now-include", {
+  entry("prefer-now-include", preferNowInclude, {
     title: "Prefer Now.include()",
     family: "fluent",
     preset: "strict",
@@ -471,8 +565,22 @@ export const ruleCatalog: RuleCatalogEntry[] = [
         code: `import { BusinessRule } from "@servicenow/sdk/core";\n\nBusinessRule({\n  $id: Now.ID["log-state"],\n  table: "incident",\n  name: "Log state",\n  when: "after",\n  action: ["update"],\n  script: Now.include("../server/log-state.server.js"),\n});`,
       },
     ],
+    options: [
+      {
+        name: "maxLines",
+        type: "number",
+        default: "8",
+        description: "Line count that treats an inline payload as large.",
+      },
+      {
+        name: "maxChars",
+        type: "number",
+        default: "400",
+        description: "Character count that treats an inline payload as large.",
+      },
+    ],
   }),
-  entry("require-fluent-id", {
+  entry("require-fluent-id", requireFluentId, {
     title: "Require Fluent $id",
     family: "fluent",
     preset: "recommended",
@@ -492,11 +600,19 @@ export const ruleCatalog: RuleCatalogEntry[] = [
       {
         name: "Now.ID",
         filename: "log-state.now.ts",
-        code: `import { BusinessRule } from "@servicenow/sdk/core";\n\nBusinessRule({\n  $id: Now.ID["log-state"],\n  table: "incident",\n  name: "Log state",\n  when: "after",\n  action: ["update"],\n});`,
+        code: `import { BusinessRule } from "@servicenow/sdk/core";\n\nBusinessRule({\n  $id: Now.ID["log-state"],\n  table: "incident",\n  name: "Log state",\n  when: "after",\n            action: ["update"],\n});`,
+      },
+    ],
+    options: [
+      {
+        name: "preferNowId",
+        type: "boolean",
+        default: "true",
+        description: "Warn when `$id` is a raw string or sys_id instead of `Now.ID`.",
       },
     ],
   }),
-  entry("fluent-naming-convention", {
+  entry("fluent-naming-convention", fluentNamingConvention, {
     title: "Fluent naming convention",
     family: "fluent",
     preset: "strict",
@@ -516,11 +632,25 @@ export const ruleCatalog: RuleCatalogEntry[] = [
       {
         name: "kebab-case",
         filename: "log-state.now.ts",
-        code: `import { BusinessRule } from "@servicenow/sdk/core";\n\nBusinessRule({\n  $id: Now.ID["log-state"],\n  table: "incident",\n  name: "Log state",\n});`,
+        code: `import { BusinessRule } from "@servicenow/sdk/core";\n\nBusinessRule({\n  $id: Now.ID["log-state"],\n  table: "incident",\n            name: "Log state",\n});`,
+      },
+    ],
+    options: [
+      {
+        name: "idStyle",
+        type: '"kebab-case" | "snake_case" | "either"',
+        default: '"kebab-case"',
+        description: "Required style for `Now.ID` keys.",
+      },
+      {
+        name: "fileStyle",
+        type: '"kebab-case" | "snake_case" | "either"',
+        default: '"kebab-case"',
+        description: "Required style for `.now.ts` filenames.",
       },
     ],
   }),
-  entry("no-complex-fluent-logic", {
+  entry("no-complex-fluent-logic", noComplexFluentLogic, {
     title: "No complex Fluent logic",
     family: "fluent",
     preset: false,
@@ -544,7 +674,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
       },
     ],
   }),
-  entry("no-at-method", {
+  entry("no-at-method", noAtMethod, {
     title: "No .at()",
     family: "engine",
     preset: "classic-es5",
@@ -555,7 +685,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
     bad: [{ name: "at", filename: "script-include.js", settings: ES5, code: `var last = list.at(-1);` }],
     good: [{ name: "index", filename: "script-include.js", code: `var last = list[list.length - 1];` }],
   }),
-  entry("no-packages-calls", {
+  entry("no-packages-calls", noPackagesCalls, {
     title: "No Packages.*",
     family: "classic",
     preset: "recommended",
@@ -579,7 +709,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
       },
     ],
   }),
-  entry("no-weak-references", {
+  entry("no-weak-references", noWeakReferences, {
     title: "No WeakRef / FinalizationRegistry",
     family: "engine",
     preset: "recommended",
@@ -591,7 +721,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
     bad: [{ name: "WeakRef", filename: "script-include.js", code: `var ref = new WeakRef(obj);` }],
     good: [{ name: "Map", filename: "script-include.js", code: `var cache = new Map();` }],
   }),
-  entry("no-weak-collections", {
+  entry("no-weak-collections", noWeakCollections, {
     title: "No WeakMap / WeakSet",
     family: "engine",
     preset: "classic-es5",
@@ -602,7 +732,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
     bad: [{ name: "WeakMap", filename: "script-include.js", settings: ES5, code: `var cache = new WeakMap();` }],
     good: [{ name: "Map", filename: "script-include.js", settings: ES5, code: `var cache = new Map();` }],
   }),
-  entry("no-typed-arrays", {
+  entry("no-typed-arrays", noTypedArrays, {
     title: "No TypedArray / DataView",
     family: "engine",
     preset: "classic-es5",
@@ -621,7 +751,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
     ],
     good: [{ name: "plain array", filename: "script-include.js", code: `var bytes = [0, 1, 2];` }],
   }),
-  entry("no-proxy", {
+  entry("no-proxy", noProxy, {
     title: "No Proxy",
     family: "engine",
     preset: "classic-es5",
@@ -632,7 +762,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
     bad: [{ name: "new Proxy", filename: "script-include.js", settings: ES5, code: `var p = new Proxy(target, handler);` }],
     good: [{ name: "plain object", filename: "script-include.js", code: `var p = { prop: value };` }],
   }),
-  entry("no-unsupported-syntax", {
+  entry("no-unsupported-syntax", noUnsupportedSyntax, {
     title: "No unsupported ES-latest syntax",
     family: "engine",
     preset: "classic-es5",
@@ -657,7 +787,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
       },
     ],
   }),
-  entry("no-delete-multiple-with-windowing", {
+  entry("no-delete-multiple-with-windowing", noDeleteMultipleWithWindowing, {
     title: "No deleteMultiple with windowing",
     family: "classic",
     preset: "recommended",
@@ -681,7 +811,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
       },
     ],
   }),
-  entry("require-callback-for-getreference", {
+  entry("require-callback-for-getreference", requireCallbackForGetreference, {
     title: "Require callback for getReference",
     family: "classic",
     preset: "recommended",
@@ -705,7 +835,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
       },
     ],
   }),
-  entry("require-glideajax-sysparm-name", {
+  entry("require-glideajax-sysparm-name", requireGlideajaxSysparmName, {
     title: "Require GlideAjax sysparm_name",
     family: "classic",
     preset: "recommended",
@@ -729,7 +859,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
       },
     ],
   }),
-  entry("validate-glideaggregate-calls", {
+  entry("validate-glideaggregate-calls", validateGlideaggregateCalls, {
     title: "Validate GlideAggregate calls",
     family: "classic",
     preset: "recommended",
@@ -753,7 +883,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
       },
     ],
   }),
-  entry("no-now-id-as-reference", {
+  entry("no-now-id-as-reference", noNowIdAsReference, {
     title: "No Now.ID as a reference",
     family: "fluent",
     preset: "recommended",
@@ -777,7 +907,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
       },
     ],
   }),
-  entry("no-glideajax-getanswer", {
+  entry("no-glideajax-getanswer", noGlideajaxGetanswer, {
     title: "No GlideAjax getAnswer",
     family: "classic",
     preset: "recommended",
@@ -801,7 +931,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
       },
     ],
   }),
-  entry("no-duplicate-fluent-id", {
+  entry("no-duplicate-fluent-id", noDuplicateFluentId, {
     title: "No duplicate Fluent $id",
     family: "fluent",
     preset: "recommended",
@@ -825,7 +955,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
       },
     ],
   }),
-  entry("no-glideelement-in-collection", {
+  entry("no-glideelement-in-collection", noGlideelementInCollection, {
     title: "No GlideElement in a collection",
     family: "classic",
     preset: "recommended",
@@ -849,7 +979,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
       },
     ],
   }),
-  entry("no-gliderecord-query-modifier-after-query", {
+  entry("no-gliderecord-query-modifier-after-query", noGliderecordQueryModifierAfterQuery, {
     title: "No query modifier after query",
     family: "classic",
     preset: "recommended",
@@ -873,7 +1003,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
       },
     ],
   }),
-  entry("require-business-rule-wrapper", {
+  entry("require-business-rule-wrapper", requireBusinessRuleWrapper, {
     title: "Require Business Rule wrapper",
     family: "classic",
     preset: "recommended",
@@ -899,7 +1029,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
       },
     ],
   }),
-  entry("no-display-value-date-comparison", {
+  entry("no-display-value-date-comparison", noDisplayValueDateComparison, {
     title: "No display-value date comparison",
     family: "classic",
     preset: "strict",
@@ -923,7 +1053,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
       },
     ],
   }),
-  entry("no-unfiltered-gliderecord-bulk-operation", {
+  entry("no-unfiltered-gliderecord-bulk-operation", noUnfilteredGliderecordBulkOperation, {
     title: "No unfiltered GlideRecord bulk operation",
     family: "classic",
     preset: "recommended",
@@ -947,7 +1077,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
       },
     ],
   }),
-  entry("no-gliderecord-query-in-loop", {
+  entry("no-gliderecord-query-in-loop", noGliderecordQueryInLoop, {
     title: "No GlideRecord query in a cursor loop",
     family: "classic",
     preset: "strict",
@@ -971,7 +1101,36 @@ export const ruleCatalog: RuleCatalogEntry[] = [
       },
     ],
   }),
-  entry("no-system-query-bypass", {
+  entry("prefer-setnocount-with-choosewindow", preferSetnocountWithChoosewindow, {
+    title: "Prefer setNoCount with chooseWindow",
+    family: "classic",
+    preset: "strict",
+    severity: "warn",
+    fixable: false,
+    hasSuggestions: false,
+    description:
+      "Zurich scoped GlideRecord documents that `query()` after `chooseWindow()` runs `COUNT(*)` unless `setNoCount()` or `setLimit()` skips it. The rule is silent when `getRowCount()` is used, when `chooseWindow` forces a count, or when the binding escapes. Evidence: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html",
+    bad: [
+      {
+        name: "window without setNoCount",
+        filename: "page.br.js",
+        code: `var rec = new GlideRecord("incident");\nrec.chooseWindow(0, 20);\nrec.query();\nwhile (rec.next()) {\n  gs.info(rec.getValue("number"));\n}`,
+      },
+    ],
+    good: [
+      {
+        name: "setNoCount",
+        filename: "page.br.js",
+        code: `var rec = new GlideRecord("incident");\nrec.chooseWindow(0, 20);\nrec.setNoCount();\nrec.query();\nwhile (rec.next()) {\n  gs.info(rec.getValue("number"));\n}`,
+      },
+    ],
+    evidence: [
+      "https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html",
+    ],
+    limitations:
+      "Silent when provenance is unknown, when `getRowCount()` is used, when `chooseWindow`'s third argument is not a boolean literal, or when one branch disagrees.",
+  }),
+  entry("no-system-query-bypass", noSystemQueryBypass, {
     title: "Review system query ACL bypass",
     family: "classic",
     preset: false,
@@ -995,7 +1154,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
       },
     ],
   }),
-  entry("no-sync-glideajax", {
+  entry("no-sync-glideajax", noSyncGlideajax, {
     title: "No synchronous GlideAjax",
     family: "classic",
     preset: "recommended",
@@ -1019,7 +1178,7 @@ export const ruleCatalog: RuleCatalogEntry[] = [
       },
     ],
   }),
-  entry("no-async-iterators", {
+  entry("no-async-iterators", noAsyncIterators, {
     title: "No async iterators",
     family: "engine",
     preset: "recommended",
@@ -1047,3 +1206,5 @@ export const ruleCatalog: RuleCatalogEntry[] = [
 export function getRuleCatalogEntry(name: string): RuleCatalogEntry | undefined {
   return ruleCatalog.find((rule) => rule.name === name || rule.ruleId === name);
 }
+
+export type RuleName = (typeof ruleCatalog)[number]["name"];

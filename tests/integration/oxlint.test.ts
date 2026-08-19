@@ -26,11 +26,12 @@ function runOxlint(targets: string[]): OxlintReport {
     });
     return JSON.parse(stdout) as OxlintReport;
   } catch (error) {
-    const failed = error as { stdout?: string };
-    if (typeof failed.stdout === "string" && failed.stdout.length > 0) {
-      return JSON.parse(failed.stdout) as OxlintReport;
+    const failed = error as { stdout?: string; stderr?: string };
+    const stdout = failed.stdout ?? "";
+    if (stdout.trimStart().startsWith("{")) {
+      return JSON.parse(stdout) as OxlintReport;
     }
-    throw error;
+    throw new Error([failed.stderr, stdout, String(error)].filter(Boolean).join("\n"));
   }
 }
 

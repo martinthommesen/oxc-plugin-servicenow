@@ -11,8 +11,15 @@
 - **Authoring:** fluent
 - **Surfaces:** Fluent `.now.ts` metadata only
 - **JavaScript mode:** Not instance-executed
+- **Last verified:** 2026-08-19
 - **Implementation:** [`src/rules/no-now-id-as-reference.ts`](../../src/rules/no-now-id-as-reference.ts)
 - **Fluent manifest:** sdk-docs-2026-03
+
+## Options
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| _(none)_ | | | This rule has no options. |
 
 ## Incorrect
 

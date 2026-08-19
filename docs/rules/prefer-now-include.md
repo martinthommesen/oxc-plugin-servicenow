@@ -11,8 +11,16 @@ Large inline `script` / HTML / CSS payloads belong in their own file and should 
 - **Authoring:** fluent
 - **Surfaces:** Fluent `.now.ts` metadata only
 - **JavaScript mode:** Not instance-executed
+- **Last verified:** 2026-08-19
 - **Implementation:** [`src/rules/prefer-now-include.ts`](../../src/rules/prefer-now-include.ts)
 - **Fluent manifest:** sdk-docs-2026-03
+
+## Options
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `maxLines` | number | `8` | Line count that treats an inline payload as large. |
+| `maxChars` | number | `400` | Character count that treats an inline payload as large. |
 
 ## Incorrect
 

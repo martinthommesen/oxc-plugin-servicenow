@@ -1,6 +1,7 @@
 import type {
   ApplicationScope,
   BusinessRuleSourceFormat,
+  BusinessRuleWhen,
   JavaScriptMode,
   ScriptAuthoring,
   ScriptKind,
@@ -41,6 +42,8 @@ const SCOPES = new Set<ApplicationScope>(["global", "scoped", "unknown"]);
 
 const BR_FORMATS = new Set<BusinessRuleSourceFormat>(["full-script", "body-only", "unknown"]);
 
+const BR_WHEN = new Set<BusinessRuleWhen>(["before", "after", "async", "display", "unknown"]);
+
 const ALLOWED_KEYS = new Set([
   "allowedSysIds",
   "allowedTables",
@@ -53,6 +56,7 @@ const ALLOWED_KEYS = new Set([
   "scopePrefix",
   "release",
   "businessRuleSourceFormat",
+  "businessRuleWhen",
   "fluentSdkVersion",
 ]);
 
@@ -237,6 +241,11 @@ export function validateServiceNowSettings(raw: unknown): ValidatedSettingsResul
       ? "unknown"
       : expectEnum(".businessRuleSourceFormat", raw.businessRuleSourceFormat, BR_FORMATS);
 
+  const businessRuleWhen =
+    raw.businessRuleWhen === undefined
+      ? "unknown"
+      : expectEnum(".businessRuleWhen", raw.businessRuleWhen, BR_WHEN);
+
   let fluentSdkVersion: string | undefined;
   if (raw.fluentSdkVersion !== undefined) {
     if (typeof raw.fluentSdkVersion !== "string" || !SDK_VERSION.test(raw.fluentSdkVersion)) {
@@ -258,6 +267,7 @@ export function validateServiceNowSettings(raw: unknown): ValidatedSettingsResul
       scopePrefix,
       release,
       businessRuleSourceFormat,
+      businessRuleWhen,
       fluentSdkVersion,
     },
     deprecations,
@@ -277,6 +287,7 @@ export function emptyValidatedSettings(): ValidatedServiceNowSettings {
     scopePrefix: undefined,
     release: undefined,
     businessRuleSourceFormat: "unknown",
+    businessRuleWhen: "unknown",
     fluentSdkVersion: undefined,
   };
 }

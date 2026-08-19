@@ -11,7 +11,15 @@ Optional organizational policy. String-literal table names in `GlideRecord` / `G
 - **Authoring:** classic
 - **Surfaces:** Classic instance scripts. Client-only rules skip server-only files. Fluent files are skipped.
 - **JavaScript mode:** Independent of JavaScript mode unless the rule documents a mode gate.
+- **Last verified:** 2026-08-19
 - **Implementation:** [`src/rules/no-hardcoded-table-names.ts`](../../src/rules/no-hardcoded-table-names.ts)
+
+## Options
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `allowedTables` | string[] | `[]` | Additional table names this rule allows. Settings `allowedTables` are also allowed. |
+| `allowBuiltins` | boolean | `false` | Allow the built-in platform table list from `BUILTIN_TABLES`. |
 
 ## Incorrect
 

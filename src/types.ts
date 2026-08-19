@@ -32,6 +32,12 @@ export type ContextConfidence = "explicit" | "filename" | "inferred" | "unknown"
 export type BusinessRuleSourceFormat = "full-script" | "body-only" | "unknown";
 
 /**
+ * Business Rule timing. Unknown unless Fluent metadata or an explicit setting
+ * provides it. Script text alone cannot prove `when`.
+ */
+export type BusinessRuleWhen = "before" | "after" | "async" | "display" | "unknown";
+
+/**
  * How the plugin classified one context dimension.
  * `unknown` means no evidence was found.
  */
@@ -55,6 +61,7 @@ export interface ServiceNowScriptContext {
   confidence: ContextConfidence;
   sources: ContextSourceMap;
   businessRuleSourceFormat: BusinessRuleSourceFormat;
+  businessRuleWhen: BusinessRuleWhen;
   settings: ValidatedServiceNowSettings;
   deprecations: readonly SettingsDeprecation[];
 }
@@ -118,6 +125,11 @@ export interface ServiceNowSettings {
   release?: string;
   /** How Business Rule source is stored when that is known. */
   businessRuleSourceFormat?: BusinessRuleSourceFormat;
+  /**
+   * Business Rule timing. Defaults to `unknown`. Do not infer this from
+   * filename. Fluent `when` literals can supply it later as metadata.
+   */
+  businessRuleWhen?: BusinessRuleWhen;
   /** Fluent SDK version the manifest should evaluate, for example `4.1.0`. */
   fluentSdkVersion?: string;
 }
@@ -138,6 +150,7 @@ export interface ValidatedServiceNowSettings {
   scopePrefix: string | undefined;
   release: string | undefined;
   businessRuleSourceFormat: BusinessRuleSourceFormat;
+  businessRuleWhen: BusinessRuleWhen;
   fluentSdkVersion: string | undefined;
 }
 

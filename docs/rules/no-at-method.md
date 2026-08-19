@@ -11,7 +11,14 @@
 - **Authoring:** classic
 - **Surfaces:** Classic instance scripts. Fluent files are skipped.
 - **JavaScript mode:** Runs when `javascriptMode` is `compatibility` or `es5`. Unknown mode stays silent.
+- **Last verified:** 2026-08-19
 - **Implementation:** [`src/rules/no-at-method.ts`](../../src/rules/no-at-method.ts)
+
+## Options
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| _(none)_ | | | This rule has no options. |
 
 ## Incorrect
 

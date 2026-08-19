@@ -11,7 +11,15 @@ Hardcoded 32-character sys_ids break when an app is installed on another instanc
 - **Authoring:** classic
 - **Surfaces:** Classic instance scripts. Client-only rules skip server-only files. Fluent files are skipped.
 - **JavaScript mode:** Independent of JavaScript mode unless the rule documents a mode gate.
+- **Last verified:** 2026-08-19
 - **Implementation:** [`src/rules/no-hardcoded-sysid.ts`](../../src/rules/no-hardcoded-sysid.ts)
+
+## Options
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| `allowedSysIds` | string[] | `[]` | Additional sys_ids that this rule allows. Settings `allowedSysIds` are also allowed. |
+| `ignoreHashNames` | boolean | `true` | Ignore 32-character hex strings next to names that look like MD5 hashes. |
 
 ## Incorrect
 

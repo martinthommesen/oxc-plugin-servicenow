@@ -11,7 +11,14 @@ Require a proven GlideRecord binding to call `.query()` or `.get()` before `.nex
 - **Authoring:** classic
 - **Surfaces:** Classic instance scripts. Client-only rules skip server-only files. Fluent files are skipped.
 - **JavaScript mode:** Independent of JavaScript mode unless the rule documents a mode gate.
+- **Last verified:** 2026-08-19
 - **Implementation:** [`src/rules/require-query-before-next.ts`](../../src/rules/require-query-before-next.ts)
+
+## Options
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| _(none)_ | | | This rule has no options. |
 
 ## Incorrect
 

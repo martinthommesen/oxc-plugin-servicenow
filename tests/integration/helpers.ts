@@ -23,10 +23,13 @@ export function runOxlint(configPath: string, targets: string[]): OxlintReport {
     return JSON.parse(stdout) as OxlintReport;
   } catch (error) {
     const failed = error as { stdout?: string; stderr?: string; message?: string };
-    if (typeof failed.stdout === "string" && failed.stdout.length > 0) {
-      return JSON.parse(failed.stdout) as OxlintReport;
+    const stdout = failed.stdout ?? "";
+    if (stdout.trimStart().startsWith("{")) {
+      return JSON.parse(stdout) as OxlintReport;
     }
-    throw new Error(failed.stderr || failed.message || "oxlint failed");
+    throw new Error(
+      [failed.stderr, stdout, failed.message].filter(Boolean).join("\n") || "oxlint failed",
+    );
   }
 }
 

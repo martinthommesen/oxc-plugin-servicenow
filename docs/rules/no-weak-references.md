@@ -11,7 +11,14 @@ WeakRef and FinalizationRegistry are disallowed in every instance JavaScript mod
 - **Authoring:** classic
 - **Surfaces:** Classic instance scripts. Fluent files are skipped.
 - **JavaScript mode:** Runs for documented all-mode bans, or when `javascriptMode` is known and the feature is unsupported.
+- **Last verified:** 2026-08-19
 - **Implementation:** [`src/rules/no-weak-references.ts`](../../src/rules/no-weak-references.ts)
+
+## Options
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| _(none)_ | | | This rule has no options. |
 
 ## Incorrect
 

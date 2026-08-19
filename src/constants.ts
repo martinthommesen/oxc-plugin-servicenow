@@ -1,9 +1,25 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import {
+  DEFAULT_FLUENT_MANIFEST,
+  FLUENT_CORE_MODULE as MANIFEST_CORE_MODULE,
+  entitiesRequiringId,
+} from "./fluent/manifest.js";
+
 /** Canonical plugin name used in rule ids (`servicenow/<rule>`). */
 export const PLUGIN_NAME = "servicenow";
 
 export const PACKAGE_NAME = "oxc-plugin-servicenow";
 
-export const PACKAGE_VERSION = "2.0.0";
+function readPackageVersion(): string {
+  const manifest = JSON.parse(readFileSync(fileURLToPath(new URL("../package.json", import.meta.url)), "utf8")) as {
+    version: string;
+  };
+  return manifest.version;
+}
+
+/** Derived from `package.json` at load time so the export cannot drift. */
+export const PACKAGE_VERSION = readPackageVersion();
 
 export const DOCS_BASE_URL =
   "https://github.com/martinthommesen/oxc-plugin-servicenow/blob/main/docs/rules";
@@ -11,12 +27,6 @@ export const DOCS_BASE_URL =
 export function ruleDocsUrl(ruleName: string): string {
   return `${DOCS_BASE_URL}/${ruleName}.md`;
 }
-
-import {
-  DEFAULT_FLUENT_MANIFEST,
-  FLUENT_CORE_MODULE as MANIFEST_CORE_MODULE,
-  entitiesRequiringId,
-} from "./fluent/manifest.js";
 
 /**
  * Fluent entity factories imported from `@servicenow/sdk/core`.

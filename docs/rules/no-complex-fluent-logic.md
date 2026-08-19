@@ -11,8 +11,15 @@ Optional architectural policy. `.now.ts` files should declare metadata. Loops, c
 - **Authoring:** fluent
 - **Surfaces:** Fluent `.now.ts` metadata only
 - **JavaScript mode:** Not instance-executed
+- **Last verified:** 2026-08-19
 - **Implementation:** [`src/rules/no-complex-fluent-logic.ts`](../../src/rules/no-complex-fluent-logic.ts)
 - **Fluent manifest:** sdk-docs-2026-03
+
+## Options
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| _(none)_ | | | This rule has no options. |
 
 ## Incorrect
 

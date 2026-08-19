@@ -42,7 +42,7 @@ describe("validate-gliderecord-calls", () => {
     assertInvalid(
       `var gr = new GlideRecord("incident");\ngr.addActiveQuery();\ngr.next();`,
       "validate-gliderecord-calls",
-      { messageId: "missingQuery" },
+      { messageId: "missingQuery", count: 2 },
     );
   });
 
@@ -50,7 +50,7 @@ describe("validate-gliderecord-calls", () => {
     assertInvalid(
       'var gr = new GlideRecordSecure("incident"); gr.next();',
       "validate-gliderecord-calls",
-      { messageId: "missingQuery" },
+      { messageId: "missingQuery", count: 2 },
     );
   });
 

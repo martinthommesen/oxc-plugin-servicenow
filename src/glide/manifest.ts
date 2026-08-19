@@ -59,6 +59,7 @@ export const GLIDE_RECORD_METHODS: readonly GlideMethodCapability[] = [
   method("orderByDesc", ["shape"]),
   method("setLimit", ["shape"]),
   method("chooseWindow", ["shape"]),
+  method("setNoCount", ["shape"]),
   method("setCategory", ["shape"]),
   method("query", ["executor"]),
   method("get", ["executor"]),

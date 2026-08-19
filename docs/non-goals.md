@@ -8,7 +8,7 @@ Each decision includes a revisit condition. A rejected idea can return only when
 
 | Idea | Why it is rejected | Narrow alternative | Revisit when |
 | --- | --- | --- | --- |
-| Ban every native `Date` | ServiceNow scripts use `Date` for display and interop. A blanket ban is noisy. | Portability research in #38 | A versioned engine table proves `Date` is unsafe in a documented mode. |
+| Ban every native `Date` | ServiceNow scripts use `Date` for display and interop. A blanket ban is noisy. | [Portability research](research/38-portability-datetime.md) | A versioned engine table proves `Date` is unsafe in a documented mode. |
 | Ban every hardcoded table name | Many scripts name platform tables on purpose. | Opt-in `no-hardcoded-table-names` in `policy` | A project schema or allowlist is part of the supported settings model. |
 | Universally ban client `GlideRecord` without context | The current rule already covers proven client surfaces. Expanding it to unknown files creates false positives. | `no-client-gliderecord` | Client detection has a stronger metadata source than filename and strong globals. |
 | Require `GlideAggregate` for every `getRowCount()` | Counting a filtered set can be correct. | `prefer-glideaggregate` at `strict/warn` | Query cardinality is statically known. |
@@ -25,9 +25,9 @@ Each decision includes a revisit condition. A rejected idea can return only when
 | --- | --- | --- | --- |
 | Table, field, or choice validation without schema input | The plugin has no instance schema. | None | A generated schema or typed SDK artifact is a supported input. |
 | Cross-scope legality from namespace strings | Prefixes are not proof of runtime scope. | `settings.servicenow.scope` when explicit | ServiceNow exports machine-readable scope metadata into the repo. |
-| Cross-file `$id` uniqueness | File-local analysis cannot see the project index. | `no-duplicate-fluent-id` in one file; research #39 | A project-wide Fluent index exists. |
-| Taint or redirect security conclusions | AST-only analysis cannot prove sources and sinks. | Research #37 | A conservative taint model is evidence-backed. |
-| Business Rule timing claims without metadata | `when` / `order` live outside the script. | `require-business-rule-wrapper` when format is explicit; research #35 | Business Rule metadata is available to the linter. |
+| Cross-file `$id` uniqueness | File-local analysis cannot see the project index. | `no-duplicate-fluent-id` in one file; [project-wide Fluent research](research/39-project-wide-fluent.md) | A project-wide Fluent index exists. |
+| Taint or redirect security conclusions | AST-only analysis cannot prove sources and sinks. | [Taint research](research/37-taint-security.md) | A conservative taint model is evidence-backed. |
+| Business Rule timing claims without metadata | `when` / `order` live outside the script. | `require-business-rule-wrapper` when format is explicit; [Business Rule metadata research](research/35-business-rule-metadata.md) | `businessRuleWhen` is set or Fluent `when` is a same-file literal. |
 
 ## Incorrect Fluent assumptions
 
@@ -50,3 +50,12 @@ A new rule proposal must state:
 1. Why it is not a documented non-goal.
 2. What ServiceNow or Oxc evidence supports the detection boundary.
 3. Why silence is preferred when provenance, mode, or metadata is unknown.
+
+Read the Phase 5 research notes before you reopen a held idea:
+
+- [Business Rule metadata](research/35-business-rule-metadata.md)
+- [GlideRecord performance](research/36-gliderecord-performance.md)
+- [Taint and redirects](research/37-taint-security.md)
+- [Portability and date/time](research/38-portability-datetime.md)
+- [Project-wide Fluent](research/39-project-wide-fluent.md)
+- [Deprecated APIs](research/40-deprecated-apis.md)

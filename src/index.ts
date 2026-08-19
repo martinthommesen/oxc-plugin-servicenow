@@ -113,6 +113,7 @@ export type {
   ScriptKind,
   ScriptSurface,
   JavaScriptMode,
+  BusinessRuleWhen,
   RuleConfigMap,
 } from "./types.js";
 export type { RuleName } from "./rules/index.js";

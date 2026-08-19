@@ -7,18 +7,32 @@ import { pathToFileURL } from "node:url";
 import { describe, it } from "node:test";
 import { repoRoot } from "./helpers.js";
 
-function packTarball(): string {
-  const stdout = execFileSync("npm", ["pack", "--json"], {
-    encoding: "utf8",
-    cwd: repoRoot,
-  });
+function ensureBuiltDist(): void {
+  try {
+    readFileSync(path.join(repoRoot, "dist/index.js"));
+  } catch {
+    execFileSync("npm", ["run", "build"], { cwd: repoRoot, encoding: "utf8" });
+  }
+}
+
+function packTarball(destination: string): string {
+  ensureBuiltDist();
+  // Ignore prepack so the workspace `dist/` is not deleted while other tests run.
+  const stdout = execFileSync(
+    "npm",
+    ["pack", "--json", "--ignore-scripts", `--pack-destination=${destination}`],
+    {
+      encoding: "utf8",
+      cwd: repoRoot,
+    },
+  );
   const parsed = JSON.parse(stdout) as Array<{ filename: string }>;
   const filename = parsed[0]?.filename;
   assert.ok(
     typeof filename === "string" && filename.startsWith("oxc-plugin-servicenow-"),
     `unexpected pack output: ${stdout}`,
   );
-  return path.join(repoRoot, filename);
+  return path.join(destination, filename);
 }
 
 function listTarball(tarball: string): string[] {
@@ -27,9 +41,10 @@ function listTarball(tarball: string): string[] {
 
 describe("packed package consumer", () => {
   it("packs, installs, imports public exports, and lints with oxlint", async () => {
-    const tarball = packTarball();
+    const staging = mkdtempSync(path.join(tmpdir(), "sn-oxc-pack-"));
+    const tarball = packTarball(staging);
     const files = listTarball(tarball);
-    const consumer = mkdtempSync(path.join(tmpdir(), "sn-oxc-pack-"));
+    const consumer = mkdtempSync(path.join(tmpdir(), "sn-oxc-consumer-"));
     try {
       assert.ok(files.includes("package/package.json"));
       assert.ok(files.includes("package/dist/index.js"));
@@ -46,7 +61,7 @@ describe("packed package consumer", () => {
         path.join(consumer, "package.json"),
         JSON.stringify({ name: "sn-oxc-consumer", private: true, type: "module" }, null, 2),
       );
-      execFileSync("npm", ["install", tarball, "oxlint@1.79.0"], {
+      execFileSync("npm", ["install", tarball, "oxlint@1.79.0", "eslint@10.8.1", "oxfmt@0.16.0"], {
         cwd: consumer,
         encoding: "utf8",
       });
@@ -113,9 +128,48 @@ describe("packed package consumer", () => {
         codes.some((code) => code.includes("no-hardcoded-sysid")),
         `packed oxlint codes: ${codes.join(", ") || "(none)"}`,
       );
+
+      writeFileSync(
+        path.join(consumer, "eslint.config.js"),
+        `import plugin from "oxc-plugin-servicenow";\nexport default [plugin.configs.flat.recommended];\n`,
+      );
+      let eslintStdout = "";
+      try {
+        eslintStdout = execFileSync(
+          path.join(consumer, "node_modules", ".bin", "eslint"),
+          ["--format", "json", "bad.br.js"],
+          { encoding: "utf8", cwd: consumer },
+        );
+      } catch (error) {
+        eslintStdout = (error as { stdout?: string }).stdout ?? "";
+      }
+      const eslintReport = JSON.parse(eslintStdout) as Array<{ messages: Array<{ ruleId: string }> }>;
+      const eslintRules = eslintReport.flatMap((file) => file.messages.map((message) => message.ruleId));
+      assert.ok(
+        eslintRules.includes("servicenow/no-hardcoded-sysid"),
+        `packed eslint rules: ${eslintRules.join(", ") || "(none)"}`,
+      );
+
+      writeFileSync(
+        path.join(consumer, "sample.br.js"),
+        'var rec = new GlideRecord("incident");\nrec.query();\n',
+      );
+      writeFileSync(
+        path.join(consumer, ".oxfmtrc.json"),
+        readFileSync(path.join(installed, "oxfmt.recommended.json"), "utf8"),
+      );
+      execFileSync(path.join(consumer, "node_modules", ".bin", "oxfmt"), ["-c", ".oxfmtrc.json", "sample.br.js"], {
+        encoding: "utf8",
+        cwd: consumer,
+      });
+      execFileSync(
+        path.join(consumer, "node_modules", ".bin", "oxfmt"),
+        ["-c", ".oxfmtrc.json", "--check", "sample.br.js"],
+        { encoding: "utf8", cwd: consumer },
+      );
     } finally {
       rmSync(consumer, { recursive: true, force: true });
-      rmSync(tarball, { force: true });
+      rmSync(staging, { recursive: true, force: true });
     }
   });
 });
