@@ -1,0 +1,51 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "printWidth": 100,
+  "tabWidth": 2,
+  "useTabs": false,
+  "semi": true,
+  "singleQuote": true,
+  "trailingComma": "all",
+  "ignorePatterns": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/.now/**",
+    "**/keys.ts",
+    "**/*.min.js"
+  ],
+  "overrides": [
+    {
+      "files": ["**/*.now.ts", "**/*.now.tsx"],
+      "options": {
+        "printWidth": 100,
+        "singleQuote": true,
+        "trailingComma": "all",
+        "semi": true
+      }
+    },
+    {
+      "files": [
+        "**/*.server.js",
+        "**/*.client.js",
+        "**/*.br.js",
+        "**/*.si.js",
+        "**/src/server/**/*.js",
+        "**/src/client/**/*.js"
+      ],
+      "options": {
+        "printWidth": 120,
+        "singleQuote": false,
+        "trailingComma": "none",
+        "semi": true
+      }
+    },
+    {
+      "files": ["**/now.config.json", "**/.oxlintrc.json", "**/.oxfmtrc.json"],
+      "options": {
+        "printWidth": 80,
+        "trailingComma": "none"
+      }
+    }
+  ]
+}

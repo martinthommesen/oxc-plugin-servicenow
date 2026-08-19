@@ -1,0 +1,86 @@
+{
+  "name": "oxc-plugin-servicenow",
+  "version": "1.0.0",
+  "description": "First-class Oxlint + oxfmt tooling for ServiceNow Fluent (.now.ts) and classic ServiceNow JavaScript.",
+  "keywords": [
+    "oxlint",
+    "oxfmt",
+    "oxc",
+    "servicenow",
+    "fluent",
+    "now.ts",
+    "eslint-plugin",
+    "gliderecord",
+    "lint",
+    "formatter"
+  ],
+  "license": "MIT",
+  "author": "Martin Lammetun Thommesen",
+  "homepage": "https://github.com/martinthommesen/oxc-plugin-servicenow#readme",
+  "bugs": {
+    "url": "https://github.com/martinthommesen/oxc-plugin-servicenow/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/martinthommesen/oxc-plugin-servicenow.git"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18.18.0"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./oxfmt": {
+      "types": "./dist/oxfmt/index.d.ts",
+      "import": "./dist/oxfmt/index.js"
+    },
+    "./oxfmt.recommended.json": "./oxfmt.recommended.json",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "oxfmt.recommended.json",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build && npm test",
+    "test": "tsx --test tests/*.test.ts tests/rules/*.test.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@oxlint/plugins": "^1.79.0"
+  },
+  "peerDependencies": {
+    "eslint": ">=9.0.0",
+    "oxfmt": ">=0.16.0",
+    "oxlint": ">=1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "eslint": {
+      "optional": true
+    },
+    "oxfmt": {
+      "optional": true
+    },
+    "oxlint": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^22.16.5",
+    "oxc-parser": "^0.145.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.8.0"
+  }
+}
