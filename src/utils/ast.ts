@@ -107,6 +107,12 @@ export function isNewNamed(node: unknown, name: string): node is ESTree.NewExpre
   return getName((node as unknown as ESTree.NewExpression).callee) === name;
 }
 
+export function propertyKeyName(property: ESTree.ObjectProperty): string | null {
+  return property.computed
+    ? getStringValue(property.key)
+    : (getName(property.key) ?? getStringValue(property.key));
+}
+
 export function objectProperty(
   object: unknown,
   key: string,
@@ -116,7 +122,7 @@ export function objectProperty(
   for (const prop of expr.properties) {
     if (!prop || (prop as { type?: string }).type !== "Property") continue;
     const property = prop as unknown as ESTree.ObjectProperty;
-    const name = property.computed ? getStringValue(property.key) : getName(property.key);
+    const name = propertyKeyName(property);
     if (name === key) return property;
   }
   return null;
