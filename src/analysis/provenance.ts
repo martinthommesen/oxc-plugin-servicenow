@@ -1,9 +1,18 @@
 import type { Context, ESTree } from "@oxlint/plugins";
-import { getName, isNode, walk } from "../utils/ast.js";
+import { getName, getStringValue, isNode, walk } from "../utils/ast.js";
 import { createFileBindings, type FileBindings } from "./bindings.js";
 import { staticPropertyName } from "./members.js";
 
-export type ProvenanceKind = "GlideRecord" | "GlideAggregate" | "GlideAjax" | "GlideDateTime";
+export type ProvenanceKind =
+  | "GlideRecord"
+  | "GlideAggregate"
+  | "GlideAjax"
+  | "GlideDateTime"
+  | "g_form"
+  | "gs"
+  | "current";
+
+const PLATFORM_ALIAS_KINDS = new Set<ProvenanceKind>(["g_form", "gs", "current"]);
 
 export type QueryState = "unopened" | "opened" | "unknown";
 
@@ -14,6 +23,12 @@ export interface Provenance {
   /** Passed to a helper, stored, or closed over by a nested function. */
   escaped: boolean;
   queryState: QueryState;
+  /** `setLimit` / `chooseWindow` was seen on this object. */
+  windowed: boolean;
+  /** `addParam("sysparm_name", ...)` was seen on this GlideAjax object. */
+  sysparmName: boolean;
+  /** Statically registered `addAggregate(type, field?)` tuples. */
+  aggregates: Set<string>;
 }
 
 const CTOR_TO_KIND: Record<string, ProvenanceKind> = {
@@ -43,11 +58,19 @@ interface FunctionFrame {
 }
 
 function emptyProvenance(kind: ProvenanceKind): Provenance {
-  return { kind, invalid: false, escaped: false, queryState: "unopened" };
+  return {
+    kind,
+    invalid: false,
+    escaped: false,
+    queryState: "unopened",
+    windowed: false,
+    sysparmName: false,
+    aggregates: new Set(),
+  };
 }
 
 function cloneProvenance(value: Provenance): Provenance {
-  return { ...value };
+  return { ...value, aggregates: new Set(value.aggregates) };
 }
 
 export interface ProvenanceQuery {
@@ -86,14 +109,24 @@ export function analyzeProvenance(context: Context, ast?: ESTree.Node): Provenan
     current().bindings.set(name, { name, functionId: current().id, provenance });
   };
 
+  const platformAlias = (node: ESTree.Node): Provenance | null => {
+    const name = getName(node);
+    if (!name || !PLATFORM_ALIAS_KINDS.has(name as ProvenanceKind)) return null;
+    if (!bindings.isPlatformGlobal(node)) return null;
+    return emptyProvenance(name as ProvenanceKind);
+  };
+
   const expressionProvenance = (node: unknown): Provenance | null => {
     if (!isNode(node)) return null;
     if (node.type === "Identifier") {
       const name = getName(node);
       if (!name) return null;
       const state = getBinding(name);
-      if (!state || state.provenance.invalid || state.provenance.escaped) return null;
-      return state.provenance;
+      if (state) {
+        if (state.provenance.invalid || state.provenance.escaped) return null;
+        return state.provenance;
+      }
+      return platformAlias(node);
     }
     if (node.type === "NewExpression") {
       const ctor = getName((node as ESTree.NewExpression).callee);
@@ -118,7 +151,8 @@ export function analyzeProvenance(context: Context, ast?: ESTree.Node): Provenan
   const assignName = (name: string, right: unknown): void => {
     const proven = expressionProvenance(right);
     if (proven) {
-      setBinding(name, cloneProvenance(proven));
+      const shared = isNode(right) && right.type === "Identifier" ? proven : cloneProvenance(proven);
+      setBinding(name, shared);
       return;
     }
     const existing = getBinding(name);
@@ -152,8 +186,7 @@ export function analyzeProvenance(context: Context, ast?: ESTree.Node): Provenan
       const decl = node as ESTree.VariableDeclarator;
       const name = getName(decl.id);
       if (!name || !decl.init) return;
-      const proven = expressionProvenance(decl.init);
-      if (proven) setBinding(name, cloneProvenance(proven));
+      assignName(name, decl.init);
     },
     AssignmentExpression(node) {
       const assign = node as ESTree.AssignmentExpression;
@@ -173,6 +206,18 @@ export function analyzeProvenance(context: Context, ast?: ESTree.Node): Provenan
         if (state && !state.provenance.invalid) {
           if (QUERY_OPENERS.has(property)) {
             if (state.provenance.queryState === "unopened") state.provenance.queryState = "opened";
+          }
+          if (property === "setLimit" || property === "chooseWindow") {
+            state.provenance.windowed = true;
+          }
+          if (property === "addParam") {
+            const key = getStringValue(call.arguments[0]);
+            if (key === "sysparm_name") state.provenance.sysparmName = true;
+          }
+          if (property === "addAggregate") {
+            const type = getStringValue(call.arguments[0]);
+            const field = call.arguments[1] ? getStringValue(call.arguments[1]) : "";
+            if (type) state.provenance.aggregates.add(field ? `${type}:${field}` : type);
           }
           provenanceAtNode.set(node, cloneProvenance(state.provenance));
         }
@@ -208,7 +253,13 @@ export function analyzeProvenance(context: Context, ast?: ESTree.Node): Provenan
       const name = getName(node);
       if (!name) return;
       const state = getBinding(name);
-      if (state) identifierAtNode.set(node, cloneProvenance(state.provenance));
+      if (state) {
+        identifierAtNode.set(node, state.provenance);
+        return;
+      }
+      if (PLATFORM_ALIAS_KINDS.has(name as ProvenanceKind) && bindings.isPlatformGlobal(node)) {
+        identifierAtNode.set(node, emptyProvenance(name as ProvenanceKind));
+      }
     },
   });
 
@@ -256,12 +307,18 @@ function makeQuery(
     isPlatformMember(node, object, property) {
       if (!isNode(node) || node.type !== "MemberExpression") return false;
       const member = node as unknown as ESTree.MemberExpression;
-      const objectName = getName(member.object);
-      if (objectName !== object) return false;
-      if (!bindings.isPlatformGlobal(member.object as ESTree.Node)) return false;
+      const objectNode = member.object as ESTree.Node;
+      const direct =
+        getName(objectNode) === object && bindings.isPlatformGlobal(objectNode);
+      const proven = provenanceAtNode.get(objectNode) ?? identifierAtNode.get(objectNode);
+      const aliased =
+        proven !== undefined &&
+        proven.kind === object &&
+        !proven.invalid &&
+        !proven.escaped;
+      if (!direct && !aliased) return false;
       if (property === undefined) return true;
-      const prop = staticPropertyName(member);
-      return prop === property;
+      return staticPropertyName(member) === property;
     },
   };
 }

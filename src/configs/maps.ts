@@ -18,6 +18,13 @@ export const recommendedRules: RuleConfigMap = {
   [id("no-client-gliderecord")]: "error",
   [id("no-br-current-update")]: "error",
   [id("no-sync-glideajax")]: "error",
+  [id("no-delete-multiple-with-windowing")]: "error",
+  [id("require-callback-for-getreference")]: "error",
+  [id("require-glideajax-sysparm-name")]: "error",
+  [id("validate-glideaggregate-calls")]: "error",
+  [id("no-now-id-as-reference")]: "error",
+  [id("no-glideajax-getanswer")]: "error",
+  [id("no-duplicate-fluent-id")]: "error",
   [id("no-async-iterators")]: "error",
   [id("no-weak-references")]: "error",
   [id("fluent-proper-imports")]: "error",
@@ -50,17 +57,24 @@ export const clientRules: RuleConfigMap = {
   [id("no-client-gliderecord")]: "error",
   [id("no-sync-glideajax")]: "error",
   [id("no-gs-now")]: "error",
+  [id("require-callback-for-getreference")]: "error",
+  [id("require-glideajax-sysparm-name")]: "error",
+  [id("no-glideajax-getanswer")]: "error",
 };
 
 export const businessRuleRules: RuleConfigMap = {
   [id("no-br-current-update")]: "error",
   [id("require-query-before-next")]: "error",
+  [id("no-delete-multiple-with-windowing")]: "error",
+  [id("validate-glideaggregate-calls")]: "error",
 };
 
 export const fluentRules: RuleConfigMap = {
   [id("fluent-proper-imports")]: "error",
   [id("fluent-directives")]: "warn",
   [id("require-fluent-id")]: "error",
+  [id("no-now-id-as-reference")]: "error",
+  [id("no-duplicate-fluent-id")]: "error",
 };
 
 /**

@@ -25,7 +25,16 @@ export function parse(code: string, filename = "test.js") {
 }
 
 export function lint(code: string, rule: RuleName, options: RunOptions = {}): LintMessage[] {
-  const filename = options.filename ?? (rule.startsWith("fluent") || rule.startsWith("prefer-now") || rule.startsWith("require-fluent") || rule.startsWith("no-complex") ? "file.now.ts" : "test.js");
+  const filename =
+    options.filename ??
+    (rule.startsWith("fluent") ||
+    rule.startsWith("prefer-now") ||
+    rule.startsWith("require-fluent") ||
+    rule.startsWith("no-complex") ||
+    rule === "no-now-id-as-reference" ||
+    rule === "no-duplicate-fluent-id"
+      ? "file.now.ts"
+      : "test.js");
   const parsed = parse(code, filename);
   return applyRules(code, parsed, { ...options, filename, ruleNames: [rule] });
 }

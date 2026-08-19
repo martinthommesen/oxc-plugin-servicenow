@@ -11,6 +11,13 @@ describe("configs", () => {
     assert.equal(recommendedRules["servicenow/require-query-before-next"], "error");
     assert.equal(recommendedRules["servicenow/no-unsupported-syntax"], undefined);
     assert.equal(recommendedRules["servicenow/no-sync-glideajax"], "error");
+    assert.equal(recommendedRules["servicenow/no-delete-multiple-with-windowing"], "error");
+    assert.equal(recommendedRules["servicenow/require-callback-for-getreference"], "error");
+    assert.equal(recommendedRules["servicenow/require-glideajax-sysparm-name"], "error");
+    assert.equal(recommendedRules["servicenow/validate-glideaggregate-calls"], "error");
+    assert.equal(recommendedRules["servicenow/no-now-id-as-reference"], "error");
+    assert.equal(recommendedRules["servicenow/no-glideajax-getanswer"], "error");
+    assert.equal(recommendedRules["servicenow/no-duplicate-fluent-id"], "error");
     assert.equal(recommendedRules["servicenow/no-hardcoded-table-names"], undefined);
     assert.equal(recommendedRules["servicenow/validate-gliderecord-calls"], undefined);
   });

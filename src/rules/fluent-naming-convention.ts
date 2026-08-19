@@ -71,6 +71,8 @@ export const fluentNamingConvention = defineRule({
         fileStyle = options.fileStyle ?? "kebab-case";
         scopePrefix = script.settings.scopePrefix;
 
+      },
+      Program() {
         const file = basename(context.filename);
         const stem = file.replace(/\.now\.tsx?$/i, "");
         if (stem !== "*" && !matches(fileStyle, stem)) {

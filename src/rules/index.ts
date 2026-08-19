@@ -9,7 +9,11 @@ import { noBigint } from "./no-bigint.js";
 import { noBrCurrentUpdate } from "./no-br-current-update.js";
 import { noClientGliderecord } from "./no-client-gliderecord.js";
 import { noComplexFluentLogic } from "./no-complex-fluent-logic.js";
+import { noDeleteMultipleWithWindowing } from "./no-delete-multiple-with-windowing.js";
+import { noDuplicateFluentId } from "./no-duplicate-fluent-id.js";
+import { noGlideajaxGetanswer } from "./no-glideajax-getanswer.js";
 import { noGsNow } from "./no-gs-now.js";
+import { noNowIdAsReference } from "./no-now-id-as-reference.js";
 import { noHardcodedSysid } from "./no-hardcoded-sysid.js";
 import { noHardcodedTableNames } from "./no-hardcoded-table-names.js";
 import { noPackagesCalls } from "./no-packages-calls.js";
@@ -22,8 +26,11 @@ import { noWeakCollections } from "./no-weak-collections.js";
 import { noWeakReferences } from "./no-weak-references.js";
 import { preferGlideaggregate } from "./prefer-glideaggregate.js";
 import { preferNowInclude } from "./prefer-now-include.js";
+import { requireCallbackForGetreference } from "./require-callback-for-getreference.js";
 import { requireFluentId } from "./require-fluent-id.js";
+import { requireGlideajaxSysparmName } from "./require-glideajax-sysparm-name.js";
 import { requireQueryBeforeNext } from "./require-query-before-next.js";
+import { validateGlideaggregateCalls } from "./validate-glideaggregate-calls.js";
 import { validateGliderecordCalls } from "./validate-gliderecord-calls.js";
 
 export const rules = {
@@ -53,6 +60,13 @@ export const rules = {
   "no-proxy": noProxy,
   "no-unsupported-syntax": noUnsupportedSyntax,
   "no-sync-glideajax": noSyncGlideajax,
+  "no-delete-multiple-with-windowing": noDeleteMultipleWithWindowing,
+  "require-callback-for-getreference": requireCallbackForGetreference,
+  "require-glideajax-sysparm-name": requireGlideajaxSysparmName,
+  "validate-glideaggregate-calls": validateGlideaggregateCalls,
+  "no-now-id-as-reference": noNowIdAsReference,
+  "no-glideajax-getanswer": noGlideajaxGetanswer,
+  "no-duplicate-fluent-id": noDuplicateFluentId,
 } satisfies Record<string, Rule>;
 
 export type RuleName = keyof typeof rules;

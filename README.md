@@ -49,6 +49,13 @@ Existing ESLint plugins (`eslint-plugin-servicenow`, `eslint-plugin-sn`) cover p
     "servicenow/no-client-gliderecord": "error",
     "servicenow/no-br-current-update": "error",
     "servicenow/no-sync-glideajax": "error",
+    "servicenow/no-delete-multiple-with-windowing": "error",
+    "servicenow/require-callback-for-getreference": "error",
+    "servicenow/require-glideajax-sysparm-name": "error",
+    "servicenow/validate-glideaggregate-calls": "error",
+    "servicenow/no-now-id-as-reference": "error",
+    "servicenow/no-glideajax-getanswer": "error",
+    "servicenow/no-duplicate-fluent-id": "error",
     "servicenow/no-async-iterators": "error",
     "servicenow/no-weak-references": "error",
     "servicenow/fluent-proper-imports": "error",
@@ -270,6 +277,11 @@ Per-file `// @sn-es-latest` still maps to `es2021` with inferred confidence. Pre
 | [`no-hardcoded-table-names`](docs/rules/no-hardcoded-table-names.md) | policy | | string-literal table names |
 | [`no-packages-calls`](docs/rules/no-packages-calls.md) | recommended | | `Packages.*` Java bridge |
 | [`no-sync-glideajax`](docs/rules/no-sync-glideajax.md) | recommended | | `GlideAjax.getXMLWait()` |
+| [`no-delete-multiple-with-windowing`](docs/rules/no-delete-multiple-with-windowing.md) | recommended | | `setLimit` / `chooseWindow` then `deleteMultiple()` |
+| [`require-callback-for-getreference`](docs/rules/require-callback-for-getreference.md) | recommended | | `g_form.getReference()` without a callback |
+| [`require-glideajax-sysparm-name`](docs/rules/require-glideajax-sysparm-name.md) | recommended | | GlideAjax request without `sysparm_name` |
+| [`validate-glideaggregate-calls`](docs/rules/validate-glideaggregate-calls.md) | recommended | | GlideAggregate `next` / `getAggregate` before `query`, or unknown tuple |
+| [`no-glideajax-getanswer`](docs/rules/no-glideajax-getanswer.md) | recommended | | `GlideAjax.getAnswer()` |
 
 ### Instance engine (mode-specific)
 
@@ -298,6 +310,8 @@ These rules run only when `javascriptMode` is known, except features that Servic
 | [`require-fluent-id`](docs/rules/require-fluent-id.md) | recommended | | missing `$id` where the manifest requires it |
 | [`fluent-naming-convention`](docs/rules/fluent-naming-convention.md) | strict | | file / `Now.ID` / table export names |
 | [`no-complex-fluent-logic`](docs/rules/no-complex-fluent-logic.md) | policy | | loops, classes, try/catch in metadata |
+| [`no-now-id-as-reference`](docs/rules/no-now-id-as-reference.md) | recommended | | `Now.ID` used as a reference instead of `$id` |
+| [`no-duplicate-fluent-id`](docs/rules/no-duplicate-fluent-id.md) | recommended | | duplicate static `Now.ID` keys used as `$id` |
 
 ---
 

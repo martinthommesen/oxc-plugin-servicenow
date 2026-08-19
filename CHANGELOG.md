@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### oxlint
+
+- New recommended rules: `no-delete-multiple-with-windowing`, `require-callback-for-getreference`, `require-glideajax-sysparm-name`, `validate-glideaggregate-calls`, `no-now-id-as-reference`, `no-glideajax-getanswer`, `no-duplicate-fluent-id`.
+
 ### Breaking — 2.0.0 foundation
 
 - Unknown JavaScript mode no longer assumes ES5. Mode-specific engine rules skip until `javascriptMode` is `compatibility`, `es5`, or `es2021`.

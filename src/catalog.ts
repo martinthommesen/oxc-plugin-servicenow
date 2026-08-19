@@ -547,6 +547,174 @@ export const ruleCatalog: RuleCatalogEntry[] = [
       },
     ],
   }),
+  entry("no-delete-multiple-with-windowing", {
+    title: "No deleteMultiple with windowing",
+    family: "classic",
+    preset: "recommended",
+    severity: "error",
+    fixable: false,
+    hasSuggestions: false,
+    description:
+      "`setLimit()` and `chooseWindow()` do not limit `deleteMultiple()`. The call deletes every row that matches the query. Evidence: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html",
+    bad: [
+      {
+        name: "setLimit then deleteMultiple",
+        filename: "incident.br.js",
+        code: `var stale = new GlideRecord("x_acme_staging");\nstale.addQuery("state", "expired");\nstale.setLimit(100);\nstale.deleteMultiple();`,
+      },
+    ],
+    good: [
+      {
+        name: "intentional bulk delete",
+        filename: "incident.br.js",
+        code: `var stale = new GlideRecord("x_acme_staging");\nstale.addQuery("state", "expired");\nstale.deleteMultiple();`,
+      },
+    ],
+  }),
+  entry("require-callback-for-getreference", {
+    title: "Require callback for getReference",
+    family: "classic",
+    preset: "recommended",
+    severity: "error",
+    fixable: false,
+    hasSuggestions: false,
+    description:
+      "`g_form.getReference(field)` without a callback is a synchronous server request. Pass a callback. Evidence: https://www.servicenow.com/docs/r/api-reference/c_GlideFormAPI.html",
+    bad: [
+      {
+        name: "sync getReference",
+        filename: "incident.client.js",
+        code: `function onChange() {\n  var caller = g_form.getReference("caller_id");\n  g_form.setValue("u_manager", caller.manager);\n}`,
+      },
+    ],
+    good: [
+      {
+        name: "async getReference",
+        filename: "incident.client.js",
+        code: `function onChange() {\n  g_form.getReference("caller_id", function (caller) {\n    g_form.setValue("u_manager", caller.manager);\n  });\n}`,
+      },
+    ],
+  }),
+  entry("require-glideajax-sysparm-name", {
+    title: "Require GlideAjax sysparm_name",
+    family: "classic",
+    preset: "recommended",
+    severity: "error",
+    fixable: false,
+    hasSuggestions: false,
+    description:
+      "GlideAjax requires `addParam(\"sysparm_name\", method)` before `getXML` / `getXMLAnswer` / `getXMLWait`. Extra static keys must start with `sysparm_`. Evidence: https://www.servicenow.com/docs/r/api-reference/scripts/p_AJAX.html",
+    bad: [
+      {
+        name: "missing sysparm_name",
+        filename: "incident.client.js",
+        code: `var ajax = new GlideAjax("x_acme.UserLookup");\najax.addParam("sysparm_user_id", g_form.getValue("caller_id"));\najax.getXMLAnswer(handleAnswer);`,
+      },
+    ],
+    good: [
+      {
+        name: "named method",
+        filename: "incident.client.js",
+        code: `var ajax = new GlideAjax("x_acme.UserLookup");\najax.addParam("sysparm_name", "getManager");\najax.addParam("sysparm_user_id", g_form.getValue("caller_id"));\najax.getXMLAnswer(handleAnswer);`,
+      },
+    ],
+  }),
+  entry("validate-glideaggregate-calls", {
+    title: "Validate GlideAggregate calls",
+    family: "classic",
+    preset: "recommended",
+    severity: "error",
+    fixable: false,
+    hasSuggestions: false,
+    description:
+      "A proven GlideAggregate must call `query()` before `next()` or `getAggregate()`. Static `getAggregate(type, field?)` must match a registered `addAggregate` tuple.",
+    bad: [
+      {
+        name: "next before query",
+        filename: "incident.br.js",
+        code: `var count = new GlideAggregate("incident");\ncount.addAggregate("COUNT");\nif (count.next()) {\n  gs.info(count.getAggregate("COUNT"));\n}`,
+      },
+    ],
+    good: [
+      {
+        name: "query then next",
+        filename: "incident.br.js",
+        code: `var count = new GlideAggregate("incident");\ncount.addAggregate("COUNT");\ncount.query();\nif (count.next()) {\n  gs.info(count.getAggregate("COUNT"));\n}`,
+      },
+    ],
+  }),
+  entry("no-now-id-as-reference", {
+    title: "No Now.ID as a reference",
+    family: "fluent",
+    preset: "recommended",
+    severity: "error",
+    fixable: false,
+    hasSuggestions: false,
+    description:
+      "`Now.ID[...]` is a metadata identity, not a reference. Use the factory object in-app or `Now.ref()` for external records. Evidence: https://www.servicenow.com/docs/r/application-development/servicenow-sdk/fluent-constructs.html",
+    bad: [
+      {
+        name: "Now.ID in another property",
+        filename: "catalog.now.ts",
+        code: `import { CatalogItem, VariableSet } from "@servicenow/sdk/core";\n\nconst userInformation = VariableSet({\n  $id: Now.ID["user-information"],\n  title: "User information",\n});\n\nCatalogItem({\n  $id: Now.ID["software-request"],\n  variableSets: [{ variableSet: Now.ID["user-information"], order: 100 }],\n});`,
+      },
+    ],
+    good: [
+      {
+        name: "factory object reference",
+        filename: "catalog.now.ts",
+        code: `import { CatalogItem, VariableSet } from "@servicenow/sdk/core";\n\nconst userInformation = VariableSet({\n  $id: Now.ID["user-information"],\n  title: "User information",\n});\n\nCatalogItem({\n  $id: Now.ID["software-request"],\n  flow: Now.ref("sys_hub_flow", "existing-flow-id"),\n  variableSets: [{ variableSet: userInformation, order: 100 }],\n});`,
+      },
+    ],
+  }),
+  entry("no-glideajax-getanswer", {
+    title: "No GlideAjax getAnswer",
+    family: "classic",
+    preset: "recommended",
+    severity: "error",
+    fixable: false,
+    hasSuggestions: false,
+    description:
+      "`getAnswer()` belongs to synchronous GlideAjax. Use `getXMLAnswer(callback)` instead. Evidence: https://www.servicenow.com/docs/r/api-reference/c_GlideAjaxAPI.html",
+    bad: [
+      {
+        name: "getAnswer after getXML",
+        filename: "incident.client.js",
+        code: `var ajax = new GlideAjax("x_acme.UserLookup");\najax.addParam("sysparm_name", "getManager");\najax.getXML(handleResponse);\nvar answer = ajax.getAnswer();`,
+      },
+    ],
+    good: [
+      {
+        name: "getXMLAnswer callback",
+        filename: "incident.client.js",
+        code: `var ajax = new GlideAjax("x_acme.UserLookup");\najax.addParam("sysparm_name", "getManager");\najax.getXMLAnswer(function (answer) {\n  g_form.setValue("u_manager", answer);\n});`,
+      },
+    ],
+  }),
+  entry("no-duplicate-fluent-id", {
+    title: "No duplicate Fluent $id",
+    family: "fluent",
+    preset: "recommended",
+    severity: "error",
+    fixable: false,
+    hasSuggestions: false,
+    description:
+      "Two Fluent definitions that share the same static `Now.ID` key as `$id` collide. Cross-file uniqueness is out of scope.",
+    bad: [
+      {
+        name: "duplicate top-level ids",
+        filename: "rules.now.ts",
+        code: `import { BusinessRule } from "@servicenow/sdk/core";\n\nBusinessRule({\n  $id: Now.ID["update-assignment"],\n  name: "Update assignment",\n  table: "incident",\n  when: "before",\n});\n\nBusinessRule({\n  $id: Now.ID["update-assignment"],\n  name: "Notify assignment",\n  table: "incident",\n  when: "after",\n});`,
+      },
+    ],
+    good: [
+      {
+        name: "unique ids",
+        filename: "rules.now.ts",
+        code: `import { BusinessRule } from "@servicenow/sdk/core";\n\nBusinessRule({\n  $id: Now.ID["update-assignment"],\n  name: "Update assignment",\n  table: "incident",\n  when: "before",\n});\n\nBusinessRule({\n  $id: Now.ID["notify-assignment"],\n  name: "Notify assignment",\n  table: "incident",\n  when: "after",\n});`,
+      },
+    ],
+  }),
   entry("no-sync-glideajax", {
     title: "No synchronous GlideAjax",
     family: "classic",

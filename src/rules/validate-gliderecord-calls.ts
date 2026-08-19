@@ -36,11 +36,12 @@ export const validateGliderecordCalls = defineRule({
   createOnce(context) {
     return {
       before() {
-        const { context: script, analysis } = beginRuleFile(context);
+        const { context: script } = beginRuleFile(context);
         if (isFluentContext(script)) return false;
-        const ast = context.sourceCode.ast as ESTree.Node | undefined;
-        if (!ast) return false;
-        for (const finding of findMissingQueryBeforeNext(ast, analysis)) {
+      },
+      Program(node) {
+        const { analysis } = beginRuleFile(context);
+        for (const finding of findMissingQueryBeforeNext(node as ESTree.Node, analysis)) {
           context.report({
             node: finding.node,
             messageId: "missingQuery",

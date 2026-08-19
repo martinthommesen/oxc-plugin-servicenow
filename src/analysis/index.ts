@@ -5,3 +5,11 @@ export type { Provenance, ProvenanceKind, ProvenanceQuery, QueryState } from "./
 export { staticPropertyName, staticCalleeProperty, isComputedUnknown } from "./members.js";
 export { findMissingQueryBeforeNext } from "./query-before-next.js";
 export type { MissingQueryFinding } from "./query-before-next.js";
+export { findWindowedDeleteMultiple } from "./glide-windowing.js";
+export type { WindowedDeleteFinding } from "./glide-windowing.js";
+export { findGlideAjaxParamIssues } from "./glideajax-params.js";
+export type { GlideAjaxParamFinding } from "./glideajax-params.js";
+export { findGlideAggregateIssues } from "./glideaggregate.js";
+export type { AggregateFinding } from "./glideaggregate.js";
+export { findNowIdMisuses, findDuplicateFluentIds } from "./now-id.js";
+export type { NowIdMisuse, DuplicateFluentId } from "./now-id.js";

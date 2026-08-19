@@ -232,6 +232,38 @@ export function appliesOnSurface(
   return SURFACE_MIN[ctx.sources.surfaces] >= SURFACE_MIN[minimum];
 }
 
+const SERVER_ONLY_SURFACES: readonly ScriptSurface[] = [
+  "business-rule",
+  "script-include",
+  "server",
+  "scheduled-script",
+  "fix-script",
+];
+
+/**
+ * Client-capable files: an inferred or stronger client surface, or no
+ * surface at all. Fluent and server-only files are excluded.
+ */
+export function isClientCapableContext(ctx: ServiceNowScriptContext): boolean {
+  if (isFluentContext(ctx)) return false;
+  if (appliesOnSurface(ctx, "client")) return true;
+  if (ctx.surfaces.size === 0) return true;
+  if (SERVER_ONLY_SURFACES.some((surface) => ctx.surfaces.has(surface)) && !ctx.surfaces.has("client")) {
+    return false;
+  }
+  return false;
+}
+
+/**
+ * Server-side instance scripts. Fluent and explicit client files are excluded.
+ * Unknown surface is treated as server-capable.
+ */
+export function isServerInstanceContext(ctx: ServiceNowScriptContext): boolean {
+  if (isFluentContext(ctx)) return false;
+  if (appliesOnSurface(ctx, "client")) return false;
+  return true;
+}
+
 let memoFilename: string | undefined;
 let memoText: string | undefined;
 let memoSettings: ValidatedServiceNowSettings | undefined;

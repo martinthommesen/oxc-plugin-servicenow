@@ -81,6 +81,83 @@ describe("profile fixtures", () => {
     assert.ok(rules.includes("servicenow/no-client-gliderecord"));
   });
 
+  it("recommended flags Phase 2 server and client rules", () => {
+    const windowed = pluginRulesFor(
+      runOxlint(recommendedConfig, [path.join(invalidDir, "windowed-delete.br.js")]),
+    );
+    const getRef = pluginRulesFor(
+      runOxlint(recommendedConfig, [path.join(invalidDir, "sync-getreference.client.js")]),
+    );
+    const sysparm = pluginRulesFor(
+      runOxlint(recommendedConfig, [path.join(invalidDir, "glideajax-sysparm.client.js")]),
+    );
+    const aggregate = pluginRulesFor(
+      runOxlint(recommendedConfig, [path.join(invalidDir, "glideaggregate.br.js")]),
+    );
+    const getAnswer = pluginRulesFor(
+      runOxlint(recommendedConfig, [path.join(invalidDir, "glideajax-getanswer.client.js")]),
+    );
+    assert.ok(
+      windowed.includes("servicenow/no-delete-multiple-with-windowing"),
+      `windowed-delete: ${windowed.join(", ") || "(none)"}`,
+    );
+    assert.ok(
+      getRef.includes("servicenow/require-callback-for-getreference"),
+      `sync-getreference: ${getRef.join(", ") || "(none)"}`,
+    );
+    assert.ok(
+      sysparm.includes("servicenow/require-glideajax-sysparm-name"),
+      `glideajax-sysparm: ${sysparm.join(", ") || "(none)"}`,
+    );
+    assert.ok(
+      aggregate.includes("servicenow/validate-glideaggregate-calls"),
+      `glideaggregate: ${aggregate.join(", ") || "(none)"}`,
+    );
+    assert.ok(
+      getAnswer.includes("servicenow/no-glideajax-getanswer"),
+      `glideajax-getanswer: ${getAnswer.join(", ") || "(none)"}`,
+    );
+    const missingQuery = pluginRulesFor(
+      runOxlint(recommendedConfig, [path.join(invalidDir, "missing-query.br.js")]),
+    );
+    assert.ok(
+      missingQuery.includes("servicenow/require-query-before-next"),
+      `missing-query: ${missingQuery.join(", ") || "(none)"}`,
+    );
+  });
+
+  it("recommended ESLint flags Phase 2 rules", () => {
+    const cases: Array<[string, string]> = [
+      ["windowed-delete.br.js", "servicenow/no-delete-multiple-with-windowing"],
+      ["sync-getreference.client.js", "servicenow/require-callback-for-getreference"],
+      ["glideajax-sysparm.client.js", "servicenow/require-glideajax-sysparm-name"],
+      ["glideaggregate.br.js", "servicenow/validate-glideaggregate-calls"],
+      ["glideajax-getanswer.client.js", "servicenow/no-glideajax-getanswer"],
+      ["now-id-ref.now.ts", "servicenow/no-now-id-as-reference"],
+      ["duplicate-id.now.ts", "servicenow/no-duplicate-fluent-id"],
+      ["missing-query.br.js", "servicenow/require-query-before-next"],
+    ];
+    for (const [file, ruleId] of cases) {
+      const code = readFileSync(path.join(invalidDir, file), "utf8");
+      const ids = eslintRecommended(code, file)
+        .map((message) => message.ruleId)
+        .filter((id): id is string => Boolean(id));
+      assert.ok(ids.includes(ruleId), `${file}: missing ${ruleId} (got ${ids.join(", ") || "(none)"})`);
+    }
+  });
+
+  it("recommended flags Phase 2 Fluent identity rules", () => {
+    const nowId = pluginRulesFor(runOxlint(recommendedConfig, [path.join(invalidDir, "now-id-ref.now.ts")]));
+    const duplicate = pluginRulesFor(
+      runOxlint(recommendedConfig, [path.join(invalidDir, "duplicate-id.now.ts")]),
+    );
+    assert.ok(nowId.includes("servicenow/no-now-id-as-reference"), `now-id-ref: ${nowId.join(", ") || "(none)"}`);
+    assert.ok(
+      duplicate.includes("servicenow/no-duplicate-fluent-id"),
+      `duplicate-id: ${duplicate.join(", ") || "(none)"}`,
+    );
+  });
+
   it("client rules do not leak onto a server UI Action", () => {
     const rules = pluginRulesFor(runOxlint(recommendedConfig, [path.join(validDir, "close.ui-action.js")]));
     assert.ok(!rules.includes("servicenow/no-client-gliderecord"));

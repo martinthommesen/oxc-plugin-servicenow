@@ -4,8 +4,10 @@ export {
   appliesToInstanceScripts,
   getScriptContext,
   hasSurface,
+  isClientCapableContext,
   isFluentContext,
   isInstanceScript,
+  isServerInstanceContext,
   javascriptModeIs,
   resolveScriptContext,
 } from "./resolve.js";

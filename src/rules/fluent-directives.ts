@@ -57,7 +57,8 @@ export const fluentDirectives = defineRule({
       before() {
         const { context: script } = beginRuleFile(context);
         if (!isFluentContext(script)) return false;
-
+      },
+      Program() {
         const comments = commentsOf(context);
         const text = context.sourceCode.text;
         const supported = DEFAULT_FLUENT_MANIFEST.directives.map((item) => `@${item.name}`).join(", ");
@@ -106,8 +107,6 @@ export const fluentDirectives = defineRule({
             }
           }
         }
-
-        return false;
       },
     };
   },
