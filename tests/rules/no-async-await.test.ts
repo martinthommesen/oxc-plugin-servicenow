@@ -21,4 +21,11 @@ describe(RULE, () => {
       settings: { ecmaLatest: true },
     });
   });
+
+  it("skips when settings.scriptType is fluent", () => {
+    assertValid(`async function f() {}`, RULE, {
+      filename: "misc.js",
+      settings: { scriptType: "fluent" },
+    });
+  });
 });
