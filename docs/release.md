@@ -74,7 +74,7 @@ A publish request can be accepted by npm even when the client receives a network
 
 ## Captured GitHub governance
 
-The repository controls were applied and captured on 2026-08-20 in [`docs/release-governance-live.json`](./release-governance-live.json): active `main` pull-request/status-check ruleset `21081867`, active protected `v**` tag ruleset `21081873`, a non-bypassable reviewer-gated `release` environment, and repository-level SHA-pinning enforcement. The npm trusted publisher remains pending because this host is not authenticated to npm; the desired repository/workflow/environment/tag restriction is in `scripts/release-governance.json`.
+The repository controls were applied and captured on 2026-08-20 in [`docs/release-governance-live.json`](./release-governance-live.json): active `main` pull-request/status-check ruleset `21081867`, active protected `v**` tag ruleset `21081873`, a non-bypassable reviewer-gated `release` environment, and repository-level SHA-pinning enforcement. The npm trusted publisher remains pending because this host is not authenticated to npm; configure npm's workflow filename field as `release.yml` (the repository path is `.github/workflows/release.yml`) with the repository/environment/tag restrictions in `scripts/release-governance.json`.
 
 ## Explicitly-live gates
 

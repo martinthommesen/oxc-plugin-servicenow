@@ -83,7 +83,8 @@
       "environment": "release",
       "tagRefs": [
         "refs/tags/v*"
-      ]
+      ],
+      "workflowFilename": "release.yml"
     }
   }
 }
