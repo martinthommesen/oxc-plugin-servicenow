@@ -20,7 +20,7 @@ This report is the final local audit for the seven-layer remediation stack. The 
 - `npm run typecheck` — pass.
 - `npm test` — pass (649 tests).
 - `npm run docs:check` — pass (41 catalog records).
-- `npm run manifest:check` — pass (3.0.0, 4.1.0, 4.8.0, 4.10.0, 4.11.0 manifests).
+- `npm run manifest:check` — pass (3.0.0 (42 APIs), 4.1.0 (42 APIs), 4.8.0 (48 APIs), 4.10.0 (49 APIs), and 4.11.0 (49 APIs) manifests).
 - `npm run workflow:check` and `npm run compat:check` — pass.
 - `npm run bench` — pass; recommended small-to-large scale is approximately 2x. RSS is unavailable on this host; `benchmark.mjs --write` deliberately refuses to write a zero-RSS baseline.
 - `npm run release:check -- --consumer-all` — pass for one inspected tarball across all six declared cells on the available host. The packed artifact is authoritative; no source or filesystem `dist` consumer import is used.

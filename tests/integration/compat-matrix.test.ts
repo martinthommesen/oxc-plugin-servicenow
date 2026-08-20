@@ -39,7 +39,9 @@ describe("compatibility matrix", () => {
     assert.ok(matrix.cells.some((cell) => cell.node === matrix.node.current));
     assert.ok(matrix.cells.some((cell) => cell.oxlint === matrix.oxlint.latestCompatible));
     assert.ok(matrix.cells.some((cell) => cell.oxfmt === matrix.oxfmt.latest));
-    assert.ok(matrix.cells.every((cell) => cell.typescriptEslint === matrix.typescriptEslint.current));
+    assert.ok(matrix.cells.some((cell) => cell.typescriptEslint === matrix.typescriptEslint.current));
+    assert.ok(matrix.cells.filter((cell) => cell.eslint.startsWith("10")).every((cell) => cell.typescriptEslint === "none"));
+    assert.ok(matrix.cells.filter((cell) => cell.eslint.startsWith("9")).every((cell) => cell.typescriptEslint === matrix.typescriptEslint.current));
     const docs = readFileSync(path.join(repoRoot, "docs/compatibility.md"), "utf8");
     assert.ok(docs.includes(matrix.oxlint.minimum));
     assert.ok(docs.includes(matrix.eslint.minimum));

@@ -64,7 +64,9 @@ async function runCell(tarball, cell) {
       JSON.stringify({ name: `sn-oxc-compat-${cell.id}`, private: true, type: "module" }, null, 2),
     );
     try {
-      execFileSync("npm", ["install", "--ignore-scripts", "--no-audit", "--no-fund", tarball, `oxlint@${cell.oxlint}`, `eslint@${cell.eslint}`, `oxfmt@${cell.oxfmt}`, `typescript-eslint@${cell.typescriptEslint}`], {
+      const installArgs = ["install", "--ignore-scripts", "--no-audit", "--no-fund", tarball, `oxlint@${cell.oxlint}`, `eslint@${cell.eslint}`, `oxfmt@${cell.oxfmt}`];
+      if (cell.typescriptEslint !== "none") installArgs.push(`typescript-eslint@${cell.typescriptEslint}`);
+      execFileSync("npm", installArgs, {
         cwd: consumer,
         encoding: "utf8",
       });
@@ -107,11 +109,13 @@ console.log(JSON.stringify({
     if (!publicApi.oxfmt || !publicApi.recommended) {
       fail("package", `${cell.id} public subpath exports did not load`);
     }
-    try {
-      const parserScript = `import tseslint from "typescript-eslint"; const result = tseslint.parser.parseForESLint("const table: string = \\\"incident\\\";", { filePath: "sample.now.tsx" }); if (!result?.ast) throw new Error("TypeScript parser returned no AST");`;
-      execFileSync(process.execPath, ["--input-type=module", "-e", parserScript], { cwd: consumer, encoding: "utf8" });
-    } catch (error) {
-      fail("parser", `${cell.id} TypeScript parser failed: ${error instanceof Error ? error.message : String(error)}`);
+    if (cell.typescriptEslint !== "none") {
+      try {
+        const parserScript = `import tseslint from "typescript-eslint"; const result = tseslint.parser.parseForESLint("const table: string = \\"incident\\";", { filePath: "sample.now.tsx" }); if (!result?.ast) throw new Error("TypeScript parser returned no AST");`;
+        execFileSync(process.execPath, ["--input-type=module", "-e", parserScript], { cwd: consumer, encoding: "utf8" });
+      } catch (error) {
+        fail("parser", `${cell.id} TypeScript parser failed: ${error instanceof Error ? error.message : String(error)}`);
+      }
     }
 
     writeFileSync(
