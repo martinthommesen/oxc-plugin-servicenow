@@ -52,7 +52,7 @@ Protect `main` and the `release` GitHub Environment so a random tag cannot publi
 ## Workflow isolation and exact artifact
 
 1. **validate** checks out the tag with read-only `contents`, builds once, runs all gates, inspects one tarball, and uploads it as `release-tarball`.
-2. **consumer** is a required matrix (`min-hosts` on Node 20.19.0, `node20-current` on Node 20, `node22-latest` on Node 22, and `eslint9-current` on declared `current`). Every cell installs and tests the exact uploaded tarball, not source `dist/`.
+2. **consumer** is a required six-cell matrix (`min-hosts` on Node 20.19.0, `node20-floor` on Node 20, `node22-lts` on Node 22, `node24-lts` on Node 24, `node26-current` on Node 26, and `eslint9-current` on declared `current`). Every cell installs and tests the exact uploaded tarball, not source `dist/`.
 3. **publish** is the only job with `id-token: write`. It receives only the uploaded tarball, uses Node 24.5.0 (which bundles the pinned npm 11.5.1), verifies the executable `npm --version`, and runs `npm publish <tarball> --ignore-scripts --provenance --access public`. It does not check out source, install dependencies, import the package, or run registry checks.
 4. **registry-verify** has no OIDC permission. It installs with `--ignore-scripts`, resolves every package export/declaration, imports the registry package through bare public specifiers, and compares `dist.integrity`, provenance, and version to the inspected tarball.
 5. **github-release** has only minimum `contents: write`, runs after registry verification, and invokes `scripts/create-github-release.mjs` to create or idempotently verify the release asset.
