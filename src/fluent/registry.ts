@@ -57,14 +57,7 @@ function manifestForVersion(sdkVersion: string): FluentSdkManifest {
       const introduced = api.introduced ?? INTRODUCED[api.name];
       return !introduced || atLeast(sdkVersion, introduced);
     })
-    .map((api) => {
-      // Table gained its derived-ID contract in the 4.x line. In 3.0 it
-      // requires an explicit ID just like the historical declaration.
-      if (api.name === "Table" && !atLeast(sdkVersion, "4.1.0")) {
-        return { ...api, idRequirement: "required" as const };
-      }
-      return api;
-    });
+    .map((api) => ({ ...api }));
   return withSdkVersion({ ...DEFAULT_FLUENT_MANIFEST, apis }, sdkVersion);
 }
 

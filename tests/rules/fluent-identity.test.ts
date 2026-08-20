@@ -13,18 +13,10 @@ describe("fluentSdkVersion registry", () => {
     );
   });
 
-  it("selects 3.0.0 Table $id requirements", () => {
-    assertInvalid(
-      `import { Table } from "@servicenow/sdk/core";\nexport const incident = Table({ name: "x_acme_incident" });`,
-      "require-fluent-id",
-      { messageId: "missing" },
-      { ...NOW, settings: { fluentSdkVersion: "3.0.0" } },
-    );
-    assertValid(
-      `import { Table } from "@servicenow/sdk/core";\nexport const incident = Table({ name: "x_acme_incident" });`,
-      "require-fluent-id",
-      { ...NOW, settings: { fluentSdkVersion: "4.1.0" } },
-    );
+  it("keeps the published Table signature across 3.0.0 and 4.1.0", () => {
+    const table = `import { Table } from "@servicenow/sdk/core";\nexport const incident = Table({ name: "x_acme_incident" });`;
+    assertValid(table, "require-fluent-id", { ...NOW, settings: { fluentSdkVersion: "3.0.0" } });
+    assertValid(table, "require-fluent-id", { ...NOW, settings: { fluentSdkVersion: "4.1.0" } });
   });
 
   it("respects capability introduction boundaries", () => {

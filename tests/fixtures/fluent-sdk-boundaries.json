@@ -17,7 +17,7 @@
         "RestApi"
       ],
       "idRequirements": {
-        "Table": "required"
+        "Table": "forbidden"
       }
     },
     "4.1.0": {
