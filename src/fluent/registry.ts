@@ -58,8 +58,8 @@ function manifestForVersion(sdkVersion: string): FluentSdkManifest {
       return !introduced || atLeast(sdkVersion, introduced);
     })
     .map((api) => {
-      if (api.name === "List" && atLeast(sdkVersion, "4.1.0")) {
-        return { ...api, idRequirement: "deprecated" as const, deprecated: "4.1.0" };
+      if (api.name === "List" && !atLeast(sdkVersion, "4.1.0")) {
+        return { ...api, idRequirement: "required" as const, deprecated: undefined };
       }
       return { ...api };
     });
