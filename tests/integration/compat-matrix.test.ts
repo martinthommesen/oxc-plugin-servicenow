@@ -24,7 +24,8 @@ describe("compatibility matrix", () => {
       oxfmt: { peer: string; minimum: string; latest: string };
       oxlintPlugins: { dependency: string };
       typescriptEslint: { minimum: string; current: string };
-      cells: Array<{ id: string; node: string; oxlint: string; eslint: string; oxfmt: string; typescriptEslint: string }>;
+      typescript: { tested: string };
+      cells: Array<{ id: string; node: string; oxlint: string; eslint: string; oxfmt: string; typescriptEslint: string; typescript: string }>;
     };
     assert.equal(matrix.node.engines, pkg.engines.node);
     assert.equal(matrix.oxlint.peer, pkg.peerDependencies.oxlint);
@@ -39,9 +40,8 @@ describe("compatibility matrix", () => {
     assert.ok(matrix.cells.some((cell) => cell.node === matrix.node.current));
     assert.ok(matrix.cells.some((cell) => cell.oxlint === matrix.oxlint.latestCompatible));
     assert.ok(matrix.cells.some((cell) => cell.oxfmt === matrix.oxfmt.latest));
-    assert.ok(matrix.cells.some((cell) => cell.typescriptEslint === matrix.typescriptEslint.current));
-    assert.ok(matrix.cells.filter((cell) => cell.eslint.startsWith("10")).every((cell) => cell.typescriptEslint === "none"));
-    assert.ok(matrix.cells.filter((cell) => cell.eslint.startsWith("9")).every((cell) => cell.typescriptEslint === matrix.typescriptEslint.current));
+    assert.ok(matrix.cells.every((cell) => cell.typescriptEslint === matrix.typescriptEslint.current));
+    assert.ok(matrix.cells.every((cell) => cell.typescript === matrix.typescript.tested));
     const docs = readFileSync(path.join(repoRoot, "docs/compatibility.md"), "utf8");
     assert.ok(docs.includes(matrix.oxlint.minimum));
     assert.ok(docs.includes(matrix.eslint.minimum));

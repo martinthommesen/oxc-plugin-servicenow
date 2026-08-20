@@ -64,8 +64,7 @@ async function runCell(tarball, cell) {
       JSON.stringify({ name: `sn-oxc-compat-${cell.id}`, private: true, type: "module" }, null, 2),
     );
     try {
-      const installArgs = ["install", "--ignore-scripts", "--no-audit", "--no-fund", tarball, `oxlint@${cell.oxlint}`, `eslint@${cell.eslint}`, `oxfmt@${cell.oxfmt}`];
-      if (cell.typescriptEslint !== "none") installArgs.push(`typescript-eslint@${cell.typescriptEslint}`);
+      const installArgs = ["install", "--ignore-scripts", "--no-audit", "--no-fund", "--legacy-peer-deps", tarball, `oxlint@${cell.oxlint}`, `eslint@${cell.eslint}`, `oxfmt@${cell.oxfmt}`, `typescript-eslint@${cell.typescriptEslint}`, `@typescript-eslint/parser@${cell.typescriptEslint}`, `typescript@${cell.typescript}`];
       execFileSync("npm", installArgs, {
         cwd: consumer,
         encoding: "utf8",
@@ -109,9 +108,9 @@ console.log(JSON.stringify({
     if (!publicApi.oxfmt || !publicApi.recommended) {
       fail("package", `${cell.id} public subpath exports did not load`);
     }
-    if (cell.typescriptEslint !== "none") {
+    {
       try {
-        const parserScript = `import tseslint from "typescript-eslint"; const result = tseslint.parser.parseForESLint("const table: string = \\"incident\\";", { filePath: "sample.now.tsx" }); if (!result?.ast) throw new Error("TypeScript parser returned no AST");`;
+        const parserScript = `import * as tseslintParser from "@typescript-eslint/parser"; const result = tseslintParser.parseForESLint("const table: string = \\"incident\\";", { filePath: "sample.now.tsx" }); if (!result?.ast) throw new Error("TypeScript parser returned no AST");`;
         execFileSync(process.execPath, ["--input-type=module", "-e", parserScript], { cwd: consumer, encoding: "utf8" });
       } catch (error) {
         fail("parser", `${cell.id} TypeScript parser failed: ${error instanceof Error ? error.message : String(error)}`);
@@ -194,7 +193,7 @@ console.log(JSON.stringify({
       'import { Table } from "@servicenow/sdk/core";\nexport const incident = Table({ name: "x_acme_incident" });\n',
     );
     writeFileSync(path.join(consumer, "sample.now.tsx"), "const Component = () => <div />;\nexport default Component;\n");
-    for (const fluentSdkVersion of ["3.0.0", "4.1.0"]) {
+    for (const fluentSdkVersion of matrix.fluentSdk ?? ["3.0.0", "4.1.0"]) {
       const fluentConfig = path.join(consumer, `.oxlintrc-${fluentSdkVersion}.json`);
       writeFileSync(
         fluentConfig,

@@ -38,6 +38,7 @@ CI and \`npm run compat\` install the packed tarball in a clean consumer for eac
 | ESLint | \`${matrix.eslint.peer}\` | ${matrix.eslint.minimum} | ${matrix.eslint.currentV9} and ${matrix.eslint.current} |
 | oxfmt | \`${matrix.oxfmt.peer}\` | ${matrix.oxfmt.minimum} | ${matrix.oxfmt.latest} |
 | typescript-eslint | \`${matrix.typescriptEslint.peer}\` (optional) | ${matrix.typescriptEslint.minimum ?? matrix.typescriptEslint.tested} | ${matrix.typescriptEslint.current ?? matrix.typescriptEslint.tested} |
+| TypeScript parser runtime | optional parser dependency | ${matrix.typescript.tested} | ${matrix.typescript.tested} |
 | Fluent SDK knowledge | selected \`fluentSdkVersion\` | ${matrix.fluentSdk.join(", ")} | unspecified selects the current manifest |
 | ServiceNow JavaScript | ${matrix.javascriptModes.map((mode) => `\`${mode}\``).join(", ")} | all listed modes | unknown never assumes ES5 |
 
@@ -47,7 +48,7 @@ CI and \`npm run compat\` install the packed tarball in a clean consumer for eac
 | --- | --- | --- | --- | --- |
 ${cellRows}
 
-A cell fails with one of these classes: \`package\`, \`host-api\`, \`runtime\`, \`parser\`, or \`formatter\`.
+A cell fails with one of these classes: \`package\`, \`host-api\`, \`runtime\`, \`parser\`, or \`formatter\`. Every cell also parses a TypeScript \`.now.tsx\` fixture with typescript-eslint ${matrix.typescriptEslint.current ?? matrix.typescriptEslint.tested} and TypeScript ${matrix.typescript.tested}; the ESLint 10 cells use npm's legacy-peer-deps install mode because that optional parser package currently declares an ESLint <10 peer, while the plugin's ESLint host API remains tested directly.
 
 ## Contributors
 

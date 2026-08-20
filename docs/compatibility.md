@@ -14,6 +14,7 @@ CI and `npm run compat` install the packed tarball in a clean consumer for each 
 | ESLint | `>=9.0.0` | 9.0.0 | 9.39.5 and 10.8.1 |
 | oxfmt | `>=0.64.0` | 0.64.0 | latest |
 | typescript-eslint | `>=8.0.0 <9` (optional) | 8.46.0 | 8.46.0 |
+| TypeScript parser runtime | optional parser dependency | 5.8.3 | 5.8.3 |
 | Fluent SDK knowledge | selected `fluentSdkVersion` | 3.0.0, 4.1.0, 4.8.0, 4.10.0, 4.11.0 | unspecified selects the current manifest |
 | ServiceNow JavaScript | `compatibility`, `es5`, `es2021`, `unknown` | all listed modes | unknown never assumes ES5 |
 
@@ -28,7 +29,7 @@ CI and `npm run compat` install the packed tarball in a clean consumer for each 
 | `node26-current` | 26 | latest | 10.8.1 | latest |
 | `eslint9-current` | current | 1.79.0 | 9.39.5 | 0.64.0 |
 
-A cell fails with one of these classes: `package`, `host-api`, `runtime`, `parser`, or `formatter`.
+A cell fails with one of these classes: `package`, `host-api`, `runtime`, `parser`, or `formatter`. Every cell also parses a TypeScript `.now.tsx` fixture with typescript-eslint 8.46.0 and TypeScript 5.8.3; the ESLint 10 cells use npm's legacy-peer-deps install mode because that optional parser package currently declares an ESLint <10 peer, while the plugin's ESLint host API remains tested directly.
 
 ## Contributors
 
