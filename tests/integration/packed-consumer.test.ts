@@ -224,12 +224,25 @@ BusinessRule({
 });
 `,
       );
+      writeFileSync(
+        path.join(consumer, "table.now.tsx"),
+        `import type { Table } from "@servicenow/sdk/core";
+import { BusinessRule } from "@servicenow/sdk/core";
+
+export const unusedTsx: Table | undefined = undefined;
+
+BusinessRule({
+  table: "problem",
+  name: "Typed TSX",
+});
+`,
+      );
       writeFileSync(path.join(consumer, "app.ts"), `const x: string = "ordinary";\n`);
       let eslintStdout = "";
       try {
         eslintStdout = execFileSync(
           path.join(consumer, "node_modules", ".bin", "eslint"),
-          ["--format", "json", "table.now.ts", "app.ts"],
+          ["--format", "json", "table.now.ts", "table.now.tsx", "app.ts"],
           { encoding: "utf8", cwd: consumer },
         );
       } catch (error) {
@@ -240,12 +253,19 @@ BusinessRule({
         messages: Array<{ ruleId: string | null; fatal?: boolean }>;
       }>;
       const fluent = report.find((file) => file.filePath.endsWith("table.now.ts"));
+      const fluentTsx = report.find((file) => file.filePath.endsWith("table.now.tsx"));
       const ordinary = report.find((file) => file.filePath.endsWith("app.ts"));
       assert.ok(fluent, "expected table.now.ts in ESLint output");
+      assert.ok(fluentTsx, "expected table.now.tsx in ESLint output");
       const fluentRules = fluent.messages.map((message) => message.ruleId);
+      const fluentTsxRules = fluentTsx.messages.map((message) => message.ruleId);
       assert.ok(
         fluentRules.includes("servicenow/require-fluent-id"),
         `typed fluent rules: ${fluentRules.join(", ") || "(none)"}`,
+      );
+      assert.ok(
+        fluentTsxRules.includes("servicenow/require-fluent-id"),
+        `typed fluent tsx rules: ${fluentTsxRules.join(", ") || "(none)"}`,
       );
       assert.equal(
         ordinary?.messages.some((message) => message.ruleId?.startsWith("servicenow/")),

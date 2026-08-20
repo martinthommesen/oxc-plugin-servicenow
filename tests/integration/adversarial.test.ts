@@ -74,6 +74,7 @@ describe("adversarial host binding and control-flow", () => {
       "early-return-query.br.js",
       "try-catch-query.br.js",
       "escaped-helper.br.js",
+      "storage-escape.br.js",
       "temporal-now-id.now.ts",
     ];
     for (const file of files) {

@@ -89,4 +89,7 @@ export const STATEFUL_MATRIX_RULES: readonly RuleName[] = [
   "validate-glideaggregate-calls",
   "no-unfiltered-gliderecord-bulk-operation",
   "no-gliderecord-query-in-loop",
+  "no-gliderecord-query-modifier-after-query",
+  "no-delete-multiple-with-windowing",
+  "prefer-setnocount-with-choosewindow",
 ];

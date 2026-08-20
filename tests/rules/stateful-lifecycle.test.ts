@@ -201,6 +201,27 @@ ajax.getXMLAnswer(handleAnswer);`,
     );
   });
 
+  it("keeps sibling aliases after one name is reassigned", () => {
+    assertValid(
+      `var ajax = new GlideAjax("x_acme.UserLookup");
+var original = ajax;
+ajax.addParam("sysparm_name", "getManager");
+ajax = {};
+original.getXMLAnswer(handleAnswer);`,
+      RULE,
+      CLIENT,
+    );
+    assertInvalid(
+      `var ajax = new GlideAjax("x_acme.UserLookup");
+var original = ajax;
+ajax = {};
+original.getXMLWait();`,
+      RULE,
+      { messageId: "missingName" },
+      CLIENT,
+    );
+  });
+
   it("requires a new usable name for a later request", () => {
     assertInvalid(
       `var ajax = new GlideAjax("x_acme.UserLookup");

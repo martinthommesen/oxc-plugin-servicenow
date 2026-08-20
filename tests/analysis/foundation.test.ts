@@ -35,6 +35,27 @@ gr = {};`,
     );
   });
 
+  it("does not treat a default parameter as an outer escape", () => {
+    assertInvalid(
+      `function wrap(rec = other) {
+  return rec;
+}
+var rec = new GlideRecord("incident");
+rec.next();`,
+      "require-query-before-next",
+      { messageId: "missingQuery" },
+    );
+  });
+
+  it("marks destructuring of a record as escaped", () => {
+    assertValid(
+      `var rec = new GlideRecord("incident");
+var { sys_id } = rec;
+rec.next();`,
+      "require-query-before-next",
+    );
+  });
+
   it("does not treat a shadowed parameter as an outer escape", () => {
     assertInvalid(
       `var gr = new GlideRecord("incident");
