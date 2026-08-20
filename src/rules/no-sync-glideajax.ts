@@ -1,15 +1,17 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
-import { propertyName } from "../utils/ast.js";
+import { getName } from "../utils/ast.js";
+import { staticPropertyName } from "../analysis/index.js";
+import { isClientCapableContext } from "../context/index.js";
+import { beginRuleFile } from "./helpers.js";
 
 export const noSyncGlideajax = defineRule({
   meta: {
     type: "problem",
     docs: {
       description:
-        "Disallow synchronous `GlideAjax.getXMLWait()`. It blocks the browser and does not work in Service Portal.",
-      recommended: "recommended",
+        "Disallow synchronous `GlideAjax.getXMLWait()` on proven GlideAjax bindings. It blocks the browser and does not work in Service Portal.",
       url: ruleDocsUrl("no-sync-glideajax"),
     },
     messages: {
@@ -18,9 +20,25 @@ export const noSyncGlideajax = defineRule({
   },
   createOnce(context) {
     return {
+      before() {
+        if (!isClientCapableContext(beginRuleFile(context).context)) return false;
+      },
       CallExpression(node) {
-        if (propertyName((node as ESTree.CallExpression).callee) !== "getXMLWait") return;
-        context.report({ node, messageId: "wait" });
+        const { analysis } = beginRuleFile(context);
+        const call = node as ESTree.CallExpression;
+        if (call.callee.type !== "MemberExpression") return;
+        const member = call.callee as ESTree.MemberExpression;
+        if (staticPropertyName(member) !== "getXMLWait") return;
+        const object = member.object;
+        const proven = analysis.ofExpression(object);
+        if (proven?.kind === "GlideAjax" && !proven.invalid && !proven.escaped) {
+          context.report({ node, messageId: "wait" });
+          return;
+        }
+        const name = getName(object);
+        if (name === "GlideAjax") return;
+        // Direct `new GlideAjax(...).getXMLWait()` is covered by ofExpression on
+        // the NewExpression object. Unproven receivers are left silent.
       },
     };
   },
