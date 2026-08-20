@@ -57,9 +57,10 @@ export interface FluentSdkManifest {
 const FLUENT_OVERVIEW = "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html";
 const SDK_EXAMPLES = "https://github.com/ServiceNow/sdk-examples";
 const SDK_CORE = "@servicenow/sdk/core";
+const SDK_CORE_TARBALL = "https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core";
 
-function firstEvidenceUrl(evidence: string): string {
-  return evidence.match(/https?:\/\/[^ )]+/)?.[0] ?? evidence;
+function sdkCoreDeclarationEvidence(version: string): string {
+  return `${SDK_CORE_TARBALL}-${version}.tgz`;
 }
 
 function entity(
@@ -76,7 +77,7 @@ function entity(
     idRequirement,
     evidence,
     evidenceRecords: extra.evidenceRecords ?? [
-      { url: firstEvidenceUrl(evidence), symbol: name, version, transition: extra.introduced ? "introduced" : "current" },
+      { url: sdkCoreDeclarationEvidence(version), symbol: name, version, transition: extra.introduced ? "introduced" : "current" },
     ],
     ...extra,
   };
@@ -90,7 +91,7 @@ function column(name: string): FluentApiCapability {
     idRequirement: "forbidden",
     evidence: `${FLUENT_OVERVIEW} (Table schema column helpers)`,
     evidenceRecords: [
-      { url: FLUENT_OVERVIEW, symbol: name, version: "3.0.0", transition: "current" },
+      { url: sdkCoreDeclarationEvidence("3.0.0"), symbol: name, version: "3.0.0", transition: "current" },
     ],
   };
 }
@@ -122,8 +123,8 @@ export const DEFAULT_FLUENT_MANIFEST: FluentSdkManifest = {
       deprecated: "4.1.0",
       evidence: `${SDK_EXAMPLES}/list-sample`,
       evidenceRecords: [
-        { url: SDK_EXAMPLES, symbol: "List", version: "3.0.0", transition: "current" },
-        { url: SDK_EXAMPLES, symbol: "List", version: "4.1.0", transition: "deprecated" },
+        { url: sdkCoreDeclarationEvidence("3.0.0"), symbol: "List", version: "3.0.0", transition: "current" },
+        { url: sdkCoreDeclarationEvidence("4.1.0"), symbol: "List", version: "4.1.0", transition: "deprecated" },
       ],
     }),
     entity("Module", "required"),
@@ -151,7 +152,7 @@ export const DEFAULT_FLUENT_MANIFEST: FluentSdkManifest = {
       kind: "automation",
       module: "unknown",
       evidence: `${SDK_EXAMPLES}/flow-sample`,
-      evidenceRecords: [{ url: `${SDK_EXAMPLES}/flow-sample`, symbol: "Flow", version: "3.0.0", transition: "current" }],
+      evidenceRecords: [{ url: sdkCoreDeclarationEvidence("3.0.0"), symbol: "Flow", version: "3.0.0", transition: "current" }],
     }),
     column("BooleanColumn"),
     column("ChoiceColumn"),

@@ -65,6 +65,9 @@ function assertManifest(manifest) {
       assert.equal(record.symbol, api.name, `${api.name} evidence symbol`);
       assert.match(record.url, /^(?:https?:\/\/|tests\/|src\/|docs\/)/, `${api.name} evidence URL`);
       assert.match(record.version, /^\d+\.\d+\.\d+$/, `${api.name} evidence version`);
+      if (record.url.startsWith("https://registry.npmjs.org/@servicenow%2fsdk-core/")) {
+        assert.ok(record.url.includes(record.version), `${api.name} evidence URL must include its version`);
+      }
       if (record.transition === "introduced") assert.equal(record.version, api.introduced, `${api.name} introduction evidence`);
     }
     if (api.introduced && api.deprecated) {
