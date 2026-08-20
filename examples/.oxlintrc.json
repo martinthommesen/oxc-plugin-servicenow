@@ -1,44 +1,39 @@
 {
   "$schema": "../node_modules/oxlint/configuration_schema.json",
   "jsPlugins": [
-    { "name": "servicenow", "specifier": "oxc-plugin-servicenow" }
+    {
+      "name": "servicenow",
+      "specifier": "oxc-plugin-servicenow"
+    }
   ],
   "settings": {
     "servicenow": {
-      "scopePrefix": "x_acme",
-      "ecmaLatest": false
+      "scopePrefix": "x_acme"
     }
   },
   "rules": {
     "servicenow/no-hardcoded-sysid": "error",
-    "servicenow/no-promise": "error",
-    "servicenow/no-async-await": "error",
-    "servicenow/no-bigint": "error",
-    "servicenow/prefer-glideaggregate": "warn",
     "servicenow/no-client-gliderecord": "error",
     "servicenow/no-gs-now": "error",
-    "servicenow/validate-gliderecord-calls": "warn",
+    "servicenow/require-query-before-next": "error",
     "servicenow/no-br-current-update": "error",
     "servicenow/fluent-proper-imports": "error",
     "servicenow/fluent-directives": "warn",
-    "servicenow/prefer-now-include": "warn",
     "servicenow/require-fluent-id": "error",
-    "servicenow/fluent-naming-convention": "warn",
-    "servicenow/no-complex-fluent-logic": "warn",
-    "servicenow/no-at-method": "warn",
     "servicenow/no-packages-calls": "error",
-    "servicenow/no-typed-arrays": "error",
-    "servicenow/no-proxy": "error",
-    "servicenow/no-unsupported-syntax": "error",
-    "servicenow/no-sync-glideajax": "error"
-  },
-  "overrides": [
-    {
-      "files": ["**/*.now.ts"],
-      "rules": {
-        "servicenow/no-promise": "off",
-        "servicenow/no-async-await": "off"
-      }
-    }
-  ]
+    "servicenow/no-weak-references": "error",
+    "servicenow/no-delete-multiple-with-windowing": "error",
+    "servicenow/require-callback-for-getreference": "error",
+    "servicenow/require-glideajax-sysparm-name": "error",
+    "servicenow/validate-glideaggregate-calls": "error",
+    "servicenow/no-now-id-as-reference": "error",
+    "servicenow/no-glideajax-getanswer": "error",
+    "servicenow/no-duplicate-fluent-id": "error",
+    "servicenow/no-glideelement-in-collection": "error",
+    "servicenow/no-gliderecord-query-modifier-after-query": "error",
+    "servicenow/require-business-rule-wrapper": "error",
+    "servicenow/no-unfiltered-gliderecord-bulk-operation": "warn",
+    "servicenow/no-sync-glideajax": "error",
+    "servicenow/no-async-iterators": "error"
+  }
 }

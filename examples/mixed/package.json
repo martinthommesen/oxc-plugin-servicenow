@@ -1,0 +1,9 @@
+{
+  "name": "@oxc-plugin-servicenow/example-mixed",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "oxlint -c .oxlintrc.json valid invalid",
+    "format": "oxfmt -c ../../oxfmt.recommended.json valid"
+  }
+}

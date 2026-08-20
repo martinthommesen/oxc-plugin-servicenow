@@ -3,14 +3,38 @@
 `GlideRecord.getRowCount()` (and iterate-to-count loops) load every matching row. `GlideAggregate` counts in the database.
 
 - **Family:** classic
-- **Preset:** recommended
+- **Preset:** strict
+- **Placements:** strict (warn)
 - **Default severity:** warn
-- **Fixable:** no
-- **Suggestions:** yes
+- **Fix safety:** diagnostic only
+- **Suggestions:** no
+- **Authoring:** classic
+- **Surfaces:** Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent.
+- **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
+- **Last verified:** 2026-08-20
+- **Implementation:** [`src/rules/prefer-glideaggregate.ts`](../../src/rules/prefer-glideaggregate.ts)
+
+## Applicability
+
+| Dimension | Value |
+| --- | --- |
+| Authoring | classic |
+| Surfaces | Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent. |
+| Minimum surface confidence | filename-inferred |
+| JavaScript modes | n/a |
+| Application scopes | global, scoped, unknown |
+| ServiceNow releases | zurich |
+| Fluent SDK range | n/a |
+
+## Options
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| _(none)_ | | | This rule has no options. |
 
 ## Incorrect
 
-### ❌ getRowCount
+### Incorrect: getRowCount
 
 ```js
 var gr = new GlideRecord("incident");
@@ -21,7 +45,7 @@ var count = gr.getRowCount();
 
 ## Correct
 
-### ✅ GlideAggregate COUNT
+### Correct: GlideAggregate COUNT
 
 ```js
 var ga = new GlideAggregate("incident");
@@ -31,7 +55,40 @@ ga.query();
 var count = ga.next() ? parseInt(ga.getAggregate("COUNT"), 10) : 0;
 ```
 
+## Limitations
+
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False positive: Loops that read more than a count from each row. False negative: Count accumulation through helpers or aliased counters.
+
+## Known false positives
+
+- Loops that read more than a count from each row.
+
+## Known false negatives
+
+- Count accumulation through helpers or aliased counters.
+
+## Overlaps
+
+- `servicenow/validate-glideaggregate-calls`
+
+## Fix safety
+
+- Classification: diagnostic only
+- Lifecycle assumptions: No extra lifecycle assumptions.
+
+## Evidence
+
+- **GlideAggregate is the documented API for count and group queries.**
+  - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html
+  - Verified by: declaration-snapshot
+  - Verified at: 2026-08-20
+- **Iterate-to-count loops report; if (gr.next()) stays silent.**
+  - URL: tests/rules/prefer-glideaggregate.test.ts
+  - Verified by: fixture
+  - Verified at: 2026-08-20
+
 ## See also
 
-- [ServiceNow Fluent overview](https://servicenow.github.io/sdk/guides/fluent-overview)
+- [Contributor rule-authoring guide](../rule-authoring.md)
+- [Project non-goals](../non-goals.md)
 - [oxlint JS plugins](https://oxc.rs/docs/guide/usage/linter/js-plugins.html)

@@ -1,0 +1,94 @@
+# servicenow/no-glideajax-getanswer
+
+`getAnswer()` belongs to synchronous GlideAjax. Use `getXMLAnswer(callback)` instead. Evidence: https://www.servicenow.com/docs/r/api-reference/c_GlideAjaxAPI.html
+
+- **Family:** classic
+- **Preset:** recommended
+- **Placements:** recommended (error), client (error)
+- **Default severity:** error
+- **Fix safety:** diagnostic only
+- **Suggestions:** no
+- **Authoring:** classic
+- **Surfaces:** Applies to client, ui-action when those surfaces are known. Unknown surfaces stay silent.
+- **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
+- **Last verified:** 2026-08-20
+- **Implementation:** [`src/rules/no-glideajax-getanswer.ts`](../../src/rules/no-glideajax-getanswer.ts)
+
+## Applicability
+
+| Dimension | Value |
+| --- | --- |
+| Authoring | classic |
+| Surfaces | Applies to client, ui-action when those surfaces are known. Unknown surfaces stay silent. |
+| Minimum surface confidence | filename-inferred |
+| JavaScript modes | n/a |
+| Application scopes | global, scoped, unknown |
+| ServiceNow releases | zurich |
+| Fluent SDK range | n/a |
+
+## Options
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| _(none)_ | | | This rule has no options. |
+
+## Incorrect
+
+### Incorrect: getAnswer after getXML
+
+```js
+var ajax = new GlideAjax("x_acme.UserLookup");
+ajax.addParam("sysparm_name", "getManager");
+ajax.getXML(handleResponse);
+var answer = ajax.getAnswer();
+```
+
+## Correct
+
+### Correct: getXMLAnswer callback
+
+```js
+var ajax = new GlideAjax("x_acme.UserLookup");
+ajax.addParam("sysparm_name", "getManager");
+ajax.getXMLAnswer(function (answer) {
+  g_form.setValue("u_manager", answer);
+});
+```
+
+## Limitations
+
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False negative: getAnswer through an escaped or unknown receiver.
+
+## Known false positives
+
+- None recorded.
+
+## Known false negatives
+
+- getAnswer through an escaped or unknown receiver.
+
+## Overlaps
+
+- `servicenow/no-sync-glideajax`
+
+## Fix safety
+
+- Classification: diagnostic only
+- Lifecycle assumptions: No extra lifecycle assumptions.
+
+## Evidence
+
+- **getAnswer belongs to the synchronous getXMLWait pattern.**
+  - URL: https://www.servicenow.com/docs/r/api-reference/c_GlideAjaxAPI.html
+  - Verified by: declaration-snapshot
+  - Verified at: 2026-08-20
+- **Recommended hosts report getAnswer on proven GlideAjax objects.**
+  - URL: tests/integration/profiles/invalid/glideajax-getanswer.client.js
+  - Verified by: integration-test
+  - Verified at: 2026-08-20
+
+## See also
+
+- [Contributor rule-authoring guide](../rule-authoring.md)
+- [Project non-goals](../non-goals.md)
+- [oxlint JS plugins](https://oxc.rs/docs/guide/usage/linter/js-plugins.html)
