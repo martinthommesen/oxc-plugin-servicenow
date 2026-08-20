@@ -3,6 +3,7 @@ import type { ESTree } from "@oxlint/plugins";
 import { getName, isNode } from "../utils/ast.js";
 import { staticPropertyName } from "../analysis/index.js";
 import { isFunctionLikeNode, visitChildren } from "../analysis/path-state.js";
+import { truthyPathRequiresCursorNext } from "../analysis/cursor-condition.js";
 import { GLIDE_VALUE_EXTRACTORS } from "../glide/query-methods.js";
 import { isServerInstanceContext } from "../context/index.js";
 import { ruleDocsUrl } from "../constants.js";
@@ -56,23 +57,30 @@ function objectIdOfCursor(
   return proven.objectId;
 }
 
+function isCursorNextCall(
+  node: unknown,
+  analysis: ReturnType<typeof beginRuleFile>["analysis"],
+): number | null {
+  if (!isNode(node) || node.type !== "CallExpression") return null;
+  const call = node as ESTree.CallExpression;
+  if (staticPropertyName(call.callee) !== "next" || call.callee.type !== "MemberExpression") return null;
+  return objectIdOfCursor(analysis, call.callee.object);
+}
+
 function isCursorNext(
   node: unknown,
   analysis: ReturnType<typeof beginRuleFile>["analysis"],
 ): number | null {
-  if (!isNode(node)) return null;
-  if (node.type === "LogicalExpression") {
-    const expr = node as ESTree.LogicalExpression;
-    return isCursorNext(expr.left, analysis) ?? isCursorNext(expr.right, analysis);
-  }
-  if (node.type !== "CallExpression") return null;
-  const call = node as ESTree.CallExpression;
-  if (staticPropertyName(call.callee) !== "next" || call.callee.type !== "MemberExpression") {
-    return null;
-  }
-  return objectIdOfCursor(analysis, call.callee.object);
+  const ids = new Set<number>();
+  const collect = (candidate: unknown): boolean => {
+    const id = isCursorNextCall(candidate, analysis);
+    if (id === null) return false;
+    ids.add(id);
+    return true;
+  };
+  if (!truthyPathRequiresCursorNext(node, collect) || ids.size !== 1) return null;
+  return ids.values().next().value ?? null;
 }
-
 function isGlideElement(
   node: unknown,
   cursorIds: ReadonlySet<number>,
@@ -107,11 +115,21 @@ function findRetainedElements(
       visitChildren(node, (child) => visit(child, new Set()));
       return;
     }
-    if (node.type === "WhileStatement" || node.type === "DoWhileStatement") {
-      const statement = node as ESTree.WhileStatement | ESTree.DoWhileStatement;
+    if (node.type === "WhileStatement") {
+      const statement = node as ESTree.WhileStatement;
       const id = isCursorNext(statement.test, analysis);
       const nextIds = new Set(cursorIds);
       if (id !== null) nextIds.add(id);
+      visit(statement.test, cursorIds);
+      visit(statement.body, nextIds);
+      return;
+    }
+    if (node.type === "DoWhileStatement") {
+      const statement = node as ESTree.DoWhileStatement;
+      const id = isCursorNext(statement.test, analysis);
+      const nextIds = new Set(cursorIds);
+      if (id !== null) nextIds.add(id);
+      visit(statement.body, cursorIds);
       visit(statement.test, cursorIds);
       visit(statement.body, nextIds);
       return;

@@ -102,6 +102,29 @@ while (rec.next()) {
     );
   });
 
+  it("requires cursor success for && in either operand but not fallback ||/?? paths", () => {
+    const andLeft = `var numbers = [];
+var incident = new GlideRecord("incident");
+incident.query();
+while (incident.next() && ready) numbers.push(incident.number);`;
+    const andRight = `var numbers = [];
+var incident = new GlideRecord("incident");
+incident.query();
+while (ready && incident.next()) numbers.push(incident.number);`;
+    assertInvalid(andLeft, RULE, { messageId: "retained" }, SERVER);
+    assertInvalid(andRight, RULE, { messageId: "retained" }, SERVER);
+    const fallback = `var numbers = [];
+var incident = new GlideRecord("incident");
+incident.query();
+while (incident.next() || ready) numbers.push(incident.number);`;
+    const nullish = `var numbers = [];
+var incident = new GlideRecord("incident");
+incident.query();
+while (ready ?? incident.next()) numbers.push(incident.number);`;
+    assertValid(fallback, RULE, SERVER);
+    assertValid(nullish, RULE, SERVER);
+  });
+
   it("skips client files", () => {
     assertValid(
       `var numbers = [];
@@ -747,6 +770,22 @@ while (incident.next()) {
       { messageId: "nestedQuery" },
       SERVER,
     );
+  });
+});
+
+describe("cursor condition implications", () => {
+  const RULE = "no-gliderecord-query-in-loop" as const;
+  const nested = (test: string) => `var incident = new GlideRecord("incident");
+incident.query();
+while (${test}) {
+  var extra = new GlideRecord("task");
+  extra.query();
+}`;
+  it("requires next success on && paths and rejects fallback-only ||/?? entry", () => {
+    assertInvalid(nested("incident.next() && ready"), RULE, { messageId: "nestedQuery" }, SERVER);
+    assertInvalid(nested("ready && incident.next()"), RULE, { messageId: "nestedQuery" }, SERVER);
+    assertValid(nested("incident.next() || ready"), RULE, SERVER);
+    assertValid(nested("ready ?? incident.next()"), RULE, SERVER);
   });
 });
 

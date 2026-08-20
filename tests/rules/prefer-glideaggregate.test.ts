@@ -42,6 +42,48 @@ describe(RULE, () => {
     );
   });
 
+  it("requires an actual stable numeric counter proof", () => {
+    assertValid(
+      `var gr = new GlideRecord("incident");
+var n = 0;
+while (gr.next()) {}`,
+      RULE,
+    );
+    assertValid(
+      `var gr = new GlideRecord("incident");
+var n = 0;
+while (gr.next()) { n += calculateRisk(gr); }`,
+      RULE,
+    );
+    assertValid(
+      `var gr = new GlideRecord("incident");
+var n = 0;
+while (gr.next()) { n++; gs.info(gr.number); }`,
+      RULE,
+    );
+    assertValid(
+      `var gr = new GlideRecord("incident");
+var n = 0;
+log(n);
+while (gr.next()) { n++; }`,
+      RULE,
+    );
+    assertInvalid(
+      `var gr = new GlideRecord("incident");
+var n = 0;
+while (gr.next()) { ++n; }`,
+      RULE,
+      { messageId: "iterateCount" },
+    );
+    assertInvalid(
+      `var gr = new GlideRecord("incident");
+var n = 0;
+while (gr.next()) { n += 1; }`,
+      RULE,
+      { messageId: "iterateCount" },
+    );
+  });
+
   it("does not flag a loop that reads fields", () => {
     assertValid(
       `var gr = new GlideRecord("incident");\ngr.query();\nwhile (gr.next()) {\n  gs.info(gr.number);\n}`,

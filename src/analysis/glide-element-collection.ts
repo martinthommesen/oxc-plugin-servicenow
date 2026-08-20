@@ -4,6 +4,7 @@ import { GLIDE_VALUE_EXTRACTORS } from "../glide/query-methods.js";
 import { isComputedUnknown, staticPropertyName } from "./members.js";
 import type { ProvenanceQuery } from "./provenance.js";
 import { isFunctionLikeNode, visitChildren } from "./path-state.js";
+import { truthyPathRequiresCursorNext } from "./cursor-condition.js";
 
 export interface GlideElementCollectionFinding {
   node: ESTree.Node;
@@ -33,17 +34,16 @@ const CURSOR_METHODS = new Set([
   "setValue",
 ]);
 
-function isCursorLoopTest(node: unknown, cursorName: string): boolean {
-  if (!isNode(node)) return false;
-  if (node.type === "LogicalExpression") {
-    const expr = node as ESTree.LogicalExpression;
-    return isCursorLoopTest(expr.left, cursorName) || isCursorLoopTest(expr.right, cursorName);
-  }
-  if (node.type !== "CallExpression") return false;
+function isCursorNextCall(node: unknown, cursorName: string, analysis: ProvenanceQuery): boolean {
+  if (!isNode(node) || node.type !== "CallExpression") return false;
   const call = node as ESTree.CallExpression;
-  if (staticPropertyName(call.callee) !== "next") return false;
-  if (call.callee.type !== "MemberExpression") return false;
-  return getName((call.callee as ESTree.MemberExpression).object) === cursorName;
+  if (staticPropertyName(call.callee) !== "next" || call.callee.type !== "MemberExpression") return false;
+  const object = (call.callee as ESTree.MemberExpression).object;
+  return getName(object) === cursorName && analysis.ofExpression(object)?.kind === "GlideRecord";
+}
+
+function isCursorLoopTest(node: unknown, cursorName: string, analysis: ProvenanceQuery): boolean {
+  return truthyPathRequiresCursorNext(node, (candidate) => isCursorNextCall(candidate, cursorName, analysis));
 }
 
 function isExtracted(node: unknown): boolean {
@@ -88,7 +88,12 @@ export function findGlideElementCollections(
 ): GlideElementCollectionFinding[] {
   const findings: GlideElementCollectionFinding[] = [];
   visit(program, new Set(), analysis, findings);
-  return findings;
+  const unique = new Set<ESTree.Node>();
+  return findings.filter((finding) => {
+    if (unique.has(finding.node)) return false;
+    unique.add(finding.node);
+    return true;
+  });
 }
 
 function visit(
@@ -103,12 +108,24 @@ function visit(
     return;
   }
 
-  if (node.type === "WhileStatement" || node.type === "DoWhileStatement") {
-    const stmt = node as ESTree.WhileStatement | ESTree.DoWhileStatement;
+  if (node.type === "WhileStatement") {
+    const stmt = node as ESTree.WhileStatement;
     const nextCursors = new Set(cursors);
     for (const name of provenRecordNames(analysis, stmt.test)) {
-      if (isCursorLoopTest(stmt.test, name)) nextCursors.add(name);
+      if (isCursorLoopTest(stmt.test, name, analysis)) nextCursors.add(name);
     }
+    visit(stmt.test, cursors, analysis, findings);
+    visit(stmt.body, nextCursors, analysis, findings);
+    return;
+  }
+
+  if (node.type === "DoWhileStatement") {
+    const stmt = node as ESTree.DoWhileStatement;
+    const nextCursors = new Set(cursors);
+    for (const name of provenRecordNames(analysis, stmt.test)) {
+      if (isCursorLoopTest(stmt.test, name, analysis)) nextCursors.add(name);
+    }
+    visit(stmt.body, cursors, analysis, findings);
     visit(stmt.test, cursors, analysis, findings);
     visit(stmt.body, nextCursors, analysis, findings);
     return;
@@ -119,7 +136,7 @@ function visit(
     const nextCursors = new Set(cursors);
     if (stmt.test) {
       for (const name of provenRecordNames(analysis, stmt.test)) {
-        if (isCursorLoopTest(stmt.test, name)) nextCursors.add(name);
+        if (isCursorLoopTest(stmt.test, name, analysis)) nextCursors.add(name);
       }
     }
     if (stmt.init) visit(stmt.init, cursors, analysis, findings);

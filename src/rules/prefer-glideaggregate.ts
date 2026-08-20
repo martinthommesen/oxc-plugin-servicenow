@@ -1,7 +1,7 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
-import { getName } from "../utils/ast.js";
+import { getName, isNode, isValueReference, walk } from "../utils/ast.js";
 import { staticPropertyName } from "../analysis/index.js";
 import { isServerInstanceContext } from "../context/index.js";
 import { beginRuleFile } from "./helpers.js";
@@ -149,21 +149,99 @@ export const preferGlideaggregate = defineRule({
       const binding = ensureBinding(receiver.id, receiver.name);
 
       const body = node.body;
-      const statements =
-        body.type === "BlockStatement" ? (body as ESTree.BlockStatement).body : [body];
+      const statements = body.type === "BlockStatement" ? [...body.body] : [body];
       const meaningful = statements.filter((stmt) => stmt.type !== "EmptyStatement");
-      const onlyIncremented =
-        meaningful.length === 0 ||
-        meaningful.every((stmt) => {
-          if (stmt.type === "ExpressionStatement") {
-            return isIncrement((stmt as ESTree.ExpressionStatement).expression as ESTree.Node);
-          }
-          return false;
-        });
-      if (onlyIncremented) {
-        binding.onlyIncremented = true;
-        binding.countNode = node;
+      const updates: ESTree.Node[] = [];
+      if (node.type === "ForStatement" && node.update) updates.push(node.update as ESTree.Node);
+      for (const statement of meaningful) {
+        if (statement.type !== "ExpressionStatement") return;
+        updates.push((statement as ESTree.ExpressionStatement).expression as ESTree.Node);
       }
+      // An empty loop proves no counting behavior. Every reachable statement
+      // must be one of the three exact numeric counter forms.
+      if (updates.length === 0) return;
+      let counterId: number | undefined;
+      for (const update of updates) {
+        const target = counterUpdateTarget(update, analysis);
+        if (!target) return;
+        if (counterId === undefined) counterId = target;
+        if (counterId !== target) return;
+      }
+      if (counterId === undefined || !numericCounterDeclaration(counterId, analysis)) return;
+      if (!counterHasOnlyAllowedUses(counterId, analysis)) return;
+      binding.onlyIncremented = true;
+      binding.countNode = node;
+    }
+
+    function counterUpdateTarget(node: ESTree.Node, analysis: ReturnType<typeof beginRuleFile>["analysis"]): number | null {
+      if (node.type === "UpdateExpression") {
+        const update = node as ESTree.UpdateExpression;
+        if (update.operator !== "++" || !isNode(update.argument) || update.argument.type !== "Identifier") return null;
+        const name = getName(update.argument);
+        const resolved = name ? analysis.bindings.tree.resolve(name, update.argument) : null;
+        return resolved?.id ?? null;
+      }
+      if (node.type !== "AssignmentExpression") return null;
+      const assignment = node as ESTree.AssignmentExpression;
+      if (assignment.operator !== "+=" || !isNode(assignment.left) || assignment.left.type !== "Identifier") return null;
+      const value = assignment.right as { type?: string; value?: unknown };
+      if (value.type !== "Literal" || value.value !== 1) return null;
+      const name = getName(assignment.left);
+      const resolved = name ? analysis.bindings.tree.resolve(name, assignment.left) : null;
+      return resolved?.id ?? null;
+    }
+
+    function numericCounterDeclaration(id: number, analysis: ReturnType<typeof beginRuleFile>["analysis"]): boolean {
+      for (const scope of analysis.bindings.tree.root ? [analysis.bindings.tree.root] : []) {
+        const stack = [scope];
+        while (stack.length > 0) {
+          const current = stack.pop()!;
+          const binding = [...current.bindings.values()].find((candidate) => candidate.id === id);
+          if (binding) {
+            if (binding.node.type !== "VariableDeclarator") return false;
+            const init = (binding.node as ESTree.VariableDeclarator).init as { type?: string; value?: unknown } | null;
+            return Boolean(init && init.type === "Literal" && typeof init.value === "number");
+          }
+          // ScopeTree does not expose children; declaration spans let the
+          // fallback below resolve the binding and inspect its node.
+        }
+      }
+      // Resolve through any reference carrying the binding identity when the
+      // root-only traversal cannot see nested scope maps.
+      let declaration: ESTree.Node | null = null;
+      walk(context.sourceCode.ast as unknown as ESTree.Node, {
+        VariableDeclarator(node) {
+          const candidate = node as ESTree.VariableDeclarator;
+          if (!isNode(candidate.id) || candidate.id.type !== "Identifier") return;
+          const resolved = analysis.bindings.tree.resolve(getName(candidate.id) ?? "", candidate.id);
+          if (resolved?.id === id) declaration = candidate;
+        },
+      });
+      if (!declaration) return false;
+      const init = (declaration as ESTree.VariableDeclarator).init as { type?: string; value?: unknown } | null;
+      return Boolean(init && init.type === "Literal" && typeof init.value === "number");
+    }
+
+    function counterHasOnlyAllowedUses(id: number, analysis: ReturnType<typeof beginRuleFile>["analysis"]): boolean {
+      let valid = true;
+      const ancestors: ESTree.Node[] = [];
+      walk(context.sourceCode.ast as unknown as ESTree.Node, {
+        Identifier(node) {
+          if (!isValueReference(node, ancestors)) return;
+          const name = getName(node);
+          const resolved = name ? analysis.bindings.tree.resolve(name, node, ancestors) : null;
+          if (resolved?.id !== id) return;
+          const parent = ancestors[ancestors.length - 2];
+          const isDeclaration = parent?.type === "VariableDeclarator" &&
+            (parent as ESTree.VariableDeclarator).id === node;
+          const isUpdate = parent?.type === "UpdateExpression" &&
+            (parent as ESTree.UpdateExpression).argument === node;
+          const isAssignment = parent?.type === "AssignmentExpression" &&
+            (parent as ESTree.AssignmentExpression).left === node;
+          if (!isDeclaration && !isUpdate && !isAssignment) valid = false;
+        },
+      }, ancestors);
+      return valid;
     }
   },
 });

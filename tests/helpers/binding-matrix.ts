@@ -68,7 +68,7 @@ export function glideRecordBindingMatrix(methodCall: string): BindingMatrixCase[
     },
     {
       name: "short-circuit and and query",
-      expect: "silent",
+      expect: "report",
       code: `var rec = new GlideRecord("incident");\nrec.addQuery("active", true) && rec.query();\nrec.next();`,
     },
     {
