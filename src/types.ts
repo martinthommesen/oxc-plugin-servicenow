@@ -1,43 +1,164 @@
 import type { Rule } from "@oxlint/plugins";
+import type { ServiceNowRelease } from "./settings/releases.js";
+
+/**
+ * JavaScript runtime mode for instance-executed ServiceNow scripts.
+ *
+ * Unknown means the plugin does not know the mode and must not assume ES5.
+ *
+ * @see https://www.servicenow.com/docs/r/xanadu/api-reference/scripts/c_JS_modes.html
+ */
+export type JavaScriptMode = "compatibility" | "es5" | "es2021" | "unknown";
+
+/** Whether the file is classic instance script or Fluent build metadata. */
+export type ScriptAuthoring = "classic" | "fluent";
+
+/**
+ * Execution surfaces that can apply to one file at the same time.
+ * A UI Action may be client, server, or both.
+ */
+export type ScriptSurface =
+  | "client"
+  | "server"
+  | "business-rule"
+  | "script-include"
+  | "ui-action"
+  | "scheduled-script"
+  | "fix-script";
+
+export type ApplicationScope = "global" | "scoped" | "unknown";
+
+export type ContextConfidence = "explicit" | "filename" | "inferred" | "unknown";
+
+export type BusinessRuleSourceFormat = "full-script" | "body-only" | "unknown";
+
+/**
+ * Business Rule timing. Unknown unless Fluent metadata or an explicit setting
+ * provides it. Script text alone cannot prove `when`.
+ */
+export type BusinessRuleWhen = "before" | "after" | "async" | "display" | "unknown";
+
+/**
+ * How the plugin classified one context dimension.
+ * `unknown` means no evidence was found.
+ */
+export interface ContextSourceMap {
+  authoring: ContextConfidence;
+  surfaces: ContextConfidence;
+  javascriptMode: ContextConfidence;
+  scope: ContextConfidence;
+}
+
+/**
+ * Per-file ServiceNow execution context.
+ *
+ * Authoring form, surfaces, JavaScript mode, and scope are independent.
+ */
+export interface ServiceNowScriptContext {
+  authoring: ScriptAuthoring;
+  surfaces: ReadonlySet<ScriptSurface>;
+  javascriptMode: JavaScriptMode;
+  scope: ApplicationScope;
+  confidence: ContextConfidence;
+  sources: ContextSourceMap;
+  businessRuleSourceFormat: BusinessRuleSourceFormat;
+  businessRuleWhen: BusinessRuleWhen;
+  settings: ValidatedServiceNowSettings;
+  deprecations: readonly SettingsDeprecation[];
+}
+
+export interface SettingsDeprecation {
+  readonly path: string;
+  readonly message: string;
+}
 
 /**
  * Shared `settings.servicenow` shape.
  *
- * Configure once in `.oxlintrc.json` / ESLint `settings` and every rule reads it.
+ * Configure once in `.oxlintrc.json` / ESLint `settings`.
  *
  * @example
  * ```json
  * {
  *   "settings": {
  *     "servicenow": {
- *       "allowedSysIds": ["97c04b3b1b12100043ab85e5bd0713e2"],
- *       "allowedTables": ["x_acme_widget"],
+ *       "javascriptMode": "es2021",
+ *       "surfaces": ["business-rule"],
+ *       "scope": "scoped",
  *       "scopePrefix": "x_acme",
- *       "ecmaLatest": false
+ *       "allowedSysIds": ["97c04b3b1b12100043ab85e5bd0713e2"]
  *     }
  *   }
  * }
  * ```
  */
 export interface ServiceNowSettings {
-  /** 32-char sys_ids that are allowed (e.g. well-known global records). */
+  /** 32-char sys_ids that are allowed (for example well-known global records). */
   allowedSysIds?: string[];
   /** Table names that `no-hardcoded-table-names` should ignore. */
   allowedTables?: string[];
   /**
-   * Force a script type. `"auto"` (default) classifies from the filename
-   * and source markers (`g_form`, `.now.ts`, …).
+   * @deprecated Use `authoring` and `surfaces`. Kept for one major-release cycle.
+   *
+   * `"auto"` (default) classifies from the filename and conservative markers.
    */
   scriptType?: "auto" | ScriptKind;
   /**
-   * When true, skip classic-engine bans (`no-promise`, `no-async-await`,
-   * `no-bigint`, …). Use for Fluent server modules with `$meta.useEsLatest`.
+   * @deprecated Use `javascriptMode`. `true` maps to `javascriptMode: "es2021"`.
+   * `false` does not assume ES5.
    */
   ecmaLatest?: boolean;
-  /** Application scope prefix, e.g. `x_acme`. Used by naming rules. */
+  /** Instance JavaScript mode. Defaults to `unknown`. */
+  javascriptMode?: JavaScriptMode;
+  /** Authoring form. Defaults to filename detection, then classic. */
+  authoring?: ScriptAuthoring | "auto";
+  /**
+   * Execution surfaces. `"auto"` (default) uses filename conventions, then
+   * conservative inference. A UI Action can list `ui-action` plus `client`
+   * and/or `server`.
+   */
+  surfaces?: "auto" | ScriptSurface[];
+  /** Application scope. Defaults to `unknown`. */
+  scope?: ApplicationScope;
+  /** Application scope prefix, for example `x_acme`. Used by naming rules. */
   scopePrefix?: string;
+  /** ServiceNow release identifier used for versioned knowledge, for example `zurich`. */
+  release?: ServiceNowRelease;
+  /** How Business Rule source is stored when that is known. */
+  businessRuleSourceFormat?: BusinessRuleSourceFormat;
+  /**
+   * Business Rule timing. Defaults to `unknown`. Do not infer this from
+   * filename. Fluent `when` literals can supply it later as metadata.
+   */
+  businessRuleWhen?: BusinessRuleWhen;
+  /** Fluent SDK version the manifest should evaluate, for example `4.1.0`. */
+  fluentSdkVersion?: string;
 }
 
+/**
+ * Normalized settings after runtime validation.
+ * Deprecated fields are preserved so migration docs can mention them.
+ */
+export interface ValidatedServiceNowSettings {
+  readonly allowedSysIds: readonly string[];
+  readonly allowedTables: readonly string[];
+  readonly scriptType: "auto" | ScriptKind;
+  readonly ecmaLatest: boolean | undefined;
+  readonly javascriptMode: JavaScriptMode | undefined;
+  readonly authoring: ScriptAuthoring | "auto";
+  readonly surfaces: "auto" | readonly ScriptSurface[];
+  readonly scope: ApplicationScope;
+  readonly scopePrefix: string | undefined;
+  readonly release: ServiceNowRelease | undefined;
+  readonly businessRuleSourceFormat: BusinessRuleSourceFormat;
+  readonly businessRuleWhen: BusinessRuleWhen;
+  readonly fluentSdkVersion: string | undefined;
+}
+
+/**
+ * @deprecated Use `ServiceNowScriptContext` surfaces and authoring.
+ * Retained so existing configs that set `scriptType` keep working.
+ */
 export type ScriptKind =
   | "fluent"
   | "client"
@@ -46,6 +167,8 @@ export type ScriptKind =
   | "server"
   | "ui-action"
   | "unknown";
+
+export type { ServiceNowRelease };
 
 export type RuleModule = Rule;
 
