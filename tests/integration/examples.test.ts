@@ -73,7 +73,9 @@ describe("example projects", () => {
     const readme = readFileSync(path.join(examplesDir, "ui-action/README.md"), "utf8");
     const block = readme.match(/```json\n([\s\S]*?)\n```/);
     assert.ok(block, "UI Action README must contain a JSON settings block");
-    const documented = JSON.parse(block[1]) as { servicenow?: { surfaces?: string } };
+    const json = block?.[1];
+    assert.ok(json, "UI Action README JSON block must not be empty");
+    const documented = JSON.parse(json) as { servicenow?: { surfaces?: string } };
     assert.equal(documented.servicenow?.surfaces, "auto");
     const configPath = path.join(examplesDir, "ui-action/.readme-test.oxlintrc.json");
     const base = JSON.parse(readFileSync(path.join(examplesDir, "ui-action/.oxlintrc.json"), "utf8")) as Record<string, unknown>;
