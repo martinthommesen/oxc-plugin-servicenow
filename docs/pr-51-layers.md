@@ -24,15 +24,15 @@ Plans 007–015 use these review and rollback boundaries. Each reconstruction co
 
 | Plan | Head branch | Base branch | Reconstruction commit |
 | --- | --- | --- | --- |
-| 007 | `pr51-remediation/007-path-state` | `main` | `ab3a8956cd7206cd5d91188cd9c0ad09e3d0fb2c` |
-| 008 | `pr51-remediation/008-bindings-scopes` | `pr51-remediation/007-path-state` | `c93bce33629e115a81c5cdad2f54634c89dd3994` |
-| 009 | `pr51-remediation/009-stateful-rule-lifecycles` | `pr51-remediation/008-bindings-scopes` | `7ff60b0db984fb300ada186d2ae0682de824f9e6` |
-| 010 | `pr51-remediation/010-fluent-sdk-registry` | `pr51-remediation/009-stateful-rule-lifecycles` | `1e32744c3358eeb3b32aa2c3e2dd7d18da586646` |
-| 011 | `pr51-remediation/011-now-id-directives` | `pr51-remediation/010-fluent-sdk-registry` | `c31ed1946db26088b88940cbedf1925119676ef7` |
-| 012 | `pr51-remediation/012-context-profiles-contracts` | `pr51-remediation/011-now-id-directives` | `0eb37f1a5450c574dd787872c4cd0873aead58ac` |
-| 013 | `pr51-remediation/013-public-api-assets` | `pr51-remediation/012-context-profiles-contracts` | `8e8ec7e3d6b46b179216c7fca72b4cd90d3dbbaa` |
-| 014 | `pr51-remediation/014-tests-evidence-compat` | `pr51-remediation/013-public-api-assets` | `91bfcdebfac8a99287d7ab9e703023e3f9660bba` |
-| 015 | `pr51-remediation/015-release-governance` | `pr51-remediation/014-tests-evidence-compat` | `893f6c13e3636c9d354cf01518b0f40a66e7c5bd` |
+| 007 | `pr51-remediation/007-path-state` | `main` | `a8c0c41e861240bebedc2c32c41227d865f29e93` |
+| 008 | `pr51-remediation/008-bindings-scopes` | `pr51-remediation/007-path-state` | `bd72d00c82409e80876f57a3c6354b4fa07e16c5` |
+| 009 | `pr51-remediation/009-stateful-rule-lifecycles` | `pr51-remediation/008-bindings-scopes` | `56677685e1d7ef69646562ee784407dd79a28905` |
+| 010 | `pr51-remediation/010-fluent-sdk-registry` | `pr51-remediation/009-stateful-rule-lifecycles` | `25ea9593e88fe0429a12435b09da497348d05d12` |
+| 011 | `pr51-remediation/011-now-id-directives` | `pr51-remediation/010-fluent-sdk-registry` | `74f13f7aeabf9678e53cdd199d9fc2e081a7a6da` |
+| 012 | `pr51-remediation/012-context-profiles-contracts` | `pr51-remediation/011-now-id-directives` | `7c7ecd621d24d2dc128633e17ba1203322a31196` |
+| 013 | `pr51-remediation/013-public-api-assets` | `pr51-remediation/012-context-profiles-contracts` | `ba6be45abb823c1f852feba596060175879eacca` |
+| 014 | `pr51-remediation/014-tests-evidence-compat` | `pr51-remediation/013-public-api-assets` | `5b4cfa6efd0db274c9f04ff2b39721fcecc11e86` |
+| 015 | `pr51-remediation/015-release-governance` | `pr51-remediation/014-tests-evidence-compat` | `d5f20964dd8778d523f0a86bddbb37cd74192430` |
 
 `docs/pr-51-stack.json` assigns all 368 archived paths to one whole-file owner or one explicit nonoverlapping split. Four paths have split reconstruction ownership: `.github/workflows/ci.yml`, `package.json`, `package-lock.json`, and `scripts/action-pins.json`.
 
