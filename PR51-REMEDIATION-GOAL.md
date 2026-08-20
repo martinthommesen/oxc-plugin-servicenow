@@ -206,7 +206,7 @@ Choose one coherent supported-minimum strategy and prove it:
 ### Executable compatibility matrix
 
 - [x] Make the matrix the single executable source for CI, release validation, and generated docs. Each cell must assert its actual Node, npm, host, parser, SDK, and mode versions.
-- [ ] Run `min-hosts` and every Node-20-labelled cell in a real Node 20 process. Run `eslint9-current` on actual declared `current`, not Node 22.
+- [x] Run `min-hosts` and every Node-20-labelled cell in a real Node 20 process. Run `eslint9-current` on actual declared `current`, not Node 22.
 - [x] Exercise the exact packed tarball in every cell, not the source tree or a filesystem `dist/index.js` import.
 - [x] Materially execute advertised dimensions: TypeScript parser minimum/current, ESLint 9 minimum/current and ESLint 10, Fluent SDK 3.0/4.1, `.now.ts` and `.now.tsx`, and all documented JavaScript modes.
 - [x] Resolve public bare specifiers from a clean consumer: package root, `/oxfmt`, `/oxfmt.recommended.json`, and `/package.json`; compile their NodeNext declarations. A missing export target must fail the gate.
@@ -229,7 +229,7 @@ Choose one coherent supported-minimum strategy and prove it:
 Keep this layer isolated from all untrusted implementation changes and base it on already-reviewed layers 1–6.
 
 - [x] **npm version check:** replace `process.versions.npm` with an executable check such as `npm --version`; parse and verify the explicitly pinned trusted-publishing npm version.
-- [ ] **Exact runtime matrix:** validate the one inspected tarball on real supported Node jobs and require every result before publish.
+- [x] **Exact runtime matrix:** validate the one inspected tarball on real supported Node jobs and require every result before publish.
 - [x] **Least privilege:** dependency installation, package import, compatibility testing, and registry verification run in jobs without `id-token: write`. The OIDC job receives only the inspected artifact, runs `npm publish <inspected.tgz> --ignore-scripts`, performs no install/import, and holds the minimum OIDC permission for the shortest possible interval. Registry installation/import runs only in a separate no-OIDC job; use `--ignore-scripts` for verification installs unless a lifecycle script is itself the subject of a separately sandboxed test.
 - [x] **Post-publish isolation:** registry installation/import verification and GitHub release creation occur in separate no-OIDC/minimum-permission jobs.
 - [x] **Retry safety:** if the version already exists after an accepted-but-ambiguous publish, compare registry integrity/provenance to the inspected artifact and continue safely when identical; fail clearly on mismatch. GitHub-release creation must also be idempotent.
@@ -317,7 +317,7 @@ These items refine the earlier checklists with gaps identified by an independent
 
 ### Modern host matrix and governance
 
-- [ ] **Current runtime coverage:** recheck the official Node release schedule at implementation time. The review found Node 20 to be EOL/minimum compatibility, Node 22 and 24 supported LTS lines, and Node 26 Current. Label Node 20 accurately and test the exact minimum plus Node 22, Node 24, Node 26/current, and future declared supported lines implied by the open-ended engine range.
+- [x] **Current runtime coverage:** recheck the official Node release schedule at implementation time. The review found Node 20 to be EOL/minimum compatibility, Node 22 and 24 supported LTS lines, and Node 26 Current. Label Node 20 accurately and test the exact minimum plus Node 22, Node 24, Node 26/current, and future declared supported lines implied by the open-ended engine range.
 - [x] **Meaningful host dimensions:** test minimum and actual latest-compatible Oxlint as distinct versions, ESLint 9/10 as supported, and minimum/current oxfmt. A “latest” cell identical to the minimum is not evidence of current compatibility.
 - [ ] **Repository enforcement:** before release, configure and capture evidence for a `main` branch/repository ruleset requiring pull requests and all test, compatibility, benchmark, docs, manifest, and artifact checks; disable force-push/deletion; protect `v*` tags; and restrict the protected `release` environment and npm trusted publisher to the intended repository, workflow path, environment, and tag refs.
 - [x] **Separate readiness phases:** define merge readiness as green in-repository code/configuration plus verified permissions, and release readiness as the post-merge protected-tag publication and live registry/GitHub verification. Remove any circular policy requiring a tag-only live publish before the implementation can merge.

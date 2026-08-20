@@ -25,6 +25,7 @@ This report is the final local audit for the seven-layer remediation stack. The 
 - `npm run workflow:check` and `npm run compat:check` — pass.
 - `npm run bench` — pass; recommended small-to-large scale is approximately 2x in the final run (host variance observed). RSS is unavailable on this host; `benchmark.mjs --write` deliberately refuses to write a zero-RSS baseline.
 - `npm run release:check -- --consumer-all` — pass for one inspected tarball across all six declared cells on the available host (SHA-256 `066894ac2a9f71ca00bd6cdf815472a2a5e0d7c573c756c8627d580bff850510`; npm integrity `sha512-OD0YvFwVj0j7XpUtfmB1jrnxWGPeIwsXoh+AslBU9MCvJpaBs0nGsy2cRPyGhXnwI38Py5qh4EPhjWeni44n3Q==`). The packed artifact is authoritative; no source or filesystem `dist` consumer import is used.
+- The same inspected artifact passed `npm run release:check -- --consumer-all` under real Node `20.19.0`, `22.14.0`, `24.16.0`, and `26.7.0` processes; every run covered all six cells, all five Fluent SDK manifests, all TypeScript parser fixtures, and all four JavaScript modes.
 - `npm run compat -- --cell eslint9-current` — pass with real Oxlint, ESLint, oxfmt, TypeScript 5.8.3, and `@typescript-eslint/parser` 8.46.0 coverage; the all-cell packed run also passes the five Fluent SDK manifests.
 - Targeted Fluent, stateful, profile, oxfmt, packed-consumer, benchmark-gate, and release-helper suites — pass.
 
