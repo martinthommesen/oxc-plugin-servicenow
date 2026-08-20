@@ -3,7 +3,7 @@ import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { cpus, tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { assertBenchmarkFixtureSet, checkBenchmarkRegression } from "./benchmark-gate.mjs";
+import { assertBenchmarkFixtureSet, checkBenchmarkRegression, validateBenchmarkSummary } from "./benchmark-gate.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const oxlintBin = join(root, "node_modules", ".bin", "oxlint");
@@ -233,6 +233,7 @@ for (const row of results) {
   console.log(`${row.fixture} ${row.profile} ${row.elapsedMs}ms rss=${row.peakRssKb}KB`);
 }
 console.log(`scale small->large recommended: ${summary.scale}x`);
+console.log(JSON.stringify({ benchmark: validateBenchmarkSummary(summary) }));
 
 if (large && large.elapsedMs >= summary.regression.maxRecommendedLargeMs) {
   throw new Error(`classic-large/recommended exceeded ${summary.regression.maxRecommendedLargeMs}ms (${large.elapsedMs}ms)`);

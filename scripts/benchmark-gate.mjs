@@ -29,3 +29,16 @@ export function checkBenchmarkRegression(results, baseline) {
     }
   }
 }
+
+
+export function validateBenchmarkSummary(summary) {
+  if (!summary || typeof summary !== "object" || !Array.isArray(summary.results)) throw new Error("benchmark summary is malformed");
+  if (typeof summary.scale !== "number" || !Number.isFinite(summary.scale)) throw new Error("benchmark summary scale is malformed");
+  for (const row of summary.results) {
+    if (!row || typeof row.fixture !== "string" || typeof row.elapsedMs !== "number" || typeof row.peakRssKb !== "number") {
+      throw new Error("benchmark result row is malformed");
+    }
+  }
+  assertBenchmarkFixtureSet(summary.results, summary.results);
+  return summary;
+}
