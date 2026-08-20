@@ -6,7 +6,7 @@ This report is the final local audit for the seven-layer remediation stack. The 
 
 | Layer | Checkpoint(s) | Scope |
 | --- | --- | --- |
-| 1 | `1d5367a`, `a08f912`, `f92686d`, `1fdf8d2` | context, settings, engine, profiles, readonly/cache contracts |
+| 1 | `1d5367a`, `a08f912`, `f92686d`, `1fdf8d2`, `872ab89`, `a9f8a18` | context, settings, engine, profiles, readonly/cache contracts |
 | 2 | `6708709`, `8972ce8` | shared path state, joins, abrupt completion, loop effects, expression identity |
 | 3 | `379c4f9`, `635a30e` | stateful classic consumers, cursor implications, count proof |
 | 4 | `001583e`, `17025c4`, `7053234`, `04ca820` | Fluent manifests, declaration boundaries, authoritative imports, Now.ID provenance |
@@ -17,6 +17,7 @@ This report is the final local audit for the seven-layer remediation stack. The 
 ## Local commands and environments
 
 - Node `v26.7.0`, npm `12.0.2`, macOS arm64.
+- `npm ci` followed by `npm run validate` from a detached clean worktree — pass.
 - `npm run typecheck` — pass.
 - `npm test` — pass (654 tests).
 - `npm run docs:check` — pass (41 catalog records).
