@@ -73,8 +73,29 @@ async function writeRuleDocs() {
       .join("\n");
     const evidence =
       rule.evidence.length > 0
-        ? rule.evidence.map((url) => `- ${url}`).join("\n")
+        ? rule.evidence
+            .map(
+              (item) =>
+                `- **${item.claim}**\n  - URL: ${item.url}\n  - Verified by: ${item.verifiedBy}\n  - Verified at: ${item.verifiedAt}`,
+            )
+            .join("\n")
         : "- None recorded. Add an authoritative ServiceNow or Oxc link before expanding this rule.";
+    const falsePositives =
+      rule.falsePositives.length > 0
+        ? rule.falsePositives.map((item) => `- ${item}`).join("\n")
+        : "- None recorded.";
+    const falseNegatives =
+      rule.falseNegatives.length > 0
+        ? rule.falseNegatives.map((item) => `- ${item}`).join("\n")
+        : "- None recorded.";
+    const overlaps =
+      rule.overlaps.length > 0 ? rule.overlaps.map((item) => `- \`${item}\``).join("\n") : "- None recorded.";
+    const modes =
+      rule.applicability.javascriptModes === "n/a"
+        ? "n/a"
+        : rule.applicability.javascriptModes.join(", ");
+    const sdkRange = rule.applicability.fluentSdkRange ?? "n/a";
+    const lifecycle = rule.lifecycleAssumptions ?? "No extra lifecycle assumptions.";
     const placements = rule.placements
       .map((placement) => `${placement.profile} (${placement.severity})`)
       .join(", ");
@@ -107,6 +128,18 @@ ${rule.description}
         : ""
     }
 
+## Applicability
+
+| Dimension | Value |
+| --- | --- |
+| Authoring | ${rule.applicability.authoring} |
+| Surfaces | ${rule.applicability.surfaces} |
+| Minimum surface confidence | ${rule.applicability.minimumSurfaceConfidence} |
+| JavaScript modes | ${modes} |
+| Application scopes | ${rule.applicability.scopes.join(", ")} |
+| ServiceNow releases | ${rule.applicability.serviceNowReleases.join(", ")} |
+| Fluent SDK range | ${sdkRange} |
+
 ## Options
 
 | Name | Type | Default | Description |
@@ -122,6 +155,23 @@ ${good}
 ## Limitations
 
 ${rule.limitations}
+
+## Known false positives
+
+${falsePositives}
+
+## Known false negatives
+
+${falseNegatives}
+
+## Overlaps
+
+${overlaps}
+
+## Fix safety
+
+- Classification: ${rule.fixKind === "none" ? "diagnostic only" : rule.fixKind}
+- Lifecycle assumptions: ${lifecycle}
 
 ## Evidence
 

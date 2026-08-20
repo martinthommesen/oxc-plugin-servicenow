@@ -9,10 +9,22 @@
 - **Fix safety:** diagnostic only
 - **Suggestions:** no
 - **Authoring:** classic
-- **Surfaces:** Classic instance scripts. Client-only rules skip server-only files. Fluent files are skipped.
-- **JavaScript mode:** Independent of JavaScript mode unless the rule documents a mode gate.
-- **Last verified:** 2026-08-19
+- **Surfaces:** Applies to client, ui-action when those surfaces are known. Unknown surfaces stay silent.
+- **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
+- **Last verified:** 2026-08-20
 - **Implementation:** [`src/rules/no-glideajax-getanswer.ts`](../../src/rules/no-glideajax-getanswer.ts)
+
+## Applicability
+
+| Dimension | Value |
+| --- | --- |
+| Authoring | classic |
+| Surfaces | Applies to client, ui-action when those surfaces are known. Unknown surfaces stay silent. |
+| Minimum surface confidence | filename-inferred |
+| JavaScript modes | n/a |
+| Application scopes | global, scoped, unknown |
+| ServiceNow releases | zurich |
+| Fluent SDK range | n/a |
 
 ## Options
 
@@ -45,11 +57,35 @@ ajax.getXMLAnswer(function (answer) {
 
 ## Limitations
 
-When provenance, surface, or JavaScript mode is unknown, the rule stays silent instead of guessing.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False negative: getAnswer through an escaped or unknown receiver.
+
+## Known false positives
+
+- None recorded.
+
+## Known false negatives
+
+- getAnswer through an escaped or unknown receiver.
+
+## Overlaps
+
+- `servicenow/no-sync-glideajax`
+
+## Fix safety
+
+- Classification: diagnostic only
+- Lifecycle assumptions: No extra lifecycle assumptions.
 
 ## Evidence
 
-- https://www.servicenow.com/docs/r/api-reference/c_GlideAjaxAPI.html
+- **getAnswer belongs to the synchronous getXMLWait pattern.**
+  - URL: https://www.servicenow.com/docs/r/api-reference/c_GlideAjaxAPI.html
+  - Verified by: declaration-snapshot
+  - Verified at: 2026-08-20
+- **Recommended hosts report getAnswer on proven GlideAjax objects.**
+  - URL: tests/integration/profiles/invalid/glideajax-getanswer.client.js
+  - Verified by: integration-test
+  - Verified at: 2026-08-20
 
 ## See also
 

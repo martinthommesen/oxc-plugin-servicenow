@@ -9,10 +9,22 @@
 - **Fix safety:** diagnostic only
 - **Suggestions:** no
 - **Authoring:** classic
-- **Surfaces:** Classic instance scripts. Fluent files are skipped.
-- **JavaScript mode:** Runs for documented all-mode bans, or when `javascriptMode` is known and the feature is unsupported.
-- **Last verified:** 2026-08-19
+- **Surfaces:** Applies to client, server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent.
+- **JavaScript mode:** Runs when javascriptMode is compatibility, es5, es2021. Unknown mode stays silent.
+- **Last verified:** 2026-08-20
 - **Implementation:** [`src/rules/no-async-iterators.ts`](../../src/rules/no-async-iterators.ts)
+
+## Applicability
+
+| Dimension | Value |
+| --- | --- |
+| Authoring | classic |
+| Surfaces | Applies to client, server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent. |
+| Minimum surface confidence | filename-inferred |
+| JavaScript modes | compatibility, es5, es2021 |
+| Application scopes | global, scoped, unknown |
+| ServiceNow releases | xanadu, yokohama, zurich |
+| Fluent SDK range | n/a |
 
 ## Options
 
@@ -46,11 +58,35 @@ function drain(items) {
 
 ## Limitations
 
-When provenance, surface, or JavaScript mode is unknown, the rule stays silent instead of guessing.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False negative: Async iteration compiled away before lint.
+
+## Known false positives
+
+- None recorded.
+
+## Known false negatives
+
+- Async iteration compiled away before lint.
+
+## Overlaps
+
+- `servicenow/no-async-await`
+
+## Fix safety
+
+- Classification: diagnostic only
+- Lifecycle assumptions: No extra lifecycle assumptions.
 
 ## Evidence
 
-- None recorded. Add an authoritative ServiceNow or Oxc link before expanding this rule.
+- **for await...of and async generators are disallowed in every instance JavaScript mode.**
+  - URL: https://www.servicenow.com/docs/r/zurich/api-reference/scripts/javascript-engine-feature-support.html
+  - Verified by: declaration-snapshot
+  - Verified at: 2026-08-20
+- **es2021 Oxlint still flags async iteration.**
+  - URL: tests/integration/profiles/invalid/es2021-async-iter.server.js
+  - Verified by: integration-test
+  - Verified at: 2026-08-20
 
 ## See also
 

@@ -1,28 +1,24 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { applyRules } from "../../src/runtime/apply-rules.js";
-import { parse } from "../helpers/rule-tester.js";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { pluginRulesFor, repoRoot, runOxlint } from "../integration/helpers.js";
 
-function repeatScript(count: number): string {
-  const block = `var rec${count} = new GlideRecord("incident");
-rec${count}.addQuery("active", true);
-rec${count}.query();
-while (rec${count}.next()) {
-  gs.info(rec${count}.getValue("number"));
-}
-`;
-  return Array.from({ length: count }, (_, index) => block.replaceAll(String(count), String(index))).join("\n");
-}
+const recommendedConfig = path.join(
+  repoRoot,
+  "tests/integration/profiles/configs/recommended.oxlintrc.json",
+);
 
-describe("rule performance", () => {
-  it("analyzes a large GlideRecord file in under two seconds", () => {
-    const code = repeatScript(80);
-    const filename = "load.br.js";
-    const parsed = parse(code, filename);
+describe("real oxlint performance smoke", () => {
+  it("lints a branch-heavy fixture through oxlint in under two seconds", () => {
+    const file = path.join(
+      path.dirname(fileURLToPath(import.meta.url)),
+      "../integration/profiles/valid/noop-join.br.js",
+    );
     const started = Date.now();
-    const messages = applyRules(code, parsed, { filename });
+    const report = runOxlint(recommendedConfig, [file]);
     const elapsed = Date.now() - started;
-    assert.ok(elapsed < 2000, `applyRules took ${elapsed}ms`);
-    assert.equal(messages.filter((message) => message.ruleId.includes("no-unfiltered")).length, 0);
+    assert.ok(elapsed < 2000, `oxlint took ${elapsed}ms`);
+    assert.deepEqual(pluginRulesFor(report), []);
   });
 });

@@ -9,10 +9,22 @@ Hardcoded 32-character sys_ids break when an app is installed on another instanc
 - **Fix safety:** diagnostic only
 - **Suggestions:** no
 - **Authoring:** classic
-- **Surfaces:** Classic instance scripts. Client-only rules skip server-only files. Fluent files are skipped.
-- **JavaScript mode:** Independent of JavaScript mode unless the rule documents a mode gate.
-- **Last verified:** 2026-08-19
+- **Surfaces:** Applies to client, server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent.
+- **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
+- **Last verified:** 2026-08-20
 - **Implementation:** [`src/rules/no-hardcoded-sysid.ts`](../../src/rules/no-hardcoded-sysid.ts)
+
+## Applicability
+
+| Dimension | Value |
+| --- | --- |
+| Authoring | classic |
+| Surfaces | Applies to client, server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent. |
+| Minimum surface confidence | filename-inferred |
+| JavaScript modes | n/a |
+| Application scopes | global, scoped, unknown |
+| ServiceNow releases | zurich |
+| Fluent SDK range | n/a |
 
 ## Options
 
@@ -41,11 +53,37 @@ current.assignment_group = assignmentGroup;
 
 ## Limitations
 
-When provenance, surface, or JavaScript mode is unknown, the rule stays silent instead of guessing.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False positive: Uppercase 32-hex strings that are not ServiceNow sys_ids. False positive: MD5-like binding names when ignoreHashNames is true. False negative: sys_ids built by concatenation or runtime encoding.
+
+## Known false positives
+
+- Uppercase 32-hex strings that are not ServiceNow sys_ids.
+- MD5-like binding names when ignoreHashNames is true.
+
+## Known false negatives
+
+- sys_ids built by concatenation or runtime encoding.
+
+## Overlaps
+
+- `servicenow/no-now-id-as-reference`
+- `core no-restricted-syntax`
+
+## Fix safety
+
+- Classification: diagnostic only
+- Lifecycle assumptions: No extra lifecycle assumptions.
 
 ## Evidence
 
-- None recorded. Add an authoritative ServiceNow or Oxc link before expanding this rule.
+- **Named Fluent Now.ID keys are the supported portable identity, not raw sys_id literals.**
+  - URL: https://www.servicenow.com/docs/r/application-development/servicenow-sdk/fluent-constructs.html
+  - Verified by: declaration-snapshot
+  - Verified at: 2026-08-20
+- **Literal 32-hex strings report; settings and option allow-lists suppress.**
+  - URL: tests/rules/no-hardcoded-sysid.test.ts
+  - Verified by: fixture
+  - Verified at: 2026-08-20
 
 ## See also
 

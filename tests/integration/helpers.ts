@@ -6,8 +6,13 @@ export const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
 export const oxlintBin = path.join(repoRoot, "node_modules", ".bin", "oxlint");
 
 export type OxlintDiagnostic = {
+  message: string;
   code: string;
+  severity?: string;
   filename: string;
+  labels?: Array<{
+    span: { offset: number; length: number; line: number; column: number };
+  }>;
 };
 
 export type OxlintReport = {

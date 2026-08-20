@@ -1,17 +1,14 @@
 import type { Context } from "@oxlint/plugins";
 import type { ServiceNowSettings, ValidatedServiceNowSettings } from "../types.js";
 import { ServiceNowConfigError } from "./errors.js";
-import { emptyValidatedSettings, validateServiceNowSettings } from "./validate.js";
+import { validateServiceNowSettings } from "./validate.js";
 import type { ValidatedSettingsResult } from "./validate.js";
 
 export { ServiceNowConfigError, ServiceNowSettingsError } from "./errors.js";
 export { validateServiceNowSettings, emptyValidatedSettings } from "./validate.js";
 export type { ValidatedSettingsResult } from "./validate.js";
 
-const EMPTY: ValidatedSettingsResult = Object.freeze({
-  settings: emptyValidatedSettings(),
-  deprecations: Object.freeze([]) as [],
-});
+const EMPTY: ValidatedSettingsResult = validateServiceNowSettings(undefined);
 
 let memoFilename: string | undefined;
 let memoRaw: unknown;

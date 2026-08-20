@@ -2,14 +2,12 @@ import { defineRule } from "@oxlint/plugins";
 import type { Context, ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
 import { getName, getStringValue } from "../utils/ast.js";
-import { objectOptionAt } from "../settings/index.js";
+import { parseRuleOptions, noHardcodedSysidOptions, schemaFromDescriptor } from "../options/index.js";
+import type { NoHardcodedSysIdOptions } from "../options/index.js";
 import { beginRuleFile } from "./helpers.js";
 import { findSysIds, looksLikeMd5Context } from "../utils/sysid.js";
 
-export interface NoHardcodedSysIdOptions {
-  allowedSysIds?: string[];
-  ignoreHashNames?: boolean;
-}
+export type { NoHardcodedSysIdOptions };
 
 function allowedSet(context: Context, options: NoHardcodedSysIdOptions): Set<string> {
   const { context: script } = beginRuleFile(context);
@@ -49,16 +47,7 @@ export const noHardcodedSysid = defineRule({
       recommended: "recommended",
       url: ruleDocsUrl("no-hardcoded-sysid"),
     },
-    schema: [
-      {
-        type: "object",
-        additionalProperties: false,
-        properties: {
-          allowedSysIds: { type: "array", items: { type: "string" } },
-          ignoreHashNames: { type: "boolean" },
-        },
-      },
-    ],
+    schema: schemaFromDescriptor(noHardcodedSysidOptions),
     messages: {
       hardcoded:
         "Hardcoded sys_id '{{id}}' is brittle across instances. Use a system property, a named constant, or Fluent `Now.ID['…']`.",
@@ -71,14 +60,9 @@ export const noHardcodedSysid = defineRule({
 
     return {
       before() {
-        const options = objectOptionAt<NoHardcodedSysIdOptions>(
-          context,
-          0,
-          new Set(["allowedSysIds", "ignoreHashNames"]),
-          {},
-        );
+        const options = parseRuleOptions(noHardcodedSysidOptions, context.options);
         allowed = allowedSet(context, options);
-        ignoreHashNames = options.ignoreHashNames !== false;
+        ignoreHashNames = options.ignoreHashNames;
         lastBinding = null;
       },
       VariableDeclarator(node) {

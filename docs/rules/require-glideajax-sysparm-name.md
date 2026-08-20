@@ -9,10 +9,22 @@ GlideAjax requires a non-empty `addParam("sysparm_name", method)` before `getXML
 - **Fix safety:** diagnostic only
 - **Suggestions:** no
 - **Authoring:** classic
-- **Surfaces:** Classic instance scripts. Client-only rules skip server-only files. Fluent files are skipped.
-- **JavaScript mode:** Independent of JavaScript mode unless the rule documents a mode gate.
+- **Surfaces:** Applies to client, ui-action when those surfaces are known. Unknown surfaces stay silent.
+- **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
 - **Last verified:** 2026-08-20
 - **Implementation:** [`src/rules/require-glideajax-sysparm-name.ts`](../../src/rules/require-glideajax-sysparm-name.ts)
+
+## Applicability
+
+| Dimension | Value |
+| --- | --- |
+| Authoring | classic |
+| Surfaces | Applies to client, ui-action when those surfaces are known. Unknown surfaces stay silent. |
+| Minimum surface confidence | filename-inferred |
+| JavaScript modes | n/a |
+| Application scopes | global, scoped, unknown |
+| ServiceNow releases | zurich |
+| Fluent SDK range | n/a |
 
 ## Options
 
@@ -43,11 +55,36 @@ ajax.getXMLAnswer(handleAnswer);
 
 ## Limitations
 
-Missing keys, empty or null method values, wrong prefixes, and `addParam` after a terminal request are distinct diagnostics. Dynamic method values stay silent. A later request on the same object requires a new usable `sysparm_name`.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False negative: Dynamic sysparm_name values stay silent. Lifecycle: A later request on the same object requires a new usable sysparm_name.
+
+## Known false positives
+
+- None recorded.
+
+## Known false negatives
+
+- Dynamic sysparm_name values stay silent.
+
+## Overlaps
+
+- `servicenow/no-glideajax-getanswer`
+- `servicenow/no-sync-glideajax`
+
+## Fix safety
+
+- Classification: diagnostic only
+- Lifecycle assumptions: A later request on the same object requires a new usable sysparm_name.
 
 ## Evidence
 
-- https://www.servicenow.com/docs/r/api-reference/scripts/p_AJAX.html
+- **GlideAjax requires a non-empty sysparm_name before getXML, getXMLAnswer, or getXMLWait.**
+  - URL: https://www.servicenow.com/docs/r/api-reference/scripts/p_AJAX.html
+  - Verified by: declaration-snapshot
+  - Verified at: 2026-08-20
+- **Empty or missing sysparm_name values report on the client host fixtures.**
+  - URL: tests/integration/profiles/invalid/glideajax-empty-sysparm.client.js
+  - Verified by: integration-test
+  - Verified at: 2026-08-20
 
 ## See also
 

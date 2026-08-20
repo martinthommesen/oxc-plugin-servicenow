@@ -9,10 +9,22 @@
 - **Fix safety:** diagnostic only
 - **Suggestions:** no
 - **Authoring:** classic
-- **Surfaces:** Classic instance scripts. Client-only rules skip server-only files. Fluent files are skipped.
-- **JavaScript mode:** Independent of JavaScript mode unless the rule documents a mode gate.
-- **Last verified:** 2026-08-19
+- **Surfaces:** Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent.
+- **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
+- **Last verified:** 2026-08-20
 - **Implementation:** [`src/rules/no-delete-multiple-with-windowing.ts`](../../src/rules/no-delete-multiple-with-windowing.ts)
+
+## Applicability
+
+| Dimension | Value |
+| --- | --- |
+| Authoring | classic |
+| Surfaces | Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent. |
+| Minimum surface confidence | filename-inferred |
+| JavaScript modes | n/a |
+| Application scopes | global, scoped, unknown |
+| ServiceNow releases | zurich |
+| Fluent SDK range | n/a |
 
 ## Options
 
@@ -43,11 +55,35 @@ stale.deleteMultiple();
 
 ## Limitations
 
-When provenance, surface, or JavaScript mode is unknown, the rule stays silent instead of guessing.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False negative: Windowing applied through an escaped helper. Lifecycle: Window methods must resolve to the same GlideRecord object identity as deleteMultiple.
+
+## Known false positives
+
+- None recorded.
+
+## Known false negatives
+
+- Windowing applied through an escaped helper.
+
+## Overlaps
+
+- `servicenow/no-unfiltered-gliderecord-bulk-operation`
+
+## Fix safety
+
+- Classification: diagnostic only
+- Lifecycle assumptions: Window methods must resolve to the same GlideRecord object identity as deleteMultiple.
 
 ## Evidence
 
-- https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html
+- **setLimit and chooseWindow do not limit deleteMultiple(); the call deletes every matching row.**
+  - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html
+  - Verified by: declaration-snapshot
+  - Verified at: 2026-08-20
+- **Recommended hosts report windowed deleteMultiple.**
+  - URL: tests/integration/profiles/invalid/windowed-delete.br.js
+  - Verified by: integration-test
+  - Verified at: 2026-08-20
 
 ## See also
 

@@ -9,10 +9,22 @@
 - **Fix safety:** diagnostic only
 - **Suggestions:** no
 - **Authoring:** classic
-- **Surfaces:** Classic instance scripts. Client-only rules skip server-only files. Fluent files are skipped.
-- **JavaScript mode:** Independent of JavaScript mode unless the rule documents a mode gate.
-- **Last verified:** 2026-08-19
+- **Surfaces:** Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent.
+- **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
+- **Last verified:** 2026-08-20
 - **Implementation:** [`src/rules/prefer-glideaggregate.ts`](../../src/rules/prefer-glideaggregate.ts)
+
+## Applicability
+
+| Dimension | Value |
+| --- | --- |
+| Authoring | classic |
+| Surfaces | Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent. |
+| Minimum surface confidence | filename-inferred |
+| JavaScript modes | n/a |
+| Application scopes | global, scoped, unknown |
+| ServiceNow releases | zurich |
+| Fluent SDK range | n/a |
 
 ## Options
 
@@ -45,11 +57,35 @@ var count = ga.next() ? parseInt(ga.getAggregate("COUNT"), 10) : 0;
 
 ## Limitations
 
-When provenance, surface, or JavaScript mode is unknown, the rule stays silent instead of guessing.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False positive: Loops that read more than a count from each row. False negative: Count accumulation through helpers or aliased counters.
+
+## Known false positives
+
+- Loops that read more than a count from each row.
+
+## Known false negatives
+
+- Count accumulation through helpers or aliased counters.
+
+## Overlaps
+
+- `servicenow/validate-glideaggregate-calls`
+
+## Fix safety
+
+- Classification: diagnostic only
+- Lifecycle assumptions: No extra lifecycle assumptions.
 
 ## Evidence
 
-- None recorded. Add an authoritative ServiceNow or Oxc link before expanding this rule.
+- **GlideAggregate is the documented API for count and group queries.**
+  - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html
+  - Verified by: declaration-snapshot
+  - Verified at: 2026-08-20
+- **Iterate-to-count loops report; if (gr.next()) stays silent.**
+  - URL: tests/rules/prefer-glideaggregate.test.ts
+  - Verified by: fixture
+  - Verified at: 2026-08-20
 
 ## See also
 

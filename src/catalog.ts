@@ -41,7 +41,17 @@ import { requireQueryBeforeNext } from "./rules/require-query-before-next.js";
 import { validateGlideaggregateCalls } from "./rules/validate-glideaggregate-calls.js";
 import { validateGliderecordCalls } from "./rules/validate-gliderecord-calls.js";
 import { PLUGIN_NAME, ruleDocsUrl } from "./constants.js";
-import type { ServiceNowSettings } from "./types.js";
+import type { ApplicationScope, JavaScriptMode, ServiceNowSettings } from "./types.js";
+import {
+  formatJavascriptModes,
+  formatLimitations,
+  formatSurfaces,
+  ruleDocMetadata,
+  type RuleEvidenceRecord,
+  type SurfaceConfidence,
+} from "./catalog-metadata.js";
+import { optionDocsFromDescriptor, RULE_OPTION_DESCRIPTORS } from "./options/index.js";
+import type { RuleOptionDoc } from "./options/descriptor.js";
 
 export type RuleFamily = "classic" | "fluent" | "engine";
 export type RulePreset = "recommended" | "strict" | "classic-es5" | "es2021" | false;
@@ -65,6 +75,11 @@ export interface RuleApplicability {
   authoring: "classic" | "fluent" | "both";
   surfaces: string;
   javascriptMode: string;
+  minimumSurfaceConfidence: SurfaceConfidence;
+  javascriptModes: readonly JavaScriptMode[] | "n/a";
+  scopes: readonly ApplicationScope[];
+  serviceNowReleases: readonly string[];
+  fluentSdkRange?: string;
 }
 
 const ES5: ServiceNowSettings = { javascriptMode: "es5" };
@@ -76,12 +91,7 @@ export interface RuleExample {
   settings?: ServiceNowSettings;
 }
 
-export interface RuleOptionDoc {
-  name: string;
-  type: string;
-  default: string;
-  description: string;
-}
+export type { RuleOptionDoc };
 
 export interface RuleCatalogEntry {
   name: string;
@@ -99,8 +109,12 @@ export interface RuleCatalogEntry {
   good: RuleExample[];
   placements: readonly RulePlacement[];
   applicability: RuleApplicability;
-  evidence: readonly string[];
+  evidence: readonly RuleEvidenceRecord[];
   limitations: string;
+  falsePositives: readonly string[];
+  falseNegatives: readonly string[];
+  overlaps: readonly string[];
+  lifecycleAssumptions?: string;
   fixKind: "none" | "safe-fix" | "suggestion";
   options: readonly RuleOptionDoc[];
   lastVerified: string;
@@ -116,16 +130,15 @@ type RuleCatalogInput = Omit<
   | "applicability"
   | "evidence"
   | "limitations"
+  | "falsePositives"
+  | "falseNegatives"
+  | "overlaps"
+  | "lifecycleAssumptions"
   | "fixKind"
   | "options"
   | "lastVerified"
 > & {
   placements?: readonly RulePlacement[];
-  applicability?: Partial<RuleApplicability>;
-  evidence?: readonly string[];
-  limitations?: string;
-  options?: readonly RuleOptionDoc[];
-  lastVerified?: string;
 };
 
 const EXTRA_PLACEMENTS: Partial<Record<string, readonly RulePlacement[]>> = {
@@ -161,43 +174,24 @@ const EXTRA_PLACEMENTS: Partial<Record<string, readonly RulePlacement[]>> = {
   "no-system-query-bypass": [{ profile: "security", severity: "warn" }],
 };
 
-function defaultApplicability(family: RuleFamily, preset: RulePreset): RuleApplicability {
-  if (family === "fluent") {
-    return {
-      authoring: "fluent",
-      surfaces: "Fluent `.now.ts` metadata only",
-      javascriptMode: "Not instance-executed. Factory rules use the selected `fluentSdkVersion` manifest.",
-    };
-  }
-  if (family === "engine") {
-    return {
-      authoring: "classic",
-      surfaces: "Classic instance scripts. Fluent files are skipped.",
-      javascriptMode:
-        preset === "classic-es5"
-          ? "Runs when `javascriptMode` is `compatibility` or `es5`. Unknown mode stays silent."
-          : "Runs for documented all-mode bans, or when `javascriptMode` is known and the feature is unsupported.",
-    };
-  }
-  return {
-    authoring: "classic",
-    surfaces: "Classic instance scripts. Client-only rules skip server-only files. Fluent files are skipped.",
-    javascriptMode: "Independent of JavaScript mode unless the rule documents a mode gate.",
-  };
-}
-
-function evidenceFrom(description: string, extra: readonly string[] = []): string[] {
-  const found = [...description.matchAll(/https?:\/\/[^\s)]+/g)].map((match) => match[0].replace(/[.,]+$/, ""));
-  return [...new Set([...extra, ...found])];
-}
-
 function entry<N extends string>(name: N, implementation: Rule, rest: RuleCatalogInput): RuleCatalogEntry & { name: N } {
+  const meta = ruleDocMetadata[name];
+  if (!meta) {
+    throw new Error(`Missing catalog metadata for ${name}`);
+  }
   const primary: RulePlacement[] =
     rest.preset === false ? [] : [{ profile: rest.preset, severity: rest.severity }];
   const extras = EXTRA_PLACEMENTS[name] ?? [];
-  const applicability = {
-    ...defaultApplicability(rest.family, rest.preset),
-    ...rest.applicability,
+  const descriptor = RULE_OPTION_DESCRIPTORS[name as keyof typeof RULE_OPTION_DESCRIPTORS];
+  const applicability: RuleApplicability = {
+    authoring: meta.applicability.authoring,
+    surfaces: formatSurfaces(meta.applicability.surfaces),
+    javascriptMode: formatJavascriptModes(meta.applicability.javascriptModes),
+    minimumSurfaceConfidence: meta.applicability.minimumSurfaceConfidence,
+    javascriptModes: meta.applicability.javascriptModes,
+    scopes: meta.applicability.scopes,
+    serviceNowReleases: meta.applicability.serviceNowReleases,
+    fluentSdkRange: meta.applicability.fluentSdkRange,
   };
   return {
     name,
@@ -207,13 +201,15 @@ function entry<N extends string>(name: N, implementation: Rule, rest: RuleCatalo
     ...rest,
     placements: rest.placements ?? [...primary, ...extras],
     applicability,
-    evidence: evidenceFrom(rest.description, rest.evidence),
-    limitations:
-      rest.limitations ??
-      "When provenance, surface, or JavaScript mode is unknown, the rule stays silent instead of guessing.",
+    evidence: meta.evidence,
+    limitations: formatLimitations(meta),
+    falsePositives: meta.falsePositives,
+    falseNegatives: meta.falseNegatives,
+    overlaps: meta.overlaps,
+    lifecycleAssumptions: meta.lifecycleAssumptions,
     fixKind: rest.fixable ? "safe-fix" : rest.hasSuggestions ? "suggestion" : "none",
-    options: rest.options ?? [],
-    lastVerified: rest.lastVerified ?? "2026-08-19",
+    options: descriptor ? optionDocsFromDescriptor(descriptor) : [],
+    lastVerified: meta.lastVerified,
   };
 }
 
@@ -239,20 +235,6 @@ export const ruleCatalog = [
         name: "system property",
         filename: "incident.br.js",
         code: `var assignmentGroup = gs.getProperty("x_acme.default_assignment_group");\ncurrent.assignment_group = assignmentGroup;`,
-      },
-    ],
-    options: [
-      {
-        name: "allowedSysIds",
-        type: "string[]",
-        default: "[]",
-        description: "Additional sys_ids that this rule allows. Settings `allowedSysIds` are also allowed.",
-      },
-      {
-        name: "ignoreHashNames",
-        type: "boolean",
-        default: "true",
-        description: "Ignore 32-character hex strings next to names that look like MD5 hashes.",
       },
     ],
   }),
@@ -480,20 +462,6 @@ export const ruleCatalog = [
         code: `var TABLE = { WIDGET: "x_acme_widget" };\nvar gr = new GlideRecord(TABLE.WIDGET);`,
       },
     ],
-    options: [
-      {
-        name: "allowedTables",
-        type: "string[]",
-        default: "[]",
-        description: "Additional table names this rule allows. Settings `allowedTables` are also allowed.",
-      },
-      {
-        name: "allowBuiltins",
-        type: "boolean",
-        default: "false",
-        description: "Allow the built-in platform table list from `BUILTIN_TABLES`.",
-      },
-    ],
   }),
   entry("fluent-proper-imports", fluentProperImports, {
     title: "Fluent imports from @servicenow/sdk/core",
@@ -504,7 +472,6 @@ export const ruleCatalog = [
     hasSuggestions: false,
     description:
       "Fluent entity and column APIs must be imported from the module recorded in the selected SDK manifest. Aliases and namespace imports resolve by lexical binding identity.",
-    lastVerified: "2026-08-20",
     bad: [
       {
         name: "wrong module",
@@ -529,7 +496,6 @@ export const ruleCatalog = [
     hasSuggestions: false,
     description:
       "Validate `@fluent-ignore`, `@fluent-disable-sync`, and `@fluent-disable-sync-for-file` against the selected SDK manifest. Previous-line directives attach to the next statement. Catch typos and reject `@ts-ignore` as a Fluent suppress.",
-    lastVerified: "2026-08-20",
     bad: [
       {
         name: "typo + ts-ignore",
@@ -568,20 +534,6 @@ export const ruleCatalog = [
         code: `import { BusinessRule } from "@servicenow/sdk/core";\n\nBusinessRule({\n  $id: Now.ID["log-state"],\n  table: "incident",\n  name: "Log state",\n  when: "after",\n  action: ["update"],\n  script: Now.include("../server/log-state.server.js"),\n});`,
       },
     ],
-    options: [
-      {
-        name: "maxLines",
-        type: "number",
-        default: "8",
-        description: "Line count that treats an inline payload as large.",
-      },
-      {
-        name: "maxChars",
-        type: "number",
-        default: "400",
-        description: "Character count that treats an inline payload as large.",
-      },
-    ],
   }),
   entry("require-fluent-id", requireFluentId, {
     title: "Require Fluent $id",
@@ -592,7 +544,6 @@ export const ruleCatalog = [
     hasSuggestions: false,
     description:
       "Fluent entities must declare `$id` when the selected SDK manifest marks the imported factory as requiring an id. Prefer canonical `Now.ID['descriptive-key']`.",
-    lastVerified: "2026-08-20",
     bad: [
       {
         name: "missing $id",
@@ -605,14 +556,6 @@ export const ruleCatalog = [
         name: "Now.ID",
         filename: "log-state.now.ts",
         code: `import { BusinessRule } from "@servicenow/sdk/core";\n\nBusinessRule({\n  $id: Now.ID["log-state"],\n  table: "incident",\n  name: "Log state",\n  when: "after",\n            action: ["update"],\n});`,
-      },
-    ],
-    options: [
-      {
-        name: "preferNowId",
-        type: "boolean",
-        default: "true",
-        description: "Warn when `$id` is a raw string or sys_id instead of `Now.ID`.",
       },
     ],
   }),
@@ -637,20 +580,6 @@ export const ruleCatalog = [
         name: "kebab-case",
         filename: "log-state.now.ts",
         code: `import { BusinessRule } from "@servicenow/sdk/core";\n\nBusinessRule({\n  $id: Now.ID["log-state"],\n  table: "incident",\n            name: "Log state",\n});`,
-      },
-    ],
-    options: [
-      {
-        name: "idStyle",
-        type: '"kebab-case" | "snake_case" | "either"',
-        default: '"kebab-case"',
-        description: "Required style for `Now.ID` keys.",
-      },
-      {
-        name: "fileStyle",
-        type: '"kebab-case" | "snake_case" | "either"',
-        default: '"kebab-case"',
-        description: "Required style for `.now.ts` filenames.",
       },
     ],
   }),
@@ -848,9 +777,6 @@ export const ruleCatalog = [
     hasSuggestions: false,
     description:
       "GlideAjax requires a non-empty `addParam(\"sysparm_name\", method)` before `getXML` / `getXMLAnswer` / `getXMLWait`. Extra static keys must start with `sysparm_`. Evidence: https://www.servicenow.com/docs/r/api-reference/scripts/p_AJAX.html",
-    limitations:
-      "Missing keys, empty or null method values, wrong prefixes, and `addParam` after a terminal request are distinct diagnostics. Dynamic method values stay silent. A later request on the same object requires a new usable `sysparm_name`.",
-    lastVerified: "2026-08-20",
     bad: [
       {
         name: "missing sysparm_name",
@@ -875,9 +801,6 @@ export const ruleCatalog = [
     hasSuggestions: false,
     description:
       "A proven GlideAggregate must call `query()` before `next()` or `getAggregate()`. Static `getAggregate(type, field?)` must match an exact `addAggregate` tuple that was registered before that `query()`.",
-    limitations:
-      "Tuples are intersected across branches. A type-only `addAggregate(\"COUNT\")` does not satisfy `getAggregate(\"COUNT\", field)`. `addAggregate` after `query()` does not validate reads from the already-open result. Dynamic types or fields stay silent.",
-    lastVerified: "2026-08-20",
     bad: [
       {
         name: "next before query",
@@ -902,7 +825,6 @@ export const ruleCatalog = [
     hasSuggestions: false,
     description:
       "`Now.ID[...]` is a metadata identity, not a reference. Alias meaning is read at the use site from lexical binding identity. Use the factory object in-app or `Now.ref()` for external records. Evidence: https://www.servicenow.com/docs/r/application-development/servicenow-sdk/fluent-constructs.html",
-    lastVerified: "2026-08-20",
     bad: [
       {
         name: "Now.ID in another property",
@@ -1073,9 +995,6 @@ export const ruleCatalog = [
     hasSuggestions: false,
     description:
       "`updateMultiple()` / `deleteMultiple()` without a proven restricting filter can touch every row. `query`, `orderBy`, `setLimit`, and `chooseWindow` are not filters. Empty `addQuery()` / `addEncodedQuery(\"\")` do not count.",
-    limitations:
-      "Static analysis cannot prove runtime field names or encoded-query syntax. Missing or empty filter arguments do not count. Dynamic filter expressions and one-branch filters stay silent.",
-    lastVerified: "2026-08-20",
     bad: [
       {
         name: "deleteMultiple with no filter",
@@ -1100,9 +1019,6 @@ export const ruleCatalog = [
     hasSuggestions: false,
     description:
       "A `query()`, `get()`, or `getAsync()` inside a proven GlideRecord / GlideAggregate `.next()` loop is an N+1 pattern. Unrelated iterators with `.next()` do not establish cursor depth.",
-    limitations:
-      "The loop test must resolve to a valid, unescaped GlideRecord or GlideAggregate. Reassigned, escaped, or unknown receivers stay silent.",
-    lastVerified: "2026-08-20",
     bad: [
       {
         name: "nested get",
@@ -1141,12 +1057,6 @@ export const ruleCatalog = [
         code: `var rec = new GlideRecord("incident");\nrec.chooseWindow(0, 20);\nrec.setNoCount();\nrec.query();\nwhile (rec.next()) {\n  gs.info(rec.getValue("number"));\n}`,
       },
     ],
-    evidence: [
-      "https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html",
-    ],
-    limitations:
-      "Window, skip, force-count, and `getRowCount()` state are scoped to one query epoch. A later `query()` is not justified by an earlier `getRowCount()`. Silent when provenance is unknown, when `chooseWindow`'s third argument is not a boolean literal, or when one branch disagrees.",
-    lastVerified: "2026-08-20",
   }),
   entry("no-system-query-bypass", noSystemQueryBypass, {
     title: "Review system query ACL bypass",

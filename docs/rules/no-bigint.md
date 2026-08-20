@@ -9,10 +9,22 @@ BigInt literals and `BigInt()` are unsupported in Compatibility or ES5 Standards
 - **Fix safety:** diagnostic only
 - **Suggestions:** no
 - **Authoring:** classic
-- **Surfaces:** Classic instance scripts. Fluent files are skipped.
-- **JavaScript mode:** Runs when `javascriptMode` is `compatibility` or `es5`. Unknown mode stays silent.
-- **Last verified:** 2026-08-19
+- **Surfaces:** Applies to client, server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent.
+- **JavaScript mode:** Runs when javascriptMode is compatibility, es5. Unknown mode stays silent.
+- **Last verified:** 2026-08-20
 - **Implementation:** [`src/rules/no-bigint.ts`](../../src/rules/no-bigint.ts)
+
+## Applicability
+
+| Dimension | Value |
+| --- | --- |
+| Authoring | classic |
+| Surfaces | Applies to client, server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent. |
+| Minimum surface confidence | filename-inferred |
+| JavaScript modes | compatibility, es5 |
+| Application scopes | global, scoped, unknown |
+| ServiceNow releases | xanadu, yokohama, zurich |
+| Fluent SDK range | n/a |
 
 ## Options
 
@@ -38,11 +50,35 @@ var n = 9007199254740991;
 
 ## Limitations
 
-When provenance, surface, or JavaScript mode is unknown, the rule stays silent instead of guessing.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False positive: Local bindings named BigInt. False negative: Runtime evaluation of the BigInt constructor through an unknown member.
+
+## Known false positives
+
+- Local bindings named BigInt.
+
+## Known false negatives
+
+- Runtime evaluation of the BigInt constructor through an unknown member.
+
+## Overlaps
+
+- `servicenow/no-unsupported-syntax`
+
+## Fix safety
+
+- Classification: diagnostic only
+- Lifecycle assumptions: No extra lifecycle assumptions.
 
 ## Evidence
 
-- None recorded. Add an authoritative ServiceNow or Oxc link before expanding this rule.
+- **BigInt is unsupported in Compatibility and ES5 Standards modes.**
+  - URL: https://www.servicenow.com/docs/r/zurich/api-reference/scripts/javascript-engine-feature-support.html
+  - Verified by: declaration-snapshot
+  - Verified at: 2026-08-20
+- **BigInt literals and the platform BigInt identifier report.**
+  - URL: tests/rules/no-bigint.test.ts
+  - Verified by: fixture
+  - Verified at: 2026-08-20
 
 ## See also
 

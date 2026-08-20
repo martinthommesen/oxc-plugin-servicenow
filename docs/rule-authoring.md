@@ -25,9 +25,13 @@ Do not edit `docs/rules/*.md`, README rule tables, or recommended `.oxlintrc.jso
 
 ## Evidence
 
-Every ServiceNow-specific claim needs an authoritative link in the catalog description or `evidence` field. Do not invent Fluent APIs. Add them to `src/fluent/manifest.ts` with an evidence URL.
+Record every ServiceNow-specific claim in `src/catalog-metadata.ts` as a structured evidence object with `url`, `claim`, `verifiedBy`, and `verifiedAt`. Do not invent Fluent APIs. Add them to `src/fluent/manifest.ts` with an evidence URL.
+
+Recommended errors require an authoritative `https://` URL and a `fixture` or `integration-test` verification record. `npm run docs:check` fails when that metadata is missing or stale.
 
 If the detection needs schema, types, or a project index, label the work as research. Do not fake those capabilities with heuristics.
+
+Option types, defaults, host `meta.schema`, and runtime parsing come from `src/options/descriptors.ts`. Do not hand-edit generated option tables.
 
 ## Test matrix
 

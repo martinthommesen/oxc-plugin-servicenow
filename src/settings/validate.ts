@@ -12,6 +12,7 @@ import type {
 } from "../types.js";
 import { resolveFluentManifest } from "../fluent/registry.js";
 import { ServiceNowSettingsError } from "./errors.js";
+import { deepFreeze } from "./freeze.js";
 
 const SCRIPT_KINDS = new Set<ScriptKind>([
   "fluent",
@@ -109,9 +110,30 @@ export interface ValidatedSettingsResult {
  * Validate and normalize `settings.servicenow`.
  * Throws {@link ServiceNowSettingsError} for unknown keys, wrong types, or conflicts.
  */
+const EMPTY_SETTINGS: ValidatedServiceNowSettings = deepFreeze({
+  allowedSysIds: [],
+  allowedTables: [],
+  scriptType: "auto",
+  ecmaLatest: undefined,
+  javascriptMode: undefined,
+  authoring: "auto",
+  surfaces: "auto",
+  scope: "unknown",
+  scopePrefix: undefined,
+  release: undefined,
+  businessRuleSourceFormat: "unknown",
+  businessRuleWhen: "unknown",
+  fluentSdkVersion: undefined,
+});
+
+const EMPTY_RESULT: ValidatedSettingsResult = deepFreeze({
+  settings: EMPTY_SETTINGS,
+  deprecations: [],
+});
+
 export function validateServiceNowSettings(raw: unknown): ValidatedSettingsResult {
   if (raw === undefined) {
-    return { settings: emptyValidatedSettings(), deprecations: [] };
+    return EMPTY_RESULT;
   }
   if (!isPlainObject(raw)) {
     throw new ServiceNowSettingsError("", `expected an object, got ${typeName(raw)}`);
@@ -277,7 +299,7 @@ export function validateServiceNowSettings(raw: unknown): ValidatedSettingsResul
     resolveFluentManifest(fluentSdkVersion);
   }
 
-  return {
+  return deepFreeze({
     settings: {
       allowedSysIds,
       allowedTables,
@@ -294,25 +316,11 @@ export function validateServiceNowSettings(raw: unknown): ValidatedSettingsResul
       fluentSdkVersion,
     },
     deprecations,
-  };
+  });
 }
 
 export function emptyValidatedSettings(): ValidatedServiceNowSettings {
-  return {
-    allowedSysIds: [],
-    allowedTables: [],
-    scriptType: "auto",
-    ecmaLatest: undefined,
-    javascriptMode: undefined,
-    authoring: "auto",
-    surfaces: "auto",
-    scope: "unknown",
-    scopePrefix: undefined,
-    release: undefined,
-    businessRuleSourceFormat: "unknown",
-    businessRuleWhen: "unknown",
-    fluentSdkVersion: undefined,
-  };
+  return EMPTY_SETTINGS;
 }
 
 export function isIdentifierLike(value: string): boolean {

@@ -5,13 +5,12 @@ import { isCanonicalNowId } from "../analysis/now-id.js";
 import { ruleDocsUrl } from "../constants.js";
 import { getStringValue, objectProperty } from "../utils/ast.js";
 import { isFluentContext } from "../context/index.js";
-import { objectOptionAt } from "../settings/index.js";
+import { parseRuleOptions, requireFluentIdOptions, schemaFromDescriptor } from "../options/index.js";
+import type { RequireFluentIdOptions } from "../options/index.js";
 import { isSysId } from "../utils/sysid.js";
 import { beginRuleFile } from "./helpers.js";
 
-export interface RequireFluentIdOptions {
-  preferNowId?: boolean;
-}
+export type { RequireFluentIdOptions };
 
 export const requireFluentId = defineRule({
   meta: {
@@ -21,15 +20,7 @@ export const requireFluentId = defineRule({
         "Require Fluent entities to declare `$id` when the selected SDK manifest marks the imported API as requiring an id. Prefer `Now.ID['descriptive-key']`.",
       url: ruleDocsUrl("require-fluent-id"),
     },
-    schema: [
-      {
-        type: "object",
-        additionalProperties: false,
-        properties: {
-          preferNowId: { type: "boolean" },
-        },
-      },
-    ],
+    schema: schemaFromDescriptor(requireFluentIdOptions),
     messages: {
       missing:
         "`{{api}}()` is missing `$id`. The Fluent SDK manifest requires `$id` for this API so `keys.ts` can track the record. Add `$id: Now.ID['{{hint}}']`.",
@@ -46,9 +37,7 @@ export const requireFluentId = defineRule({
       before() {
         const { context: script } = beginRuleFile(context);
         if (!isFluentContext(script)) return false;
-        preferNowId =
-          objectOptionAt<RequireFluentIdOptions>(context, 0, new Set(["preferNowId"]), {}).preferNowId !==
-          false;
+        preferNowId = parseRuleOptions(requireFluentIdOptions, context.options).preferNowId;
       },
       CallExpression(node) {
         const { file, analysis } = beginRuleFile(context);

@@ -9,10 +9,22 @@ Optional chaining, nullish coalescing, logical assignment, private instance memb
 - **Fix safety:** diagnostic only
 - **Suggestions:** no
 - **Authoring:** classic
-- **Surfaces:** Classic instance scripts. Fluent files are skipped.
-- **JavaScript mode:** Runs when `javascriptMode` is `compatibility` or `es5`. Unknown mode stays silent.
-- **Last verified:** 2026-08-19
+- **Surfaces:** Applies to client, server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent.
+- **JavaScript mode:** Runs when javascriptMode is compatibility, es5. Unknown mode stays silent.
+- **Last verified:** 2026-08-20
 - **Implementation:** [`src/rules/no-unsupported-syntax.ts`](../../src/rules/no-unsupported-syntax.ts)
+
+## Applicability
+
+| Dimension | Value |
+| --- | --- |
+| Authoring | classic |
+| Surfaces | Applies to client, server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent. |
+| Minimum surface confidence | filename-inferred |
+| JavaScript modes | compatibility, es5 |
+| Application scopes | global, scoped, unknown |
+| ServiceNow releases | xanadu, yokohama, zurich |
+| Fluent SDK range | n/a |
 
 ## Options
 
@@ -38,11 +50,36 @@ var name = current.caller_id ? current.caller_id.name : "unknown";
 
 ## Limitations
 
-When provenance, surface, or JavaScript mode is unknown, the rule stays silent instead of guessing.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False positive: Files whose javascriptMode is unknown or es2021. False negative: Syntax that oxc-parser does not represent as the documented node types.
+
+## Known false positives
+
+- Files whose javascriptMode is unknown or es2021.
+
+## Known false negatives
+
+- Syntax that oxc-parser does not represent as the documented node types.
+
+## Overlaps
+
+- `servicenow/no-async-await`
+- `servicenow/no-bigint`
+
+## Fix safety
+
+- Classification: diagnostic only
+- Lifecycle assumptions: No extra lifecycle assumptions.
 
 ## Evidence
 
-- None recorded. Add an authoritative ServiceNow or Oxc link before expanding this rule.
+- **Several ES2015+ syntactic forms are unsupported in Compatibility and ES5 Standards modes.**
+  - URL: https://www.servicenow.com/docs/r/zurich/api-reference/scripts/javascript-engine-feature-support.html
+  - Verified by: declaration-snapshot
+  - Verified at: 2026-08-20
+- **classic-es5 Oxlint flags unsupported syntax on the ES2021 fixture.**
+  - URL: tests/integration/profiles/invalid/es5-promise.server.js
+  - Verified by: integration-test
+  - Verified at: 2026-08-20
 
 ## See also
 

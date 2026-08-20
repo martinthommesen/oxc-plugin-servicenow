@@ -9,10 +9,22 @@
 - **Fix safety:** diagnostic only
 - **Suggestions:** no
 - **Authoring:** classic
-- **Surfaces:** Classic instance scripts. Client-only rules skip server-only files. Fluent files are skipped.
-- **JavaScript mode:** Independent of JavaScript mode unless the rule documents a mode gate.
+- **Surfaces:** Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent.
+- **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
 - **Last verified:** 2026-08-20
 - **Implementation:** [`src/rules/no-unfiltered-gliderecord-bulk-operation.ts`](../../src/rules/no-unfiltered-gliderecord-bulk-operation.ts)
+
+## Applicability
+
+| Dimension | Value |
+| --- | --- |
+| Authoring | classic |
+| Surfaces | Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent. |
+| Minimum surface confidence | filename-inferred |
+| JavaScript modes | n/a |
+| Application scopes | global, scoped, unknown |
+| ServiceNow releases | zurich |
+| Fluent SDK range | n/a |
 
 ## Options
 
@@ -42,11 +54,35 @@ task.updateMultiple();
 
 ## Limitations
 
-Static analysis cannot prove runtime field names or encoded-query syntax. Missing or empty filter arguments do not count. Dynamic filter expressions and one-branch filters stay silent.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False negative: Dynamic encoded queries stay silent. Lifecycle: query, orderBy, setLimit, and chooseWindow are not restricting filters.
+
+## Known false positives
+
+- None recorded.
+
+## Known false negatives
+
+- Dynamic encoded queries stay silent.
+
+## Overlaps
+
+- `servicenow/no-delete-multiple-with-windowing`
+
+## Fix safety
+
+- Classification: diagnostic only
+- Lifecycle assumptions: query, orderBy, setLimit, and chooseWindow are not restricting filters.
 
 ## Evidence
 
-- None recorded. Add an authoritative ServiceNow or Oxc link before expanding this rule.
+- **updateMultiple and deleteMultiple apply to every row that matches the query filters.**
+  - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html
+  - Verified by: declaration-snapshot
+  - Verified at: 2026-08-20
+- **Empty or missing addQuery arguments do not count as filters.**
+  - URL: tests/integration/profiles/invalid/empty-addquery-bulk.br.js
+  - Verified by: integration-test
+  - Verified at: 2026-08-20
 
 ## See also
 

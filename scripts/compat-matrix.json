@@ -1,0 +1,65 @@
+{
+  "generatedFrom": "scripts/compat-matrix.json",
+  "node": {
+    "engines": ">=20.19.0",
+    "minimum": "20.19.0",
+    "currentLts": "20",
+    "currentMaintenance": "22"
+  },
+  "oxlint": {
+    "peer": ">=1.79.0 <2",
+    "minimum": "1.79.0",
+    "latestCompatible": "1.79.0"
+  },
+  "eslint": {
+    "peer": ">=9.0.0",
+    "minimum": "9.0.0",
+    "currentV9": "9.39.5",
+    "current": "10.8.1"
+  },
+  "oxfmt": {
+    "peer": ">=0.16.0",
+    "minimum": "0.16.0",
+    "latest": "0.64.0"
+  },
+  "oxlintPlugins": {
+    "dependency": "^1.79.0",
+    "pinned": "1.79.0"
+  },
+  "typescriptEslint": {
+    "peer": ">=8.0.0 <9",
+    "tested": "8.46.0"
+  },
+  "fluentSdk": ["3.0.0", "4.1.0"],
+  "javascriptModes": ["compatibility", "es5", "es2021", "unknown"],
+  "cells": [
+    {
+      "id": "min-hosts",
+      "node": "20.19.0",
+      "oxlint": "1.79.0",
+      "eslint": "9.0.0",
+      "oxfmt": "0.16.0"
+    },
+    {
+      "id": "node20-current",
+      "node": "20",
+      "oxlint": "1.79.0",
+      "eslint": "10.8.1",
+      "oxfmt": "0.16.0"
+    },
+    {
+      "id": "node22-latest",
+      "node": "22",
+      "oxlint": "1.79.0",
+      "eslint": "10.8.1",
+      "oxfmt": "0.64.0"
+    },
+    {
+      "id": "eslint9-current",
+      "node": "current",
+      "oxlint": "1.79.0",
+      "eslint": "9.39.5",
+      "oxfmt": "0.16.0"
+    }
+  ]
+}

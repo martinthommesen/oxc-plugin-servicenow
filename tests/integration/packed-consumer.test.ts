@@ -102,7 +102,10 @@ describe("packed package consumer", () => {
         JSON.stringify(
           {
             jsPlugins: [{ name: "servicenow", specifier: "oxc-plugin-servicenow" }],
-            rules: { "servicenow/no-hardcoded-sysid": "error" },
+            rules: {
+              "servicenow/no-hardcoded-sysid": "error",
+              "servicenow/require-query-before-next": "error",
+            },
           },
           null,
           2,
@@ -110,7 +113,7 @@ describe("packed package consumer", () => {
       );
       writeFileSync(
         path.join(consumer, "bad.br.js"),
-        'var assignmentGroup = "97c04b3b1b12100043ab85e5bd0713e2";\n',
+        'var assignmentGroup = "97c04b3b1b12100043ab85e5bd0713e2";\nvar rec = new GlideRecord("incident");\nrec.next();\n',
       );
       let stdout = "";
       try {
@@ -126,6 +129,10 @@ describe("packed package consumer", () => {
       const codes = report.diagnostics.map((diagnostic) => diagnostic.code);
       assert.ok(
         codes.some((code) => code.includes("no-hardcoded-sysid")),
+        `packed oxlint codes: ${codes.join(", ") || "(none)"}`,
+      );
+      assert.ok(
+        codes.some((code) => code.includes("require-query-before-next")),
         `packed oxlint codes: ${codes.join(", ") || "(none)"}`,
       );
 

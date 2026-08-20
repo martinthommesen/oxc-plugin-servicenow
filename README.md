@@ -502,14 +502,18 @@ These are platform limits, not bugs in this package:
 
 ## Tested compatibility
 
+The table is generated from `scripts/compat-matrix.json`. See [Compatibility](docs/compatibility.md) for the full packed-consumer matrix.
+
+<!-- generated:compatibility:start -->
 | Component | Tested range |
 | --- | --- |
-| Node | 20 and 22 (CI) |
-| oxlint | 1.79.x (`>=1.79.0 <2`) |
-| ESLint | 10.x (`>=9`) |
-| oxfmt | optional peer `>=0.16.0` |
+| Node | 20.19.0, 20, and 22 |
+| oxlint | 1.79.0 (`>=1.79.0 <2`) |
+| ESLint | 9.0.0, 9.39.5, and 10.8.1 (`>=9.0.0`) |
+| oxfmt | 0.16.0 and 0.64.0 (`>=0.16.0`) |
 | ServiceNow engine tables | Zurich feature-support document |
-| Fluent directives | Official Fluent API reference (Australia) |
+| Fluent SDK | 3.0.0, 4.1.0 |
+<!-- generated:compatibility:end -->
 
 ## Development
 

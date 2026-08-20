@@ -1,14 +1,79 @@
-# Requires an NPM_TOKEN repo secret (or npm trusted publishing configured for this repo/workflow).
+# Publish the exact inspected tarball with npm trusted publishing (OIDC).
+# Requires a protected GitHub Environment named `release`.
+# Do not inject NPM_TOKEN. The publish job is the only job with id-token: write.
 name: Release
+
 on:
   push:
     tags: ["v*"]
+
 permissions:
   contents: read
-  id-token: write
+
 jobs:
-  publish:
+  validate:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      tarball: ${{ steps.pack.outputs.tarball }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run build
+      - run: npm test
+      - run: npm run docs:check
+      - run: npm run manifest:check
+      - run: npm run bench
+      - run: npm run compat -- --all
+      - id: meta
+        name: Verify tag, ancestry, and changelog heading
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          test "v${version}" = "$GITHUB_REF_NAME"
+          git fetch origin main
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+          node -e '
+            const fs = require("fs");
+            const v = require("./package.json").version;
+            const text = fs.readFileSync("CHANGELOG.md", "utf8");
+            const pattern = new RegExp("^## " + v.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&") + " — \\d{4}-\\d{2}-\\d{2}$", "m");
+            if (!pattern.test(text)) {
+              console.error("CHANGELOG.md must contain an exact heading: ## " + v + " — YYYY-MM-DD");
+              process.exit(1);
+            }
+          '
+      - id: pack
+        name: Build and inspect one tarball
+        run: |
+          tarball="$(npm pack --ignore-scripts --json | node -p "JSON.parse(require('fs').readFileSync(0,'utf8'))[0].filename")"
+          tar -tzf "$tarball" | tee pack-list.txt
+          grep -q '^package/dist/index.js$' pack-list.txt
+          grep -q '^package/oxfmt.recommended.json$' pack-list.txt
+          ! grep -q '^package/src/' pack-list.txt
+          ! grep -q '^package/tests/' pack-list.txt
+          echo "tarball=$tarball" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release-tarball
+          path: ${{ steps.pack.outputs.tarball }}
+          if-no-files-found: error
+
+  consumer:
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -17,28 +82,48 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          registry-url: https://registry.npmjs.org
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: release-tarball
+          path: .
       - run: npm ci
-      - run: npm run typecheck
-      - run: npm run build
-      - run: npm test
-      - run: npm run docs:check
-      - run: npm run manifest:check
-      - name: Verify tag matches package version
+      - name: Install and test the exact tarball
+        run: npx tsx scripts/compat-consumer.mjs --all --tarball "./${{ needs.validate.outputs.tarball }}"
+
+  publish:
+    needs: [validate, consumer]
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - name: Verify npm for trusted publishing
         run: |
-          test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
-      - name: Inspect packed tarball
+          npm install -g npm@11.5.1
+          node -e 'const [maj,min]=process.versions.npm.split(".").map(Number); if (maj<11 || (maj===11 && min<5)) { console.error("npm 11.5+ required"); process.exit(1); }'
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: release-tarball
+          path: .
+      - name: Publish the inspected tarball
+        run: npm publish "${{ needs.validate.outputs.tarball }}" --provenance --access public
+      - name: Verify the registry artifact
         run: |
-          tarball="$(npm pack --ignore-scripts --json | node -p "JSON.parse(require('fs').readFileSync(0,'utf8'))[0].filename")"
-          tar -tzf "$tarball" | tee pack-list.txt
-          grep -q '^package/dist/index.js$' pack-list.txt
-          grep -q '^package/oxfmt.recommended.json$' pack-list.txt
-          ! grep -q '^package/src/' pack-list.txt
-          ! grep -q '^package/tests/' pack-list.txt
-          rm -f "$tarball"
-      - name: Verify changelog mentions this version
-        run: |
-          node -e "const fs=require('fs'); const v=require('./package.json').version; if(!fs.readFileSync('CHANGELOG.md','utf8').includes(v)) { console.error('CHANGELOG.md must mention '+v); process.exit(1); }"
-      - run: npm publish --provenance --access public
+          version="${{ needs.validate.outputs.version }}"
+          npm view "oxc-plugin-servicenow@${version}" version
+          npm view "oxc-plugin-servicenow@${version}" dist.tarball
+      - name: Create GitHub release
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" "${{ needs.validate.outputs.tarball }}" \
+            --title "v${{ needs.validate.outputs.version }}" \
+            --notes "Published oxc-plugin-servicenow ${{ needs.validate.outputs.version }} from the inspected tarball."

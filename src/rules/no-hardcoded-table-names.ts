@@ -2,13 +2,11 @@ import { defineRule } from "@oxlint/plugins";
 import type { Context, ESTree } from "@oxlint/plugins";
 import { BUILTIN_TABLES, ruleDocsUrl } from "../constants.js";
 import { getName, getStringValue } from "../utils/ast.js";
-import { objectOptionAt } from "../settings/index.js";
+import { parseRuleOptions, noHardcodedTableNamesOptions, schemaFromDescriptor } from "../options/index.js";
+import type { NoHardcodedTableNamesOptions } from "../options/index.js";
 import { beginRuleFile } from "./helpers.js";
 
-export interface NoHardcodedTableNamesOptions {
-  allowedTables?: string[];
-  allowBuiltins?: boolean;
-}
+export type { NoHardcodedTableNamesOptions };
 
 function allowed(context: Context, options: NoHardcodedTableNamesOptions): Set<string> {
   const { context: script } = beginRuleFile(context);
@@ -27,16 +25,7 @@ export const noHardcodedTableNames = defineRule({
         "Disallow string-literal table names in platform GlideRecord / GlideRecordSecure / GlideAggregate constructors. Prefer named constants.",
       url: ruleDocsUrl("no-hardcoded-table-names"),
     },
-    schema: [
-      {
-        type: "object",
-        additionalProperties: false,
-        properties: {
-          allowedTables: { type: "array", items: { type: "string" } },
-          allowBuiltins: { type: "boolean" },
-        },
-      },
-    ],
+    schema: schemaFromDescriptor(noHardcodedTableNamesOptions),
     messages: {
       literal:
         "Hardcoded table name '{{table}}'. Use a named constant (or generated table export from Fluent) so renames stay type-safe.",
@@ -47,15 +36,7 @@ export const noHardcodedTableNames = defineRule({
 
     return {
       before() {
-        allow = allowed(
-          context,
-          objectOptionAt<NoHardcodedTableNamesOptions>(
-            context,
-            0,
-            new Set(["allowedTables", "allowBuiltins"]),
-            {},
-          ),
-        );
+        allow = allowed(context, parseRuleOptions(noHardcodedTableNamesOptions, context.options));
       },
       NewExpression(node) {
         const { analysis } = beginRuleFile(context);

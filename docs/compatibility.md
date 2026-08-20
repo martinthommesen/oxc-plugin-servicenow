@@ -1,35 +1,39 @@
 # Compatibility
 
-This page records versions this repository actually tests.
+This page is generated from `scripts/compat-matrix.json`. Do not edit it by hand. Run `npm run docs` after you change the matrix.
 
-## Consumers
+CI and `npm run compat` install the packed tarball in a clean consumer for each matrix cell that the current Node version can run.
 
-| Component | Tested range | Notes |
-| --- | --- | --- |
-| Node.js | 20 and 22 in CI | `engines.node` is `>=20.19.0`. |
-| oxlint | 1.79.0 | Peer range `>=1.79.0 <2`. JS plugins are alpha. |
-| `@oxlint/plugins` | `^1.79.0` | The plugin uses `definePlugin`, `defineRule`, and `createOnce`. |
-| ESLint | 9+ and 10 in devDependencies | Flat configs set `files` so `*.now.ts` is included. |
-| oxfmt | 0.16.0 | No custom formatter plugin. Use the recommended config export. |
-| ServiceNow JavaScript | `compatibility`, `es5`, `es2021`, `unknown` | Unknown mode never assumes ES5. |
-| Fluent SDK knowledge | `DEFAULT_FLUENT_MANIFEST` version `sdk-docs-2026-03` | Version-aware. Unknown APIs stay unknown. |
+## Declared ranges
+
+| Component | Declared range | Tested minimum | Tested current or latest |
+| --- | --- | --- | --- |
+| Node.js | `>=20.19.0` | 20.19.0 | 20 LTS and 22 |
+| oxlint | `>=1.79.0 <2` | 1.79.0 | 1.79.0 |
+| `@oxlint/plugins` | `^1.79.0` | 1.79.0 | 1.79.0 |
+| ESLint | `>=9.0.0` | 9.0.0 | 9.39.5 and 10.8.1 |
+| oxfmt | `>=0.16.0` | 0.16.0 | 0.64.0 |
+| typescript-eslint | `>=8.0.0 <9` (optional) | 8.46.0 | 8.46.0 |
+| Fluent SDK knowledge | selected `fluentSdkVersion` | 3.0.0, 4.1.0 | unspecified selects the current manifest |
+| ServiceNow JavaScript | `compatibility`, `es5`, `es2021`, `unknown` | all listed modes | unknown never assumes ES5 |
+
+## Packed-consumer matrix
+
+| Cell | Node | oxlint | ESLint | oxfmt |
+| --- | --- | --- | --- | --- |
+| `min-hosts` | 20.19.0 | 1.79.0 | 9.0.0 | 0.16.0 |
+| `node20-current` | 20 | 1.79.0 | 10.8.1 | 0.16.0 |
+| `node22-latest` | 22 | 1.79.0 | 10.8.1 | 0.64.0 |
+| `eslint9-current` | current | 1.79.0 | 9.39.5 | 0.16.0 |
+
+A cell fails with one of these classes: `package`, `host-api`, `runtime`, `parser`, or `formatter`.
 
 ## Contributors
 
-Contributor installs need Node 20.19 or later because development tooling (`oxc-parser`, `tsx`, oxlint JS plugins) targets that floor.
+Contributor installs need Node 20.19.0 or later because development tooling (`oxc-parser`, `tsx`, oxlint JS plugins) targets that floor.
 
-Consumer applications can use the same Node floor. There is no separate older consumer runtime.
-
-## Packed artifact
-
-CI and `npm test` run a packed-package consumer test. That test:
-
-1. Runs `npm pack`.
-2. Asserts the tarball includes `dist/`, `oxfmt.recommended.json`, and license files.
-3. Asserts the tarball excludes `src/`, `tests/`, and `.github/`.
-4. Installs the tarball in a clean directory and imports public exports.
-5. Runs oxlint with the packed plugin.
+Consumer applications use the same Node floor. There is no separate older consumer runtime.
 
 ## Documentation URLs
 
-Rule `docs.url` values currently point at `blob/main/docs/rules`. Release tags should keep those files on `main` until a versioned docs path is generated from the published tag.
+Rule `docs.url` values point at `blob/main/docs/rules`. Release tags keep those files on `main` until a versioned docs path is generated from the published tag.

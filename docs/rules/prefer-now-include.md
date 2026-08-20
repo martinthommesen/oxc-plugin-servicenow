@@ -9,19 +9,31 @@ Large inline `script` / HTML / CSS payloads belong in their own file and should 
 - **Fix safety:** diagnostic only
 - **Suggestions:** no
 - **Authoring:** fluent
-- **Surfaces:** Fluent `.now.ts` metadata only
-- **JavaScript mode:** Not instance-executed. Factory rules use the selected `fluentSdkVersion` manifest.
-- **Last verified:** 2026-08-19
+- **Surfaces:** Fluent `.now.ts` metadata only.
+- **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
+- **Last verified:** 2026-08-20
 - **Implementation:** [`src/rules/prefer-now-include.ts`](../../src/rules/prefer-now-include.ts)
 - **Fluent manifest:** sdk-docs-2026-03
 - **Fluent SDK versions:** 3.0.0, 4.1.0 (unspecified selects 4.1.0)
+
+## Applicability
+
+| Dimension | Value |
+| --- | --- |
+| Authoring | fluent |
+| Surfaces | Fluent `.now.ts` metadata only. |
+| Minimum surface confidence | filename-inferred |
+| JavaScript modes | n/a |
+| Application scopes | global, scoped, unknown |
+| ServiceNow releases | zurich |
+| Fluent SDK range | 3.0.0 || 4.1.0 |
 
 ## Options
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `maxLines` | number | `8` | Line count that treats an inline payload as large. |
-| `maxChars` | number | `400` | Character count that treats an inline payload as large. |
+| `maxLines` | integer | `8` | Line count that treats an inline payload as large. |
+| `maxChars` | integer | `400` | Character count that treats an inline payload as large. |
 
 ## Incorrect
 
@@ -70,11 +82,35 @@ BusinessRule({
 
 ## Limitations
 
-When provenance, surface, or JavaScript mode is unknown, the rule stays silent instead of guessing.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False positive: Short template literals that still exceed a low custom maxLines. False negative: Large payloads built from concatenated expressions.
+
+## Known false positives
+
+- Short template literals that still exceed a low custom maxLines.
+
+## Known false negatives
+
+- Large payloads built from concatenated expressions.
+
+## Overlaps
+
+- `servicenow/no-complex-fluent-logic`
+
+## Fix safety
+
+- Classification: diagnostic only
+- Lifecycle assumptions: No extra lifecycle assumptions.
 
 ## Evidence
 
-- None recorded. Add an authoritative ServiceNow or Oxc link before expanding this rule.
+- **Now.include() loads script and markup files so Fluent metadata stays declarative.**
+  - URL: https://www.servicenow.com/docs/r/application-development/servicenow-sdk/fluent-constructs.html
+  - Verified by: declaration-snapshot
+  - Verified at: 2026-08-20
+- **Catalog examples cover large inline script versus Now.include.**
+  - URL: src/catalog.ts
+  - Verified by: fixture
+  - Verified at: 2026-08-20
 
 ## See also
 

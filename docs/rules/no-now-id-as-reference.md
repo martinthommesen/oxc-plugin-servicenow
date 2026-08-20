@@ -9,12 +9,24 @@
 - **Fix safety:** diagnostic only
 - **Suggestions:** no
 - **Authoring:** fluent
-- **Surfaces:** Fluent `.now.ts` metadata only
-- **JavaScript mode:** Not instance-executed. Factory rules use the selected `fluentSdkVersion` manifest.
+- **Surfaces:** Fluent `.now.ts` metadata only.
+- **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
 - **Last verified:** 2026-08-20
 - **Implementation:** [`src/rules/no-now-id-as-reference.ts`](../../src/rules/no-now-id-as-reference.ts)
 - **Fluent manifest:** sdk-docs-2026-03
 - **Fluent SDK versions:** 3.0.0, 4.1.0 (unspecified selects 4.1.0)
+
+## Applicability
+
+| Dimension | Value |
+| --- | --- |
+| Authoring | fluent |
+| Surfaces | Fluent `.now.ts` metadata only. |
+| Minimum surface confidence | filename-inferred |
+| JavaScript modes | n/a |
+| Application scopes | global, scoped, unknown |
+| ServiceNow releases | zurich |
+| Fluent SDK range | 3.0.0 || 4.1.0 |
 
 ## Options
 
@@ -61,11 +73,35 @@ CatalogItem({
 
 ## Limitations
 
-When provenance, surface, or JavaScript mode is unknown, the rule stays silent instead of guessing.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False positive: Local objects named Now that are not the platform global. False negative: Ids copied through unknown helpers.
+
+## Known false positives
+
+- Local objects named Now that are not the platform global.
+
+## Known false negatives
+
+- Ids copied through unknown helpers.
+
+## Overlaps
+
+- `servicenow/require-fluent-id`
+
+## Fix safety
+
+- Classification: diagnostic only
+- Lifecycle assumptions: No extra lifecycle assumptions.
 
 ## Evidence
 
-- https://www.servicenow.com/docs/r/application-development/servicenow-sdk/fluent-constructs.html
+- **Now.ID is a metadata identity, not an in-app record reference.**
+  - URL: https://www.servicenow.com/docs/r/application-development/servicenow-sdk/fluent-constructs.html
+  - Verified by: declaration-snapshot
+  - Verified at: 2026-08-20
+- **Recommended hosts report Now.ID used as a reference field.**
+  - URL: tests/integration/profiles/invalid/now-id-ref.now.ts
+  - Verified by: integration-test
+  - Verified at: 2026-08-20
 
 ## See also
 

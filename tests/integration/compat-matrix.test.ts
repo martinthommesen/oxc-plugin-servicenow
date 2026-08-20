@@ -1,0 +1,35 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { describe, it } from "node:test";
+import { repoRoot } from "./helpers.js";
+
+describe("compatibility matrix", () => {
+  it("matches declared package ranges", () => {
+    const pkg = JSON.parse(readFileSync(path.join(repoRoot, "package.json"), "utf8")) as {
+      engines: { node: string };
+      peerDependencies: Record<string, string>;
+      dependencies: Record<string, string>;
+    };
+    const matrix = JSON.parse(readFileSync(path.join(repoRoot, "scripts/compat-matrix.json"), "utf8")) as {
+      node: { engines: string; minimum: string };
+      oxlint: { peer: string; minimum: string };
+      eslint: { peer: string; minimum: string };
+      oxfmt: { peer: string; minimum: string; latest: string };
+      oxlintPlugins: { dependency: string };
+      cells: Array<{ id: string; oxlint: string; eslint: string; oxfmt: string }>;
+    };
+    assert.equal(matrix.node.engines, pkg.engines.node);
+    assert.equal(matrix.oxlint.peer, pkg.peerDependencies.oxlint);
+    assert.equal(matrix.eslint.peer, pkg.peerDependencies.eslint);
+    assert.equal(matrix.oxfmt.peer, pkg.peerDependencies.oxfmt);
+    assert.equal(matrix.oxlintPlugins.dependency, pkg.dependencies["@oxlint/plugins"]);
+    assert.ok(matrix.cells.some((cell) => cell.oxlint === matrix.oxlint.minimum));
+    assert.ok(matrix.cells.some((cell) => cell.eslint === matrix.eslint.minimum));
+    assert.ok(matrix.cells.some((cell) => cell.oxfmt === matrix.oxfmt.minimum));
+    const docs = readFileSync(path.join(repoRoot, "docs/compatibility.md"), "utf8");
+    assert.ok(docs.includes(matrix.oxlint.minimum));
+    assert.ok(docs.includes(matrix.eslint.minimum));
+    assert.ok(docs.includes(matrix.oxfmt.latest ?? ""));
+  });
+});

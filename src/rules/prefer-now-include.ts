@@ -3,14 +3,12 @@ import type { ESTree } from "@oxlint/plugins";
 import { FLUENT_LARGE_CONTENT_KEYS, ruleDocsUrl } from "../constants.js";
 import { isCanonicalNowInclude } from "../analysis/index.js";
 import { getStringValue, propertyKeyName } from "../utils/ast.js";
-import { objectOptionAt } from "../settings/index.js";
+import { parseRuleOptions, preferNowIncludeOptions, schemaFromDescriptor } from "../options/index.js";
+import type { PreferNowIncludeOptions } from "../options/index.js";
 import { isFluentContext } from "../context/index.js";
 import { beginRuleFile } from "./helpers.js";
 
-export interface PreferNowIncludeOptions {
-  maxLines?: number;
-  maxChars?: number;
-}
+export type { PreferNowIncludeOptions };
 
 function lineCount(value: string): number {
   return value.split(/\r?\n/).length;
@@ -25,16 +23,7 @@ export const preferNowInclude = defineRule({
       recommended: "recommended",
       url: ruleDocsUrl("prefer-now-include"),
     },
-    schema: [
-      {
-        type: "object",
-        additionalProperties: false,
-        properties: {
-          maxLines: { type: "integer", minimum: 1 },
-          maxChars: { type: "integer", minimum: 1 },
-        },
-      },
-    ],
+    schema: schemaFromDescriptor(preferNowIncludeOptions),
     messages: {
       large:
         "This `{{key}}` payload is {{lines}} lines / {{chars}} chars. Move it to a `.js` / `.html` / `.css` file and load it with `Now.include('./file')` so Fluent stays declarative and the editor can syntax-highlight the payload.",
@@ -48,14 +37,9 @@ export const preferNowInclude = defineRule({
       before() {
         const { context: script } = beginRuleFile(context);
         if (!isFluentContext(script)) return false;
-        const options = objectOptionAt<PreferNowIncludeOptions>(
-          context,
-          0,
-          new Set(["maxLines", "maxChars"]),
-          {},
-        );
-        maxLines = options.maxLines ?? 8;
-        maxChars = options.maxChars ?? 400;
+        const options = parseRuleOptions(preferNowIncludeOptions, context.options);
+        maxLines = options.maxLines;
+        maxChars = options.maxChars;
       },
       Property(node) {
         const prop = node as unknown as ESTree.ObjectProperty;

@@ -4,23 +4,30 @@ import { ruleDocsUrl } from "../constants.js";
 import { getAncestors, isCanonicalNowId } from "../analysis/index.js";
 import { getName, getStringValue, nowIdKey, objectPropertyValue } from "../utils/ast.js";
 import { basename } from "../utils/filenames.js";
-import { objectOptionAt } from "../settings/index.js";
+import { parseRuleOptions, fluentNamingConventionOptions, schemaFromDescriptor } from "../options/index.js";
+import type { FluentNamingOptions } from "../options/index.js";
 import { isFluentContext } from "../context/index.js";
 import { beginRuleFile } from "./helpers.js";
 
-export interface FluentNamingOptions {
-  idStyle?: "kebab-case" | "snake_case" | "either";
-  fileStyle?: "kebab-case" | "snake_case" | "either";
-}
+export type { FluentNamingOptions };
 
 const KEBAB = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
 const SNAKE = /^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$/;
 const TABLE = /^[a-z][a-z0-9_]*$/;
 
 function matches(style: FluentNamingOptions["idStyle"], value: string): boolean {
-  if (style === "kebab-case") return KEBAB.test(value);
-  if (style === "snake_case") return SNAKE.test(value);
-  return KEBAB.test(value) || SNAKE.test(value);
+  switch (style) {
+    case "kebab-case":
+      return KEBAB.test(value);
+    case "snake_case":
+      return SNAKE.test(value);
+    case "either":
+      return KEBAB.test(value) || SNAKE.test(value);
+    default: {
+      const unexpected: never = style;
+      throw new Error(`unhandled naming style ${String(unexpected)}`);
+    }
+  }
 }
 
 export const fluentNamingConvention = defineRule({
@@ -32,16 +39,7 @@ export const fluentNamingConvention = defineRule({
       recommended: "recommended",
       url: ruleDocsUrl("fluent-naming-convention"),
     },
-    schema: [
-      {
-        type: "object",
-        additionalProperties: false,
-        properties: {
-          idStyle: { enum: ["kebab-case", "snake_case", "either"] },
-          fileStyle: { enum: ["kebab-case", "snake_case", "either"] },
-        },
-      },
-    ],
+    schema: schemaFromDescriptor(fluentNamingConventionOptions),
     messages: {
       file:
         "Fluent file '{{file}}' should be {{style}} (e.g. `log-state-change.now.ts`).",
@@ -62,14 +60,9 @@ export const fluentNamingConvention = defineRule({
       before() {
         const { context: script } = beginRuleFile(context);
         if (!isFluentContext(script)) return false;
-        const options = objectOptionAt<FluentNamingOptions>(
-          context,
-          0,
-          new Set(["idStyle", "fileStyle"]),
-          {},
-        );
-        idStyle = options.idStyle ?? "kebab-case";
-        fileStyle = options.fileStyle ?? "kebab-case";
+        const options = parseRuleOptions(fluentNamingConventionOptions, context.options);
+        idStyle = options.idStyle;
+        fileStyle = options.fileStyle;
         scopePrefix = script.settings.scopePrefix;
 
       },

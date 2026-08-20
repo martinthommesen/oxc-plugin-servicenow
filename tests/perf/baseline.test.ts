@@ -7,24 +7,33 @@ import { fileURLToPath } from "node:url";
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
 describe("performance baseline", () => {
-  it("records deterministic fixture sizes and a release threshold", () => {
+  it("records a real Oxlint matrix and a release threshold", () => {
     const raw = readFileSync(path.join(root, "docs/performance-baseline.json"), "utf8");
     const baseline = JSON.parse(raw) as {
       command: string;
-      oxlintPeer: string;
-      thresholdMs: number;
-      rows: Array<{ size: number; elapsed: number }>;
+      statistic: string;
+      regression: { maxRecommendedLargeMs: number; maxScale: number };
+      results: Array<{ fixture: string; profile: string; elapsedMs: number; peakRssKb: number }>;
     };
     assert.equal(baseline.command, "npm run bench");
-    assert.equal(baseline.oxlintPeer, ">=1.79.0 <2");
-    assert.equal(baseline.thresholdMs, 2000);
-    assert.deepEqual(
-      baseline.rows.map((row) => row.size),
-      [20, 80, 200],
-    );
-    for (const row of baseline.rows) {
-      assert.ok(row.elapsed >= 0);
-      assert.ok(row.elapsed < baseline.thresholdMs);
+    assert.equal(baseline.statistic, "median");
+    assert.ok(baseline.regression.maxRecommendedLargeMs >= 2000);
+    const fixtures = baseline.results.map((row) => row.fixture);
+    for (const name of [
+      "classic-small/recommended",
+      "classic-medium/recommended",
+      "classic-large/recommended",
+      "branch-heavy/recommended",
+      "fluent-large/recommended",
+      "skip-client/recommended",
+      "mixed/recommended",
+      "classic-small/disabled",
+    ]) {
+      assert.ok(fixtures.includes(name), `missing ${name}`);
+    }
+    for (const row of baseline.results) {
+      assert.ok(row.elapsedMs >= 0);
+      assert.ok(row.peakRssKb >= 0);
     }
   });
 });

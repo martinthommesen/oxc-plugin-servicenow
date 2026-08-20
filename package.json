@@ -60,11 +60,12 @@
     "test": "node scripts/run-tests.mjs",
     "test:integration": "node scripts/run-tests.mjs tests/integration",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "docs": "tsx scripts/generate-rule-docs.mjs",
-    "docs:check": "tsx scripts/generate-rule-docs.mjs && git diff --exit-code -- docs/rules README.md examples tests/integration/profiles/configs/recommended.oxlintrc.json tests/integration/profiles/configs/strict.oxlintrc.json tests/integration/profiles/mixed/.oxlintrc.json tests/integration/fixtures/.oxlintrc.json",
+    "docs": "tsx scripts/generate-rule-docs.mjs && tsx scripts/generate-compatibility-docs.mjs",
+    "docs:check": "tsx scripts/generate-rule-docs.mjs && tsx scripts/generate-compatibility-docs.mjs && tsx scripts/check-catalog-docs.mjs && git diff --exit-code -- docs/rules README.md docs/compatibility.md examples tests/integration/profiles/configs/recommended.oxlintrc.json tests/integration/profiles/configs/strict.oxlintrc.json tests/integration/profiles/mixed/.oxlintrc.json tests/integration/fixtures/.oxlintrc.json",
+    "compat": "tsx scripts/compat-consumer.mjs",
     "manifest:check": "tsx scripts/check-fluent-manifest.mjs",
     "bench": "tsx scripts/benchmark.mjs",
-    "validate": "npm run typecheck && npm run build && npm test && npm run docs:check && npm run manifest:check"
+    "validate": "npm run typecheck && npm run build && npm test && npm run docs:check && npm run manifest:check && npm run bench && npm run compat"
   },
   "dependencies": {
     "@oxlint/plugins": "^1.79.0"

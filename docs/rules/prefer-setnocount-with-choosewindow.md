@@ -9,10 +9,22 @@ Zurich scoped GlideRecord documents that `query()` after `chooseWindow()` runs `
 - **Fix safety:** diagnostic only
 - **Suggestions:** no
 - **Authoring:** classic
-- **Surfaces:** Classic instance scripts. Client-only rules skip server-only files. Fluent files are skipped.
-- **JavaScript mode:** Independent of JavaScript mode unless the rule documents a mode gate.
+- **Surfaces:** Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent.
+- **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
 - **Last verified:** 2026-08-20
 - **Implementation:** [`src/rules/prefer-setnocount-with-choosewindow.ts`](../../src/rules/prefer-setnocount-with-choosewindow.ts)
+
+## Applicability
+
+| Dimension | Value |
+| --- | --- |
+| Authoring | classic |
+| Surfaces | Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent. |
+| Minimum surface confidence | filename-inferred |
+| JavaScript modes | n/a |
+| Application scopes | global, scoped, unknown |
+| ServiceNow releases | zurich |
+| Fluent SDK range | n/a |
 
 ## Options
 
@@ -49,11 +61,35 @@ while (rec.next()) {
 
 ## Limitations
 
-Window, skip, force-count, and `getRowCount()` state are scoped to one query epoch. A later `query()` is not justified by an earlier `getRowCount()`. Silent when provenance is unknown, when `chooseWindow`'s third argument is not a boolean literal, or when one branch disagrees.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False positive: chooseWindow that forces a count with a boolean literal third argument. False negative: Unknown third arguments stay silent. Lifecycle: Window and setNoCount state are scoped to one query epoch and one object identity.
+
+## Known false positives
+
+- chooseWindow that forces a count with a boolean literal third argument.
+
+## Known false negatives
+
+- Unknown third arguments stay silent.
+
+## Overlaps
+
+- `servicenow/require-query-before-next`
+
+## Fix safety
+
+- Classification: diagnostic only
+- Lifecycle assumptions: Window and setNoCount state are scoped to one query epoch and one object identity.
 
 ## Evidence
 
-- https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html
+- **query() after chooseWindow() runs COUNT(*) unless setNoCount() or setLimit() skips it.**
+  - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html
+  - Verified by: declaration-snapshot
+  - Verified at: 2026-08-20
+- **A later query epoch is not justified by an earlier getRowCount().**
+  - URL: tests/integration/profiles/invalid/setnocount-second-query.br.js
+  - Verified by: integration-test
+  - Verified at: 2026-08-20
 
 ## See also
 

@@ -9,10 +9,22 @@
 - **Fix safety:** diagnostic only
 - **Suggestions:** no
 - **Authoring:** classic
-- **Surfaces:** Classic instance scripts. Client-only rules skip server-only files. Fluent files are skipped.
-- **JavaScript mode:** Independent of JavaScript mode unless the rule documents a mode gate.
-- **Last verified:** 2026-08-19
+- **Surfaces:** Applies to client, server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent.
+- **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
+- **Last verified:** 2026-08-20
 - **Implementation:** [`src/rules/no-gs-now.ts`](../../src/rules/no-gs-now.ts)
+
+## Applicability
+
+| Dimension | Value |
+| --- | --- |
+| Authoring | classic |
+| Surfaces | Applies to client, server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent. |
+| Minimum surface confidence | filename-inferred |
+| JavaScript modes | n/a |
+| Application scopes | global, scoped, unknown |
+| ServiceNow releases | zurich |
+| Fluent SDK range | n/a |
 
 ## Options
 
@@ -44,11 +56,35 @@ current.u_opened = new GlideDateTime();
 
 ## Limitations
 
-When provenance, surface, or JavaScript mode is unknown, the rule stays silent instead of guessing.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False positive: Local objects with a now method that is not the platform gs binding. False negative: gs aliases that escape before the call.
+
+## Known false positives
+
+- Local objects with a now method that is not the platform gs binding.
+
+## Known false negatives
+
+- gs aliases that escape before the call.
+
+## Overlaps
+
+- `servicenow/no-display-value-date-comparison`
+
+## Fix safety
+
+- Classification: diagnostic only
+- Lifecycle assumptions: No extra lifecycle assumptions.
 
 ## Evidence
 
-- None recorded. Add an authoritative ServiceNow or Oxc link before expanding this rule.
+- **gs.now() and gs.nowDateTime() return display strings, not GlideDateTime objects.**
+  - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideDateTimeAPI.html
+  - Verified by: declaration-snapshot
+  - Verified at: 2026-08-20
+- **Host fixtures report gs.now on Business Rule files.**
+  - URL: tests/integration/fixtures/bad-business-rule.br.js
+  - Verified by: integration-test
+  - Verified at: 2026-08-20
 
 ## See also
 

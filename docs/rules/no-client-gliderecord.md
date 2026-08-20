@@ -9,10 +9,22 @@ Client-side GlideRecord is slow, often blocked, and a security smell. Use GlideA
 - **Fix safety:** diagnostic only
 - **Suggestions:** no
 - **Authoring:** classic
-- **Surfaces:** Classic instance scripts. Client-only rules skip server-only files. Fluent files are skipped.
-- **JavaScript mode:** Independent of JavaScript mode unless the rule documents a mode gate.
-- **Last verified:** 2026-08-19
+- **Surfaces:** Applies to client, ui-action when those surfaces are known. Unknown surfaces stay silent.
+- **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
+- **Last verified:** 2026-08-20
 - **Implementation:** [`src/rules/no-client-gliderecord.ts`](../../src/rules/no-client-gliderecord.ts)
+
+## Applicability
+
+| Dimension | Value |
+| --- | --- |
+| Authoring | classic |
+| Surfaces | Applies to client, ui-action when those surfaces are known. Unknown surfaces stay silent. |
+| Minimum surface confidence | filename-inferred |
+| JavaScript modes | n/a |
+| Application scopes | global, scoped, unknown |
+| ServiceNow releases | zurich |
+| Fluent SDK range | n/a |
 
 ## Options
 
@@ -48,11 +60,35 @@ function onChange() {
 
 ## Limitations
 
-When provenance, surface, or JavaScript mode is unknown, the rule stays silent instead of guessing.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False positive: Server UI Actions that only share a client-looking filename when surfaces are explicit. False negative: Client scripts whose surface stays unknown.
+
+## Known false positives
+
+- Server UI Actions that only share a client-looking filename when surfaces are explicit.
+
+## Known false negatives
+
+- Client scripts whose surface stays unknown.
+
+## Overlaps
+
+- `servicenow/require-query-before-next`
+
+## Fix safety
+
+- Classification: diagnostic only
+- Lifecycle assumptions: No extra lifecycle assumptions.
 
 ## Evidence
 
-- None recorded. Add an authoritative ServiceNow or Oxc link before expanding this rule.
+- **GlideRecord is a server API and is not a client-side record cursor.**
+  - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html
+  - Verified by: declaration-snapshot
+  - Verified at: 2026-08-20
+- **Recommended Oxlint and ESLint flag GlideRecord in client files.**
+  - URL: tests/integration/profiles/invalid/client-gliderecord.client.js
+  - Verified by: integration-test
+  - Verified at: 2026-08-20
 
 ## See also
 
