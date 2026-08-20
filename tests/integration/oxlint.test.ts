@@ -26,11 +26,12 @@ function runOxlint(targets: string[]): OxlintReport {
     });
     return JSON.parse(stdout) as OxlintReport;
   } catch (error) {
-    const failed = error as { stdout?: string };
-    if (typeof failed.stdout === "string" && failed.stdout.length > 0) {
-      return JSON.parse(failed.stdout) as OxlintReport;
+    const failed = error as { stdout?: string; stderr?: string };
+    const stdout = failed.stdout ?? "";
+    if (stdout.trimStart().startsWith("{")) {
+      return JSON.parse(stdout) as OxlintReport;
     }
-    throw error;
+    throw new Error([failed.stderr, stdout, String(error)].filter(Boolean).join("\n"));
   }
 }
 
@@ -64,17 +65,22 @@ describe("oxlint host integration", () => {
   it("reports the expected rules on the bad Fluent fixture", () => {
     const report = runOxlint([fixturesDir]);
     const rules = pluginRulesFor(report, "bad-fluent.now.ts");
-    for (const id of ["servicenow/fluent-proper-imports", "servicenow/require-fluent-id"]) {
-      assert.ok(rules.includes(id), `missing ${id} (got ${rules.join(", ") || "(none)"})`);
-    }
+    assert.ok(rules.includes("servicenow/fluent-proper-imports"), `missing import diagnostic (got ${rules.join(", ") || "(none)"})`);
+    assert.equal(rules.includes("servicenow/require-fluent-id"), false, "wrong-module imports must not cascade semantic diagnostics");
   });
 
   it("reports no plugin diagnostics on the clean examples", () => {
-    const classic = runOxlint([path.join(repoRoot, "examples/classic-business-rule.js")]);
-    const fluent = runOxlint([path.join(repoRoot, "examples/incident-table.now.ts")]);
-    const classicPlugin = classic.diagnostics.filter((d) => pluginRuleId(d.code));
-    const fluentPlugin = fluent.diagnostics.filter((d) => pluginRuleId(d.code));
-    assert.deepEqual(classicPlugin, []);
-    assert.deepEqual(fluentPlugin, []);
+    const files = [
+      "classic-business-rule.js",
+      "full-script-business-rule.js",
+      "catalog-client.js",
+      "es2021-server.js",
+      "incident-table.now.ts",
+    ];
+    for (const file of files) {
+      const report = runOxlint([path.join(repoRoot, "examples", file)]);
+      const plugin = report.diagnostics.filter((diagnostic) => pluginRuleId(diagnostic.code));
+      assert.deepEqual(plugin, [], `${file}: ${JSON.stringify(plugin)}`);
+    }
   });
 });

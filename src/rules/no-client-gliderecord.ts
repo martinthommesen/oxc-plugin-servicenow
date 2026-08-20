@@ -1,16 +1,18 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
-import { getName, isNewNamed } from "../utils/ast.js";
-import { classifyFromContext } from "../utils/filenames.js";
+import { getName } from "../utils/ast.js";
+import { appliesOnSurface } from "../context/index.js";
+import { beginRuleFile } from "./helpers.js";
+
+const CTORS = ["GlideRecord", "GlideRecordSecure"] as const;
 
 export const noClientGliderecord = defineRule({
   meta: {
     type: "problem",
     docs: {
       description:
-        "Disallow GlideRecord in client scripts. Query on the server (GlideAjax, Scripted REST, or `g_form.getReference`).",
-      recommended: "recommended",
+        "Disallow platform GlideRecord in client scripts. Query on the server (GlideAjax, Scripted REST, or `g_form.getReference`).",
       url: ruleDocsUrl("no-client-gliderecord"),
     },
     messages: {
@@ -19,25 +21,25 @@ export const noClientGliderecord = defineRule({
     },
   },
   createOnce(context) {
-    let active = false;
-
     return {
       before() {
-        active = classifyFromContext(context) === "client";
-        if (!active) return false;
+        const { context: script } = beginRuleFile(context);
+        if (!appliesOnSurface(script, "client")) return false;
       },
       NewExpression(node) {
-        if (!active) return;
-        if (isNewNamed(node, "GlideRecord") || isNewNamed(node, "GlideRecordSecure")) {
-          context.report({ node, messageId: "glideRecord" });
-        }
+        report((node as ESTree.NewExpression).callee as ESTree.Node, node);
       },
       CallExpression(node) {
-        if (!active) return;
-        if (getName((node as ESTree.CallExpression).callee) === "GlideRecord") {
-          context.report({ node, messageId: "glideRecord" });
-        }
+        report((node as ESTree.CallExpression).callee as ESTree.Node, node);
       },
     };
+
+    function report(callee: ESTree.Node, node: ESTree.Node) {
+      const { analysis } = beginRuleFile(context);
+      const name = getName(callee);
+      if (!name || !CTORS.includes(name as (typeof CTORS)[number])) return;
+      if (!analysis.isPlatformGlobal(callee)) return;
+      context.report({ node, messageId: "glideRecord" });
+    }
   },
 });

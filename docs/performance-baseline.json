@@ -1,0 +1,88 @@
+{
+  "date": "2026-08-20",
+  "node": "v22.14.0",
+  "oxlint": "1.79.0",
+  "plugin": "2.0.0",
+  "cpu": "Intel(R) Xeon(R) Processor",
+  "command": "npm run bench",
+  "warmup": 1,
+  "samples": 3,
+  "statistic": "median",
+  "regression": {
+    "elapsedMultiplier": 2.5,
+    "elapsedFloorMs": 500,
+    "rssMultiplier": 2,
+    "rssFloorKb": 50000,
+    "maxScale": 20,
+    "maxRecommendedLargeMs": 15000
+  },
+  "scale": 1.64,
+  "results": [
+    {
+      "fixture": "classic-small/disabled",
+      "elapsedMs": 60,
+      "peakRssKb": 61360,
+      "profile": "disabled"
+    },
+    {
+      "fixture": "classic-small/one-rule",
+      "elapsedMs": 168,
+      "peakRssKb": 87396,
+      "profile": "one-rule"
+    },
+    {
+      "fixture": "classic-small/recommended",
+      "elapsedMs": 185,
+      "peakRssKb": 90640,
+      "profile": "recommended"
+    },
+    {
+      "fixture": "classic-medium/recommended",
+      "elapsedMs": 226,
+      "peakRssKb": 97612,
+      "profile": "recommended"
+    },
+    {
+      "fixture": "classic-large/recommended",
+      "elapsedMs": 304,
+      "peakRssKb": 109612,
+      "profile": "recommended"
+    },
+    {
+      "fixture": "classic-large/all",
+      "elapsedMs": 312,
+      "peakRssKb": 108552,
+      "profile": "all"
+    },
+    {
+      "fixture": "branch-heavy/recommended",
+      "elapsedMs": 289,
+      "peakRssKb": 100220,
+      "profile": "recommended"
+    },
+    {
+      "fixture": "nested-scopes/recommended",
+      "elapsedMs": 196,
+      "peakRssKb": 87080,
+      "profile": "recommended"
+    },
+    {
+      "fixture": "fluent-large/recommended",
+      "elapsedMs": 151,
+      "peakRssKb": 85432,
+      "profile": "recommended"
+    },
+    {
+      "fixture": "skip-client/recommended",
+      "elapsedMs": 168,
+      "peakRssKb": 86520,
+      "profile": "recommended"
+    },
+    {
+      "fixture": "mixed/recommended",
+      "elapsedMs": 175,
+      "peakRssKb": 86776,
+      "profile": "recommended"
+    }
+  ]
+}

@@ -2,18 +2,18 @@ import { defineRule } from "@oxlint/plugins";
 import type { Context, ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
 import { getName, getStringValue } from "../utils/ast.js";
-import { getSettings, optionAt } from "../utils/settings.js";
+import { parseRuleOptions, noHardcodedSysidOptions, schemaFromDescriptor } from "../options/index.js";
+import type { NoHardcodedSysIdOptions } from "../options/index.js";
+import { isInstanceScript } from "../context/index.js";
+import { beginRuleFile } from "./helpers.js";
 import { findSysIds, looksLikeMd5Context } from "../utils/sysid.js";
 
-export interface NoHardcodedSysIdOptions {
-  allowedSysIds?: string[];
-  ignoreHashNames?: boolean;
-}
+export type { NoHardcodedSysIdOptions };
 
 function allowedSet(context: Context, options: NoHardcodedSysIdOptions): Set<string> {
-  const settings = getSettings(context);
+  const { context: script } = beginRuleFile(context);
   return new Set(
-    [...(settings.allowedSysIds ?? []), ...(options.allowedSysIds ?? [])].map((id) =>
+    [...script.settings.allowedSysIds, ...(options.allowedSysIds ?? [])].map((id) =>
       id.toLowerCase(),
     ),
   );
@@ -48,16 +48,7 @@ export const noHardcodedSysid = defineRule({
       recommended: "recommended",
       url: ruleDocsUrl("no-hardcoded-sysid"),
     },
-    schema: [
-      {
-        type: "object",
-        additionalProperties: false,
-        properties: {
-          allowedSysIds: { type: "array", items: { type: "string" } },
-          ignoreHashNames: { type: "boolean" },
-        },
-      },
-    ],
+    schema: schemaFromDescriptor(noHardcodedSysidOptions),
     messages: {
       hardcoded:
         "Hardcoded sys_id '{{id}}' is brittle across instances. Use a system property, a named constant, or Fluent `Now.ID['…']`.",
@@ -70,9 +61,14 @@ export const noHardcodedSysid = defineRule({
 
     return {
       before() {
-        const options = optionAt<NoHardcodedSysIdOptions>(context, 0, {});
+        const { context: script } = beginRuleFile(context);
+        // An ordinary unclassified JavaScript file is not evidence of a
+        // ServiceNow script. Keep this rule conservative rather than treating
+        // every unrelated 32-hex token as a sys_id.
+        if (!isInstanceScript(script)) return false;
+        const options = parseRuleOptions(noHardcodedSysidOptions, context.options);
         allowed = allowedSet(context, options);
-        ignoreHashNames = options.ignoreHashNames !== false;
+        ignoreHashNames = options.ignoreHashNames;
         lastBinding = null;
       },
       VariableDeclarator(node) {
