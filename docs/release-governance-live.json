@@ -1,0 +1,117 @@
+{
+  "capturedAt": "2026-08-20T09:36:12Z",
+  "repository": "martinthommesen/oxc-plugin-servicenow",
+  "github": {
+    "mainRuleset": {
+      "id": 21081867,
+      "name": "PR51 main governance",
+      "enforcement": "active",
+      "conditions": {
+        "ref_name": {
+          "exclude": [],
+          "include": [
+            "refs/heads/main"
+          ]
+        }
+      },
+      "rules": [
+        "deletion",
+        "non_fast_forward",
+        "pull_request",
+        "required_status_checks"
+      ],
+      "requiredStatusChecks": [
+        "test (20.19.0)",
+        "test (22)",
+        "test (24)",
+        "test (26)",
+        "bench",
+        "compat (20.19.0, min-hosts)",
+        "compat (20, node20-floor)",
+        "compat (22, node22-lts)",
+        "compat (24, node24-lts)",
+        "compat (26, node26-current)",
+        "compat (current, eslint9-current)",
+        "docs",
+        "manifest",
+        "artifact",
+        "workflow"
+      ],
+      "currentUserCanBypass": "never"
+    },
+    "tagRuleset": {
+      "id": 21081873,
+      "name": "PR51 protected release tags",
+      "enforcement": "active",
+      "conditions": {
+        "ref_name": {
+          "exclude": [],
+          "include": [
+            "refs/tags/v**"
+          ]
+        }
+      },
+      "rules": [
+        "deletion",
+        "non_fast_forward"
+      ],
+      "currentUserCanBypass": "never"
+    },
+    "releaseEnvironment": {
+      "name": "release",
+      "canAdminsBypass": false,
+      "requiredReviewer": "martinthommesen",
+      "preventSelfReview": true,
+      "protectedBranches": true
+    },
+    "actions": {
+      "shaPinningRequired": true,
+      "allowedActions": "all"
+    },
+    "ciEvidence": {
+      "runId": 32351809969,
+      "headSha": "2db2282c5c8b466c6d51c9499c5dfbfb4c028045",
+      "note": "Pull-request CI run at the documentation-complete merge commit passed all 15 CI jobs; PR #51 rollup was 18/18 successful including CodeQL."
+    },
+    "secrets": {
+      "repository": [],
+      "releaseEnvironment": [],
+      "note": "No NPM_TOKEN or other Actions secret is configured."
+    }
+  },
+  "npmTrustedPublisher": {
+    "status": "configured",
+    "id": "3d460658-361a-4591-a6bb-8f9ca2364eaf",
+    "type": "github",
+    "file": "release.yml",
+    "repository": "martinthommesen/oxc-plugin-servicenow",
+    "environment": "release",
+    "permissions": [
+      "createPackage"
+    ],
+    "desired": {
+      "repository": "oxc-plugin-servicenow",
+      "workflow": ".github/workflows/release.yml",
+      "environment": "release",
+      "tagRefs": [
+        "refs/tags/v*"
+      ],
+      "workflowFilename": "release.yml"
+    },
+    "bootstrap": {
+      "version": "2.0.0-bootstrap.0",
+      "distTag": "next",
+      "registryIntegrity": "sha512-4mgibuZMqfvatzyVPYt0/TvAo8aeCedw2GnSurlrBDe3VJB1xQjzene0tQa0ONZiIjfIyDP6mNuJivhFp/5+Fg==",
+      "registryTarball": "https://registry.npmjs.org/oxc-plugin-servicenow/-/oxc-plugin-servicenow-2.0.0-bootstrap.0.tgz",
+      "provenance": "not claimed for bootstrap; target stable release must use OIDC provenance",
+      "localSha256": "36d5e6af9676b08f48727b450ed8cfe5c079e8eaf0db7dfc41308dcdebc5687f",
+      "registryShasum": "cae540f3eb1b60c0575fa2393ddc0f877d5d0de2"
+    }
+  },
+  "ciEvidence": {
+    "runId": 32355160103,
+    "headSha": "10e359da6757cee5a224a9037f5bd414e13daac7",
+    "codeqlRunId": 32355157426,
+    "note": "PR #51 CI run at the npm-governance documentation commit passed all 15 CI jobs; the GitHub CodeQL rollup also passed."
+  }
+}
