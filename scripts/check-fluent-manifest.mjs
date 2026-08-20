@@ -95,6 +95,22 @@ assert.ok(current);
 assert.deepEqual(summarize(current), fixture);
 assert.equal(current.apis.length, DEFAULT_FLUENT_MANIFEST.apis.length);
 
+const boundaryFixture = JSON.parse(await readFile(join(root, "tests/fixtures/fluent-sdk-boundaries.json"), "utf8"));
+for (const [version, expected] of Object.entries(boundaryFixture.versions)) {
+  const manifest = fluentManifests().find((item) => item.sdkVersion === version);
+  assert.ok(manifest, `missing manifest for declaration fixture ${version}`);
+  const names = new Set(manifest.apis.map((api) => api.name));
+  for (const name of expected.present) assert.ok(names.has(name), `${version} declaration capability ${name} missing`);
+  const policies = new Map(manifest.apis.map((api) => [api.name, api.idRequirement]));
+  for (const [name, policy] of Object.entries(expected.idRequirements ?? {})) {
+    assert.equal(policies.get(name), policy, `${version} ${name} id policy`);
+  }
+}
+const v41 = fluentManifests().find((item) => item.sdkVersion === "4.1.0");
+const v48 = fluentManifests().find((item) => item.sdkVersion === "4.8.0");
+assert.ok(!v41?.apis.some((api) => api.name === "AliasTemplate"), "AliasTemplate leaked before 4.8.0");
+assert.ok(v48?.apis.some((api) => api.name === "AliasTemplate"), "AliasTemplate missing at 4.8.0");
+
 console.log(
   `Fluent manifests: ${fluentManifests()
     .map((manifest) => `${manifest.sdkVersion ?? manifest.version} (${manifest.apis.length} APIs)`)
