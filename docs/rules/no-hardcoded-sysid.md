@@ -53,15 +53,15 @@ current.assignment_group = assignmentGroup;
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False positive: Uppercase 32-hex strings that are not ServiceNow sys_ids. False positive: MD5-like binding names when ignoreHashNames is true. False negative: sys_ids built by concatenation or runtime encoding.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False positive: MD5-like binding names when ignoreHashNames is true. False negative: Uppercase 32-hex strings are intentionally excluded by the lowercase-only matcher. False negative: sys_ids built by concatenation or runtime encoding.
 
 ## Known false positives
 
-- Uppercase 32-hex strings that are not ServiceNow sys_ids.
 - MD5-like binding names when ignoreHashNames is true.
 
 ## Known false negatives
 
+- Uppercase 32-hex strings are intentionally excluded by the lowercase-only matcher.
 - sys_ids built by concatenation or runtime encoding.
 
 ## Overlaps

@@ -507,12 +507,12 @@ The table is generated from `scripts/compat-matrix.json`. See [Compatibility](do
 <!-- generated:compatibility:start -->
 | Component | Tested range |
 | --- | --- |
-| Node | 20.19.0, 20, and 22 |
+| Node | 20.19.0, 24, 22, and 26 |
 | oxlint | 1.79.0 (`>=1.79.0 <2`) |
 | ESLint | 9.0.0, 9.39.5, and 10.8.1 (`>=9.0.0`) |
-| oxfmt | 0.64.0 and 0.64.0 (`>=0.64.0`) |
+| oxfmt | 0.64.0 and latest (`>=0.64.0`) |
 | ServiceNow engine tables | Zurich feature-support document |
-| Fluent SDK | 3.0.0, 4.1.0 |
+| Fluent SDK | 3.0.0, 4.1.0, 4.8.0, 4.10.0, 4.11.0 |
 <!-- generated:compatibility:end -->
 
 ## Development

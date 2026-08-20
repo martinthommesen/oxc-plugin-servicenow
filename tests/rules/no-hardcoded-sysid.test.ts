@@ -26,7 +26,7 @@ describe(RULE, () => {
     assertValid(`var md5 = "${ID}";`, RULE);
   });
 
-  it("does not treat uppercase 32-hex as a sys_id", () => {
+  it("intentionally excludes uppercase 32-hex from the lowercase matcher", () => {
     assertValid('var f = "D41D8CD98F00B204E9800998ECF8427E";', RULE);
   });
 

@@ -134,7 +134,7 @@ function fluent(): StructuredApplicability {
     javascriptModes: "n/a",
     scopes: ALL_SCOPES,
     serviceNowReleases: [...ZURICH],
-    fluentSdkRange: "3.0.0 || 4.1.0",
+    fluentSdkRange: "3.0.0 || 4.1.0 || 4.8.0 || 4.10.0 || 4.11.0",
   };
 }
 
@@ -146,8 +146,8 @@ export const ruleDocMetadata: Record<string, RuleDocMetadata> = {
     ev(SN_FLUENT_CONSTRUCTS, "Named Fluent Now.ID keys are the supported portable identity, not raw sys_id literals.", "declaration-snapshot", "2026-08-20"),
     ev("tests/rules/no-hardcoded-sysid.test.ts", "Literal 32-hex strings report; settings and option allow-lists suppress.", "fixture", "2026-08-20"),
   ], {
-    falsePositives: ["Uppercase 32-hex strings that are not ServiceNow sys_ids.", "MD5-like binding names when ignoreHashNames is true."],
-    falseNegatives: ["sys_ids built by concatenation or runtime encoding."],
+    falsePositives: ["MD5-like binding names when ignoreHashNames is true."],
+    falseNegatives: ["Uppercase 32-hex strings are intentionally excluded by the lowercase-only matcher.", "sys_ids built by concatenation or runtime encoding."],
     overlaps: ["servicenow/no-now-id-as-reference", "core no-restricted-syntax"],
   }),
   "no-promise": meta(engine(ES5_MODES), [

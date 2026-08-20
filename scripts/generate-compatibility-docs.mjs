@@ -32,7 +32,7 @@ CI and \`npm run compat\` install the packed tarball in a clean consumer for eac
 
 | Component | Declared range | Tested minimum | Tested current or latest |
 | --- | --- | --- | --- |
-| Node.js | \`${matrix.node.engines}\` | ${matrix.node.minimum} | ${matrix.node.currentLts} LTS and ${matrix.node.currentMaintenance} |
+| Node.js | \`${matrix.node.engines}\` | ${matrix.node.minimum} | ${matrix.node.currentLts} LTS, ${matrix.node.currentMaintenance} maintenance, and ${matrix.node.current} Current |
 | oxlint | \`${matrix.oxlint.peer}\` | ${matrix.oxlint.minimum} | ${matrix.oxlint.latestCompatible} |
 | \`@oxlint/plugins\` | \`${matrix.oxlintPlugins.dependency}\` | ${matrix.oxlintPlugins.pinned} | ${matrix.oxlintPlugins.pinned} |
 | ESLint | \`${matrix.eslint.peer}\` | ${matrix.eslint.minimum} | ${matrix.eslint.currentV9} and ${matrix.eslint.current} |
@@ -67,7 +67,7 @@ let readme = await readFile(readmePath, "utf8");
 const table = [
   "| Component | Tested range |",
   "| --- | --- |",
-  `| Node | ${matrix.node.minimum}, ${matrix.node.currentLts}, and ${matrix.node.currentMaintenance} |`,
+  `| Node | ${matrix.node.minimum}, ${matrix.node.currentLts}, ${matrix.node.currentMaintenance}, and ${matrix.node.current} |`,
   `| oxlint | ${matrix.oxlint.minimum} (\`${matrix.oxlint.peer}\`) |`,
   `| ESLint | ${matrix.eslint.minimum}, ${matrix.eslint.currentV9}, and ${matrix.eslint.current} (\`${matrix.eslint.peer}\`) |`,
   `| oxfmt | ${matrix.oxfmt.minimum} and ${matrix.oxfmt.latest} (\`${matrix.oxfmt.peer}\`) |`,

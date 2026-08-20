@@ -21,7 +21,9 @@ function currentNodeMajor() {
 function cellApplies(cell) {
   if (cell.node === "current") return true;
   if (cell.node === "20" || cell.node === "20.19.0") return currentNodeMajor() === 20 || process.env.SN_COMPAT_FULL === "1";
-  if (cell.node === "22") return currentNodeMajor() === 22 || process.env.SN_COMPAT_FULL === "1";
+  if (cell.node === "22" || cell.node === "24" || cell.node === "26") {
+    return currentNodeMajor() === Number(cell.node) || process.env.SN_COMPAT_FULL === "1";
+  }
   return true;
 }
 

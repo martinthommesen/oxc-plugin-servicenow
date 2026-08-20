@@ -13,12 +13,12 @@ describe("compatibility matrix", () => {
       dependencies: Record<string, string>;
     };
     const matrix = JSON.parse(readFileSync(path.join(repoRoot, "scripts/compat-matrix.json"), "utf8")) as {
-      node: { engines: string; minimum: string };
-      oxlint: { peer: string; minimum: string };
+      node: { engines: string; minimum: string; currentLts: string; current: string };
+      oxlint: { peer: string; minimum: string; latestCompatible: string };
       eslint: { peer: string; minimum: string };
       oxfmt: { peer: string; minimum: string; latest: string };
       oxlintPlugins: { dependency: string };
-      cells: Array<{ id: string; oxlint: string; eslint: string; oxfmt: string }>;
+      cells: Array<{ id: string; node: string; oxlint: string; eslint: string; oxfmt: string }>;
     };
     assert.equal(matrix.node.engines, pkg.engines.node);
     assert.equal(matrix.oxlint.peer, pkg.peerDependencies.oxlint);
@@ -28,6 +28,11 @@ describe("compatibility matrix", () => {
     assert.ok(matrix.cells.some((cell) => cell.oxlint === matrix.oxlint.minimum));
     assert.ok(matrix.cells.some((cell) => cell.eslint === matrix.eslint.minimum));
     assert.ok(matrix.cells.some((cell) => cell.oxfmt === matrix.oxfmt.minimum));
+    assert.notEqual(matrix.node.currentLts, matrix.node.minimum);
+    assert.notEqual(matrix.node.current, matrix.node.currentLts);
+    assert.ok(matrix.cells.some((cell) => cell.node === matrix.node.current));
+    assert.ok(matrix.cells.some((cell) => cell.oxlint === matrix.oxlint.latestCompatible));
+    assert.ok(matrix.cells.some((cell) => cell.oxfmt === matrix.oxfmt.latest));
     const docs = readFileSync(path.join(repoRoot, "docs/compatibility.md"), "utf8");
     assert.ok(docs.includes(matrix.oxlint.minimum));
     assert.ok(docs.includes(matrix.eslint.minimum));
