@@ -228,6 +228,11 @@ function isNonValuePropertyKey(parent: ESTree.Node | undefined, node: ESTree.Nod
   return property.key === node && !property.shorthand && !property.computed;
 }
 
+function isTypeOnlyUse(parent: ESTree.Node | undefined): boolean {
+  if (!parent) return false;
+  return new Set(["TSTypeQuery", "TSTypeReference", "TSQualifiedName", "TSTypeAnnotation"]).has(parent.type);
+}
+
 function feedsId(parent: ESTree.Node | undefined, node: ESTree.Node): boolean {
   return isPropertyValue(parent, node, "$id") || isIdPropertyAssignment(parent, node);
 }
@@ -296,14 +301,14 @@ export function findNowIdMisuses(
         const fact = facts.get(node);
         if (!fact) return;
         const parent = parentOf(ancestors);
-        if (feedsId(parent, node) || isAliasInit(parent, node)) return;
+        if (isTypeOnlyUse(parent) || feedsId(parent, node) || isAliasInit(parent, node)) return;
         findings.push({ node, key: fact.kind === "static" ? fact.key : null });
       },
       Identifier(node) {
         const fact = facts.get(node);
         if (!fact) return;
         const parent = parentOf(ancestors);
-        if (isDeclarationId(parent, node) || isNonValuePropertyKey(parent, node)) return;
+        if (isDeclarationId(parent, node) || isNonValuePropertyKey(parent, node) || isTypeOnlyUse(parent)) return;
         if (feedsId(parent, node) || isAliasInit(parent, node)) return;
         findings.push({ node, key: fact.kind === "static" ? fact.key : null });
       },

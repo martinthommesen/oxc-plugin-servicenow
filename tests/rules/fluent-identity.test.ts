@@ -132,6 +132,11 @@ const id = Now.ID[key];
 BusinessRule({ $id: id, name: "dynamic" });`, "require-fluent-id", NOW);
   });
 
+  it("ignores type-only Now.ID references", () => {
+    assertValid(`const id = Now.ID["type-only"];
+type IdType = typeof id;`, "no-now-id-as-reference", NOW);
+  });
+
   it("does not exempt member assignment or object storage as an alias", () => {
     assertInvalid(`const config = {};
 config.reference = Now.ID["reference"];`, "no-now-id-as-reference", { count: 1 }, NOW);
