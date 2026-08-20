@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, readdirSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { classicEs5Rules } from "../../src/configs/maps.js";
@@ -67,6 +67,24 @@ describe("example projects", () => {
     ) as { rules: Record<string, string> };
     assert.deepEqual(compatibility.rules, classicEs5Rules);
     assert.deepEqual(es5.rules, classicEs5Rules);
+  });
+
+  it("executes the exact UI Action settings copied from its README", () => {
+    const readme = readFileSync(path.join(examplesDir, "ui-action/README.md"), "utf8");
+    const block = readme.match(/```json\n([\s\S]*?)\n```/);
+    assert.ok(block, "UI Action README must contain a JSON settings block");
+    const documented = JSON.parse(block[1]) as { servicenow?: { surfaces?: string } };
+    assert.equal(documented.servicenow?.surfaces, "auto");
+    const configPath = path.join(examplesDir, "ui-action/.readme-test.oxlintrc.json");
+    const base = JSON.parse(readFileSync(path.join(examplesDir, "ui-action/.oxlintrc.json"), "utf8")) as Record<string, unknown>;
+    base.settings = documented;
+    writeFileSync(configPath, JSON.stringify(base));
+    try {
+      const report = runOxlint(configPath, [path.join(examplesDir, "ui-action/invalid/client-query.client.ui-action.js")]);
+      assert.ok(pluginRulesFor(report).includes("servicenow/no-client-gliderecord"));
+    } finally {
+      unlinkSync(configPath);
+    }
   });
 
   it("classic mode examples fail for the intended engine rule, not a sys_id crutch", () => {
