@@ -1,9 +1,25 @@
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import {
+  DEFAULT_FLUENT_MANIFEST,
+  FLUENT_CORE_MODULE as MANIFEST_CORE_MODULE,
+  entitiesRequiringId,
+} from "./fluent/manifest.js";
+
 /** Canonical plugin name used in rule ids (`servicenow/<rule>`). */
 export const PLUGIN_NAME = "servicenow";
 
 export const PACKAGE_NAME = "oxc-plugin-servicenow";
 
-export const PACKAGE_VERSION = "1.1.0";
+function readPackageVersion(): string {
+  const manifest = JSON.parse(readFileSync(fileURLToPath(new URL("../package.json", import.meta.url)), "utf8")) as {
+    version: string;
+  };
+  return manifest.version;
+}
+
+/** Derived from `package.json` at load time so the export cannot drift. */
+export const PACKAGE_VERSION = readPackageVersion();
 
 export const DOCS_BASE_URL =
   "https://github.com/martinthommesen/oxc-plugin-servicenow/blob/main/docs/rules";
@@ -14,117 +30,38 @@ export function ruleDocsUrl(ruleName: string): string {
 
 /**
  * Fluent entity factories imported from `@servicenow/sdk/core`.
- * Keep in sync with the ServiceNow SDK Fluent API surface.
+ * Derived from the versioned SDK manifest.
  */
-export const FLUENT_CORE_APIS = [
-  "Acl",
-  "AliasTemplate",
-  "ApplicationMenu",
-  "BusinessRule",
-  "CatalogClientScript",
-  "CatalogItem",
-  "CatalogItemRecordProducer",
-  "ClientScript",
-  "CrossScopePrivilege",
-  "DatabaseIndex",
-  "InboundEmailAction",
-  "Module",
-  "Property",
-  "Record",
-  "RestApi",
-  "Role",
-  "ScheduledScript",
-  "ScriptAction",
-  "ScriptedRestApi",
-  "ScriptInclude",
-  "SPMenu",
-  "SPWidget",
-  "StateModel",
-  "Table",
-  "UiAction",
-  "UiFormatter",
-  "UiPage",
-  "UiPolicy",
-] as const;
+export const FLUENT_CORE_APIS = DEFAULT_FLUENT_MANIFEST.apis
+  .filter((api) => api.kind === "entity" && api.module === MANIFEST_CORE_MODULE)
+  .map((api) => api.name);
 
 export type FluentCoreApi = (typeof FLUENT_CORE_APIS)[number];
 
 export const FLUENT_CORE_API_SET: ReadonlySet<string> = new Set(FLUENT_CORE_APIS);
 
 /** Column helpers that also come from `@servicenow/sdk/core`. */
-export const FLUENT_COLUMN_APIS = [
-  "BooleanColumn",
-  "ChoiceColumn",
-  "ConditionsColumn",
-  "DateColumn",
-  "DateTimeColumn",
-  "DecimalColumn",
-  "FieldNameColumn",
-  "HtmlColumn",
-  "IntegerColumn",
-  "ListColumn",
-  "ReferenceColumn",
-  "ScriptColumn",
-  "StringColumn",
-  "TableNameColumn",
-  "TranslatedFieldColumn",
-  "TranslatedTextColumn",
-  "UserRolesColumn",
-] as const;
+export const FLUENT_COLUMN_APIS = DEFAULT_FLUENT_MANIFEST.apis
+  .filter((api) => api.kind === "column")
+  .map((api) => api.name);
 
-export const FLUENT_IMPORT_SET: ReadonlySet<string> = new Set([
-  ...FLUENT_CORE_APIS,
-  ...FLUENT_COLUMN_APIS,
-]);
+export const FLUENT_IMPORT_SET: ReadonlySet<string> = new Set(
+  DEFAULT_FLUENT_MANIFEST.apis.filter((api) => api.module !== "unknown").map((api) => api.name),
+);
 
-export const FLUENT_CORE_MODULE = "@servicenow/sdk/core";
+export const FLUENT_CORE_MODULE = MANIFEST_CORE_MODULE;
 
 /**
  * Fluent factories that must declare `$id` (Tables use `name` instead).
  */
-export const FLUENT_ENTITIES_REQUIRING_ID: ReadonlySet<string> = new Set([
-  "Acl",
-  "AliasTemplate",
-  "ApplicationMenu",
-  "BusinessRule",
-  "CatalogClientScript",
-  "CatalogItem",
-  "CatalogItemRecordProducer",
-  "ClientScript",
-  "CrossScopePrivilege",
-  "InboundEmailAction",
-  "Module",
-  "Property",
-  "Record",
-  "RestApi",
-  "Role",
-  "ScheduledScript",
-  "ScriptAction",
-  "ScriptedRestApi",
-  "ScriptInclude",
-  "SPMenu",
-  "SPWidget",
-  "StateModel",
-  "UiAction",
-  "UiFormatter",
-  "UiPage",
-  "UiPolicy",
-]);
+export const FLUENT_ENTITIES_REQUIRING_ID: ReadonlySet<string> = entitiesRequiringId();
 
-export const KNOWN_FLUENT_DIRECTIVES = [
-  "fluent-ignore",
-  "fluent-disable-sync",
-] as const;
+export const KNOWN_FLUENT_DIRECTIVES = DEFAULT_FLUENT_MANIFEST.directives.map(
+  (directive) => directive.name,
+);
 
 export const FLUENT_DIRECTIVE_TYPOS: Record<string, string> = {
-  "fluent-ignre": "fluent-ignore",
-  "fluent-igonre": "fluent-ignore",
-  "fluent-ignore-next-line": "fluent-ignore",
-  "fluent-ignore-sync": "fluent-disable-sync",
-  "fluent-disable": "fluent-disable-sync",
-  "fluent-disable-sync-next-line": "fluent-disable-sync",
-  "fluent-skip": "fluent-ignore",
-  "fluent-nosync": "fluent-disable-sync",
+  ...DEFAULT_FLUENT_MANIFEST.typos,
 };
 
 /** Properties that typically hold large script / markup payloads in Fluent. */
