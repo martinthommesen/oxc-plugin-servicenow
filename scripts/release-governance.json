@@ -1,0 +1,31 @@
+{
+  "branch": "main",
+  "requirePullRequest": true,
+  "allowForcePush": false,
+  "allowDeletion": false,
+  "requiredChecks": [
+    "test",
+    "bench",
+    "compat",
+    "docs",
+    "manifest",
+    "artifact",
+    "workflow"
+  ],
+  "protectedTags": [
+    "v*"
+  ],
+  "environment": {
+    "name": "release",
+    "requiredReviewers": true
+  },
+  "npmTrustedPublisher": {
+    "repository": "oxc-plugin-servicenow",
+    "workflow": ".github/workflows/release.yml",
+    "environment": "release",
+    "tagRefs": [
+      "refs/tags/v*"
+    ],
+    "workflowFilename": "release.yml"
+  }
+}
