@@ -42,8 +42,7 @@ This report is the final local audit for the seven-layer remediation stack. The 
 
 These are not claimed by local mocks or text checks and remain unchecked in the goal file and ledger:
 
-1. A maintainer must apply and capture the GitHub `main` ruleset, protected `v*` tags, protected `release` environment, and npm trusted-publisher restriction (`scripts/release-governance.json` is the desired configuration).
-2. Node 20/22 real-host execution must run in CI; this machine has Node 24/26 only. The release consumer matrix is configured for Node 20.19, 20, 22, 24, 26/current.
-3. An approved protected tag must prove live npm OIDC publication, registry integrity/provenance/import visibility, and idempotent GitHub release creation.
+1. The GitHub `main` ruleset, protected `v*` tags, reviewer-gated `release` environment, and SHA-pinning requirement are applied; npm trusted-publisher configuration remains pending because this host is not authenticated to npm (`docs/release-governance-live.json`).
+2. An approved protected tag must prove live npm OIDC publication, registry integrity/provenance/import visibility, and idempotent GitHub release creation.
 
 No live publication, registry, or GitHub result is represented as complete by this local report.

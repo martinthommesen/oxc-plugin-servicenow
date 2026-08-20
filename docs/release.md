@@ -72,6 +72,10 @@ A publish request can be accepted by npm even when the client receives a network
 - `scripts/create-github-release.mjs` treats an existing release as a retry: it compares the named asset bytes (or GitHub's SHA-256 digest), uploads only a missing asset, and fails on a mismatch. It never overwrites a mismatched asset.
 - If GitHub release creation fails after a successful registry check, rerun the release job or invoke the helper with the same immutable tarball; do not republish.
 
+## Captured GitHub governance
+
+The repository controls were applied and captured on 2026-08-20 in [`docs/release-governance-live.json`](./release-governance-live.json): active `main` pull-request/status-check ruleset `21081867`, active protected `v**` tag ruleset `21081873`, a non-bypassable reviewer-gated `release` environment, and repository-level SHA-pinning enforcement. The npm trusted publisher remains pending because this host is not authenticated to npm; the desired repository/workflow/environment/tag restriction is in `scripts/release-governance.json`.
+
 ## Explicitly-live gates
 
 Local tests use deterministic metadata, fake command boundaries, and the current packed artifact. They do **not** prove external OIDC trust, registry availability/provenance, or GitHub permissions. Keep these gates pending until an approved real tag completes them:

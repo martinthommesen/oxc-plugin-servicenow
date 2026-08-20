@@ -1,0 +1,85 @@
+{
+  "capturedAt": "2026-08-20T08:41:18Z",
+  "repository": "martinthommesen/oxc-plugin-servicenow",
+  "github": {
+    "mainRuleset": {
+      "id": 21081867,
+      "name": "PR51 main governance",
+      "enforcement": "active",
+      "conditions": {
+        "ref_name": {
+          "exclude": [],
+          "include": [
+            "refs/heads/main"
+          ]
+        }
+      },
+      "rules": [
+        "deletion",
+        "non_fast_forward",
+        "pull_request",
+        "required_status_checks"
+      ],
+      "requiredStatusChecks": [
+        "test (20.19.0)",
+        "test (20)",
+        "test (22)",
+        "test (24)",
+        "test (26)",
+        "bench",
+        "compat (20.19.0, min-hosts)",
+        "compat (20, node20-floor)",
+        "compat (22, node22-lts)",
+        "compat (24, node24-lts)",
+        "compat (26, node26-current)",
+        "compat (current, eslint9-current)",
+        "docs",
+        "manifest",
+        "artifact",
+        "workflow"
+      ],
+      "currentUserCanBypass": "never"
+    },
+    "tagRuleset": {
+      "id": 21081873,
+      "name": "PR51 protected release tags",
+      "enforcement": "active",
+      "conditions": {
+        "ref_name": {
+          "exclude": [],
+          "include": [
+            "refs/tags/v**"
+          ]
+        }
+      },
+      "rules": [
+        "deletion",
+        "non_fast_forward"
+      ],
+      "currentUserCanBypass": "never"
+    },
+    "releaseEnvironment": {
+      "name": "release",
+      "canAdminsBypass": false,
+      "requiredReviewer": "martinthommesen",
+      "preventSelfReview": true,
+      "protectedBranches": true
+    },
+    "actions": {
+      "shaPinningRequired": true,
+      "allowedActions": "all"
+    }
+  },
+  "npmTrustedPublisher": {
+    "status": "pending",
+    "blocker": "npm CLI is not authenticated on this host (npm whoami: ENEEDAUTH); maintainer must configure the package publisher for the repository/workflow/environment/tag refs.",
+    "desired": {
+      "repository": "oxc-plugin-servicenow",
+      "workflow": ".github/workflows/release.yml",
+      "environment": "release",
+      "tagRefs": [
+        "refs/tags/v*"
+      ]
+    }
+  }
+}
