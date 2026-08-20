@@ -68,6 +68,11 @@
     "actions": {
       "shaPinningRequired": true,
       "allowedActions": "all"
+    },
+    "ciEvidence": {
+      "runId": 32350984074,
+      "headSha": "751d28bb901db7cadceddaed1e72585ef5ac0098",
+      "note": "CI was dispatched at the preceding artifact-validating commit 751d28b; the documentation-only follow-up does not change source/artifact bytes. All 15 jobs passed."
     }
   },
   "npmTrustedPublisher": {
