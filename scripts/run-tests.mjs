@@ -52,7 +52,10 @@ if (files.length === 0) {
   process.exit(1);
 }
 
-const child = spawn(process.execPath, [tsxCli, "--test", ...files], {
+// Release/packed integration tests build and inspect the ignored dist tree. Keep
+// test files serial so a test-side build cannot race an Oxlint subprocess in
+// another file and expose a half-written module graph.
+const child = spawn(process.execPath, [tsxCli, "--test", "--test-concurrency=1", ...files], {
   stdio: "inherit",
   cwd: root,
 });
