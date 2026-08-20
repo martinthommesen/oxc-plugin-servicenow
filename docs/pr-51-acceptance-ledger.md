@@ -112,7 +112,7 @@ This ledger is generated from every unchecked acceptance/handoff checkbox in `PR
 6. Layer 6 reverts packed compatibility/benchmark gates without changing release permissions.
 7. Layer 7 is privileged and independently revertible; no implementation-layer changes belong in its commits.
 | 87 | Layer 4 | Goal line 290 | Complete historical Fluent version model; support actual current 4.11.0 or narrow claim. | Verified | `src/fluent/registry.ts`; `tests/rules/fluent-identity.test.ts`; `npm run manifest:check` | 17025c4 | targeted Fluent + manifest checks |
-| 88 | Layer 4 | Goal line 291 | Version-transition boundaries including AliasTemplate 4.8.0 and StateModel historical applicability. | Verified | `tests/rules/fluent-identity.test.ts`; versioned registry manifests | 7053234 | targeted Fluent tests |
+| 88 | Layer 4 | Goal line 291 | Version-transition boundaries including AliasTemplate 4.8.0 and StateModel historical applicability. | Verified | `tests/rules/fluent-identity.test.ts`; versioned registry manifests | d14590a | targeted Fluent tests |
 | 89 | Layer 4 | Goal line 292 | Parseable symbol/version-specific Fluent evidence records and manifest validation. | Verified | `FluentEvidenceRecord`; `scripts/check-fluent-manifest.mjs` | c958c71 | `npm run manifest:check` |
 | 90 | Layer 2 | Goal line 296 | Retain while/for test side effects on zero-iteration paths. | Verified | `src/analysis/path-state.ts`; foundation loop-test regression | 8972ce8 | foundation tests |
 | 91 | Layer 2 | Goal line 297 | Execute for updates and do-while tests after continue, including abrupt handling. | Verified | `src/analysis/path-state.ts`; foundation continue regressions | 8972ce8 | foundation tests |
