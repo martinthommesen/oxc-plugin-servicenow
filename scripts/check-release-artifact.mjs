@@ -148,7 +148,9 @@ function argValue(argv, name) {
 function ensureBuiltDist() {
   // Release checks must never inspect stale ignored dist output. The validate
   // job also builds explicitly; this second build protects local invocation.
-  execFileSync("npm", ["run", "build"], { cwd: root, encoding: "utf8", stdio: "inherit" });
+  // Callers may parse this script's stdout as JSON. Keep the build's npm
+  // banners out of that machine-readable channel while preserving failures.
+  execFileSync("npm", ["run", "build"], { cwd: root, encoding: "utf8", stdio: ["ignore", "ignore", "inherit"] });
 }
 
 function packTarball(destination) {
