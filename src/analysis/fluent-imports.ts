@@ -163,6 +163,31 @@ function isStableAlias(
   return writes === 0 && node.start !== undefined;
 }
 
+export function resolveFluentCandidate(
+  callee: unknown,
+  ancestors: readonly ESTree.Node[],
+  bindings: FileBindings,
+  imports: ReadonlyMap<number, FluentImportBinding>,
+  manifest: FluentSdkManifest,
+): { capability: FluentApiCapability; origin: FluentBindingOrigin } | null {
+  const expr = unwrapExpression(callee);
+  if (!isNode(expr)) return null;
+  const apis = apisByName(manifest);
+  const origin = resolveFluentBindingOrigin(expr, ancestors, bindings, imports);
+  if (!origin || origin.exportedName === "*" || origin.exportedName === "default") return null;
+
+  // For a mutable alias, resolve only while the binding remains a stable
+  // import/alias. A later assignment must not keep identifying the old API.
+  if (expr.type === "Identifier") {
+    const binding = bindings.tree.resolve(getName(expr) ?? "", expr, ancestors);
+    const program = ancestors.find((ancestor) => ancestor.type === "Program");
+    if (binding && !isStableAlias(expr, binding, program, bindings)) return null;
+  }
+  const capability = apis.get(origin.exportedName);
+  return capability ? { capability, origin } : null;
+}
+
+/** Resolve only an authoritative factory from its owning module. */
 export function resolveFluentFactory(
   callee: unknown,
   ancestors: readonly ESTree.Node[],
@@ -170,24 +195,15 @@ export function resolveFluentFactory(
   imports: ReadonlyMap<number, FluentImportBinding>,
   manifest: FluentSdkManifest,
 ): FluentApiCapability | null {
-  const expr = unwrapExpression(callee);
-  if (!isNode(expr)) return null;
-  const apis = apisByName(manifest);
-  const origin = resolveFluentBindingOrigin(expr, ancestors, bindings, imports);
-  if (!origin) return null;
-
-  // For a mutable alias, resolve only an import itself.  The declaration
-  // initializer is still useful for namespace aliases, but a reassigned
-  // variable must not continue to identify the old factory.
-  if (expr.type === "Identifier") {
-    const binding = bindings.tree.resolve(getName(expr) ?? "", expr, ancestors);
-    const program = ancestors.find((ancestor) => ancestor.type === "Program");
-    if (binding && !isStableAlias(expr, binding, program, bindings)) return null;
-  }
-  if (origin.exportedName === "*" || origin.exportedName === "default") return null;
-  return apis.get(origin.exportedName) ?? null;
+  const candidate = resolveFluentCandidate(callee, ancestors, bindings, imports, manifest);
+  if (!candidate) return null;
+  const { capability, origin } = candidate;
+  // A recognized symbol from another module is still a candidate for the
+  // import-policy rule, but it is not an authoritative factory for semantic
+  // rules. Cross-file re-exports are intentionally out of scope here.
+  if (capability.module === "unknown" || origin.sourceModule !== capability.module) return null;
+  return capability;
 }
-
 export function importedBindingFor(
   node: ESTree.Node,
   ancestors: readonly ESTree.Node[],

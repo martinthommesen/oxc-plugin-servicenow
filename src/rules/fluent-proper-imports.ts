@@ -1,7 +1,7 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { getAncestors } from "../analysis/index.js";
-import { importedBindingFor } from "../analysis/fluent-imports.js";
+import { importedBindingFor, resolveFluentCandidate } from "../analysis/fluent-imports.js";
 import { staticPropertyName } from "../analysis/members.js";
 import { importOwnedApis } from "../fluent/index.js";
 import { ruleDocsUrl } from "../constants.js";
@@ -58,7 +58,14 @@ export const fluentProperImports = defineRule({
         const owned = importOwnedApis(file.fluent.manifest);
         const call = node as ESTree.CallExpression;
         const ancestors = getAncestors(context, call);
-        const capability = file.fluent.resolveFactory(call.callee, ancestors);
+        const resolved = resolveFluentCandidate(
+          call.callee,
+          ancestors,
+          file.bindings,
+          file.fluent.imports,
+          file.fluent.manifest,
+        );
+        const capability = resolved?.capability;
         if (capability) {
           const expected = capability.module === "unknown" ? undefined : capability.module;
           if (!expected) return;

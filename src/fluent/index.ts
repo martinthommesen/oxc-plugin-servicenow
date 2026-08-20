@@ -10,6 +10,9 @@ export {
 export {
   CURRENT_FLUENT_SDK_VERSION,
   LEGACY_FLUENT_SDK_VERSION,
+  SDK_4_1_FLUENT_SDK_VERSION,
+  SDK_4_8_FLUENT_SDK_VERSION,
+  SDK_4_10_FLUENT_SDK_VERSION,
   SUPPORTED_FLUENT_SDK_VERSIONS,
   fluentManifests,
   resolveFluentManifest,
@@ -20,6 +23,7 @@ export type {
   FluentApiCapability,
   FluentApiKind,
   FluentDirectiveCapability,
+  FluentEvidenceRecord,
   FluentIdRequirement,
   FluentSdkManifest,
 } from "./manifest.js";

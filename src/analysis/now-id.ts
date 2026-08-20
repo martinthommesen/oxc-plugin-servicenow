@@ -92,9 +92,9 @@ function staticChain(node: unknown): string[] | null {
   while (isNode(current) && current.type === "MemberExpression") {
     const member = current as ESTree.MemberExpression;
     const property = member.computed
-      ? (getName(member.property) ?? (member.property.type === "Literal" && typeof (member.property as { value?: unknown }).value === "string"
-          ? ((member.property as { value: string }).value)
-          : null))
+      ? (member.property.type === "Literal" && typeof (member.property as { value?: unknown }).value === "string"
+          ? (member.property as { value: string }).value
+          : null)
       : getName(member.property);
     if (!property) return null;
     parts.unshift(property);
@@ -107,8 +107,13 @@ function staticChain(node: unknown): string[] | null {
 }
 
 function isNowIdLookup(node: ESTree.Node): boolean {
-  const chain = staticChain(node);
-  return Boolean(chain && chain[0] === "Now" && chain[1] === "ID" && chain.length >= 3);
+  const expr = unwrapExpr(node);
+  if (!isNode(expr) || expr.type !== "MemberExpression") return false;
+  const object = unwrapExpr((expr as ESTree.MemberExpression).object);
+  const chain = staticChain(object);
+  // The key is deliberately not required to be static: Now.ID[key] has
+  // definite Now.ID provenance even though duplicate/naming precision is lost.
+  return Boolean(chain && chain.length === 2 && chain[0] === "Now" && chain[1] === "ID");
 }
 
 function canonicalAlias(
@@ -186,11 +191,22 @@ function isAliasInit(parent: ESTree.Node | undefined, node: ESTree.Node): boolea
   if (!parent) return false;
   if (parent.type === "VariableDeclarator") {
     const decl = parent as ESTree.VariableDeclarator;
-    return unwrapExpr(decl.init) === node || decl.init === node;
+    // Only a lexical identifier receives alias semantics. Destructuring and
+    // member writes are real uses of the identity value.
+    return (
+      isNode(decl.id) &&
+      decl.id.type === "Identifier" &&
+      (unwrapExpr(decl.init) === node || decl.init === node)
+    );
   }
   if (parent.type === "AssignmentExpression") {
     const assign = parent as ESTree.AssignmentExpression;
-    return unwrapExpr(assign.right) === node || assign.right === node;
+    const left = unwrapExpr(assign.left);
+    return (
+      isNode(left) &&
+      left.type === "Identifier" &&
+      (unwrapExpr(assign.right) === node || assign.right === node)
+    );
   }
   return false;
 }
@@ -235,7 +251,7 @@ export function isProvenNowIdValue(
   if (isCanonicalNowId(node, analysis)) return true;
   const inner = unwrapExpr(node) ?? node;
   const fact = facts.get(node) ?? facts.get(inner);
-  return fact?.kind === "static";
+  return fact?.kind === "static" || fact?.kind === "unknown";
 }
 
 function collectNowIdFacts(program: ESTree.Node, analysis: ProvenanceQuery): Map<ESTree.Node, NowIdFact> {
@@ -278,18 +294,18 @@ export function findNowIdMisuses(
     {
       MemberExpression(node) {
         const fact = facts.get(node);
-        if (!fact || fact.kind !== "static") return;
+        if (!fact) return;
         const parent = parentOf(ancestors);
         if (feedsId(parent, node) || isAliasInit(parent, node)) return;
-        findings.push({ node, key: fact.key });
+        findings.push({ node, key: fact.kind === "static" ? fact.key : null });
       },
       Identifier(node) {
         const fact = facts.get(node);
-        if (!fact || fact.kind !== "static") return;
+        if (!fact) return;
         const parent = parentOf(ancestors);
         if (isDeclarationId(parent, node) || isNonValuePropertyKey(parent, node)) return;
         if (feedsId(parent, node) || isAliasInit(parent, node)) return;
-        findings.push({ node, key: fact.key });
+        findings.push({ node, key: fact.kind === "static" ? fact.key : null });
       },
     },
     ancestors,

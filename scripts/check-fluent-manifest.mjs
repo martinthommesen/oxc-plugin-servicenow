@@ -60,8 +60,23 @@ function assertManifest(manifest) {
   for (const api of manifest.apis) {
     assert.ok(api.evidence && api.evidence.length > 8, `${api.name} needs evidence`);
     assert.ok(api.module === "unknown" || api.module.startsWith("@"), `${api.name} module`);
+    assert.ok(Array.isArray(api.evidenceRecords) && api.evidenceRecords.length > 0, `${api.name} needs evidence records`);
+    for (const record of api.evidenceRecords) {
+      assert.equal(record.symbol, api.name, `${api.name} evidence symbol`);
+      assert.match(record.url, /^(?:https?:\/\/|tests\/|src\/|docs\/)/, `${api.name} evidence URL`);
+      assert.match(record.version, /^\d+\.\d+\.\d+$/, `${api.name} evidence version`);
+      if (record.transition === "introduced") assert.equal(record.version, api.introduced, `${api.name} introduction evidence`);
+    }
     if (api.introduced && api.deprecated) {
       assert.ok(api.introduced <= api.deprecated, `${api.name} version range`);
+    }
+  }
+  for (const directive of manifest.directives) {
+    assert.ok(Array.isArray(directive.evidenceRecords) && directive.evidenceRecords.length > 0, `${directive.name} needs evidence records`);
+    for (const record of directive.evidenceRecords) {
+      assert.equal(record.symbol, directive.name, `${directive.name} evidence symbol`);
+      assert.match(record.url, /^(?:https?:\/\/|tests\/|src\/|docs\/)/, `${directive.name} evidence URL`);
+      assert.match(record.version, /^\d+\.\d+\.\d+$/, `${directive.name} evidence version`);
     }
   }
 }
@@ -70,8 +85,8 @@ for (const manifest of fluentManifests()) {
   assertManifest(manifest);
 }
 
-assert.deepEqual([...SUPPORTED_FLUENT_SDK_VERSIONS], ["3.0.0", "4.1.0"]);
-assert.equal(CURRENT_FLUENT_SDK_VERSION, "4.1.0");
+assert.deepEqual([...SUPPORTED_FLUENT_SDK_VERSIONS], ["3.0.0", "4.1.0", "4.8.0", "4.10.0", "4.11.0"]);
+assert.equal(CURRENT_FLUENT_SDK_VERSION, "4.11.0");
 
 const fixturePath = join(root, "tests/fixtures/fluent-manifest-current.json");
 const fixture = JSON.parse(await readFile(fixturePath, "utf8"));

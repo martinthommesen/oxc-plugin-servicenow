@@ -1,6 +1,6 @@
 {
-  "version": "sdk-docs-2026-03",
-  "sdkVersion": "4.1.0",
+  "version": "sdk-4.11.0",
+  "sdkVersion": "4.11.0",
   "apis": [
     {
       "name": "Acl",
@@ -83,7 +83,7 @@
       "name": "List",
       "module": "@servicenow/sdk/core",
       "kind": "entity",
-      "idRequirement": "required",
+      "idRequirement": "deprecated",
       "evidence": "https://github.com/ServiceNow/sdk-examples/list-sample"
     },
     {
@@ -108,6 +108,13 @@
       "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples/record-sample"
     },
     {
+      "name": "UserPreference",
+      "module": "@servicenow/sdk/core",
+      "kind": "entity",
+      "idRequirement": "required",
+      "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples/user-preference-sample"
+    },
+    {
       "name": "RestApi",
       "module": "@servicenow/sdk/core",
       "kind": "entity",
@@ -129,25 +136,11 @@
       "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples"
     },
     {
-      "name": "ScriptAction",
-      "module": "@servicenow/sdk/core",
-      "kind": "entity",
-      "idRequirement": "required",
-      "evidence": "https://github.com/ServiceNow/sdk-examples/scriptaction-sample"
-    },
-    {
       "name": "ScriptedRestApi",
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
       "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples"
-    },
-    {
-      "name": "ScriptInclude",
-      "module": "@servicenow/sdk/core",
-      "kind": "entity",
-      "idRequirement": "required",
-      "evidence": "https://github.com/ServiceNow/sdk-examples/script-include-sample"
     },
     {
       "name": "SPMenu",
@@ -174,7 +167,7 @@
       "name": "Table",
       "module": "@servicenow/sdk/core",
       "kind": "entity",
-      "idRequirement": "optional",
+      "idRequirement": "forbidden",
       "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples/table-sample"
     },
     {
@@ -185,11 +178,32 @@
       "evidence": "https://github.com/ServiceNow/sdk-examples/test-atf-sample"
     },
     {
+      "name": "ScriptAction",
+      "module": "@servicenow/sdk/core",
+      "kind": "entity",
+      "idRequirement": "required",
+      "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples/script-action-sample"
+    },
+    {
+      "name": "ScriptInclude",
+      "module": "@servicenow/sdk/core",
+      "kind": "entity",
+      "idRequirement": "required",
+      "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples/script-include-sample"
+    },
+    {
       "name": "UiAction",
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
-      "evidence": "https://github.com/ServiceNow/sdk-examples/uiaction-sample"
+      "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples/ui-action-sample"
+    },
+    {
+      "name": "UiPage",
+      "module": "@servicenow/sdk/core",
+      "kind": "entity",
+      "idRequirement": "required",
+      "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples/ui-page-sample"
     },
     {
       "name": "UiFormatter",
@@ -197,13 +211,6 @@
       "kind": "entity",
       "idRequirement": "required",
       "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples"
-    },
-    {
-      "name": "UiPage",
-      "module": "@servicenow/sdk/core",
-      "kind": "entity",
-      "idRequirement": "required",
-      "evidence": "https://github.com/ServiceNow/sdk-examples/uipage-sample"
     },
     {
       "name": "UiPolicy",

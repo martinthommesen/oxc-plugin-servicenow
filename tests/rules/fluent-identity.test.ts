@@ -27,18 +27,15 @@ describe("fluentSdkVersion registry", () => {
     );
   });
 
-  it("does not treat CatalogItemRecordProducer as a 3.0.0 factory", () => {
-    assertValid(
-      `import { CatalogItemRecordProducer } from "@servicenow/sdk/core";\nCatalogItemRecordProducer({ name: "old" });`,
-      "require-fluent-id",
-      { ...NOW, settings: { fluentSdkVersion: "3.0.0" } },
-    );
-    assertInvalid(
-      `import { CatalogItemRecordProducer } from "@servicenow/sdk/core";\nCatalogItemRecordProducer({ name: "current" });`,
-      "require-fluent-id",
-      { messageId: "missing" },
-      { ...NOW, settings: { fluentSdkVersion: "4.1.0" } },
-    );
+  it("respects capability introduction boundaries", () => {
+    const alias = `import { AliasTemplate } from "@servicenow/sdk/core";\nAliasTemplate({ name: "template" });`;
+    assertValid(alias, "require-fluent-id", { ...NOW, settings: { fluentSdkVersion: "4.1.0" } });
+    assertInvalid(alias, "require-fluent-id", { messageId: "missing" }, { ...NOW, settings: { fluentSdkVersion: "4.8.0" } });
+    assertInvalid(alias, "require-fluent-id", { messageId: "missing" }, { ...NOW, settings: { fluentSdkVersion: "4.11.0" } });
+
+    const producer = `import { CatalogItemRecordProducer } from "@servicenow/sdk/core";\nCatalogItemRecordProducer({ name: "producer" });`;
+    assertValid(producer, "require-fluent-id", { ...NOW, settings: { fluentSdkVersion: "4.1.0" } });
+    assertInvalid(producer, "require-fluent-id", { messageId: "missing" }, { ...NOW, settings: { fluentSdkVersion: "4.8.0" } });
   });
 });
 
@@ -118,6 +115,36 @@ BusinessRule({ $id: Now.ID.fake, script: Now.include("./not-sdk.js") });`,
       "no-now-id-as-reference",
       NOW,
     );
+  });
+});
+
+describe("Now.ID provenance and use sites", () => {
+  it("reports dynamic and non-lexical uses but accepts a dynamic $id", () => {
+    const dynamic = `import { BusinessRule } from "@servicenow/sdk/core";
+const key = getKey();
+const config = {};
+config.reference = Now.ID[key];
+consume([Now.ID[key]]);
+BusinessRule({ $id: Now.ID[key], name: "dynamic" });`;
+    assertInvalid(dynamic, "no-now-id-as-reference", { count: 2 }, NOW);
+    assertValid(`const key = getKey();
+const id = Now.ID[key];
+BusinessRule({ $id: id, name: "dynamic" });`, "require-fluent-id", NOW);
+  });
+
+  it("does not exempt member assignment or object storage as an alias", () => {
+    assertInvalid(`const config = {};
+config.reference = Now.ID["reference"];`, "no-now-id-as-reference", { count: 1 }, NOW);
+    assertInvalid(`const values = [Now.ID["stored"]];`, "no-now-id-as-reference", { count: 1 }, NOW);
+  });
+});
+
+describe("authoritative Fluent factories", () => {
+  it("reports a wrong-module import without semantic factory diagnostics", () => {
+    const code = `import { BusinessRule } from "some-other-package";
+BusinessRule({ name: "local" });`;
+    assertInvalid(code, "fluent-proper-imports", { messageId: "wrongModule" }, NOW);
+    assertValid(code, "require-fluent-id", NOW);
   });
 });
 

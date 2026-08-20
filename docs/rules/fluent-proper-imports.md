@@ -14,7 +14,7 @@ Fluent entity and column APIs must be imported from the module recorded in the s
 - **Last verified:** 2026-08-20
 - **Implementation:** [`src/rules/fluent-proper-imports.ts`](../../src/rules/fluent-proper-imports.ts)
 - **Fluent manifest:** sdk-docs-2026-03
-- **Fluent SDK versions:** 3.0.0, 4.1.0 (unspecified selects 4.1.0)
+- **Fluent SDK versions:** 3.0.0, 4.1.0, 4.8.0, 4.10.0, 4.11.0 (unspecified selects 4.11.0)
 
 ## Applicability
 
@@ -26,7 +26,7 @@ Fluent entity and column APIs must be imported from the module recorded in the s
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
 | ServiceNow releases | zurich |
-| Fluent SDK range | 3.0.0 \|\| 4.1.0 |
+| Fluent SDK range | 3.0.0 \|\| 4.1.0 \|\| 4.8.0 \|\| 4.10.0 \|\| 4.11.0 |
 
 ## Options
 

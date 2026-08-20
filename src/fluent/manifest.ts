@@ -16,6 +16,16 @@ export type FluentIdRequirement = "required" | "optional" | "deprecated" | "forb
 
 export type FluentDirectivePlacement = "previous-line" | "first-line" | "anywhere";
 
+export interface FluentEvidenceRecord {
+  /** One authoritative URL or repository fixture, never a compound citation. */
+  url: string;
+  /** Exact exported symbol or directive covered by this record. */
+  symbol: string;
+  /** SDK version at which this record applies. */
+  version: string;
+  transition?: "introduced" | "deprecated" | "removed" | "renamed" | "current";
+}
+
 export interface FluentApiCapability {
   name: string;
   module: string | "unknown";
@@ -24,12 +34,14 @@ export interface FluentApiCapability {
   introduced?: string;
   deprecated?: string;
   evidence: string;
+  evidenceRecords: readonly FluentEvidenceRecord[];
 }
 
 export interface FluentDirectiveCapability {
   name: string;
   placement: FluentDirectivePlacement;
   evidence: string;
+  evidenceRecords: readonly FluentEvidenceRecord[];
 }
 
 export interface FluentSdkManifest {
@@ -46,17 +58,26 @@ const FLUENT_OVERVIEW = "https://www.servicenow.com/docs/r/api-reference/service
 const SDK_EXAMPLES = "https://github.com/ServiceNow/sdk-examples";
 const SDK_CORE = "@servicenow/sdk/core";
 
+function firstEvidenceUrl(evidence: string): string {
+  return evidence.match(/https?:\/\/[^ )]+/)?.[0] ?? evidence;
+}
+
 function entity(
   name: string,
   idRequirement: FluentIdRequirement,
   extra: Partial<FluentApiCapability> = {},
 ): FluentApiCapability {
+  const evidence = extra.evidence ?? `${FLUENT_OVERVIEW} and ${SDK_EXAMPLES}`;
+  const version = extra.introduced ?? "3.0.0";
   return {
     name,
     module: SDK_CORE,
     kind: "entity",
     idRequirement,
-    evidence: extra.evidence ?? `${FLUENT_OVERVIEW} and ${SDK_EXAMPLES}`,
+    evidence,
+    evidenceRecords: extra.evidenceRecords ?? [
+      { url: firstEvidenceUrl(evidence), symbol: name, version, transition: extra.introduced ? "introduced" : "current" },
+    ],
     ...extra,
   };
 }
@@ -68,6 +89,9 @@ function column(name: string): FluentApiCapability {
     kind: "column",
     idRequirement: "forbidden",
     evidence: `${FLUENT_OVERVIEW} (Table schema column helpers)`,
+    evidenceRecords: [
+      { url: FLUENT_OVERVIEW, symbol: name, version: "3.0.0", transition: "current" },
+    ],
   };
 }
 
@@ -81,12 +105,12 @@ export const DEFAULT_FLUENT_MANIFEST: FluentSdkManifest = {
   evidence: [FLUENT_OVERVIEW, SDK_EXAMPLES],
   apis: [
     entity("Acl", "required", { evidence: `${SDK_EXAMPLES}/acl-sample` }),
-    entity("AliasTemplate", "required"),
+    entity("AliasTemplate", "required", { introduced: "4.8.0" }),
     entity("ApplicationMenu", "required", { evidence: `${SDK_EXAMPLES}/applicationmenu-sample` }),
     entity("BusinessRule", "required", { evidence: `${FLUENT_OVERVIEW} and ${SDK_EXAMPLES}/businessrule-sample` }),
     entity("CatalogClientScript", "required"),
     entity("CatalogItem", "required", { evidence: `${SDK_EXAMPLES}/service-catalog-sample` }),
-    entity("CatalogItemRecordProducer", "required"),
+    entity("CatalogItemRecordProducer", "required", { introduced: "4.8.0" }),
     entity("ClientScript", "required", { evidence: `${FLUENT_OVERVIEW} and ${SDK_EXAMPLES}/clientscript-sample` }),
     entity("CrossScopePrivilege", "required"),
     entity("DatabaseIndex", "optional"),
@@ -101,25 +125,26 @@ export const DEFAULT_FLUENT_MANIFEST: FluentSdkManifest = {
     entity("UserPreference", "required", { evidence: `${FLUENT_OVERVIEW} and ${SDK_EXAMPLES}/user-preference-sample` }),
     entity("RestApi", "required", { evidence: `${SDK_EXAMPLES}/restapi-sample` }),
     entity("Role", "required"),
-    entity("ScheduledScript", "required"),
+    entity("ScheduledScript", "required", { introduced: "4.8.0" }),
     entity("ScriptedRestApi", "required"),
-    entity("SPMenu", "required", { evidence: `${SDK_EXAMPLES}/service-portal-sample` }),
+    entity("SPMenu", "required", { introduced: "4.8.0", evidence: `${SDK_EXAMPLES}/service-portal-sample` }),
     entity("SPWidget", "required", { evidence: `${SDK_EXAMPLES}/service-portal-sample` }),
-    entity("StateModel", "required"),
+    entity("StateModel", "required", { introduced: "4.10.0" }),
     // Table's published 4.1 declaration has no WithID contract.  Its ID is
     // derived from the table metadata rather than supplied by callers.
     entity("Table", "forbidden", { evidence: `${FLUENT_OVERVIEW} and ${SDK_EXAMPLES}/table-sample` }),
     entity("Test", "required", { evidence: `${SDK_EXAMPLES}/test-atf-sample` }),
     entity("ScriptAction", "required", { evidence: `${FLUENT_OVERVIEW} and ${SDK_EXAMPLES}/script-action-sample` }),
     entity("ScriptInclude", "required", { evidence: `${FLUENT_OVERVIEW} and ${SDK_EXAMPLES}/script-include-sample` }),
-    entity("UiAction", "required", { evidence: `${FLUENT_OVERVIEW} and ${SDK_EXAMPLES}/ui-action-sample` }),
-    entity("UiPage", "required", { evidence: `${FLUENT_OVERVIEW} and ${SDK_EXAMPLES}/ui-page-sample` }),
+    entity("UiAction", "required", { introduced: "4.8.0", evidence: `${FLUENT_OVERVIEW} and ${SDK_EXAMPLES}/ui-action-sample` }),
+    entity("UiPage", "required", { introduced: "4.8.0", evidence: `${FLUENT_OVERVIEW} and ${SDK_EXAMPLES}/ui-page-sample` }),
     entity("UiFormatter", "required"),
     entity("UiPolicy", "required"),
     entity("Flow", "unknown", {
       kind: "automation",
       module: "unknown",
       evidence: `${SDK_EXAMPLES}/flow-sample`,
+      evidenceRecords: [{ url: `${SDK_EXAMPLES}/flow-sample`, symbol: "Flow", version: "3.0.0", transition: "current" }],
     }),
     column("BooleanColumn"),
     column("ChoiceColumn"),
@@ -144,16 +169,19 @@ export const DEFAULT_FLUENT_MANIFEST: FluentSdkManifest = {
       name: "fluent-ignore",
       placement: "previous-line",
       evidence: FLUENT_OVERVIEW,
+      evidenceRecords: [{ url: FLUENT_OVERVIEW, symbol: "fluent-ignore", version: "3.0.0", transition: "current" }],
     },
     {
       name: "fluent-disable-sync",
       placement: "previous-line",
       evidence: FLUENT_OVERVIEW,
+      evidenceRecords: [{ url: FLUENT_OVERVIEW, symbol: "fluent-disable-sync", version: "3.0.0", transition: "current" }],
     },
     {
       name: "fluent-disable-sync-for-file",
       placement: "first-line",
       evidence: FLUENT_OVERVIEW,
+      evidenceRecords: [{ url: FLUENT_OVERVIEW, symbol: "fluent-disable-sync-for-file", version: "3.0.0", transition: "current" }],
     },
   ],
   typos: {

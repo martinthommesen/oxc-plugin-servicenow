@@ -14,7 +14,7 @@ Large inline `script` / HTML / CSS payloads belong in their own file and should 
 - **Last verified:** 2026-08-20
 - **Implementation:** [`src/rules/prefer-now-include.ts`](../../src/rules/prefer-now-include.ts)
 - **Fluent manifest:** sdk-docs-2026-03
-- **Fluent SDK versions:** 3.0.0, 4.1.0 (unspecified selects 4.1.0)
+- **Fluent SDK versions:** 3.0.0, 4.1.0, 4.8.0, 4.10.0, 4.11.0 (unspecified selects 4.11.0)
 
 ## Applicability
 
@@ -26,7 +26,7 @@ Large inline `script` / HTML / CSS payloads belong in their own file and should 
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
 | ServiceNow releases | zurich |
-| Fluent SDK range | 3.0.0 \|\| 4.1.0 |
+| Fluent SDK range | 3.0.0 \|\| 4.1.0 \|\| 4.8.0 \|\| 4.10.0 \|\| 4.11.0 |
 
 ## Options
 

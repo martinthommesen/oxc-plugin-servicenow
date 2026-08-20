@@ -14,7 +14,7 @@ Two Fluent definitions that share the same static `Now.ID` key as `$id` collide.
 - **Last verified:** 2026-08-20
 - **Implementation:** [`src/rules/no-duplicate-fluent-id.ts`](../../src/rules/no-duplicate-fluent-id.ts)
 - **Fluent manifest:** sdk-docs-2026-03
-- **Fluent SDK versions:** 3.0.0, 4.1.0 (unspecified selects 4.1.0)
+- **Fluent SDK versions:** 3.0.0, 4.1.0, 4.8.0, 4.10.0, 4.11.0 (unspecified selects 4.11.0)
 
 ## Applicability
 
@@ -26,7 +26,7 @@ Two Fluent definitions that share the same static `Now.ID` key as `$id` collide.
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
 | ServiceNow releases | zurich |
-| Fluent SDK range | 3.0.0 \|\| 4.1.0 |
+| Fluent SDK range | 3.0.0 \|\| 4.1.0 \|\| 4.8.0 \|\| 4.10.0 \|\| 4.11.0 |
 
 ## Options
 
