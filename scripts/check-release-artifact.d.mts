@@ -3,6 +3,9 @@ export const FORBIDDEN_TARBALL_PREFIXES: string[];
 export function changelogVersionHeadingPattern(version: string): RegExp;
 export function changelogHasVersionHeading(text: string, version: string): boolean;
 export function inspectTarballListing(files: readonly string[]): string[];
+export function collectPackageFileTargets(pkg: Record<string, unknown>): Array<{ path: string; target: string }>;
+export function packageTargetPath(target: unknown): string | undefined;
+export function inspectPackageExports(pkg: Record<string, unknown>, files: readonly string[]): string[];
 export function sha256File(filePath: string): string;
 export function tarballIntegrity(buffer: Uint8Array): string;
 export function main(argv?: string[]): {

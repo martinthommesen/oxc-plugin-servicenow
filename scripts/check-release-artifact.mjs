@@ -3,6 +3,7 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, isAbsolute, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { parseNpmPackJson } from "./parse-npm-pack.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -28,11 +29,19 @@ export const FORBIDDEN_TARBALL_PREFIXES = [
 
 export function changelogVersionHeadingPattern(version) {
   const escaped = String(version).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return new RegExp(`^## ${escaped} — \\d{4}-\\d{2}-\\d{2}$`, "m");
+  return new RegExp(`^## ${escaped} — (\\d{4}-\\d{2}-\\d{2})$`, "m");
+}
+
+export function isValidIsoDate(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
 }
 
 export function changelogHasVersionHeading(text, version) {
-  return changelogVersionHeadingPattern(version).test(text);
+  const match = changelogVersionHeadingPattern(version).exec(text);
+  return Boolean(match && isValidIsoDate(match[1]));
 }
 
 export function inspectTarballListing(files) {
@@ -49,6 +58,64 @@ export function inspectTarballListing(files) {
     }
     if (file.includes(".env")) {
       errors.push(`forbidden secret path ${file}`);
+    }
+  }
+  return errors;
+}
+
+function packageExportTargets(value, path = "exports", targets = []) {
+  if (typeof value === "string") {
+    targets.push({ path, target: value });
+    return targets;
+  }
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => packageExportTargets(item, `${path}[${index}]`, targets));
+    return targets;
+  }
+  if (!value || typeof value !== "object") return targets;
+  for (const [key, item] of Object.entries(value)) {
+    packageExportTargets(item, `${path}.${key}`, targets);
+  }
+  return targets;
+}
+
+/** Return every concrete file target in package `exports` and `types` metadata. */
+export function collectPackageFileTargets(pkg) {
+  const targets = [];
+  if (typeof pkg.types === "string") targets.push({ path: "types", target: pkg.types });
+  if (typeof pkg.typings === "string") targets.push({ path: "typings", target: pkg.typings });
+  if (typeof pkg.main === "string") targets.push({ path: "main", target: pkg.main });
+  if (typeof pkg.module === "string") targets.push({ path: "module", target: pkg.module });
+  packageExportTargets(pkg.exports, "exports", targets);
+  return targets;
+}
+
+export function packageTargetPath(target) {
+  if (typeof target !== "string" || !target.startsWith("./") || target.includes("\0")) return undefined;
+  const normalized = target.slice(2);
+  if (!normalized || normalized.startsWith("../") || normalized.includes("/../") || normalized === "..") return undefined;
+  return `package/${normalized}`;
+}
+
+/**
+ * Verify package entry points and declaration targets against a tar listing.
+ * This is deliberately independent of the package's source tree: publish and
+ * consumer jobs must prove the exact inspected bytes, not the checkout.
+ */
+export function inspectPackageExports(pkg, files) {
+  const errors = [];
+  const listing = new Set(files);
+  if (!pkg || typeof pkg !== "object") return ["package metadata is not an object"];
+  if (!pkg.exports || typeof pkg.exports !== "object") errors.push("package.json is missing exports");
+  for (const { path, target } of collectPackageFileTargets(pkg)) {
+    const tarPath = packageTargetPath(target);
+    if (!tarPath) {
+      errors.push(`${path} has an unsafe or non-relative target ${String(target)}`);
+      continue;
+    }
+    if (!listing.has(tarPath)) errors.push(`${path} target ${target} is missing from tarball`);
+    if ((path === "types" || path === "typings" || path.endsWith(".types")) && !/\.d\.(?:[cm]ts|ts)$/.test(target)) {
+      errors.push(`${path} target ${target} is not a declaration file`);
     }
   }
   return errors;
@@ -79,11 +146,9 @@ function argValue(argv, name) {
 }
 
 function ensureBuiltDist() {
-  try {
-    readFileSync(join(root, "dist/index.js"));
-  } catch {
-    execFileSync("npm", ["run", "build"], { cwd: root, encoding: "utf8" });
-  }
+  // Release checks must never inspect stale ignored dist output. The validate
+  // job also builds explicitly; this second build protects local invocation.
+  execFileSync("npm", ["run", "build"], { cwd: root, encoding: "utf8", stdio: "inherit" });
 }
 
 function packTarball(destination) {
@@ -93,16 +158,22 @@ function packTarball(destination) {
     encoding: "utf8",
     cwd: root,
   });
-  const parsed = JSON.parse(stdout);
-  const filename = parsed[0]?.filename;
-  if (typeof filename !== "string") {
-    fail(`unexpected pack output: ${stdout}`);
+  let record;
+  try {
+    record = parseNpmPackJson(stdout);
+  } catch (error) {
+    fail(error instanceof Error ? error.message : String(error));
   }
+  const filename = record.filename;
   return join(destination, filename);
 }
 
 function listTarball(tarball) {
   return execFileSync("tar", ["-tzf", tarball], { encoding: "utf8" }).split("\n").filter(Boolean);
+}
+
+function readPackedPackage(tarball) {
+  return JSON.parse(execFileSync("tar", ["-xOf", tarball, "package/package.json"], { encoding: "utf8" }));
 }
 
 function checkChangelog(version) {
@@ -160,14 +231,16 @@ export function main(argv = process.argv) {
     fail(`tarball inspection failed:\n${listingErrors.join("\n")}`);
   }
 
-  const packedPkg = JSON.parse(
-    execFileSync("tar", ["-xOf", tarball, "package/package.json"], { encoding: "utf8" }),
-  );
+  const packedPkg = readPackedPackage(tarball);
   if (packedPkg.version !== pkg.version) {
     fail(`packed version ${packedPkg.version} does not match package.json ${pkg.version}`);
   }
   if (packedPkg.name !== pkg.name) {
     fail(`packed name ${packedPkg.name} does not match package.json ${pkg.name}`);
+  }
+  const exportErrors = inspectPackageExports(packedPkg, files);
+  if (exportErrors.length > 0) {
+    fail(`package export inspection failed:\n${exportErrors.join("\n")}`);
   }
 
   if (options.consumer) {

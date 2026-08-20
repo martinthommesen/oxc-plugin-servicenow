@@ -97,7 +97,7 @@ describe("release artifact gates", () => {
     assert.doesNotMatch(uncommented, /secrets\./);
     assert.match(workflow, /merge-base --is-ancestor/);
     assert.doesNotMatch(workflow, /npm run compat -- --all/);
-    assert.match(workflow, /compat-consumer\.mjs --all --tarball/);
+    assert.match(workflow, /compat-consumer\.mjs --cell .* --tarball/);
   });
 
   it("packs and inspects the current workspace tarball", () => {
