@@ -103,7 +103,9 @@
       "distTag": "next",
       "registryIntegrity": "sha512-4mgibuZMqfvatzyVPYt0/TvAo8aeCedw2GnSurlrBDe3VJB1xQjzene0tQa0ONZiIjfIyDP6mNuJivhFp/5+Fg==",
       "registryTarball": "https://registry.npmjs.org/oxc-plugin-servicenow/-/oxc-plugin-servicenow-2.0.0-bootstrap.0.tgz",
-      "provenance": "not claimed for bootstrap; target stable release must use OIDC provenance"
+      "provenance": "not claimed for bootstrap; target stable release must use OIDC provenance",
+      "localSha256": "36d5e6af9676b08f48727b450ed8cfe5c079e8eaf0db7dfc41308dcdebc5687f",
+      "registryShasum": "cae540f3eb1b60c0575fa2393ddc0f877d5d0de2"
     }
   },
   "ciEvidence": {
