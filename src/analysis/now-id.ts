@@ -228,9 +228,10 @@ function isNonValuePropertyKey(parent: ESTree.Node | undefined, node: ESTree.Nod
   return property.key === node && !property.shorthand && !property.computed;
 }
 
+const TYPE_ONLY_USE_PARENTS = new Set(["TSTypeQuery", "TSTypeReference", "TSQualifiedName", "TSTypeAnnotation"]);
+
 function isTypeOnlyUse(parent: ESTree.Node | undefined): boolean {
-  if (!parent) return false;
-  return new Set(["TSTypeQuery", "TSTypeReference", "TSQualifiedName", "TSTypeAnnotation"]).has(parent.type);
+  return Boolean(parent && TYPE_ONLY_USE_PARENTS.has(parent.type));
 }
 
 function feedsId(parent: ESTree.Node | undefined, node: ESTree.Node): boolean {
