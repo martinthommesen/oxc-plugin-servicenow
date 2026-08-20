@@ -61,7 +61,7 @@ describe("packed package consumer", () => {
         path.join(consumer, "package.json"),
         JSON.stringify({ name: "sn-oxc-consumer", private: true, type: "module" }, null, 2),
       );
-      execFileSync("npm", ["install", tarball, "oxlint@1.79.0", "eslint@10.8.1", "oxfmt@0.16.0"], {
+      execFileSync("npm", ["install", tarball, "oxlint@1.79.0", "eslint@10.8.1", "oxfmt@0.64.0"], {
         cwd: consumer,
         encoding: "utf8",
       });

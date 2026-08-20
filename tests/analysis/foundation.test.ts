@@ -93,11 +93,12 @@ alias.next();`,
   });
 
   it("does not treat a short-circuit query as definite", () => {
-    assertValid(
+    assertInvalid(
       `var gr = new GlideRecord("incident");
 ready && gr.query();
 gr.next();`,
       "require-query-before-next",
+      { messageId: "missingQuery" },
     );
   });
 
@@ -173,8 +174,8 @@ rec.next();`,
     );
   });
 
-  it("stays silent when a switch path may skip query", () => {
-    assertValid(
+  it("reports when a switch path may skip query", () => {
+    assertInvalid(
       `var rec = new GlideRecord("incident");
 switch (mode) {
   case "ready":

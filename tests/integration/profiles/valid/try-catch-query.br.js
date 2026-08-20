@@ -4,6 +4,7 @@ try {
   rec.query();
 } catch (error) {
   gs.error(error);
+  rec.query();
 }
 if (rec.next()) {
   gs.info(rec.getValue("number"));
