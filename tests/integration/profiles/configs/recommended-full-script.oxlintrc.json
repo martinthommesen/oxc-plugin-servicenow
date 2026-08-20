@@ -1,0 +1,15 @@
+{
+  "$schema": "../../../../node_modules/oxlint/configuration_schema.json",
+  "jsPlugins": [
+    { "name": "servicenow", "specifier": "../../../.." }
+  ],
+  "settings": {
+    "servicenow": {
+      "scopePrefix": "x_acme",
+      "businessRuleSourceFormat": "full-script"
+    }
+  },
+  "rules": {
+    "servicenow/require-business-rule-wrapper": "error"
+  }
+}

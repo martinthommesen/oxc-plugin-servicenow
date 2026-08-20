@@ -1,0 +1,108 @@
+{
+  "generatedFrom": "scripts/compat-matrix.json",
+  "node": {
+    "engines": ">=20.19.0",
+    "minimum": "20.19.0",
+    "currentLts": "24",
+    "currentMaintenance": "22",
+    "current": "26"
+  },
+  "oxlint": {
+    "peer": ">=1.79.0 <2",
+    "minimum": "1.79.0",
+    "latestCompatible": "latest"
+  },
+  "eslint": {
+    "peer": ">=9.0.0",
+    "minimum": "9.0.0",
+    "currentV9": "9.39.5",
+    "current": "10.8.1"
+  },
+  "oxfmt": {
+    "peer": ">=0.64.0",
+    "minimum": "0.64.0",
+    "latest": "latest"
+  },
+  "oxlintPlugins": {
+    "dependency": "^1.79.0",
+    "pinned": "1.79.0"
+  },
+  "typescriptEslint": {
+    "peer": ">=8.0.0 <9",
+    "tested": "8.46.0",
+    "minimum": "8.46.0",
+    "current": "8.46.0"
+  },
+  "fluentSdk": [
+    "3.0.0",
+    "4.1.0",
+    "4.8.0",
+    "4.10.0",
+    "4.11.0"
+  ],
+  "javascriptModes": [
+    "compatibility",
+    "es5",
+    "es2021",
+    "unknown"
+  ],
+  "cells": [
+    {
+      "id": "min-hosts",
+      "node": "20.19.0",
+      "oxlint": "1.79.0",
+      "eslint": "9.0.0",
+      "oxfmt": "0.64.0",
+      "typescriptEslint": "8.46.0",
+      "typescript": "5.8.3"
+    },
+    {
+      "id": "node20-floor",
+      "node": "20",
+      "oxlint": "1.79.0",
+      "eslint": "9.39.5",
+      "oxfmt": "0.64.0",
+      "typescriptEslint": "8.46.0",
+      "typescript": "5.8.3"
+    },
+    {
+      "id": "node22-lts",
+      "node": "22",
+      "oxlint": "latest",
+      "eslint": "10.8.1",
+      "oxfmt": "latest",
+      "typescriptEslint": "8.46.0",
+      "typescript": "5.8.3"
+    },
+    {
+      "id": "node24-lts",
+      "node": "24",
+      "oxlint": "latest",
+      "eslint": "10.8.1",
+      "oxfmt": "latest",
+      "typescriptEslint": "8.46.0",
+      "typescript": "5.8.3"
+    },
+    {
+      "id": "node26-current",
+      "node": "26",
+      "oxlint": "latest",
+      "eslint": "10.8.1",
+      "oxfmt": "latest",
+      "typescriptEslint": "8.46.0",
+      "typescript": "5.8.3"
+    },
+    {
+      "id": "eslint9-current",
+      "node": "current",
+      "oxlint": "1.79.0",
+      "eslint": "9.39.5",
+      "oxfmt": "0.64.0",
+      "typescriptEslint": "8.46.0",
+      "typescript": "5.8.3"
+    }
+  ],
+  "typescript": {
+    "tested": "5.8.3"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "$schema": "../../../../node_modules/oxlint/configuration_schema.json",
+  "jsPlugins": [
+    { "name": "servicenow", "specifier": "../../../.." }
+  ],
+  "settings": {
+    "servicenow": {
+      "scopePrefix": "x_acme"
+    }
+  },
+  "rules": {
+    "servicenow/no-system-query-bypass": "warn"
+  }
+}
