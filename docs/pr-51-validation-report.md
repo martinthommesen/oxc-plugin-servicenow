@@ -12,7 +12,7 @@ This report is the final local audit for the seven-layer remediation stack. The 
 | 4 | `001583e`, `17025c4`, `7053234`, `04ca820`, `225d193`, `7d84748`, `c958c71` | Fluent manifests, declaration boundaries, authoritative imports, Now.ID provenance, and published Table signatures |
 | 5 | `8ded017`, `3e5133c`, `3cb44e9`, `57db40f`, `bd113eb`, `9438b38`, `02880e5` | docs, metadata, compatibility, benchmark and parser dimensions |
 | 6 | `534572b`, `118d552`, `02880e5`, `7e42e02`, `d14590a` | strict packed artifact, npm-pack shape compatibility, all Fluent/TypeScript packed cells, and all documented JavaScript modes |
-| 7 | `530f920` | artifact-only OIDC workflow, retries, governance declaration, action pin enforcement |
+| 7 | `530f920`, `4af28f2`, `c98004d`, `e8c78f7`, `751d28b` | artifact-only OIDC workflow, retries, governance declaration, live governance capture, repository-default action pins, dispatchable matrix, and cross-runtime JSON release fix |
 
 ## Local commands and environments
 
@@ -27,6 +27,7 @@ This report is the final local audit for the seven-layer remediation stack. The 
 - `npm run release:check -- --consumer-all` — pass for one inspected tarball across all six declared cells on the available host (SHA-256 `066894ac2a9f71ca00bd6cdf815472a2a5e0d7c573c756c8627d580bff850510`; npm integrity `sha512-OD0YvFwVj0j7XpUtfmB1jrnxWGPeIwsXoh+AslBU9MCvJpaBs0nGsy2cRPyGhXnwI38Py5qh4EPhjWeni44n3Q==`). The packed artifact is authoritative; no source or filesystem `dist` consumer import is used.
 - The same inspected artifact passed `npm run release:check -- --consumer-all` under real Node `20.19.0`, `22.14.0`, `24.16.0`, and `26.7.0` processes; every run covered all six cells, all five Fluent SDK manifests, all TypeScript parser fixtures, and all four JavaScript modes.
 - `npm run compat -- --cell eslint9-current` — pass with real Oxlint, ESLint, oxfmt, TypeScript 5.8.3, and `@typescript-eslint/parser` 8.46.0 coverage; the all-cell packed run also passes the five Fluent SDK manifests.
+- GitHub Actions [CI dispatch run `32350984074`](https://github.com/martinthommesen/oxc-plugin-servicenow/actions/runs/32350984074) at commit `751d28b` passed all 15 jobs: Node `20.19.0`, `22`, `24`, and `26` tests; six packed compatibility cells; benchmark; docs; manifest; workflow; and artifact checks. The artifact job emitted the same inspected tarball SHA-256 `066894ac2a9f71ca00bd6cdf815472a2a5e0d7c573c756c8627d580bff850510` and npm integrity `sha512-OD0YvFwVj0j7XpUtfmB1jrnxWGPeIwsXoh+AslBU9MCvJpaBs0nGsy2cRPyGhXnwI38Py5qh4EPhjWeni44n3Q==`.
 - Targeted Fluent, stateful, profile, oxfmt, packed-consumer, benchmark-gate, and release-helper suites — pass.
 
 ## Before/after outcomes
@@ -42,7 +43,7 @@ This report is the final local audit for the seven-layer remediation stack. The 
 
 These are not claimed by local mocks or text checks and remain unchecked in the goal file and ledger:
 
-1. The GitHub `main` ruleset, protected `v*` tags, reviewer-gated `release` environment, and SHA-pinning requirement are applied; npm trusted-publisher configuration remains pending because this host is not authenticated to npm (`docs/release-governance-live.json`).
+1. The GitHub `main` ruleset, protected `v*` tags, reviewer-gated `release` environment, and SHA-pinning requirement are applied and captured in `docs/release-governance-live.json`; npm trusted-publisher configuration remains pending because this host is not authenticated to npm.
 2. An approved protected tag must prove live npm OIDC publication, registry integrity/provenance/import visibility, and idempotent GitHub release creation.
 
 No live publication, registry, or GitHub result is represented as complete by this local report.
