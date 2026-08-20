@@ -190,7 +190,7 @@ console.log(JSON.stringify({
     writeFileSync(path.join(consumer, "sample.br.js"), 'var rec = new GlideRecord("incident");\nrec.query();\n');
     writeFileSync(
       path.join(consumer, "sample.now.ts"),
-      'import { Table } from "@servicenow/sdk/core";\nexport const incident = Table({ name: "x_acme_incident" });\n',
+      'import { List } from "@servicenow/sdk/core";\nexport const incident = List({ table: "incident", columns: [], view: "Default" });\n',
     );
     writeFileSync(path.join(consumer, "sample.now.tsx"), "const Component = () => <div />;\nexport default Component;\n");
     for (const fluentSdkVersion of matrix.fluentSdk ?? ["3.0.0", "4.1.0"]) {
