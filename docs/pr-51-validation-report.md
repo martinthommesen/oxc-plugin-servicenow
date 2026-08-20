@@ -23,7 +23,7 @@ This report is the final local audit for the seven-layer remediation stack. The 
 - `npm run docs:check` — pass (41 catalog records).
 - `npm run manifest:check` — pass (3.0.0 (42 APIs), 4.1.0 (42 APIs), 4.8.0 (48 APIs), 4.10.0 (49 APIs), and 4.11.0 (49 APIs) manifests).
 - `npm run workflow:check` and `npm run compat:check` — pass.
-- `npm run bench` — pass; recommended small-to-large scale is approximately 1.93x in the final run. RSS is unavailable on this host; `benchmark.mjs --write` deliberately refuses to write a zero-RSS baseline.
+- `npm run bench` — pass; recommended small-to-large scale is approximately 1.88x in the final run. RSS is unavailable on this host; `benchmark.mjs --write` deliberately refuses to write a zero-RSS baseline.
 - `npm run release:check -- --consumer-all` — pass for one inspected tarball across all six declared cells on the available host (SHA-256 `9e55142d95d9048b44849adc7058c47541d6f03591adda9b70882bc24d04631d`; npm integrity `sha512-QrBcndvCatuTG67ehmM75YfRHjcy6zrMtG7yjkA9Y+UXM+4FdPHcMuUs9ij73PdHuQ6YBheX88FYECQRGgjdcQ==`). The packed artifact is authoritative; no source or filesystem `dist` consumer import is used.
 - `npm run compat -- --cell eslint9-current` — pass with real Oxlint, ESLint, oxfmt, TypeScript 5.8.3, and `@typescript-eslint/parser` 8.46.0 coverage; the all-cell packed run also passes the five Fluent SDK manifests.
 - Targeted Fluent, stateful, profile, oxfmt, packed-consumer, benchmark-gate, and release-helper suites — pass.
