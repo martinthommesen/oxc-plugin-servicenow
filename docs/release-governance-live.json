@@ -105,5 +105,11 @@
       "registryTarball": "https://registry.npmjs.org/oxc-plugin-servicenow/-/oxc-plugin-servicenow-2.0.0-bootstrap.0.tgz",
       "provenance": "not claimed for bootstrap; target stable release must use OIDC provenance"
     }
+  },
+  "ciEvidence": {
+    "runId": 32355160103,
+    "headSha": "10e359da6757cee5a224a9037f5bd414e13daac7",
+    "codeqlRunId": 32355157426,
+    "note": "PR #51 CI run at the npm-governance documentation commit passed all 15 CI jobs; the GitHub CodeQL rollup also passed."
   }
 }
