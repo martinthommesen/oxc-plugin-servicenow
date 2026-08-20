@@ -49,6 +49,65 @@ export function isIdentifier(node: unknown, name: string): boolean {
   return getName(node) === name;
 }
 
+/**
+ * Strip grouping and TypeScript wrappers so identity looks at the inner value.
+ */
+export function unwrapExpression(node: unknown): unknown {
+  let current = node;
+  while (isNode(current)) {
+    switch (current.type) {
+      case "ParenthesizedExpression":
+      case "ChainExpression":
+      case "TSAsExpression":
+      case "TSTypeAssertion":
+      case "TSNonNullExpression":
+      case "TSSatisfiesExpression":
+        current = (current as { expression?: unknown }).expression;
+        continue;
+      default:
+        return current;
+    }
+  }
+  return current;
+}
+
+/**
+ * True when an Identifier is a value read, not a declaration, label, or static key.
+ */
+export function isValueReference(node: ESTree.Node, ancestors: readonly ESTree.Node[]): boolean {
+  const parent = ancestors.length >= 2 ? ancestors[ancestors.length - 2] : undefined;
+  if (!parent) return true;
+  switch (parent.type) {
+    case "MemberExpression": {
+      const member = parent as ESTree.MemberExpression;
+      return member.property !== node || member.computed === true;
+    }
+    case "Property":
+    case "PropertyDefinition": {
+      const prop = parent as { key?: unknown; computed?: boolean };
+      return prop.key !== node || prop.computed === true;
+    }
+    case "FunctionDeclaration":
+    case "FunctionExpression":
+    case "ClassDeclaration":
+    case "ClassExpression":
+      return (parent as { id?: unknown }).id !== node;
+    case "MetaProperty":
+    case "ImportSpecifier":
+    case "ImportDefaultSpecifier":
+    case "ImportNamespaceSpecifier":
+    case "ExportSpecifier":
+      return false;
+    case "LabeledStatement":
+      return (parent as ESTree.LabeledStatement).label !== node;
+    case "BreakStatement":
+    case "ContinueStatement":
+      return (parent as { label?: unknown }).label !== node;
+    default:
+      return true;
+  }
+}
+
 export function memberName(node: unknown): { object: string; property: string } | null {
   if (!isNode(node) || node.type !== "MemberExpression") return null;
   const member = node as unknown as ESTree.MemberExpression;
@@ -133,6 +192,7 @@ export function objectPropertyValue(object: unknown, key: string): ESTree.Node |
   return (prop?.value as ESTree.Node | undefined) ?? null;
 }
 
+/** Structural `Now.include()` shape. Use `isCanonicalNowInclude` for SDK proof. */
 export function isNowIncludeCall(node: unknown): boolean {
   const chain = staticMemberChain(
     isNode(node) && (node.type === "CallExpression" || node.type === "NewExpression")
@@ -142,6 +202,7 @@ export function isNowIncludeCall(node: unknown): boolean {
   return Boolean(chain && chain[0] === "Now" && chain[1] === "include");
 }
 
+/** Structural `Now.ID` shape. Use `isCanonicalNowId` for SDK proof. */
 export function isNowIdAccess(node: unknown): boolean {
   const chain = staticMemberChain(node);
   if (chain && chain[0] === "Now" && chain[1] === "ID") return true;
@@ -188,39 +249,94 @@ export function commentText(comment: CommentLike): string {
 /** Extract `//` and `/*` comment bodies when `sourceCode.getAllComments` is missing. */
 export function fallbackComments(text: string): Array<{ value: string; start: number; end: number }> {
   const out: Array<{ value: string; start: number; end: number }> = [];
-  const re = /\/\*[\s\S]*?\*\/|\/\/[^\n]*/g;
-  let match: RegExpExecArray | null;
-  while ((match = re.exec(text))) {
-    const raw = match[0];
-    const value = raw.startsWith("//") ? raw.slice(2) : raw.slice(2, -2);
-    out.push({ value, start: match.index, end: match.index + raw.length });
+  const length = text.length;
+  let index = 0;
+  let allowBlock = true;
+  while (index < length) {
+    if (text.charCodeAt(index) !== 47) {
+      index += 1;
+      continue;
+    }
+    const next = text.charCodeAt(index + 1);
+    if (next === 47) {
+      const start = index;
+      index += 2;
+      while (index < length && text.charCodeAt(index) !== 10) {
+        index += 1;
+      }
+      out.push({ value: text.slice(start + 2, index), start, end: index });
+      continue;
+    }
+    if (next === 42 && allowBlock) {
+      const start = index;
+      let cursor = index + 2;
+      let closed = -1;
+      while (cursor < length - 1) {
+        if (text.charCodeAt(cursor) === 42 && text.charCodeAt(cursor + 1) === 47) {
+          closed = cursor + 2;
+          break;
+        }
+        cursor += 1;
+      }
+      if (closed === -1) {
+        allowBlock = false;
+        index += 1;
+        continue;
+      }
+      out.push({ value: text.slice(start + 2, closed - 2), start, end: closed });
+      index = closed;
+      continue;
+    }
+    index += 1;
   }
   return out;
 }
 
+/** Keys that are not syntactic children. ESLint AST nodes also store `parent`. */
+export const WALK_SKIP_KEYS = new Set([
+  "type",
+  "loc",
+  "range",
+  "span",
+  "start",
+  "end",
+  "parent",
+  "comments",
+  "tokens",
+  "leadingComments",
+  "trailingComments",
+  "innerComments",
+]);
+
 /**
  * Depth-first walk. `ancestors` is mutated so `getAncestors()` can read the
  * parent chain while a visitor is running (current node is last).
+ *
+ * Host ASTs may attach `parent` and comment/token lists. Those keys are
+ * skipped, and already-visited nodes are not entered again.
  */
 export function walk(
   node: AnyNode,
   visitors: Record<string, ((node: ESTree.Node) => void) | undefined>,
   ancestors: ESTree.Node[] = [],
+  seen: WeakSet<object> = new WeakSet(),
 ): void {
   if (!isNode(node)) return;
+  if (seen.has(node)) return;
+  seen.add(node);
   const typed = node as ESTree.Node;
   ancestors.push(typed);
   visitors[typed.type]?.(typed);
 
   for (const key of Object.keys(node)) {
-    if (key === "type" || key === "loc" || key === "range" || key === "span") continue;
+    if (WALK_SKIP_KEYS.has(key)) continue;
     const value = (node as unknown as Record<string, unknown>)[key];
     if (Array.isArray(value)) {
       for (const child of value) {
-        if (isNode(child)) walk(child, visitors, ancestors);
+        if (isNode(child)) walk(child, visitors, ancestors, seen);
       }
     } else if (isNode(value)) {
-      walk(value, visitors, ancestors);
+      walk(value, visitors, ancestors, seen);
     }
   }
 
