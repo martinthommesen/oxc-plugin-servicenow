@@ -3,6 +3,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { parseNpmPackJson } from "./parse-npm-pack.mjs";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const matrix = JSON.parse(readFileSync(path.join(root, "scripts/compat-matrix.json"), "utf8"));
@@ -44,10 +45,13 @@ function packTarball(destination) {
     encoding: "utf8",
     cwd: root,
   });
-  const parsed = JSON.parse(stdout);
-  const filename = parsed[0]?.filename;
-  if (typeof filename !== "string") fail("package", `unexpected pack output: ${stdout}`);
-  return path.join(destination, filename);
+  let record;
+  try {
+    record = parseNpmPackJson(stdout);
+  } catch (error) {
+    fail("package", error instanceof Error ? error.message : String(error));
+  }
+  return path.join(destination, record.filename);
 }
 
 async function runCell(tarball, cell) {
@@ -58,7 +62,7 @@ async function runCell(tarball, cell) {
       JSON.stringify({ name: `sn-oxc-compat-${cell.id}`, private: true, type: "module" }, null, 2),
     );
     try {
-      execFileSync("npm", ["install", tarball, `oxlint@${cell.oxlint}`, `eslint@${cell.eslint}`, `oxfmt@${cell.oxfmt}`], {
+      execFileSync("npm", ["install", "--ignore-scripts", "--no-audit", "--no-fund", tarball, `oxlint@${cell.oxlint}`, `eslint@${cell.eslint}`, `oxfmt@${cell.oxfmt}`], {
         cwd: consumer,
         encoding: "utf8",
       });
@@ -66,15 +70,40 @@ async function runCell(tarball, cell) {
       fail("host-api", `${cell.id} install failed: ${error instanceof Error ? error.message : String(error)}`);
     }
 
-    const installed = path.join(consumer, "node_modules/oxc-plugin-servicenow");
-    let plugin;
+    let publicApi;
     try {
-      plugin = await import(pathToFileURL(path.join(installed, "dist/index.js")).href);
+      // Resolve through the consumer's package exports, not a filesystem dist path.
+      const importScript = `
+import { createRequire } from "node:module";
+const plugin = await import("oxc-plugin-servicenow");
+const oxfmt = await import("oxc-plugin-servicenow/oxfmt");
+const require = createRequire(import.meta.url);
+const pkg = require("oxc-plugin-servicenow/package.json");
+const recommended = require("oxc-plugin-servicenow/oxfmt.recommended.json");
+console.log(JSON.stringify({
+  metaName: plugin.default?.meta?.name,
+  version: plugin.PACKAGE_VERSION,
+  oxfmt: typeof oxfmt === "object",
+  recommended: Boolean(recommended && typeof recommended === "object"),
+  packageVersion: pkg.version,
+}));`;
+      publicApi = JSON.parse(
+        execFileSync(process.execPath, ["--input-type=module", "-e", importScript], {
+          cwd: consumer,
+          encoding: "utf8",
+        }),
+      );
     } catch (error) {
-      fail("package", `${cell.id} import failed: ${error instanceof Error ? error.message : String(error)}`);
+      fail("package", `${cell.id} public export import failed: ${error instanceof Error ? error.message : String(error)}`);
     }
-    if (plugin.default?.meta?.name !== "servicenow") {
-      fail("package", `${cell.id} public export meta.name is ${plugin.default?.meta?.name}`);
+    if (publicApi.metaName !== "servicenow") {
+      fail("package", `${cell.id} public export meta.name is ${publicApi.metaName}`);
+    }
+    if (publicApi.packageVersion !== publicApi.version) {
+      fail("package", `${cell.id} package.json version is ${publicApi.packageVersion}, plugin version is ${publicApi.version}`);
+    }
+    if (!publicApi.oxfmt || !publicApi.recommended) {
+      fail("package", `${cell.id} public subpath exports did not load`);
     }
 
     writeFileSync(
@@ -146,23 +175,28 @@ async function runCell(tarball, cell) {
       fail("runtime", `${cell.id} eslint missed require-query-before-next (${eslintRules.join(", ") || "none"})`);
     }
 
+    const installed = path.join(consumer, "node_modules", "oxc-plugin-servicenow");
     writeFileSync(path.join(consumer, "sample.br.js"), 'var rec = new GlideRecord("incident");\nrec.query();\n');
+    writeFileSync(
+      path.join(consumer, "sample.now.ts"),
+      'import { Table } from "@servicenow/sdk/core";\nexport const incident = Table({ name: "x_acme_incident" });\n',
+    );
     writeFileSync(
       path.join(consumer, ".oxfmtrc.json"),
       readFileSync(path.join(installed, "oxfmt.recommended.json"), "utf8"),
     );
     try {
-      execFileSync(path.join(consumer, "node_modules", ".bin", "oxfmt"), ["-c", ".oxfmtrc.json", "sample.br.js"], {
+      execFileSync(path.join(consumer, "node_modules", ".bin", "oxfmt"), ["-c", ".oxfmtrc.json", "--write", "sample.br.js", "sample.now.ts"], {
         encoding: "utf8",
         cwd: consumer,
       });
       execFileSync(
         path.join(consumer, "node_modules", ".bin", "oxfmt"),
-        ["-c", ".oxfmtrc.json", "--check", "sample.br.js"],
+        ["-c", ".oxfmtrc.json", "--check", "sample.br.js", "sample.now.ts"],
         { encoding: "utf8", cwd: consumer },
       );
     } catch (error) {
-      fail("formatter", `${cell.id} oxfmt failed: ${error instanceof Error ? error.message : String(error)}`);
+      fail("formatter", `${cell.id} oxfmt failed: ${error instanceof Error ? error.message : String(error)}\n${error?.stderr ?? ""}`);
     }
     return { id: cell.id, ok: true };
   } finally {

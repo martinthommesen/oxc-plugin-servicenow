@@ -6,6 +6,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { describe, it } from "node:test";
 import { repoRoot } from "./helpers.js";
+import { parseNpmPackJson } from "../../scripts/parse-npm-pack.mjs";
 
 function ensureBuiltDist(): void {
   try {
@@ -26,8 +27,7 @@ function packTarball(destination: string): string {
       cwd: repoRoot,
     },
   );
-  const parsed = JSON.parse(stdout) as Array<{ filename: string }>;
-  const filename = parsed[0]?.filename;
+  const filename = parseNpmPackJson(stdout).filename;
   assert.ok(
     typeof filename === "string" && filename.startsWith("oxc-plugin-servicenow-"),
     `unexpected pack output: ${stdout}`,
