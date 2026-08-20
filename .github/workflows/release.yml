@@ -34,7 +34,6 @@ jobs:
       - run: npm run docs:check
       - run: npm run manifest:check
       - run: npm run bench
-      - run: npm run compat -- --all
       - id: meta
         name: Verify tag, ancestry, and changelog heading
         run: |
@@ -43,26 +42,13 @@ jobs:
           test "v${version}" = "$GITHUB_REF_NAME"
           git fetch origin main
           git merge-base --is-ancestor "$GITHUB_SHA" origin/main
-          node -e '
-            const fs = require("fs");
-            const v = require("./package.json").version;
-            const text = fs.readFileSync("CHANGELOG.md", "utf8");
-            const pattern = new RegExp("^## " + v.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&") + " — \\d{4}-\\d{2}-\\d{2}$", "m");
-            if (!pattern.test(text)) {
-              console.error("CHANGELOG.md must contain an exact heading: ## " + v + " — YYYY-MM-DD");
-              process.exit(1);
-            }
-          '
+          node scripts/check-release-artifact.mjs --changelog-only
       - id: pack
         name: Build and inspect one tarball
         run: |
-          tarball="$(npm pack --ignore-scripts --json | node -p "JSON.parse(require('fs').readFileSync(0,'utf8'))[0].filename")"
-          tar -tzf "$tarball" | tee pack-list.txt
-          grep -q '^package/dist/index.js$' pack-list.txt
-          grep -q '^package/oxfmt.recommended.json$' pack-list.txt
-          ! grep -q '^package/src/' pack-list.txt
-          ! grep -q '^package/tests/' pack-list.txt
-          echo "tarball=$tarball" >> "$GITHUB_OUTPUT"
+          node scripts/check-release-artifact.mjs --write-path "$RUNNER_TEMP/release-tarball-path"
+          tarball="$(cat "$RUNNER_TEMP/release-tarball-path")"
+          echo "tarball=$(basename "$tarball")" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: release-tarball
@@ -114,12 +100,9 @@ jobs:
           name: release-tarball
           path: .
       - name: Publish the inspected tarball
-        run: npm publish "${{ needs.validate.outputs.tarball }}" --provenance --access public
+        run: npm publish "${{ needs.validate.outputs.tarball }}" --ignore-scripts --provenance --access public
       - name: Verify the registry artifact
-        run: |
-          version="${{ needs.validate.outputs.version }}"
-          npm view "oxc-plugin-servicenow@${version}" version
-          npm view "oxc-plugin-servicenow@${version}" dist.tarball
+        run: node scripts/verify-published-package.mjs --tarball "${{ needs.validate.outputs.tarball }}"
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ github.token }}

@@ -65,7 +65,8 @@
     "compat": "tsx scripts/compat-consumer.mjs",
     "manifest:check": "tsx scripts/check-fluent-manifest.mjs",
     "bench": "tsx scripts/benchmark.mjs",
-    "validate": "npm run typecheck && npm run build && npm test && npm run docs:check && npm run manifest:check && npm run bench && npm run compat"
+    "release:check": "node scripts/check-release-artifact.mjs",
+    "validate": "npm run typecheck && npm run build && npm test && npm run docs:check && npm run manifest:check && npm run bench && npm run release:check -- --consumer"
   },
   "dependencies": {
     "@oxlint/plugins": "^1.79.0"

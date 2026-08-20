@@ -522,7 +522,7 @@ npm install
 npm run validate
 ```
 
-`npm run validate` runs typecheck, build, tests, generated-doc consistency, and the Fluent manifest check. Tests include oxlint, ESLint, oxfmt, profile fixtures, and a packed-package consumer.
+`npm run validate` runs typecheck, build, tests, generated-doc consistency, the Fluent manifest check, the real Oxlint benchmark, and `release:check -- --consumer`. Tests include oxlint, ESLint, oxfmt, profile fixtures, and a packed-package consumer. `release:check` inspects one tarball and runs consumer tests on that file. See [Release provenance](docs/release.md).
 
 See [Contributing](CONTRIBUTING.md), [Write a ServiceNow lint rule](docs/rule-authoring.md), [Compatibility](docs/compatibility.md), and [Non-goals](docs/non-goals.md).
 

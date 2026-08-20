@@ -28,6 +28,7 @@ jobs:
       - run: npm test
       - run: npm run docs:check
       - run: npm run manifest:check
+      - run: npm run release:check
 
   bench:
     runs-on: ubuntu-latest

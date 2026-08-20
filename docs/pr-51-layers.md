@@ -64,9 +64,9 @@ Each layer has its own tests. Later layers consume earlier contracts and must no
 
 ## Layer 7 — Release provenance
 
-**Owns:** `.github/workflows/release.yml` only.
+**Owns:** `.github/workflows/release.yml`, `scripts/check-release-artifact.mjs`, `scripts/verify-published-package.mjs`, `docs/release.md`, `tests/release/`.
 
-**Contract:** Validation is read-only. The publish job receives the exact inspected tarball, verifies tag ancestry from `main`, and uses OIDC trusted publishing. Review this layer separately from rule and analysis changes.
+**Contract:** Validation is read-only. One inspected tarball is the consumer-test input and the `npm publish` argument. Tag ancestry is verified from `main`. Publish uses OIDC trusted publishing and `--ignore-scripts`. Review this layer separately from rule and analysis changes.
 
 ## File assignment
 
@@ -78,7 +78,7 @@ Each layer has its own tests. Later layers consume earlier contracts and must no
 | `src/fluent/`, Fluent rules, `src/analysis/now-id.ts`, `src/analysis/fluent-imports.ts` | 4 |
 | `src/catalog.ts`, `src/catalog-metadata.ts`, `docs/rules/`, `scripts/generate-rule-docs.mjs`, `scripts/check-catalog-docs.mjs` | 5 |
 | `scripts/compat-*.mjs`, `scripts/compat-matrix.json`, `scripts/benchmark.mjs`, `tests/integration/packed-consumer.test.ts`, `tests/perf/` | 6 |
-| `.github/workflows/release.yml` | 7 |
+| `.github/workflows/release.yml`, `scripts/check-release-artifact.mjs`, `scripts/verify-published-package.mjs`, `docs/release.md`, `tests/release/` | 7 |
 
 Shared tests that span layers stay with the highest layer they prove.
 

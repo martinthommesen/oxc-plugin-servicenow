@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 2.0.0 — 2026-08-20
+
 ### Validation
 
 - Rule options use one descriptor for host schema, runtime parsing, and generated docs. Invalid types throw a path-specific `ServiceNowConfigError`.
@@ -9,7 +11,8 @@
 - Generated rule pages include a structured applicability matrix, evidence records, false-positive and false-negative lists, overlaps, and fix safety. `npm run docs:check` fails on stale metadata.
 - `npm run bench` measures the real Oxlint executable (time, scale, and peak RSS) and compares recommended, one-rule, all, and plugin-disabled profiles.
 - Packed-consumer compatibility covers minimum and current oxlint, ESLint 9/10, and oxfmt 0.16/0.64. CI runs those cells on Node 20.19, 20, and 22.
-- Release publishes the exact inspected `.tgz` through a protected `release` environment with npm OIDC trusted publishing.
+- `npm run release:check` packs one tarball with `--ignore-scripts`, inspects the file list, and requires `## <version> — YYYY-MM-DD` in `CHANGELOG.md`. `npm run validate` runs packed-consumer tests on that same file.
+- Release publishes the inspected `.tgz` through a protected `release` environment with npm OIDC trusted publishing. The publish job uses `--ignore-scripts` and then `scripts/verify-published-package.mjs` to import the registry package and compare integrity.
 
 ### Analysis
 

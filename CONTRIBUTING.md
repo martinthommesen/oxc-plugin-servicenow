@@ -8,7 +8,7 @@ Run every local gate with one command:
 npm run validate
 ```
 
-That command runs typecheck, build, tests (including oxlint, ESLint, oxfmt, profile fixtures, and the packed-package consumer), generated-doc consistency, and the Fluent manifest check.
+That command runs typecheck, build, tests (including oxlint, ESLint, oxfmt, profile fixtures, and the packed-package consumer), generated-doc consistency, the Fluent manifest check, the real Oxlint benchmark, and `release:check -- --consumer` on one inspected tarball.
 
 `npm test` runs `scripts/run-tests.mjs`. That script lists every `*.test.ts` file and passes the list to `tsx --test`. Do not use a quoted `tests/**/*.test.ts` glob. Node 20 treats that path as one missing file.
 
@@ -39,14 +39,18 @@ Add a fix only when the rewrite preserves semantics. Include exact output, synta
 
 ## Changelog
 
-Add a short Unreleased note in `CHANGELOG.md` for user-visible rule, preset, or settings changes.
+Add a short Unreleased note in `CHANGELOG.md` for user-visible rule, preset, or settings changes. Before you tag a release, move those notes under an exact heading `## <version> — YYYY-MM-DD`.
 
 ## Release
 
-1. Set `package.json` version and add a changelog section for that version.
-2. Tag `v<version>` on `main`. The tag must match `package.json`.
-3. `.github/workflows/release.yml` runs typecheck, build, tests (including packed-consumer), docs consistency, Fluent manifest check, tarball content inspection, and then `npm publish --provenance`.
-4. Publishing uses the npm trusted-publishing OIDC token (`id-token: write`). `NPM_TOKEN` is only a fallback.
-5. If publish fails after a green workflow, fix the registry/trust configuration and re-run the tag workflow. Do not publish from a pull request.
+1. Set `package.json` version and add the exact changelog heading for that version.
+2. Run `npm run validate`. That command inspects one tarball and runs packed-consumer tests on that file.
+3. Merge to `main`. Tag `v<version>` on that commit. The tag must match `package.json`.
+4. `.github/workflows/release.yml` validates on a read-only job, uploads the inspected tarball, runs the consumer matrix on that file, then publishes the same file with `npm publish <tarball> --ignore-scripts --provenance`.
+5. The publish job uses the protected `release` environment and npm trusted-publishing OIDC (`id-token: write`). Do not set `NPM_TOKEN`.
+6. After publish, `scripts/verify-published-package.mjs` imports the registry package and compares integrity to the inspected tarball. The workflow creates the GitHub release only after that check passes.
+7. If publish fails after a green validate/consumer run, fix the registry or trust configuration and re-run the publish job. Do not publish from a pull request or a working tree.
+
+See [Release provenance](docs/release.md).
 
 Dependabot updates npm and GitHub Actions weekly. Oxc-related packages are grouped. Do not auto-merge those updates.
