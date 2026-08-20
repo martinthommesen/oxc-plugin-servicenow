@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-08-20T08:41:18Z",
+  "capturedAt": "2026-08-20T09:04:04Z",
   "repository": "martinthommesen/oxc-plugin-servicenow",
   "github": {
     "mainRuleset": {
@@ -22,7 +22,6 @@
       ],
       "requiredStatusChecks": [
         "test (20.19.0)",
-        "test (20)",
         "test (22)",
         "test (24)",
         "test (26)",
@@ -70,9 +69,9 @@
       "allowedActions": "all"
     },
     "ciEvidence": {
-      "runId": 32351588439,
-      "headSha": "d0e0b626d533f0982523bd9bda1739eb1982dc43",
-      "note": "Pull-request CI run at the merge commit passed all 15 CI jobs; PR #51 rollup was 18/18 successful including CodeQL."
+      "runId": 32351809969,
+      "headSha": "2db2282c5c8b466c6d51c9499c5dfbfb4c028045",
+      "note": "Pull-request CI run at the documentation-complete merge commit passed all 15 CI jobs; PR #51 rollup was 18/18 successful including CodeQL."
     }
   },
   "npmTrustedPublisher": {
