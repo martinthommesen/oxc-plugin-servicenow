@@ -215,6 +215,27 @@ export function validateServiceNowSettings(raw: unknown): ValidatedSettingsResul
     throw new ServiceNowSettingsError(".scriptType", 'conflicts with authoring "classic". Use authoring only.');
   }
 
+  if (scriptType !== "auto" && scriptType !== "unknown" && scriptType !== "fluent" && authoring === "fluent") {
+    throw new ServiceNowSettingsError(
+      ".scriptType",
+      `conflicts with authoring "fluent". Use authoring only.`,
+    );
+  }
+
+  if (authoring === "fluent" && surfaces !== "auto" && surfaces.length > 0) {
+    throw new ServiceNowSettingsError(
+      ".surfaces",
+      "Fluent authoring cannot list instance execution surfaces",
+    );
+  }
+
+  if (scriptType === "fluent" && surfaces !== "auto" && surfaces.length > 0) {
+    throw new ServiceNowSettingsError(
+      ".scriptType",
+      "conflicts with instance execution surfaces. Use authoring only.",
+    );
+  }
+
   const scope = raw.scope === undefined ? "unknown" : expectEnum(".scope", raw.scope, SCOPES);
 
   let scopePrefix: string | undefined;

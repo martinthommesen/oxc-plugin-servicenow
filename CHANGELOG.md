@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Analysis
+
+- Shared per-file analysis now uses lexical binding IDs and runtime object IDs.
+- Path joins keep alias identity only when every reachable path agrees.
+- `return`, `throw`, `break`, and `continue` no longer join into later statements.
+- Unknown execution context is neither client nor server. Comments and strings do not classify a file.
+- Fluent authoring cannot list instance execution surfaces.
+
 ### oxlint
 
 - Rule registry is derived from catalog descriptors. Adding a rule requires an implementation file, one catalog entry, and tests.

@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { readdir } from "node:fs/promises";
+import { readdir, stat } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
@@ -18,6 +18,16 @@ const searchRoots =
  * Node 20's test runner treats a quoted `**` path as a literal filename.
  */
 async function collectTestFiles(dir, out) {
+  let info;
+  try {
+    info = await stat(dir);
+  } catch {
+    return;
+  }
+  if (info.isFile()) {
+    if (dir.endsWith(".test.ts")) out.push(dir);
+    return;
+  }
   const entries = await readdir(dir, { withFileTypes: true });
   for (const entry of entries) {
     const path = join(dir, entry.name);

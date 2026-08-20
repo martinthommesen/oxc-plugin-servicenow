@@ -3,7 +3,7 @@ import type { ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
 import { findMissingQueryBeforeNext } from "../analysis/index.js";
 import { beginRuleFile } from "./helpers.js";
-import { isFluentContext } from "../context/index.js";
+import { isServerInstanceContext } from "../context/index.js";
 
 export const requireQueryBeforeNext = defineRule({
   meta: {
@@ -22,7 +22,7 @@ export const requireQueryBeforeNext = defineRule({
     return {
       before() {
         const { context: script } = beginRuleFile(context);
-        if (isFluentContext(script)) return false;
+        if (!isServerInstanceContext(script)) return false;
       },
       Program(node) {
         const { analysis } = beginRuleFile(context);

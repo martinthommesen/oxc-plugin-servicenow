@@ -7,6 +7,29 @@ import type { ServiceNowSettings } from "../../src/types.js";
 export const ES5: ServiceNowSettings = { javascriptMode: "es5" };
 export const ES2021: ServiceNowSettings = { javascriptMode: "es2021" };
 
+const CLIENT_RULES = new Set<RuleName>([
+  "no-client-gliderecord",
+  "no-glideajax-getanswer",
+  "require-glideajax-sysparm-name",
+  "require-callback-for-getreference",
+  "no-sync-glideajax",
+]);
+
+function defaultFilename(rule: RuleName): string {
+  if (
+    rule.startsWith("fluent") ||
+    rule.startsWith("prefer-now") ||
+    rule.startsWith("require-fluent") ||
+    rule.startsWith("no-complex") ||
+    rule === "no-now-id-as-reference" ||
+    rule === "no-duplicate-fluent-id"
+  ) {
+    return "file.now.ts";
+  }
+  if (CLIENT_RULES.has(rule)) return "test.client.js";
+  return "src/server/test.js";
+}
+
 export interface RunOptions extends LintSourceOptions {
   filename?: string;
 }
@@ -25,16 +48,7 @@ export function parse(code: string, filename = "test.js") {
 }
 
 export function lint(code: string, rule: RuleName, options: RunOptions = {}): LintMessage[] {
-  const filename =
-    options.filename ??
-    (rule.startsWith("fluent") ||
-    rule.startsWith("prefer-now") ||
-    rule.startsWith("require-fluent") ||
-    rule.startsWith("no-complex") ||
-    rule === "no-now-id-as-reference" ||
-    rule === "no-duplicate-fluent-id"
-      ? "file.now.ts"
-      : "test.js");
+  const filename = options.filename ?? defaultFilename(rule);
   const parsed = parse(code, filename);
   return applyRules(code, parsed, { ...options, filename, ruleNames: [rule] });
 }

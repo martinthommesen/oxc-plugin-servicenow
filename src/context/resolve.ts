@@ -12,11 +12,11 @@ import type {
   SettingsDeprecation,
   ValidatedServiceNowSettings,
 } from "../types.js";
+import { ServiceNowSettingsError } from "../settings/errors.js";
 import {
   ES_LATEST_IN_COMMENT,
   authoringFromFilename,
   isFluentFile,
-  looksLikeClientSource,
   surfacesFromFilename,
 } from "./filename.js";
 
@@ -89,11 +89,17 @@ function resolveAuthoring(
 
 function resolveSurfaces(
   filename: string,
-  sourceText: string,
   settings: ValidatedServiceNowSettings,
   authoring: ScriptAuthoring,
+  inferClient?: () => boolean,
 ): { surfaces: Set<ScriptSurface>; confidence: ContextConfidence } {
   if (authoring === "fluent") {
+    if (settings.surfaces !== "auto" && settings.surfaces.length > 0) {
+      throw new ServiceNowSettingsError(
+        ".surfaces",
+        "Fluent authoring cannot list instance execution surfaces",
+      );
+    }
     return { surfaces: new Set(), confidence: "filename" };
   }
 
@@ -111,7 +117,7 @@ function resolveSurfaces(
     return { surfaces: new Set(fromFile), confidence: "filename" };
   }
 
-  if (looksLikeClientSource(sourceText)) {
+  if (inferClient?.()) {
     return { surfaces: new Set<ScriptSurface>(["client"]), confidence: "inferred" };
   }
 
@@ -144,13 +150,20 @@ function resolveJavaScriptMode(
   return { mode: "unknown", confidence: "unknown" };
 }
 
-export function resolveScriptContext(context: Context): ServiceNowScriptContext {
+export interface ScriptContextExtras {
+  program?: unknown;
+  inferClient?: () => boolean;
+}
+
+export function resolveScriptContext(
+  context: Context,
+  extras: ScriptContextExtras = {},
+): ServiceNowScriptContext {
   const { settings, deprecations } = getValidatedSettingsResult(context);
   const filename = context.filename;
-  const sourceText = context.sourceCode.text;
 
   const authoring = resolveAuthoring(filename, settings);
-  const surfaces = resolveSurfaces(filename, sourceText, settings, authoring.authoring);
+  const surfaces = resolveSurfaces(filename, settings, authoring.authoring, extras.inferClient);
   const localDeprecations = [...deprecations];
   const javascriptMode = resolveJavaScriptMode(context, settings, authoring.authoring, localDeprecations);
   const scopeConfidence: ContextConfidence = settings.scope === "unknown" ? "unknown" : "explicit";
@@ -185,7 +198,12 @@ export function isFluentContext(ctx: ServiceNowScriptContext): boolean {
 }
 
 export function isInstanceScript(ctx: ServiceNowScriptContext): boolean {
-  return ctx.authoring === "classic";
+  if (ctx.authoring === "fluent") return false;
+  return (
+    ctx.sources.authoring !== "unknown" ||
+    ctx.sources.surfaces !== "unknown" ||
+    ctx.javascriptMode !== "unknown"
+  );
 }
 
 export function javascriptModeIs(
@@ -242,44 +260,25 @@ const SERVER_ONLY_SURFACES: readonly ScriptSurface[] = [
 ];
 
 /**
- * Client-capable files: an inferred or stronger client surface, or no
- * surface at all. Fluent and server-only files are excluded.
+ * Client-capable files need an inferred or stronger client surface.
+ * Unknown surface is not client-capable.
  */
 export function isClientCapableContext(ctx: ServiceNowScriptContext): boolean {
   if (isFluentContext(ctx)) return false;
-  if (appliesOnSurface(ctx, "client")) return true;
-  if (ctx.surfaces.size === 0) return true;
-  if (SERVER_ONLY_SURFACES.some((surface) => ctx.surfaces.has(surface)) && !ctx.surfaces.has("client")) {
-    return false;
-  }
+  return appliesOnSurface(ctx, "client");
+}
+
+function hasServerExecutionSurface(ctx: ServiceNowScriptContext): boolean {
+  if (SERVER_ONLY_SURFACES.some((surface) => appliesOnSurface(ctx, surface))) return true;
+  if (appliesOnSurface(ctx, "ui-action") && appliesOnSurface(ctx, "server")) return true;
+  if (appliesOnSurface(ctx, "ui-action") && !appliesOnSurface(ctx, "client")) return true;
   return false;
 }
 
 /**
- * Server-side instance scripts. Fluent and explicit client files are excluded.
- * Unknown surface is treated as server-capable.
+ * Server-side instance scripts. Unknown surface is not server-capable.
  */
 export function isServerInstanceContext(ctx: ServiceNowScriptContext): boolean {
   if (isFluentContext(ctx)) return false;
-  if (appliesOnSurface(ctx, "client")) return false;
-  return true;
-}
-
-let memoFilename: string | undefined;
-let memoText: string | undefined;
-let memoSettings: ValidatedServiceNowSettings | undefined;
-let memoContext: ServiceNowScriptContext | undefined;
-
-export function getScriptContext(context: Context): ServiceNowScriptContext {
-  const settings = getValidatedSettingsResult(context).settings;
-  const { filename } = context;
-  const text = context.sourceCode.text;
-  if (filename === memoFilename && text === memoText && settings === memoSettings && memoContext) {
-    return memoContext;
-  }
-  memoFilename = filename;
-  memoText = text;
-  memoSettings = settings;
-  memoContext = resolveScriptContext(context);
-  return memoContext;
+  return hasServerExecutionSurface(ctx);
 }

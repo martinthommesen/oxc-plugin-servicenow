@@ -3,7 +3,7 @@ import type { ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
 import { staticPropertyName } from "../analysis/index.js";
 import { getName } from "../utils/ast.js";
-import { appliesOnSurface } from "../context/index.js";
+import { appliesOnSurface, isClientCapableContext, isInstanceScript } from "../context/index.js";
 import { beginRuleFile } from "./helpers.js";
 
 export const noGsNow = defineRule({
@@ -27,6 +27,7 @@ export const noGsNow = defineRule({
     return {
       CallExpression(node) {
         const { analysis, context: script } = beginRuleFile(context);
+        if (!isInstanceScript(script) && !isClientCapableContext(script)) return;
         const call = node as ESTree.CallExpression;
         if (call.callee.type !== "MemberExpression") return;
         const member = call.callee as ESTree.MemberExpression;

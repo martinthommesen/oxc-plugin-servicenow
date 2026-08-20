@@ -49,6 +49,65 @@ export function isIdentifier(node: unknown, name: string): boolean {
   return getName(node) === name;
 }
 
+/**
+ * Strip grouping and TypeScript wrappers so identity looks at the inner value.
+ */
+export function unwrapExpression(node: unknown): unknown {
+  let current = node;
+  while (isNode(current)) {
+    switch (current.type) {
+      case "ParenthesizedExpression":
+      case "ChainExpression":
+      case "TSAsExpression":
+      case "TSTypeAssertion":
+      case "TSNonNullExpression":
+      case "TSSatisfiesExpression":
+        current = (current as { expression?: unknown }).expression;
+        continue;
+      default:
+        return current;
+    }
+  }
+  return current;
+}
+
+/**
+ * True when an Identifier is a value read, not a declaration, label, or static key.
+ */
+export function isValueReference(node: ESTree.Node, ancestors: readonly ESTree.Node[]): boolean {
+  const parent = ancestors.length >= 2 ? ancestors[ancestors.length - 2] : undefined;
+  if (!parent) return true;
+  switch (parent.type) {
+    case "MemberExpression": {
+      const member = parent as ESTree.MemberExpression;
+      return member.property !== node || member.computed === true;
+    }
+    case "Property":
+    case "PropertyDefinition": {
+      const prop = parent as { key?: unknown; computed?: boolean };
+      return prop.key !== node || prop.computed === true;
+    }
+    case "FunctionDeclaration":
+    case "FunctionExpression":
+    case "ClassDeclaration":
+    case "ClassExpression":
+      return (parent as { id?: unknown }).id !== node;
+    case "MetaProperty":
+    case "ImportSpecifier":
+    case "ImportDefaultSpecifier":
+    case "ImportNamespaceSpecifier":
+    case "ExportSpecifier":
+      return false;
+    case "LabeledStatement":
+      return (parent as ESTree.LabeledStatement).label !== node;
+    case "BreakStatement":
+    case "ContinueStatement":
+      return (parent as { label?: unknown }).label !== node;
+    default:
+      return true;
+  }
+}
+
 export function memberName(node: unknown): { object: string; property: string } | null {
   if (!isNode(node) || node.type !== "MemberExpression") return null;
   const member = node as unknown as ESTree.MemberExpression;

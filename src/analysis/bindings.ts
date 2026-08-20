@@ -4,15 +4,19 @@ import { getName, isNode, walk } from "../utils/ast.js";
 export type BindingKind = "var" | "let" | "const" | "param" | "function" | "class" | "import" | "catch";
 
 export interface LexicalBinding {
+  /** Stable identity for this declaration. Distinct from runtime object identity. */
+  id: number;
   name: string;
   kind: BindingKind;
   node: ESTree.Node;
   scopeId: number;
 }
 
+export type ScopeKind = "module" | "function" | "block" | "loop" | "switch" | "catch";
+
 export interface ScopeNode {
   id: number;
-  kind: "module" | "function" | "block";
+  kind: ScopeKind;
   block: ESTree.Node;
   parent: ScopeNode | null;
   bindings: Map<string, LexicalBinding>;
@@ -21,7 +25,9 @@ export interface ScopeNode {
 export class ScopeTree {
   readonly root: ScopeNode | null = null;
   private nextId = 1;
+  private nextBindingId = 1;
   private readonly byBlock = new Map<ESTree.Node, ScopeNode>();
+  private readonly byId = new Map<number, ScopeNode>();
   private current: ScopeNode | null = null;
 
   enter(kind: ScopeNode["kind"], block: ESTree.Node): ScopeNode {
@@ -33,6 +39,7 @@ export class ScopeTree {
       bindings: new Map(),
     };
     this.byBlock.set(block, scope);
+    this.byId.set(scope.id, scope);
     this.current = scope;
     if (!this.root) {
       (this as { root: ScopeNode }).root = scope;
@@ -49,7 +56,13 @@ export class ScopeTree {
   declare(name: string, kind: BindingKind, node: ESTree.Node): void {
     const target = kind === "var" ? this.varScope() : this.current;
     if (!target) return;
-    target.bindings.set(name, { name, kind, node, scopeId: target.id });
+    target.bindings.set(name, {
+      id: this.nextBindingId++,
+      name,
+      kind,
+      node,
+      scopeId: target.id,
+    });
   }
 
   private varScope(): ScopeNode | null {
@@ -59,6 +72,10 @@ export class ScopeTree {
       scope = scope.parent;
     }
     return this.current;
+  }
+
+  scopeById(id: number): ScopeNode | null {
+    return this.byId.get(id) ?? null;
   }
 
   scopeForNode(node: ESTree.Node, ancestors: readonly ESTree.Node[] = []): ScopeNode | null {
@@ -188,7 +205,7 @@ export function buildScopeTree(ast: ESTree.Node): ScopeTree {
       tree.exit(node);
     },
     CatchClause(node) {
-      tree.enter("block", node);
+      tree.enter("catch", node);
       const param = (node as ESTree.CatchClause).param;
       if (param) {
         const names: string[] = [];
@@ -197,6 +214,30 @@ export function buildScopeTree(ast: ESTree.Node): ScopeTree {
       }
     },
     "CatchClause:exit"(node) {
+      tree.exit(node);
+    },
+    ForStatement(node) {
+      tree.enter("loop", node);
+    },
+    "ForStatement:exit"(node) {
+      tree.exit(node);
+    },
+    ForInStatement(node) {
+      tree.enter("loop", node);
+    },
+    "ForInStatement:exit"(node) {
+      tree.exit(node);
+    },
+    ForOfStatement(node) {
+      tree.enter("loop", node);
+    },
+    "ForOfStatement:exit"(node) {
+      tree.exit(node);
+    },
+    SwitchStatement(node) {
+      tree.enter("switch", node);
+    },
+    "SwitchStatement:exit"(node) {
       tree.exit(node);
     },
     ImportDeclaration(node) {

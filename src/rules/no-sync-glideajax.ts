@@ -3,6 +3,7 @@ import type { ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
 import { getName } from "../utils/ast.js";
 import { staticPropertyName } from "../analysis/index.js";
+import { isClientCapableContext } from "../context/index.js";
 import { beginRuleFile } from "./helpers.js";
 
 export const noSyncGlideajax = defineRule({
@@ -19,6 +20,9 @@ export const noSyncGlideajax = defineRule({
   },
   createOnce(context) {
     return {
+      before() {
+        if (!isClientCapableContext(beginRuleFile(context).context)) return false;
+      },
       CallExpression(node) {
         const { analysis } = beginRuleFile(context);
         const call = node as ESTree.CallExpression;

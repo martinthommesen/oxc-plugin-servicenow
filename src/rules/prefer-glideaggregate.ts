@@ -3,6 +3,7 @@ import type { ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
 import { getName } from "../utils/ast.js";
 import { staticPropertyName } from "../analysis/index.js";
+import { isServerInstanceContext } from "../context/index.js";
 import { beginRuleFile } from "./helpers.js";
 
 interface GrBinding {
@@ -45,6 +46,7 @@ export const preferGlideaggregate = defineRule({
     return {
       before() {
         bindings = new Map();
+        if (!isServerInstanceContext(beginRuleFile(context).context)) return false;
       },
       VariableDeclarator(node) {
         const { analysis } = beginRuleFile(context);

@@ -2,7 +2,6 @@ export {
   appliesInJavaScriptModes,
   appliesOnSurface,
   appliesToInstanceScripts,
-  getScriptContext,
   hasSurface,
   isClientCapableContext,
   isFluentContext,
@@ -11,6 +10,7 @@ export {
   javascriptModeIs,
   resolveScriptContext,
 } from "./resolve.js";
+export { getScriptContext } from "../analysis/file-analysis.js";
 export {
   basename,
   isFluentFile,

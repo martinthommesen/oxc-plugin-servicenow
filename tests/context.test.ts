@@ -61,6 +61,27 @@ describe("settings validation", () => {
     );
   });
 
+  it("rejects Fluent authoring with instance surfaces", () => {
+    assert.throws(
+      () => validateServiceNowSettings({ authoring: "fluent", surfaces: ["client"] }),
+      /surfaces/,
+    );
+  });
+
+  it("rejects scriptType fluent with instance surfaces", () => {
+    assert.throws(
+      () => validateServiceNowSettings({ scriptType: "fluent", surfaces: ["server"] }),
+      /scriptType/,
+    );
+  });
+
+  it("rejects scriptType client with authoring fluent", () => {
+    assert.throws(
+      () => validateServiceNowSettings({ scriptType: "client", authoring: "fluent" }),
+      /scriptType/,
+    );
+  });
+
   it("defaults Business Rule timing to unknown", () => {
     const result = validateServiceNowSettings({});
     assert.equal(result.settings.businessRuleWhen, "unknown");
