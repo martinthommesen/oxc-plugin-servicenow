@@ -1,8 +1,10 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { PROMISE_STATIC_METHODS, ruleDocsUrl } from "../constants.js";
-import { getName, memberName, propertyName } from "../utils/ast.js";
-import { usesClassicEngine } from "../utils/filenames.js";
+import { getName } from "../utils/ast.js";
+import { staticPropertyName } from "../analysis/index.js";
+import { beginRuleFile } from "./helpers.js";
+import { shouldDiagnoseFeature } from "../engine/index.js";
 
 const STATIC = new Set<string>(PROMISE_STATIC_METHODS);
 
@@ -11,47 +13,39 @@ export const noPromise = defineRule({
     type: "problem",
     docs: {
       description:
-        "Disallow Promise usage in classic ServiceNow scripts. The legacy engine does not implement Promises.",
-      recommended: "recommended",
+        "Disallow Promise usage in Compatibility and ES5 ServiceNow scripts. ES2021 instance scripts support Promise.",
       url: ruleDocsUrl("no-promise"),
     },
     messages: {
       construct:
-        "Promises are not supported in the classic ServiceNow JavaScript engine. Use synchronous Glide APIs, or mark the file `@sn-es-latest` / `$meta.useEsLatest` if this script runs on ES latest.",
+        "Promises are not supported in Compatibility or ES5 Standards mode. Use synchronous Glide APIs, or set `settings.servicenow.javascriptMode` to `es2021` when the script runs in that mode.",
       staticMethod:
-        "`Promise.{{method}}()` is not supported in the classic ServiceNow JavaScript engine.",
-      thenable:
-        "`.{{method}}()` looks like a Promise chain. Classic ServiceNow scripts must stay synchronous.",
+        "`Promise.{{method}}()` is not supported in Compatibility or ES5 Standards mode.",
     },
   },
   createOnce(context) {
-    let active = false;
-
     return {
       before() {
-        active = usesClassicEngine(context);
-        if (!active) return false;
+        const { context: script } = beginRuleFile(context);
+        if (!shouldDiagnoseFeature(script, "promise")) return false;
       },
       NewExpression(node) {
-        if (!active) return;
-        if (getName((node as ESTree.NewExpression).callee) === "Promise") {
-          context.report({ node, messageId: "construct" });
-        }
+        const { analysis } = beginRuleFile(context);
+        const callee = (node as ESTree.NewExpression).callee as ESTree.Node;
+        if (getName(callee) !== "Promise") return;
+        if (!analysis.isPlatformGlobal(callee)) return;
+        context.report({ node, messageId: "construct" });
       },
       CallExpression(node) {
-        if (!active) return;
+        const { analysis } = beginRuleFile(context);
         const callee = (node as ESTree.CallExpression).callee;
-        const member = memberName(callee);
-        const prop = propertyName(callee);
-
-        if (member?.object === "Promise" && STATIC.has(member.property)) {
-          context.report({ node, messageId: "staticMethod", data: { method: member.property } });
-          return;
-        }
-
-        if (prop === "then" || prop === "catch" || prop === "finally") {
-          context.report({ node, messageId: "thenable", data: { method: prop } });
-        }
+        if (callee.type !== "MemberExpression") return;
+        const member = callee as ESTree.MemberExpression;
+        if (getName(member.object) !== "Promise") return;
+        if (!analysis.isPlatformGlobal(member.object as ESTree.Node)) return;
+        const method = staticPropertyName(member);
+        if (!method || !STATIC.has(method)) return;
+        context.report({ node, messageId: "staticMethod", data: { method } });
       },
     };
   },

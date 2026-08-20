@@ -1,58 +1,52 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
-import { isCallTo } from "../utils/ast.js";
-import type { ScriptKind } from "../types.js";
-import { classifyFromContext } from "../utils/filenames.js";
+import { staticPropertyName } from "../analysis/index.js";
+import { getName } from "../utils/ast.js";
+import { appliesOnSurface, isClientCapableContext, isInstanceScript } from "../context/index.js";
+import { beginRuleFile } from "./helpers.js";
 
 export const noGsNow = defineRule({
   meta: {
     type: "problem",
     docs: {
       description:
-        "Disallow `gs.now()` and `gs.nowDateTime()`. They are timezone-unsafe, and `gs.now()` is unsupported on the client since London.",
-      recommended: "recommended",
+        "Disallow `gs.now()` and `gs.nowDateTime()`. They return timezone-sensitive display strings. `gs.now()` is unavailable on the client since London.",
       url: ruleDocsUrl("no-gs-now"),
     },
-    hasSuggestions: true,
     messages: {
       client:
-        "`gs.now()` has not been available in client scripts since London. Use `new GlideDateTime()` (or a display value from the server).",
+        "`gs.now()` has not been available in client scripts since London. Ask the server for a GlideDateTime display value.",
       server:
-        "`gs.now()` returns a display string in the session timezone and is easy to misuse. Prefer `new GlideDateTime()`.",
+        "`gs.now()` returns a display string in the session timezone and is easy to misuse. Prefer `new GlideDateTime()` when you need an object, or an explicit display-value API when you need a string.",
       nowDateTime:
-        "`gs.nowDateTime()` returns a display string in the session timezone. Prefer `new GlideDateTime()`.",
+        "`gs.nowDateTime()` returns a display string in the session timezone. Prefer `new GlideDateTime()` or an explicit display-value API.",
     },
   },
   createOnce(context) {
-    let kind: ScriptKind;
     return {
-      before() {
-        kind = classifyFromContext(context);
-      },
       CallExpression(node) {
-        const isNow = isCallTo(node, "gs", "now");
-        const isNowDateTime = isCallTo(node, "gs", "nowDateTime");
+        const { analysis, context: script } = beginRuleFile(context);
+        if (!isInstanceScript(script) && !isClientCapableContext(script)) return;
+        const call = node as ESTree.CallExpression;
+        if (call.callee.type !== "MemberExpression") return;
+        const member = call.callee as ESTree.MemberExpression;
+        const directGlobal =
+          getName(member.object) === "gs" &&
+          analysis.isPlatformGlobal(member.object as ESTree.Node);
+        const proven = analysis.ofExpression(member.object);
+        const alias = proven?.kind === "gs" && !proven.invalid && !proven.escaped;
+        if (!directGlobal && !alias) return;
+        const property = staticPropertyName(member);
+        const isNow = property === "now";
+        const isNowDateTime = property === "nowDateTime";
         if (!isNow && !isNowDateTime) return;
-        const messageId = isNowDateTime ? "nowDateTime" : kind === "client" ? "client" : "server";
-        context.report({
-          node,
-          messageId,
-          suggest: [
-            {
-              desc: "Replace with new GlideDateTime().getDisplayValue()",
-              fix(fixer) {
-                return fixer.replaceText(node as ESTree.Node, "new GlideDateTime().getDisplayValue()");
-              },
-            },
-            {
-              desc: "Replace with new GlideDateTime()",
-              fix(fixer) {
-                return fixer.replaceText(node as ESTree.Node, "new GlideDateTime()");
-              },
-            },
-          ],
-        });
+        const messageId = isNowDateTime
+          ? "nowDateTime"
+          : appliesOnSurface(script, "client")
+            ? "client"
+            : "server";
+        context.report({ node, messageId });
       },
     };
   },

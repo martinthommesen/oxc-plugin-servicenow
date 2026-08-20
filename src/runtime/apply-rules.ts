@@ -104,9 +104,16 @@ function locFromNode(node: { start?: number; end?: number; loc?: { start: { line
 /**
  * Run selected (or all) plugin rules against a pre-parsed ESTree AST.
  *
- * Used by the package test harness and by the documentation playground.
- * This is **not** a substitute for oxlint — it exists so rules can be unit
- * tested without the native oxlint binary.
+ * Used by the package test harness, catalog examples, and the documentation
+ * playground. This harness is **not authoritative**:
+ *
+ * - it does not use the host `getScope()` implementation
+ * - it does not enforce host JSON-schema before `createOnce`
+ * - SourceCode and traversal are emulated
+ * - severity is always recorded as `error`
+ *
+ * Production behavior must be proven with Oxlint and ESLint host tests.
+ * Rule-option parsing still uses the same descriptors as the hosts.
  */
 export function applyRules(
   source: string,

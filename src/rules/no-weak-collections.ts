@@ -5,28 +5,25 @@ import { getName } from "../utils/ast.js";
 import { beginRuleFile } from "./helpers.js";
 import { shouldDiagnoseFeature } from "../engine/index.js";
 
-const CTORS = new Set(["WeakRef", "FinalizationRegistry"]);
+const CTORS = new Set(["WeakMap", "WeakSet"]);
 
-export const noWeakReferences = defineRule({
+export const noWeakCollections = defineRule({
   meta: {
     type: "problem",
     docs: {
       description:
-        "Disallow WeakRef and FinalizationRegistry in instance-executed ServiceNow scripts. Both remain disallowed in ES2021.",
-      url: ruleDocsUrl("no-weak-references"),
+        "Disallow WeakMap and WeakSet in Compatibility and ES5 ServiceNow scripts. ES2021 supports both.",
+      url: ruleDocsUrl("no-weak-collections"),
     },
     messages: {
-      weak: "`{{name}}` is disallowed on the ServiceNow JavaScript engine, including ES2021 mode. Use `Map` / `Set` only when those types are supported by the script mode.",
+      weak: "`{{name}}` is not supported in Compatibility or ES5 Standards mode. Use `Map` or `Set`.",
     },
   },
   createOnce(context) {
     return {
       before() {
         const { context: script } = beginRuleFile(context);
-        if (
-          !shouldDiagnoseFeature(script, "weak-ref") &&
-          !shouldDiagnoseFeature(script, "finalization-registry")
-        ) {
+        if (!shouldDiagnoseFeature(script, "weak-map") && !shouldDiagnoseFeature(script, "weak-set")) {
           return false;
         }
       },
