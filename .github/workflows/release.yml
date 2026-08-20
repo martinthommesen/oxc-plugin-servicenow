@@ -1,6 +1,6 @@
 # Publish the exact inspected tarball with npm trusted publishing (OIDC).
 # Requires a protected GitHub Environment named `release`.
-# Do not inject NPM_TOKEN. The publish job is the only job with id-token: write.
+# The publish job is the only job with id-token: write; trusted publishing uses OIDC only.
 name: Release
 
 on:
@@ -9,6 +9,10 @@ on:
 
 permissions:
   contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   validate:
@@ -28,6 +32,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npm run workflow:check
+      - run: npm run compat:check
       - run: npm run typecheck
       - run: npm run build
       - run: npm test
@@ -55,8 +61,86 @@ jobs:
           path: ${{ steps.pack.outputs.tarball }}
           if-no-files-found: error
 
+  # Every declared compatibility cell runs in the Node runtime it names. The
+  # matrix is required by the publish job, so no cell can be silently skipped.
   consumer:
     needs: validate
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - cell: min-hosts
+            node: 20.19.0
+          - cell: node20-floor
+            node: "20"
+          - cell: node22-lts
+            node: "22"
+          - cell: node24-lts
+            node: "24"
+          - cell: node26-current
+            node: "26"
+          - cell: eslint9-current
+            node: current
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: release-tarball
+          path: .
+      - run: npm ci
+      - name: Install and test the exact tarball
+        run: npx tsx scripts/compat-consumer.mjs --cell "${{ matrix.cell }}" --tarball "./${{ needs.validate.outputs.tarball }}"
+
+  # This job is deliberately artifact-only. It has no checkout and no install;
+  # all repository-controlled validation completed in read-only jobs above.
+  publish:
+    needs: [validate, consumer]
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24.5.0
+          registry-url: https://registry.npmjs.org
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: release-tarball
+          path: .
+      - name: Verify executable npm for trusted publishing
+        env:
+          TRUSTED_PUBLISHING_NPM_VERSION: 11.5.1
+        run: |
+          actual="$(npm --version)"
+          node --input-type=module -e '
+            const [actual, expected] = process.argv.slice(1);
+            if (!/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(actual) || actual !== expected) {
+              console.error(`trusted publishing requires npm ${expected}; executable npm reported ${actual}`);
+              process.exit(1);
+            }
+          ' "$actual" "$TRUSTED_PUBLISHING_NPM_VERSION"
+      - id: publish
+        name: Publish the inspected tarball (ambiguous failures are verified below)
+        continue-on-error: true
+        run: npm publish "./${{ needs.validate.outputs.tarball }}" --ignore-scripts --provenance --access public
+
+  # Registry verification is intentionally outside the OIDC job. If npm
+  # accepted a publish but returned an ambiguous error (or the version already
+  # existed), this job compares integrity/provenance and safely continues only
+  # when the registry bytes are identical.
+  registry-verify:
+    if: ${{ always() && needs.validate.result == 'success' && needs.consumer.result == 'success' && needs.publish.result != 'cancelled' }}
+    needs: [validate, consumer, publish]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -67,46 +151,31 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
-          cache: npm
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: release-tarball
           path: .
-      - run: npm ci
-      - name: Install and test the exact tarball
-        run: npx tsx scripts/compat-consumer.mjs --all --tarball "./${{ needs.validate.outputs.tarball }}"
+      - name: Verify registry integrity, provenance, exports, and declarations
+        run: node scripts/verify-published-package.mjs --tarball "./${{ needs.validate.outputs.tarball }}"
 
-  publish:
-    needs: [validate, consumer]
+  # GitHub release creation is isolated from both OIDC and registry install /
+  # import verification. The helper is idempotent and compares an existing
+  # asset before accepting a retry.
+  github-release:
+    if: ${{ needs.registry-verify.result == 'success' }}
+    needs: [validate, registry-verify]
     runs-on: ubuntu-latest
-    environment: release
     permissions:
       contents: write
-      id-token: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with:
-          node-version: 22
-          registry-url: https://registry.npmjs.org
-      - name: Verify npm for trusted publishing
-        run: |
-          npm install -g npm@11.5.1
-          node -e 'const [maj,min]=process.versions.npm.split(".").map(Number); if (maj<11 || (maj===11 && min<5)) { console.error("npm 11.5+ required"); process.exit(1); }'
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: release-tarball
           path: .
-      - name: Publish the inspected tarball
-        run: npm publish "${{ needs.validate.outputs.tarball }}" --ignore-scripts --provenance --access public
-      - name: Verify the registry artifact
-        run: node scripts/verify-published-package.mjs --tarball "${{ needs.validate.outputs.tarball }}"
-      - name: Create GitHub release
+      - name: Create or verify the GitHub release asset
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release create "$GITHUB_REF_NAME" "${{ needs.validate.outputs.tarball }}" \
-            --title "v${{ needs.validate.outputs.version }}" \
-            --notes "Published oxc-plugin-servicenow ${{ needs.validate.outputs.version }} from the inspected tarball."
+        run: node scripts/create-github-release.mjs --tag "$GITHUB_REF_NAME" --version "${{ needs.validate.outputs.version }}" --tarball "./${{ needs.validate.outputs.tarball }}"

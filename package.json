@@ -66,7 +66,9 @@
     "manifest:check": "tsx scripts/check-fluent-manifest.mjs",
     "bench": "tsx scripts/benchmark.mjs",
     "release:check": "node scripts/check-release-artifact.mjs",
-    "validate": "npm run typecheck && npm run build && npm test && npm run docs:check && npm run manifest:check && npm run bench && npm run release:check -- --consumer"
+    "validate": "npm run workflow:check && npm run compat:check && npm run typecheck && npm run build && npm test && npm run docs:check && npm run manifest:check && npm run bench && npm run release:check -- --consumer",
+    "workflow:check": "node scripts/check-action-pins.mjs",
+    "compat:check": "node scripts/check-compat-matrix.mjs"
   },
   "dependencies": {
     "@oxlint/plugins": "^1.79.0"

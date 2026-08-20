@@ -1,3 +1,6 @@
+export function isTransientRegistryError(error: unknown): boolean;
+export function retryBounded<T>(operation: () => T | Promise<T>, options?: { timeoutMs?: number | string; intervalMs?: number | string }): Promise<T>;
+export function waitForView<T extends object>(name: string, version: string, timeoutMs: number | string, intervalMs: number | string, accept?: (view: T) => boolean): Promise<T>;
 export function hasProvenanceAttestation(view: {
   dist?: {
     tarball?: string;
