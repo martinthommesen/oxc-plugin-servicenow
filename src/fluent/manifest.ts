@@ -118,7 +118,13 @@ export const DEFAULT_FLUENT_MANIFEST: FluentSdkManifest = {
     // SDK 4.1 derives list IDs; the declaration keeps `$id` only as a
     // deprecated compatibility property.  Keep that policy distinct from
     // entities whose WithID contract requires an explicit identity.
-    entity("List", "deprecated", { evidence: `${SDK_EXAMPLES}/list-sample` }),
+    entity("List", "required", {
+      evidence: `${SDK_EXAMPLES}/list-sample`,
+      evidenceRecords: [
+        { url: SDK_EXAMPLES, symbol: "List", version: "3.0.0", transition: "current" },
+        { url: SDK_EXAMPLES, symbol: "List", version: "4.1.0", transition: "deprecated" },
+      ],
+    }),
     entity("Module", "required"),
     entity("Property", "required"),
     entity("Record", "required", { evidence: `${FLUENT_OVERVIEW} and ${SDK_EXAMPLES}/record-sample` }),

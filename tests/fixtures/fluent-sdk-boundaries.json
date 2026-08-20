@@ -17,7 +17,8 @@
         "RestApi"
       ],
       "idRequirements": {
-        "Table": "forbidden"
+        "Table": "forbidden",
+        "List": "required"
       }
     },
     "4.1.0": {
@@ -40,7 +41,8 @@
         "SPWidget"
       ],
       "idRequirements": {
-        "Table": "forbidden"
+        "Table": "forbidden",
+        "List": "deprecated"
       }
     },
     "4.8.0": {

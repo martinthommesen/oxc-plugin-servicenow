@@ -19,6 +19,12 @@ describe("fluentSdkVersion registry", () => {
     assertValid(table, "require-fluent-id", { ...NOW, settings: { fluentSdkVersion: "4.1.0" } });
   });
 
+  it("models the List ID transition from 3.0.0 to 4.1.0", () => {
+    const list = `import { List } from "@servicenow/sdk/core";\nList({ table: "incident", columns: [], view: "Default" });`;
+    assertInvalid(list, "require-fluent-id", { messageId: "missing" }, { ...NOW, settings: { fluentSdkVersion: "3.0.0" } });
+    assertValid(list, "require-fluent-id", { ...NOW, settings: { fluentSdkVersion: "4.1.0" } });
+  });
+
   it("respects capability introduction boundaries", () => {
     const alias = `import { AliasTemplate } from "@servicenow/sdk/core";\nAliasTemplate({ name: "template" });`;
     assertValid(alias, "require-fluent-id", { ...NOW, settings: { fluentSdkVersion: "4.1.0" } });
