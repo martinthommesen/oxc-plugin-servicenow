@@ -163,11 +163,8 @@ async function runCase(name, configPath, targets) {
 }
 
 function ensureBuilt() {
-  try {
-    readFileSync(join(root, "dist/index.js"));
-  } catch {
-    execFileSync("npm", ["run", "build"], { cwd: root, encoding: "utf8", stdio: "inherit" });
-  }
+  // Benchmarks must measure the current source, never an ignored stale dist.
+  execFileSync("npm", ["run", "build"], { cwd: root, encoding: "utf8", stdio: "inherit" });
 }
 
 ensureBuilt();
@@ -244,21 +241,40 @@ if (summary.scale > summary.regression.maxScale) {
 }
 
 const baselinePath = join(root, "docs/performance-baseline.json");
+const resultFixtures = results.map((row) => row.fixture);
+if (new Set(resultFixtures).size !== resultFixtures.length) {
+  throw new Error("benchmark produced duplicate fixture names");
+}
 if (writeBaseline) {
+  if (results.some((row) => row.peakRssKb <= 0)) {
+    throw new Error("refusing to write a baseline with unavailable RSS measurements");
+  }
   writeFileSync(baselinePath, `${JSON.stringify(summary, null, 2)}\n`);
   console.log("wrote", baselinePath);
 } else {
   const baseline = JSON.parse(readFileSync(baselinePath, "utf8"));
+  const baselineRows = baseline.results ?? [];
+  const baselineFixtures = baselineRows.map((row) => row.fixture);
+  if (new Set(baselineFixtures).size !== baselineFixtures.length) {
+    throw new Error("performance baseline contains duplicate fixture names");
+  }
+  const missing = resultFixtures.filter((fixture) => !baselineFixtures.includes(fixture));
+  const extra = baselineFixtures.filter((fixture) => !resultFixtures.includes(fixture));
+  if (missing.length || extra.length) {
+    throw new Error(`benchmark fixture set mismatch (missing: ${missing.join(", ") || "none"}; extra: ${extra.join(", ") || "none"})`);
+  }
   for (const row of results) {
-    const previous = (baseline.results ?? []).find((item) => item.fixture === row.fixture);
-    if (!previous) continue;
+    const previous = baselineRows.find((item) => item.fixture === row.fixture);
     const elapsedLimit =
       Math.max(previous.elapsedMs * baseline.regression.elapsedMultiplier, previous.elapsedMs) +
       baseline.regression.elapsedFloorMs;
     if (row.elapsedMs > elapsedLimit) {
       throw new Error(`${row.fixture} elapsed ${row.elapsedMs}ms exceeded ${elapsedLimit}ms`);
     }
-    if (previous.peakRssKb > 0 && row.peakRssKb > 0) {
+    if (previous.peakRssKb <= 0) {
+      throw new Error(`performance baseline ${row.fixture} has unavailable RSS measurement`);
+    }
+    if (row.peakRssKb > 0) {
       const rssLimit = Math.max(previous.peakRssKb * baseline.regression.rssMultiplier, previous.peakRssKb) +
         baseline.regression.rssFloorKb;
       if (row.peakRssKb > rssLimit) {
