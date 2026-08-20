@@ -249,12 +249,45 @@ export function commentText(comment: CommentLike): string {
 /** Extract `//` and `/*` comment bodies when `sourceCode.getAllComments` is missing. */
 export function fallbackComments(text: string): Array<{ value: string; start: number; end: number }> {
   const out: Array<{ value: string; start: number; end: number }> = [];
-  const re = /\/\*[\s\S]*?\*\/|\/\/[^\n]*/g;
-  let match: RegExpExecArray | null;
-  while ((match = re.exec(text))) {
-    const raw = match[0];
-    const value = raw.startsWith("//") ? raw.slice(2) : raw.slice(2, -2);
-    out.push({ value, start: match.index, end: match.index + raw.length });
+  const length = text.length;
+  let index = 0;
+  let allowBlock = true;
+  while (index < length) {
+    if (text.charCodeAt(index) !== 47) {
+      index += 1;
+      continue;
+    }
+    const next = text.charCodeAt(index + 1);
+    if (next === 47) {
+      const start = index;
+      index += 2;
+      while (index < length && text.charCodeAt(index) !== 10) {
+        index += 1;
+      }
+      out.push({ value: text.slice(start + 2, index), start, end: index });
+      continue;
+    }
+    if (next === 42 && allowBlock) {
+      const start = index;
+      let cursor = index + 2;
+      let closed = -1;
+      while (cursor < length - 1) {
+        if (text.charCodeAt(cursor) === 42 && text.charCodeAt(cursor + 1) === 47) {
+          closed = cursor + 2;
+          break;
+        }
+        cursor += 1;
+      }
+      if (closed === -1) {
+        allowBlock = false;
+        index += 1;
+        continue;
+      }
+      out.push({ value: text.slice(start + 2, closed - 2), start, end: closed });
+      index = closed;
+      continue;
+    }
+    index += 1;
   }
   return out;
 }

@@ -6,6 +6,16 @@ import {
   knownDirectiveNames,
 } from "../src/fluent/index.js";
 
+function isHttpsServiceNowDocsUrl(evidence: string): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(evidence);
+  } catch {
+    return false;
+  }
+  return parsed.protocol === "https:" && parsed.hostname === "www.servicenow.com";
+}
+
 describe("Fluent SDK manifest", () => {
   it("includes official directives", () => {
     const names = knownDirectiveNames();
@@ -20,7 +30,7 @@ describe("Fluent SDK manifest", () => {
       assert.ok(api.name.length > 0);
     }
     for (const directive of DEFAULT_FLUENT_MANIFEST.directives) {
-      assert.ok(directive.evidence.includes("servicenow.com"), `${directive.name} evidence`);
+      assert.ok(isHttpsServiceNowDocsUrl(directive.evidence), `${directive.name} evidence`);
     }
   });
 

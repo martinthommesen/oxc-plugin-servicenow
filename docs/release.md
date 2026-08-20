@@ -86,3 +86,17 @@ The job creates a GitHub release only after those checks pass.
 | `npm publish` fails after a network error | Retry the publish job only. The tarball artifact is immutable. |
 | Registry verification fails | Do not create a GitHub release. Inspect the registry package and republish only if npm accepted no artifact. |
 | GitHub release create fails after a successful publish | Create the GitHub release manually from the same tarball. Do not publish again. |
+
+## Live publish checklist
+
+Do this after the 2.0.0 commit is on `main`. Do not tag from a pull request.
+
+1. Confirm the GitHub Environment named `release` requires a reviewer.
+2. Confirm npm trusted publishing is configured for this repository and the `Release` workflow.
+3. Tag `v2.0.0` on that `main` commit.
+4. Confirm the Release validate and consumer jobs pass on that tag.
+5. Approve the publish job in the `release` environment.
+6. Confirm `scripts/verify-published-package.mjs` succeeds against the registry.
+7. Confirm the GitHub release exists and attaches `oxc-plugin-servicenow-2.0.0.tgz`.
+
+Close #58 and #76 only after those live checks pass.
