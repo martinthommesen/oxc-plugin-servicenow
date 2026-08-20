@@ -192,6 +192,7 @@ export function objectPropertyValue(object: unknown, key: string): ESTree.Node |
   return (prop?.value as ESTree.Node | undefined) ?? null;
 }
 
+/** Structural `Now.include()` shape. Use `isCanonicalNowInclude` for SDK proof. */
 export function isNowIncludeCall(node: unknown): boolean {
   const chain = staticMemberChain(
     isNode(node) && (node.type === "CallExpression" || node.type === "NewExpression")
@@ -201,6 +202,7 @@ export function isNowIncludeCall(node: unknown): boolean {
   return Boolean(chain && chain[0] === "Now" && chain[1] === "include");
 }
 
+/** Structural `Now.ID` shape. Use `isCanonicalNowId` for SDK proof. */
 export function isNowIdAccess(node: unknown): boolean {
   const chain = staticMemberChain(node);
   if (chain && chain[0] === "Now" && chain[1] === "ID") return true;

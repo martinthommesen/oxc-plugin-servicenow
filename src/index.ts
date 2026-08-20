@@ -100,7 +100,12 @@ export { ruleCatalog } from "./catalog.js";
 export { PACKAGE_NAME, PACKAGE_VERSION, PLUGIN_NAME } from "./constants.js";
 export { getScriptContext, resolveScriptContext } from "./context/index.js";
 export { validateServiceNowSettings, ServiceNowSettingsError, ServiceNowConfigError } from "./settings/index.js";
-export { DEFAULT_FLUENT_MANIFEST } from "./fluent/index.js";
+export {
+  DEFAULT_FLUENT_MANIFEST,
+  CURRENT_FLUENT_SDK_VERSION,
+  SUPPORTED_FLUENT_SDK_VERSIONS,
+  resolveFluentManifest,
+} from "./fluent/index.js";
 export { ENGINE_FEATURES } from "./engine/index.js";
 export {
   GLIDE_API_RELEASE,

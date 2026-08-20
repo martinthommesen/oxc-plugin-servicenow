@@ -1,6 +1,6 @@
 # servicenow/no-now-id-as-reference
 
-`Now.ID[...]` is a metadata identity, not a reference. Use the factory object in-app or `Now.ref()` for external records. Evidence: https://www.servicenow.com/docs/r/application-development/servicenow-sdk/fluent-constructs.html
+`Now.ID[...]` is a metadata identity, not a reference. Alias meaning is read at the use site from lexical binding identity. Use the factory object in-app or `Now.ref()` for external records. Evidence: https://www.servicenow.com/docs/r/application-development/servicenow-sdk/fluent-constructs.html
 
 - **Family:** fluent
 - **Preset:** recommended
@@ -10,10 +10,11 @@
 - **Suggestions:** no
 - **Authoring:** fluent
 - **Surfaces:** Fluent `.now.ts` metadata only
-- **JavaScript mode:** Not instance-executed
-- **Last verified:** 2026-08-19
+- **JavaScript mode:** Not instance-executed. Factory rules use the selected `fluentSdkVersion` manifest.
+- **Last verified:** 2026-08-20
 - **Implementation:** [`src/rules/no-now-id-as-reference.ts`](../../src/rules/no-now-id-as-reference.ts)
 - **Fluent manifest:** sdk-docs-2026-03
+- **Fluent SDK versions:** 3.0.0, 4.1.0 (unspecified selects 4.1.0)
 
 ## Options
 

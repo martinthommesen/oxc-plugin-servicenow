@@ -1,6 +1,6 @@
 # servicenow/fluent-directives
 
-Validate `@fluent-ignore`, `@fluent-disable-sync`, and `@fluent-disable-sync-for-file`, catch typos, and reject `@ts-ignore` as a Fluent suppress.
+Validate `@fluent-ignore`, `@fluent-disable-sync`, and `@fluent-disable-sync-for-file` against the selected SDK manifest. Previous-line directives attach to the next statement. Catch typos and reject `@ts-ignore` as a Fluent suppress.
 
 - **Family:** fluent
 - **Preset:** recommended
@@ -10,10 +10,11 @@ Validate `@fluent-ignore`, `@fluent-disable-sync`, and `@fluent-disable-sync-for
 - **Suggestions:** no
 - **Authoring:** fluent
 - **Surfaces:** Fluent `.now.ts` metadata only
-- **JavaScript mode:** Not instance-executed
-- **Last verified:** 2026-08-19
+- **JavaScript mode:** Not instance-executed. Factory rules use the selected `fluentSdkVersion` manifest.
+- **Last verified:** 2026-08-20
 - **Implementation:** [`src/rules/fluent-directives.ts`](../../src/rules/fluent-directives.ts)
 - **Fluent manifest:** sdk-docs-2026-03
+- **Fluent SDK versions:** 3.0.0, 4.1.0 (unspecified selects 4.1.0)
 
 ## Options
 

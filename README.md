@@ -163,7 +163,31 @@ export default [servicenow.configs.flat.strict];
 
 The flat presets set `files` so ESLint 10 opens classic `*.js` / `*.cjs` / `*.mjs` and Fluent `*.now.ts` / `*.now.tsx`. ESLint 10's default glob is JS/CJS/MJS only.
 
-oxlint parses TypeScript itself. ESLint uses its default JS parser, so type annotations (`import type`, `: string`) in `.now.ts` fail to parse. Add [`typescript-eslint`](https://typescript-eslint.io/getting-started/) in your own config if you lint typed Fluent.
+oxlint parses TypeScript itself. ESLint uses its default JS parser, so type annotations (`import type`, `: string`) in `.now.ts` fail to parse when you use only `plugin.configs.flat.recommended`.
+
+For typed Fluent files, compose the recommended (or strict) preset with a TypeScript parser. This package tests [`typescript-eslint`](https://typescript-eslint.io/getting-started/) `8.x` with ESLint 9 and ESLint 10. Type-aware linting is not required.
+
+```js
+// eslint.config.js — typed Fluent composition
+import servicenow from "oxc-plugin-servicenow";
+import tseslint from "typescript-eslint";
+
+export default [
+  {
+    files: ["**/*.now.ts", "**/*.now.tsx"],
+    languageOptions: {
+      parser: tseslint.parser,
+      parserOptions: {
+        sourceType: "module",
+        ecmaVersion: "latest",
+      },
+    },
+  },
+  servicenow.configs.flat.recommended,
+];
+```
+
+Ordinary TypeScript outside `*.now.ts` / `*.now.tsx` stays unaffected unless you add those files to the config yourself.
 
 To run these rules on server TypeScript (`src/server/**/*.ts`), add a `files` override. Set `settings.servicenow.javascriptMode` to `es2021` or `es5` for those files. `ecmaLatest` and `// @sn-es-latest` still map to `es2021` for one major-release cycle.
 
@@ -321,10 +345,10 @@ These rules run only when `javascriptMode` is known, except features that Servic
 <!-- generated:fluent-rules:start -->
 | Rule | Preset | Fix | What it catches |
 | --- | --- | --- | --- |
-| [`fluent-proper-imports`](docs/rules/fluent-proper-imports.md) | recommended |  | Fluent entity and column APIs must be imported from `@servicenow/sdk/core` |
-| [`fluent-directives`](docs/rules/fluent-directives.md) | recommended |  | Validate `@fluent-ignore`, `@fluent-disable-sync`, and `@fluent-disable-sync-for-file`, catch typos, and reject `@ts-ignore` as a Fluent suppress |
+| [`fluent-proper-imports`](docs/rules/fluent-proper-imports.md) | recommended |  | Fluent entity and column APIs must be imported from the module recorded in the selected SDK manifest |
+| [`fluent-directives`](docs/rules/fluent-directives.md) | recommended |  | Validate `@fluent-ignore`, `@fluent-disable-sync`, and `@fluent-disable-sync-for-file` against the selected SDK manifest |
 | [`prefer-now-include`](docs/rules/prefer-now-include.md) | strict |  | Large inline `script` / HTML / CSS payloads belong in their own file and should be loaded with `Now.include()` |
-| [`require-fluent-id`](docs/rules/require-fluent-id.md) | recommended |  | Fluent entities must declare `$id` |
+| [`require-fluent-id`](docs/rules/require-fluent-id.md) | recommended |  | Fluent entities must declare `$id` when the selected SDK manifest marks the imported factory as requiring an id |
 | [`fluent-naming-convention`](docs/rules/fluent-naming-convention.md) | strict |  | `.now.ts` files and `Now.ID` keys should be kebab-case |
 | [`no-complex-fluent-logic`](docs/rules/no-complex-fluent-logic.md) | policy |  | Optional architectural policy |
 | [`no-now-id-as-reference`](docs/rules/no-now-id-as-reference.md) | recommended |  | `Now.ID[...]` is a metadata identity, not a reference |

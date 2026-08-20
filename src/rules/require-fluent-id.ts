@@ -1,8 +1,9 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
+import { getAncestors } from "../analysis/index.js";
+import { isCanonicalNowId } from "../analysis/now-id.js";
 import { ruleDocsUrl } from "../constants.js";
-import { getName, getStringValue, isNowIdAccess, objectProperty, objectPropertyValue } from "../utils/ast.js";
-import { apisByName } from "../fluent/index.js";
+import { getStringValue, objectProperty } from "../utils/ast.js";
 import { isFluentContext } from "../context/index.js";
 import { objectOptionAt } from "../settings/index.js";
 import { isSysId } from "../utils/sysid.js";
@@ -17,7 +18,7 @@ export const requireFluentId = defineRule({
     type: "problem",
     docs: {
       description:
-        "Require Fluent entities to declare `$id` when the SDK manifest marks the API as requiring an id. Prefer `Now.ID['descriptive-key']`.",
+        "Require Fluent entities to declare `$id` when the selected SDK manifest marks the imported API as requiring an id. Prefer `Now.ID['descriptive-key']`.",
       url: ruleDocsUrl("require-fluent-id"),
     },
     schema: [
@@ -40,7 +41,6 @@ export const requireFluentId = defineRule({
   },
   createOnce(context) {
     let preferNowId: boolean;
-    const apis = apisByName();
 
     return {
       before() {
@@ -51,10 +51,10 @@ export const requireFluentId = defineRule({
           false;
       },
       CallExpression(node) {
+        const { file, analysis } = beginRuleFile(context);
         const call = node as ESTree.CallExpression;
-        const api = getName(call.callee);
-        if (!api) return;
-        const capability = apis.get(api);
+        const ancestors = getAncestors(context, call);
+        const capability = file.fluent.resolveFactory(call.callee, ancestors);
         if (!capability || capability.idRequirement !== "required") return;
         const arg = call.arguments[0];
         if (!arg || arg.type !== "ObjectExpression") return;
@@ -64,7 +64,7 @@ export const requireFluentId = defineRule({
           context.report({
             node: call.callee as unknown as ESTree.Node,
             messageId: "missing",
-            data: { api, hint: hintFrom(arg, api) },
+            data: { api: capability.name, hint: hintFrom(arg, capability.name) },
           });
           return;
         }
@@ -77,29 +77,17 @@ export const requireFluentId = defineRule({
         }
 
         if (!preferNowId) return;
-        if (isNowIdAccess(value)) return;
-
+        if (isCanonicalNowId(value, analysis)) return;
         const kind = literal != null ? "string" : value.type === "Literal" ? "literal" : "value";
-        context.report({
-          node: value,
-          messageId: "preferNowId",
-          data: { kind },
-        });
+        context.report({ node: value, messageId: "preferNowId", data: { kind } });
       },
     };
   },
 });
 
-function hintFrom(arg: ESTree.Node, api: string): string {
-  const name = objectPropertyValue(arg, "name");
-  const named = name ? getStringValue(name) : null;
-  if (named) return kebab(named);
-  return kebab(api);
-}
-
-function kebab(value: string): string {
-  return value
-    .replace(/([a-z])([A-Z])/g, "$1-$2")
-    .replace(/[\s_]+/g, "-")
-    .toLowerCase();
+function hintFrom(arg: ESTree.ObjectExpression, api: string): string {
+  const name = objectProperty(arg, "name");
+  const nameValue = name ? getStringValue(name.value) : null;
+  if (nameValue) return nameValue.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  return api.toLowerCase();
 }

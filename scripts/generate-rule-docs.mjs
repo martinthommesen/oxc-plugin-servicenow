@@ -6,8 +6,8 @@ import { pathToFileURL } from "node:url";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 const { ruleCatalog } = await import(pathToFileURL(join(root, "src/catalog.ts")).href);
-const { DEFAULT_FLUENT_MANIFEST } = await import(
-  pathToFileURL(join(root, "src/fluent/manifest.ts")).href
+const { DEFAULT_FLUENT_MANIFEST, SUPPORTED_FLUENT_SDK_VERSIONS, CURRENT_FLUENT_SDK_VERSION } = await import(
+  pathToFileURL(join(root, "src/fluent/index.ts")).href
 );
 const { recommendedRules, strictRules } = await import(pathToFileURL(join(root, "src/configs/maps.ts")).href);
 
@@ -102,7 +102,9 @@ ${rule.description}
 - **JavaScript mode:** ${rule.applicability.javascriptMode}
 - **Last verified:** ${rule.lastVerified}
 - **Implementation:** [\`src/rules/${rule.name}.ts\`](../../src/rules/${rule.name}.ts)${
-      rule.family === "fluent" ? `\n- **Fluent manifest:** ${DEFAULT_FLUENT_MANIFEST.version}` : ""
+      rule.family === "fluent"
+        ? `\n- **Fluent manifest:** ${DEFAULT_FLUENT_MANIFEST.version}\n- **Fluent SDK versions:** ${SUPPORTED_FLUENT_SDK_VERSIONS.join(", ")} (unspecified selects ${CURRENT_FLUENT_SDK_VERSION})`
+        : ""
     }
 
 ## Options

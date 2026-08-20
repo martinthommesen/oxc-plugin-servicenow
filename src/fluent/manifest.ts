@@ -34,6 +34,8 @@ export interface FluentDirectiveCapability {
 
 export interface FluentSdkManifest {
   version: string;
+  /** Semver key used by `settings.servicenow.fluentSdkVersion`. */
+  sdkVersion?: string;
   evidence: readonly string[];
   apis: readonly FluentApiCapability[];
   directives: readonly FluentDirectiveCapability[];

@@ -1,38 +1,20 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
-import { ruleDocsUrl } from "../constants.js";
-import { getName, getStringValue } from "../utils/ast.js";
-import { staticPropertyName } from "../analysis/index.js";
+import { getAncestors } from "../analysis/index.js";
+import { importedBindingFor } from "../analysis/fluent-imports.js";
+import { staticPropertyName } from "../analysis/members.js";
 import { importOwnedApis } from "../fluent/index.js";
+import { ruleDocsUrl } from "../constants.js";
+import { getName } from "../utils/ast.js";
 import { isFluentContext } from "../context/index.js";
 import { beginRuleFile } from "./helpers.js";
-
-function importedNames(node: ESTree.ImportDeclaration): Array<{ exported: string; local: string }> {
-  const names: Array<{ exported: string; local: string }> = [];
-  for (const spec of node.specifiers) {
-    if (spec.type === "ImportSpecifier") {
-      const imported = spec.imported;
-      const exported =
-        getName(imported) ??
-        getStringValue(imported) ??
-        (imported as { name?: string }).name ??
-        null;
-      const local = getName(spec.local);
-      if (exported && local) names.push({ exported, local });
-    } else if (spec.type === "ImportNamespaceSpecifier") {
-      const local = getName(spec.local);
-      if (local) names.push({ exported: "*", local });
-    }
-  }
-  return names;
-}
 
 export const fluentProperImports = defineRule({
   meta: {
     type: "problem",
     docs: {
       description:
-        "Require Fluent APIs to be imported from the module recorded in the versioned SDK manifest. Does not rewrite whole import declarations.",
+        "Require Fluent APIs to be imported from the module recorded in the selected SDK manifest. Resolves aliases and namespace imports by lexical binding identity.",
       url: ruleDocsUrl("fluent-proper-imports"),
     },
     messages: {
@@ -43,87 +25,88 @@ export const fluentProperImports = defineRule({
     },
   },
   createOnce(context) {
-    let importedLocals: Set<string>;
-    let namespaceSources: Map<string, string>;
-    let pendingCalls: Array<{ node: ESTree.Node; name: string; expected: string }>;
-    const owned = importOwnedApis();
-
     return {
       before() {
         const { context: script } = beginRuleFile(context);
         if (!isFluentContext(script)) return false;
-        importedLocals = new Set();
-        namespaceSources = new Map();
-        pendingCalls = [];
       },
       ImportDeclaration(node) {
+        const { file } = beginRuleFile(context);
+        const owned = importOwnedApis(file.fluent.manifest);
         const decl = node as ESTree.ImportDeclaration;
-        const source = getStringValue(decl.source);
-        if (!source) return;
-        const names = importedNames(decl);
-
-        for (const item of names) {
-          if (item.exported === "*") {
-            namespaceSources.set(item.local, source);
-          }
+        for (const spec of decl.specifiers) {
+          if (spec.type !== "ImportSpecifier") continue;
+          const local = spec.local as ESTree.Node;
+          const imported = importedBindingFor(local, [node, spec as unknown as ESTree.Node], file.bindings, file.fluent.imports);
+          if (!imported || imported.exportedName === "*") continue;
+          const expected = owned.get(imported.exportedName);
+          if (!expected) continue;
+          if (expected === imported.sourceModule) continue;
+          context.report({
+            node: decl.source as unknown as ESTree.Node,
+            messageId: "wrongModule",
+            data: {
+              names: imported.exportedName,
+              source: imported.sourceModule,
+              expected,
+            },
+          });
         }
-
-        const ownedNames = names.filter((item) => item.exported !== "*" && owned.has(item.exported));
-        if (ownedNames.length === 0) return;
-
-        const mismatched = ownedNames.filter((item) => owned.get(item.exported) !== source);
-        for (const item of ownedNames) {
-          importedLocals.add(item.local);
-        }
-
-        if (mismatched.length === 0) return;
-        const expected = owned.get(mismatched[0]!.exported) ?? "@servicenow/sdk/core";
-        context.report({
-          node: decl.source as unknown as ESTree.Node,
-          messageId: "wrongModule",
-          data: {
-            names: mismatched.map((item) => item.exported).join(", "),
-            source,
-            expected,
-          },
-        });
       },
       CallExpression(node) {
+        const { file } = beginRuleFile(context);
+        const owned = importOwnedApis(file.fluent.manifest);
         const call = node as ESTree.CallExpression;
-        const callee = call.callee;
-        const direct = getName(callee);
+        const ancestors = getAncestors(context, call);
+        const capability = file.fluent.resolveFactory(call.callee, ancestors);
+        if (capability) {
+          const expected = capability.module === "unknown" ? undefined : capability.module;
+          if (!expected) return;
+          if (call.callee.type !== "MemberExpression") return;
+          const member = call.callee as ESTree.MemberExpression;
+          const imported = importedBindingFor(
+            member.object as ESTree.Node,
+            ancestors,
+            file.bindings,
+            file.fluent.imports,
+          );
+          if (imported && imported.exportedName === "*" && imported.sourceModule !== expected) {
+            context.report({
+              node: member.property as unknown as ESTree.Node,
+              messageId: "wrongModule",
+              data: { names: capability.name, source: imported.sourceModule, expected },
+            });
+          }
+          return;
+        }
+
+        const direct = getName(call.callee);
         if (direct) {
-          if (importedLocals.has(direct)) return;
           const expected = owned.get(direct);
           if (!expected) return;
-          pendingCalls.push({
-            node: callee as unknown as ESTree.Node,
-            name: direct,
-            expected,
+          const binding = file.bindings.tree.resolve(direct, call.callee as ESTree.Node, ancestors);
+          if (binding && binding.kind !== "import") return;
+          context.report({
+            node: call.callee as unknown as ESTree.Node,
+            messageId: "missingCore",
+            data: { name: direct, expected },
           });
           return;
         }
 
-        if (callee.type !== "MemberExpression") return;
-        const member = callee as ESTree.MemberExpression;
-        const namespaceName = getName(member.object);
+        if (call.callee.type !== "MemberExpression") return;
+        const member = call.callee as ESTree.MemberExpression;
         const exported = staticPropertyName(member);
-        if (!namespaceName || !exported) return;
-        const nsSource = namespaceSources.get(namespaceName);
-        if (!nsSource) return;
-        const expected = owned.get(exported);
-        if (!expected) return;
-        if (expected === nsSource) return;
-        context.report({
-          node: member.property as unknown as ESTree.Node,
-          messageId: "wrongModule",
-          data: { names: exported, source: nsSource, expected },
-        });
-      },
-      after() {
-        for (const { node, name, expected } of pendingCalls) {
-          if (importedLocals.has(name)) continue;
-          context.report({ node, messageId: "missingCore", data: { name, expected } });
+        const expected = exported ? owned.get(exported) : undefined;
+        if (!exported || !expected) return;
+        const object = member.object as ESTree.Node;
+        const imported = importedBindingFor(object, ancestors, file.bindings, file.fluent.imports);
+        if (imported && imported.exportedName === "*" && imported.sourceModule !== expected) {
+          context.report({
+            node: member.property as unknown as ESTree.Node,
+            messageId: "wrongModule",
+            data: { names: exported, source: imported.sourceModule, expected },
+          });
         }
       },
     };

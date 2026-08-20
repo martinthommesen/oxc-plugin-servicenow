@@ -159,6 +159,17 @@ describe("profile fixtures", () => {
       duplicate.includes("servicenow/no-duplicate-fluent-id"),
       `duplicate-id: ${duplicate.join(", ") || "(none)"}`,
     );
+    const alias = pluginRulesFor(
+      runOxlint(recommendedConfig, [path.join(invalidDir, "fluent-alias-missing-id.now.ts")]),
+    );
+    const dangling = pluginRulesFor(
+      runOxlint(recommendedConfig, [path.join(invalidDir, "dangling-fluent-ignore.now.ts")]),
+    );
+    assert.ok(alias.includes("servicenow/require-fluent-id"), `fluent alias: ${alias.join(", ") || "(none)"}`);
+    assert.ok(
+      dangling.includes("servicenow/fluent-directives"),
+      `dangling ignore: ${dangling.join(", ") || "(none)"}`,
+    );
   });
 
   it("client rules do not leak onto a server UI Action", () => {
@@ -306,6 +317,8 @@ describe("profile fixtures", () => {
       ["aggregate-late-config.br.js", "servicenow/validate-glideaggregate-calls"],
       ["aggregate-type-only-field.br.js", "servicenow/validate-glideaggregate-calls"],
       ["glideajax-empty-sysparm.client.js", "servicenow/require-glideajax-sysparm-name"],
+      ["fluent-alias-missing-id.now.ts", "servicenow/require-fluent-id"],
+      ["dangling-fluent-ignore.now.ts", "servicenow/fluent-directives"],
     ];
     for (const [file, ruleId] of cases) {
       const code = readFileSync(path.join(invalidDir, file), "utf8");

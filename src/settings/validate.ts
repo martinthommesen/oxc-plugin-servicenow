@@ -10,6 +10,7 @@ import type {
   SettingsDeprecation,
   ValidatedServiceNowSettings,
 } from "../types.js";
+import { resolveFluentManifest } from "../fluent/registry.js";
 import { ServiceNowSettingsError } from "./errors.js";
 
 const SCRIPT_KINDS = new Set<ScriptKind>([
@@ -273,6 +274,7 @@ export function validateServiceNowSettings(raw: unknown): ValidatedSettingsResul
       throw new ServiceNowSettingsError(".fluentSdkVersion", "expected a semver string such as 4.1.0");
     }
     fluentSdkVersion = raw.fluentSdkVersion;
+    resolveFluentManifest(fluentSdkVersion);
   }
 
   return {

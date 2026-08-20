@@ -13,11 +13,27 @@ import {
   type ProvenanceKind,
   type ProvenanceQuery,
 } from "./provenance.js";
+import { resolveFluentManifest, type FluentSdkManifest } from "../fluent/index.js";
+import type { FluentApiCapability } from "../fluent/index.js";
+import {
+  collectFluentImports,
+  resolveFluentFactory,
+  type FluentImportBinding,
+} from "./fluent-imports.js";
+import { isCanonicalNow } from "./now-id.js";
+
+export interface FluentFileFacts {
+  manifest: FluentSdkManifest;
+  imports: ReadonlyMap<number, FluentImportBinding>;
+  resolveFactory(callee: unknown, ancestors?: readonly ESTree.Node[]): FluentApiCapability | null;
+  isCanonicalNow(node: ESTree.Node): boolean;
+}
 
 export interface FileAnalysis {
   bindings: FileBindings;
   script: ServiceNowScriptContext;
   provenance: ProvenanceQuery;
+  fluent: FluentFileFacts;
 }
 
 const ALL_KINDS: readonly ProvenanceKind[] = [
@@ -160,10 +176,25 @@ function buildFileAnalysis(context: Context): FileAnalysis {
     );
   }
 
+  const provenance = makeQuery(bindings, provenanceAtNode, identifierAtNode);
+  const settings = getValidatedSettingsResult(context).settings;
+  const manifest = resolveFluentManifest(settings.fluentSdkVersion);
+  const imports = program ? collectFluentImports(program, bindings) : new Map();
+
   return {
     bindings,
     script,
-    provenance: makeQuery(bindings, provenanceAtNode, identifierAtNode),
+    provenance,
+    fluent: {
+      manifest,
+      imports,
+      resolveFactory(callee, ancestors = []) {
+        return resolveFluentFactory(callee, ancestors, bindings, imports, manifest);
+      },
+      isCanonicalNow(node) {
+        return isCanonicalNow(node, provenance);
+      },
+    },
   };
 }
 

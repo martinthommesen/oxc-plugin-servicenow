@@ -166,7 +166,7 @@ function defaultApplicability(family: RuleFamily, preset: RulePreset): RuleAppli
     return {
       authoring: "fluent",
       surfaces: "Fluent `.now.ts` metadata only",
-      javascriptMode: "Not instance-executed",
+      javascriptMode: "Not instance-executed. Factory rules use the selected `fluentSdkVersion` manifest.",
     };
   }
   if (family === "engine") {
@@ -502,7 +502,9 @@ export const ruleCatalog = [
     severity: "error",
     fixable: false,
     hasSuggestions: false,
-    description: "Fluent entity and column APIs must be imported from `@servicenow/sdk/core`.",
+    description:
+      "Fluent entity and column APIs must be imported from the module recorded in the selected SDK manifest. Aliases and namespace imports resolve by lexical binding identity.",
+    lastVerified: "2026-08-20",
     bad: [
       {
         name: "wrong module",
@@ -526,7 +528,8 @@ export const ruleCatalog = [
     fixable: false,
     hasSuggestions: false,
     description:
-      "Validate `@fluent-ignore`, `@fluent-disable-sync`, and `@fluent-disable-sync-for-file`, catch typos, and reject `@ts-ignore` as a Fluent suppress.",
+      "Validate `@fluent-ignore`, `@fluent-disable-sync`, and `@fluent-disable-sync-for-file` against the selected SDK manifest. Previous-line directives attach to the next statement. Catch typos and reject `@ts-ignore` as a Fluent suppress.",
+    lastVerified: "2026-08-20",
     bad: [
       {
         name: "typo + ts-ignore",
@@ -588,7 +591,8 @@ export const ruleCatalog = [
     fixable: false,
     hasSuggestions: false,
     description:
-      "Fluent entities must declare `$id`. Prefer `Now.ID['descriptive-key']` so `keys.ts` stays readable.",
+      "Fluent entities must declare `$id` when the selected SDK manifest marks the imported factory as requiring an id. Prefer canonical `Now.ID['descriptive-key']`.",
+    lastVerified: "2026-08-20",
     bad: [
       {
         name: "missing $id",
@@ -897,7 +901,8 @@ export const ruleCatalog = [
     fixable: false,
     hasSuggestions: false,
     description:
-      "`Now.ID[...]` is a metadata identity, not a reference. Use the factory object in-app or `Now.ref()` for external records. Evidence: https://www.servicenow.com/docs/r/application-development/servicenow-sdk/fluent-constructs.html",
+      "`Now.ID[...]` is a metadata identity, not a reference. Alias meaning is read at the use site from lexical binding identity. Use the factory object in-app or `Now.ref()` for external records. Evidence: https://www.servicenow.com/docs/r/application-development/servicenow-sdk/fluent-constructs.html",
+    lastVerified: "2026-08-20",
     bad: [
       {
         name: "Now.ID in another property",

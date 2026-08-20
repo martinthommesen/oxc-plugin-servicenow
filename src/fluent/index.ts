@@ -7,6 +7,15 @@ export {
   importOwnedApis,
   knownDirectiveNames,
 } from "./manifest.js";
+export {
+  CURRENT_FLUENT_SDK_VERSION,
+  LEGACY_FLUENT_SDK_VERSION,
+  SUPPORTED_FLUENT_SDK_VERSIONS,
+  fluentManifests,
+  resolveFluentManifest,
+  supportedFluentSdkVersionList,
+} from "./registry.js";
+export type { SupportedFluentSdkVersion } from "./registry.js";
 export type {
   FluentApiCapability,
   FluentApiKind,

@@ -1,6 +1,7 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
+import { getAncestors, isCanonicalNowId } from "../analysis/index.js";
 import { getName, getStringValue, nowIdKey, objectPropertyValue } from "../utils/ast.js";
 import { basename } from "../utils/filenames.js";
 import { objectOptionAt } from "../settings/index.js";
@@ -84,6 +85,8 @@ export const fluentNamingConvention = defineRule({
         }
       },
       MemberExpression(node) {
+        const { analysis } = beginRuleFile(context);
+        if (!isCanonicalNowId(node, analysis)) return;
         const key = nowIdKey(node);
         if (!key) return;
         if (matches(idStyle, key)) return;
@@ -101,7 +104,9 @@ export const fluentNamingConvention = defineRule({
           const exportName = getName(item.id);
           if (!exportName || !item.init || item.init.type !== "CallExpression") continue;
           const call = item.init as ESTree.CallExpression;
-          if (getName(call.callee) !== "Table") continue;
+          const { file } = beginRuleFile(context);
+          const capability = file.fluent.resolveFactory(call.callee, getAncestors(context, call));
+          if (capability?.name !== "Table") continue;
           const arg = call.arguments[0];
           if (!arg || arg.type !== "ObjectExpression") continue;
           const tableNameNode = objectPropertyValue(arg, "name");

@@ -1,6 +1,6 @@
 # servicenow/require-fluent-id
 
-Fluent entities must declare `$id`. Prefer `Now.ID['descriptive-key']` so `keys.ts` stays readable.
+Fluent entities must declare `$id` when the selected SDK manifest marks the imported factory as requiring an id. Prefer canonical `Now.ID['descriptive-key']`.
 
 - **Family:** fluent
 - **Preset:** recommended
@@ -10,10 +10,11 @@ Fluent entities must declare `$id`. Prefer `Now.ID['descriptive-key']` so `keys.
 - **Suggestions:** no
 - **Authoring:** fluent
 - **Surfaces:** Fluent `.now.ts` metadata only
-- **JavaScript mode:** Not instance-executed
-- **Last verified:** 2026-08-19
+- **JavaScript mode:** Not instance-executed. Factory rules use the selected `fluentSdkVersion` manifest.
+- **Last verified:** 2026-08-20
 - **Implementation:** [`src/rules/require-fluent-id.ts`](../../src/rules/require-fluent-id.ts)
 - **Fluent manifest:** sdk-docs-2026-03
+- **Fluent SDK versions:** 3.0.0, 4.1.0 (unspecified selects 4.1.0)
 
 ## Options
 

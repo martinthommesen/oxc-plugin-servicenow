@@ -172,4 +172,85 @@ describe("packed package consumer", () => {
       rmSync(staging, { recursive: true, force: true });
     }
   });
+
+  it("lints typed Fluent files when the consumer adds typescript-eslint", async () => {
+    const staging = mkdtempSync(path.join(tmpdir(), "sn-oxc-pack-ts-"));
+    const tarball = packTarball(staging);
+    const consumer = mkdtempSync(path.join(tmpdir(), "sn-oxc-ts-consumer-"));
+    try {
+      writeFileSync(
+        path.join(consumer, "package.json"),
+        JSON.stringify({ name: "sn-oxc-ts-consumer", private: true, type: "module" }, null, 2),
+      );
+      execFileSync(
+        "npm",
+        ["install", tarball, "eslint@10.8.1", "typescript-eslint@8.46.0", "typescript@5.8.0"],
+        { cwd: consumer, encoding: "utf8" },
+      );
+      writeFileSync(
+        path.join(consumer, "eslint.config.js"),
+        `import servicenow from "oxc-plugin-servicenow";
+import tseslint from "typescript-eslint";
+
+export default [
+  {
+    files: ["**/*.now.ts", "**/*.now.tsx"],
+    languageOptions: {
+      parser: tseslint.parser,
+      parserOptions: { sourceType: "module", ecmaVersion: "latest" },
+    },
+  },
+  servicenow.configs.flat.recommended,
+];
+`,
+      );
+      writeFileSync(
+        path.join(consumer, "table.now.ts"),
+        `import type { Table } from "@servicenow/sdk/core";
+import { BusinessRule } from "@servicenow/sdk/core";
+
+export const unused: Table | undefined = undefined;
+
+BusinessRule({
+  table: "incident",
+  name: "Typed",
+});
+`,
+      );
+      writeFileSync(path.join(consumer, "app.ts"), `const x: string = "ordinary";\n`);
+      let eslintStdout = "";
+      try {
+        eslintStdout = execFileSync(
+          path.join(consumer, "node_modules", ".bin", "eslint"),
+          ["--format", "json", "table.now.ts", "app.ts"],
+          { encoding: "utf8", cwd: consumer },
+        );
+      } catch (error) {
+        eslintStdout = (error as { stdout?: string }).stdout ?? "";
+      }
+      const report = JSON.parse(eslintStdout) as Array<{
+        filePath: string;
+        messages: Array<{ ruleId: string | null; fatal?: boolean }>;
+      }>;
+      const fluent = report.find((file) => file.filePath.endsWith("table.now.ts"));
+      const ordinary = report.find((file) => file.filePath.endsWith("app.ts"));
+      assert.ok(fluent, "expected table.now.ts in ESLint output");
+      const fluentRules = fluent.messages.map((message) => message.ruleId);
+      assert.ok(
+        fluentRules.includes("servicenow/require-fluent-id"),
+        `typed fluent rules: ${fluentRules.join(", ") || "(none)"}`,
+      );
+      assert.equal(
+        ordinary?.messages.some((message) => message.ruleId?.startsWith("servicenow/")),
+        false,
+      );
+      assert.equal(
+        ordinary?.messages.some((message) => message.fatal),
+        false,
+      );
+    } finally {
+      rmSync(consumer, { recursive: true, force: true });
+      rmSync(staging, { recursive: true, force: true });
+    }
+  });
 });

@@ -1,6 +1,6 @@
 # servicenow/fluent-proper-imports
 
-Fluent entity and column APIs must be imported from `@servicenow/sdk/core`.
+Fluent entity and column APIs must be imported from the module recorded in the selected SDK manifest. Aliases and namespace imports resolve by lexical binding identity.
 
 - **Family:** fluent
 - **Preset:** recommended
@@ -10,10 +10,11 @@ Fluent entity and column APIs must be imported from `@servicenow/sdk/core`.
 - **Suggestions:** no
 - **Authoring:** fluent
 - **Surfaces:** Fluent `.now.ts` metadata only
-- **JavaScript mode:** Not instance-executed
-- **Last verified:** 2026-08-19
+- **JavaScript mode:** Not instance-executed. Factory rules use the selected `fluentSdkVersion` manifest.
+- **Last verified:** 2026-08-20
 - **Implementation:** [`src/rules/fluent-proper-imports.ts`](../../src/rules/fluent-proper-imports.ts)
 - **Fluent manifest:** sdk-docs-2026-03
+- **Fluent SDK versions:** 3.0.0, 4.1.0 (unspecified selects 4.1.0)
 
 ## Options
 

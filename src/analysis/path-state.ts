@@ -45,6 +45,8 @@ export interface PathAnalysisOptions<T> {
   mergeData: (left: T, right: T) => T;
   onCall: (input: PathCallInput<T>) => void;
   onRef?: (input: PathRefInput<T>) => void;
+  /** Allocate an object when an expression is a proven constructed value. */
+  onValue?: (node: ESTree.Node) => T | undefined;
 }
 
 export function isFunctionLikeNode(node: ESTree.Node): boolean {
@@ -247,7 +249,7 @@ function capturedBindings(
  * identity. Abrupt completions do not join into later statements.
  */
 export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
-  const { program, analysis, kinds, emptyData, cloneData, mergeData, onCall, onRef } = options;
+  const { program, analysis, kinds, emptyData, cloneData, mergeData, onCall, onRef, onValue } = options;
   const bindings = analysis.bindings;
   let nextObjectId = 1;
   const alloc = (): ObjectId => {
@@ -318,6 +320,26 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
     if (expr.type === "SequenceExpression") {
       const expressions = (expr as ESTree.SequenceExpression).expressions;
       return objectFromExpr(state, expressions[expressions.length - 1]);
+    }
+    if (onValue) {
+      const existing = newExpressionIds.get(expr);
+      if (existing !== undefined) {
+        ensure(state, existing);
+        return existing;
+      }
+      const data = onValue(expr);
+      if (data !== undefined) {
+        const rec: SharedRecord<T> = {
+          id: alloc(),
+          escaped: false,
+          invalid: false,
+          data,
+        };
+        state.objects.set(rec.id, rec);
+        newExpressionIds.set(expr, rec.id);
+        onRef?.({ node: expr, rec, name: getName(expr), bindingId: null });
+        return rec.id;
+      }
     }
     return undefined;
   };
@@ -602,6 +624,10 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
         }
         break;
       }
+      case "MemberExpression":
+        objectFromExpr(state, node);
+        visitChildren(node, (child) => visit(child, state, false));
+        break;
       default:
         visitChildren(node, (child) => visit(child, state, false));
     }
