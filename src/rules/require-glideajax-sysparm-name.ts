@@ -10,12 +10,14 @@ export const requireGlideajaxSysparmName = defineRule({
     type: "problem",
     docs: {
       description:
-        "Require `addParam(\"sysparm_name\", method)` before GlideAjax request calls. Extra static keys must use the `sysparm_` prefix. Evidence: https://www.servicenow.com/docs/r/api-reference/scripts/p_AJAX.html",
+        "Require a non-empty `addParam(\"sysparm_name\", method)` before GlideAjax request calls. Extra static keys must use the `sysparm_` prefix. Evidence: https://www.servicenow.com/docs/r/api-reference/scripts/p_AJAX.html",
       url: ruleDocsUrl("require-glideajax-sysparm-name"),
     },
     messages: {
       missingName:
         "`{{name}}` starts a GlideAjax request without `addParam(\"sysparm_name\", ...)`. The Script Include method will not run.",
+      emptyValue:
+        "`{{name}}` sets `sysparm_name` to a missing, empty, or null method. Pass a non-empty Script Include method name.",
       badPrefix:
         "GlideAjax parameter `{{param}}` must start with `sysparm_`. Use `sysparm_{{param}}`.",
       afterTerminal:

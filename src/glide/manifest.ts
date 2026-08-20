@@ -13,6 +13,12 @@ export const GLIDE_API_RELEASE = "zurich";
 export const GLIDE_SCOPED_RECORD_EVIDENCE =
   "https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html";
 
+/** Global (non-scoped) GlideRecord API. Used only for methods absent from the scoped page. */
+export const GLIDE_GLOBAL_RECORD_EVIDENCE =
+  "https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordAPI.html";
+
+export type GlideApiScope = "scoped" | "global";
+
 export type GlideMethodRole =
   | "filter"
   | "shape"
@@ -27,18 +33,28 @@ export interface GlideMethodCapability {
   name: string;
   roles: readonly GlideMethodRole[];
   evidence: string;
+  apiScope: GlideApiScope;
 }
 
-function method(name: string, roles: readonly GlideMethodRole[]): GlideMethodCapability {
-  return { name, roles, evidence: GLIDE_SCOPED_RECORD_EVIDENCE };
+function method(
+  name: string,
+  roles: readonly GlideMethodRole[],
+  extra: Partial<Pick<GlideMethodCapability, "evidence" | "apiScope">> = {},
+): GlideMethodCapability {
+  return {
+    name,
+    roles,
+    evidence: extra.evidence ?? GLIDE_SCOPED_RECORD_EVIDENCE,
+    apiScope: extra.apiScope ?? "scoped",
+  };
 }
 
 /**
- * Documented scoped GlideRecord methods used by conservative query analysis.
+ * Documented GlideRecord methods used by conservative query analysis.
  *
  * `addOrCondition` belongs to `GlideQueryCondition`, not GlideRecord.
- * `addInactiveQuery` and `addNotExistsQuery` are not on this Zurich page.
- * `getAsync` is not listed on this page, so Phase 3 executors omit it.
+ * `addInactiveQuery` and `addNotExistsQuery` are not on the Zurich scoped page.
+ * `getAsync` is documented on the global GlideRecord API, not the scoped page.
  */
 export const GLIDE_RECORD_METHODS: readonly GlideMethodCapability[] = [
   method("addActiveQuery", ["filter"]),
@@ -63,6 +79,10 @@ export const GLIDE_RECORD_METHODS: readonly GlideMethodCapability[] = [
   method("setCategory", ["shape"]),
   method("query", ["executor"]),
   method("get", ["executor"]),
+  method("getAsync", ["executor"], {
+    apiScope: "global",
+    evidence: GLIDE_GLOBAL_RECORD_EVIDENCE,
+  }),
   method("next", ["consumer"]),
   method("hasNext", ["consumer"]),
   method("getRowCount", ["consumer"]),

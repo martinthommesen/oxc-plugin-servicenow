@@ -13,7 +13,8 @@ export interface AggregateFinding {
 
 interface AggData {
   queried: boolean | "unknown";
-  aggregates: Set<string>;
+  committed: Set<string>;
+  pending: Set<string>;
   dynamicAggregate: boolean;
 }
 
@@ -21,17 +22,29 @@ function tupleKey(type: string, field: string | null): string {
   return field ? `${type}:${field}` : type;
 }
 
+function cloneSet(values: Set<string>): Set<string> {
+  return new Set(values);
+}
+
+function intersectSet(left: Set<string>, right: Set<string>): Set<string> {
+  return new Set([...left].filter((item) => right.has(item)));
+}
+
 function cloneAgg(data: AggData): AggData {
   return {
     queried: data.queried,
-    aggregates: new Set(data.aggregates),
+    committed: cloneSet(data.committed),
+    pending: cloneSet(data.pending),
     dynamicAggregate: data.dynamicAggregate,
   };
 }
 
 /**
- * Report `next` / `getAggregate` before `query`, and static getAggregate
- * tuples that were never registered. Dynamic names stay silent.
+ * Report `next` / `getAggregate` before `query`, and exact getAggregate
+ * tuples that were not registered before the current query epoch.
+ *
+ * Branch joins intersect committed tuples. A type-only registration does
+ * not satisfy a field-specific read.
  */
 export function findGlideAggregateIssues(
   program: ESTree.Node,
@@ -42,11 +55,17 @@ export function findGlideAggregateIssues(
     program,
     analysis,
     kinds: ["GlideAggregate"],
-    emptyData: () => ({ queried: false, aggregates: new Set(), dynamicAggregate: false }),
+    emptyData: () => ({
+      queried: false,
+      committed: new Set(),
+      pending: new Set(),
+      dynamicAggregate: false,
+    }),
     cloneData: cloneAgg,
     mergeData: (left, right) => ({
       queried: mergeTri(left.queried, right.queried),
-      aggregates: new Set([...left.aggregates, ...right.aggregates]),
+      committed: intersectSet(left.committed, right.committed),
+      pending: intersectSet(left.pending, right.pending),
       dynamicAggregate: left.dynamicAggregate || right.dynamicAggregate,
     }),
     onCall({ call, rec, objectName, property }) {
@@ -56,22 +75,25 @@ export function findGlideAggregateIssues(
         const field = call.arguments[1] ? getStringValue(call.arguments[1]) : "";
         if (!type || (call.arguments[1] && field === null)) {
           rec.data.dynamicAggregate = true;
-        } else {
-          rec.data.aggregates.add(tupleKey(type, field || null));
+          return;
         }
+        rec.data.pending.add(tupleKey(type, field || null));
       }
-      if (property === "query") rec.data.queried = true;
+      if (property === "query") {
+        rec.data.committed = cloneSet(rec.data.pending);
+        rec.data.queried = true;
+      }
       if (property === "next" || property === "getAggregate") {
         if (rec.data.queried === false) {
           findings.push({ node: call, name: objectName, messageId: "missingQuery", method: property });
         }
       }
-      if (property === "getAggregate" && rec.data.queried !== false && !rec.data.dynamicAggregate) {
+      if (property === "getAggregate" && rec.data.queried === true && !rec.data.dynamicAggregate) {
         const type = getStringValue(call.arguments[0]);
         const field = call.arguments[1] ? getStringValue(call.arguments[1]) : "";
         if (type && (!call.arguments[1] || field !== null)) {
           const key = tupleKey(type, field || null);
-          if (!rec.data.aggregates.has(key) && !rec.data.aggregates.has(type)) {
+          if (!rec.data.committed.has(key)) {
             findings.push({
               node: call,
               name: objectName,

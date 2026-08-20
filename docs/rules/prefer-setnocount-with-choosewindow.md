@@ -11,7 +11,7 @@ Zurich scoped GlideRecord documents that `query()` after `chooseWindow()` runs `
 - **Authoring:** classic
 - **Surfaces:** Classic instance scripts. Client-only rules skip server-only files. Fluent files are skipped.
 - **JavaScript mode:** Independent of JavaScript mode unless the rule documents a mode gate.
-- **Last verified:** 2026-08-19
+- **Last verified:** 2026-08-20
 - **Implementation:** [`src/rules/prefer-setnocount-with-choosewindow.ts`](../../src/rules/prefer-setnocount-with-choosewindow.ts)
 
 ## Options
@@ -49,7 +49,7 @@ while (rec.next()) {
 
 ## Limitations
 
-Silent when provenance is unknown, when `getRowCount()` is used, when `chooseWindow`'s third argument is not a boolean literal, or when one branch disagrees.
+Window, skip, force-count, and `getRowCount()` state are scoped to one query epoch. A later `query()` is not justified by an earlier `getRowCount()`. Silent when provenance is unknown, when `chooseWindow`'s third argument is not a boolean literal, or when one branch disagrees.
 
 ## Evidence
 

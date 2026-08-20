@@ -11,16 +11,31 @@ export interface QueryInLoopFinding {
   method: string;
 }
 
-function isNextCall(node: unknown): string | null {
-  if (!isNode(node)) return null;
+function isProvenCursor(analysis: ProvenanceQuery, node: unknown): boolean {
+  const proven = analysis.ofExpression(node);
+  return Boolean(
+    proven &&
+      (proven.kind === "GlideRecord" || proven.kind === "GlideAggregate") &&
+      !proven.invalid &&
+      !proven.escaped,
+  );
+}
+
+/**
+ * True only when a `.next()` call is proven to consume a GlideRecord or
+ * GlideAggregate cursor. Unrelated iterators stay false.
+ */
+function isCursorNextCall(node: unknown, analysis: ProvenanceQuery): boolean {
+  if (!isNode(node)) return false;
   if (node.type === "LogicalExpression") {
-    return isNextCall((node as ESTree.LogicalExpression).left) ?? isNextCall((node as ESTree.LogicalExpression).right);
+    const logical = node as ESTree.LogicalExpression;
+    return isCursorNextCall(logical.left, analysis) || isCursorNextCall(logical.right, analysis);
   }
-  if (node.type !== "CallExpression") return null;
+  if (node.type !== "CallExpression") return false;
   const call = node as ESTree.CallExpression;
-  if (staticPropertyName(call.callee) !== "next") return null;
-  if (call.callee.type !== "MemberExpression") return null;
-  return getName((call.callee as ESTree.MemberExpression).object);
+  if (staticPropertyName(call.callee) !== "next") return false;
+  if (call.callee.type !== "MemberExpression") return false;
+  return isProvenCursor(analysis, (call.callee as ESTree.MemberExpression).object);
 }
 
 export function findQueriesInCursorLoops(
@@ -46,7 +61,7 @@ function visit(
 
   if (node.type === "WhileStatement" || node.type === "DoWhileStatement") {
     const stmt = node as ESTree.WhileStatement | ESTree.DoWhileStatement;
-    const nextDepth = isNextCall(stmt.test) ? cursorDepth + 1 : cursorDepth;
+    const nextDepth = isCursorNextCall(stmt.test, analysis) ? cursorDepth + 1 : cursorDepth;
     visit(stmt.test, cursorDepth, analysis, findings);
     visit(stmt.body, nextDepth, analysis, findings);
     return;
@@ -54,7 +69,7 @@ function visit(
 
   if (node.type === "ForStatement") {
     const stmt = node as ESTree.ForStatement;
-    const nextDepth = isNextCall(stmt.test) ? cursorDepth + 1 : cursorDepth;
+    const nextDepth = isCursorNextCall(stmt.test, analysis) ? cursorDepth + 1 : cursorDepth;
     if (stmt.init) visit(stmt.init, cursorDepth, analysis, findings);
     if (stmt.test) visit(stmt.test, cursorDepth, analysis, findings);
     if (stmt.update) visit(stmt.update, nextDepth, analysis, findings);
@@ -67,13 +82,7 @@ function visit(
     const property = staticPropertyName(call.callee);
     if (property && GLIDE_QUERY_EXECUTORS.has(property) && call.callee.type === "MemberExpression") {
       const object = (call.callee as ESTree.MemberExpression).object;
-      const proven = analysis.ofExpression(object);
-      if (
-        proven &&
-        (proven.kind === "GlideRecord" || proven.kind === "GlideAggregate") &&
-        !proven.invalid &&
-        !proven.escaped
-      ) {
+      if (isProvenCursor(analysis, object)) {
         findings.push({ node: call, name: getName(object) ?? "record", method: property });
       }
     }

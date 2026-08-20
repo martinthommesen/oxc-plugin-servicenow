@@ -1,5 +1,6 @@
 import type { ESTree } from "@oxlint/plugins";
 import { GLIDE_BULK_METHODS, GLIDE_FILTER_METHODS, GLIDE_KNOWN_METHODS } from "../glide/query-methods.js";
+import { classifyStaticArg } from "./static-args.js";
 import { analyzePathBindings, mergeTri } from "./path-state.js";
 import type { ProvenanceQuery } from "./provenance.js";
 
@@ -11,6 +12,46 @@ export interface UnfilteredBulkFinding {
 
 interface FilterData {
   filtered: boolean | "unknown";
+}
+
+const FIELD_OR_ENCODED_FILTERS = new Set([
+  "addQuery",
+  "addEncodedQuery",
+  "addUserQuery",
+  "addUserEncodedQuery",
+  "addSystemQuery",
+  "addSystemEncodedQuery",
+  "addNullQuery",
+  "addNotNullQuery",
+  "addJoinQuery",
+]);
+
+/**
+ * A recognized filter counts only when the call supplies restricting input.
+ *
+ * `addActiveQuery()` is restricting with no arguments.
+ * Missing or statically empty field/encoded-query arguments do not count.
+ * Dynamic arguments become unknown and stay silent.
+ */
+function filterEvidence(property: string, call: ESTree.CallExpression): boolean | "unknown" | null {
+  if (property === "addActiveQuery") return true;
+  if (!GLIDE_FILTER_METHODS.has(property)) return null;
+  if (!FIELD_OR_ENCODED_FILTERS.has(property)) return "unknown";
+
+  const first = classifyStaticArg(call.arguments[0]);
+  switch (first) {
+    case "missing":
+    case "empty":
+      return false;
+    case "present":
+      return true;
+    case "unknown":
+      return "unknown";
+    default: {
+      const exhaustive: never = first;
+      return exhaustive;
+    }
+  }
 }
 
 export function findUnfilteredBulkOperations(
@@ -27,8 +68,16 @@ export function findUnfilteredBulkOperations(
     mergeData: (left, right) => ({ filtered: mergeTri(left.filtered, right.filtered) }),
     onCall({ call, rec, objectName, property }) {
       if (!rec || !objectName || !property) return;
-      if (GLIDE_FILTER_METHODS.has(property)) {
+      const evidence = filterEvidence(property, call);
+      if (evidence === true) {
         rec.data.filtered = true;
+        return;
+      }
+      if (evidence === "unknown") {
+        rec.data.filtered = mergeTri(rec.data.filtered, "unknown");
+        return;
+      }
+      if (evidence === false) {
         return;
       }
       if (GLIDE_BULK_METHODS.has(property) && rec.data.filtered === false) {

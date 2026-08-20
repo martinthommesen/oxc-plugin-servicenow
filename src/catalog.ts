@@ -843,7 +843,10 @@ export const ruleCatalog = [
     fixable: false,
     hasSuggestions: false,
     description:
-      "GlideAjax requires `addParam(\"sysparm_name\", method)` before `getXML` / `getXMLAnswer` / `getXMLWait`. Extra static keys must start with `sysparm_`. Evidence: https://www.servicenow.com/docs/r/api-reference/scripts/p_AJAX.html",
+      "GlideAjax requires a non-empty `addParam(\"sysparm_name\", method)` before `getXML` / `getXMLAnswer` / `getXMLWait`. Extra static keys must start with `sysparm_`. Evidence: https://www.servicenow.com/docs/r/api-reference/scripts/p_AJAX.html",
+    limitations:
+      "Missing keys, empty or null method values, wrong prefixes, and `addParam` after a terminal request are distinct diagnostics. Dynamic method values stay silent. A later request on the same object requires a new usable `sysparm_name`.",
+    lastVerified: "2026-08-20",
     bad: [
       {
         name: "missing sysparm_name",
@@ -867,7 +870,10 @@ export const ruleCatalog = [
     fixable: false,
     hasSuggestions: false,
     description:
-      "A proven GlideAggregate must call `query()` before `next()` or `getAggregate()`. Static `getAggregate(type, field?)` must match a registered `addAggregate` tuple.",
+      "A proven GlideAggregate must call `query()` before `next()` or `getAggregate()`. Static `getAggregate(type, field?)` must match an exact `addAggregate` tuple that was registered before that `query()`.",
+    limitations:
+      "Tuples are intersected across branches. A type-only `addAggregate(\"COUNT\")` does not satisfy `getAggregate(\"COUNT\", field)`. `addAggregate` after `query()` does not validate reads from the already-open result. Dynamic types or fields stay silent.",
+    lastVerified: "2026-08-20",
     bad: [
       {
         name: "next before query",
@@ -1061,7 +1067,10 @@ export const ruleCatalog = [
     fixable: false,
     hasSuggestions: false,
     description:
-      "`updateMultiple()` / `deleteMultiple()` without a proven filter can touch every row. `query`, `orderBy`, and `setLimit` are not filters.",
+      "`updateMultiple()` / `deleteMultiple()` without a proven restricting filter can touch every row. `query`, `orderBy`, `setLimit`, and `chooseWindow` are not filters. Empty `addQuery()` / `addEncodedQuery(\"\")` do not count.",
+    limitations:
+      "Static analysis cannot prove runtime field names or encoded-query syntax. Missing or empty filter arguments do not count. Dynamic filter expressions and one-branch filters stay silent.",
+    lastVerified: "2026-08-20",
     bad: [
       {
         name: "deleteMultiple with no filter",
@@ -1085,7 +1094,10 @@ export const ruleCatalog = [
     fixable: false,
     hasSuggestions: false,
     description:
-      "A `query()` or `get()` inside `while (outer.next())` is an N+1 pattern. Starts as a warning because some lookups cannot be batched.",
+      "A `query()`, `get()`, or `getAsync()` inside a proven GlideRecord / GlideAggregate `.next()` loop is an N+1 pattern. Unrelated iterators with `.next()` do not establish cursor depth.",
+    limitations:
+      "The loop test must resolve to a valid, unescaped GlideRecord or GlideAggregate. Reassigned, escaped, or unknown receivers stay silent.",
+    lastVerified: "2026-08-20",
     bad: [
       {
         name: "nested get",
@@ -1128,7 +1140,8 @@ export const ruleCatalog = [
       "https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html",
     ],
     limitations:
-      "Silent when provenance is unknown, when `getRowCount()` is used, when `chooseWindow`'s third argument is not a boolean literal, or when one branch disagrees.",
+      "Window, skip, force-count, and `getRowCount()` state are scoped to one query epoch. A later `query()` is not justified by an earlier `getRowCount()`. Silent when provenance is unknown, when `chooseWindow`'s third argument is not a boolean literal, or when one branch disagrees.",
+    lastVerified: "2026-08-20",
   }),
   entry("no-system-query-bypass", noSystemQueryBypass, {
     title: "Review system query ACL bypass",

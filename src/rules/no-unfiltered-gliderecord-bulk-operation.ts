@@ -10,7 +10,7 @@ export const noUnfilteredGliderecordBulkOperation = defineRule({
     type: "problem",
     docs: {
       description:
-        "Report `updateMultiple()` / `deleteMultiple()` on a proven GlideRecord when no restricting query method ran on every path. `query`, `orderBy`, `setLimit`, and `chooseWindow` are not filters. Evidence: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html",
+        "Report `updateMultiple()` / `deleteMultiple()` on a proven GlideRecord when no restricting filter with a non-empty argument ran on every path. `query`, `orderBy`, `setLimit`, `chooseWindow`, and empty `addQuery()` / `addEncodedQuery(\"\")` are not filters. Evidence: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html",
       url: ruleDocsUrl("no-unfiltered-gliderecord-bulk-operation"),
     },
     messages: {

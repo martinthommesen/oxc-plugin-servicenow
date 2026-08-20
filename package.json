@@ -61,7 +61,7 @@
     "test:integration": "node scripts/run-tests.mjs tests/integration",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "docs": "tsx scripts/generate-rule-docs.mjs",
-    "docs:check": "tsx scripts/generate-rule-docs.mjs && git diff --exit-code -- docs/rules README.md examples tests/integration/profiles/configs/recommended.oxlintrc.json tests/integration/profiles/mixed/.oxlintrc.json tests/integration/fixtures/.oxlintrc.json",
+    "docs:check": "tsx scripts/generate-rule-docs.mjs && git diff --exit-code -- docs/rules README.md examples tests/integration/profiles/configs/recommended.oxlintrc.json tests/integration/profiles/configs/strict.oxlintrc.json tests/integration/profiles/mixed/.oxlintrc.json tests/integration/fixtures/.oxlintrc.json",
     "manifest:check": "tsx scripts/check-fluent-manifest.mjs",
     "bench": "tsx scripts/benchmark.mjs",
     "validate": "npm run typecheck && npm run build && npm test && npm run docs:check && npm run manifest:check"

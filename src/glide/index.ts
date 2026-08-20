@@ -2,6 +2,7 @@ export {
   GLIDE_API_RELEASE,
   GLIDE_BULK_METHODS,
   GLIDE_FILTER_METHODS,
+  GLIDE_GLOBAL_RECORD_EVIDENCE,
   GLIDE_KNOWN_METHODS,
   GLIDE_QUERY_EXECUTORS,
   GLIDE_QUERY_MODIFIERS,
@@ -11,4 +12,4 @@ export {
   GLIDE_SYSTEM_BYPASS_METHODS,
   GLIDE_VALUE_EXTRACTORS,
 } from "./manifest.js";
-export type { GlideMethodCapability, GlideMethodRole } from "./manifest.js";
+export type { GlideApiScope, GlideMethodCapability, GlideMethodRole } from "./manifest.js";

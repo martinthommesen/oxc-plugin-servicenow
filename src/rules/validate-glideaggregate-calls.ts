@@ -10,7 +10,7 @@ export const validateGlideaggregateCalls = defineRule({
     type: "problem",
     docs: {
       description:
-        "Require `query()` on a proven GlideAggregate before `next()` / `getAggregate()`, and match static `getAggregate(type, field?)` tuples to `addAggregate`.",
+        "Require `query()` on a proven GlideAggregate before `next()` / `getAggregate()`, and match exact static `getAggregate(type, field?)` tuples to `addAggregate` calls that ran before that `query()`.",
       url: ruleDocsUrl("validate-glideaggregate-calls"),
     },
     messages: {

@@ -1,6 +1,6 @@
 # servicenow/require-glideajax-sysparm-name
 
-GlideAjax requires `addParam("sysparm_name", method)` before `getXML` / `getXMLAnswer` / `getXMLWait`. Extra static keys must start with `sysparm_`. Evidence: https://www.servicenow.com/docs/r/api-reference/scripts/p_AJAX.html
+GlideAjax requires a non-empty `addParam("sysparm_name", method)` before `getXML` / `getXMLAnswer` / `getXMLWait`. Extra static keys must start with `sysparm_`. Evidence: https://www.servicenow.com/docs/r/api-reference/scripts/p_AJAX.html
 
 - **Family:** classic
 - **Preset:** recommended
@@ -11,7 +11,7 @@ GlideAjax requires `addParam("sysparm_name", method)` before `getXML` / `getXMLA
 - **Authoring:** classic
 - **Surfaces:** Classic instance scripts. Client-only rules skip server-only files. Fluent files are skipped.
 - **JavaScript mode:** Independent of JavaScript mode unless the rule documents a mode gate.
-- **Last verified:** 2026-08-19
+- **Last verified:** 2026-08-20
 - **Implementation:** [`src/rules/require-glideajax-sysparm-name.ts`](../../src/rules/require-glideajax-sysparm-name.ts)
 
 ## Options
@@ -43,7 +43,7 @@ ajax.getXMLAnswer(handleAnswer);
 
 ## Limitations
 
-When provenance, surface, or JavaScript mode is unknown, the rule stays silent instead of guessing.
+Missing keys, empty or null method values, wrong prefixes, and `addParam` after a terminal request are distinct diagnostics. Dynamic method values stay silent. A later request on the same object requires a new usable `sysparm_name`.
 
 ## Evidence
 

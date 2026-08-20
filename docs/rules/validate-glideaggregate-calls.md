@@ -1,6 +1,6 @@
 # servicenow/validate-glideaggregate-calls
 
-A proven GlideAggregate must call `query()` before `next()` or `getAggregate()`. Static `getAggregate(type, field?)` must match a registered `addAggregate` tuple.
+A proven GlideAggregate must call `query()` before `next()` or `getAggregate()`. Static `getAggregate(type, field?)` must match an exact `addAggregate` tuple that was registered before that `query()`.
 
 - **Family:** classic
 - **Preset:** recommended
@@ -11,7 +11,7 @@ A proven GlideAggregate must call `query()` before `next()` or `getAggregate()`.
 - **Authoring:** classic
 - **Surfaces:** Classic instance scripts. Client-only rules skip server-only files. Fluent files are skipped.
 - **JavaScript mode:** Independent of JavaScript mode unless the rule documents a mode gate.
-- **Last verified:** 2026-08-19
+- **Last verified:** 2026-08-20
 - **Implementation:** [`src/rules/validate-glideaggregate-calls.ts`](../../src/rules/validate-glideaggregate-calls.ts)
 
 ## Options
@@ -47,7 +47,7 @@ if (count.next()) {
 
 ## Limitations
 
-When provenance, surface, or JavaScript mode is unknown, the rule stays silent instead of guessing.
+Tuples are intersected across branches. A type-only `addAggregate("COUNT")` does not satisfy `getAggregate("COUNT", field)`. `addAggregate` after `query()` does not validate reads from the already-open result. Dynamic types or fields stay silent.
 
 ## Evidence
 

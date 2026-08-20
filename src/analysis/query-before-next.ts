@@ -1,4 +1,5 @@
 import type { ESTree } from "@oxlint/plugins";
+import { GLIDE_QUERY_EXECUTORS } from "../glide/query-methods.js";
 import { analyzePathBindings } from "./path-state.js";
 import type { ProvenanceQuery, QueryState } from "./provenance.js";
 
@@ -11,13 +12,12 @@ interface QueryData {
   queryState: QueryState;
 }
 
-const OPENERS = new Set(["query", "get", "getAsync"]);
-
 /**
  * Path-sensitive query-before-next for proven GlideRecord object identities.
  *
  * Reports only when every reachable path to `next()` still has
  * `queryState === "unopened"`. `chooseWindow` does not open a cursor.
+ * Executors come from the versioned GlideRecord manifest.
  */
 export function findMissingQueryBeforeNext(
   program: ESTree.Node,
@@ -35,7 +35,7 @@ export function findMissingQueryBeforeNext(
     }),
     onCall({ call, rec, objectName, property }) {
       if (!rec || !property) return;
-      if (OPENERS.has(property) && rec.data.queryState === "unopened") {
+      if (GLIDE_QUERY_EXECUTORS.has(property) && rec.data.queryState === "unopened") {
         rec.data.queryState = "opened";
       }
       if (property === "next" && rec.data.queryState === "unopened") {

@@ -1,6 +1,6 @@
 # servicenow/no-unfiltered-gliderecord-bulk-operation
 
-`updateMultiple()` / `deleteMultiple()` without a proven filter can touch every row. `query`, `orderBy`, and `setLimit` are not filters.
+`updateMultiple()` / `deleteMultiple()` without a proven restricting filter can touch every row. `query`, `orderBy`, `setLimit`, and `chooseWindow` are not filters. Empty `addQuery()` / `addEncodedQuery("")` do not count.
 
 - **Family:** classic
 - **Preset:** recommended
@@ -11,7 +11,7 @@
 - **Authoring:** classic
 - **Surfaces:** Classic instance scripts. Client-only rules skip server-only files. Fluent files are skipped.
 - **JavaScript mode:** Independent of JavaScript mode unless the rule documents a mode gate.
-- **Last verified:** 2026-08-19
+- **Last verified:** 2026-08-20
 - **Implementation:** [`src/rules/no-unfiltered-gliderecord-bulk-operation.ts`](../../src/rules/no-unfiltered-gliderecord-bulk-operation.ts)
 
 ## Options
@@ -42,7 +42,7 @@ task.updateMultiple();
 
 ## Limitations
 
-When provenance, surface, or JavaScript mode is unknown, the rule stays silent instead of guessing.
+Static analysis cannot prove runtime field names or encoded-query syntax. Missing or empty filter arguments do not count. Dynamic filter expressions and one-branch filters stay silent.
 
 ## Evidence
 

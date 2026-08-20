@@ -10,6 +10,7 @@ const profilesDir = path.join(repoRoot, "tests/integration/profiles");
 const validDir = path.join(profilesDir, "valid");
 const invalidDir = path.join(profilesDir, "invalid");
 const recommendedConfig = path.join(profilesDir, "configs/recommended.oxlintrc.json");
+const strictConfig = path.join(profilesDir, "configs/strict.oxlintrc.json");
 const classicEs5Config = path.join(profilesDir, "configs/classic-es5.oxlintrc.json");
 const es2021Config = path.join(profilesDir, "configs/es2021.oxlintrc.json");
 const fullScriptConfig = path.join(profilesDir, "configs/recommended-full-script.oxlintrc.json");
@@ -222,11 +223,89 @@ describe("profile fixtures", () => {
     );
   });
 
+  it("recommended oxlint flags empty filters, late aggregates, and empty GlideAjax values", () => {
+    const emptyQuery = pluginRulesFor(
+      runOxlint(recommendedConfig, [path.join(invalidDir, "empty-addquery-bulk.br.js")]),
+    );
+    const emptyEncoded = pluginRulesFor(
+      runOxlint(recommendedConfig, [path.join(invalidDir, "empty-encoded-bulk.br.js")]),
+    );
+    const lateAgg = pluginRulesFor(
+      runOxlint(recommendedConfig, [path.join(invalidDir, "aggregate-late-config.br.js")]),
+    );
+    const typeOnly = pluginRulesFor(
+      runOxlint(recommendedConfig, [path.join(invalidDir, "aggregate-type-only-field.br.js")]),
+    );
+    const emptyAjax = pluginRulesFor(
+      runOxlint(recommendedConfig, [path.join(invalidDir, "glideajax-empty-sysparm.client.js")]),
+    );
+    assert.ok(emptyQuery.includes("servicenow/no-unfiltered-gliderecord-bulk-operation"));
+    assert.ok(emptyEncoded.includes("servicenow/no-unfiltered-gliderecord-bulk-operation"));
+    assert.ok(lateAgg.includes("servicenow/validate-glideaggregate-calls"));
+    assert.ok(typeOnly.includes("servicenow/validate-glideaggregate-calls"));
+    assert.ok(emptyAjax.includes("servicenow/require-glideajax-sysparm-name"));
+  });
+
+  it("strict oxlint and ESLint cover query-in-loop receivers and setNoCount epochs", () => {
+    const iterator = pluginRulesFor(
+      runOxlint(strictConfig, [path.join(validDir, "custom-iterator-loop.br.js")]),
+    );
+    const secondQuery = pluginRulesFor(
+      runOxlint(strictConfig, [path.join(invalidDir, "setnocount-second-query.br.js")]),
+    );
+    const nested = pluginRulesFor(
+      runOxlint(strictConfig, [path.join(invalidDir, "nested-cursor-query.br.js")]),
+    );
+    assert.ok(
+      !iterator.includes("servicenow/no-gliderecord-query-in-loop"),
+      `custom iterator: ${iterator.join(", ") || "(none)"}`,
+    );
+    assert.ok(
+      secondQuery.includes("servicenow/prefer-setnocount-with-choosewindow"),
+      `second query: ${secondQuery.join(", ") || "(none)"}`,
+    );
+    assert.ok(
+      nested.includes("servicenow/no-gliderecord-query-in-loop"),
+      `nested cursor: ${nested.join(", ") || "(none)"}`,
+    );
+
+    const eslintStrict = (code: string, filename: string) => {
+      const linter = new Linter({ configType: "flat" });
+      return linter.verify(
+        code,
+        [configs.flat.strict as unknown as import("eslint").Linter.Config],
+        { filename },
+      );
+    };
+    const iteratorCode = readFileSync(path.join(validDir, "custom-iterator-loop.br.js"), "utf8");
+    const iteratorIds = eslintStrict(iteratorCode, "custom-iterator-loop.br.js")
+      .map((message) => message.ruleId)
+      .filter((id): id is string => Boolean(id));
+    assert.ok(!iteratorIds.includes("servicenow/no-gliderecord-query-in-loop"));
+
+    const secondCode = readFileSync(path.join(invalidDir, "setnocount-second-query.br.js"), "utf8");
+    const secondIds = eslintStrict(secondCode, "setnocount-second-query.br.js")
+      .map((message) => message.ruleId)
+      .filter((id): id is string => Boolean(id));
+    assert.ok(secondIds.includes("servicenow/prefer-setnocount-with-choosewindow"));
+
+    const nestedCode = readFileSync(path.join(invalidDir, "nested-cursor-query.br.js"), "utf8");
+    const nestedIds = eslintStrict(nestedCode, "nested-cursor-query.br.js")
+      .map((message) => message.ruleId)
+      .filter((id): id is string => Boolean(id));
+    assert.ok(nestedIds.includes("servicenow/no-gliderecord-query-in-loop"));
+  });
+
   it("recommended ESLint flags Phase 3 rules", () => {
     const cases: Array<[string, string]> = [
       ["glideelement-push.br.js", "servicenow/no-glideelement-in-collection"],
       ["late-modifier.br.js", "servicenow/no-gliderecord-query-modifier-after-query"],
       ["unfiltered-bulk.br.js", "servicenow/no-unfiltered-gliderecord-bulk-operation"],
+      ["empty-addquery-bulk.br.js", "servicenow/no-unfiltered-gliderecord-bulk-operation"],
+      ["empty-encoded-bulk.br.js", "servicenow/no-unfiltered-gliderecord-bulk-operation"],
+      ["aggregate-late-config.br.js", "servicenow/validate-glideaggregate-calls"],
+      ["aggregate-type-only-field.br.js", "servicenow/validate-glideaggregate-calls"],
+      ["glideajax-empty-sysparm.client.js", "servicenow/require-glideajax-sysparm-name"],
     ];
     for (const [file, ruleId] of cases) {
       const code = readFileSync(path.join(invalidDir, file), "utf8");

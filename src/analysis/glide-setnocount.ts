@@ -1,4 +1,5 @@
 import type { ESTree } from "@oxlint/plugins";
+import { GLIDE_QUERY_EXECUTORS } from "../glide/query-methods.js";
 import { analyzePathBindings, mergeTri } from "./path-state.js";
 import type { ProvenanceQuery } from "./provenance.js";
 
@@ -8,14 +9,15 @@ export interface ChooseWindowCountFinding {
 }
 
 interface CountData {
+  queryEpoch: number;
   windowed: boolean | "unknown";
   skippedCount: boolean | "unknown";
-  usedRowCount: boolean | "unknown";
   wantsCount: boolean | "unknown";
 }
 
 interface PendingFinding {
-  rec: { data: CountData; escaped: boolean; invalid: boolean };
+  objectId: number;
+  epoch: number;
   node: ESTree.CallExpression;
   name: string;
 }
@@ -28,9 +30,16 @@ function forceCountArg(call: ESTree.CallExpression): boolean | "unknown" {
   return "unknown";
 }
 
+function mergeEpoch(left: number, right: number): number {
+  return left === right ? left : -1;
+}
+
 /**
- * Report `query()` / `get()` after a definite `chooseWindow()` when the
- * binding never skips the documented `COUNT(*)` and never reads `getRowCount()`.
+ * Report `query()` / `get()` / `getAsync()` after a definite `chooseWindow()`
+ * when that query epoch never skips `COUNT(*)` and never reads `getRowCount()`.
+ *
+ * Pending diagnostics store `(objectId, queryEpoch)` snapshots. Joins cannot
+ * attach those findings to a replaced mutable record.
  *
  * Evidence: Zurich scoped GlideRecord `chooseWindow` / `setNoCount`.
  */
@@ -39,21 +48,23 @@ export function findChooseWindowWithoutNoCount(
   analysis: ProvenanceQuery,
 ): ChooseWindowCountFinding[] {
   const pending: PendingFinding[] = [];
+  const usedRowCount = new Set<string>();
+
   analyzePathBindings<CountData>({
     program,
     analysis,
     kinds: ["GlideRecord"],
     emptyData: () => ({
+      queryEpoch: 0,
       windowed: false,
       skippedCount: false,
-      usedRowCount: false,
       wantsCount: false,
     }),
     cloneData: (data) => ({ ...data }),
     mergeData: (left, right) => ({
+      queryEpoch: mergeEpoch(left.queryEpoch, right.queryEpoch),
       windowed: mergeTri(left.windowed, right.windowed),
       skippedCount: mergeTri(left.skippedCount, right.skippedCount),
-      usedRowCount: mergeTri(left.usedRowCount, right.usedRowCount),
       wantsCount: mergeTri(left.wantsCount, right.wantsCount),
     }),
     onCall({ call, rec, objectName, property }) {
@@ -66,23 +77,45 @@ export function findChooseWindowWithoutNoCount(
         rec.data.skippedCount = true;
       }
       if (property === "getRowCount") {
-        rec.data.usedRowCount = true;
+        const executed = rec.data.queryEpoch - 1;
+        if (executed >= 0) {
+          usedRowCount.add(`${rec.id}:${executed}`);
+        }
       }
-      if (rec.escaped || rec.invalid) return;
+      if (!GLIDE_QUERY_EXECUTORS.has(property)) return;
+      if (rec.data.queryEpoch < 0) {
+        rec.data = {
+          queryEpoch: -1,
+          windowed: false,
+          skippedCount: false,
+          wantsCount: false,
+        };
+        return;
+      }
       if (
-        (property === "query" || property === "get") &&
         rec.data.windowed === true &&
         rec.data.skippedCount === false &&
         rec.data.wantsCount === false
       ) {
-        pending.push({ rec, node: call, name: objectName });
+        pending.push({
+          objectId: rec.id,
+          epoch: rec.data.queryEpoch,
+          node: call,
+          name: objectName,
+        });
       }
+      rec.data = {
+        queryEpoch: rec.data.queryEpoch + 1,
+        windowed: false,
+        skippedCount: false,
+        wantsCount: false,
+      };
     },
   });
 
   const findings: ChooseWindowCountFinding[] = [];
   for (const item of pending) {
-    if (item.rec.data.usedRowCount !== false) continue;
+    if (usedRowCount.has(`${item.objectId}:${item.epoch}`)) continue;
     findings.push({ node: item.node, name: item.name });
   }
   return findings;

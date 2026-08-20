@@ -9,7 +9,7 @@ const { ruleCatalog } = await import(pathToFileURL(join(root, "src/catalog.ts"))
 const { DEFAULT_FLUENT_MANIFEST } = await import(
   pathToFileURL(join(root, "src/fluent/manifest.ts")).href
 );
-const { recommendedRules } = await import(pathToFileURL(join(root, "src/configs/maps.ts")).href);
+const { recommendedRules, strictRules } = await import(pathToFileURL(join(root, "src/configs/maps.ts")).href);
 
 const docsDir = join(root, "docs/rules");
 await mkdir(docsDir, { recursive: true });
@@ -168,9 +168,9 @@ async function writeReadmeTables() {
   console.log("updated README rule tables");
 }
 
-async function writeOxlintrcRules(path, specifierComment) {
+async function writeOxlintrcRules(path, specifierComment, rules = recommendedRules) {
   const current = JSON.parse(await readFile(path, "utf8"));
-  current.rules = recommendedRules;
+  current.rules = rules;
   await writeFile(path, `${JSON.stringify(current, null, 2)}\n`);
   console.log("updated", specifierComment, path);
 }
@@ -196,6 +196,11 @@ for (const path of await collectOxlintrcFiles(join(root, "examples"))) {
 await writeOxlintrcRules(
   join(root, "tests/integration/profiles/configs/recommended.oxlintrc.json"),
   "recommended fixture",
+);
+await writeOxlintrcRules(
+  join(root, "tests/integration/profiles/configs/strict.oxlintrc.json"),
+  "strict fixture",
+  strictRules,
 );
 await writeOxlintrcRules(join(root, "tests/integration/profiles/mixed/.oxlintrc.json"), "mixed");
 await writeOxlintrcRules(join(root, "tests/integration/fixtures/.oxlintrc.json"), "fixtures");

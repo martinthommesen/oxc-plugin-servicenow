@@ -1,6 +1,6 @@
 # servicenow/no-gliderecord-query-in-loop
 
-A `query()` or `get()` inside `while (outer.next())` is an N+1 pattern. Starts as a warning because some lookups cannot be batched.
+A `query()`, `get()`, or `getAsync()` inside a proven GlideRecord / GlideAggregate `.next()` loop is an N+1 pattern. Unrelated iterators with `.next()` do not establish cursor depth.
 
 - **Family:** classic
 - **Preset:** strict
@@ -11,7 +11,7 @@ A `query()` or `get()` inside `while (outer.next())` is an N+1 pattern. Starts a
 - **Authoring:** classic
 - **Surfaces:** Classic instance scripts. Client-only rules skip server-only files. Fluent files are skipped.
 - **JavaScript mode:** Independent of JavaScript mode unless the rule documents a mode gate.
-- **Last verified:** 2026-08-19
+- **Last verified:** 2026-08-20
 - **Implementation:** [`src/rules/no-gliderecord-query-in-loop.ts`](../../src/rules/no-gliderecord-query-in-loop.ts)
 
 ## Options
@@ -48,7 +48,7 @@ while (incident.next()) {
 
 ## Limitations
 
-When provenance, surface, or JavaScript mode is unknown, the rule stays silent instead of guessing.
+The loop test must resolve to a valid, unescaped GlideRecord or GlideAggregate. Reassigned, escaped, or unknown receivers stay silent.
 
 ## Evidence
 

@@ -283,15 +283,15 @@ Per-file `// @sn-es-latest` still maps to `es2021` with inferred confidence. Pre
 | [`no-packages-calls`](docs/rules/no-packages-calls.md) | recommended |  | The Rhino `Packages.*` Java bridge is unavailable in scoped apps and on the modern engine |
 | [`no-delete-multiple-with-windowing`](docs/rules/no-delete-multiple-with-windowing.md) | recommended |  | `setLimit()` and `chooseWindow()` do not limit `deleteMultiple()` |
 | [`require-callback-for-getreference`](docs/rules/require-callback-for-getreference.md) | recommended |  | `g_form.getReference(field)` without a callback is a synchronous server request |
-| [`require-glideajax-sysparm-name`](docs/rules/require-glideajax-sysparm-name.md) | recommended |  | GlideAjax requires `addParam("sysparm_name", method)` before `getXML` / `getXMLAnswer` / `getXMLWait` |
+| [`require-glideajax-sysparm-name`](docs/rules/require-glideajax-sysparm-name.md) | recommended |  | GlideAjax requires a non-empty `addParam("sysparm_name", method)` before `getXML` / `getXMLAnswer` / `getXMLWait` |
 | [`validate-glideaggregate-calls`](docs/rules/validate-glideaggregate-calls.md) | recommended |  | A proven GlideAggregate must call `query()` before `next()` or `getAggregate()` |
 | [`no-glideajax-getanswer`](docs/rules/no-glideajax-getanswer.md) | recommended |  | `getAnswer()` belongs to synchronous GlideAjax |
 | [`no-glideelement-in-collection`](docs/rules/no-glideelement-in-collection.md) | recommended |  | Direct GlideRecord field access is a GlideElement tied to the cursor |
 | [`no-gliderecord-query-modifier-after-query`](docs/rules/no-gliderecord-query-modifier-after-query.md) | recommended |  | Filters and result-shaping calls after `query()` do not change the open cursor |
 | [`require-business-rule-wrapper`](docs/rules/require-business-rule-wrapper.md) | recommended |  | Full-script Business Rules must wrap logic in the standard IIFE so top-level variables do not leak |
 | [`no-display-value-date-comparison`](docs/rules/no-display-value-date-comparison.md) | strict |  | Do not relationally compare `GlideDateTime.getDisplayValue()` strings |
-| [`no-unfiltered-gliderecord-bulk-operation`](docs/rules/no-unfiltered-gliderecord-bulk-operation.md) | recommended |  | `updateMultiple()` / `deleteMultiple()` without a proven filter can touch every row |
-| [`no-gliderecord-query-in-loop`](docs/rules/no-gliderecord-query-in-loop.md) | strict |  | A `query()` or `get()` inside `while (outer.next())` is an N+1 pattern |
+| [`no-unfiltered-gliderecord-bulk-operation`](docs/rules/no-unfiltered-gliderecord-bulk-operation.md) | recommended |  | `updateMultiple()` / `deleteMultiple()` without a proven restricting filter can touch every row |
+| [`no-gliderecord-query-in-loop`](docs/rules/no-gliderecord-query-in-loop.md) | strict |  | A `query()`, `get()`, or `getAsync()` inside a proven GlideRecord / GlideAggregate `.next()` loop is an N+1 pattern |
 | [`prefer-setnocount-with-choosewindow`](docs/rules/prefer-setnocount-with-choosewindow.md) | strict |  | Zurich scoped GlideRecord documents that `query()` after `chooseWindow()` runs `COUNT(*)` unless `setNoCount()` or `setLimit()` skips it |
 | [`no-system-query-bypass`](docs/rules/no-system-query-bypass.md) | security |  | Opt-in security review for documented ACL-bypass query APIs: `addSystemQuery`, `addSystemEncodedQuery`, `addSystemOrderBy`, `addSystemOrderByDesc` |
 | [`no-sync-glideajax`](docs/rules/no-sync-glideajax.md) | recommended |  | `getXMLWait()` blocks the browser and does not work in Service Portal |
