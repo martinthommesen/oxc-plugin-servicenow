@@ -326,4 +326,3 @@ These items refine the earlier checklists with gaps identified by an independent
 
 - [x] **Eventual consistency:** apply bounded retry/backoff to registry metadata, integrity, provenance/attestation, installation, and public-import assertions that may lag after publication. Preserve immediate failure for integrity mismatch or other non-transient errors.
 - [x] **Consistent action pins:** use one centrally reviewed set of full action SHAs across test, benchmark, compatibility, and release workflows; add a check that detects divergent checkout/setup-node or other shared-action pins.
-
