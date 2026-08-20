@@ -141,6 +141,25 @@ gr.deleteMultiple();`,
       "no-unfiltered-gliderecord-bulk-operation",
     );
   });
+
+  it("marks object and array storage as escaped", () => {
+    assertValid(
+      `var rec = new GlideRecord("incident");
+var bag = { rec: rec };
+var list = [rec];
+rec.next();`,
+      "require-query-before-next",
+    );
+  });
+
+  it("marks a stored inline constructor as escaped", () => {
+    assertValid(
+      `var rec;
+var bag = { rec: (rec = new GlideRecord("incident")) };
+rec.next();`,
+      "require-query-before-next",
+    );
+  });
 });
 
 describe("unknown context", () => {

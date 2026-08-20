@@ -366,10 +366,20 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
           if (prop.type === "SpreadElement") {
             markEscape(state, (prop as ESTree.SpreadElement).argument);
           } else if (prop.type === "Property") {
-            markEscape(state, (prop as ESTree.ObjectProperty).value);
+            const property = prop as ESTree.ObjectProperty;
+            if (property.computed) markEscape(state, property.key);
+            markEscape(state, property.value);
           }
         }
         return;
+      case "NewExpression": {
+        const objectId = objectFromExpr(state, expr);
+        if (objectId !== undefined) {
+          const rec = state.objects.get(objectId);
+          if (rec) rec.escaped = true;
+        }
+        return;
+      }
       case "SpreadElement":
         markEscape(state, (expr as ESTree.SpreadElement).argument);
         return;
@@ -452,6 +462,11 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
 
     ancestors.push(node);
     switch (node.type) {
+      case "ObjectExpression":
+      case "ArrayExpression":
+        visitChildren(node, (child) => visit(child, state, false));
+        markEscape(state, node);
+        break;
       case "VariableDeclarator": {
         const decl = node as ESTree.VariableDeclarator;
         if (decl.init) visit(decl.init, state, false);

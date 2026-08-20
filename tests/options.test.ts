@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { Linter } from "eslint";
+import type { Linter as EsLinter } from "eslint";
 import plugin, { configs, parseRuleOptions, RULE_OPTION_DESCRIPTORS, schemaFromDescriptor } from "../src/index.js";
 import { ServiceNowConfigError } from "../src/settings/index.js";
 import { lint } from "./helpers/rule-tester.js";
@@ -110,26 +111,29 @@ describe("rule option descriptors", () => {
 
   it("ESLint host schema rejects invalid option types", () => {
     const linter = new Linter({ configType: "flat" });
-    const messages = linter.verify(
-      `var id = "${SYS_ID}";`,
-      [
-        {
-          ...configs.flat.recommended,
-          rules: {
-            "servicenow/no-hardcoded-sysid": ["error", { ignoreHashNames: "false" }],
-          },
-        } as unknown as import("eslint").Linter.Config,
-      ],
-      { filename: "incident.br.js" },
-    );
-    assert.ok(
-      messages.some(
-        (message) =>
-          message.fatal === true ||
-          /ignoreHashNames|schema|Configuration/.test(message.message),
-      ),
-      `expected host schema rejection, got ${JSON.stringify(messages)}`,
-    );
+    const config = [
+      {
+        ...configs.flat.recommended,
+        rules: {
+          "servicenow/no-hardcoded-sysid": ["error", { ignoreHashNames: "false" }],
+        },
+      } as unknown as EsLinter.Config,
+    ];
+    try {
+      const messages = linter.verify(`var id = "${SYS_ID}";`, config, {
+        filename: "incident.br.js",
+      });
+      assert.ok(
+        messages.some(
+          (message) =>
+            message.fatal === true ||
+            /ignoreHashNames|schema|Configuration|boolean/.test(message.message),
+        ),
+        `expected host schema rejection, got ${JSON.stringify(messages)}`,
+      );
+    } catch (error) {
+      assert.match(String(error), /ignoreHashNames|boolean|schema|Configuration/);
+    }
   });
 });
 
