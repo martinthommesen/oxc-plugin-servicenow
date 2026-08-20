@@ -26,7 +26,7 @@ Two Fluent definitions that share the same static `Now.ID` key as `$id` collide.
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
 | ServiceNow releases | zurich |
-| Fluent SDK range | 3.0.0 || 4.1.0 |
+| Fluent SDK range | 3.0.0 \|\| 4.1.0 |
 
 ## Options
 

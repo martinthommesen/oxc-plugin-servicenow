@@ -26,14 +26,14 @@
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
 | ServiceNow releases | zurich |
-| Fluent SDK range | 3.0.0 || 4.1.0 |
+| Fluent SDK range | 3.0.0 \|\| 4.1.0 |
 
 ## Options
 
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
-| `idStyle` | "kebab-case" | "snake_case" | "either" | `"kebab-case"` | Required style for `Now.ID` keys. |
-| `fileStyle` | "kebab-case" | "snake_case" | "either" | `"kebab-case"` | Required style for `.now.ts` filenames. |
+| `idStyle` | "kebab-case" \| "snake_case" \| "either" | `"kebab-case"` | Required style for `Now.ID` keys. |
+| `fileStyle` | "kebab-case" \| "snake_case" \| "either" | `"kebab-case"` | Required style for `.now.ts` filenames. |
 
 ## Incorrect
 

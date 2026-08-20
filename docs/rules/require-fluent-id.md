@@ -26,7 +26,7 @@ Fluent entities must declare `$id` when the selected SDK manifest marks the impo
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
 | ServiceNow releases | zurich |
-| Fluent SDK range | 3.0.0 || 4.1.0 |
+| Fluent SDK range | 3.0.0 \|\| 4.1.0 |
 
 ## Options
 

@@ -12,7 +12,7 @@ CI and `npm run compat` install the packed tarball in a clean consumer for each 
 | oxlint | `>=1.79.0 <2` | 1.79.0 | 1.79.0 |
 | `@oxlint/plugins` | `^1.79.0` | 1.79.0 | 1.79.0 |
 | ESLint | `>=9.0.0` | 9.0.0 | 9.39.5 and 10.8.1 |
-| oxfmt | `>=0.16.0` | 0.16.0 | 0.64.0 |
+| oxfmt | `>=0.64.0` | 0.64.0 | 0.64.0 |
 | typescript-eslint | `>=8.0.0 <9` (optional) | 8.46.0 | 8.46.0 |
 | Fluent SDK knowledge | selected `fluentSdkVersion` | 3.0.0, 4.1.0 | unspecified selects the current manifest |
 | ServiceNow JavaScript | `compatibility`, `es5`, `es2021`, `unknown` | all listed modes | unknown never assumes ES5 |
@@ -21,10 +21,10 @@ CI and `npm run compat` install the packed tarball in a clean consumer for each 
 
 | Cell | Node | oxlint | ESLint | oxfmt |
 | --- | --- | --- | --- | --- |
-| `min-hosts` | 20.19.0 | 1.79.0 | 9.0.0 | 0.16.0 |
-| `node20-current` | 20 | 1.79.0 | 10.8.1 | 0.16.0 |
+| `min-hosts` | 20.19.0 | 1.79.0 | 9.0.0 | 0.64.0 |
+| `node20-current` | 20 | 1.79.0 | 10.8.1 | 0.64.0 |
 | `node22-latest` | 22 | 1.79.0 | 10.8.1 | 0.64.0 |
-| `eslint9-current` | current | 1.79.0 | 9.39.5 | 0.16.0 |
+| `eslint9-current` | current | 1.79.0 | 9.39.5 | 0.64.0 |
 
 A cell fails with one of these classes: `package`, `host-api`, `runtime`, `parser`, or `formatter`.
 

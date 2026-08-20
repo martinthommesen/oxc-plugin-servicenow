@@ -9,10 +9,24 @@ const { ruleCatalog } = await import(pathToFileURL(join(root, "src/catalog.ts"))
 const { DEFAULT_FLUENT_MANIFEST, SUPPORTED_FLUENT_SDK_VERSIONS, CURRENT_FLUENT_SDK_VERSION } = await import(
   pathToFileURL(join(root, "src/fluent/index.ts")).href
 );
-const { recommendedRules, strictRules } = await import(pathToFileURL(join(root, "src/configs/maps.ts")).href);
+const {
+  businessRuleRules,
+  classicEs5Rules,
+  clientRules,
+  es2021Rules,
+  fluentRules,
+  recommendedRules,
+  securityRules,
+  strictRules,
+} = await import(pathToFileURL(join(root, "src/configs/maps.ts")).href);
 
 const docsDir = join(root, "docs/rules");
 await mkdir(docsDir, { recursive: true });
+
+/** Escape values interpolated into a Markdown table cell. */
+function markdownTableCell(value) {
+  return String(value).replaceAll("\\", "\\\\").replaceAll("|", "\\|").replaceAll("\n", "<br>");
+}
 
 function presetLabel(rule) {
   if (rule.preset) return rule.preset;
@@ -31,11 +45,11 @@ function tableRow(rule, includeFix) {
   const link = `[\`${rule.name}\`](docs/rules/${rule.name}.md)`;
   const preset = presetLabel(rule);
   const fix = rule.fixable ? "fix" : rule.hasSuggestions ? "suggest" : "";
-  const catchText = summary(rule);
+  const catchText = markdownTableCell(summary(rule));
   if (includeFix) {
-    return `| ${link} | ${preset} | ${fix} | ${catchText} |`;
+    return `| ${link} | ${markdownTableCell(preset)} | ${markdownTableCell(fix)} | ${catchText} |`;
   }
-  return `| ${link} | ${preset} | ${catchText} |`;
+  return `| ${link} | ${markdownTableCell(preset)} | ${catchText} |`;
 }
 
 function replaceMarkedSection(source, name, body) {
@@ -104,7 +118,7 @@ async function writeRuleDocs() {
         ? rule.options
             .map(
               (option) =>
-                `| \`${option.name}\` | ${option.type} | \`${option.default}\` | ${option.description} |`,
+                `| \`${markdownTableCell(option.name)}\` | ${markdownTableCell(option.type)} | \`${markdownTableCell(option.default)}\` | ${markdownTableCell(option.description)} |`,
             )
             .join("\n")
         : "| _(none)_ | | | This rule has no options. |";
@@ -132,13 +146,13 @@ ${rule.description}
 
 | Dimension | Value |
 | --- | --- |
-| Authoring | ${rule.applicability.authoring} |
-| Surfaces | ${rule.applicability.surfaces} |
-| Minimum surface confidence | ${rule.applicability.minimumSurfaceConfidence} |
-| JavaScript modes | ${modes} |
-| Application scopes | ${rule.applicability.scopes.join(", ")} |
-| ServiceNow releases | ${rule.applicability.serviceNowReleases.join(", ")} |
-| Fluent SDK range | ${sdkRange} |
+| Authoring | ${markdownTableCell(rule.applicability.authoring)} |
+| Surfaces | ${markdownTableCell(rule.applicability.surfaces)} |
+| Minimum surface confidence | ${markdownTableCell(rule.applicability.minimumSurfaceConfidence)} |
+| JavaScript modes | ${markdownTableCell(modes)} |
+| Application scopes | ${markdownTableCell(rule.applicability.scopes.join(", "))} |
+| ServiceNow releases | ${markdownTableCell(rule.applicability.serviceNowReleases.join(", "))} |
+| Fluent SDK range | ${markdownTableCell(sdkRange)} |
 
 ## Options
 
@@ -220,7 +234,20 @@ async function writeReadmeTables() {
   console.log("updated README rule tables");
 }
 
-async function writeOxlintrcRules(path, specifierComment, rules = recommendedRules) {
+function rulesForGeneratedConfig(path) {
+  const relative = path.replaceAll("\\", "/");
+  if (relative.endsWith("examples/classic-compatibility/.oxlintrc.json")) return classicEs5Rules;
+  if (relative.endsWith("examples/classic-es5/.oxlintrc.json")) return classicEs5Rules;
+  if (relative.endsWith("examples/es2021/.oxlintrc.json")) return es2021Rules;
+  if (relative.endsWith("examples/client/.oxlintrc.json")) return clientRules;
+  if (relative.endsWith("examples/business-rule/.oxlintrc.json")) return businessRuleRules;
+  if (relative.endsWith("examples/fluent/.oxlintrc.json")) return fluentRules;
+  if (relative.endsWith("examples/mixed/.oxlintrc.json")) return recommendedRules;
+  if (relative.endsWith("examples/ui-action/.oxlintrc.json")) return recommendedRules;
+  return recommendedRules;
+}
+
+async function writeOxlintrcRules(path, specifierComment, rules = rulesForGeneratedConfig(path)) {
   const current = JSON.parse(await readFile(path, "utf8"));
   current.rules = rules;
   await writeFile(path, `${JSON.stringify(current, null, 2)}\n`);

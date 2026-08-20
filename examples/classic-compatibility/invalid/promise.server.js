@@ -1,2 +1,1 @@
-var assignmentGroup = "97c04b3b1b12100043ab85e5bd0713e2";
-current.assignment_group = assignmentGroup;
+var pending = new Promise(function (resolve) { resolve(); });

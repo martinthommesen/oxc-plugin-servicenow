@@ -26,7 +26,7 @@ Large inline `script` / HTML / CSS payloads belong in their own file and should 
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
 | ServiceNow releases | zurich |
-| Fluent SDK range | 3.0.0 || 4.1.0 |
+| Fluent SDK range | 3.0.0 \|\| 4.1.0 |
 
 ## Options
 

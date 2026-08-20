@@ -18,8 +18,8 @@
     "current": "10.8.1"
   },
   "oxfmt": {
-    "peer": ">=0.16.0",
-    "minimum": "0.16.0",
+    "peer": ">=0.64.0",
+    "minimum": "0.64.0",
     "latest": "0.64.0"
   },
   "oxlintPlugins": {
@@ -38,14 +38,14 @@
       "node": "20.19.0",
       "oxlint": "1.79.0",
       "eslint": "9.0.0",
-      "oxfmt": "0.16.0"
+      "oxfmt": "0.64.0"
     },
     {
       "id": "node20-current",
       "node": "20",
       "oxlint": "1.79.0",
       "eslint": "10.8.1",
-      "oxfmt": "0.16.0"
+      "oxfmt": "0.64.0"
     },
     {
       "id": "node22-latest",
@@ -59,7 +59,7 @@
       "node": "current",
       "oxlint": "1.79.0",
       "eslint": "9.39.5",
-      "oxfmt": "0.16.0"
+      "oxfmt": "0.64.0"
     }
   ]
 }
