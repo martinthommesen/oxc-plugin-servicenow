@@ -11,6 +11,10 @@ import type {
   ValidatedServiceNowSettings,
 } from "../types.js";
 import { resolveFluentManifest } from "../fluent/registry.js";
+import {
+  isSupportedServiceNowRelease,
+  SUPPORTED_SERVICENOW_RELEASES,
+} from "./releases.js";
 import { ServiceNowSettingsError } from "./errors.js";
 import { deepFreeze } from "./freeze.js";
 
@@ -64,7 +68,6 @@ const ALLOWED_KEYS = new Set([
 
 const IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/;
 const SCOPE_PREFIX = /^[a-z][a-z0-9_]*$/;
-const RELEASE = /^[a-z][a-z0-9._-]*$/;
 const SDK_VERSION = /^\d+\.\d+\.\d+(?:-[A-Za-z0-9.-]+)?$/;
 const SYS_ID = /^[0-9a-f]{32}$/;
 const TABLE_NAME = /^[a-z][a-z0-9_]*$/;
@@ -102,8 +105,8 @@ function expectEnum<T extends string>(path: string, value: unknown, allowed: Rea
 }
 
 export interface ValidatedSettingsResult {
-  settings: ValidatedServiceNowSettings;
-  deprecations: SettingsDeprecation[];
+  readonly settings: ValidatedServiceNowSettings;
+  readonly deprecations: readonly SettingsDeprecation[];
 }
 
 /**
@@ -272,10 +275,13 @@ export function validateServiceNowSettings(raw: unknown): ValidatedSettingsResul
     scopePrefix = raw.scopePrefix;
   }
 
-  let release: string | undefined;
+  let release: ValidatedServiceNowSettings["release"];
   if (raw.release !== undefined) {
-    if (typeof raw.release !== "string" || !RELEASE.test(raw.release)) {
-      throw new ServiceNowSettingsError(".release", "expected a lowercase ServiceNow release identifier");
+    if (typeof raw.release !== "string" || !isSupportedServiceNowRelease(raw.release)) {
+      throw new ServiceNowSettingsError(
+        ".release",
+        `expected one of ${SUPPORTED_SERVICENOW_RELEASES.join(", ")}, got ${JSON.stringify(raw.release)}`,
+      );
     }
     release = raw.release;
   }

@@ -1,4 +1,5 @@
 import type { Rule } from "@oxlint/plugins";
+import type { ServiceNowRelease } from "./settings/releases.js";
 
 /**
  * JavaScript runtime mode for instance-executed ServiceNow scripts.
@@ -67,8 +68,8 @@ export interface ServiceNowScriptContext {
 }
 
 export interface SettingsDeprecation {
-  path: string;
-  message: string;
+  readonly path: string;
+  readonly message: string;
 }
 
 /**
@@ -122,7 +123,7 @@ export interface ServiceNowSettings {
   /** Application scope prefix, for example `x_acme`. Used by naming rules. */
   scopePrefix?: string;
   /** ServiceNow release identifier used for versioned knowledge, for example `zurich`. */
-  release?: string;
+  release?: ServiceNowRelease;
   /** How Business Rule source is stored when that is known. */
   businessRuleSourceFormat?: BusinessRuleSourceFormat;
   /**
@@ -139,19 +140,19 @@ export interface ServiceNowSettings {
  * Deprecated fields are preserved so migration docs can mention them.
  */
 export interface ValidatedServiceNowSettings {
-  allowedSysIds: readonly string[];
-  allowedTables: readonly string[];
-  scriptType: "auto" | ScriptKind;
-  ecmaLatest: boolean | undefined;
-  javascriptMode: JavaScriptMode | undefined;
-  authoring: ScriptAuthoring | "auto";
-  surfaces: "auto" | readonly ScriptSurface[];
-  scope: ApplicationScope;
-  scopePrefix: string | undefined;
-  release: string | undefined;
-  businessRuleSourceFormat: BusinessRuleSourceFormat;
-  businessRuleWhen: BusinessRuleWhen;
-  fluentSdkVersion: string | undefined;
+  readonly allowedSysIds: readonly string[];
+  readonly allowedTables: readonly string[];
+  readonly scriptType: "auto" | ScriptKind;
+  readonly ecmaLatest: boolean | undefined;
+  readonly javascriptMode: JavaScriptMode | undefined;
+  readonly authoring: ScriptAuthoring | "auto";
+  readonly surfaces: "auto" | readonly ScriptSurface[];
+  readonly scope: ApplicationScope;
+  readonly scopePrefix: string | undefined;
+  readonly release: ServiceNowRelease | undefined;
+  readonly businessRuleSourceFormat: BusinessRuleSourceFormat;
+  readonly businessRuleWhen: BusinessRuleWhen;
+  readonly fluentSdkVersion: string | undefined;
 }
 
 /**
@@ -166,6 +167,8 @@ export type ScriptKind =
   | "server"
   | "ui-action"
   | "unknown";
+
+export type { ServiceNowRelease };
 
 export type RuleModule = Rule;
 

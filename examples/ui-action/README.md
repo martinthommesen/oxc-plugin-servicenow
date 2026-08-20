@@ -14,10 +14,7 @@ A mixed UI Action is two scripts: one client file and one server file. Leave `su
 ```json
 {
   "servicenow": {
-    "surfaces": [
-      "ui-action",
-      "server"
-    ]
+    "surfaces": "auto"
   }
 }
 ```

@@ -27,10 +27,6 @@ const CONFIDENCE_RANK: Record<ContextConfidence, number> = {
   explicit: 3,
 };
 
-function stronger(left: ContextConfidence, right: ContextConfidence): ContextConfidence {
-  return CONFIDENCE_RANK[left] >= CONFIDENCE_RANK[right] ? left : right;
-}
-
 function weakest(sources: ContextSourceMap): ContextConfidence {
   return [sources.authoring, sources.surfaces, sources.javascriptMode, sources.scope].reduce(
     (min, item) => (CONFIDENCE_RANK[item] < CONFIDENCE_RANK[min] ? item : min),
@@ -77,8 +73,15 @@ function resolveAuthoring(
   if (settings.authoring !== "auto") {
     return { authoring: settings.authoring, confidence: "explicit" };
   }
-  if (settings.scriptType === "fluent") {
-    return { authoring: "fluent", confidence: "explicit" };
+  // `scriptType` predates the independent authoring/surface dimensions. While
+  // it remains supported, an explicit legacy value outranks filename hints;
+  // otherwise a `client` script saved as `thing.now.ts` would silently become
+  // Fluent and disable all of its relevant rules.
+  if (settings.scriptType !== "auto") {
+    return {
+      authoring: settings.scriptType === "fluent" ? "fluent" : "classic",
+      confidence: "explicit",
+    };
   }
   const fromFile = authoringFromFilename(filename);
   if (fromFile) {
@@ -92,6 +95,7 @@ function resolveSurfaces(
   settings: ValidatedServiceNowSettings,
   authoring: ScriptAuthoring,
   inferClient?: () => boolean,
+  inferSurfaces?: () => { client: boolean; server: boolean },
 ): { surfaces: Set<ScriptSurface>; confidence: ContextConfidence } {
   if (authoring === "fluent") {
     if (settings.surfaces !== "auto" && settings.surfaces.length > 0) {
@@ -114,11 +118,28 @@ function resolveSurfaces(
 
   const fromFile = surfacesFromFilename(filename);
   if (fromFile.length > 0) {
+    // A bare UI Action names the record type, not its execution surface. Keep
+    // that evidence, then continue with AST evidence so a client UI Action is
+    // not mistaken for an unresolved/server script.
+    if (fromFile.length === 1 && fromFile[0] === "ui-action") {
+      const inferred = inferSurfaces?.() ?? { client: Boolean(inferClient?.()), server: false };
+      const surfaces = new Set<ScriptSurface>(["ui-action"]);
+      if (inferred.client) surfaces.add("client");
+      if (inferred.server) surfaces.add("server");
+      return {
+        surfaces,
+        confidence: inferred.client || inferred.server ? "inferred" : "filename",
+      };
+    }
     return { surfaces: new Set(fromFile), confidence: "filename" };
   }
 
-  if (inferClient?.()) {
-    return { surfaces: new Set<ScriptSurface>(["client"]), confidence: "inferred" };
+  const inferred = inferSurfaces?.() ?? { client: Boolean(inferClient?.()), server: false };
+  if (inferred.client || inferred.server) {
+    const surfaces = new Set<ScriptSurface>();
+    if (inferred.client) surfaces.add("client");
+    if (inferred.server) surfaces.add("server");
+    return { surfaces, confidence: "inferred" };
   }
 
   return { surfaces: new Set(), confidence: "unknown" };
@@ -153,6 +174,8 @@ function resolveJavaScriptMode(
 export interface ScriptContextExtras {
   program?: unknown;
   inferClient?: () => boolean;
+  /** AST evidence for execution surfaces in an otherwise bare record file. */
+  inferSurfaces?: () => { client: boolean; server: boolean };
 }
 
 export function resolveScriptContext(
@@ -163,7 +186,13 @@ export function resolveScriptContext(
   const filename = context.filename;
 
   const authoring = resolveAuthoring(filename, settings);
-  const surfaces = resolveSurfaces(filename, settings, authoring.authoring, extras.inferClient);
+  const surfaces = resolveSurfaces(
+    filename,
+    settings,
+    authoring.authoring,
+    extras.inferClient,
+    extras.inferSurfaces,
+  );
   const localDeprecations = [...deprecations];
   const javascriptMode = resolveJavaScriptMode(context, settings, authoring.authoring, localDeprecations);
   const scopeConfidence: ContextConfidence = settings.scope === "unknown" ? "unknown" : "explicit";
@@ -180,7 +209,9 @@ export function resolveScriptContext(
     surfaces: surfaces.surfaces,
     javascriptMode: javascriptMode.mode,
     scope: settings.scope,
-    confidence: stronger(weakest(sources), stronger(authoring.confidence, surfaces.confidence)),
+    // Confidence is the weakest independent dimension. A strong filename or
+    // authoring hint must not hide unknown mode, scope, or surface evidence.
+    confidence: weakest(sources),
     sources,
     businessRuleSourceFormat: settings.businessRuleSourceFormat,
     businessRuleWhen: settings.businessRuleWhen,
@@ -271,7 +302,8 @@ export function isClientCapableContext(ctx: ServiceNowScriptContext): boolean {
 function hasServerExecutionSurface(ctx: ServiceNowScriptContext): boolean {
   if (SERVER_ONLY_SURFACES.some((surface) => appliesOnSurface(ctx, surface))) return true;
   if (appliesOnSurface(ctx, "ui-action") && appliesOnSurface(ctx, "server")) return true;
-  if (appliesOnSurface(ctx, "ui-action") && !appliesOnSurface(ctx, "client")) return true;
+  // A bare UI Action may execute on either side. Without explicit server
+  // evidence, do not report server-only diagnostics.
   return false;
 }
 

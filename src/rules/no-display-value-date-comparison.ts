@@ -1,7 +1,7 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { staticPropertyName } from "../analysis/index.js";
-import { isFluentContext } from "../context/index.js";
+import { isFluentContext, isInstanceScript } from "../context/index.js";
 import { ruleDocsUrl } from "../constants.js";
 import { beginRuleFile } from "./helpers.js";
 
@@ -33,7 +33,7 @@ export const noDisplayValueDateComparison = defineRule({
     return {
       before() {
         const { context: script } = beginRuleFile(context);
-        if (isFluentContext(script)) return false;
+        if (isFluentContext(script) || !isInstanceScript(script)) return false;
       },
       BinaryExpression(node) {
         const { analysis } = beginRuleFile(context);

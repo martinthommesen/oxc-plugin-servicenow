@@ -4,6 +4,7 @@ import { ruleDocsUrl } from "../constants.js";
 import { getName, getStringValue } from "../utils/ast.js";
 import { parseRuleOptions, noHardcodedSysidOptions, schemaFromDescriptor } from "../options/index.js";
 import type { NoHardcodedSysIdOptions } from "../options/index.js";
+import { isInstanceScript } from "../context/index.js";
 import { beginRuleFile } from "./helpers.js";
 import { findSysIds, looksLikeMd5Context } from "../utils/sysid.js";
 
@@ -60,6 +61,11 @@ export const noHardcodedSysid = defineRule({
 
     return {
       before() {
+        const { context: script } = beginRuleFile(context);
+        // An ordinary unclassified JavaScript file is not evidence of a
+        // ServiceNow script. Keep this rule conservative rather than treating
+        // every unrelated 32-hex token as a sys_id.
+        if (!isInstanceScript(script)) return false;
         const options = parseRuleOptions(noHardcodedSysidOptions, context.options);
         allowed = allowedSet(context, options);
         ignoreHashNames = options.ignoreHashNames;

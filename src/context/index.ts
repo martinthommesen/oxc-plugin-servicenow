@@ -16,5 +16,6 @@ export {
   isFluentFile,
   looksLikeClientSource,
   normalizeFilename,
+  SERVER_FILE,
   surfacesFromFilename,
 } from "./filename.js";

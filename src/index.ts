@@ -99,7 +99,13 @@ export { applyRules } from "./runtime/apply-rules.js";
 export { ruleCatalog } from "./catalog.js";
 export { PACKAGE_NAME, PACKAGE_VERSION, PLUGIN_NAME } from "./constants.js";
 export { getScriptContext, resolveScriptContext } from "./context/index.js";
-export { validateServiceNowSettings, ServiceNowSettingsError, ServiceNowConfigError } from "./settings/index.js";
+export {
+  validateServiceNowSettings,
+  ServiceNowSettingsError,
+  ServiceNowConfigError,
+  isSupportedServiceNowRelease,
+  SUPPORTED_SERVICENOW_RELEASES,
+} from "./settings/index.js";
 export {
   parseRuleOptions,
   schemaFromDescriptor,
@@ -120,6 +126,7 @@ export {
 } from "./glide/index.js";
 export type {
   ServiceNowSettings,
+  ServiceNowRelease,
   ServiceNowScriptContext,
   ScriptKind,
   ScriptSurface,

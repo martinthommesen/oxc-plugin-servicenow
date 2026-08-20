@@ -9,6 +9,8 @@ export const UI_ACTION_FILE = /(ui[-_.]?action|\.ua\.|sys_ui_action)/i;
 export const SCHEDULED_FILE = /(scheduled[-_.]?script|\.ss\.|sysauto_script|sys_trigger)/i;
 export const FIX_SCRIPT_FILE = /(fix[-_.]?script|\.fix\.|sys_script_fix)/i;
 export const SERVER_DIR = /(?:^|[\\/])(?:src[\\/])?server[\\/]/i;
+/** Public convention for server-side classic scripts (for example `thing.server.js`). */
+export const SERVER_FILE = /\.server\.(?:[cm]?[jt]sx?)$/i;
 export const CLIENT_DIR = /(?:^|[\\/])(?:src[\\/])?client[\\/]/i;
 
 const CLIENT_GLOBAL_RE = new RegExp(`\\b(?:${CLIENT_GLOBALS_STRONG.join("|")})\\b`);
@@ -42,7 +44,7 @@ export function surfacesFromFilename(filename: string): ScriptSurface[] {
   if (SI_FILE.test(path)) surfaces.push("script-include");
   if (SCHEDULED_FILE.test(path)) surfaces.push("scheduled-script");
   if (FIX_SCRIPT_FILE.test(path)) surfaces.push("fix-script");
-  if (SERVER_DIR.test(path)) surfaces.push("server");
+  if (SERVER_DIR.test(path) || SERVER_FILE.test(path)) surfaces.push("server");
 
   return unique(surfaces);
 }

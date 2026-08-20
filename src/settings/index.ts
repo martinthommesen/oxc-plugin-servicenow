@@ -7,6 +7,11 @@ import type { ValidatedSettingsResult } from "./validate.js";
 export { ServiceNowConfigError, ServiceNowSettingsError } from "./errors.js";
 export { validateServiceNowSettings, emptyValidatedSettings } from "./validate.js";
 export type { ValidatedSettingsResult } from "./validate.js";
+export {
+  isSupportedServiceNowRelease,
+  SUPPORTED_SERVICENOW_RELEASES,
+} from "./releases.js";
+export type { ServiceNowRelease } from "./releases.js";
 
 const EMPTY: ValidatedSettingsResult = validateServiceNowSettings(undefined);
 

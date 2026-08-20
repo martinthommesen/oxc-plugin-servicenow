@@ -70,7 +70,9 @@ export const ENGINE_FEATURES: Record<EngineFeatureId, EngineFeature> = {
   bigint: feature("bigint", "BigInt", "supported", "unsupported"),
   "at-method": feature("at-method", "Array/String.prototype.at", "supported", "unsupported"),
   "typed-arrays": feature("typed-arrays", "TypedArray constructors", "supported", "disallowed"),
-  "bigint64-arrays": feature("bigint64-arrays", "BigInt64Array / BigUint64Array", "unsupported", "unsupported"),
+  "bigint64-arrays": feature("bigint64-arrays", "BigInt64Array / BigUint64Array", "unsupported", "unsupported", {
+    unsupportedInAllInstanceModes: true,
+  }),
   proxy: feature("proxy", "Proxy", "supported", "disallowed"),
   "optional-chaining": feature("optional-chaining", "optional chaining", "supported", "unsupported"),
   "nullish-coalescing": feature("nullish-coalescing", "nullish coalescing", "supported", "unsupported"),
@@ -78,7 +80,7 @@ export const ENGINE_FEATURES: Record<EngineFeatureId, EngineFeature> = {
   "private-instance-members": feature(
     "private-instance-members",
     "private instance class members",
-    "unsupported",
+    "supported",
     "unsupported",
   ),
   "private-static-members": feature(

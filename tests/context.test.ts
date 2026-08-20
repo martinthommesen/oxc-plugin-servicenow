@@ -1,10 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import type { Context } from "@oxlint/plugins";
+import { readFileSync } from "node:fs";
 import { parse } from "./helpers/rule-tester.js";
 import { applyRules } from "../src/runtime/apply-rules.js";
+import { resolveScriptContext } from "../src/context/resolve.js";
 import { validateServiceNowSettings, ServiceNowSettingsError } from "../src/settings/index.js";
 import { classifyFile } from "../src/utils/filenames.js";
-import { assertInvalid, assertValid, ES5, ES2021 } from "./helpers/rule-tester.js";
+import { assertInvalid, assertValid, ES5, ES2021, lint } from "./helpers/rule-tester.js";
 
 describe("settings validation", () => {
   it("accepts empty settings", () => {
@@ -98,6 +101,37 @@ describe("settings validation", () => {
   });
 });
 
+describe("release and context resolution", () => {
+  it("accepts the documented Zurich release and rejects unknown values", () => {
+    assert.equal(validateServiceNowSettings({ release: "zurich" }).settings.release, "zurich");
+    assert.throws(() => validateServiceNowSettings({ release: "zurichx" }), /release.*one of/);
+  });
+
+  it("keeps explicit legacy scriptType ahead of a .now.ts filename", () => {
+    assertInvalid(
+      `var gr = new GlideRecord("incident");`,
+      "no-client-gliderecord",
+      { messageId: "glideRecord" },
+      { filename: "incident.now.ts", settings: { scriptType: "client" } },
+    );
+  });
+
+  it("reports the weakest independent context confidence", () => {
+    const context = {
+      filename: "incident.br.js",
+      settings: { servicenow: { javascriptMode: "es2021" } },
+      sourceCode: { text: "", getAllComments: () => [] },
+      options: [],
+    } as unknown as Context;
+    const script = resolveScriptContext(context);
+    assert.equal(script.sources.surfaces, "filename");
+    assert.equal(script.sources.javascriptMode, "explicit");
+    assert.equal(script.sources.authoring, "unknown");
+    assert.equal(script.sources.scope, "unknown");
+    assert.equal(script.confidence, "unknown");
+  });
+});
+
 describe("classifyFile compatibility", () => {
   it("still classifies UI Actions before client heuristics", () => {
     assert.equal(
@@ -183,10 +217,11 @@ describe("require-query-before-next", () => {
     );
   });
 
-  it("suppresses when only one branch queries", () => {
-    assertValid(
+  it("reports when only one branch queries", () => {
+    assertInvalid(
       `var gr = new GlideRecord("incident");\nif (flag) { gr.query(); }\ngr.next();`,
       "require-query-before-next",
+      { messageId: "missingQuery" },
     );
   });
 
@@ -212,6 +247,46 @@ describe("UI Action surfaces", () => {
       filename: "close.ui-action.js",
     });
   });
+
+  it("continues AST inference for a bare UI Action with client evidence", () => {
+    assertInvalid(
+      `g_form.setValue("state", "closed");
+var gr = new GlideRecord("incident");`,
+      "no-client-gliderecord",
+      { messageId: "glideRecord" },
+      { filename: "close.ui-action.js" },
+    );
+  });
+
+  it("does not assume a bare UI Action is server-side", () => {
+    assertValid(
+      `var gr = new GlideRecord("incident");
+gr.next();`,
+      "require-query-before-next",
+      { filename: "close.ui-action.js" },
+    );
+  });
+
+  it("recognizes the documented server suffix", () => {
+    assertInvalid(
+      `var gr = new GlideRecord("incident");
+gr.next();`,
+      "require-query-before-next",
+      { messageId: "missingQuery" },
+      { filename: "close.server.js" },
+    );
+  });
+
+  it("rejects contradictory legacy UI Action settings", () => {
+    assert.throws(
+      () => lint(`var gr = new GlideRecord("incident");`, "no-client-gliderecord", {
+        filename: "close.ui-action.js",
+        settings: { scriptType: "server", surfaces: ["ui-action", "client"] },
+      }),
+      /scriptType.*conflicts/,
+    );
+  });
+
 
   it("runs client GlideRecord when the UI Action is explicitly client", () => {
     assertInvalid(
