@@ -57,19 +57,27 @@
     "clean": "rm -rf dist",
     "prepack": "npm run clean && npm run build",
     "prepublishOnly": "npm run clean && npm run build && npm test",
-    "test": "tsx --test \"tests/**/*.test.ts\"",
-    "test:integration": "tsx --test \"tests/integration/**/*.test.ts\"",
+    "test": "node scripts/run-tests.mjs",
+    "test:integration": "node scripts/run-tests.mjs tests/integration",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "docs": "tsx scripts/generate-rule-docs.mjs",
-    "docs:check": "tsx scripts/generate-rule-docs.mjs && git diff --exit-code -- docs/rules"
+    "docs": "tsx scripts/generate-rule-docs.mjs && tsx scripts/generate-compatibility-docs.mjs",
+    "docs:check": "tsx scripts/generate-rule-docs.mjs && tsx scripts/generate-compatibility-docs.mjs && tsx scripts/check-catalog-docs.mjs && git diff --exit-code -- docs/rules README.md docs/compatibility.md examples tests/integration/profiles/configs/recommended.oxlintrc.json tests/integration/profiles/configs/strict.oxlintrc.json tests/integration/profiles/mixed/.oxlintrc.json tests/integration/fixtures/.oxlintrc.json",
+    "compat": "tsx scripts/compat-consumer.mjs",
+    "manifest:check": "tsx scripts/check-fluent-manifest.mjs",
+    "bench": "tsx scripts/benchmark.mjs",
+    "release:check": "node scripts/check-release-artifact.mjs",
+    "validate": "npm run workflow:check && npm run compat:check && npm run typecheck && npm run build && npm test && npm run docs:check && npm run manifest:check && npm run bench && npm run release:check -- --consumer",
+    "workflow:check": "node scripts/check-action-pins.mjs",
+    "compat:check": "node scripts/check-compat-matrix.mjs"
   },
   "dependencies": {
     "@oxlint/plugins": "^1.79.0"
   },
   "peerDependencies": {
     "eslint": ">=9.0.0",
-    "oxfmt": ">=0.16.0",
-    "oxlint": ">=1.79.0 <2"
+    "oxfmt": ">=0.64.0",
+    "oxlint": ">=1.79.0 <2",
+    "typescript-eslint": ">=8.0.0 <9"
   },
   "peerDependenciesMeta": {
     "eslint": {
@@ -80,12 +88,16 @@
     },
     "oxlint": {
       "optional": true
+    },
+    "typescript-eslint": {
+      "optional": true
     }
   },
   "devDependencies": {
     "@types/node": "^26.2.0",
     "eslint": "^10.8.1",
     "oxc-parser": "^0.145.0",
+    "oxfmt": "^0.64.0",
     "oxlint": "1.79.0",
     "tsx": "^4.19.0",
     "typescript": "^7.0.2"
