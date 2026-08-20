@@ -9,7 +9,7 @@ This report is the final local audit for the seven-layer remediation stack. The 
 | 1 | `1d5367a`, `a08f912`, `f92686d`, `1fdf8d2`, `872ab89`, `a9f8a18` | context, settings, engine, profiles, readonly/cache contracts |
 | 2 | `6708709`, `8972ce8` | shared path state, joins, abrupt completion, loop effects, expression identity |
 | 3 | `379c4f9`, `635a30e` | stateful classic consumers, cursor implications, count proof |
-| 4 | `001583e`, `17025c4`, `7053234`, `04ca820` | Fluent manifests, declaration boundaries, authoritative imports, Now.ID provenance |
+| 4 | `001583e`, `17025c4`, `7053234`, `04ca820`, `225d193` | Fluent manifests, declaration boundaries, authoritative imports, Now.ID provenance, and published Table signatures |
 | 5 | `8ded017`, `3e5133c`, `3cb44e9`, `57db40f`, `bd113eb`, `9438b38`, `02880e5` | docs, metadata, compatibility, benchmark and parser dimensions |
 | 6 | `534572b`, `118d552`, `02880e5`, `7e42e02` | strict packed artifact, npm-pack shape compatibility, all Fluent/TypeScript packed cells, and all documented JavaScript modes |
 | 7 | `530f920` | artifact-only OIDC workflow, retries, governance declaration, action pin enforcement |
