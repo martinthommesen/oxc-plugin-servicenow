@@ -47,14 +47,25 @@ const ESLINT_FLAT_FILES = [
   "**/*.now.tsx",
 ];
 
-function flatConfig(name: string, rulesMap: typeof recommendedRules) {
+function flatConfig(
+  name: string,
+  rulesMap: typeof recommendedRules,
+  settings: Record<string, unknown> = {},
+  files: readonly string[] = ESLINT_FLAT_FILES,
+) {
   return {
     name: `${PLUGIN_NAME}/${name}`,
-    files: ESLINT_FLAT_FILES,
+    files,
     plugins: { [PLUGIN_NAME]: plugin },
+    settings: { servicenow: settings },
     rules: rulesMap,
   };
 }
+
+const CLASSIC_FILES = ["**/*.js", "**/*.cjs", "**/*.mjs"];
+const CLIENT_FILES = ["**/*.client.js", "**/*.client.cjs", "**/*.client.mjs"];
+const BUSINESS_RULE_FILES = ["**/*.br.js", "**/*.br.cjs", "**/*.br.mjs"];
+const FLUENT_FILES = ["**/*.now.ts", "**/*.now.tsx"];
 
 export const configs = {
   recommended,
@@ -81,11 +92,31 @@ export const configs = {
   flat: {
     recommended: flatConfig("recommended", recommendedRules),
     strict: flatConfig("strict", strictRules),
-    classicEs5: flatConfig("classic-es5", classicEs5Rules),
-    es2021: flatConfig("es2021", es2021Rules),
-    client: flatConfig("client", clientRules),
-    businessRule: flatConfig("business-rule", businessRuleRules),
-    fluent: flatConfig("fluent", fluentRules),
+    classicEs5: flatConfig(
+      "classic-es5",
+      classicEs5Rules,
+      { authoring: "classic", javascriptMode: "es5", surfaces: "auto" },
+      CLASSIC_FILES,
+    ),
+    es2021: flatConfig(
+      "es2021",
+      es2021Rules,
+      { authoring: "classic", javascriptMode: "es2021", surfaces: "auto" },
+      CLASSIC_FILES,
+    ),
+    client: flatConfig(
+      "client",
+      clientRules,
+      { authoring: "classic", surfaces: ["client"] },
+      CLIENT_FILES,
+    ),
+    businessRule: flatConfig(
+      "business-rule",
+      businessRuleRules,
+      { authoring: "classic", surfaces: ["business-rule"] },
+      BUSINESS_RULE_FILES,
+    ),
+    fluent: flatConfig("fluent", fluentRules, { authoring: "fluent" }, FLUENT_FILES),
   },
 };
 
