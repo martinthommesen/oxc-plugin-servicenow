@@ -72,6 +72,11 @@
       "runId": 32351809969,
       "headSha": "2db2282c5c8b466c6d51c9499c5dfbfb4c028045",
       "note": "Pull-request CI run at the documentation-complete merge commit passed all 15 CI jobs; PR #51 rollup was 18/18 successful including CodeQL."
+    },
+    "secrets": {
+      "repository": [],
+      "releaseEnvironment": [],
+      "note": "No NPM_TOKEN or other Actions secret is configured."
     }
   },
   "npmTrustedPublisher": {
