@@ -20,7 +20,7 @@ import {
   resolveFluentFactory,
   type FluentImportBinding,
 } from "./fluent-imports.js";
-import { isCanonicalNow, nowIdValue, type NowIdFact } from "./now-id.js";
+import { isCanonicalNow, mergeNowIdFacts, nowIdValue, type NowIdFact } from "./now-id.js";
 
 export interface FluentFileFacts {
   manifest: FluentSdkManifest;
@@ -66,6 +66,9 @@ function settingsKey(settings: ValidatedServiceNowSettings): string {
   return JSON.stringify({
     authoring: settings.authoring,
     surfaces: settings.surfaces,
+    allowedSysIds: settings.allowedSysIds,
+    allowedTables: settings.allowedTables,
+    scopePrefix: settings.scopePrefix,
     javascriptMode: settings.javascriptMode,
     scriptType: settings.scriptType,
     fluentSdkVersion: settings.fluentSdkVersion,
@@ -90,23 +93,36 @@ function emptyProvenance(kind: ProvenanceKind, extras?: Partial<Provenance>): Pr
   });
 }
 
-function inferClientFromAst(program: ESTree.Node, bindings: FileBindings): boolean {
+const SERVER_GLOBALS = new Set([
+  "gs",
+  "current",
+  "previous",
+]);
+
+function inferSurfacesFromAst(
+  program: ESTree.Node,
+  bindings: FileBindings,
+): { client: boolean; server: boolean } {
   const ancestors: ESTree.Node[] = [];
-  let found = false;
+  const found = { client: false, server: false };
   walk(
     program,
     {
       Identifier(node) {
-        if (found) return;
         const name = getName(node);
-        if (!name || !(CLIENT_GLOBALS_STRONG as readonly string[]).includes(name)) return;
-        if (!isValueReference(node, ancestors)) return;
-        if (bindings.isPlatformGlobal(node, ancestors)) found = true;
+        if (!name || !isValueReference(node, ancestors)) return;
+        if (!bindings.isPlatformGlobal(node, ancestors)) return;
+        if ((CLIENT_GLOBALS_STRONG as readonly string[]).includes(name)) found.client = true;
+        if (SERVER_GLOBALS.has(name)) found.server = true;
       },
     },
     ancestors,
   );
   return found;
+}
+
+function inferClientFromAst(program: ESTree.Node, bindings: FileBindings): boolean {
+  return inferSurfacesFromAst(program, bindings).client;
 }
 
 function buildFileAnalysis(context: Context): FileAnalysis {
@@ -116,6 +132,7 @@ function buildFileAnalysis(context: Context): FileAnalysis {
   const script = resolveScriptContext(context, {
     program,
     inferClient: program ? () => inferClientFromAst(program, bindings) : undefined,
+    inferSurfaces: program ? () => inferSurfacesFromAst(program, bindings) : undefined,
   });
 
   const provenanceAtNode = new Map<ESTree.Node, Provenance>();
@@ -132,7 +149,7 @@ function buildFileAnalysis(context: Context): FileAnalysis {
       emptyData: () => ({ nowIdKey: null }),
       cloneData: (data) => ({ ...data }),
       mergeData: (left, right) => ({
-        nowIdKey: left.nowIdKey === right.nowIdKey ? left.nowIdKey : "unknown",
+        nowIdKey: mergeNowIdFacts(left.nowIdKey, right.nowIdKey),
       }),
       onCall() {},
       onValue(node) {
