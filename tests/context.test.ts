@@ -99,6 +99,18 @@ describe("settings validation", () => {
   it("rejects an invalid Business Rule timing", () => {
     assert.throws(() => validateServiceNowSettings({ businessRuleWhen: "sometime" }), /businessRuleWhen/);
   });
+  it("deep-freezes nested settings and does not share mutable arrays", () => {
+    const first = validateServiceNowSettings({
+      allowedSysIds: ["97c04b3b1b12100043ab85e5bd0713e2"],
+      allowedTables: ["incident"],
+      surfaces: ["server"],
+    });
+    const second = validateServiceNowSettings({ surfaces: ["client"] });
+    assert.throws(() => (first.settings.allowedSysIds as string[]).push("00000000000000000000000000000000"), TypeError);
+    assert.throws(() => ((first.settings as unknown as { surfaces: string[] }).surfaces as string[]).push("client"), TypeError);
+    assert.deepEqual(second.settings.allowedSysIds, []);
+    assert.deepEqual(second.settings.surfaces, ["client"]);
+  });
 });
 
 describe("release and context resolution", () => {
