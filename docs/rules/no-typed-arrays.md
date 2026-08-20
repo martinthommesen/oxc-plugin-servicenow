@@ -1,16 +1,40 @@
 # servicenow/no-typed-arrays
 
-TypedArray and DataView constructors are unsupported on the classic engine.
+TypedArray and DataView constructors are unsupported in Compatibility and ES5 Standards mode. ES2021 still rejects BigInt64Array / BigUint64Array.
 
 - **Family:** engine
-- **Preset:** recommended
+- **Preset:** classic-es5
+- **Placements:** classic-es5 (error), es2021 (error)
 - **Default severity:** error
-- **Fixable:** no
+- **Fix safety:** diagnostic only
 - **Suggestions:** no
+- **Authoring:** classic
+- **Surfaces:** Applies to client, server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent.
+- **JavaScript mode:** Runs when javascriptMode is compatibility, es5. Unknown mode stays silent.
+- **Last verified:** 2026-08-20
+- **Implementation:** [`src/rules/no-typed-arrays.ts`](../../src/rules/no-typed-arrays.ts)
+
+## Applicability
+
+| Dimension | Value |
+| --- | --- |
+| Authoring | classic |
+| Surfaces | Applies to client, server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent. |
+| Minimum surface confidence | filename-inferred |
+| JavaScript modes | compatibility, es5 |
+| Application scopes | global, scoped, unknown |
+| ServiceNow releases | xanadu, yokohama, zurich |
+| Fluent SDK range | n/a |
+
+## Options
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| _(none)_ | | | This rule has no options. |
 
 ## Incorrect
 
-### ❌ Int8Array
+### Incorrect: Int8Array
 
 ```js
 var bytes = new Int8Array(16);
@@ -18,13 +42,46 @@ var bytes = new Int8Array(16);
 
 ## Correct
 
-### ✅ plain array
+### Correct: plain array
 
 ```js
 var bytes = [0, 1, 2];
 ```
 
+## Limitations
+
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False positive: Local bindings that reuse typed-array names. False negative: Dynamic construction through unknown identifiers.
+
+## Known false positives
+
+- Local bindings that reuse typed-array names.
+
+## Known false negatives
+
+- Dynamic construction through unknown identifiers.
+
+## Overlaps
+
+- `servicenow/no-unsupported-syntax`
+
+## Fix safety
+
+- Classification: diagnostic only
+- Lifecycle assumptions: No extra lifecycle assumptions.
+
+## Evidence
+
+- **Typed arrays are unsupported in Compatibility and ES5 Standards modes.**
+  - URL: https://www.servicenow.com/docs/r/zurich/api-reference/scripts/javascript-engine-feature-support.html
+  - Verified by: declaration-snapshot
+  - Verified at: 2026-08-20
+- **Catalog examples cover Uint8Array construction.**
+  - URL: src/catalog.ts
+  - Verified by: fixture
+  - Verified at: 2026-08-20
+
 ## See also
 
-- [ServiceNow Fluent overview](https://servicenow.github.io/sdk/guides/fluent-overview)
+- [Contributor rule-authoring guide](../rule-authoring.md)
+- [Project non-goals](../non-goals.md)
 - [oxlint JS plugins](https://oxc.rs/docs/guide/usage/linter/js-plugins.html)

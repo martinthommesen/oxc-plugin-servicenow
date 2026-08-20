@@ -1,0 +1,29 @@
+{
+  "$schema": "../../node_modules/oxlint/configuration_schema.json",
+  "jsPlugins": [
+    {
+      "name": "servicenow",
+      "specifier": "../.."
+    }
+  ],
+  "settings": {
+    "servicenow": {
+      "javascriptMode": "es5",
+      "surfaces": [
+        "server"
+      ]
+    }
+  },
+  "rules": {
+    "servicenow/no-promise": "error",
+    "servicenow/no-async-await": "error",
+    "servicenow/no-bigint": "error",
+    "servicenow/no-at-method": "error",
+    "servicenow/no-weak-references": "error",
+    "servicenow/no-weak-collections": "error",
+    "servicenow/no-typed-arrays": "error",
+    "servicenow/no-proxy": "error",
+    "servicenow/no-unsupported-syntax": "error",
+    "servicenow/no-async-iterators": "error"
+  }
+}
