@@ -89,8 +89,8 @@ totals.next();`,
     );
   });
 
-  it("stays silent when query is only in one branch", () => {
-    assertValid(
+  it("reports when query is only in one branch", () => {
+    assertInvalid(
       `var count = new GlideAggregate("incident");
 count.addAggregate("COUNT");
 if (ready) {
@@ -98,6 +98,7 @@ if (ready) {
 }
 count.next();`,
       RULE,
+      { messageId: "missingQuery" },
       SERVER,
     );
   });

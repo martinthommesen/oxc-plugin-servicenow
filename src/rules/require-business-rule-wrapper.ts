@@ -54,6 +54,18 @@ function isIgnorable(node: ESTree.Node): boolean {
   return node.type === "EmptyStatement" || node.type === "DebuggerStatement";
 }
 
+function isDirective(node: ESTree.Node): boolean {
+  if (node.type !== "ExpressionStatement") return false;
+  const expression = (node as ESTree.ExpressionStatement).expression as {
+    type?: string;
+    value?: unknown;
+  };
+  return (
+    (expression.type === "Literal" || expression.type === "StringLiteral") &&
+    typeof expression.value === "string"
+  );
+}
+
 export const requireBusinessRuleWrapper = defineRule({
   meta: {
     type: "problem",
@@ -76,7 +88,21 @@ export const requireBusinessRuleWrapper = defineRule({
       },
       Program(node) {
         const program = node as ESTree.Program;
-        const executable = program.body.filter((stmt) => !isIgnorable(stmt as ESTree.Node));
+        // A directive prologue is executed before the wrapper and is valid in
+        // a full-script Business Rule. Only directives at the start of the
+        // program are ignored; later string expressions are ordinary code.
+        let index = 0;
+        while (index < program.body.length) {
+          const statement = program.body[index] as ESTree.Node;
+          if (isIgnorable(statement) || isDirective(statement)) {
+            index += 1;
+            continue;
+          }
+          break;
+        }
+        const executable = program.body
+          .slice(index)
+          .filter((stmt) => !isIgnorable(stmt as ESTree.Node));
         if (executable.length === 1 && isWrapperStatement(executable[0] as ESTree.Node)) return;
         const target = (executable[0] as ESTree.Node | undefined) ?? node;
         context.report({ node: target, messageId: "missingWrapper" });

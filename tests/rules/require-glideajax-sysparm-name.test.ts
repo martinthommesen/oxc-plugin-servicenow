@@ -48,14 +48,15 @@ ajax.getXMLAnswer(handleAnswer);`,
     );
   });
 
-  it("stays silent when the parameter is in only one branch", () => {
-    assertValid(
+  it("reports when the parameter is in only one branch", () => {
+    assertInvalid(
       `var ajax = new GlideAjax("x_acme.UserLookup");
 if (ready) {
   ajax.addParam("sysparm_name", "getManager");
 }
 ajax.getXMLAnswer(handleAnswer);`,
       RULE,
+      { messageId: "missingName" },
       CLIENT,
     );
   });

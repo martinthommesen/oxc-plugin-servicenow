@@ -16,6 +16,8 @@ type SysparmNameState = false | true | "empty" | "unknown";
 interface AjaxData {
   sysparmName: SysparmNameState;
   terminal: boolean | "unknown";
+  /** Dynamic key/value evidence remains silent instead of pretending missing. */
+  uncertain: boolean;
 }
 
 const TERMINAL = new Set(["getXML", "getXMLAnswer", "getXMLWait"]);
@@ -59,11 +61,12 @@ export function findGlideAjaxParamIssues(
     program,
     analysis,
     kinds: ["GlideAjax"],
-    emptyData: () => ({ sysparmName: false, terminal: false }),
+    emptyData: () => ({ sysparmName: false, terminal: false, uncertain: false }),
     cloneData: (data) => ({ ...data }),
     mergeData: (left, right) => ({
       sysparmName: mergeSysparm(left.sysparmName, right.sysparmName),
       terminal: mergeTri(left.terminal, right.terminal),
+      uncertain: left.uncertain || right.uncertain,
     }),
     onCall({ call, rec, objectName, property }) {
       if (!rec || !objectName || !property) return;
@@ -74,20 +77,23 @@ export function findGlideAjaxParamIssues(
         const key = getStringValue(call.arguments[0]);
         if (key === null) {
           rec.data.sysparmName = mergeSysparm(rec.data.sysparmName, "unknown");
+          rec.data.uncertain = true;
         } else if (key === "sysparm_name") {
           rec.data.sysparmName = sysparmValueState(call);
+          if (rec.data.sysparmName === "unknown") rec.data.uncertain = true;
         } else if (!key.startsWith("sysparm_")) {
           findings.push({ node: call, name: objectName, messageId: "badPrefix", param: key });
         }
       }
       if (TERMINAL.has(property)) {
-        if (rec.data.sysparmName === false) {
+        if (rec.data.sysparmName === false || (rec.data.sysparmName === "unknown" && !rec.data.uncertain)) {
           findings.push({ node: call, name: objectName, messageId: "missingName" });
         } else if (rec.data.sysparmName === "empty") {
           findings.push({ node: call, name: objectName, messageId: "emptyValue" });
         }
         rec.data.terminal = true;
         rec.data.sysparmName = false;
+        rec.data.uncertain = false;
       }
     },
   });

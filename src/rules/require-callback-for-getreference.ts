@@ -49,6 +49,9 @@ export const requireCallbackForGetreference = defineRule({
         const object = (call.callee as ESTree.MemberExpression).object;
         const proven = analysis.ofExpression(object);
         if (proven?.kind !== "g_form" || proven.invalid || proven.escaped) return;
+        // A spread has unknown runtime arity. It may supply a callback even
+        // when no syntactic second argument is present.
+        if (call.arguments.some((argument) => argument.type === "SpreadElement")) return;
         const callback = call.arguments[1];
         if (call.arguments.length >= 2 && !isNullishCallback(callback, analysis)) return;
         context.report({ node, messageId: "missingCallback" });

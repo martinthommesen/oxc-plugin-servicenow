@@ -12,6 +12,8 @@ export interface UnfilteredBulkFinding {
 
 interface FilterData {
   filtered: boolean | "unknown";
+  /** Dynamic/undocumented evidence is intentionally silent rather than a must-fact failure. */
+  uncertain: boolean;
 }
 
 const FIELD_OR_ENCODED_FILTERS = new Set([
@@ -63,9 +65,12 @@ export function findUnfilteredBulkOperations(
     program,
     analysis,
     kinds: ["GlideRecord"],
-    emptyData: () => ({ filtered: false }),
+    emptyData: () => ({ filtered: false, uncertain: false }),
     cloneData: (data) => ({ ...data }),
-    mergeData: (left, right) => ({ filtered: mergeTri(left.filtered, right.filtered) }),
+    mergeData: (left, right) => ({
+      filtered: mergeTri(left.filtered, right.filtered),
+      uncertain: left.uncertain || right.uncertain,
+    }),
     onCall({ call, rec, objectName, property }) {
       if (!rec || !objectName || !property) return;
       const evidence = filterEvidence(property, call);
@@ -75,17 +80,22 @@ export function findUnfilteredBulkOperations(
       }
       if (evidence === "unknown") {
         rec.data.filtered = mergeTri(rec.data.filtered, "unknown");
+        rec.data.uncertain = true;
         return;
       }
       if (evidence === false) {
         return;
       }
-      if (GLIDE_BULK_METHODS.has(property) && rec.data.filtered === false) {
+      if (
+        GLIDE_BULK_METHODS.has(property) &&
+        (rec.data.filtered === false || (rec.data.filtered === "unknown" && !rec.data.uncertain))
+      ) {
         findings.push({ node: call, name: objectName, method: property });
         return;
       }
       if (!GLIDE_KNOWN_METHODS.has(property) && rec.data.filtered === false) {
         rec.data.filtered = "unknown";
+        rec.data.uncertain = true;
       }
     },
   });

@@ -31,8 +31,12 @@ export const noGsNow = defineRule({
         const call = node as ESTree.CallExpression;
         if (call.callee.type !== "MemberExpression") return;
         const member = call.callee as ESTree.MemberExpression;
-        if (getName(member.object) !== "gs") return;
-        if (!analysis.isPlatformGlobal(member.object as ESTree.Node)) return;
+        const directGlobal =
+          getName(member.object) === "gs" &&
+          analysis.isPlatformGlobal(member.object as ESTree.Node);
+        const proven = analysis.ofExpression(member.object);
+        const alias = proven?.kind === "gs" && !proven.invalid && !proven.escaped;
+        if (!directGlobal && !alias) return;
         const property = staticPropertyName(member);
         const isNow = property === "now";
         const isNowDateTime = property === "nowDateTime";

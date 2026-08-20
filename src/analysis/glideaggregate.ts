@@ -84,7 +84,7 @@ export function findGlideAggregateIssues(
         rec.data.queried = true;
       }
       if (property === "next" || property === "getAggregate") {
-        if (rec.data.queried === false) {
+        if (rec.data.queried === false || rec.data.queried === "unknown") {
           findings.push({ node: call, name: objectName, messageId: "missingQuery", method: property });
         }
       }

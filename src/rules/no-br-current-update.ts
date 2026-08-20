@@ -30,9 +30,14 @@ export const noBrCurrentUpdate = defineRule({
         const call = node as ESTree.CallExpression;
         if (call.callee.type !== "MemberExpression") return;
         const member = call.callee as ESTree.MemberExpression;
-        if (getName(member.object) !== "current") return;
-        if (!analysis.isPlatformGlobal(member.object as ESTree.Node)) return;
         if (staticPropertyName(member) !== "update") return;
+        const directGlobal =
+          getName(member.object) === "current" &&
+          analysis.isPlatformGlobal(member.object as ESTree.Node);
+        const proven = analysis.ofExpression(member.object);
+        const alias =
+          proven?.kind === "current" && !proven.invalid && !proven.escaped;
+        if (!directGlobal && !alias) return;
         context.report({ node, messageId: "update" });
       },
     };

@@ -7,14 +7,15 @@ import { isServerInstanceContext } from "../context/index.js";
 import { beginRuleFile } from "./helpers.js";
 
 interface GrBinding {
+  name: string;
   counted: boolean;
   iterated: boolean;
   onlyIncremented: boolean;
   countNode: ESTree.Node | null;
 }
 
-function emptyBinding(): GrBinding {
-  return { counted: false, iterated: false, onlyIncremented: false, countNode: null };
+function emptyBinding(name: string): GrBinding {
+  return { name, counted: false, iterated: false, onlyIncremented: false, countNode: null };
 }
 
 function isIncrement(node: ESTree.Node): boolean {
@@ -41,7 +42,10 @@ export const preferGlideaggregate = defineRule({
     },
   },
   createOnce(context) {
-    let bindings: Map<string, GrBinding>;
+    // Key state by the analysis ObjectId, not by identifier spelling. A
+    // shadowed parameter and an outer alias may have the same name while
+    // referring to different runtime cursors.
+    let bindings: Map<number, GrBinding>;
 
     return {
       before() {
@@ -51,34 +55,26 @@ export const preferGlideaggregate = defineRule({
       VariableDeclarator(node) {
         const { analysis } = beginRuleFile(context);
         const decl = node as ESTree.VariableDeclarator;
-        const name = getName(decl.id);
-        if (!name || !decl.init) return;
-        const proven = analysis.ofExpression(decl.init);
-        if (proven?.kind === "GlideRecord" && !proven.invalid) {
-          bindings.set(name, emptyBinding());
-        }
+        if (!decl.init) return;
+        const receiver = glideRecordReceiver(analysis, decl.init);
+        if (receiver) ensureBinding(receiver.id, receiver.name);
       },
       AssignmentExpression(node) {
         const { analysis } = beginRuleFile(context);
         const assign = node as ESTree.AssignmentExpression;
-        const name = getName(assign.left);
-        if (!name) return;
-        const proven = analysis.ofExpression(assign.right);
-        if (proven?.kind === "GlideRecord" && !proven.invalid) {
-          bindings.set(name, emptyBinding());
-        } else if (name && bindings.has(name)) {
-          bindings.delete(name);
-        }
+        const receiver = glideRecordReceiver(analysis, assign.right);
+        if (receiver) ensureBinding(receiver.id, receiver.name);
       },
       CallExpression(node) {
+        const { analysis } = beginRuleFile(context);
         const call = node as ESTree.CallExpression;
         if (call.callee.type !== "MemberExpression") return;
         const member = call.callee as ESTree.MemberExpression;
-        const object = getName(member.object);
         const property = staticPropertyName(member);
-        if (!object || !property) return;
-        const binding = bindings.get(object);
-        if (!binding) return;
+        if (!property) return;
+        const receiver = glideRecordReceiver(analysis, member.object);
+        if (!receiver) return;
+        const binding = ensureBinding(receiver.id, receiver.name);
 
         if (property === "getRowCount") {
           binding.counted = true;
@@ -86,7 +82,7 @@ export const preferGlideaggregate = defineRule({
           context.report({
             node,
             messageId: "getRowCount",
-            data: { name: object },
+            data: { name: receiver.name },
           });
         }
 
@@ -101,28 +97,56 @@ export const preferGlideaggregate = defineRule({
         checkLoopBody(node as ESTree.ForStatement);
       },
       after() {
-        for (const [name, binding] of bindings) {
+        for (const binding of bindings.values()) {
           if (binding.iterated && binding.onlyIncremented && !binding.counted) {
             context.report({
               node: binding.countNode ?? (context.sourceCode.ast as unknown as ESTree.Node),
               messageId: "iterateCount",
-              data: { name },
+              data: { name: binding.name },
             });
           }
         }
       },
     };
 
+    function glideRecordReceiver(
+      analysis: ReturnType<typeof beginRuleFile>["analysis"],
+      node: unknown,
+    ): { id: number; name: string } | null {
+      const proven = analysis.ofExpression(node);
+      if (
+        !proven ||
+        proven.kind !== "GlideRecord" ||
+        proven.invalid ||
+        proven.escaped ||
+        proven.objectId === undefined
+      ) {
+        return null;
+      }
+      return { id: proven.objectId, name: getName(node) ?? "record" };
+    }
+
+    function ensureBinding(id: number, name: string): GrBinding {
+      const existing = bindings.get(id);
+      if (existing) {
+        if (existing.name === "record" && name !== "record") existing.name = name;
+        return existing;
+      }
+      const created = emptyBinding(name);
+      bindings.set(id, created);
+      return created;
+    }
+
     function checkLoopBody(node: ESTree.WhileStatement | ESTree.ForStatement) {
+      const { analysis } = beginRuleFile(context);
       const test = node.test;
       if (!test || test.type !== "CallExpression") return;
       const callee = (test as ESTree.CallExpression).callee;
       if (callee.type !== "MemberExpression") return;
-      const object = getName((callee as ESTree.MemberExpression).object);
-      const property = staticPropertyName(callee);
-      if (!object || property !== "next") return;
-      const binding = bindings.get(object);
-      if (!binding) return;
+      if (staticPropertyName(callee) !== "next") return;
+      const receiver = glideRecordReceiver(analysis, callee.object);
+      if (!receiver) return;
+      const binding = ensureBinding(receiver.id, receiver.name);
 
       const body = node.body;
       const statements =

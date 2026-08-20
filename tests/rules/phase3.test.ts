@@ -562,11 +562,12 @@ task.deleteMultiple();`,
       RULE,
       SERVER,
     );
-    assertValid(
+    assertInvalid(
       `var task = new GlideRecord("task");
 if (ready) task.addQuery("active", false);
 task.deleteMultiple();`,
       RULE,
+      { messageId: "unfiltered" },
       SERVER,
     );
   });

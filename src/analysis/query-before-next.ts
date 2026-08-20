@@ -15,8 +15,9 @@ interface QueryData {
 /**
  * Path-sensitive query-before-next for proven GlideRecord object identities.
  *
- * Reports only when every reachable path to `next()` still has
- * `queryState === "unopened"`. `chooseWindow` does not open a cursor.
+ * Reports whenever a reachable path to `next()` lacks a proven query/get.
+ * A merged `unknown` state is unsafe for a must-fact and is therefore reported;
+ * escaped or unproven receivers remain silent. `chooseWindow` does not open a cursor.
  * Executors come from the versioned GlideRecord manifest.
  */
 export function findMissingQueryBeforeNext(
@@ -38,7 +39,7 @@ export function findMissingQueryBeforeNext(
       if (GLIDE_QUERY_EXECUTORS.has(property) && rec.data.queryState === "unopened") {
         rec.data.queryState = "opened";
       }
-      if (property === "next" && rec.data.queryState === "unopened") {
+      if (property === "next" && (rec.data.queryState === "unopened" || rec.data.queryState === "unknown")) {
         findings.push({ node: call, name: objectName ?? "record" });
       }
     },
