@@ -19,7 +19,7 @@ This report is the final local audit for the seven-layer remediation stack. The 
 - Node `v26.7.0`, npm `12.0.2`, macOS arm64.
 - `npm ci` followed by `npm run validate` from a detached clean worktree — pass.
 - `npm run typecheck` — pass.
-- `npm test` — pass (655 tests).
+- `npm test` — pass (656 tests).
 - `npm run docs:check` — pass (41 catalog records).
 - `npm run manifest:check` — pass (3.0.0 (42 APIs), 4.1.0 (42 APIs), 4.8.0 (48 APIs), 4.10.0 (49 APIs), and 4.11.0 (49 APIs) manifests).
 - `npm run workflow:check` and `npm run compat:check` — pass.
