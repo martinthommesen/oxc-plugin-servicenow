@@ -1,5 +1,5 @@
 {
-  "capturedAt": "2026-08-20T09:04:04Z",
+  "capturedAt": "2026-08-20T09:36:12Z",
   "repository": "martinthommesen/oxc-plugin-servicenow",
   "github": {
     "mainRuleset": {
@@ -80,8 +80,15 @@
     }
   },
   "npmTrustedPublisher": {
-    "status": "pending",
-    "blocker": "npm CLI is not authenticated on this host (npm whoami: ENEEDAUTH); maintainer must configure the package publisher for the repository/workflow/environment/tag refs.",
+    "status": "configured",
+    "id": "3d460658-361a-4591-a6bb-8f9ca2364eaf",
+    "type": "github",
+    "file": "release.yml",
+    "repository": "martinthommesen/oxc-plugin-servicenow",
+    "environment": "release",
+    "permissions": [
+      "createPackage"
+    ],
     "desired": {
       "repository": "oxc-plugin-servicenow",
       "workflow": ".github/workflows/release.yml",
@@ -90,6 +97,13 @@
         "refs/tags/v*"
       ],
       "workflowFilename": "release.yml"
+    },
+    "bootstrap": {
+      "version": "2.0.0-bootstrap.0",
+      "distTag": "next",
+      "registryIntegrity": "sha512-4mgibuZMqfvatzyVPYt0/TvAo8aeCedw2GnSurlrBDe3VJB1xQjzene0tQa0ONZiIjfIyDP6mNuJivhFp/5+Fg==",
+      "registryTarball": "https://registry.npmjs.org/oxc-plugin-servicenow/-/oxc-plugin-servicenow-2.0.0-bootstrap.0.tgz",
+      "provenance": "not claimed for bootstrap; target stable release must use OIDC provenance"
     }
   }
 }

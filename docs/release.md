@@ -74,21 +74,21 @@ A publish request can be accepted by npm even when the client receives a network
 
 ## Captured GitHub governance
 
-The repository controls were applied and captured on 2026-08-20 in [`docs/release-governance-live.json`](./release-governance-live.json): active `main` pull-request/status-check ruleset `21081867`, active protected `v**` tag ruleset `21081873`, a non-bypassable reviewer-gated `release` environment, and repository-level SHA-pinning enforcement. The npm trusted publisher remains pending because this host is not authenticated to npm; configure npm's workflow filename field as `release.yml` (the repository path is `.github/workflows/release.yml`) with the repository/environment/tag restrictions in `scripts/release-governance.json`.
+The repository controls were applied and captured on 2026-08-20 in [`docs/release-governance-live.json`](./release-governance-live.json): active `main` pull-request/status-check ruleset `21081867`, active protected `v**` tag ruleset `21081873`, a non-bypassable reviewer-gated `release` environment, repository-level SHA-pinning enforcement, and npm trusted publisher `3d460658-361a-4591-a6bb-8f9ca2364eaf`. The npm publisher is configured for repository `martinthommesen/oxc-plugin-servicenow`, workflow filename `release.yml` (the repository path is `.github/workflows/release.yml`), and environment `release`; no `NPM_TOKEN` secret is used. A one-time `2.0.0-bootstrap.0` publication created the package so the trusted-publisher relationship could be configured; it is not evidence for the stable OIDC release.
 
 ## Explicitly-live gates
 
-Local tests use deterministic metadata, fake command boundaries, and the current packed artifact. They do **not** prove external OIDC trust, registry availability/provenance, or GitHub permissions. Keep these gates pending until an approved real tag completes them:
+Local tests use deterministic metadata, fake command boundaries, and the current packed artifact. They do **not** prove external OIDC trust, registry availability/provenance, or GitHub permissions. The governance gates below are captured in [`docs/release-governance-live.json`](./release-governance-live.json); only the approved stable-tag run remains live-pending:
 
-1. Confirm the protected `release` environment requires a reviewer.
-2. Confirm npm trusted publishing is configured for this repository and the `Release` workflow, with no `NPM_TOKEN` secret.
-3. Tag `v2.0.0` on a commit already on protected `main`.
+1. **Complete:** the protected `release` environment requires a reviewer and administrators cannot bypass it.
+2. **Complete:** npm trusted publishing is configured for this repository and the `release.yml` workflow, with no `NPM_TOKEN` secret.
+3. Tag `v2.0.0` on a commit already on protected `main` after PR approval and merge.
 4. Confirm all validate and real Node matrix jobs pass on that tag.
 5. Approve the publish job in the `release` environment.
 6. Confirm registry verification sees the exact tarball integrity and provenance, and imports all public exports.
 7. Confirm the GitHub release exists with the inspected `oxc-plugin-servicenow-2.0.0.tgz` asset.
 
-Only after those live checks should maintainers close #58 and #76's release criteria.
+Only after the remaining live checks should maintainers close #58 and #76's release criteria.
 
 
 ## Merge readiness versus release readiness
@@ -97,13 +97,12 @@ Only after those live checks should maintainers close #58 and #76's release crit
 
 **Release readiness** starts only after merge: an approved protected `v*` tag must pass the real Node 20/22/24/26 matrix, trusted-publishing OIDC, registry integrity/provenance/import verification, and idempotent GitHub release creation. These are intentionally live gates and remain pending until a maintainer runs them.
 
-The desired GitHub ruleset and npm publisher restrictions are recorded in `scripts/release-governance.json`. A maintainer should apply and capture them before the first release:
+The desired GitHub ruleset and npm publisher restrictions are recorded in `scripts/release-governance.json`; the applied controls and npm trust record are captured in `docs/release-governance-live.json`:
 
 ```bash
-gh api repos/:owner/:repo/branches/main/protection
 gh api repos/:owner/:repo/rulesets
 gh api repos/:owner/:repo/environments/release
-npm profile get
+npm trust list oxc-plugin-servicenow --json
 ```
 
-The repository/workflow/environment/tag restriction must match that file exactly; no tag-only live proof is required to merge the implementation.
+The repository/workflow/environment/tag restriction must match those records. No tag-only live proof is required to merge the implementation.

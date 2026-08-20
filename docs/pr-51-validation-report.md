@@ -42,9 +42,9 @@ This report is the final local audit for the seven-layer remediation stack. The 
 
 ## Intentionally deferred live gates
 
-These are not claimed by local mocks or text checks and remain unchecked in the goal file and ledger:
+The repository controls and npm trust relationship are now live and captured in `docs/release-governance-live.json`; local mocks and text checks still do not substitute for the stable release run:
 
-1. The GitHub `main` ruleset, protected `v*` tags, reviewer-gated `release` environment, and SHA-pinning requirement are applied and captured in `docs/release-governance-live.json`; npm trusted-publisher configuration remains pending because this host is not authenticated to npm.
-2. An approved protected tag must prove live npm OIDC publication, registry integrity/provenance/import visibility, and idempotent GitHub release creation.
+1. **Complete:** the GitHub `main` ruleset, protected `v*` tags, reviewer-gated `release` environment, SHA-pinning requirement, and npm trusted publisher are applied and captured. `npm trust list oxc-plugin-servicenow --json` identifies workflow `release.yml`, repository `martinthommesen/oxc-plugin-servicenow`, and environment `release`; no `NPM_TOKEN` secret is configured.
+2. **Pending:** an approved protected `v2.0.0` tag must prove live npm OIDC publication, exact registry integrity/provenance/import visibility, and idempotent GitHub release creation.
 
-No live publication, registry, or GitHub result is represented as complete by this local report.
+No stable live publication, registry, or GitHub release result is represented as complete by this report.
