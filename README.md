@@ -165,7 +165,7 @@ The flat presets set `files` so ESLint 10 opens classic `*.js` / `*.cjs` / `*.mj
 
 oxlint parses TypeScript itself. ESLint uses its default JS parser, so type annotations (`import type`, `: string`) in `.now.ts` fail to parse when you use only `plugin.configs.flat.recommended`.
 
-For typed Fluent files, compose the recommended (or strict) preset with a TypeScript parser. This package tests [`typescript-eslint`](https://typescript-eslint.io/getting-started/) `8.x` with ESLint 9 and ESLint 10. Type-aware linting is not required.
+For typed Fluent files, compose the recommended (or strict) preset with a TypeScript parser. This package tests [`typescript-eslint`](https://typescript-eslint.io/getting-started/) `8.x` with ESLint 9. `typescript-eslint` 8 does not accept ESLint 10 as a peer. Type-aware linting is not required.
 
 ```js
 // eslint.config.js — typed Fluent composition

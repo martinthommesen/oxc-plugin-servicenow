@@ -25,8 +25,8 @@ export const noDuplicateFluentId = defineRule({
         if (!isFluentContext(script)) return false;
       },
       Program(node) {
-        const { analysis } = beginRuleFile(context);
-        for (const finding of findDuplicateFluentIds(node as ESTree.Node, analysis)) {
+        const { analysis, file } = beginRuleFile(context);
+        for (const finding of findDuplicateFluentIds(node as ESTree.Node, analysis, file.nowIdAt)) {
           context.report({
             node: finding.node,
             messageId: "duplicate",

@@ -1,7 +1,7 @@
 var rec = new GlideRecord("incident");
 switch (mode) {
   case "ready":
-    rec.query();
+    gs.info("ready");
     break;
 }
 rec.next();

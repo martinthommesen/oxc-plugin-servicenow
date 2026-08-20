@@ -14,8 +14,15 @@ export { findGlideAjaxParamIssues } from "./glideajax-params.js";
 export type { GlideAjaxParamFinding } from "./glideajax-params.js";
 export { findGlideAggregateIssues } from "./glideaggregate.js";
 export type { AggregateFinding } from "./glideaggregate.js";
-export { findNowIdMisuses, findDuplicateFluentIds, isCanonicalNow, isCanonicalNowId, isCanonicalNowInclude } from "./now-id.js";
-export type { NowIdMisuse, DuplicateFluentId } from "./now-id.js";
+export {
+  findNowIdMisuses,
+  findDuplicateFluentIds,
+  isCanonicalNow,
+  isCanonicalNowId,
+  isCanonicalNowInclude,
+  isProvenNowIdValue,
+} from "./now-id.js";
+export type { NowIdMisuse, DuplicateFluentId, NowIdFact } from "./now-id.js";
 export { collectFluentImports, resolveFluentFactory } from "./fluent-imports.js";
 export type { FluentImportBinding } from "./fluent-imports.js";
 export type { FluentFileFacts } from "./file-analysis.js";

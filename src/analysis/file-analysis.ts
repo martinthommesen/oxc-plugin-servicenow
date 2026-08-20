@@ -20,7 +20,7 @@ import {
   resolveFluentFactory,
   type FluentImportBinding,
 } from "./fluent-imports.js";
-import { isCanonicalNow } from "./now-id.js";
+import { isCanonicalNow, nowIdValue, type NowIdFact } from "./now-id.js";
 
 export interface FluentFileFacts {
   manifest: FluentSdkManifest;
@@ -34,6 +34,12 @@ export interface FileAnalysis {
   script: ServiceNowScriptContext;
   provenance: ProvenanceQuery;
   fluent: FluentFileFacts;
+  /** Program-point `Now.ID` facts keyed by the use-site node. */
+  nowIdAt: ReadonlyMap<ESTree.Node, NowIdFact>;
+}
+
+interface FilePathData {
+  nowIdKey: NowIdFact;
 }
 
 const ALL_KINDS: readonly ProvenanceKind[] = [
@@ -114,18 +120,28 @@ function buildFileAnalysis(context: Context): FileAnalysis {
 
   const provenanceAtNode = new Map<ESTree.Node, Provenance>();
   const identifierAtNode = new Map<ESTree.Node, Provenance>();
+  const nowIdAt = new Map<ESTree.Node, NowIdFact>();
 
   if (program) {
     const kindByObject = new Map<number, ProvenanceKind>();
-    analyzePathBindings({
+    const query = makeQuery(bindings, provenanceAtNode, identifierAtNode);
+    analyzePathBindings<FilePathData>({
       program,
-      analysis: makeQuery(bindings, provenanceAtNode, identifierAtNode),
+      analysis: query,
       kinds: ALL_KINDS,
-      emptyData: () => ({}),
-      cloneData: () => ({}),
-      mergeData: () => ({}),
+      emptyData: () => ({ nowIdKey: null }),
+      cloneData: (data) => ({ ...data }),
+      mergeData: (left, right) => ({
+        nowIdKey: left.nowIdKey === right.nowIdKey ? left.nowIdKey : "unknown",
+      }),
       onCall() {},
+      onValue(node) {
+        const key = nowIdValue(node, query);
+        if (key === undefined) return undefined;
+        return { nowIdKey: key };
+      },
       onRef({ node, rec, bindingId }) {
+        if (rec?.data.nowIdKey != null) nowIdAt.set(node, rec.data.nowIdKey);
         if (!rec) return;
         if (node.type === "NewExpression") {
           const kind = ctorProvenanceKind(getName((node as ESTree.NewExpression).callee));
@@ -185,6 +201,7 @@ function buildFileAnalysis(context: Context): FileAnalysis {
     bindings,
     script,
     provenance,
+    nowIdAt,
     fluent: {
       manifest,
       imports,

@@ -1,7 +1,7 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { getAncestors } from "../analysis/index.js";
-import { isCanonicalNowId } from "../analysis/now-id.js";
+import { isProvenNowIdValue } from "../analysis/now-id.js";
 import { ruleDocsUrl } from "../constants.js";
 import { getStringValue, objectProperty } from "../utils/ast.js";
 import { isFluentContext } from "../context/index.js";
@@ -66,7 +66,7 @@ export const requireFluentId = defineRule({
         }
 
         if (!preferNowId) return;
-        if (isCanonicalNowId(value, analysis)) return;
+        if (isProvenNowIdValue(value, analysis, file.nowIdAt)) return;
         const kind = literal != null ? "string" : value.type === "Literal" ? "literal" : "value";
         context.report({ node: value, messageId: "preferNowId", data: { kind } });
       },

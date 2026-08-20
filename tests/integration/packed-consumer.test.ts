@@ -191,7 +191,7 @@ describe("packed package consumer", () => {
       );
       execFileSync(
         "npm",
-        ["install", tarball, "eslint@10.8.1", "typescript-eslint@8.46.0", "typescript@5.8.0"],
+        ["install", tarball, "eslint@9.39.5", "typescript-eslint@8.46.0", "typescript@5.8.0"],
         { cwd: consumer, encoding: "utf8" },
       );
       writeFileSync(

@@ -152,6 +152,33 @@ rec.next();`,
     );
   });
 
+  it("stays silent when a switch path may skip query", () => {
+    assertValid(
+      `var rec = new GlideRecord("incident");
+switch (mode) {
+  case "ready":
+    rec.query();
+    break;
+}
+rec.next();`,
+      "require-query-before-next",
+    );
+  });
+
+  it("reports next after a switch that never queries", () => {
+    assertInvalid(
+      `var rec = new GlideRecord("incident");
+switch (mode) {
+  case "ready":
+    gs.info("ready");
+    break;
+}
+rec.next();`,
+      "require-query-before-next",
+      { messageId: "missingQuery" },
+    );
+  });
+
   it("marks a stored inline constructor as escaped", () => {
     assertValid(
       `var rec;

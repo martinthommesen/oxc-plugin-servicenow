@@ -20,7 +20,7 @@ export interface DuplicateFluentId {
   key: string;
 }
 
-type NowIdFact = string | "unknown" | null;
+export type NowIdFact = string | "unknown" | null;
 
 interface NowIdData {
   nowIdKey: NowIdFact;
@@ -147,10 +147,22 @@ function feedsId(parent: ESTree.Node | undefined, node: ESTree.Node): boolean {
   return isPropertyValue(parent, node, "$id") || isIdPropertyAssignment(parent, node);
 }
 
-function nowIdValue(node: ESTree.Node, analysis: ProvenanceQuery): NowIdFact | undefined {
+export function nowIdValue(node: ESTree.Node, analysis: ProvenanceQuery): NowIdFact | undefined {
   if (!isCanonicalNowId(node, analysis)) return undefined;
   const key = nowIdKey(node);
   return key ?? "unknown";
+}
+
+/** True when this node is a canonical `Now.ID` lookup or a proven alias at this program point. */
+export function isProvenNowIdValue(
+  node: ESTree.Node,
+  analysis: ProvenanceQuery,
+  facts: ReadonlyMap<ESTree.Node, NowIdFact>,
+): boolean {
+  if (isCanonicalNowId(node, analysis)) return true;
+  const inner = unwrapExpr(node) ?? node;
+  const fact = facts.get(node) ?? facts.get(inner);
+  return fact != null && fact !== "unknown";
 }
 
 function collectNowIdFacts(program: ESTree.Node, analysis: ProvenanceQuery): Map<ESTree.Node, NowIdFact> {
@@ -182,8 +194,11 @@ function collectNowIdFacts(program: ESTree.Node, analysis: ProvenanceQuery): Map
  * `Now.ID[...]` is a metadata identity. Report uses that do not feed `$id`.
  * Alias meaning is read at the use site from binding/object identity.
  */
-export function findNowIdMisuses(program: ESTree.Node, analysis: ProvenanceQuery): NowIdMisuse[] {
-  const facts = collectNowIdFacts(program, analysis);
+export function findNowIdMisuses(
+  program: ESTree.Node,
+  analysis: ProvenanceQuery,
+  facts: ReadonlyMap<ESTree.Node, NowIdFact> = collectNowIdFacts(program, analysis),
+): NowIdMisuse[] {
   const findings: NowIdMisuse[] = [];
   const ancestors: ESTree.Node[] = [];
 
@@ -217,8 +232,8 @@ export function findNowIdMisuses(program: ESTree.Node, analysis: ProvenanceQuery
 export function findDuplicateFluentIds(
   program: ESTree.Node,
   analysis: ProvenanceQuery,
+  facts: ReadonlyMap<ESTree.Node, NowIdFact> = collectNowIdFacts(program, analysis),
 ): DuplicateFluentId[] {
-  const facts = collectNowIdFacts(program, analysis);
   const first = new Map<string, ESTree.Node>();
   const findings: DuplicateFluentId[] = [];
   const ancestors: ESTree.Node[] = [];

@@ -113,6 +113,29 @@ describe("require-fluent-id", () => {
       { filename: NOW },
     );
   });
+
+  it("allows a temporal Now.ID alias as $id", () => {
+    assertValid(
+      `import { BusinessRule } from "@servicenow/sdk/core";
+let id = Now.ID["log-state"];
+BusinessRule({ $id: id, table: "incident", name: "Log state" });
+id = "later-reassignment";`,
+      "require-fluent-id",
+      { filename: NOW },
+    );
+  });
+
+  it("flags a raw $id that is later assigned Now.ID", () => {
+    assertInvalid(
+      `import { BusinessRule } from "@servicenow/sdk/core";
+let id = "raw-id";
+BusinessRule({ $id: id, table: "incident", name: "Log state" });
+id = Now.ID["log-state"];`,
+      "require-fluent-id",
+      { messageId: "preferNowId" },
+      { filename: NOW },
+    );
+  });
 });
 
 describe("prefer-now-include", () => {
