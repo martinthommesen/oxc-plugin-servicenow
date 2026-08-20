@@ -1,0 +1,366 @@
+{
+  "version": "sdk-4.11.0",
+  "sdkVersion": "4.11.0",
+  "apis": [
+    {
+      "name": "Acl",
+      "module": "@servicenow/sdk/core",
+      "kind": "entity",
+      "idRequirement": "required",
+      "evidence": "https://github.com/ServiceNow/sdk-examples/acl-sample"
+    },
+    {
+      "name": "AliasTemplate",
+      "module": "@servicenow/sdk/core",
+      "kind": "entity",
+      "idRequirement": "required",
+      "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples"
+    },
+    {
+      "name": "ApplicationMenu",
+      "module": "@servicenow/sdk/core",
+      "kind": "entity",
+      "idRequirement": "required",
+      "evidence": "https://github.com/ServiceNow/sdk-examples/applicationmenu-sample"
+    },
+    {
+      "name": "BusinessRule",
+      "module": "@servicenow/sdk/core",
+      "kind": "entity",
+      "idRequirement": "required",
+      "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples/businessrule-sample"
+    },
+    {
+      "name": "CatalogClientScript",
+      "module": "@servicenow/sdk/core",
+      "kind": "entity",
+      "idRequirement": "required",
+      "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples"
+    },
+    {
+      "name": "CatalogItem",
+      "module": "@servicenow/sdk/core",
+      "kind": "entity",
+      "idRequirement": "required",
+      "evidence": "https://github.com/ServiceNow/sdk-examples/service-catalog-sample"
+    },
+    {
+      "name": "CatalogItemRecordProducer",
+      "module": "@servicenow/sdk/core",
+      "kind": "entity",
+      "idRequirement": "required",
+      "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples"
+    },
+    {
+      "name": "ClientScript",
+      "module": "@servicenow/sdk/core",
+      "kind": "entity",
+      "idRequirement": "required",
+      "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples/clientscript-sample"
+    },
+    {
+      "name": "CrossScopePrivilege",
+      "module": "@servicenow/sdk/core",
+      "kind": "entity",
+      "idRequirement": "required",
+      "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples"
+    },
+    {
+      "name": "DatabaseIndex",
+      "module": "@servicenow/sdk/core",
+      "kind": "entity",
+      "idRequirement": "optional",
+      "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples"
+    },
+    {
+      "name": "InboundEmailAction",
+      "module": "@servicenow/sdk/core",
+      "kind": "entity",
+      "idRequirement": "required",
+      "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples"
+    },
+    {
+      "name": "List",
+      "module": "@servicenow/sdk/core",
+      "kind": "entity",
+      "idRequirement": "deprecated",
+      "evidence": "https://github.com/ServiceNow/sdk-examples/list-sample"
+    },
+    {
+      "name": "Module",
+      "module": "@servicenow/sdk/core",
+      "kind": "entity",
+      "idRequirement": "required",
+      "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples"
+    },
+    {
+      "name": "Property",
+      "module": "@servicenow/sdk/core",
+      "kind": "entity",
+      "idRequirement": "required",
+      "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples"
+    },
+    {
+      "name": "Record",
+      "module": "@servicenow/sdk/core",
+      "kind": "entity",
+      "idRequirement": "required",
+      "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples/record-sample"
+    },
+    {
+      "name": "UserPreference",
+      "module": "@servicenow/sdk/core",
+      "kind": "entity",
+      "idRequirement": "required",
+      "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples/user-preference-sample"
+    },
+    {
+      "name": "RestApi",
+      "module": "@servicenow/sdk/core",
+      "kind": "entity",
+      "idRequirement": "required",
+      "evidence": "https://github.com/ServiceNow/sdk-examples/restapi-sample"
+    },
+    {
+      "name": "Role",
+      "module": "@servicenow/sdk/core",
+      "kind": "entity",
+      "idRequirement": "required",
+      "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples"
+    },
+    {
+      "name": "ScheduledScript",
+      "module": "@servicenow/sdk/core",
+      "kind": "entity",
+      "idRequirement": "required",
+      "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples"
+    },
+    {
+      "name": "ScriptedRestApi",
+      "module": "@servicenow/sdk/core",
+      "kind": "entity",
+      "idRequirement": "required",
+      "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples"
+    },
+    {
+      "name": "SPMenu",
+      "module": "@servicenow/sdk/core",
+      "kind": "entity",
+      "idRequirement": "required",
+      "evidence": "https://github.com/ServiceNow/sdk-examples/service-portal-sample"
+    },
+    {
+      "name": "SPWidget",
+      "module": "@servicenow/sdk/core",
+      "kind": "entity",
+      "idRequirement": "required",
+      "evidence": "https://github.com/ServiceNow/sdk-examples/service-portal-sample"
+    },
+    {
+      "name": "StateModel",
+      "module": "@servicenow/sdk/core",
+      "kind": "entity",
+      "idRequirement": "required",
+      "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples"
+    },
+    {
+      "name": "Table",
+      "module": "@servicenow/sdk/core",
+      "kind": "entity",
+      "idRequirement": "forbidden",
+      "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples/table-sample"
+    },
+    {
+      "name": "Test",
+      "module": "@servicenow/sdk/core",
+      "kind": "entity",
+      "idRequirement": "required",
+      "evidence": "https://github.com/ServiceNow/sdk-examples/test-atf-sample"
+    },
+    {
+      "name": "ScriptAction",
+      "module": "@servicenow/sdk/core",
+      "kind": "entity",
+      "idRequirement": "required",
+      "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples/script-action-sample"
+    },
+    {
+      "name": "ScriptInclude",
+      "module": "@servicenow/sdk/core",
+      "kind": "entity",
+      "idRequirement": "required",
+      "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples/script-include-sample"
+    },
+    {
+      "name": "UiAction",
+      "module": "@servicenow/sdk/core",
+      "kind": "entity",
+      "idRequirement": "required",
+      "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples/ui-action-sample"
+    },
+    {
+      "name": "UiPage",
+      "module": "@servicenow/sdk/core",
+      "kind": "entity",
+      "idRequirement": "required",
+      "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples/ui-page-sample"
+    },
+    {
+      "name": "UiFormatter",
+      "module": "@servicenow/sdk/core",
+      "kind": "entity",
+      "idRequirement": "required",
+      "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples"
+    },
+    {
+      "name": "UiPolicy",
+      "module": "@servicenow/sdk/core",
+      "kind": "entity",
+      "idRequirement": "required",
+      "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples"
+    },
+    {
+      "name": "Flow",
+      "module": "unknown",
+      "kind": "automation",
+      "idRequirement": "unknown",
+      "evidence": "https://github.com/ServiceNow/sdk-examples/flow-sample"
+    },
+    {
+      "name": "BooleanColumn",
+      "module": "@servicenow/sdk/core",
+      "kind": "column",
+      "idRequirement": "forbidden",
+      "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html (Table schema column helpers)"
+    },
+    {
+      "name": "ChoiceColumn",
+      "module": "@servicenow/sdk/core",
+      "kind": "column",
+      "idRequirement": "forbidden",
+      "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html (Table schema column helpers)"
+    },
+    {
+      "name": "ConditionsColumn",
+      "module": "@servicenow/sdk/core",
+      "kind": "column",
+      "idRequirement": "forbidden",
+      "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html (Table schema column helpers)"
+    },
+    {
+      "name": "DateColumn",
+      "module": "@servicenow/sdk/core",
+      "kind": "column",
+      "idRequirement": "forbidden",
+      "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html (Table schema column helpers)"
+    },
+    {
+      "name": "DateTimeColumn",
+      "module": "@servicenow/sdk/core",
+      "kind": "column",
+      "idRequirement": "forbidden",
+      "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html (Table schema column helpers)"
+    },
+    {
+      "name": "DecimalColumn",
+      "module": "@servicenow/sdk/core",
+      "kind": "column",
+      "idRequirement": "forbidden",
+      "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html (Table schema column helpers)"
+    },
+    {
+      "name": "FieldNameColumn",
+      "module": "@servicenow/sdk/core",
+      "kind": "column",
+      "idRequirement": "forbidden",
+      "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html (Table schema column helpers)"
+    },
+    {
+      "name": "HtmlColumn",
+      "module": "@servicenow/sdk/core",
+      "kind": "column",
+      "idRequirement": "forbidden",
+      "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html (Table schema column helpers)"
+    },
+    {
+      "name": "IntegerColumn",
+      "module": "@servicenow/sdk/core",
+      "kind": "column",
+      "idRequirement": "forbidden",
+      "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html (Table schema column helpers)"
+    },
+    {
+      "name": "ListColumn",
+      "module": "@servicenow/sdk/core",
+      "kind": "column",
+      "idRequirement": "forbidden",
+      "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html (Table schema column helpers)"
+    },
+    {
+      "name": "ReferenceColumn",
+      "module": "@servicenow/sdk/core",
+      "kind": "column",
+      "idRequirement": "forbidden",
+      "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html (Table schema column helpers)"
+    },
+    {
+      "name": "ScriptColumn",
+      "module": "@servicenow/sdk/core",
+      "kind": "column",
+      "idRequirement": "forbidden",
+      "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html (Table schema column helpers)"
+    },
+    {
+      "name": "StringColumn",
+      "module": "@servicenow/sdk/core",
+      "kind": "column",
+      "idRequirement": "forbidden",
+      "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html (Table schema column helpers)"
+    },
+    {
+      "name": "TableNameColumn",
+      "module": "@servicenow/sdk/core",
+      "kind": "column",
+      "idRequirement": "forbidden",
+      "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html (Table schema column helpers)"
+    },
+    {
+      "name": "TranslatedFieldColumn",
+      "module": "@servicenow/sdk/core",
+      "kind": "column",
+      "idRequirement": "forbidden",
+      "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html (Table schema column helpers)"
+    },
+    {
+      "name": "TranslatedTextColumn",
+      "module": "@servicenow/sdk/core",
+      "kind": "column",
+      "idRequirement": "forbidden",
+      "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html (Table schema column helpers)"
+    },
+    {
+      "name": "UserRolesColumn",
+      "module": "@servicenow/sdk/core",
+      "kind": "column",
+      "idRequirement": "forbidden",
+      "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html (Table schema column helpers)"
+    }
+  ],
+  "directives": [
+    {
+      "name": "fluent-ignore",
+      "placement": "previous-line",
+      "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html"
+    },
+    {
+      "name": "fluent-disable-sync",
+      "placement": "previous-line",
+      "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html"
+    },
+    {
+      "name": "fluent-disable-sync-for-file",
+      "placement": "first-line",
+      "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html"
+    }
+  ]
+}
