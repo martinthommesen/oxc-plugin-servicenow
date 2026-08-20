@@ -209,6 +209,65 @@ rec.next();`,
       "require-query-before-next",
     );
   });
+
+  it("retains loop-test side effects on the zero-iteration path", () => {
+    assertValid(
+      `var rec = new GlideRecord("incident");
+while ((rec.query(), false)) {}
+rec.next();`,
+      "require-query-before-next",
+    );
+  });
+
+  it("executes a for update after continue", () => {
+    assertValid(
+      `var rec = new GlideRecord("incident");
+rec.query();
+for (; rec.next(); rec.query()) {
+  continue;
+}
+rec.next();`,
+      "require-query-before-next",
+    );
+  });
+
+  it("executes a do-while test after continue", () => {
+    assertValid(
+      `var rec = new GlideRecord("incident");
+do {
+  continue;
+} while ((rec.query(), false));
+rec.next();`,
+      "require-query-before-next",
+    );
+  });
+
+  it("preserves object identity through equivalent expression results", () => {
+    assertValid(
+      `var rec = new GlideRecord("incident");
+var conditional = flag ? rec : rec;
+var logical = rec && rec;
+var sequence = (sideEffect(), rec);
+var assigned;
+(assigned = rec).query();
+conditional.query();
+logical.next();
+sequence.next();
+assigned.next();`,
+      "require-query-before-next",
+    );
+  });
+
+  it("does not infer identity through a fallback-only logical result", () => {
+    assertValid(
+      `var rec = new GlideRecord("incident");
+var alias = flag || rec;
+alias.next();`,
+      "require-query-before-next",
+    );
+  });
+
+
 });
 
 describe("unknown context", () => {

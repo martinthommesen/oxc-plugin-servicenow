@@ -400,8 +400,15 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
       const left = objectFromExpr(state, logical.left);
       const right = objectFromExpr(state, logical.right);
       // A logical expression can return either operand. Preserve an alias
-      // only when every statically tracked outcome is the same identity.
+      // only when every statically tracked outcome is the same identity. This
+      // is safe for &&, ||, and ?? when both reachable operands are the same.
       return left !== undefined && left === right ? left : undefined;
+    }
+    if (expr.type === "AssignmentExpression") {
+      const assignment = expr as ESTree.AssignmentExpression;
+      // Assignment expressions evaluate to their right-hand result. Compound
+      // assignments may retain/coerce the previous value, so stay unknown.
+      return assignment.operator === "=" ? objectFromExpr(state, assignment.right) : undefined;
     }
     if (onValue) {
       const existing = newExpressionIds.get(expr);
@@ -730,36 +737,79 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
       case "DoWhileStatement":
       case "ForInStatement":
       case "ForOfStatement": {
+        // Evaluate loop headers before taking the zero-iteration snapshot. A
+        // condition can mutate a tracked object even when it immediately
+        // yields false, so the post-test state is the loop's zero-body path.
         if (node.type === "ForStatement" && (node as ESTree.ForStatement).init) {
           visit((node as ESTree.ForStatement).init, state, false);
         }
-        if (
-          (node.type === "ForInStatement" || node.type === "ForOfStatement") &&
-          (node as ESTree.ForInStatement | ESTree.ForOfStatement).left
-        ) {
-          visit((node as ESTree.ForInStatement).left, state, false);
-          visit((node as ESTree.ForInStatement).right, state, false);
+        if (node.type === "ForInStatement" || node.type === "ForOfStatement") {
+          const iterable = node as ESTree.ForInStatement | ESTree.ForOfStatement;
+          if (iterable.right) visit(iterable.right, state, false);
+          if (iterable.left) visit(iterable.left, state, false);
         }
-        const before = snapshotState(state, cloneData);
-        if (node.type === "ForStatement") {
-          const stmt = node as ESTree.ForStatement;
-          if (stmt.test) visit(stmt.test, state, false);
-          if (stmt.body) visit(stmt.body, state, false);
-          if (stmt.update && state.completion === "normal") visit(stmt.update, state, false);
-        } else if (node.type === "WhileStatement" || node.type === "DoWhileStatement") {
-          const stmt = node as ESTree.WhileStatement | ESTree.DoWhileStatement;
-          if (node.type === "WhileStatement") visit(stmt.test, state, false);
-          visit(stmt.body, state, false);
-          if (node.type === "DoWhileStatement" && state.completion === "normal") visit(stmt.test, state, false);
+
+        const beforeTest = snapshotState(state, cloneData);
+        const testState = snapshotState(beforeTest, cloneData);
+        const isFor = node.type === "ForStatement";
+        const isWhile = node.type === "WhileStatement";
+        const isDoWhile = node.type === "DoWhileStatement";
+        if (isFor) {
+          const test = (node as ESTree.ForStatement).test;
+          if (test) visit(test, testState, false);
+        } else if (isWhile) {
+          visit((node as ESTree.WhileStatement).test, testState, false);
+        }
+
+        if (isDoWhile) {
+          // A do/while always enters its body once. `continue` still flows
+          // through the owning condition before the next iteration.
+          const bodyState = snapshotState(beforeTest, cloneData);
+          visit((node as ESTree.DoWhileStatement).body, bodyState, false);
+          const bodyCompletion = bodyState.completion;
+          if (bodyCompletion === "break") {
+            resetLoopCompletion(bodyState);
+          } else if (bodyCompletion === "continue") {
+            resetLoopCompletion(bodyState);
+            visit((node as ESTree.DoWhileStatement).test, bodyState, false);
+          } else if (bodyCompletion === "normal") {
+            visit((node as ESTree.DoWhileStatement).test, bodyState, false);
+          }
+          const after = snapshotState(bodyState, cloneData);
+          joinInto(state, [after]);
+          break;
+        }
+
+        // While/for/for-in/for-of can take the zero-body path after their
+        // header/test effects, or enter one iteration from that same state.
+        const bodyState = snapshotState(testState, cloneData);
+        if (isFor) {
+          visit((node as ESTree.ForStatement).body, bodyState, false);
+        } else if (isWhile) {
+          visit((node as ESTree.WhileStatement).body, bodyState, false);
         } else {
-          visit((node as ESTree.ForInStatement).body, state, false);
+          visit((node as ESTree.ForInStatement | ESTree.ForOfStatement).body, bodyState, false);
         }
-        resetLoopCompletion(state);
-        const after = snapshotState(state, cloneData);
-        const zero = node.type === "DoWhileStatement" ? after : before;
-        joinInto(state, [zero, after]);
+
+        const bodyCompletion = bodyState.completion;
+        if (bodyCompletion === "break") {
+          // break exits the loop and skips a for-update expression.
+          resetLoopCompletion(bodyState);
+        } else {
+          // Both labeled and unlabeled continue target the owning loop here;
+          // consuming it before the update/test models JavaScript's target
+          // semantics instead of dropping those side effects.
+          if (bodyCompletion === "continue") resetLoopCompletion(bodyState);
+          if (isFor) {
+            const update = (node as ESTree.ForStatement).update;
+            if (update) visit(update, bodyState, false);
+          }
+        }
+        const after = snapshotState(bodyState, cloneData);
+        joinInto(state, [testState, after]);
         break;
       }
+
       case "TryStatement": {
         const stmt = node as ESTree.TryStatement;
         const before = snapshotState(state, cloneData);
