@@ -217,6 +217,32 @@ console.log(JSON.stringify({
         fail("runtime", `${cell.id} Fluent ${fluentSdkVersion} ID policy mismatch (${fluentCodes.join(", ") || "none"})`);
       }
     }
+    for (const javascriptMode of matrix.javascriptModes ?? ["compatibility", "es5", "es2021", "unknown"]) {
+      const modeConfig = path.join(consumer, `.oxlintrc-${javascriptMode}.json`);
+      writeFileSync(
+        modeConfig,
+        JSON.stringify({
+          jsPlugins: [{ name: "servicenow", specifier: "oxc-plugin-servicenow" }],
+          settings: { servicenow: { javascriptMode } },
+          rules: { "servicenow/no-promise": "error" },
+        }, null, 2),
+      );
+      writeFileSync(path.join(consumer, `mode-${javascriptMode}.server.js`), "Promise.resolve(1);\n");
+      let modeOutput = "";
+      try {
+        modeOutput = execFileSync(path.join(consumer, "node_modules", ".bin", "oxlint"), ["--format", "json", "-c", modeConfig, `mode-${javascriptMode}.server.js`], { cwd: consumer, encoding: "utf8" });
+      } catch (error) {
+        modeOutput = error.stdout ?? "";
+      }
+      let modeReport;
+      try { modeReport = JSON.parse(modeOutput); } catch { fail("runtime", `${cell.id} ${javascriptMode} mode output was not JSON`); }
+      const modeCodes = (modeReport.diagnostics ?? []).map((diagnostic) => diagnostic.code);
+      const reportsPromise = javascriptMode === "compatibility" || javascriptMode === "es5";
+      const hasPromiseDiagnostic = modeCodes.some((code) => String(code).includes("no-promise"));
+      if (reportsPromise !== hasPromiseDiagnostic) {
+        fail("runtime", `${cell.id} ${javascriptMode} mode Promise policy mismatch (${modeCodes.join(", ") || "none"})`);
+      }
+    }
     writeFileSync(
       path.join(consumer, ".oxfmtrc.json"),
       readFileSync(path.join(installed, "oxfmt.recommended.json"), "utf8"),
