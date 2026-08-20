@@ -1,0 +1,3530 @@
+{
+  "schemaVersion": 3,
+  "plannedAt": {
+    "commit": "b87972a8336d6cf6209801395cad82f72b827436",
+    "date": "2026-08-20"
+  },
+  "mergeBase": "682d906219e73c1c3f46ce7b0a632b3b10763714",
+  "archivedHead": "b87972a8336d6cf6209801395cad82f72b827436",
+  "archiveRef": "refs/heads/archive/pr51-b87972a",
+  "archivedPatchSha256": "423d6d12d1476b3a84592e777cbcdd9d06b3df121be4225329dff2a87f1cdcc2",
+  "trackingPullRequest": 51,
+  "mutableStatePolicy": "Read live pull request URLs, base and head SHAs, states, and checks from GitHub and the pull request bodies. Never store them here.",
+  "reconstructionPolicy": "Each reconstructionCommit is the original immutable byte-for-byte whole-file or explicit split slice retained by reconstructionRef. Rebases and safety follow-up commits can change live branch heads but never these records.",
+  "plans": [
+    {
+      "plan": 7,
+      "planFile": "plans/007-rebuild-path-state-semantics.md",
+      "branch": "pr51-remediation/007-path-state",
+      "expectedBaseBranch": "main",
+      "reconstructionCommit": "ab3a8956cd7206cd5d91188cd9c0ad09e3d0fb2c",
+      "reconstructionParent": "682d906219e73c1c3f46ce7b0a632b3b10763714",
+      "reconstructionRef": "refs/heads/archive/pr51-reconstruction-v3-007",
+      "reconstructionPatchSha256": "c79a6526b896e960005c93a4c50a9076da0333a26ac8a2efbc799e58c9f628e9",
+      "ownershipRationale": "Path-state evaluator and minimum archived analysis dependency baseline.",
+      "dependencyBaselinePaths": [
+        "src/analysis/bindings.ts",
+        "src/analysis/fluent-imports.ts",
+        "src/analysis/members.ts",
+        "src/analysis/static-args.ts",
+        "src/constants.ts",
+        "src/context/filename.ts",
+        "src/context/resolve.ts",
+        "src/fluent/index.ts",
+        "src/fluent/manifest.ts",
+        "src/fluent/registry.ts",
+        "src/glide/manifest.ts",
+        "src/glide/query-methods.ts",
+        "src/settings/errors.ts",
+        "src/settings/freeze.ts",
+        "src/settings/index.ts",
+        "src/settings/releases.ts",
+        "src/settings/validate.ts",
+        "src/types.ts",
+        "src/utils/ast.ts"
+      ],
+      "rollbackRule": "Revert the focused Plan 007 pull request or reset its live branch to the recorded base, then rebase and revalidate every descendant. Never move an archive ref."
+    },
+    {
+      "plan": 8,
+      "planFile": "plans/008-fix-bindings-scopes-and-closures.md",
+      "branch": "pr51-remediation/008-bindings-scopes",
+      "expectedBaseBranch": "pr51-remediation/007-path-state",
+      "reconstructionCommit": "c93bce33629e115a81c5cdad2f54634c89dd3994",
+      "reconstructionParent": "ab3a8956cd7206cd5d91188cd9c0ad09e3d0fb2c",
+      "reconstructionRef": "refs/heads/archive/pr51-reconstruction-v3-008",
+      "reconstructionPatchSha256": "07ca49d84df7ee5a455eee3cf28b53c8c4ee7f6bcdcb9222e33075b9a72e73d5",
+      "ownershipRationale": "Binding and AST regression baseline before binding remediation.",
+      "dependencyBaselinePaths": [],
+      "rollbackRule": "Revert the focused Plan 008 pull request or reset its live branch to the recorded base, then rebase and revalidate every descendant. Never move an archive ref."
+    },
+    {
+      "plan": 9,
+      "planFile": "plans/009-rebuild-stateful-rule-lifecycles.md",
+      "branch": "pr51-remediation/009-stateful-rule-lifecycles",
+      "expectedBaseBranch": "pr51-remediation/008-bindings-scopes",
+      "reconstructionCommit": "7ff60b0db984fb300ada186d2ae0682de824f9e6",
+      "reconstructionParent": "c93bce33629e115a81c5cdad2f54634c89dd3994",
+      "reconstructionRef": "refs/heads/archive/pr51-reconstruction-v3-009",
+      "reconstructionPatchSha256": "3504af8c36740ce0ff9e00a457f9d6f46931980adc40ae64e1c78dfa792b1673",
+      "ownershipRationale": "Stateful lifecycle sources plus index, context, and rule-helper dependency baseline.",
+      "dependencyBaselinePaths": [
+        "src/analysis/index.ts",
+        "src/context/index.ts",
+        "src/rules/helpers.ts"
+      ],
+      "rollbackRule": "Revert the focused Plan 009 pull request or reset its live branch to the recorded base, then rebase and revalidate every descendant. Never move an archive ref."
+    },
+    {
+      "plan": 10,
+      "planFile": "plans/010-authoritative-fluent-sdk-registry.md",
+      "branch": "pr51-remediation/010-fluent-sdk-registry",
+      "expectedBaseBranch": "pr51-remediation/009-stateful-rule-lifecycles",
+      "reconstructionCommit": "1e32744c3358eeb3b32aa2c3e2dd7d18da586646",
+      "reconstructionParent": "7ff60b0db984fb300ada186d2ae0682de824f9e6",
+      "reconstructionRef": "refs/heads/archive/pr51-reconstruction-v3-010",
+      "reconstructionPatchSha256": "5d5f60269ad93efaad202c2a78734b4c3b96065b0abfd835948974b6c7b8176c",
+      "ownershipRationale": "Fluent authority, manifest, and import-rule baseline.",
+      "dependencyBaselinePaths": [],
+      "rollbackRule": "Revert the focused Plan 010 pull request or reset its live branch to the recorded base, then rebase and revalidate every descendant. Never move an archive ref."
+    },
+    {
+      "plan": 11,
+      "planFile": "plans/011-fix-now-id-and-fluent-directives.md",
+      "branch": "pr51-remediation/011-now-id-directives",
+      "expectedBaseBranch": "pr51-remediation/010-fluent-sdk-registry",
+      "reconstructionCommit": "c31ed1946db26088b88940cbedf1925119676ef7",
+      "reconstructionParent": "1e32744c3358eeb3b32aa2c3e2dd7d18da586646",
+      "reconstructionRef": "refs/heads/archive/pr51-reconstruction-v3-011",
+      "reconstructionPatchSha256": "9b1a892fa4d262641bebe01ccd4430872794d7ecd153338038f3cb141369f655",
+      "ownershipRationale": "Now.ID and Fluent directive rules plus option-descriptor dependency baseline.",
+      "dependencyBaselinePaths": [
+        "src/options/descriptor.ts",
+        "src/options/descriptors.ts",
+        "src/options/index.ts"
+      ],
+      "rollbackRule": "Revert the focused Plan 011 pull request or reset its live branch to the recorded base, then rebase and revalidate every descendant. Never move an archive ref."
+    },
+    {
+      "plan": 12,
+      "planFile": "plans/012-fix-context-profiles-and-rule-contracts.md",
+      "branch": "pr51-remediation/012-context-profiles-contracts",
+      "expectedBaseBranch": "pr51-remediation/011-now-id-directives",
+      "reconstructionCommit": "0eb37f1a5450c574dd787872c4cd0873aead58ac",
+      "reconstructionParent": "c31ed1946db26088b88940cbedf1925119676ef7",
+      "reconstructionRef": "refs/heads/archive/pr51-reconstruction-v3-012",
+      "reconstructionPatchSha256": "b12c848fca42887075724d053ea18f5a92d69a22afdd9f8989a527e3cb7f609d",
+      "ownershipRationale": "Context, profiles, rule contracts, catalog/index dependency baseline, and focused tests.",
+      "dependencyBaselinePaths": [
+        "src/catalog-metadata.ts",
+        "src/catalog.ts",
+        "src/configs/maps.ts",
+        "src/index.ts",
+        "tests/helpers/rule-tester.ts"
+      ],
+      "rollbackRule": "Revert the focused Plan 012 pull request or reset its live branch to the recorded base, then rebase and revalidate every descendant. Never move an archive ref."
+    },
+    {
+      "plan": 13,
+      "planFile": "plans/013-narrow-public-api-and-fix-user-assets.md",
+      "branch": "pr51-remediation/013-public-api-assets",
+      "expectedBaseBranch": "pr51-remediation/012-context-profiles-contracts",
+      "reconstructionCommit": "8e8ec7e3d6b46b179216c7fca72b4cd90d3dbbaa",
+      "reconstructionParent": "0eb37f1a5450c574dd787872c4cd0873aead58ac",
+      "reconstructionRef": "refs/heads/archive/pr51-reconstruction-v3-013",
+      "reconstructionPatchSha256": "230d95668ac163cceaa0dd4be3afa039cc82f0f10302de537c9fe8f1e9fe3d13",
+      "ownershipRationale": "Public documentation, generated rule pages, examples, and user assets.",
+      "dependencyBaselinePaths": [],
+      "rollbackRule": "Revert the focused Plan 013 pull request or reset its live branch to the recorded base, then rebase and revalidate every descendant. Never move an archive ref."
+    },
+    {
+      "plan": 14,
+      "planFile": "plans/014-make-tests-evidence-and-compatibility-honest.md",
+      "branch": "pr51-remediation/014-tests-evidence-compat",
+      "expectedBaseBranch": "pr51-remediation/013-public-api-assets",
+      "reconstructionCommit": "91bfcdebfac8a99287d7ab9e703023e3f9660bba",
+      "reconstructionParent": "8e8ec7e3d6b46b179216c7fca72b4cd90d3dbbaa",
+      "reconstructionRef": "refs/heads/archive/pr51-reconstruction-v3-014",
+      "reconstructionPatchSha256": "e8467ecb6ddff57cb384a66696dce6b503f0365134d7e516fd18033678b66583",
+      "ownershipRationale": "Cross-layer tests, compatibility, performance, CI, and tracking evidence.",
+      "dependencyBaselinePaths": [],
+      "rollbackRule": "Revert the focused Plan 014 pull request or reset its live branch to the recorded base, then rebase and revalidate every descendant. Never move an archive ref."
+    },
+    {
+      "plan": 15,
+      "planFile": "plans/015-prove-release-governance-and-provenance.md",
+      "branch": "pr51-remediation/015-release-governance",
+      "expectedBaseBranch": "pr51-remediation/014-tests-evidence-compat",
+      "reconstructionCommit": "893f6c13e3636c9d354cf01518b0f40a66e7c5bd",
+      "reconstructionParent": "91bfcdebfac8a99287d7ab9e703023e3f9660bba",
+      "reconstructionRef": "refs/heads/archive/pr51-reconstruction-v3-015",
+      "reconstructionPatchSha256": "d3a42940e18007cb80725833bf9c7a1bc5c2130d71cc21f743227ee5795ddc20",
+      "ownershipRationale": "Privileged release workflow, helpers, tests, and governance only.",
+      "dependencyBaselinePaths": [],
+      "rollbackRule": "Revert the focused Plan 015 pull request or reset its live branch to the recorded base, then rebase and revalidate every descendant. Never move an archive ref.",
+      "reconstructionNote": "The archived commit preserves the reviewed 2.0.0 metadata. The live draft immediately restores 1.1.0; only Plan 016 can stage stable 2.0.0."
+    }
+  ],
+  "paths": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "ownership": "split",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "a460b27ca28e05bcde0a2d99ad279a35f0448153",
+      "splits": [
+        {
+          "ownerPlan": 14,
+          "description": "The non-privileged test, compatibility, documentation, manifest, benchmark, and workflow jobs.",
+          "patchSha256": "9c9d24617e555f05c8425a8ef64b471fa0170d62b62d4721768934a1c4dea82d",
+          "resultBlob": "cbc4568f7702b90c817256dbe9750088ce715192"
+        },
+        {
+          "ownerPlan": 15,
+          "description": "Release-artifact validation and the release-workflow compatibility handoff, added only with the isolated release layer.",
+          "patchSha256": "022a784f2b8d4923d96caeb5530ba489e1ba6eaa93913187839248e86ba70020",
+          "resultBlob": "a460b27ca28e05bcde0a2d99ad279a35f0448153"
+        }
+      ]
+    },
+    {
+      "path": ".github/workflows/release.yml",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "55f7cbc10ffefa33b6a6f7bcc7de1d646f398089",
+      "ownerPlan": 15,
+      "dependencyBaseline": false
+    },
+    {
+      "path": ".gitignore",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "2ad77d3cf33c63c1a3945c6b9a93bebb98022d25",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "CHANGELOG.md",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "9805d5d988f4f83e592dc32cf0fceebf561d3984",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "CONTRIBUTING.md",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "b5df4e4c0981db6670a216e65a309541443cf76e",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "PR51-REMEDIATION-GOAL.md",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "5790f77da9bec85758fc71dd71822e7c292de702",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "README.md",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "1aee800aa380152b9ba52943c205b8be59069e8a",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/compatibility.md",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "ccd6c98f18d01a82325607ebaf056f3585f2b1df",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/non-goals.md",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "94fe5658d9967b15019faf31d73929a5c0d4ff50",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/oxfmt.md",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "a6df8f7c7c2d6360527e98198c48e60eac914440",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/performance-baseline.json",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "09e1b0262566b0ed011243ba4ec9baf8d28a6eb6",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/performance.md",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "60556d8c361fab73b1584fb701f455f300379022",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/pr-51-acceptance-ledger.md",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "a86a7a09c53abbc2ca0cb2131fd08546559bd57d",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/pr-51-layers.md",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "10073a5867597a2c9f08431e35002eb4370797c3",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/pr-51-validation-report.md",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "4b3a77182a2ea3c9921c1ae01b28d169503235ff",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/release-governance-live.json",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "3becbada25d85b3bcc73778c4f057cf41f341cd0",
+      "ownerPlan": 15,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/release.md",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "7a94e49275d30f39516f1fd0ef165e07a389e006",
+      "ownerPlan": 15,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/research/35-business-rule-metadata.md",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "4880324e61c91b45ff93123d8e1a5b43f9c07b13",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/research/36-gliderecord-performance.md",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "6d3dcc4da7698bb150480ba1d8a426f51f3ccafc",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/research/37-taint-security.md",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "5f8cc47816463fb3cfa22baaca817e46b2609326",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/research/38-portability-datetime.md",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "a799b170c63979a22b37170bf43587dee3b9a3f9",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/research/39-project-wide-fluent.md",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "1105c230b2bfbcd77ccb24dffb2ce7880088463e",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/research/40-deprecated-apis.md",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "63e0de58ecd69f3edc90de07441874f002ad39ea",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/rule-authoring.md",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "ed17e1ed5503140bf679ce804f857730422174ee",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/rules/fluent-directives.md",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "757b91a5858b2e4c63999a72f6c70ba799192d30",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/rules/fluent-naming-convention.md",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "ec9de7f84e3a40835b30cc6fc680aeffa50e8f29",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/rules/fluent-proper-imports.md",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "48fca6ca08867b4d0e16b3dce6a29d9424f8df0b",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/rules/no-async-await.md",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "5dc9c32acb7b96d6886312cd88c53615fd3ea597",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/rules/no-async-iterators.md",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "bfae6a1c7d5129b5920b38f754361f9c1a7a87d2",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/rules/no-at-method.md",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "9d0a87c2547d1b10078392f5f55dcd1cab9af4b6",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/rules/no-bigint.md",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "e1eab3e28922101aac9dea16353904d9d8b23df4",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/rules/no-br-current-update.md",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "df7af1d1b14e084e1e0e399e759c87c13f6c6880",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/rules/no-client-gliderecord.md",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "93f73cd6bfec434983c79b0ed3abb901a1d2ae2b",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/rules/no-complex-fluent-logic.md",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "86fd16f017a72f624e2b20f449b577103b5457e4",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/rules/no-delete-multiple-with-windowing.md",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "3a59f4e8285a0cadfd045dbf4967e37b9d4a021a",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/rules/no-display-value-date-comparison.md",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "de847d93c16c5bfe86eb9e424c28f4de946e122d",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/rules/no-duplicate-fluent-id.md",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "0eb42bf9d1fbd4338c35a6caf023c4cea97dbf07",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/rules/no-glideajax-getanswer.md",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "c2641bdff0510ce7e273114db1410cb6cd3e91e2",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/rules/no-glideelement-in-collection.md",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "21a456e8b95307fee8b5f8987d67ae32268c4f08",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/rules/no-gliderecord-query-in-loop.md",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "6811968b7d7e2e77c2948eee5bcbde5f9a1c22b6",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/rules/no-gliderecord-query-modifier-after-query.md",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "21f4a34490b6c4baa6e2c8550923e569afa7bd77",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/rules/no-gs-now.md",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "3cbca332956330d14fbe100dd0a1b42778370433",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/rules/no-hardcoded-sysid.md",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "3c48c398a9439dd7381d4c2a91e354a534beaeb4",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/rules/no-hardcoded-table-names.md",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "469d18700d70830110263a572326d5afbc113a35",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/rules/no-now-id-as-reference.md",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "63c22c354d55c9bc2bc7c87aa5a7b42c0ac20e02",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/rules/no-packages-calls.md",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "278b8002319a933e85d51a67069ba12c82f5d3e3",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/rules/no-promise.md",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "f6b9973f5b54f935e9e595692c46a9a94cc8b83f",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/rules/no-proxy.md",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "b38cc3705e9b10f51ee1c3baad41a1fed84e8800",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/rules/no-sync-glideajax.md",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "47a99722299e40c07275a996299c275c7f18cd23",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/rules/no-system-query-bypass.md",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "fad55c63a123602f010df137088bac0f24ba27c8",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/rules/no-typed-arrays.md",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "6ec69ec15c22579af5929ba717c846427bfd7f31",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/rules/no-unfiltered-gliderecord-bulk-operation.md",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "5a63a72f0edd82f704ecd59ebeffc56a92741384",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/rules/no-unsupported-syntax.md",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "5dcaec1a54d6c56a815dad20276ae9f88ee64cb4",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/rules/no-weak-collections.md",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "e8922261313fa74969ab737fdb218f33bb37c774",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/rules/no-weak-references.md",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "28bb3c2021ecb376f0a236e6c3747bb3c8839ef6",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/rules/prefer-glideaggregate.md",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "b6169b64f9d3dbbc7d2cca6cabbdc414b5beadaa",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/rules/prefer-now-include.md",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "d2fd528b0c45271a6676d2cdc752a65ac7cfcc86",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/rules/prefer-setnocount-with-choosewindow.md",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "0bd0cf6c2015ac82ab6705249beb55c77785617a",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/rules/require-business-rule-wrapper.md",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "61b71eee0c76225a736f086fa4c876c9a02035c5",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/rules/require-callback-for-getreference.md",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "6dd6b80edfac881b2b2e5fcba77917ec6741ae95",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/rules/require-fluent-id.md",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "b715da70f2b0f7363888b501d9a0db1a4399fcab",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/rules/require-glideajax-sysparm-name.md",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "87a0808a7a1135c7b64891d4d57f8638a9e4f015",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/rules/require-query-before-next.md",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "2861446e2417d9b453585497fd77f9fea63ba07a",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/rules/validate-glideaggregate-calls.md",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "de92cb61556b5d620f19606a608dcbb6ab80381b",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "docs/rules/validate-gliderecord-calls.md",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "8a92fec6a73c508561fc904862cfc8fbdc0156f2",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/.oxlintrc.json",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "1bfa1b15d066f7cf4cb7bf33c4f24f837aed5599",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/README.md",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "d2f8c04cb46ccb00fcd5316b161dc36d553d59e5",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/business-rule/.oxlintrc.json",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "a02a19d77f7cf3c5fb320cb3d577625533365fd2",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/business-rule/README.md",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "84e44c0f56298875fe8dbf1d078b161971fbe603",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/business-rule/invalid/unwrapped.br.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "d00bd6975b3fd665da1392f3ed144da72b947878",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/business-rule/oxfmt.config.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "b4bc9b6d18af0ffbc82f4e3240ea5838e494f02d",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/business-rule/package.json",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "e63af97b02ee4c4a234fe4068511d053de58448c",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/business-rule/valid/full-script.br.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "110efbcc5cda72a5aba8b75b6153fd4a46306564",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/catalog-client.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "8484c3c4c26c9a9dc9dc58c67ddac34c328a27ce",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/classic-compatibility/.oxlintrc.json",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "cdb622054b3ed15b401aa9d78f0b35d3d736e047",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/classic-compatibility/README.md",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "dcc065757631f5905f4c6bab840bf268a79b5967",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/classic-compatibility/invalid/promise.server.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "a5eba3b9518c6f9b714c01d31e8cae724a64bd5d",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/classic-compatibility/oxfmt.config.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "b4bc9b6d18af0ffbc82f4e3240ea5838e494f02d",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/classic-compatibility/package.json",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "33fd637ecab36c6266079aa446b1cc4f09e7c353",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/classic-compatibility/valid/list.server.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "e26c75323454508f4dac5b04540bf3e78ab6a71c",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/classic-es5/.oxlintrc.json",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "a7b88d1669f9c13a3bfe202ef23e3cd01ba07724",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/classic-es5/README.md",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "e18edb1bdabc84db13813c0a9d2f6d05ac4e7b7f",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/classic-es5/invalid/optional.server.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "8a05440243b84043ea728f69b319638bb07b576f",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/classic-es5/oxfmt.config.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "b4bc9b6d18af0ffbc82f4e3240ea5838e494f02d",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/classic-es5/package.json",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "83c8aa8eaf3cf04d2de335fb487047e95921e627",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/classic-es5/valid/list.server.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "ccf86dbd53d688d6a0b9f728f47ffe366319c25b",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/client/.oxlintrc.json",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "13d7265b0cdcad5bdb746ddd864835aa034a825e",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/client/README.md",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "ea6c5b4acfd72928ca8d7938f0917e0b90565237",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/client/invalid/sync.client.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "b41ee44d526cc51310435113a64c424d6b34f936",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/client/oxfmt.config.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "b4bc9b6d18af0ffbc82f4e3240ea5838e494f02d",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/client/package.json",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "44c690198a8fa069a175407127121a5d9980113e",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/client/valid/onload.client.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "8484c3c4c26c9a9dc9dc58c67ddac34c328a27ce",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/es2021-server.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "362185428ee4cd49419f659b8a1aad94ad26dc18",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/es2021/.oxlintrc.json",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "bba99e7e538e4deb1b14d1f23ce838e51212f3d4",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/es2021/README.md",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "9085b795aefd1863183012ecfe1bf789970c033a",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/es2021/invalid/async-iter.server.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "1a1369044117718703d7144fe5c878b0facbb86f",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/es2021/oxfmt.config.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "b4bc9b6d18af0ffbc82f4e3240ea5838e494f02d",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/es2021/package.json",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "77b151c0e45eb990df9d63f510a754553443f075",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/es2021/valid/list.server.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "c4ab8aa0207942014e761328134784da2b986837",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/fluent/.oxlintrc.json",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "a1a9d021555d696f8e76f08d44084b448f51b727",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/fluent/README.md",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "6842ee7aa20531dea64dfe1944debadc5508a308",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/fluent/invalid/missing-id.now.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "20d8260e4ec5ae673c60091264f9b2f553065b63",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/fluent/oxfmt.config.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "b4bc9b6d18af0ffbc82f4e3240ea5838e494f02d",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/fluent/package.json",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "f57b785a9b548bfbec7407b5faf0627a69e9799d",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/fluent/valid/widget.now.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "8bd51f1774beb9b55316dcec884823709261bb37",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/full-script-business-rule.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "110efbcc5cda72a5aba8b75b6153fd4a46306564",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/mixed/.oxlintrc.json",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "10fb93b68d59c249c500b5c9cc5c1074867858e9",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/mixed/README.md",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "279204a63e0ff2007f73292ea3d11cbb2aa4b347",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/mixed/invalid/src/client/bad.client.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "82720a1ddf49961a338f1032a567ed88dc5683fa",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/mixed/oxfmt.config.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "b4bc9b6d18af0ffbc82f4e3240ea5838e494f02d",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/mixed/package.json",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "2b4ff0919de515b5fa253c85e290e79d45262993",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/mixed/valid/src/br/set-state.br.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "ddec729ccf8599d075d0fbe5d80c7d59f1b3b776",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/mixed/valid/src/client/set-priority.client.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "d462c2aa48846c519cd6f7d1b63620fd3fa93533",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/mixed/valid/src/fluent/table.now.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "df14d59abf82bedace1296e293078e8c33243e87",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/mixed/valid/src/server/list-open.server.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "e26c75323454508f4dac5b04540bf3e78ab6a71c",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/mixed/valid/src/ui-action/approve.client.ui-action.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "de2a7c654e15546fce80b0875df8b9c095b77a4a",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/mixed/valid/src/ui-action/close.ui-action.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "ef40f0162656bea8e070a9018d919ef07bb7c0f4",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/ui-action/.oxlintrc.json",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "10fb93b68d59c249c500b5c9cc5c1074867858e9",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/ui-action/README.md",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "b06d6c72b5cc4d1a8fdcca44616c48584823a232",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/ui-action/invalid/client-query.client.ui-action.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "82720a1ddf49961a338f1032a567ed88dc5683fa",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/ui-action/oxfmt.config.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "b4bc9b6d18af0ffbc82f4e3240ea5838e494f02d",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/ui-action/package.json",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "6163d97f35e436f59088d382d67234297603574a",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/ui-action/valid/approve.client.ui-action.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "c8a0b1e562d1d1991dd8ad578eb0fe15544b99df",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "examples/ui-action/valid/close.ui-action.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "bc6cf038e9626e95ac35fc2fe8d76f0da0e77c79",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "package-lock.json",
+      "ownership": "split",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "4c442093e1b78eafad9f9fa3ece81e2e3db471a1",
+      "splits": [
+        {
+          "ownerPlan": 14,
+          "description": "Dependency and package metadata generated for the Plan 014 package with version 1.1.0.",
+          "patchSha256": "05c9912bceff64762fd210ce0251340ec71572b95ad266fbe7be5b77c128e6b2",
+          "resultBlob": "fd241f032969ecf850bb242ff181d46cea9a1555"
+        },
+        {
+          "ownerPlan": 15,
+          "description": "The archived root stable-version metadata, retained only in the reconstruction archive and quarantined on the live branch.",
+          "patchSha256": "37c7914294e7a1f0f805193846913645c2d03b40d75c7d2333d7a370f380abf3",
+          "resultBlob": "4c442093e1b78eafad9f9fa3ece81e2e3db471a1"
+        }
+      ]
+    },
+    {
+      "path": "package.json",
+      "ownership": "split",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "15077e501f4e453958c7c39a9da97e45f15ec2cf",
+      "splits": [
+        {
+          "ownerPlan": 14,
+          "description": "Archived package, peer, host, and non-privileged command changes; release commands and stable version metadata are deferred.",
+          "patchSha256": "c9acae610b871baed7362a323bc5dfebd6101f2b76d8e59afb10979694a81a1b",
+          "resultBlob": "999f4dfd910207ad68767d5e881e3b8f2da7e7ba"
+        },
+        {
+          "ownerPlan": 15,
+          "description": "Archived release-command wiring and stable version metadata; the live branch immediately quarantines only the stable version.",
+          "patchSha256": "03e5d9197191297f37a8d4554882f6e20dbd297c2c746547390ff382650fdfa0",
+          "resultBlob": "15077e501f4e453958c7c39a9da97e45f15ec2cf"
+        }
+      ]
+    },
+    {
+      "path": "scripts/action-pins.json",
+      "ownership": "split",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "c4b88b9df0c82a7a81fe0c188cc72635d08f926c",
+      "splits": [
+        {
+          "ownerPlan": 14,
+          "description": "Pins used by the non-privileged CI workflow.",
+          "patchSha256": "fd9ea5413ce893b12c076c32f2c9126ca6998eb7a0c158449465364b461aea1a",
+          "resultBlob": "cf5c422c8f69eaeda4a489c5e3a832019dc8ec7c"
+        },
+        {
+          "ownerPlan": 15,
+          "description": "The download-artifact pin first used by the privileged release workflow.",
+          "patchSha256": "102fd463569280cf5c3f2a861f0819244c11045c4fb65930e6e31df79e5713d1",
+          "resultBlob": "c4b88b9df0c82a7a81fe0c188cc72635d08f926c"
+        }
+      ]
+    },
+    {
+      "path": "scripts/benchmark-gate.d.mts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "2bd25961534a9c9eb3981ce71bc299f5296d0aba",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "scripts/benchmark-gate.mjs",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "fa5054fb58c8ae3ba1d53157dce14470349b1f6b",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "scripts/benchmark.mjs",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "3f12941171685ada307c63d0b01d08b246581d47",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "scripts/check-action-pins.d.mts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "4c599967447833292d8fab9207f71d20983bdeb9",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "scripts/check-action-pins.mjs",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "6e6f0c58f32cbed737700f03fa9afeaef300718c",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "scripts/check-catalog-docs.mjs",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "f532f640b8841f3da296bcebf7a1cbf848184d66",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "scripts/check-compat-matrix.d.mts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "82395096f2f4e38b5193d85930a97c9e638b3232",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "scripts/check-compat-matrix.mjs",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "e68d361fea9748ec83731fdb038b7272cb84eaed",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "scripts/check-fluent-manifest.mjs",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "99078876743c479aa910b07e67f199cd76f2f932",
+      "ownerPlan": 10,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "scripts/check-release-artifact.d.mts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "c1c083439a5879eab7743bb68511b44dd15d87c8",
+      "ownerPlan": 15,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "scripts/check-release-artifact.mjs",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "60005de0f99c9e6da40406b5429667b30bc8241b",
+      "ownerPlan": 15,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "scripts/check-trusted-publishing-npm.d.mts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "5b2eee2c839c3b5c329c3e733cb9919395784235",
+      "ownerPlan": 15,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "scripts/check-trusted-publishing-npm.mjs",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "0395946e89be6ce9d2a75d8afb646e2511deebad",
+      "ownerPlan": 15,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "scripts/compat-consumer.mjs",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "2dadc272d4d93caadc87c0617eee2df5bc5836d4",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "scripts/compat-matrix.json",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "605c6f9ee135bb7e4f164ecdec1e7ddf957e3eb7",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "scripts/create-github-release.d.mts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "1a1a9a9e9c53e6178083643d2b743d98511c0b61",
+      "ownerPlan": 15,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "scripts/create-github-release.mjs",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "9bd9ab29a7b4346e3cba92f68d65bc52e763c786",
+      "ownerPlan": 15,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "scripts/generate-compatibility-docs.mjs",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "cc7d9f9c0186d42ee90b0bacaec2578bb01c0fee",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "scripts/generate-rule-docs.mjs",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "984918f7fe24b5c79f793d83148ae99c2b79377c",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "scripts/parse-npm-pack.d.mts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "4fb7b6ea6215b2f11123f926afde85e49bdf24c3",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "scripts/parse-npm-pack.mjs",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "aed5401522610e30dfc2add5237b462cb9914501",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "scripts/release-governance.json",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "4c49b5da96349657c81e4b14994ae6def13d7b4c",
+      "ownerPlan": 15,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "scripts/run-tests.mjs",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "5e3fd5e528a6382b1cd5d29eb6a504973dbe6944",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "scripts/verify-published-package.d.mts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "5357db4075d553f717038d473c2cc6b3e07d2f5c",
+      "ownerPlan": 15,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "scripts/verify-published-package.mjs",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "c9a18c8cc61815e087cd647e6d3f2edabe1b026d",
+      "ownerPlan": 15,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/analysis/bindings.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "ba2ebcd15c0fe6f0823a0bc548256ecffe8ff044",
+      "ownerPlan": 7,
+      "dependencyBaseline": true
+    },
+    {
+      "path": "src/analysis/cursor-condition.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "ceb5e6e45cf736d9b897bf3bbe8f99635745be97",
+      "ownerPlan": 9,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/analysis/file-analysis.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "04bb9537c4af1efc1a5fd2af08a2805ff6bcf645",
+      "ownerPlan": 7,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/analysis/fluent-imports.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "1e3e23570adc7d4b0856ad92a6f62390579cc39c",
+      "ownerPlan": 7,
+      "dependencyBaseline": true
+    },
+    {
+      "path": "src/analysis/glide-bulk-filter.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "47b469ba42150fecb6ceecfacb9b589ddba18353",
+      "ownerPlan": 7,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/analysis/glide-element-collection.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "5e1160bd39cc587f24cd4d31e709f3ca7e705219",
+      "ownerPlan": 9,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/analysis/glide-query-in-loop.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "8e8c12dc820aaec3f21be0d3f084fced1af1f776",
+      "ownerPlan": 9,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/analysis/glide-query-lifecycle.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "ae662db381dd5beb37f53def3ae8681c8ce002c8",
+      "ownerPlan": 7,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/analysis/glide-setnocount.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "e281f15eddd36c8104d60dac3450db5269dd0fd0",
+      "ownerPlan": 7,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/analysis/glide-windowing.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "08c22295f3113228f4a11b6b286cb7fb72cea909",
+      "ownerPlan": 7,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/analysis/glideaggregate.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "ea268f8a11e76ba1d282bcd02ca36363dd734311",
+      "ownerPlan": 7,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/analysis/glideajax-params.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "feaa8c003e6043af0a91111207900aef8fc96659",
+      "ownerPlan": 7,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/analysis/index.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "6e67807e67452ce9f4242fb906bb97bac8f00754",
+      "ownerPlan": 9,
+      "dependencyBaseline": true
+    },
+    {
+      "path": "src/analysis/members.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "2132f881f317228ed55bbc9a514530c216636757",
+      "ownerPlan": 7,
+      "dependencyBaseline": true
+    },
+    {
+      "path": "src/analysis/now-id.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "27295784f3e931ee36df4c8a03665ba0f352bf48",
+      "ownerPlan": 7,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/analysis/path-state.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "4b22148ad0120ec8549bd0e028645a4246841aca",
+      "ownerPlan": 7,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/analysis/provenance.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "5c5d6d6d625398f7c074eb4a8f51b693e647ac1a",
+      "ownerPlan": 7,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/analysis/query-before-next.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "e661cf6b2e4201022260ab26677f3fe789909468",
+      "ownerPlan": 7,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/analysis/static-args.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "4097b2146e7b8564041c843294a77c6e163003b2",
+      "ownerPlan": 7,
+      "dependencyBaseline": true
+    },
+    {
+      "path": "src/catalog-metadata.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "17c7b46bb8e1f1602819f144197792f8a633fab9",
+      "ownerPlan": 12,
+      "dependencyBaseline": true
+    },
+    {
+      "path": "src/catalog.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "029d439cb8a316f8d3c37a3b7018c42ba5bc7455",
+      "ownerPlan": 12,
+      "dependencyBaseline": true
+    },
+    {
+      "path": "src/configs/maps.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "0bff9371e7e90e5e46ecc1b8e44db71d5cf58a39",
+      "ownerPlan": 12,
+      "dependencyBaseline": true
+    },
+    {
+      "path": "src/configs/profiles.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "7c500ceba4a50887edddb1cae2cafc0fec79acc7",
+      "ownerPlan": 12,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/configs/recommended.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "0f9ae2c53ed6604ffeae9fb0807a4451cb2735b3",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/configs/strict.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "10886918b18889e11a7d2f562579334aa08fdcc0",
+      "ownerPlan": 13,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/constants.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "a8b543d14781274a3f4b920c32987b392c03225b",
+      "ownerPlan": 7,
+      "dependencyBaseline": true
+    },
+    {
+      "path": "src/context/filename.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "97cf7edf43070f55b2499ca3eaa5c57a442f33ad",
+      "ownerPlan": 7,
+      "dependencyBaseline": true
+    },
+    {
+      "path": "src/context/index.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "7893a2d80a3cc9551138ee8f78791198e95e4d1c",
+      "ownerPlan": 9,
+      "dependencyBaseline": true
+    },
+    {
+      "path": "src/context/resolve.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "3352d3fcdc0eeb51f99d73cbbb12eb539c8c12ef",
+      "ownerPlan": 7,
+      "dependencyBaseline": true
+    },
+    {
+      "path": "src/engine/features.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "545bb6d630812d77d1641f172264f18b02903131",
+      "ownerPlan": 12,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/engine/index.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "eec3b8bead5fe519bc90dad7d7091ede7c9efeb8",
+      "ownerPlan": 12,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/fluent/index.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "875b36c45bf71234699f0789082f4c3789294ea8",
+      "ownerPlan": 7,
+      "dependencyBaseline": true
+    },
+    {
+      "path": "src/fluent/manifest.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "048ee93c829d00c8e880870dad19cfb512b5ae41",
+      "ownerPlan": 7,
+      "dependencyBaseline": true
+    },
+    {
+      "path": "src/fluent/registry.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "de62ec278d1ace7c98534866c540a89201de3b88",
+      "ownerPlan": 7,
+      "dependencyBaseline": true
+    },
+    {
+      "path": "src/glide/index.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "59aae76f2f3deb0536fbf40eccee35a38e68e61b",
+      "ownerPlan": 9,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/glide/manifest.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "39eff3f5dab329329a2d81921871feae333f656f",
+      "ownerPlan": 7,
+      "dependencyBaseline": true
+    },
+    {
+      "path": "src/glide/query-methods.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "8e1a4bfafb9163b68889fde6ffbe6b3d5bf7c1b4",
+      "ownerPlan": 7,
+      "dependencyBaseline": true
+    },
+    {
+      "path": "src/index.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "b573191df7034f92ccdd797d54d847dabae77c65",
+      "ownerPlan": 12,
+      "dependencyBaseline": true
+    },
+    {
+      "path": "src/options/descriptor.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "5ec6782cd7af8ac3ed19aa744fa59dc7d155bb1b",
+      "ownerPlan": 11,
+      "dependencyBaseline": true
+    },
+    {
+      "path": "src/options/descriptors.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "1066d899990613a8a4cf6db191934f910269d27a",
+      "ownerPlan": 11,
+      "dependencyBaseline": true
+    },
+    {
+      "path": "src/options/index.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "fcd4e9e66cbd74f691e6946a489fd9d37b4e975c",
+      "ownerPlan": 11,
+      "dependencyBaseline": true
+    },
+    {
+      "path": "src/rules/fluent-directives.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "62883c97941559885661d7c4b4d59c571ccf317e",
+      "ownerPlan": 11,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/rules/fluent-naming-convention.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "83855ee65cfc99d2ed15e6b1ac6aef735d8f9b59",
+      "ownerPlan": 11,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/rules/fluent-proper-imports.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "bddc370087df3c14837fd7cd6d5e8dc514815160",
+      "ownerPlan": 10,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/rules/helpers.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "459f7ab910f601906dcadd47c2ac4dd1de4fec20",
+      "ownerPlan": 9,
+      "dependencyBaseline": true
+    },
+    {
+      "path": "src/rules/index.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "75ea19d0b03b8c332eb36a2e2544d946b70a4867",
+      "ownerPlan": 12,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/rules/no-async-await.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "24368836535019ddc53fe0ae39f602e7d875ec09",
+      "ownerPlan": 12,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/rules/no-async-iterators.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "45c33ee2dfb7d823f24f296deb99611189770187",
+      "ownerPlan": 12,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/rules/no-at-method.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "96c699e982b5093503d2a9b20c4b5f5e0ce36097",
+      "ownerPlan": 12,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/rules/no-bigint.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "d7fd2f62c758693d13c420543451efbc84c00603",
+      "ownerPlan": 12,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/rules/no-br-current-update.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "3d7f0a9c164c27fee01cc50f74cd1ae0857dc16d",
+      "ownerPlan": 12,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/rules/no-client-gliderecord.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "a116df7364ede869dc924642abbf9a04e941661e",
+      "ownerPlan": 12,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/rules/no-complex-fluent-logic.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "faedfad94893c6b4fcf42f634b9906534d8a3883",
+      "ownerPlan": 12,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/rules/no-delete-multiple-with-windowing.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "e864ffbaf4b1f6f411068bc3b8a59b51f7c6eb3b",
+      "ownerPlan": 9,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/rules/no-display-value-date-comparison.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "b367bfe7ec919bbdfb29b6edbbd552600763f6cf",
+      "ownerPlan": 12,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/rules/no-duplicate-fluent-id.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "39c735bb4678fdfb7efc85e458b7a9db5deeaa03",
+      "ownerPlan": 11,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/rules/no-glideajax-getanswer.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "d4852a120b613c512d25434089d25f7b1b876e44",
+      "ownerPlan": 12,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/rules/no-glideelement-in-collection.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "138322517ce7c43b2d5b21806aca393c61ab4d34",
+      "ownerPlan": 9,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/rules/no-gliderecord-query-in-loop.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "822bc696d4913c33f328fb1fd0634311e69bf615",
+      "ownerPlan": 9,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/rules/no-gliderecord-query-modifier-after-query.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "60d0aefe46b5c0cabada80db5142c1e9783c3929",
+      "ownerPlan": 9,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/rules/no-gs-now.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "3d5423f8df3061dfc93a00f58048ca3130275d91",
+      "ownerPlan": 12,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/rules/no-hardcoded-sysid.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "f4f5ceee1376249786d0f7058ff7d3179236f06a",
+      "ownerPlan": 12,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/rules/no-hardcoded-table-names.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "757cc96229b957c4ad5b94d012588e9ddbde1c56",
+      "ownerPlan": 12,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/rules/no-now-id-as-reference.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "146ca1520e0708d75fcb4f36c5be72847d5704fd",
+      "ownerPlan": 11,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/rules/no-packages-calls.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "7bf04e056c99ac12754a1f1fa57d68db7bc91dcc",
+      "ownerPlan": 12,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/rules/no-promise.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "962b4ef5b826ba4eb71d5726d4248d4eaa3f47e2",
+      "ownerPlan": 12,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/rules/no-proxy.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "781a1351578bd21d067d130c3b51c37d754796e2",
+      "ownerPlan": 12,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/rules/no-sync-glideajax.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "1f0bf095d6bf35849579cf8813f1c451a576bdaf",
+      "ownerPlan": 12,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/rules/no-system-query-bypass.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "a715085bb6313a58e6fd2848736e9f40c71494ec",
+      "ownerPlan": 12,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/rules/no-typed-arrays.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "10f0e7d3276c4c5c2ad2f0d268c9cea68ee30ce1",
+      "ownerPlan": 12,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/rules/no-unfiltered-gliderecord-bulk-operation.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "b9e08f7233626ab48c37a83f69d9d35ef2e291c4",
+      "ownerPlan": 9,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/rules/no-unsupported-syntax.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "9806f112958df1db401f1bb63ba4ed813d4a705f",
+      "ownerPlan": 12,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/rules/no-weak-collections.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "203dc8809f9d37a594745b8b7dff6ea04470f6b7",
+      "ownerPlan": 12,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/rules/no-weak-references.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "cef3f38223bc3505c58d35ff7c36c65177b27fd6",
+      "ownerPlan": 12,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/rules/prefer-glideaggregate.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "840dd73beb05a49ea65e4719c05a4bc798eec72e",
+      "ownerPlan": 12,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/rules/prefer-now-include.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "5bd5ba17c9f3bc2f9446d6d647b9ba64d8290536",
+      "ownerPlan": 11,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/rules/prefer-setnocount-with-choosewindow.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "6f2033305c6a5542f2793acccd730a642c3ff999",
+      "ownerPlan": 9,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/rules/require-business-rule-wrapper.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "6fa13cc67a63f0ab47ccb92230f8c1d4166c4818",
+      "ownerPlan": 12,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/rules/require-callback-for-getreference.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "14db4238abb5226cd6d972d361865dac370ca381",
+      "ownerPlan": 9,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/rules/require-fluent-id.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "1e4baaeca94dc0824e69b1c5801ccdf8eac7181c",
+      "ownerPlan": 11,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/rules/require-glideajax-sysparm-name.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "579a9864be0ea966418f88e26f9588d5da5083dc",
+      "ownerPlan": 9,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/rules/require-query-before-next.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "972b227ddd7b5cb3a6b81a287c6aded9042f25bc",
+      "ownerPlan": 9,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/rules/validate-glideaggregate-calls.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "f6127750602f504782fd9de6f7ea5aa38c254597",
+      "ownerPlan": 9,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/rules/validate-gliderecord-calls.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "6f90d4f37aee7a694ee68ae3ae784a0fa0fbbc43",
+      "ownerPlan": 9,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/runtime/apply-rules.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "98a7fb455f70908c04b6311bb1fa492b9e3650c5",
+      "ownerPlan": 12,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/settings/errors.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "8152fc9740c58e2e24c8786d6fd57cefa1393bfa",
+      "ownerPlan": 7,
+      "dependencyBaseline": true
+    },
+    {
+      "path": "src/settings/freeze.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "04d731a929dc46e3a261f321e30e75aea6714f29",
+      "ownerPlan": 7,
+      "dependencyBaseline": true
+    },
+    {
+      "path": "src/settings/index.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "6421b3f50f20e320e7262a63d2cef72db9437046",
+      "ownerPlan": 7,
+      "dependencyBaseline": true
+    },
+    {
+      "path": "src/settings/releases.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "04e18670190c7ae369122cb95920e64495d38a6e",
+      "ownerPlan": 7,
+      "dependencyBaseline": true
+    },
+    {
+      "path": "src/settings/validate.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "0af106f5db1786fa0f10b7a0f8cf8e05c84dee9e",
+      "ownerPlan": 7,
+      "dependencyBaseline": true
+    },
+    {
+      "path": "src/types.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "9af16f1f7e8a94b5dcdce34506fa30c35f67bd87",
+      "ownerPlan": 7,
+      "dependencyBaseline": true
+    },
+    {
+      "path": "src/utils/ast.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "5d34246313b72b8036c65f61a35f18d9c7d54ffc",
+      "ownerPlan": 7,
+      "dependencyBaseline": true
+    },
+    {
+      "path": "src/utils/filenames.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "513d7aabd52546b1f5455847f324ca95ac0eea87",
+      "ownerPlan": 12,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "src/utils/settings.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "a17af76193ecbb24e24e41e71d72475f77b637bf",
+      "ownerPlan": 12,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/analysis/foundation.test.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "81d9ea4353621b5f71b4c4b328c1e7f704797533",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/benchmark-gate.test.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "6c44d2b70ed000ce1a450ed7920b1190319faeba",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/catalog.test.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "63a637dad28260e90a7888dfcc325223ded98599",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/configs.test.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "6ceecb34a856e51102fe2326424af3108c03253b",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/context.test.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "a3dab2db1182ecb6374a2a7f8e0c645dbeaab540",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/fixtures/fluent-manifest-current.json",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "2a1eb8f91adedf31134a2aade717ea7729570f93",
+      "ownerPlan": 10,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/fixtures/fluent-sdk-boundaries.json",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "c598643dd394b0967642c147cda997422c0eda7a",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/fluent-manifest.test.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "6c438b4000515956cea1eb09af89420bcb7bbe69",
+      "ownerPlan": 10,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/glide/manifest.test.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "9cf4ea4e6325f871a488ecf8519c854f3a81a695",
+      "ownerPlan": 9,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/helpers/binding-matrix.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "288d792ba9eff2eb22a816f07e1b5da5e5e413ec",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/helpers/rule-tester.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "e88b77b9968e0889c704ff99b5380244bc0ef0de",
+      "ownerPlan": 12,
+      "dependencyBaseline": true
+    },
+    {
+      "path": "tests/integration/adversarial.test.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "7fa23f8e3478d1059c146640254ba6797e64fe07",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/compat-matrix.test.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "58e21c18974dbd2db751c09edda8b24e0b969632",
+      "ownerPlan": 15,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/eslint.test.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "541f8735b13a3a10d551f5a7ddb16f8500efd5f4",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/examples.test.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "89cc0792e7bccae8e3b90be30327c597321f4649",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/fixtures/.oxlintrc.json",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "63989b6fa6777d6edc11a54ae16ecab18e4e6b9d",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/flat-profiles.test.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "094ae41c86ddbed067f392794d04dc48abb35f54",
+      "ownerPlan": 12,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/helpers.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "772a9d15465ccc66881dee1f4b50dc409bf444e6",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/oxfmt.test.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "3b0fd1bb21760b780abdad24b61f851bf2c45067",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/oxlint.test.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "00c9130dac52bb3386b932c1e95632348e257058",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/packed-consumer.test.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "5ab5d1ba7b33fa343737eddcda338312c3e5ed6d",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles.test.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "9c15261135bb894cf4e6984a9469d34b2094942d",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/configs/classic-es5.oxlintrc.json",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "c22d8cd22e1508ff14a6a0ef0a7c2fe2eaf4f1c6",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/configs/es2021.oxlintrc.json",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "3bff8e14e77aba26b815787c1868217f89c75b08",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/configs/recommended-full-script.oxlintrc.json",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "152f1080d0aa0a91fef97992fc152c44fe0326ea",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/configs/recommended.oxlintrc.json",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "d3e0bf51b50e1455d043459fbb3e1f7b669aaa4d",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/configs/security.oxlintrc.json",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "2eb26a6058a1d1ccbd1d0e42db04d7c9b4cd37d2",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/configs/strict.oxlintrc.json",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "c31a60e236f5113801c91d2524c83f2429ea4907",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/invalid/aggregate-late-config.br.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "9fb65afe3f2fe752e2e027d5b452a8217795964d",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/invalid/aggregate-type-only-field.br.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "a12de47e952484637560c7b28b211a1bf9a88828",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/invalid/alias-next-without-query.br.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "f4e9483addfa21be56789289751237be0cab3b92",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/invalid/client-gliderecord.client.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "6a494753cf3fbd58419578761e7e97b2e8c82bf3",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/invalid/dangling-fluent-ignore.now.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "30560d640107873edc31dec8b8098e3c17bebb46",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/invalid/duplicate-id.now.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "35324dab0bd177b09b014dc6cdfe7db428a64918",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/invalid/early-return-next.br.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "70a5c6b38d2d85fffb76ba02a3fc8284627c97ef",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/invalid/empty-addquery-bulk.br.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "9cead62b680adb2fdf3b2439f76ddb89cd192ef9",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/invalid/empty-encoded-bulk.br.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "532940ff3718356c4f4768b634d93730ce6c7489",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/invalid/es2021-async-iter.server.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "9f5516324531b7c2c01d3bc851c53ebf2f090980",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/invalid/es5-promise.server.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "6ac9943a5419e184ca017d6681717099fc160f1e",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/invalid/fluent-alias-missing-id.now.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "10881342b21d5a73b2547de059b43602944682e0",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/invalid/fluent-namespace-missing-id.now.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "b8e7d2da2428ad21eadf50e4fb1880de0f68af27",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/invalid/glideaggregate.br.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "e61b51399eb8a2b7be027ffa9de25ed267b323a4",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/invalid/glideajax-empty-sysparm.client.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "c374a104313fa1bb97acf81b8242631941d095ec",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/invalid/glideajax-getanswer.client.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "508966c67ee2d8892ac0453c4697b0b33ada39bd",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/invalid/glideajax-sysparm.client.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "4b1e458c0ac05f9eeddd3e239aed0052e4029bf3",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/invalid/glideelement-push.br.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "9725a7519cdaea2d4a12e6c13a4b0237b77767bc",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/invalid/independent-objects.br.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "b8afd8a66902df72c163c99dc1e8c8bc429124ea",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/invalid/late-modifier.br.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "682f4418cc16a854c6d4b25a227db54888088219",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/invalid/missing-query.br.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "aa6d5f396b4c8229c5dd6c0a7a47384988d2acac",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/invalid/nested-cursor-query.br.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "77ded67d264bcee76f276b76d89b5077400caa18",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/invalid/now-id-ref.now.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "3d64d66e5c074ec9f84a9ae33cee27c4604620a0",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/invalid/setnocount-second-query.br.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "de727c79a61aa4ff6faa9b224789896a353fa182",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/invalid/switch-no-default.br.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "7c494ffa336f7da225bde59891b5be447ff24c1d",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/invalid/sync-getreference.client.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "06442102a8c84e136bb1e8d1d602a3b3d5c79826",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/invalid/system-query.br.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "ad694571f1bb2d477d1a28c4b5aa5ac7a437503b",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/invalid/temporal-raw-id.now.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "0aec8edb19ad2c806745a61bb84ac6949f406461",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/invalid/unfiltered-bulk.br.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "ba7f890d5bcaae3bf313890b183fdd9fa5143c90",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/invalid/unwrapped.br.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "7354108bc95dc5289e7c974795842449aa7870cf",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/invalid/windowed-delete.br.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "ef4f3b815698efa70e76fe1b359beeb110d0084b",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/mixed/.oxlintrc.json",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "d3e0bf51b50e1455d043459fbb3e1f7b669aaa4d",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/mixed/src/br/set-state.br.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "27c92f7142b7cb394eb588eb1a18fe124b03a32f",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/mixed/src/client/set-priority.client.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "da602edbf773858ffea47f7d658816ae42aeccd6",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/mixed/src/fluent/table.now.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "df14d59abf82bedace1296e293078e8c33243e87",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/mixed/src/server/list-open.server.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "ce82682c5dce2572dc7a8213a0754fa1af1fcb4c",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/mixed/src/ui-action/approve.client.ui-action.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "de2a7c654e15546fce80b0875df8b9c095b77a4a",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/mixed/src/ui-action/close.ui-action.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "ef40f0162656bea8e070a9018d919ef07bb7c0f4",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/oxfmt/sample.br.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "66840cdfd0cd0f1a3b960a1d9418a7820f79e73c",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/oxfmt/sample.now.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "40e773afaf53932b14d4fcd53405cea2fbe2ca99",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/valid/alias-query-consume.br.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "493d22c8ca8cbad355b7fd3b0e397e1b906f9a1a",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/valid/approve.client.ui-action.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "c8a0b1e562d1d1991dd8ad578eb0fe15544b99df",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/valid/body-only.br.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "c66220502308ab1dd6a0501ccd94da9336f14152",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/valid/branch-unknown.br.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "ffbe2292a23a873e541d4b2473b29d39b7a1ee63",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/valid/catalog.client.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "5a21ee894358ac54a5e8a994b2c62a8359748f90",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/valid/close.ui-action.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "bc6cf038e9626e95ac35fc2fe8d76f0da0e77c79",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/valid/compatibility.server.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "7baa41a12243f73927c3e1b3eef9717d7d530661",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/valid/custom-iterator-loop.br.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "92f7bf0e09ccb7a7db1254e178ebe1522472c9be",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/valid/early-return-query.br.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "3c351eeae1d6ef8c9965aef9a0a625527403ef35",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/valid/es2021.server.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "f0df140de5d37b38f0f272f1bc9d9f5709a46ef0",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/valid/es5.server.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "363292533cf895f832446ae8058d90e3e5f0b628",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/valid/escaped-helper.br.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "8902b85a92e06dd00052465f86741b8effadd3c6",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/valid/flow-automation.now.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "cab8b0971394b0e3ca02e3266cdeb6113b37be01",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/valid/fluent-local-now.now.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "a20cd9d70b9768693c07603f36904797b59ab469",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/valid/full-script.br.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "f3c07ea360e816073e5e87c486db93ff268e30e1",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/valid/helper.si.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "151c5cf2457448a0ee22bf323f1d21a1aead97bb",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/valid/incident.br.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "0b1fa5ae56fff1420683c804bb992222258cc097",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/valid/mixed.ui-action.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "b86667b4a58f8cc6e63f6434a906da885d51c943",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/valid/noop-join.br.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "b8effd8fa32780c9923edbb0f3b4c2828bb0f85f",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/valid/short-circuit.br.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "b36e174217accce760bfa4b7c07f2f3f85d54e41",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/valid/sibling-reassign.br.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "608798584c38393e887edf0c3162095c1891e01d",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/valid/storage-escape.br.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "07947423af5396663f2e8d349687c37d7da302a2",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/valid/temporal-now-id.now.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "f44e283bb28b2c18eb071455db111dc71f5a7ab2",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/valid/try-catch-query.br.js",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "6b86787f05ec2f779cb07873cf00124e905b3a2e",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/integration/profiles/valid/widget.now.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "8bd51f1774beb9b55316dcec884823709261bb37",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/options.test.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "789521e9752f11b2b7bab6707935877ef8f40070",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/perf/baseline.test.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "c6911dfb6fdcaade25d7b6c57a34c34497847b75",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/perf/benchmark.test.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "f81bb192270e763ea2df27a5c1ad941f4e2842f2",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/plugin.test.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "22daeed129f1584ca1cbf40eeccd9bd29133f221",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/release/artifact.test.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "cb6cba0e8f3389ccc8460b755fe4637bd7dff750",
+      "ownerPlan": 15,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/release/layer7.test.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "0477320f33ce8b1790f942f277a0cbdb96429600",
+      "ownerPlan": 15,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/rules/binding-matrix.test.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "2661da298afa1f6b579385dd68d4edc26921818c",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/rules/fluent-identity.test.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "f4b7a83e913bc6cb5817e9890585fc11848e3448",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/rules/fluent-ids.test.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "a38145539a36bde3715883b6c3251aacc2ac0b7a",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/rules/fluent.test.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "4f827e21723d5a691aaee972036ec6c1047b0c7a",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/rules/glide-and-engine.test.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "fac4fb9c322802cf7c38951a826ec20898677785",
+      "ownerPlan": 12,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/rules/layer3-consumers.test.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "6388767e2a692b91b7502af555a4fb3e0e81656a",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/rules/no-async-await.test.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "3638e68df3c943b5c34652de631c8210ce7f8fc7",
+      "ownerPlan": 12,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/rules/no-bigint.test.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "4e1f74fb95345623da1e4dfd12daec262ef21356",
+      "ownerPlan": 12,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/rules/no-delete-multiple-with-windowing.test.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "0adb0307d49d00dd59a4c324c3a17d841936c107",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/rules/no-glideajax-getanswer.test.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "c3f173a2a45c2bac774f27656d81322b5ff16c61",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/rules/no-hardcoded-sysid.test.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "b0ec8c8d470c8746fd3f133071e1f8d59b1c3797",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/rules/no-promise.test.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "772c5f57991303c1de5eb8e544ad38f91bcc6bac",
+      "ownerPlan": 12,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/rules/phase3.test.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "6305e78840b540e3b13e88d90e36aab1911df495",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/rules/phase5.test.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "ac8580303c318f85d5582a34052dfaebc1502bf3",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/rules/prefer-glideaggregate.test.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "a83f572f90906e1724245aa50cbb20248ca7f0b7",
+      "ownerPlan": 12,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/rules/require-callback-for-getreference.test.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "9ed95536e2274d92c9c0d8ec70996146ccbe8239",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/rules/require-glideajax-sysparm-name.test.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "d9f91bbac181615485aeaa648adf37bc073a76d4",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/rules/stateful-lifecycle.test.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "208729dc51474c92df017fc889c213820eda69ce",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/rules/validate-glideaggregate-calls.test.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "b85767c0327acb70a5cc7c6e1b13fce101b77865",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/settings-freeze.test.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "1b1378a881d88518def2a6183ef56a120b8e835f",
+      "ownerPlan": 12,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/types/readonly.test-d.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "9ee7bf3614d4ffebac300f7220b133ee9754032e",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tests/utils/ast.test.ts",
+      "ownership": "whole-file",
+      "archivedStatus": "A",
+      "archivedMode": "100644",
+      "archivedBlob": "382ee475f9fcca91d5cdd7c6292815799b23921a",
+      "ownerPlan": 8,
+      "dependencyBaseline": false
+    },
+    {
+      "path": "tsconfig.json",
+      "ownership": "whole-file",
+      "archivedStatus": "M",
+      "archivedMode": "100644",
+      "archivedBlob": "cea44082298eb4ee1b13c5466edea1d6123c0253",
+      "ownerPlan": 14,
+      "dependencyBaseline": false
+    }
+  ]
+}
