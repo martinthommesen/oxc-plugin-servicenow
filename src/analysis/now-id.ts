@@ -20,7 +20,40 @@ export interface DuplicateFluentId {
   key: string;
 }
 
-export type NowIdFact = string | "unknown" | null;
+export interface StaticNowIdFact {
+  readonly kind: "static";
+  readonly key: string;
+}
+
+export interface UnknownNowIdFact {
+  readonly kind: "unknown";
+}
+
+/** A tagged fact prevents the valid static key `"unknown"` from colliding. */
+export type NowIdFact = StaticNowIdFact | UnknownNowIdFact | null;
+
+const UNKNOWN_NOW_ID: UnknownNowIdFact = Object.freeze({ kind: "unknown" });
+const STATIC_NOW_IDS = new Map<string, StaticNowIdFact>();
+
+function staticNowId(key: string): StaticNowIdFact {
+  const existing = STATIC_NOW_IDS.get(key);
+  if (existing) return existing;
+  const fact: StaticNowIdFact = Object.freeze({ kind: "static", key });
+  STATIC_NOW_IDS.set(key, fact);
+  return fact;
+}
+
+function unknownNowId(): UnknownNowIdFact {
+  return UNKNOWN_NOW_ID;
+}
+
+export function mergeNowIdFacts(left: NowIdFact, right: NowIdFact): NowIdFact {
+  if (left === right) return left;
+  if (left?.kind === "static" && right?.kind === "static" && left.key === right.key) {
+    return staticNowId(left.key);
+  }
+  return unknownNowId();
+}
 
 interface NowIdData {
   nowIdKey: NowIdFact;
@@ -46,24 +79,60 @@ function unwrapExpr(node: unknown): ESTree.Node | null {
 }
 
 function nowRootIdentifier(node: ESTree.Node): ESTree.Node | null {
-  let current: unknown = node;
+  let current: unknown = unwrapExpr(node);
   while (isNode(current) && current.type === "MemberExpression") {
-    current = (current as ESTree.MemberExpression).object;
+    current = unwrapExpr((current as ESTree.MemberExpression).object);
   }
-  if (isNode(current) && getName(current) === "Now") return current;
-  return null;
+  return isNode(current) && getName(current) ? current : null;
+}
+
+function staticChain(node: unknown): string[] | null {
+  const parts: string[] = [];
+  let current: unknown = unwrapExpr(node);
+  while (isNode(current) && current.type === "MemberExpression") {
+    const member = current as ESTree.MemberExpression;
+    const property = member.computed
+      ? (getName(member.property) ?? (member.property.type === "Literal" && typeof (member.property as { value?: unknown }).value === "string"
+          ? ((member.property as { value: string }).value)
+          : null))
+      : getName(member.property);
+    if (!property) return null;
+    parts.unshift(property);
+    current = unwrapExpr(member.object);
+  }
+  const root = getName(current);
+  if (!root) return null;
+  parts.unshift(root);
+  return parts;
 }
 
 function isNowIdLookup(node: ESTree.Node): boolean {
-  if (node.type !== "MemberExpression") return false;
-  const objectChain = staticMemberChain((node as ESTree.MemberExpression).object);
-  return Boolean(objectChain && objectChain[0] === "Now" && objectChain[1] === "ID");
+  const chain = staticChain(node);
+  return Boolean(chain && chain[0] === "Now" && chain[1] === "ID" && chain.length >= 3);
 }
 
-/** True when `Now` is the unresolved platform global, not a local binding. */
+function canonicalAlias(
+  root: ESTree.Node,
+  analysis: ProvenanceQuery,
+  seen: Set<number>,
+): boolean {
+  if (analysis.isPlatformGlobal(root)) return true;
+  const name = getName(root);
+  if (!name) return false;
+  const binding = analysis.bindings.tree.resolve(name, root);
+  if (!binding || seen.has(binding.id) || binding.kind !== "const") return false;
+  if (binding.node.type !== "VariableDeclarator") return false;
+  const declaration = binding.node as ESTree.VariableDeclarator;
+  if (!isNode(declaration.id) || declaration.id.type !== "Identifier" || !isNode(declaration.init)) return false;
+  seen.add(binding.id);
+  const initRoot = nowRootIdentifier(declaration.init);
+  return Boolean(initRoot && canonicalAlias(initRoot, analysis, seen));
+}
+
+/** True when `Now` is the platform global or a proven immutable alias. */
 export function isCanonicalNow(node: ESTree.Node, analysis: ProvenanceQuery): boolean {
   const root = nowRootIdentifier(node);
-  return Boolean(root && analysis.isPlatformGlobal(root));
+  return Boolean(root && canonicalAlias(root, analysis, new Set()));
 }
 
 export function isCanonicalNowId(node: ESTree.Node, analysis: ProvenanceQuery): boolean {
@@ -78,8 +147,8 @@ export function isCanonicalNowInclude(node: unknown, analysis: ProvenanceQuery):
     expr.type === "CallExpression" || expr.type === "NewExpression"
       ? (expr as ESTree.CallExpression).callee
       : expr;
-  const chain = staticMemberChain(callee);
-  if (!chain || chain[0] !== "Now" || chain[1] !== "include") return false;
+  const chain = staticChain(callee);
+  if (!chain || chain[1] !== "include") return false;
   return isCanonicalNow(isNode(callee) ? callee : expr, analysis);
 }
 
@@ -149,8 +218,12 @@ function feedsId(parent: ESTree.Node | undefined, node: ESTree.Node): boolean {
 
 export function nowIdValue(node: ESTree.Node, analysis: ProvenanceQuery): NowIdFact | undefined {
   if (!isCanonicalNowId(node, analysis)) return undefined;
-  const key = nowIdKey(node);
-  return key ?? "unknown";
+  const key = nowIdKey(unwrapExpr(node) ?? node);
+  return key === null ? unknownNowId() : staticNowId(key);
+}
+
+function isUnknownNowId(value: NowIdFact | undefined): value is UnknownNowIdFact {
+  return Boolean(value && typeof value === "object" && value.kind === "unknown");
 }
 
 /** True when this node is a canonical `Now.ID` lookup or a proven alias at this program point. */
@@ -162,7 +235,7 @@ export function isProvenNowIdValue(
   if (isCanonicalNowId(node, analysis)) return true;
   const inner = unwrapExpr(node) ?? node;
   const fact = facts.get(node) ?? facts.get(inner);
-  return fact != null && fact !== "unknown";
+  return fact?.kind === "static";
 }
 
 function collectNowIdFacts(program: ESTree.Node, analysis: ProvenanceQuery): Map<ESTree.Node, NowIdFact> {
@@ -173,9 +246,7 @@ function collectNowIdFacts(program: ESTree.Node, analysis: ProvenanceQuery): Map
     kinds: [],
     emptyData: () => ({ nowIdKey: null }),
     cloneData: (data) => ({ ...data }),
-    mergeData: (left, right) => ({
-      nowIdKey: left.nowIdKey === right.nowIdKey ? left.nowIdKey : "unknown",
-    }),
+    mergeData: (left, right) => ({ nowIdKey: mergeNowIdFacts(left.nowIdKey, right.nowIdKey) }),
     onCall() {},
     onValue(node) {
       const key = nowIdValue(node, analysis);
@@ -206,19 +277,19 @@ export function findNowIdMisuses(
     program,
     {
       MemberExpression(node) {
-        const key = facts.get(node);
-        if (key === undefined || key === "unknown") return;
+        const fact = facts.get(node);
+        if (!fact || fact.kind !== "static") return;
         const parent = parentOf(ancestors);
         if (feedsId(parent, node) || isAliasInit(parent, node)) return;
-        findings.push({ node, key });
+        findings.push({ node, key: fact.key });
       },
       Identifier(node) {
-        const key = facts.get(node);
-        if (key === undefined || key === "unknown") return;
+        const fact = facts.get(node);
+        if (!fact || fact.kind !== "static") return;
         const parent = parentOf(ancestors);
         if (isDeclarationId(parent, node) || isNonValuePropertyKey(parent, node)) return;
         if (feedsId(parent, node) || isAliasInit(parent, node)) return;
-        findings.push({ node, key: key === null ? null : key });
+        findings.push({ node, key: fact.key });
       },
     },
     ancestors,
@@ -241,8 +312,9 @@ export function findDuplicateFluentIds(
   const consider = (node: ESTree.Node): void => {
     const parent = parentOf(ancestors);
     if (!feedsId(parent, node)) return;
-    const key = facts.get(node);
-    if (!key || key === "unknown") return;
+    const fact = facts.get(node);
+    if (!fact || fact.kind !== "static") return;
+    const key = fact.key;
     const seen = first.get(key);
     if (!seen) {
       first.set(key, node);

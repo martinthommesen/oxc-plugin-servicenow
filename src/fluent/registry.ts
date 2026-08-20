@@ -13,9 +13,20 @@ function withSdkVersion(manifest: FluentSdkManifest, sdkVersion: string): Fluent
 }
 
 function olderSdkManifest(): FluentSdkManifest {
+  // Keep this list explicit rather than deriving 3.0 from the current
+  // manifest.  These factories were introduced by the 4.x core barrel (or
+  // were only supplied by its 4.x optional packages).
+  const introducedAfter3 = new Set([
+    "CatalogItemRecordProducer",
+    "ScriptAction",
+    "ScriptInclude",
+    "SPWidget",
+    "UiAction",
+    "UiPage",
+  ]);
   const apis: FluentApiCapability[] = DEFAULT_FLUENT_MANIFEST.apis
-    .filter((api) => api.name !== "CatalogItemRecordProducer")
-    .map((api) => (api.name === "Table" ? { ...api, idRequirement: "required" } : api));
+    .filter((api) => !introducedAfter3.has(api.name))
+    .map((api) => (api.name === "Table" ? { ...api, idRequirement: "required" as const } : api));
   return {
     ...DEFAULT_FLUENT_MANIFEST,
     version: "sdk-3.0.0",

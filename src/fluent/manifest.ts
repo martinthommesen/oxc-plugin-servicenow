@@ -91,24 +91,30 @@ export const DEFAULT_FLUENT_MANIFEST: FluentSdkManifest = {
     entity("CrossScopePrivilege", "required"),
     entity("DatabaseIndex", "optional"),
     entity("InboundEmailAction", "required"),
-    entity("List", "required", { evidence: `${SDK_EXAMPLES}/list-sample` }),
+    // SDK 4.1 derives list IDs; the declaration keeps `$id` only as a
+    // deprecated compatibility property.  Keep that policy distinct from
+    // entities whose WithID contract requires an explicit identity.
+    entity("List", "deprecated", { evidence: `${SDK_EXAMPLES}/list-sample` }),
     entity("Module", "required"),
     entity("Property", "required"),
     entity("Record", "required", { evidence: `${FLUENT_OVERVIEW} and ${SDK_EXAMPLES}/record-sample` }),
+    entity("UserPreference", "required", { evidence: `${FLUENT_OVERVIEW} and ${SDK_EXAMPLES}/user-preference-sample` }),
     entity("RestApi", "required", { evidence: `${SDK_EXAMPLES}/restapi-sample` }),
     entity("Role", "required"),
     entity("ScheduledScript", "required"),
-    entity("ScriptAction", "required", { evidence: `${SDK_EXAMPLES}/scriptaction-sample` }),
     entity("ScriptedRestApi", "required"),
-    entity("ScriptInclude", "required", { evidence: `${SDK_EXAMPLES}/script-include-sample` }),
     entity("SPMenu", "required", { evidence: `${SDK_EXAMPLES}/service-portal-sample` }),
     entity("SPWidget", "required", { evidence: `${SDK_EXAMPLES}/service-portal-sample` }),
     entity("StateModel", "required"),
-    entity("Table", "optional", { evidence: `${FLUENT_OVERVIEW} and ${SDK_EXAMPLES}/table-sample` }),
+    // Table's published 4.1 declaration has no WithID contract.  Its ID is
+    // derived from the table metadata rather than supplied by callers.
+    entity("Table", "forbidden", { evidence: `${FLUENT_OVERVIEW} and ${SDK_EXAMPLES}/table-sample` }),
     entity("Test", "required", { evidence: `${SDK_EXAMPLES}/test-atf-sample` }),
-    entity("UiAction", "required", { evidence: `${SDK_EXAMPLES}/uiaction-sample` }),
+    entity("ScriptAction", "required", { evidence: `${FLUENT_OVERVIEW} and ${SDK_EXAMPLES}/script-action-sample` }),
+    entity("ScriptInclude", "required", { evidence: `${FLUENT_OVERVIEW} and ${SDK_EXAMPLES}/script-include-sample` }),
+    entity("UiAction", "required", { evidence: `${FLUENT_OVERVIEW} and ${SDK_EXAMPLES}/ui-action-sample` }),
+    entity("UiPage", "required", { evidence: `${FLUENT_OVERVIEW} and ${SDK_EXAMPLES}/ui-page-sample` }),
     entity("UiFormatter", "required"),
-    entity("UiPage", "required", { evidence: `${SDK_EXAMPLES}/uipage-sample` }),
     entity("UiPolicy", "required"),
     entity("Flow", "unknown", {
       kind: "automation",
