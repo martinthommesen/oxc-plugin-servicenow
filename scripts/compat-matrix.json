@@ -29,7 +29,9 @@
   },
   "typescriptEslint": {
     "peer": ">=8.0.0 <9",
-    "tested": "8.46.0"
+    "tested": "8.46.0",
+    "minimum": "8.46.0",
+    "current": "8.46.0"
   },
   "fluentSdk": [
     "3.0.0",
@@ -50,42 +52,48 @@
       "node": "20.19.0",
       "oxlint": "1.79.0",
       "eslint": "9.0.0",
-      "oxfmt": "0.64.0"
+      "oxfmt": "0.64.0",
+      "typescriptEslint": "8.46.0"
     },
     {
       "id": "node20-floor",
       "node": "20",
       "oxlint": "1.79.0",
       "eslint": "9.39.5",
-      "oxfmt": "0.64.0"
+      "oxfmt": "0.64.0",
+      "typescriptEslint": "8.46.0"
     },
     {
       "id": "node22-lts",
       "node": "22",
       "oxlint": "latest",
       "eslint": "10.8.1",
-      "oxfmt": "latest"
+      "oxfmt": "latest",
+      "typescriptEslint": "8.46.0"
     },
     {
       "id": "node24-lts",
       "node": "24",
       "oxlint": "latest",
       "eslint": "10.8.1",
-      "oxfmt": "latest"
+      "oxfmt": "latest",
+      "typescriptEslint": "8.46.0"
     },
     {
       "id": "node26-current",
       "node": "26",
       "oxlint": "latest",
       "eslint": "10.8.1",
-      "oxfmt": "latest"
+      "oxfmt": "latest",
+      "typescriptEslint": "8.46.0"
     },
     {
       "id": "eslint9-current",
       "node": "current",
       "oxlint": "1.79.0",
       "eslint": "9.39.5",
-      "oxfmt": "0.64.0"
+      "oxfmt": "0.64.0",
+      "typescriptEslint": "8.46.0"
     }
   ]
 }

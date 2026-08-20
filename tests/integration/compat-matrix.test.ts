@@ -4,8 +4,13 @@ import path from "node:path";
 import { describe, it } from "node:test";
 import { parseNpmPackJson } from "../../scripts/parse-npm-pack.mjs";
 import { repoRoot } from "./helpers.js";
+import { checkCompatibilityMatrix } from "../../scripts/check-compat-matrix.mjs";
 
 describe("compatibility matrix", () => {
+  it("keeps CI and release consumer cells sourced from the matrix", () => {
+    assert.equal(checkCompatibilityMatrix().cells, 6);
+  });
+
   it("matches declared package ranges", () => {
     const pkg = JSON.parse(readFileSync(path.join(repoRoot, "package.json"), "utf8")) as {
       engines: { node: string };
@@ -18,7 +23,8 @@ describe("compatibility matrix", () => {
       eslint: { peer: string; minimum: string };
       oxfmt: { peer: string; minimum: string; latest: string };
       oxlintPlugins: { dependency: string };
-      cells: Array<{ id: string; node: string; oxlint: string; eslint: string; oxfmt: string }>;
+      typescriptEslint: { minimum: string; current: string };
+      cells: Array<{ id: string; node: string; oxlint: string; eslint: string; oxfmt: string; typescriptEslint: string }>;
     };
     assert.equal(matrix.node.engines, pkg.engines.node);
     assert.equal(matrix.oxlint.peer, pkg.peerDependencies.oxlint);
@@ -33,6 +39,7 @@ describe("compatibility matrix", () => {
     assert.ok(matrix.cells.some((cell) => cell.node === matrix.node.current));
     assert.ok(matrix.cells.some((cell) => cell.oxlint === matrix.oxlint.latestCompatible));
     assert.ok(matrix.cells.some((cell) => cell.oxfmt === matrix.oxfmt.latest));
+    assert.ok(matrix.cells.every((cell) => cell.typescriptEslint === matrix.typescriptEslint.current));
     const docs = readFileSync(path.join(repoRoot, "docs/compatibility.md"), "utf8");
     assert.ok(docs.includes(matrix.oxlint.minimum));
     assert.ok(docs.includes(matrix.eslint.minimum));

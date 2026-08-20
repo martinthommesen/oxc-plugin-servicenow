@@ -64,7 +64,7 @@ async function runCell(tarball, cell) {
       JSON.stringify({ name: `sn-oxc-compat-${cell.id}`, private: true, type: "module" }, null, 2),
     );
     try {
-      execFileSync("npm", ["install", "--ignore-scripts", "--no-audit", "--no-fund", tarball, `oxlint@${cell.oxlint}`, `eslint@${cell.eslint}`, `oxfmt@${cell.oxfmt}`], {
+      execFileSync("npm", ["install", "--ignore-scripts", "--no-audit", "--no-fund", tarball, `oxlint@${cell.oxlint}`, `eslint@${cell.eslint}`, `oxfmt@${cell.oxfmt}`, `typescript-eslint@${cell.typescriptEslint}`], {
         cwd: consumer,
         encoding: "utf8",
       });
@@ -106,6 +106,12 @@ console.log(JSON.stringify({
     }
     if (!publicApi.oxfmt || !publicApi.recommended) {
       fail("package", `${cell.id} public subpath exports did not load`);
+    }
+    try {
+      const parserScript = `import tseslint from "typescript-eslint"; const result = tseslint.parser.parseForESLint("const table: string = \\\"incident\\\";", { filePath: "sample.now.tsx" }); if (!result?.ast) throw new Error("TypeScript parser returned no AST");`;
+      execFileSync(process.execPath, ["--input-type=module", "-e", parserScript], { cwd: consumer, encoding: "utf8" });
+    } catch (error) {
+      fail("parser", `${cell.id} TypeScript parser failed: ${error instanceof Error ? error.message : String(error)}`);
     }
 
     writeFileSync(
@@ -183,18 +189,43 @@ console.log(JSON.stringify({
       path.join(consumer, "sample.now.ts"),
       'import { Table } from "@servicenow/sdk/core";\nexport const incident = Table({ name: "x_acme_incident" });\n',
     );
+    writeFileSync(path.join(consumer, "sample.now.tsx"), "const Component = () => <div />;\nexport default Component;\n");
+    for (const fluentSdkVersion of ["3.0.0", "4.1.0"]) {
+      const fluentConfig = path.join(consumer, `.oxlintrc-${fluentSdkVersion}.json`);
+      writeFileSync(
+        fluentConfig,
+        JSON.stringify({
+          jsPlugins: [{ name: "servicenow", specifier: "oxc-plugin-servicenow" }],
+          settings: { servicenow: { fluentSdkVersion } },
+          rules: { "servicenow/require-fluent-id": "error" },
+        }, null, 2),
+      );
+      let fluentOutput = "";
+      try {
+        fluentOutput = execFileSync(path.join(consumer, "node_modules", ".bin", "oxlint"), ["--format", "json", "-c", fluentConfig, "sample.now.ts"], { cwd: consumer, encoding: "utf8" });
+      } catch (error) {
+        fluentOutput = error.stdout ?? "";
+      }
+      let fluentReport;
+      try { fluentReport = JSON.parse(fluentOutput); } catch { fail("runtime", `${cell.id} Fluent ${fluentSdkVersion} output was not JSON`); }
+      const fluentCodes = (fluentReport.diagnostics ?? []).map((diagnostic) => diagnostic.code);
+      const hasMissingId = fluentCodes.some((code) => String(code).includes("require-fluent-id"));
+      if ((fluentSdkVersion === "3.0.0") !== hasMissingId) {
+        fail("runtime", `${cell.id} Fluent ${fluentSdkVersion} ID policy mismatch (${fluentCodes.join(", ") || "none"})`);
+      }
+    }
     writeFileSync(
       path.join(consumer, ".oxfmtrc.json"),
       readFileSync(path.join(installed, "oxfmt.recommended.json"), "utf8"),
     );
     try {
-      execFileSync(path.join(consumer, "node_modules", ".bin", "oxfmt"), ["-c", ".oxfmtrc.json", "--write", "sample.br.js", "sample.now.ts"], {
+      execFileSync(path.join(consumer, "node_modules", ".bin", "oxfmt"), ["-c", ".oxfmtrc.json", "--write", "sample.br.js", "sample.now.ts", "sample.now.tsx"], {
         encoding: "utf8",
         cwd: consumer,
       });
       execFileSync(
         path.join(consumer, "node_modules", ".bin", "oxfmt"),
-        ["-c", ".oxfmtrc.json", "--check", "sample.br.js", "sample.now.ts"],
+        ["-c", ".oxfmtrc.json", "--check", "sample.br.js", "sample.now.ts", "sample.now.tsx"],
         { encoding: "utf8", cwd: consumer },
       );
     } catch (error) {
@@ -223,7 +254,7 @@ const results = [];
 try {
   const tarball = packTarball(staging);
   for (const cell of cells) {
-    console.log(`compat cell ${cell.id} oxlint@${cell.oxlint} eslint@${cell.eslint} oxfmt@${cell.oxfmt}`);
+    console.log(`compat cell ${cell.id} oxlint@${cell.oxlint} eslint@${cell.eslint} oxfmt@${cell.oxfmt} typescript-eslint@${cell.typescriptEslint}`);
     results.push(await runCell(tarball, cell));
   }
 } catch (error) {
