@@ -29,6 +29,7 @@ export function findWindowedDeleteMultiple(
     kinds: ["GlideRecord"],
     emptyData: () => ({ windowed: false }),
     cloneData: (data) => ({ ...data }),
+    equalsData: (left, right) => left.windowed === right.windowed,
     mergeData: (left, right) => ({ windowed: mergeTri(left.windowed, right.windowed) }),
     onCall({ call, rec, objectName, property }) {
       if (!rec || !objectName || !property) return;

@@ -63,6 +63,10 @@ export function findGlideAjaxParamIssues(
     kinds: ["GlideAjax"],
     emptyData: () => ({ sysparmName: false, terminal: false, uncertain: false }),
     cloneData: (data) => ({ ...data }),
+    equalsData: (left, right) =>
+      left.sysparmName === right.sysparmName &&
+      left.terminal === right.terminal &&
+      left.uncertain === right.uncertain,
     mergeData: (left, right) => ({
       sysparmName: mergeSysparm(left.sysparmName, right.sysparmName),
       terminal: mergeTri(left.terminal, right.terminal),

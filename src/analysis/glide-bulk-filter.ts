@@ -67,6 +67,8 @@ export function findUnfilteredBulkOperations(
     kinds: ["GlideRecord"],
     emptyData: () => ({ filtered: false, uncertain: false }),
     cloneData: (data) => ({ ...data }),
+    equalsData: (left, right) =>
+      left.filtered === right.filtered && left.uncertain === right.uncertain,
     mergeData: (left, right) => ({
       filtered: mergeTri(left.filtered, right.filtered),
       uncertain: left.uncertain || right.uncertain,

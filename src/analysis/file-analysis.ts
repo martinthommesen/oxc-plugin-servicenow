@@ -148,6 +148,7 @@ function buildFileAnalysis(context: Context): FileAnalysis {
       kinds: ALL_KINDS,
       emptyData: () => ({ nowIdKey: null }),
       cloneData: (data) => ({ ...data }),
+      equalsData: (left, right) => left.nowIdKey === right.nowIdKey,
       mergeData: (left, right) => ({
         nowIdKey: mergeNowIdFacts(left.nowIdKey, right.nowIdKey),
       }),

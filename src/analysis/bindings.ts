@@ -265,6 +265,11 @@ export function buildScopeTree(ast: ESTree.Node): ScopeTree {
 
 export interface FileBindings {
   tree: ScopeTree;
+  resolve(
+    name: string,
+    node: ESTree.Node,
+    ancestors?: readonly ESTree.Node[],
+  ): LexicalBinding | null;
   isLocalName(name: string, node: ESTree.Node, ancestors?: readonly ESTree.Node[]): boolean;
   isPlatformGlobal(node: ESTree.Node, ancestors?: readonly ESTree.Node[]): boolean;
 }
@@ -310,6 +315,9 @@ export function createFileBindings(context: Context, ast?: ESTree.Node): FileBin
 
   return {
     tree,
+    resolve(name, node, ancestors = []) {
+      return tree.resolve(name, node, ancestors);
+    },
     isLocalName(name, node, ancestors = []) {
       const host = hostHasDefinedBinding(context, node, name);
       if (host === true) return true;

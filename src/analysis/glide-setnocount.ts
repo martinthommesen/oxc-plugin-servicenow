@@ -61,6 +61,11 @@ export function findChooseWindowWithoutNoCount(
       wantsCount: false,
     }),
     cloneData: (data) => ({ ...data }),
+    equalsData: (left, right) =>
+      left.queryEpoch === right.queryEpoch &&
+      left.windowed === right.windowed &&
+      left.skippedCount === right.skippedCount &&
+      left.wantsCount === right.wantsCount,
     mergeData: (left, right) => ({
       queryEpoch: mergeEpoch(left.queryEpoch, right.queryEpoch),
       windowed: mergeTri(left.windowed, right.windowed),

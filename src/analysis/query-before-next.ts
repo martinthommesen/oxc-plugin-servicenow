@@ -31,6 +31,7 @@ export function findMissingQueryBeforeNext(
     kinds: ["GlideRecord"],
     emptyData: () => ({ queryState: "unopened" }),
     cloneData: (data) => ({ ...data }),
+    equalsData: (left, right) => left.queryState === right.queryState,
     mergeData: (left, right) => ({
       queryState: left.queryState === right.queryState ? left.queryState : "unknown",
     }),

@@ -29,6 +29,7 @@ export function findQueryModifiersAfterQuery(
     kinds: ["GlideRecord"],
     emptyData: () => ({ opened: false, pending: false }),
     cloneData: (data) => ({ ...data }),
+    equalsData: (left, right) => left.opened === right.opened && left.pending === right.pending,
     mergeData: (left, right) => ({
       opened: mergeTri(left.opened, right.opened),
       pending: mergeTri(left.pending, right.pending),

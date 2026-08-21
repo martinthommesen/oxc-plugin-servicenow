@@ -30,6 +30,10 @@ function intersectSet(left: Set<string>, right: Set<string>): Set<string> {
   return new Set([...left].filter((item) => right.has(item)));
 }
 
+function setsEqual(left: Set<string>, right: Set<string>): boolean {
+  return left.size === right.size && [...left].every((item) => right.has(item));
+}
+
 function cloneAgg(data: AggData): AggData {
   return {
     queried: data.queried,
@@ -62,6 +66,11 @@ export function findGlideAggregateIssues(
       dynamicAggregate: false,
     }),
     cloneData: cloneAgg,
+    equalsData: (left, right) =>
+      left.queried === right.queried &&
+      setsEqual(left.committed, right.committed) &&
+      setsEqual(left.pending, right.pending) &&
+      left.dynamicAggregate === right.dynamicAggregate,
     mergeData: (left, right) => ({
       queried: mergeTri(left.queried, right.queried),
       committed: intersectSet(left.committed, right.committed),

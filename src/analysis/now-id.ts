@@ -268,6 +268,7 @@ function collectNowIdFacts(program: ESTree.Node, analysis: ProvenanceQuery): Map
     kinds: [],
     emptyData: () => ({ nowIdKey: null }),
     cloneData: (data) => ({ ...data }),
+    equalsData: (left, right) => left.nowIdKey === right.nowIdKey,
     mergeData: (left, right) => ({ nowIdKey: mergeNowIdFacts(left.nowIdKey, right.nowIdKey) }),
     onCall() {},
     onValue(node) {
