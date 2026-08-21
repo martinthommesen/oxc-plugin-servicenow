@@ -3,7 +3,7 @@ export interface BenchmarkRow {
   profile: string;
   elapsedMs: number;
   peakRssKb: number;
-  rawSamples?: Array<{ elapsedMs: number; peakRssKb: number }>;
+  rawSamples?: Array<{ elapsedMs: number; peakRssKb: number | null }>;
 }
 export function assertBenchmarkFixtureSet(
   results: BenchmarkRow[],
