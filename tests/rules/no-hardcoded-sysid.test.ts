@@ -1,5 +1,6 @@
+import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { assertInvalid, assertValid } from "../helpers/rule-tester.js";
+import { assertInvalid, assertValid, lint } from "../helpers/rule-tester.js";
 
 const RULE = "no-hardcoded-sysid" as const;
 const ID = "97c04b3b1b12100043ab85e5bd0713e2";
@@ -25,7 +26,31 @@ describe(RULE, () => {
     assertValid(`var md5 = "${ID}";`, RULE);
   });
 
-  it("does not treat uppercase 32-hex as a sys_id", () => {
-    assertValid('var f = "D41D8CD98F00B204E9800998ECF8427E";', RULE);
+  it("flags uppercase sys_ids", () => {
+    assertInvalid('var f = "D41D8CD98F00B204E9800998ECF8427E";', RULE, {
+      messageId: "hardcoded",
+    });
+  });
+
+  it("flags statically assembled sys_ids", () => {
+    assertInvalid('var id = "97c04b3b" + "1b121000" + "43ab85e5" + "bd0713e2";', RULE, {
+      messageId: "hardcoded",
+      count: 1,
+    });
+    assertInvalid('var id = `97c04b3b${"1b12100043ab85e5bd0713e2"}`;', RULE, {
+      messageId: "hardcoded",
+      count: 1,
+    });
+  });
+
+  it("does not suppress a sys_id for a generic hash-like name", () => {
+    assertInvalid(`var userHash = "${ID}";`, RULE, { messageId: "hardcoded" });
+  });
+
+  it("rejects an unknown rule option", () => {
+    assert.throws(
+      () => lint(`var id = "${ID}";`, RULE, { options: { [RULE]: [{ notARealOption: true }] } }),
+      /unknown option/,
+    );
   });
 });

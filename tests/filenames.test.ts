@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { classifyFile } from "../src/utils/filenames.js";
+import { surfacesFromFilename } from "../src/context/filename.js";
 
 describe("classifyFile", () => {
   it("classifies Fluent metadata", () => {
@@ -28,7 +29,10 @@ describe("classifyFile", () => {
   });
 
   it("classifies a display Business Rule by filename, not g_scratchpad", () => {
-    assert.equal(classifyFile("display-stuff.br.js", "g_scratchpad.count = 1;", {}), "business-rule");
+    assert.equal(
+      classifyFile("display-stuff.br.js", "g_scratchpad.count = 1;", {}),
+      "business-rule",
+    );
   });
 
   it("does not treat g_scratchpad alone as a client script", () => {
@@ -41,6 +45,13 @@ describe("classifyFile", () => {
 
   it("classifies sys_script.js as a Business Rule", () => {
     assert.equal(classifyFile("export/sys_script.js", "", {}), "business-rule");
+    assert.deepEqual(surfacesFromFilename("export/sys_script2.js"), []);
+  });
+
+  it("rejects conflicting filename surface evidence", () => {
+    assert.deepEqual(surfacesFromFilename("src/client/business-rule.js"), []);
+    assert.deepEqual(surfacesFromFilename("close.client.ui-action.js"), ["ui-action", "client"]);
+    assert.deepEqual(surfacesFromFilename("client-tools/thing.js"), []);
   });
 
   it("lets a Script Include filename beat a g_form mention in a comment", () => {

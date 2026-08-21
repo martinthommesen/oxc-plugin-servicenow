@@ -10,6 +10,7 @@ describe("rule catalog examples", () => {
         it(`flags: ${example.name}`, () => {
           const messages = lint(example.code, entry.name, {
             filename: example.filename ?? "test.js",
+            settings: example.settings,
           });
           assert.ok(
             messages.length > 0,
@@ -22,6 +23,7 @@ describe("rule catalog examples", () => {
         it(`allows: ${example.name}`, () => {
           const messages = lint(example.code, entry.name, {
             filename: example.filename ?? "test.js",
+            settings: example.settings,
           });
           assert.equal(
             messages.length,

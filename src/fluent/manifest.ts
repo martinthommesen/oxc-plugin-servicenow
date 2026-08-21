@@ -77,7 +77,12 @@ function entity(
     idRequirement,
     evidence,
     evidenceRecords: extra.evidenceRecords ?? [
-      { url: sdkCoreDeclarationEvidence(version), symbol: name, version, transition: extra.introduced ? "introduced" : "current" },
+      {
+        url: sdkCoreDeclarationEvidence(version),
+        symbol: name,
+        version,
+        transition: extra.introduced ? "introduced" : "current",
+      },
     ],
     ...extra,
   };
@@ -91,7 +96,12 @@ function column(name: string): FluentApiCapability {
     idRequirement: "forbidden",
     evidence: `${FLUENT_OVERVIEW} (Table schema column helpers)`,
     evidenceRecords: [
-      { url: sdkCoreDeclarationEvidence("3.0.0"), symbol: name, version: "3.0.0", transition: "current" },
+      {
+        url: sdkCoreDeclarationEvidence("3.0.0"),
+        symbol: name,
+        version: "3.0.0",
+        transition: "current",
+      },
     ],
   };
 }
@@ -108,13 +118,16 @@ export const DEFAULT_FLUENT_MANIFEST: FluentSdkManifest = {
     entity("Acl", "required", { evidence: `${SDK_EXAMPLES}/acl-sample` }),
     entity("AliasTemplate", "required", { introduced: "4.8.0" }),
     entity("ApplicationMenu", "required", { evidence: `${SDK_EXAMPLES}/applicationmenu-sample` }),
-    entity("BusinessRule", "required", { evidence: `${FLUENT_OVERVIEW} and ${SDK_EXAMPLES}/businessrule-sample` }),
+    entity("BusinessRule", "required", {
+      evidence: `${FLUENT_OVERVIEW} and ${SDK_EXAMPLES}/businessrule-sample`,
+    }),
     entity("CatalogClientScript", "required"),
     entity("CatalogItem", "required", { evidence: `${SDK_EXAMPLES}/service-catalog-sample` }),
     entity("CatalogItemRecordProducer", "required", { introduced: "4.8.0" }),
-    entity("ClientScript", "required", { evidence: `${FLUENT_OVERVIEW} and ${SDK_EXAMPLES}/clientscript-sample` }),
+    entity("ClientScript", "required", {
+      evidence: `${FLUENT_OVERVIEW} and ${SDK_EXAMPLES}/clientscript-sample`,
+    }),
     entity("CrossScopePrivilege", "required"),
-    entity("DatabaseIndex", "optional"),
     entity("InboundEmailAction", "required"),
     // SDK 4.1 derives list IDs; the declaration keeps `$id` only as a
     // deprecated compatibility property.  Keep that policy distinct from
@@ -123,37 +136,72 @@ export const DEFAULT_FLUENT_MANIFEST: FluentSdkManifest = {
       deprecated: "4.1.0",
       evidence: `${SDK_EXAMPLES}/list-sample`,
       evidenceRecords: [
-        { url: sdkCoreDeclarationEvidence("3.0.0"), symbol: "List", version: "3.0.0", transition: "current" },
-        { url: sdkCoreDeclarationEvidence("4.1.0"), symbol: "List", version: "4.1.0", transition: "deprecated" },
+        {
+          url: sdkCoreDeclarationEvidence("3.0.0"),
+          symbol: "List",
+          version: "3.0.0",
+          transition: "current",
+        },
+        {
+          url: sdkCoreDeclarationEvidence("4.1.0"),
+          symbol: "List",
+          version: "4.1.0",
+          transition: "deprecated",
+        },
       ],
     }),
-    entity("Module", "required"),
     entity("Property", "required"),
-    entity("Record", "required", { evidence: `${FLUENT_OVERVIEW} and ${SDK_EXAMPLES}/record-sample` }),
-    entity("UserPreference", "required", { evidence: `${FLUENT_OVERVIEW} and ${SDK_EXAMPLES}/user-preference-sample` }),
+    entity("Record", "required", {
+      evidence: `${FLUENT_OVERVIEW} and ${SDK_EXAMPLES}/record-sample`,
+    }),
+    entity("UserPreference", "required", {
+      evidence: `${FLUENT_OVERVIEW} and ${SDK_EXAMPLES}/user-preference-sample`,
+    }),
     entity("RestApi", "required", { evidence: `${SDK_EXAMPLES}/restapi-sample` }),
     entity("Role", "required"),
+    entity("Sla", "required", { introduced: "4.3.0" }),
     entity("ScheduledScript", "required", { introduced: "4.8.0" }),
-    entity("ScriptedRestApi", "required"),
-    entity("SPMenu", "required", { introduced: "4.8.0", evidence: `${SDK_EXAMPLES}/service-portal-sample` }),
+    entity("SPMenu", "required", {
+      introduced: "4.8.0",
+      evidence: `${SDK_EXAMPLES}/service-portal-sample`,
+    }),
     entity("SPWidget", "required", { evidence: `${SDK_EXAMPLES}/service-portal-sample` }),
     entity("StateModel", "required", { introduced: "4.10.0" }),
     // Table's published 4.1 declaration has no WithID contract.  Its ID is
     // derived from the table metadata rather than supplied by callers.
-    entity("Table", "forbidden", { evidence: `${FLUENT_OVERVIEW} and ${SDK_EXAMPLES}/table-sample` }),
+    entity("Table", "forbidden", {
+      evidence: `${FLUENT_OVERVIEW} and ${SDK_EXAMPLES}/table-sample`,
+    }),
     entity("Test", "required", { evidence: `${SDK_EXAMPLES}/test-atf-sample` }),
-    entity("ScriptAction", "required", { evidence: `${FLUENT_OVERVIEW} and ${SDK_EXAMPLES}/script-action-sample` }),
-    entity("ScriptInclude", "required", { evidence: `${FLUENT_OVERVIEW} and ${SDK_EXAMPLES}/script-include-sample` }),
-    entity("UiAction", "required", { introduced: "4.8.0", evidence: `${FLUENT_OVERVIEW} and ${SDK_EXAMPLES}/ui-action-sample` }),
-    entity("UiPage", "required", { introduced: "4.8.0", evidence: `${FLUENT_OVERVIEW} and ${SDK_EXAMPLES}/ui-page-sample` }),
-    entity("UiFormatter", "required"),
+    entity("ScriptAction", "required", {
+      evidence: `${FLUENT_OVERVIEW} and ${SDK_EXAMPLES}/script-action-sample`,
+    }),
+    entity("ScriptInclude", "required", {
+      evidence: `${FLUENT_OVERVIEW} and ${SDK_EXAMPLES}/script-include-sample`,
+    }),
+    entity("UiAction", "required", {
+      introduced: "4.8.0",
+      evidence: `${FLUENT_OVERVIEW} and ${SDK_EXAMPLES}/ui-action-sample`,
+    }),
+    entity("UiPage", "required", {
+      introduced: "4.8.0",
+      evidence: `${FLUENT_OVERVIEW} and ${SDK_EXAMPLES}/ui-page-sample`,
+    }),
     entity("UiPolicy", "required"),
     entity("Flow", "unknown", {
       kind: "automation",
       module: "unknown",
       evidence: `${SDK_EXAMPLES}/flow-sample`,
-      evidenceRecords: [{ url: sdkCoreDeclarationEvidence("3.0.0"), symbol: "Flow", version: "3.0.0", transition: "current" }],
+      evidenceRecords: [
+        {
+          url: sdkCoreDeclarationEvidence("3.0.0"),
+          symbol: "Flow",
+          version: "3.0.0",
+          transition: "current",
+        },
+      ],
     }),
+    entity("GraphQLApi", "required", { introduced: "4.11.0" }),
     column("BooleanColumn"),
     column("ChoiceColumn"),
     column("ConditionsColumn"),
@@ -177,19 +225,35 @@ export const DEFAULT_FLUENT_MANIFEST: FluentSdkManifest = {
       name: "fluent-ignore",
       placement: "previous-line",
       evidence: FLUENT_OVERVIEW,
-      evidenceRecords: [{ url: FLUENT_OVERVIEW, symbol: "fluent-ignore", version: "3.0.0", transition: "current" }],
+      evidenceRecords: [
+        { url: FLUENT_OVERVIEW, symbol: "fluent-ignore", version: "3.0.0", transition: "current" },
+      ],
     },
     {
       name: "fluent-disable-sync",
       placement: "previous-line",
       evidence: FLUENT_OVERVIEW,
-      evidenceRecords: [{ url: FLUENT_OVERVIEW, symbol: "fluent-disable-sync", version: "3.0.0", transition: "current" }],
+      evidenceRecords: [
+        {
+          url: FLUENT_OVERVIEW,
+          symbol: "fluent-disable-sync",
+          version: "3.0.0",
+          transition: "current",
+        },
+      ],
     },
     {
       name: "fluent-disable-sync-for-file",
       placement: "first-line",
       evidence: FLUENT_OVERVIEW,
-      evidenceRecords: [{ url: FLUENT_OVERVIEW, symbol: "fluent-disable-sync-for-file", version: "3.0.0", transition: "current" }],
+      evidenceRecords: [
+        {
+          url: FLUENT_OVERVIEW,
+          symbol: "fluent-disable-sync-for-file",
+          version: "3.0.0",
+          transition: "current",
+        },
+      ],
     },
   ],
   typos: {
@@ -206,21 +270,31 @@ export const DEFAULT_FLUENT_MANIFEST: FluentSdkManifest = {
   },
 };
 
-export function apisByName(manifest: FluentSdkManifest = DEFAULT_FLUENT_MANIFEST): Map<string, FluentApiCapability> {
+export function apisByName(
+  manifest: FluentSdkManifest = DEFAULT_FLUENT_MANIFEST,
+): Map<string, FluentApiCapability> {
   return new Map(manifest.apis.map((api) => [api.name, api]));
 }
 
-export function knownDirectiveNames(manifest: FluentSdkManifest = DEFAULT_FLUENT_MANIFEST): ReadonlySet<string> {
+export function knownDirectiveNames(
+  manifest: FluentSdkManifest = DEFAULT_FLUENT_MANIFEST,
+): ReadonlySet<string> {
   return new Set(manifest.directives.map((directive) => directive.name));
 }
 
-export function entitiesRequiringId(manifest: FluentSdkManifest = DEFAULT_FLUENT_MANIFEST): ReadonlySet<string> {
+export function entitiesRequiringId(
+  manifest: FluentSdkManifest = DEFAULT_FLUENT_MANIFEST,
+): ReadonlySet<string> {
   return new Set(
-    manifest.apis.filter((api) => api.kind === "entity" && api.idRequirement === "required").map((api) => api.name),
+    manifest.apis
+      .filter((api) => api.kind === "entity" && api.idRequirement === "required")
+      .map((api) => api.name),
   );
 }
 
-export function importOwnedApis(manifest: FluentSdkManifest = DEFAULT_FLUENT_MANIFEST): ReadonlyMap<string, string> {
+export function importOwnedApis(
+  manifest: FluentSdkManifest = DEFAULT_FLUENT_MANIFEST,
+): ReadonlyMap<string, string> {
   const owned = new Map<string, string>();
   for (const api of manifest.apis) {
     if (api.module !== "unknown") owned.set(api.name, api.module);
