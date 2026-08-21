@@ -28,7 +28,7 @@ export function checkBenchmarkRegression(
       maxRecommendedLargeMs: number;
     };
   },
-): void;
+): string[];
 
 export function validateBenchmarkSummary<T extends { scale: number; results: BenchmarkRow[] }>(
   summary: T,
