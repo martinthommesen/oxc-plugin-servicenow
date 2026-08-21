@@ -1,136 +1,11 @@
-# PR #51 review groupings and readiness gates
+# PR #51 review layers
 
-PR #51 is a tracking pull request and must not merge as a roll-up. The seven domain layers below are historical grouping labels. Ordered commits and labels are not separate pull requests, review boundaries, or rollback boundaries. Issue #75 remains **Pending** until actual dependent pull requests provide those boundaries.
+This document assigns the #51 change set to independently reviewable layers. PR #51 remains the tracking pull request until the layered commits below are reviewed. Do not merge or publish 2.0.0 while release-blocking issues from #52–#76 remain open.
 
-Readiness terms have these meanings:
-
-- **Pending**: no current proof exists at the owning pull request head.
-- **Verified-at-head**: focused proof passed at the exact recorded head.
-- **Merge-ready**: all in-repository gates and governance checks passed at the current merge commit.
-- **Live-pending**: only a protected post-merge tag, registry, or GitHub action can supply the proof.
-- **Release-verified**: the stable protected-tag run supplied exact live evidence.
-
-## Merge gate
-
-Evaluate current code and configuration at the exact pull request head or merge commit. Require applicable clean-checkout tests, real Oxlint and ESLint hosts, inspected-artifact checks, review, and executable governance checks. A pull request can become **Merge-ready** without a stable tag.
-
-## Release gate
-
-Start release verification only after the reviewed stack merges to protected `main`. Require a controlled protected tag, approved OpenID Connect (OIDC) publication, registry integrity and exact provenance identity, public imports, and the GitHub release. These results remain **Live-pending** until the stable protected-tag run supplies them. Only then is the release **Release-verified**.
-
-## Actual pull request stack
-
-Plans 007–015 use these review and rollback boundaries. Each reconstruction commit is an immutable archived slice. Its archive ref does not change when a live branch rebases.
-
-| Plan | Head branch | Base branch | Reconstruction commit |
-| --- | --- | --- | --- |
-| 007 | `pr51-remediation/007-path-state` | `main` | `a8c0c41e861240bebedc2c32c41227d865f29e93` |
-| 008 | `pr51-remediation/008-bindings-scopes` | `pr51-remediation/007-path-state` | `bd72d00c82409e80876f57a3c6354b4fa07e16c5` |
-| 009 | `pr51-remediation/009-stateful-rule-lifecycles` | `pr51-remediation/008-bindings-scopes` | `56677685e1d7ef69646562ee784407dd79a28905` |
-| 010 | `pr51-remediation/010-fluent-sdk-registry` | `pr51-remediation/009-stateful-rule-lifecycles` | `25ea9593e88fe0429a12435b09da497348d05d12` |
-| 011 | `pr51-remediation/011-now-id-directives` | `pr51-remediation/010-fluent-sdk-registry` | `74f13f7aeabf9678e53cdd199d9fc2e081a7a6da` |
-| 012 | `pr51-remediation/012-context-profiles-contracts` | `pr51-remediation/011-now-id-directives` | `7c7ecd621d24d2dc128633e17ba1203322a31196` |
-| 013 | `pr51-remediation/013-public-api-assets` | `pr51-remediation/012-context-profiles-contracts` | `ba6be45abb823c1f852feba596060175879eacca` |
-| 014 | `pr51-remediation/014-tests-evidence-compat` | `pr51-remediation/013-public-api-assets` | `5b4cfa6efd0db274c9f04ff2b39721fcecc11e86` |
-| 015 | `pr51-remediation/015-release-governance` | `pr51-remediation/014-tests-evidence-compat` | `d5f20964dd8778d523f0a86bddbb37cd74192430` |
-
-`docs/pr-51-stack.json` assigns all 368 archived paths to one whole-file owner or one explicit nonoverlapping split. Four paths have split reconstruction ownership: `.github/workflows/ci.yml`, `package.json`, `package-lock.json`, and `scripts/action-pins.json`.
-
-A dependency baseline can appear below the plan that owns its later semantic remediation. The manifest records the original reconstruction commit, not a mutable live head. Live pull request URLs, base and head commits, states, and check runs belong in pull request bodies and the PR #51 tracking body.
-
-## Validate the ownership manifest
-
-To validate the archived path set, reconstruction slices, immutable refs, and privileged-file isolation, run:
-
-```bash
-node --input-type=module <<'NODE'
-import { execFileSync } from "node:child_process";
-import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
-
-const git = (...args) => execFileSync("git", args, { encoding: "utf8", maxBuffer: 16 * 1024 * 1024 });
-const manifest = JSON.parse(readFileSync("docs/pr-51-stack.json", "utf8"));
-const sorted = (values) => [...values].sort();
-const equal = (left, right) => JSON.stringify(sorted(left)) === JSON.stringify(sorted(right));
-const fail = (message) => { throw new Error(message); };
-const owners = (entry) => entry.ownership === "split"
-  ? entry.splits.map((split) => split.ownerPlan)
-  : [entry.ownerPlan];
-
-const archived = git("diff", "--name-only", `${manifest.mergeBase}...${manifest.archivedHead}`)
-  .trim().split("\n").filter(Boolean);
-const recorded = manifest.paths.map(({ path }) => path);
-if (new Set(recorded).size !== recorded.length) fail("duplicate path ownership");
-if (!equal(archived, recorded)) fail("manifest path set differs from archived three-dot diff");
-
-const validPlans = new Set(manifest.plans.map(({ plan }) => plan));
-if (!equal(validPlans, [7, 8, 9, 10, 11, 12, 13, 14, 15])) fail("invalid plan set");
-for (const entry of manifest.paths) {
-  const entryOwners = owners(entry);
-  if (!entryOwners.length || new Set(entryOwners).size !== entryOwners.length) fail(`invalid owners for ${entry.path}`);
-  if (entryOwners.some((owner) => !validPlans.has(owner))) fail(`unknown owner for ${entry.path}`);
-  const archivedBlob = git("rev-parse", `${manifest.archivedHead}:${entry.path}`).trim();
-  if (archivedBlob !== entry.archivedBlob) fail(`archived blob mismatch for ${entry.path}`);
-  if (entry.ownership === "whole-file") {
-    const plan = manifest.plans.find((candidate) => candidate.plan === entry.ownerPlan);
-    const result = git("rev-parse", `${plan.reconstructionCommit}:${entry.path}`).trim();
-    if (result !== entry.archivedBlob) fail(`whole-file result mismatch for ${entry.path}`);
-  } else {
-    if (entry.splits.length < 2) fail(`split has fewer than two owners: ${entry.path}`);
-    for (const split of entry.splits) {
-      const plan = manifest.plans.find((candidate) => candidate.plan === split.ownerPlan);
-      const patch = git("diff", "--binary", plan.reconstructionParent, plan.reconstructionCommit, "--", entry.path);
-      const digest = createHash("sha256").update(patch).digest("hex");
-      if (digest !== split.patchSha256) fail(`split digest mismatch for ${entry.path} Plan ${split.ownerPlan}`);
-      const result = git("rev-parse", `${plan.reconstructionCommit}:${entry.path}`).trim();
-      if (result !== split.resultBlob) fail(`split result mismatch for ${entry.path} Plan ${split.ownerPlan}`);
-    }
-    if (entry.splits.at(-1).resultBlob !== entry.archivedBlob) fail(`split does not reconstruct archived blob: ${entry.path}`);
-  }
-}
-
-for (const plan of manifest.plans) {
-  const remote = git("ls-remote", "origin", plan.reconstructionRef).trim().split(/\s+/)[0];
-  if (remote !== plan.reconstructionCommit) fail(`archive ref mismatch for Plan ${plan.plan}`);
-  const actual = git("diff", "--name-only", plan.reconstructionParent, plan.reconstructionCommit)
-    .trim().split("\n").filter(Boolean);
-  const expected = manifest.paths.filter((entry) => owners(entry).includes(plan.plan)).map(({ path }) => path);
-  if (!equal(actual, expected)) fail(`reconstruction path mismatch for Plan ${plan.plan}`);
-  const patch = git("diff", "--binary", plan.reconstructionParent, plan.reconstructionCommit);
-  const digest = createHash("sha256").update(patch).digest("hex");
-  if (digest !== plan.reconstructionPatchSha256) fail(`reconstruction digest mismatch for Plan ${plan.plan}`);
-}
-
-const archivedPatch = git("diff", "--binary", `${manifest.mergeBase}...${manifest.archivedHead}`);
-if (createHash("sha256").update(archivedPatch).digest("hex") !== manifest.archivedPatchSha256) {
-  fail("archived patch digest mismatch");
-}
-
-const privileged = /^(\.github\/workflows\/release\.yml|scripts\/(check-release-artifact|check-trusted-publishing-npm|create-github-release|verify-published-package)\.|scripts\/release-governance\.json|tests\/release\/|docs\/release\.md$|docs\/release-governance-live\.json$)/;
-for (const entry of manifest.paths.filter(({ path }) => privileged.test(path))) {
-  if (owners(entry).some((owner) => owner !== 15)) fail(`privileged path outside Plan 015: ${entry.path}`);
-}
-
-const forbidden = new Set(["currentHead", "headSha", "pullRequestUrl", "statusCheckRollup", "checkRuns"]);
-const walk = (value) => {
-  if (Array.isArray(value)) return value.forEach(walk);
-  if (!value || typeof value !== "object") return;
-  for (const [key, child] of Object.entries(value)) {
-    if (forbidden.has(key)) fail(`mutable field in manifest: ${key}`);
-    walk(child);
-  }
-};
-walk(manifest);
-console.log(`validated ${recorded.length} archived paths across ${manifest.plans.length} reconstruction commits`);
-NODE
-```
-
-Expected output: `validated 368 archived paths across 9 reconstruction commits`.
-
-## Historical dependency graph
+## Dependency graph
 
 ```
-1 Context, settings, catalog
+1 Context, settings, options
         ↓
 2 Binding, object identity, provenance, control flow
         ↓
@@ -145,19 +20,19 @@ Expected output: `validated 368 archived paths across 9 reconstruction commits`.
 7 Release provenance (privileged workflows only)
 ```
 
-Each grouping names its expected tests and contracts. It does not prove that a separate pull request exists. Later work consumes earlier contracts and must not reintroduce name-keyed analysis.
+Each layer has its own tests. Later layers consume earlier contracts and must not reintroduce name-keyed analysis.
 
-## Layer 1 — Context, settings, and catalog foundation
+## Layer 1 — Context, settings, and option foundation
 
-**Owns:** `src/settings/`, `src/context/`, `src/catalog.ts`, `src/options/`, `src/types.ts`, filename classification, `ServiceNowSettingsError`.
+**Owns:** `src/settings/`, `src/context/`, `src/options/`, `src/types.ts`, filename classification, `ServiceNowSettingsError`.
 
 **Contract:** Unknown context stays unknown. Contradictory settings throw. Shared defaults are deeply immutable. Rule options parse from one descriptor.
 
-**Rollback:** Revert settings/context/catalog commits. Do not keep rules that depend on the new settings object.
+**Rollback:** Revert settings, context, and option commits. Do not keep rules that depend on the new settings object.
 
 ## Layer 2 — Lexical binding, object identity, provenance, and control flow
 
-**Owns:** `src/analysis/file-analysis.ts`, `src/analysis/path-state.ts`, `src/analysis/bindings.ts`, `src/analysis/provenance.ts`.
+**Owns:** `src/analysis/` except `src/analysis/now-id.ts` and `src/analysis/fluent-imports.ts`.
 
 **Contract:** Binding identity is not object identity. Joins intersect must-facts and union risk. Abrupt completion does not flow into later statements. Analysis runs once per source file.
 
@@ -198,7 +73,7 @@ Each grouping names its expected tests and contracts. It does not prove that a s
 | Path prefix | Layer |
 | --- | --- |
 | `src/settings/`, `src/options/`, `src/context/`, `src/types.ts` | 1 |
-| `src/analysis/` | 2 |
+| `src/analysis/` except `src/analysis/now-id.ts` and `src/analysis/fluent-imports.ts` | 2 |
 | `src/rules/` classic stateful + `src/glide/` | 3 |
 | `src/fluent/`, Fluent rules, `src/analysis/now-id.ts`, `src/analysis/fluent-imports.ts` | 4 |
 | `src/catalog.ts`, `src/catalog-metadata.ts`, `docs/rules/`, `scripts/generate-rule-docs.mjs`, `scripts/check-catalog-docs.mjs` | 5 |
@@ -207,9 +82,7 @@ Each grouping names its expected tests and contracts. It does not prove that a s
 
 Shared tests that span layers stay with the highest layer they prove.
 
-## Required rollback boundaries
-
-These desired boundaries remain **Pending** until actual dependent pull requests implement them:
+## Rollback boundaries
 
 - A correctness defect in layer 2 invalidates layers 3–6 until the foundation is fixed.
 - A documentation-only defect stays in layer 5.

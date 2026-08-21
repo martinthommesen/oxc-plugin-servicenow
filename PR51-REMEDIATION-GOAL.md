@@ -1,353 +1,1039 @@
-# Goal: fully remediate PR #51 before merge or release
+You are the senior maintainer responsible for completing the full PR #51 remediation program in:
+
+https://github.com/martinthommesen/oxc-plugin-servicenow
 
-## Objective
+Your goal is to turn the current reconstructed PR stack into the best possible production-grade Oxlint/oxfmt developer-tooling package for ServiceNow development, resolving every valid finding raised in every pull-request comment, submitted review, and inline review thread across the repository.
 
-Starting from PR #51 HEAD `8b650abaa608bb6b5d30914c3de2a16c6ab14d4d`, resolve **every defect and unmet acceptance criterion in this document**. Deliver the work as independently reviewable layers, with red-before-green regression tests and real-host/package evidence. The result must be safe to merge and must make the in-repository release path genuinely executable; explicitly-live publication gates remain human/maintainer work and must be reported as such.
+This is an implementation task, not another review or planning exercise.
 
-The comparison point is the PR merge base `2af573262d11583e123c3ac470850d8cf515d907` (`git diff origin/main...HEAD`). Treat issues #2–#76, their exact acceptance criteria, and this handoff as the specification. When implementation and an issue disagree, the issue acceptance criterion wins. In particular, issue #6 requires ES2021 to **accept private members**; fix the feature model rather than adding a private-member rejection to the ES2021 preset.
+The relevant pull requests are:
+
+- #1, #47, #48, #49, and #50: already merged historical foundation/tooling PRs
+- #51: non-mergeable tracking PR
+- #77: Plan 007 — analysis foundation and path-state
+- #78: Plan 008 — bindings, scopes, closures, and comment scanning
+- #79: Plan 009 — stateful lifecycle rules
+- #80: Plan 010 — authoritative Fluent SDK registry
+- #81: Plan 011 — options, Now.ID, and Fluent directives
+- #82: Plan 012 — context profiles and rule contracts
+- #83: Plan 013 — public API and user-facing assets
+- #84: Plan 014 — integration tests, evidence, compatibility, and performance
+- #85: Plan 015 — release governance and provenance
 
-## Operating contract
+The intended dependency order is:
 
-1. Read `CONTRIBUTING.md`, `docs/rule-authoring.md`, `docs/pr-51-layers.md`, relevant research documents, and issue bodies before changing their subsystem.
-2. Restack in dependency order. Do not combine privileged release workflow changes with rule/analysis implementation. If GitHub PR creation is unavailable, create the corresponding ordered branches/commits and provide exact push/PR commands; do not claim issue #75 is complete until separate PRs exist.
-3. For every behavioral defect:
-   - add the smallest regression that fails for the reported reason;
-   - assert the exact rule ID, message, count, and useful source location where applicable;
-   - implement the shared/root fix rather than patching individual fixtures;
-   - run focused unit tests and at least one real Oxlint or ESLint host fixture;
-   - preserve conservative silence for genuinely unknown provenance/context while reporting when a bad path is definitely reachable.
-4. Replace tests that currently codify unsafe silence; do not make a gate green with an unrelated diagnostic.
-5. Keep generated output with its descriptor/source change. Run generators rather than hand-editing generated files.
-6. Keep public APIs compatible unless an issue explicitly requires a break. Document any unavoidable contract or minimum-version change.
-7. Maintain a ledger with one row per issue acceptance-criterion checkbox and per handoff checkbox below; many-to-one evidence links are allowed. Record the regression test, implementation commit, validation command, and status. A grouped “probably fixed” entry is not completion.
+#77 → #78 → #79 → #80 → #81 → #82 → #83 → #84 → #85
 
-## Required delivery stack
+PR #51 must remain tracking-only and structurally non-mergeable. It should ultimately be closed without merge after all implementation PRs have been completed and their evidence has been recorded.
 
-Create these separately reviewable layers, each green on its own and based on its predecessor:
+Do not tag, publish, create a release, merge a PR, push branches, resolve review threads, alter repository settings, or mutate GitHub/npm governance without explicit approval. Implement and validate the code locally, and report any external actions that remain necessary.
 
-1. **Context, settings, catalog, and engine capabilities**
-2. **Binding, object identity, provenance, and completion-aware control flow**
-3. **Classic/stateful rule consumers**
-4. **Fluent manifests and binding-aware Fluent rules**
-5. **Profiles, oxfmt, generated documentation, and research evidence**
-6. **Packed compatibility and trustworthy benchmarks**
-7. **Privileged release automation only**
+# 1. Operating contract
 
-For each layer, provide focused acceptance criteria, validation output, rollback boundary, and dependency on prior layers. PR #51 should become a tracking/restack PR or be superseded with links to the stack.
+Before editing:
+
+1. Read all repository-local instructions, including AGENTS.md, CONTRIBUTING.md, package scripts, TypeScript configurations, workflow conventions, existing plans, and generated-file rules.
+2. Inspect the current heads and merge bases of #51 and #77–#85. Do not assume the historical SHAs quoted in comments are still current.
+3. Read every PR comment, review, and inline thread yourself. Treat the requirements below as a normalized synthesis, not a substitute for checking the original evidence.
+4. Inspect linked issues when they define a public contract, especially #57, #58, #66, #70, #74, #75, and #76.
+5. Do not mechanically implement comments that have become obsolete. For every unique finding, determine whether it is:
+   - Confirmed and requires a fix
+   - Already fixed at the current head
+   - Superseded by a later design
+   - Incorrect or inapplicable, with concrete evidence
+   - Blocked by an external/manual control
+6. Preserve established repository conventions and active public compatibility contracts unless a deliberate major-version migration explicitly replaces them.
+7. Use red-before-green evidence for every behavioral fix. A test that passes before the implementation is not proof of the remediation.
+8. Do not make a gate green through an unrelated diagnostic, weakened assertion, broad exclusion, skipped test, legacy peer resolver, stale build output, or synthetic fixture.
+9. Do not add speculative abstractions, optional configuration, dependencies, fallback paths, stale TODOs, or formatting churn.
+10. Keep release and privileged workflow work last. A secure publisher must not be made operational before semantic correctness and package evidence are complete.
+
+# 2. Establish one truthful remediation ledger
+
+Use the existing PR #51 acceptance ledger as the source of truth, repairing it rather than creating another competing tracker.
+
+Each atomic row must record:
+
+- Stable finding ID
+- Originating PR, comment, review, issue, or acceptance requirement
+- Exact requirement, including all subcriteria
+- Severity and affected subsystem
+- Owning implementation PR
+- Current disposition
+- Failing test or reproduction
+- Implementation files
+- Verification command
+- Exact commit or working-tree identity tested
+- Runtime/tool versions
+- Result
+- Remaining manual or live verification
 
----
+Allowed dispositions:
 
-## 1. Context, settings, catalog, and engine capabilities
+- Pending
+- Reproduced
+- Implemented
+- Verified at exact head
+- Superseded, with evidence
+- Not applicable, with evidence
+- Live-pending
 
-### Context classification
+Do not treat historical `[x]` checkboxes, an archived test run, a generated snapshot, or a green downstream PR as proof for the current head.
 
-- [x] **Ambiguous UI Actions:** fix `src/context/resolve.ts` so a bare `*.ui-action.js` is not assumed server-side. Continue AST inference after recognizing the UI Action record type, allowing client, server, mixed, or unresolved execution surfaces as evidence permits. Add bare/client/server/mixed/conflicting UI Action matrices.
-- [ ] **Legacy precedence:** explicit supported `settings.servicenow.scriptType` values must retain their documented one-major precedence/mapping even when the filename is `.now.ts`; contradictory settings must either resolve according to the documented precedence or fail validation, never silently disable all relevant rules.
-- [x] **Server suffix:** recognize the documented `*.server.js` convention and prove real server-only diagnostics execute. Do not remove or rename this public convention without an explicit compatibility decision and migration.
-- [x] **Overall confidence:** fix `src/context/resolve.ts` so overall confidence reflects the weakest unresolved independent dimension rather than being promoted by a strong filename/authoring dimension. Test authoring, surfaces, JavaScript mode, and scope independently.
-- [x] **Unknown-context silence:** gate `no-hardcoded-sysid` and `no-display-value-date-comparison` according to their documented applicability. Ordinary unclassified JavaScript, including unrelated 32-hex tokens, must remain silent.
-- [x] **UI Action docs:** correct the example README block that explicitly sets `ui-action,server` while claiming auto/client preservation. Execute the exact copied configuration in tests.
+Repair the tracking model:
 
-### Settings and caching
+- Restore Plans 007–015 if they are genuinely authoritative, or remove the dead references and point each PR to concrete ledger rows.
+- Make every source path have exactly one historical layer owner.
+- Remove overlaps involving `src/catalog.ts`, `src/analysis/now-id.ts`, `src/analysis/fluent-imports.ts`, and any other multiply assigned paths.
+- Update the goal document to use the actual immutable archived head and merge base, not obsolete comparisons.
+- Ensure the stack validator fetches archive and reconstruction refs before dereferencing them.
+- Verify both the archive ref and every reconstruction ref against the recorded commit.
+- Preserve immutable archive refs; distinguish them clearly from movable live PR heads.
+- Include all omitted must-fact subcriteria in the ledger, including conditional query-before-next, one-branch bulk filters, one-branch aggregate queries, one-branch GlideAjax `sysparm_name`, and the disputed SDK boundaries.
+- Keep tracking-only files on #51 rather than duplicating thousands of lines of stack state into implementation PRs.
+
+Every implementation PR must be independently truthful at its own exact head. A command documented by #84 must not depend on a script introduced only in #85.
 
-- [x] **Release selection:** make `settings.release` select validated, versioned knowledge, or reject unsupported/unknown values. Do not accept typos while always applying Zurich behavior.
-- [x] **Deep readonly contract:** make every property of `ValidatedServiceNowSettings`, `ValidatedSettingsResult`, and nested collections readonly in TypeScript, matching runtime deep-freeze behavior. Add compile-time negative tests and runtime top-level/nested/cross-context mutation tests.
-- [ ] **Cache identity:** include `allowedSysIds`, `allowedTables`, `scopePrefix`, and every other semantic input in `src/analysis/file-analysis.ts::settingsKey`. Test one `SourceCode` identity under differing settings and prove no stale allowlist/naming decision leaks.
-- [x] **Rule-option parity:** retain the descriptor-driven implementation, but prove every configurable rule’s runtime parser, host `meta.schema`, `applyRules` behavior, and generated docs are in exact parity. Add table-driven valid, invalid, missing, unknown, nested, boundary, and conflicting cases for booleans, integers/minima, enums, strings, arrays/item types, and required properties; require full-path errors and no coercion. Fix demonstrated mismatches rather than rewriting working machinery.
+# 3. Repair the analysis foundation — owning layers #77 and #78
+
+Build one sound, typed, per-file analysis foundation that downstream rules can trust.
 
-### Presets and engine knowledge
+## 3.1 Structured control-flow completion
 
-- [x] **ESLint flat profiles:** make `flat.classicEs5`, `flat.client`, `flat.businessRule`, and `flat.fluent` independently consumable by supplying their required ServiceNow settings/context. Prove equivalent behavior through ESLint and Oxlint.
-- [x] **ES2021 private members:** issue #6 is authoritative: private instance and static members supported by the target ES2021 engine must be accepted. Correct `ENGINE_FEATURES`, catalog metadata, docs, presets, and tests consistently.
-- [x] **Mode-invariant unsupported features:** features genuinely unsupported in every modeled instance mode, including BigInt64/BigUint64 typed arrays if confirmed by evidence, must still diagnose in a known instance script when JavaScript mode is unknown. Do not apply this to private members if #6 says they are supported in ES2021.
+Replace ad hoc reachability flags with an explicit completion model that can represent at least:
 
-**Layer completion:** exhaustive context/conflict matrices pass in unit tests plus real Oxlint and ESLint hosts; public context output and generated applicability docs agree.
+- Normal completion
+- Return
+- Throw
+- Break, including optional target label
+- Continue, including optional target label
 
----
+Joins must preserve completion kind and label ownership rather than flattening all paths into one state.
 
-## 2. Binding, object identity, provenance, and completion-aware control flow
+Implement correct JavaScript behavior for:
 
-Implement these as shared analysis semantics before changing dependent rules. Preserve the distinction between `BindingId`, `ObjectId`, provenance, must-facts, may-risks, and abrupt completion.
+### Try/catch/finally
 
-### Joins and reachable paths
+- Do not inject the pre-try state as a synthetic catch path.
+- A catch handler must receive only states from reachable throw completions.
+- A try without a catch must propagate throws.
+- Execute `finally` for every normal and abrupt completion.
+- A normally completing finalizer must preserve the original completion kind while applying its state changes.
+- An abrupt finalizer must override the prior completion.
+- Model returns, throws, breaks, and continues passing through finalizers.
+- Do not report diagnostics in code that is unreachable after an exhaustive abrupt construct.
 
-- [ ] **Must-fact joins:** a fact required for safety is satisfied only when it holds on every reachable path. Fix at least:
-  - conditional/logical `GlideRecord.query()` before unconditional `next()`;
-  - one-branch bulk-operation filters;
-  - one-branch `GlideAggregate.query()` before consumption;
-  - one-branch non-empty GlideAjax `sysparm_name` before terminal requests.
-- [ ] **GlideAggregate tuple facts:** intersect registered aggregate tuples across reachable paths. A field-specific read requires the exact evidence-backed `(type, field)` registration and must not fall back to type-only registration. Define configuration retention/reset across a second query epoch; keep dynamic type/field evidence conservative.
-- [ ] Cover `if/else`, `&&`, `||`, `??`, conditional expressions, loops, switches, nested functions, early completion, and combinations. Replace existing “branch-unknown is valid” expectations that contradict #5/#52/#59/#61/#62.
-- [ ] Preserve conservative silence for a genuinely dynamic or escaped value; distinguish ambiguity caused by an unprovable external value from a known good/bad branch join.
+Required red-before-green cases include:
 
-### Completion semantics
+- `try { gr.query(); } finally {} gr.next()`
+- Try with no handler
+- Try with a handler but no reachable throw
+- Throw caught by a handler
+- Return or throw passing through a normal finalizer
+- A finalizer that returns or throws and overrides an earlier completion
+- State mutations performed in a finalizer on an abrupt path
 
-- [ ] **Try/catch/finally:** remove the fabricated pre-try catch path when no handler exists. Model normal, return, throw, break, and continue completions through catch/finally correctly; finally always executes and may replace prior completion. Unreachable post-try statements must stay unreachable.
-- [ ] **Break/continue:** retain conditional abrupt states until the owning loop/switch consumes them. Add nested `if` + labeled/unlabeled loop cases.
-- [ ] **Switch:** for switches without `default`, retain both the no-match path and final matched-case fall-through state. Cover fall-through, breaks, returns, and default/no-default.
+### Switch statements
 
-### JavaScript evaluation and assignment
+- Preserve the no-match path when there is no `default`.
+- Model entry at any matching case and ordinary fallthrough.
+- Preserve fallthrough out of the final matched case.
+- Consume only breaks owned by the switch.
+- Propagate returns, throws, and labeled breaks.
+- Do not create a normal post-switch state when every reachable branch is abrupt.
+- Test switches with and without `default`, empty cases, fallthrough chains, and abrupt final cases.
 
-- [x] **Evaluation order:** visit callee/receiver and arguments in JavaScript order before applying outer-call effects. The nested GlideAjax setup expression must be accepted; same-object alias arguments must not corrupt the receiver snapshot.
-- [x] **Computed assignment LHS:** traverse side effects in targets such as `cache[gr.next()] = value`.
-- [x] **Logical assignments:** correctly model `&&=`, `||=`, and `??=` with reachable conditional replacement and joins.
-- [x] **Destructuring assignment:** update/invalidate tracked bindings for array/object patterns, defaults, rest, and nested patterns.
-- [x] **Duplicate uninitialized `var`:** a redeclaration such as `var gr;` must not erase the existing runtime value.
-- [x] **Expression aliases:** preserve safe aliases formed through conditional/logical expressions when all reachable values prove the same identity; otherwise degrade conservatively.
+### Loops and labels
 
-### Functions and captures
+- Route labeled and unlabeled break/continue to the construct that owns them.
+- An outer `continue` must not be consumed by an inner loop.
+- Model loop-carried state to a stable fixpoint sufficient to expose second-iteration behavior.
+- Preserve the zero-iteration path only where runtime semantics allow it.
+- Do not add a zero-iteration path to `do...while` or unconditional `for (;;)`.
+- Model update expressions and loop tests in runtime order.
+- Assign or invalidate existing targets before the body of `for...in` and `for...of`.
+- Recognize immediately invoked function expressions as executing in the current cursor-loop context, while ordinary nested functions and deferred callbacks do not inherit that context.
 
-- [ ] **Hoisted capture:** function declaration source order must not determine whether a later-declared `var` binding is captured/escaped.
-- [x] **Captured facts:** retain sound temporal `Now.ID` facts inside closures instead of analyzing every nested function with an empty environment. Respect reassignment, shadowing, and invocation uncertainty.
-- [ ] Test declarations, expressions, arrows, callbacks, recursion, functions before/after assignments, parameters, class scopes, and sibling scopes.
+## 3.2 JavaScript evaluation order
 
-**Layer completion:** the reusable binding matrix causes real state changes—not merely syntax presence—for aliases, reassignment, shadowing, escape, nested scopes, branch/loop/switch/try/finally, closures, and storage patterns. Run it against every stateful consumer, including GlideAjax and `Now.ID`.
+Ensure stateful callbacks observe runtime order:
 
----
+- Evaluate the callee object and computed property.
+- Evaluate all call arguments from left to right.
+- Apply argument side effects.
+- Only then invoke the outer-call transition.
 
-## 3. Classic and stateful rule consumers
+For example, `gr.next(gr.query())` must observe the inner query before the outer `next`.
 
-After layer 2 is green, update consumers to use proven binding/object identity and correct epoch semantics.
+Model assignment evaluation correctly:
 
-### Platform globals and wrappers
+- Evaluate the right-hand side before committing the binding write.
+- Cover simple, compound, logical, update, and destructuring assignments.
+- Invalidate stale provenance for `&&=`, `||=`, `??=`, arithmetic assignments, and loop-target assignments.
 
-- [x] **Canonical Business Rule:** `no-br-current-update` must detect `current.update()` inside `(function executeRule(current, previous) { ... })(current, previous)` without treating arbitrary same-named parameters as platform globals.
-- [x] **Aliases:** simple proven aliases of `current` and `gs` must be handled by `no-br-current-update` and `no-gs-now`; shadowed/unrelated objects must remain silent.
-- [x] **Directive prologue:** `require-business-rule-wrapper` must accept directive statements such as `"use strict";` immediately before the canonical wrapper.
+## 3.3 Binding, scope, closure, and identity authority
 
-### Identity-based Glide analysis
+Use stable `BindingId` and object identities rather than identifier spelling.
 
-- [x] **GlideElement collection:** match cursor consumption and retained fields by `ObjectId`, so cross-alias `rec.next()` / `gr.number` is detected. Respect lexical shadowing and multiple same-named bindings.
-- [x] Apply the same invalid/escaped provenance guard to `getElement()` as direct field access.
-- [x] **`prefer-glideaggregate`:** replace global name-keyed state with binding/object identity. Add outer alias plus shadowed parameter and unrelated API cases.
-- [x] **System-query bypass:** detect a definite `addSystemQuery` receiver even when an argument aliases the receiver; argument escape must not suppress the call being inspected.
+Cover:
 
-### Protocol and epoch correctness
+- Function, block, class, catch, module, and relevant ServiceNow wrapper scopes
+- `var` hoisting and same-scope redeclarations preserving one binding identity
+- `let`/`const` block semantics
+- Parameters and default parameters
+- Array and object destructuring
+- Rest elements
+- Assignment patterns
+- Computed assignment targets
+- `for...in` and `for...of` targets
+- Named class-expression self-bindings
+- Named function-expression self-bindings
+- Nested closures and source-order-sensitive captures
+- Parameter, local, and class shadowing of `GlideRecord`, `String`, `undefined`, `Now`, and other platform globals
 
-- [ ] **GlideAjax missing keys:** `addParam()` and `addParam(null, ...)` definitely do not provide `sysparm_name`; do not turn them into an unknown that suppresses the terminal diagnostic.
-- [ ] **GlideAjax request reset:** model a new request epoch so two complete valid requests on one object do not produce `afterTerminal` on the second setup.
-- [x] **Spread arity:** `g_form.getReference(...args)` has unknown runtime arity and must not be reported as definitely callback-free unless the analysis proves it.
-- [x] **GlideAggregate late dynamic setup:** configuration after `query()` must not suppress validation of the already-open result epoch.
-- [x] **Query modifiers:** if a second query is conditional, retain the path where a late modifier did not affect the existing cursor.
-- [ ] **setNoCount epochs:** recover after divergent branch query counts; analyze later definite queries and associate `getRowCount()` only with the correct epoch.
-- [ ] **Query-in-loop:** establish cursor depth only for a proven valid, unescaped GlideRecord/GlideAggregate `ObjectId`; unrelated, reassigned, escaped, dynamically selected, and unknown `.next()` receivers remain silent. Cover aliases, static computed `next`, logical tests, shadowing, nested/multiple cursors, and cursor consumption in `for` test/update positions—including the second iteration onward—in both real hosts.
-- [ ] **Bulk-filter argument validity:** malformed non-string literals such as `addQuery(42)` are not valid filter evidence.
-- [ ] **Performance-rule boundary:** restrict `prefer-setnocount-with-choosewindow` to the researched/proven execution methods, or add authoritative evidence and narrowly justified behavior for `get()`/`getAsync()`.
+Mutable alias checks must be temporal:
 
-**Layer completion:** each defect has unit and real-host invalid/valid fixtures, including alias, shadow, reassignment, escape, nested scope, and path-sensitive variants. Exact rule IDs—not unrelated diagnostics—make invalid examples fail.
+- A write after a call must not retroactively invalidate an earlier safe alias use.
+- A write before the call must prevent the alias from being treated as authoritative.
+- Every mutable binding traversed through a namespace/member alias chain must be checked at the use site.
 
----
+Do not treat an identifier spelled `undefined` as the global value when it resolves to a local binding.
 
-## 4. Fluent manifests and binding-aware rules
+Do not treat an identifier spelled `String` as the global converter when shadowed.
 
-### Authoritative SDK manifests
+Do not treat a named class expression called `GlideRecord` as the ServiceNow constructor inside its class body.
 
-- [x] Validate both supported SDK versions against their published declarations rather than synthesizing 3.0.0 from the current manifest.
-- [x] Correct at least these known mismatches:
-  - SDK 4.1 `List.$id` is optional/deprecated because the ID is derived;
-  - exported 4.1 `UserPreference` requires the appropriate ID contract;
-  - SDK 3.0 `Table` must match the actual published signature rather than an invented required `$id` delta.
-- [x] Add committed, reproducible declaration-derived fixtures or a deterministic checker. Cover every exported factory and relevant ID policy in both versions.
+## 3.4 One shared analysis pass and cache contract
 
-### Import and binding resolution
+Create one shared per-file analysis result for bindings, object identity, context, Fluent origins, comments/directives, and stateful consumers where practical.
 
-- [ ] Resolve direct, aliased, namespace, local-factory-alias, and SDK barrel re-export bindings by identity. `const BR = BusinessRule; BR(...)` and a project barrel must receive the same validation as direct imports.
-- [x] Keep local shadows and unrelated same-named functions silent.
-- [ ] Add multi-file packed-consumer tests for re-exports and aliases.
+- Cache by the actual source-file or SourceCode identity using a `WeakMap`.
+- Never use a process-wide singleton that can leak results between files or concurrent lint runs.
+- Do not derive correctness from a lossy string key.
+- If a settings key remains, include every semantically relevant field and canonicalize nested sets/maps deterministically.
+- Freeze public settings and nested structures deeply enough that rules cannot mutate shared configuration.
+- Add isolation tests for multiple files, identical text under different settings, repeated host instances, and concurrent/interleaved analysis.
+- Do not serialize the test runner merely to hide a cache race.
 
-### Canonical `Now` binding
+Resolve issue #74 explicitly:
 
-- [ ] Use one binding-aware canonical-`Now` resolver across `require-fluent-id`, `fluent-naming-convention`, `prefer-now-include`, `no-now-id-as-reference`, `no-duplicate-fluent-id`, and shared helpers. Ignore local/imported/parameter/class/function shadows; support valid static dot/computed access; keep dynamic access conservative; support aliases only when documented and proven. Add nested-scope, alias, reassignment, comments/strings, Oxlint, and ESLint tests.
+- If `getFileAnalysis` and `FileAnalysis` are accepted public contracts, export them deliberately from the package root and prove their declarations in a clean NodeNext consumer.
+- Otherwise keep them internal and remove every public claim that consumers can call them.
+- Do not leave the issue, README, types, and implementation disagreeing.
 
-### `Now.ID` temporal semantics
+## 3.5 Comment and directive lexical authority
 
-- [x] Walk transparent TypeScript/parenthesis wrappers (`as`, `satisfies`, non-null, type assertions, parentheses) to the semantic use site. A wrapped `$id` must not be reported as a reference; duplicate wrapped IDs must still be found.
-- [x] Replace the string sentinel `"unknown"` with a non-colliding tagged representation so `Now.ID["unknown"]` remains a valid static ID.
-- [x] Exclude type-only uses such as `typeof id` from runtime reference-misuse diagnostics.
-- [x] Preserve captured module-level `Now.ID` facts through builder/helper closures while respecting temporal reassignment and shadowing.
-- [ ] Cover `const`/`let`/`var`, duplicate `var`, assignment, destructuring, branches, loops, nested functions, and mixed `$id`/reference use sites.
+The existing small adversarial scanner test is insufficient.
 
-### Directives
+Prefer the host parser’s authoritative comment/token APIs. Where a fallback scanner is genuinely required, implement a bounded linear lexical state machine covering:
 
-- [ ] Enforce the documented immediately-previous-line boundary for Fluent directives. Define and test BOM, EOF, blank lines, intervening comments, top-level constructs, and unsupported placements against actual Fluent semantics.
+- Line and block comments
+- Single- and double-quoted strings
+- Template literals and `${...}` expressions
+- Regular-expression literals where relevant
+- Escapes
+- CRLF and LF
+- BOM
+- Shebang
+- EOF comments
+- Unterminated block comments
+- Comment-shaped text inside strings, templates, and regexes
 
-**Layer completion:** run direct and packed `.now.ts`/`.now.tsx` fixtures with supported SDK/parser combinations; compare diagnostics across Oxlint and ESLint.
+Add a regression large enough to distinguish linear behavior from the old quadratic/backtracking implementation. Use a deterministic workload and a defensible timeout or operation-count invariant rather than a tiny fixture that both implementations pass.
 
----
+Place this production code and its tests in the layer that actually owns comment/directive parsing. Do not leave #78 as a title about bindings/scopes whose only focused change is an unrelated test.
 
-## 5. Profiles, oxfmt, generated docs, and research evidence
+# 4. Rebuild stateful lifecycle rules — owning layer #79
 
-### Runnable profiles and examples
+Use the analysis foundation through one typed lifecycle engine. Do not maintain separate approximate walkers for each rule when they need the same identity and control-flow facts.
 
-- [x] Generate classic Compatibility/ES5 examples from the correct profile rule maps, not only `recommendedRules`. Their invalid Promise/optional-syntax fixtures must fail for the expected mode-specific rule ID without a hard-coded sys_id crutch.
-- [x] Test every copy-paste configuration exactly as documented.
+## 4.1 Central method authority
 
-### oxfmt contract
+Create one evidence-backed authority for relevant ServiceNow methods and capabilities, consumed by all rules.
 
-Choose one coherent supported-minimum strategy and prove it:
+Distinguish at least:
 
-- [x] Either raise the oxfmt minimum to a version that supports the shipped `overrides`, TS configs, and `defineConfig`, or ship/document configurations compatible with the current minimum.
-- [x] At the exact declared minimum, prove classic and Fluent files receive different intended formatting, and run both JSON and documented TypeScript configuration paths from the packed package.
-- [x] Keep peer metadata, compatibility matrix, examples, README, and generated docs synchronized.
+- Query executors
+- Query/filter modifiers
+- Cursor-advancing methods
+- Bulk operations
+- Aggregate configuration and execution
+- Windowing/count behavior
+- GlideAjax setup and terminal methods
+- Value-extraction/conversion methods
+- Deferred versus immediate callbacks
 
-### Evidence and docs
+Resolve disputed `get`/`getAsync` behavior from authoritative ServiceNow material or pinned declarations and encode the result once. Do not let separate tests declare contradictory API law.
 
-- [x] Escape Markdown table metacharacters in generated rule pages and validate table structure, not only headings.
-- [ ] Replace the blanket `lastVerified` default with reproducible per-evidence verification or a checker that proves each date. Manual, fixture, integration, and authoritative-source claims must not inherit an unearned universal date.
-- [x] Complete the missing deliverables in research #35 and #37–#40: authoritative citations, concrete good/bad examples, explicit detection boundaries, FP/FN analysis, and—where required—data model, cache/incremental strategy, and prioritization.
-- [x] Regenerate all owned docs and fixtures and make `docs:check` detect malformed tables and stale examples.
+Diagnostics must report the exact receiver and method involved rather than a generic or stale name.
 
-**Layer completion:** examples fail/pass for exact intended reasons; packed oxfmt works at the declared minimum; generated docs are structurally valid and every evidence claim is reproducible.
+## 4.2 Query-before-next and re-query semantics
 
----
+- A definite query executor must establish `opened` regardless of whether the previous state was `unopened`, `opened`, or `unknown`.
+- `if (condition) gr.query(); gr.query(); gr.next()` must be valid.
+- A query on only one reachable path followed by `next()` must remain invalid.
+- Joins must not turn “unsafe on every possible object” into silence merely because object identity differs.
+- If both branches assign unfiltered records and then call `deleteMultiple`, report the unsafe operation.
+- Distinguish unknown identity from unknown safety facts.
+- Make any deliberate escape-to-silence boundary an explicit documented false negative, not a fixture under a directory named `valid` that implies correctness.
 
-## 6. Packed compatibility and trustworthy benchmarks
+## 4.3 Cursor-condition recognition
 
-### Executable compatibility matrix
+Correctly recognize cursor advances under:
 
-- [ ] Make the matrix the single executable source for CI, release validation, and generated docs. Each cell must assert its actual Node, npm, host, parser, SDK, and mode versions.
-- [x] Run `min-hosts` and every Node-20-labelled cell in a real Node 20 process. Run `eslint9-current` on actual declared `current`, not Node 22.
-- [x] Exercise the exact packed tarball in every cell, not the source tree or a filesystem `dist/index.js` import.
-- [ ] Materially execute advertised dimensions: TypeScript parser minimum/current, ESLint 9 minimum/current and ESLint 10, Fluent SDK 3.0/4.1, `.now.ts` and `.now.tsx`, and all documented JavaScript modes.
-- [x] Resolve public bare specifiers from a clean consumer: package root, `/oxfmt`, `/oxfmt.recommended.json`, and `/package.json`; compile their NodeNext declarations. A missing export target must fail the gate.
-- [x] Centralize and test npm-pack JSON parsing for both legacy array and npm-12 package-keyed output. Supported Node/npm consumers must complete `npm test`, artifact checks, and compatibility checks.
+- Direct conditions
+- Negation
+- `&&`, `||`, and `??` with JavaScript truth behavior
+- Conditional and sequence expressions
+- Explicit boolean comparisons such as `gr.next() === true`
+- Parentheses and supported TypeScript wrappers
 
-### Benchmark integrity
+Preserve cursor depth for synchronous IIFEs and clear it for declarations or deferred callbacks.
 
-- [ ] Generate valid Fluent modules with one import and many factory calls; reject parser/config diagnostics and any unexpected nonzero host exit. Parse and validate benchmark JSON before recording samples.
-- [x] Require exact one-to-one equality between current benchmark cases and baseline rows. Missing, duplicate, renamed, or extra cases fail.
-- [x] Make RSS collection portable or refuse `--write` when memory measurement is unavailable. Never write zero baselines that disable CI checks.
-- [x] Always build the current source, or cryptographically prove `dist` freshness, before measuring or writing baselines.
-- [x] Compare profiles on comparable fixtures and calibrate thresholds with a test that demonstrates repeated full-file analysis or nonlinear growth turns the gate red.
+## 4.4 GlideRecord filter and bulk-operation safety
 
-**Layer completion:** every generated compatibility claim corresponds to an executed cell; intentionally breaking a public export, Node minimum, parser composition, benchmark fixture, baseline row, or build freshness makes the appropriate gate fail.
+Classify arguments semantically:
 
----
+- Missing, null, global undefined, and empty static fields are definitely not filters.
+- A numeric field such as `addQuery(42)` is not a valid restricting field.
+- A locally shadowed `undefined` is dynamic, not the global value.
+- Dynamic arguments remain unknown unless another definite filter exists.
+- Model encoded queries and other filter methods from the central method authority.
 
-## 7. Privileged release automation
+Test branch joins, late definite recovery, aliases, reassignment, dynamic arguments, and multiple possible record identities.
 
-Keep this layer isolated from all untrusted implementation changes and base it on already-reviewed layers 1–6.
+## 4.5 GlideAggregate epochs
 
-- [x] **npm version check:** replace `process.versions.npm` with an executable check such as `npm --version`; parse and verify the explicitly pinned trusted-publishing npm version.
-- [x] **Exact runtime matrix:** validate the one inspected tarball on real supported Node jobs and require every result before publish.
-- [x] **Least privilege:** dependency installation, package import, compatibility testing, and registry verification run in jobs without `id-token: write`. The OIDC job receives only the inspected artifact, runs `npm publish <inspected.tgz> --ignore-scripts`, performs no install/import, and holds the minimum OIDC permission for the shortest possible interval. Registry installation/import runs only in a separate no-OIDC job; use `--ignore-scripts` for verification installs unless a lifecycle script is itself the subject of a separately sandboxed test.
-- [x] **Post-publish isolation:** registry installation/import verification and GitHub release creation occur in separate no-OIDC/minimum-permission jobs.
-- [ ] **Retry safety:** if the version already exists after an accepted-but-ambiguous publish, compare registry integrity/provenance to the inspected artifact and continue safely when identical; fail clearly on mismatch. GitHub-release creation must also be idempotent.
-- [x] **Artifact/public API checks:** verify every export target and declaration before publish and again from the registry without bypassing package exports.
-- [ ] **Tag ancestry and exact artifact:** preserve the approved-tag, main-ancestry, changelog, integrity, provenance, and exact-tarball guarantees.
-- [x] Add executable workflow/helper tests; text/regex presence checks alone are insufficient.
+Model aggregate state per query epoch:
 
-### Readiness terms and gates
+- Pending aggregate definitions
+- Committed definitions at query execution
+- Changes after query
+- Dynamic aggregate names
+- Conditional second queries
+- Joins where epochs differ
+- A later definite query or aggregate operation recovering from prior uncertainty
 
-Use these meanings throughout the tracking documents:
+Do not flatten all aggregate history into one boolean.
 
-- **Pending**: no current proof exists at the owning pull request head.
-- **Verified-at-head**: focused proof passed at the exact recorded head.
-- **Merge-ready**: all in-repository gates and governance checks passed at the current merge commit.
-- **Live-pending**: only a protected post-merge tag, registry, or GitHub action can supply the proof.
-- **Release-verified**: the stable protected-tag run supplied exact live evidence.
+## 4.6 GlideAjax request epochs
 
-The **merge gate** evaluates current code and configuration at the exact pull request head or merge commit. It requires applicable clean-checkout tests, real Oxlint and ESLint hosts, inspected-artifact checks, review, and executable governance checks. It does not require a stable tag.
+Represent each request independently.
 
-The **release gate** starts only after merge on protected `main`. It requires a controlled protected tag, approved OpenID Connect (OIDC) publication, registry integrity and exact provenance identity, public imports, and the GitHub release. Keep these live results **Live-pending** until the stable protected-tag run supplies them. Only then can the release become **Release-verified**.
+- Missing, null, global undefined, or empty parameter keys are definite missing keys.
+- Dynamic keys are unknown rather than automatically valid or invalid.
+- A terminal request call closes the current request epoch.
+- Beginning a new request, including a new `sysparm_name`, opens a fresh epoch.
+- Two sequential valid requests must remain valid.
+- `addParam()` followed by a terminal call without a valid `sysparm_name` must report.
+- A valid first request must not satisfy the second.
+- Exact terminal and setup methods must come from the shared method authority.
 
----
+## 4.7 Windowing and setNoCount
 
-## Mandatory validation matrix
+- Track `chooseWindow` and `setNoCount` in the same query epoch.
+- Preserve divergent joins as unknown where appropriate.
+- Allow a later definite setting or new epoch to recover.
+- Do not let sentinel values such as `-1` permanently poison future valid executions.
+- Add branch and re-query recovery tests.
 
-Before declaring completion, all of the following must pass from a clean checkout of each applicable layer:
+## 4.8 Rule-specific fixes
 
-```bash
-npm ci
-npm run typecheck
-npm run build
-npm test
-npm run docs:check
-npm run manifest:check
-npm run bench
-npm run release:check -- --consumer
-npm run validate
-```
+Implement and test all of the following:
 
-Additionally:
+- `require-callback-for-getreference` rejects statically non-callable callbacks such as numbers and strings, while remaining conservative for unknown identifiers.
+- `no-gliderecord-query-in-loop` detects synchronous IIFEs inside cursor loops.
+- Cursor-loop helpers recognize explicit boolean comparisons.
+- `no-glideelement-in-collection` uses authoritative object identity, requires the unshadowed global `String` for extraction exemptions, and deduplicates diagnostics when bodies are revisited.
+- `prefer-glideaggregate` allows reading the final count after a count-only loop while still detecting iteration used only to count.
+- `no-br-current-update` maps the canonical Business Rule wrapper’s argument to its parameter and does not diagnose arbitrary generic-server `current` bindings.
+- Surface-specific compatibility rules do not run in unknown or client contexts without proof.
+- New and replacement rules are registered in the same layer as their implementation and tests. A deprecation must never point to an unavailable rule.
 
-- Run the packed consumer and public-subpath tests at every declared minimum/current host combination.
-- Run the exact tarball on real Node 20, Node 22, and declared current Node environments.
-- Exercise npm-pack parsing with both array and npm-12 keyed JSON shapes.
-- Run real Oxlint and ESLint fixtures for every changed rule family.
-- Run TypeScript `.now.ts/.now.tsx` packed consumers for each supported parser/SDK combination.
-- Run `git diff --check`, generated-file checks, and ensure no ignored/stale `dist` influenced results.
+# 5. Make the Fluent SDK registry authoritative — owning layer #80
 
-## Definition of done
+Do not validate an in-memory manifest against a fixture generated from the same manifest.
 
-The task is complete only when:
+## 5.1 Declaration-derived version data
 
-1. Every issue acceptance-criterion checkbox and every handoff checkbox above has a ledger row, failing-before/fixed-after regression or other executable proof, and a link to a specific commit; many-to-one proof links are allowed.
-2. No existing test asserts silence for a path that an issue requires to diagnose.
-3. Unknown inputs remain conservative, but a known unsafe reachable path cannot be hidden by an `unknown` join.
-4. Binding/object identity—not identifier spelling—drives alias, shadow, reassignment, escape, and closure behavior.
-5. Every compatibility/documentation/evidence claim is backed by an executable, correctly versioned proof.
-6. The exact artifact passes real supported-host validation at the exact head or merge commit, and the release workflow is executable, least-privilege, and retry-safe.
-7. Actual dependent pull requests provide isolated review and rollback boundaries; privileged release changes remain isolated.
-8. The merge commit is **Merge-ready** before any stable tag exists. The protected-tag release remains **Live-pending** until it is **Release-verified**.
-9. A final report lists: layer/PR links, finding ledger, tests added, commands and environments run, before/after results, remaining live gates, and any intentionally deferred item with owner and blocker. An unresolved checkbox means the goal is not complete.
+For every publicly supported SDK version:
 
----
+- Pin the exact package name and version.
+- Record tarball integrity.
+- Traverse the actual export graph.
+- Extract normalized declaration evidence.
+- Store module path, export name, relevant signature/capability, `$id` policy, introduction/deprecation boundary, and extraction metadata.
+- Make historical versions independent datasets rather than filtered copies of the current version.
+- Compare versions with semantic-version tuples, never lexicographically.
 
-## Review addendum — additional mandatory acceptance criteria
+Prefer checked-in, normalized, reviewable declaration fixtures plus an explicit updater script. Routine PR tests must not depend on mutable network state. A scheduled canary may compare with the currently published SDK and open a maintenance issue.
 
-These items refine the earlier checklists with gaps identified by an independent review. Add each checkbox to the same acceptance ledger and delivery layer; they are part of the Definition of done.
+The checker must:
 
-### Fluent version authority
+- Resolve every evidence record.
+- Prove that the named symbol exists in the pinned declaration artifact.
+- Prove module ownership.
+- Validate the expected `$id` or `WithID` capability.
+- Validate negative boundaries where a symbol must not exist.
+- Fail when a referenced fixture is absent.
+- Run from `npm run manifest:check` and required CI at the same PR head.
 
-- [x] **Complete historical version model:** independently model every publicly supported Fluent SDK line from official versioned declarations, tagged source, release notes, or ServiceNow’s machine-readable version index. At implementation time, recheck the latest official SDK; the review found 4.10.0 current while this branch exposed only 3.0.0 and 4.1.0. Either support the actual current line or explicitly narrow the public support claim.
-- [x] **Version-transition boundaries:** audit every capability for introduction, removal, rename, deprecation, module ownership, and `$id` policy. Add explicit boundary tests proving `AliasTemplate` is absent before its documented 4.8.0 introduction and present at/after 4.8, plus at least one removed/renamed/deprecated transition and current-version coverage. Audit `StateModel` and every other capability inherited by the synthesized legacy manifest; do not assume present-day APIs existed historically.
-- [x] **Evidence granularity:** record one parseable, authoritative, symbol- and version-specific evidence record per capability transition. Compound prose containing multiple URLs and length-only evidence checks are insufficient. Make the manifest checker validate evidence structure and version applicability rather than snapshot consistency alone.
+Investigate and correct the reviewed mismatches rather than blindly accepting names:
 
-### Remaining evaluator semantics
+- Suspected phantom entries: `DatabaseIndex`, `Module`, `ScriptedRestApi`, and `UiFormatter`
+- Suspected missing `$id`-bearing factories: `GraphQLApi` and `Sla`
+- AliasTemplate’s reported 4.8 boundary
+- Any other mismatch discovered from declarations
 
-- [x] **Loop-condition effects on zero iterations:** the zero-body path begins after evaluating the loop test. Prove side effects in `while`/`for` conditions are retained even when the body never runs, for example `while ((gr.query(), false)) {}` followed by `gr.next()`.
-- [x] **Continue targets:** a `continue` must still execute the owning `for` update and `do…while` test before the next iteration/exit. Add labeled and unlabeled cases, including side effects in those expressions and finalizers that produce or override each completion kind.
-- [x] **Expression-result identity:** preserve identity through `?:`, operator-correct `&&`/`||`/`??`, sequence expressions, and assignment-expression results when every reachable result proves the same object. Add `flag ? gr : gr` and equivalent logical/sequence/assignment cases; degrade only when results genuinely differ.
+Do not assume those suggested corrections are correct without declaration evidence.
 
-### `Now.ID` provenance and use sites
+## 5.2 Fluent import and factory identity
 
-- [x] **Lexical alias exemption only:** treat a `Now.ID` RHS as alias initialization only when the assignment target is a proven lexical identifier. Member writes, computed storage, arrays, object properties, call arguments, returns, and spreads are real uses; `config.reference = Now.ID["x"]` must be reported.
-- [x] **Provenance separate from key precision:** a dynamic key such as `Now.ID[key]` is still definitely `Now.ID` provenance even though its key is unknown. Report it outside `$id`, accept it as an identity value at `$id`, and reserve static-key precision for duplicate/naming checks. Do not conflate dynamic key, merged ambiguity, and not-a-Now-ID.
+Separate two concepts:
 
-### Cursor and counting proof precision
+- Import-policy candidates: names imported from any source that may warrant an import diagnostic
+- Authoritative semantic factories: bindings proven to originate from the supported ServiceNow SDK export
 
-- [x] **Operator-aware cursor implication:** loop-body entry proves cursor success for the appropriate `&&` paths but not merely because either operand of `||` or `??` contains `.next()`. Define truth/nullish implication for both operand orders and share it between query-in-loop and GlideElement analysis. Test `&&`, `||`, and `??` in both orders with aliases, shadowing, and fallback-only body entry.
-- [x] **Actual count proof for `prefer-glideaggregate`:** require one stable numeric counter modified only by `counter++`, `++counter`, or `counter += 1`. An empty loop, arbitrary `+= calculateRisk(gr)`, record-field access, calls receiving the record, other counter uses, or identity ambiguity must not be described as “only iterated to count rows.” Report at the proven loop and add positive/negative scope and alias cases.
+Rules involving `$id`, duplicate IDs, naming, complexity, or entity semantics must use authoritative binding identity, not `getName(callee)`.
 
-### Authoritative Fluent factory resolution
+Support:
 
-- [x] Split “known capability candidate” from “authoritative factory.” `fluent-proper-imports` may resolve a recognized API name from the wrong module to issue the import-policy diagnostic; semantic rules such as `$id`, naming, and factory-specific validation must run only when the binding resolves through the capability’s correct owning module or a proven project re-export. Add a wrong-module fixture that emits the import error without cascading semantic errors.
+- Direct imports
+- Namespace imports
+- Stable same-file aliases
+- Destructured aliases where valid
+- Temporal mutation checks
+- Wrong-module rejection
+- TypeScript wrappers
 
-### Metadata truth assertions
+Assess cross-file project barrels against actual host capabilities. Implement bounded, cached, project-root-constrained resolution only if it can be made deterministic and safe. Otherwise document cross-file re-exports as an explicit non-goal and remove project-wide claims that the implementation cannot support.
 
-- [x] Reconcile structured FP/FN claims with executable behavior. In particular, the lower-case-only sys_id matcher cannot describe uppercase 32-hex values as known false positives; classify them as intentional exclusions or false negatives according to the chosen policy. Add behavior-linked assertions for metadata claims, including abrupt-path guarantees and version applicability, so generated docs cannot stamp implementation assumptions as verified truth.
+## 5.3 Evidence URL validation
 
-### Modern host matrix and governance
+Parse evidence URLs structurally.
 
-- [x] **Current runtime coverage:** recheck the official Node release schedule at implementation time. The review found Node 20 to be EOL/minimum compatibility, Node 22 and 24 supported LTS lines, and Node 26 Current. Label Node 20 accurately and test the exact minimum plus Node 22, Node 24, Node 26/current, and future declared supported lines implied by the open-ended engine range.
-- [x] **Meaningful host dimensions:** test minimum and actual latest-compatible Oxlint as distinct versions, ESLint 9/10 as supported, and minimum/current oxfmt. A “latest” cell identical to the minimum is not evidence of current compatibility.
-- [ ] **Repository enforcement:** configure and capture evidence for a `main` branch/repository ruleset requiring pull requests and all test, compatibility, benchmark, docs, manifest, and artifact checks; disable force-push/deletion; protect `v*` tags; and restrict the protected `release` environment and npm trusted publisher to the intended repository, workflow path, environment, and tag refs. Live controls are recorded in `docs/release-governance-live.json`; stable-tag publication remains line 237's live gate.
-- [ ] **Separate readiness phases:** define merge readiness as green in-repository code/configuration plus verified permissions, and release readiness as the post-merge protected-tag publication and live registry/GitHub verification. Remove any circular policy requiring a tag-only live publish before the implementation can merge.
+- Require HTTPS where appropriate.
+- Validate the hostname, not a substring.
+- `servicenow.com.attacker.example` and `attacker.example/servicenow.com` must not pass.
+- Define allowed ServiceNow hostnames or subdomain boundaries explicitly.
+- Separate external normative evidence from local regression evidence.
 
-### Release resiliency and workflow hygiene
+# 6. Finish options, canonical Now.ID, and directives — owning layer #81
 
-- [ ] **Eventual consistency:** apply bounded retry/backoff to registry metadata, integrity, provenance/attestation, installation, and public-import assertions that may lag after publication. Preserve immediate failure for integrity mismatch or other non-transient errors.
-- [x] **Consistent action pins:** use one centrally reviewed set of full action SHAs across test, benchmark, compatibility, and release workflows; add a check that detects divergent checkout/setup-node or other shared-action pins.
+## 6.1 One source for option contracts
 
-### Omitted issue acceptance criteria restored by the current review
+Use the existing descriptor machinery as the single source for:
 
-- [ ] **Issue #57 — unknown-surface gating:** gate `validate-gliderecord-calls` on proven execution surfaces. Unknown surfaces must remain conservative and must not inherit client-only or server-only assumptions.
-- [ ] **Issue #69 — executor capability authority:** use one executor capability registry as the authority for supported execution capabilities and all consumers.
-- [ ] **Issue #70 — typed ESLint composition:** prove typed ESLint composition at both the declared minimum version and the current supported version.
-- [ ] **Issue #72 — canonical `Now` in real hosts:** run canonical `Now` shadow, alias, and reassignment cases in real Oxlint and ESLint hosts.
-- [ ] **Issue #74 — shared analysis pass:** perform one complete shared analysis pass per source file and expose a public cache API for consumers.
-- [ ] **Issue #64 — stateful consumer matrices:** provide positive binding and control-flow matrices for every stateful rule consumer.
-- [ ] **Issue #66 — benchmark-result retention:** retain a current benchmark-result artifact that identifies its source head, environment, cases, and measurements.
-- [ ] **Issue #75 — real review boundaries:** create actual dependent pull requests with isolated review and rollback boundaries. Ordered commits or document labels do not satisfy this criterion.
-- [ ] **Issue #58 — exact release identity:** verify the exact cryptographic provenance identity and the exact protected-tag target for the published artifact.
+- Runtime parsing
+- JSON schema
+- TypeScript option types
+- Defaults
+- Generated documentation
+- Validation errors
+
+Migrate every configurable rule, including at least:
+
+- `no-hardcoded-sysid`
+- `no-hardcoded-table-names`
+- `require-fluent-id`
+- `prefer-now-include`
+- `fluent-naming-convention`
+
+Parse each rule’s options once during initialization, not repeatedly per AST node.
+
+Ensure:
+
+- Enums emit a string type and exact values.
+- String-array descriptors enforce the intended item type, uniqueness, and minimum length.
+- Defaults are applied identically by schema, parser, docs, and types.
+- Invalid options fail explicitly.
+- Generated docs cannot drift from the descriptors.
+- Compile-time negative tests protect readonly option types.
+
+## 6.2 Canonical Now identity
+
+Treat an expression as canonical `Now` only when its binding chain terminates at:
+
+- The unshadowed platform global named exactly `Now`, or
+- An explicitly supported ServiceNow SDK import
+
+Do not accept arbitrary unresolved platform globals, `const Now = gs`, similarly named local objects, or wrong-module imports.
+
+Check alias stability at the use location.
+
+Unwrap transparent wrappers when determining semantic use:
+
+- `TSAsExpression`
+- `TSSatisfiesExpression`
+- `TSNonNullExpression`
+- Parenthesized expressions
+- Other transparent wrappers supported by the parser
+
+This must allow typed `$id` values such as `Now.ID["task"] as string` without classifying them as references, and it must allow duplicate-ID analysis to see the wrapped identity.
+
+Keep canonical provenance separate from ID-key-shape validation.
+
+## 6.3 Exact directive placement
+
+Use actual comment nodes rather than comment-like text.
+
+Statement-scoped directives such as `@fluent-ignore` and `@fluent-disable-sync` are valid only when:
+
+- They are in a recognized comment.
+- They appear on the immediately preceding line.
+- No blank line intervenes.
+- No unrelated comment intervenes.
+- Their target statement is valid for that directive.
+
+File-scoped directives must appear at the documented first meaningful location after BOM/shebang handling.
+
+Test:
+
+- LF and CRLF
+- BOM
+- Shebang if supported
+- EOF
+- Blank-line separation
+- Intervening comments
+- Directive text in strings, templates, regexes, and comments describing directives
+- Duplicate directives
+- Misspellings
+- Wrong scope
+- TypeScript suppression placement
+
+Misplaced or dangling directives must produce the intended diagnostic rather than silently suppressing a rule.
+
+# 7. Correct context profiles and rule contracts — owning layer #82
+
+## 7.1 One context authority
+
+Expose one explicit resolved context model containing the relevant dimensions, such as:
+
+- Script surface/type
+- Server/client/unknown
+- JavaScript mode
+- Classic versus ES2021 feature support
+- Fluent status
+- Instance-script status
+- Filename/path evidence
+- Explicit configuration evidence
+- Conflict state
+
+Define precedence and conflict behavior. Do not let one helper infer Fluent from `.now.ts` while another later overwrites it from a generic path.
+
+Unknown context must be quiet for rules that require a proven surface or engine. Unknown must not mean classic by default.
+
+Add a full cross-product test matrix for:
+
+- Known and unknown surfaces
+- Client and server
+- Business Rule, UI Action, generic server, and instance script
+- Classic ES5, ES2021, and unknown mode
+- `.now.ts` and `.now.tsx`
+- Explicit overrides
+- Conflicting evidence
+- Fluent and non-Fluent paths
+
+## 7.2 Feature-level engine contracts
+
+Model syntax support per feature rather than one broad “unsupported syntax” switch.
+
+- ES2021 features must not be rejected when ES2021 is proven.
+- Classic-only bans must live in explicit classic/compatibility presets.
+- Recommended must not impose ES5 bans on unknown or modern code.
+- Each feature needs exact valid and invalid host fixtures.
+
+## 7.3 Rule behavior
+
+Repair and prove:
+
+- Every new rule is registered in the catalog and exported plugin.
+- `require-business-rule-wrapper` accepts only the canonical named wrapper shape and legal directive prologues; it must not accept any arbitrary IIFE.
+- Wrapper detection is shared with Business Rule rules such as `no-br-current-update`.
+- `no-hardcoded-sysid` runs only in proven instance-script contexts and has an explicit lowercase/uppercase sys_id policy.
+- `no-promise` does not flag arbitrary methods named `then`, `catch`, or `finally`; require actual Promise provenance or remove the unsafe member-name heuristic.
+- `no-system-query-bypass` avoids quadratic/path-insensitive matching and uses binding/context facts.
+- `no-display-value-date-comparison` uses proven Glide/date/display-value provenance. If such provenance cannot be established, narrow the rule or lower its confidence rather than shipping a syntactic error-level rule.
+- Duplicate Fluent IDs are described as file-local unless genuine project-wide analysis exists.
+- Automatic fixes and suggestions match the documented 2.x policy. If the migration promises diagnostic-only behavior, remove remaining code-changing fixers/suggestions or revise the public contract consistently.
+
+# 8. Make the catalog, presets, API, docs, and examples one coherent product — owning layer #83
+
+## 8.1 Catalog as the single source of truth
+
+Derive from one typed catalog:
+
+- The public `rules` map
+- Rule-name types
+- Preset maps
+- Metadata
+- Option descriptors
+- Documentation pages
+- README rule tables
+- Example expectations
+
+Every rule file that is intended to ship must be reachable through the public plugin. Every documented rule must exist.
+
+Generate and export the promised preset maps, including the applicable forms of:
+
+- Recommended
+- Strict
+- Classic ES5
+- ES2021
+- Client
+- Business Rule
+- Fluent
+- Policy
+- Security
+
+Do not document exports that do not exist.
+
+Make the intended 2.x preset contract explicit:
+
+- Recommended is conservative and quiet on unknown contexts.
+- Classic compatibility bans are opt-in.
+- Deprecated compatibility rules are not silently enabled.
+- Each preset has exact real-host tests.
+
+## 8.2 Public API
+
+Inventory the actual package exports and distinguish:
+
+- Supported public API
+- Internal implementation details
+- Deprecated compatibility exports
+- Removed 2.x exports
+
+Test ESM/NodeNext import and declaration consumption from the packed tarball. Preserve active 1.x contracts unless the 2.x migration deliberately removes them and documents that removal.
+
+Do not claim the public API is narrowed while only adding documentation.
+
+## 8.3 Independently runnable examples
+
+Separate internal fixtures from copyable consumer projects.
+
+Published/copyable examples must:
+
+- Resolve the plugin by `specifier: "oxc-plugin-servicenow"`, not `../..`.
+- Use a portable schema reference or omit repository-relative schema paths.
+- Declare the required development dependencies or be installed by a documented workspace mechanism.
+- Use the same command and configuration in README and package scripts.
+- Run against the packed tarball in a clean temporary project.
+- Have valid fixtures produce zero plugin diagnostics.
+- Have invalid fixtures assert the exact expected rule IDs, message IDs, counts, and relevant locations.
+- Run oxfmt through the public supported configuration path.
+- Prove JSON and TypeScript formatter configuration where both are documented.
+- Prove classic and Fluent formatting actually differ where claimed.
+- Contain files already formatted according to their own formatter preset.
+
+Execute the exact configuration blocks copied from the README, including UI Action and mixed-profile examples. Do not reconstruct a similar config in the test.
+
+## 8.4 Honest generated documentation and evidence
+
+Evidence records must include:
+
+- Evidence kind
+- Exact claim
+- Symbol or section
+- Source identity/domain
+- Version
+- Verification date
+- Concrete local test/fixture reference where applicable
+- Separate normative external evidence and local regression evidence
+
+A local source file must not self-certify a ServiceNow platform claim.
+
+Validate that referenced tests and fixtures exist and actually assert the documented behavior.
+
+Do not assign one blanket `lastVerified` date to every record. Record per-evidence `verifiedAt`, and compute or validate summary dates without pretending every claim was rechecked on the newest date.
+
+Validate calendar dates exactly rather than relying on normalizing `Date.parse`.
+
+Generated-file drift checks must detect:
+
+- Modified tracked files
+- Missing generated files
+- Newly generated untracked files
+- Stale extra generated files
+
+Prefer generation into a temporary tree and complete file-set/content comparison.
+
+Keep future release notes under `Unreleased` until implementation and version identity are genuinely ready. Package version, lockfile, changelog, docs, and tarball names must never disagree.
+
+# 9. Make integration evidence authoritative — owning layer #84
+
+Distribute focused rule and analysis tests back to their owning PRs. Keep #84 for cross-layer, host-level, adversarial, packed-consumer, compatibility, and performance evidence.
+
+Do not leave 17,000 lines of tests seven PRs after the code they verify.
+
+## 9.1 Replace tests that encode defects
+
+Delete or rewrite fixtures that call unsafe silence “valid,” including:
+
+- Try/finally cases that pass only because of a synthetic catch path
+- One-branch query cases represented by a different and weaker identity-union scenario
+- Both-branch unfiltered bulk operations treated as valid
+- Escaped-object false negatives presented as successful behavior
+- Disputed `getAsync` behavior treated as authoritative without evidence
+
+For intentional conservative false negatives, document them explicitly and pair them with nearby precision tests showing what remains detectable.
+
+Preserve the strong binding matrix and expand it with:
+
+- Try/catch/finally
+- Switch with and without default
+- Labeled break/continue
+- Second-iteration loop state
+- Call argument evaluation order
+- Compound and destructuring assignments
+- Hoisting and redeclaration
+- Shadowed globals
+- Mutable aliases
+- IIFEs versus deferred callbacks
+- Cache isolation
+
+Typecheck valid TypeScript/Fluent fixtures. Exclude only intentionally invalid fixture trees, or use a separate fixture tsconfig.
+
+## 9.2 One executable compatibility source
+
+Define all compatibility dimensions in one typed or validated source:
+
+- Actual Node runtime
+- Oxlint
+- ESLint
+- oxfmt
+- TypeScript
+- typescript-eslint
+- ServiceNow Fluent SDK
+- File extension and configuration mode
+
+Generate or deeply validate workflow matrices from this source. Checking cell IDs alone is insufficient; verify every dimension.
+
+Requirements:
+
+- Each Node-labelled cell must run under that actual Node runtime.
+- A local one-process `--all` mode must be named/documented as a same-runtime dependency smoke test, not multi-runtime proof.
+- Authoritative installs use normal npm peer resolution, not `--legacy-peer-deps`.
+- Test the actual declared peer floors or raise the peer ranges to the oldest versions genuinely proven.
+- Exercise the plugin’s exported ESLint config/rules on real `.ts` and `.tsx` Fluent files, not only the parser in isolation.
+- Pin release-critical support cells.
+- Put floating `latest`/`current` canaries in scheduled or non-blocking maintenance jobs.
+- Avoid a `generatedFrom` field pointing to the file itself.
+- Rebuild from a clean `dist` before packing.
+- Install and execute the exact tarball produced from the current source.
+- Do not let #84’s checker require release-workflow cells introduced only in #85.
+- Every advertised `npm run validate` command must be executable at #84’s exact head. Move #85-owned steps out or provide the required nonprivileged implementation at #84.
+
+## 9.3 Benchmark correctness
+
+Benchmark only syntactically and semantically valid fixtures.
+
+- Emit a shared Fluent import once rather than redeclaring it in every generated record.
+- Parse and validate the complete Oxlint JSON output.
+- Reject parser errors, configuration errors, crashes, truncated output, and unexpected exit codes.
+- Accept a diagnostic exit only when the expected diagnostics are proven.
+- Do not turn a failed process into a fast timing sample.
+- Write current results to a distinct artifact file.
+- Preserve raw samples, environment, CPU, runtime/tool versions, commit, commands, cases, and measurements.
+- Upload the current result, not the checked-in baseline.
+- Compare current results with the approved baseline separately.
+- Treat absolute timing as trend evidence unless runners are controlled.
+- Keep hard correctness and scaling guards.
+- Fail or explicitly mark evidence unavailable when required memory metrics cannot be collected.
+- Protect all temporary cleanup with `finally`.
+- Never upload a historical baseline under a name implying it is the current run.
+
+## 9.4 CI correctness
+
+- Set workflow-level `contents: read`.
+- Grant write or ID-token permission only to the exact jobs requiring it.
+- Run deterministic docs/manifest/artifact checks once unless cross-runtime behavior is intentionally being tested.
+- Avoid running expensive release checks in every Node test cell and again in standalone jobs.
+- Install dependencies in jobs before scripts that may acquire dependencies.
+- Keep required check names stable and mechanically checked against governance expectations.
+- Pin actions to reviewed full commit SHAs and enforce one pin set across workflows.
+
+# 10. Finish release governance and provenance — owning layer #85, last
+
+Do not make a stable release candidate until #77–#84 are complete and revalidated root-to-tip.
+
+Preserve the good architecture already present:
+
+- Read-only validation
+- One clean, inspected tarball
+- Exact-tarball consumer matrix
+- Artifact-only OIDC publish job
+- No checkout or dependency installation in the publish job
+- No long-lived npm token
+- `--ignore-scripts`
+- Separate registry verification without OIDC
+- Separate GitHub release creation with only `contents: write`
+
+Strengthen it as follows.
+
+## 10.1 One release identity
+
+Before enabling release:
+
+- Query the registry at execution time.
+- Choose a version greater than the current published versions/dist-tags.
+- Treat narrowed peer ranges and other documented breaking changes as a major-version migration.
+- Make `package.json`, lockfile, changelog, docs, tag, tarball name, GitHub release title, and npm package identity agree.
+- Require the release heading to be the first version heading after `Unreleased`.
+- Reject future or malformed dates according to a documented policy.
+- Never use a historical or phantom changelog heading merely because its number matches.
+- Do not leave a path that republishes an old version with new bytes.
+- Revert unrelated lockfile metadata loss, including platform `libc` constraints, and pin the npm version used for lockfile maintenance.
+- Decide whether prereleases are supported. If yes, publish them under an explicit non-`latest` dist-tag such as `next`; otherwise reject prerelease versions during validation.
+
+Keep the repository at its current non-release version until the entire stack is merge-ready. Do not bump merely to make a checker green.
+
+## 10.2 Clean exact artifact
+
+- Clean `dist` before every release build.
+- Never pack over stale output.
+- Use `npm pack --ignore-scripts`.
+- Inspect the exact tarball that will be published.
+- Preserve a normalized `npm pack --json` manifest including paths, sizes, modes, links, integrity, and hashes.
+- Reject path traversal, unexpected executable files, symlinks where not allowed, source/tests/workflows/scripts/plans, and stale extra outputs.
+- Resolve dangling sourcemaps: either ship the referenced source deliberately or stop shipping JavaScript source maps and retain only useful declaration maps.
+- Run all consumer tests against this exact artifact.
+- Publish these exact bytes without rebuilding.
+
+## 10.3 Tag and source identity
+
+Use an explicit policy. Prefer stable releases only from the current protected `main` tip:
+
+- Tag must equal `v${package.json.version}`.
+- Tag commit must equal the current protected `origin/main` tip.
+- If historical-main or backport releases are deliberately supported, document and test the different policy instead of relying only on “is an ancestor.”
+- Changelog, package identity, inspected tarball, registry bytes, and attestation subject must all correspond to that same commit.
+
+## 10.4 Publish outcome and retries
+
+Do not use broad `continue-on-error` semantics that make setup, npm pinning, OIDC, or an ordinary publish failure look successful.
+
+Model explicit outcomes:
+
+- Publish accepted
+- Version already exists and requires identity verification
+- Ambiguous network outcome
+- Permanent failure
+
+Only the first three may proceed to registry verification under their defined conditions.
+
+Retries must:
+
+- Be bounded
+- Use structured status/exit information
+- Retry only transient network, publication-lag, 429, and 5xx conditions
+- Fail immediately on malformed metadata, authentication/configuration errors, wrong package/version, integrity mismatch, or contradictory provenance
+- Use a fresh temporary consumer directory per install attempt
+- Use `os.tmpdir()` or create fallback parents before `mkdtemp`
+- Never classify an arbitrary message containing “404” as registry lag
+
+Add workflow-level tests for:
+
+- Successful publish
+- Ambiguous publish followed by matching registry bytes
+- Already-existing identical package
+- Missing registry version after failed publish
+- Immediate integrity mismatch failure
+- Permanent OIDC/authorization failure
+- Eventual-consistency success within the bound
+- Timeout
+- GitHub release retry with identical bytes
+- GitHub release retry with different bytes
+
+## 10.5 Verify provenance identity, not presence
+
+Do not accept any HTTPS attestation URL or arbitrary provenance object.
+
+Fetch or cryptographically verify the actual attestation and require:
+
+- Subject package and version
+- Subject digest matching the inspected tarball
+- Expected repository
+- Expected workflow path
+- Expected commit SHA
+- Expected tag/ref
+- Expected GitHub Actions builder identity
+- Expected protected release environment where represented
+- Correct trusted-publishing path
+
+Registry integrity and provenance identity are separate checks; both must pass.
+
+Keep this verification in a job with no `id-token: write`.
+
+## 10.6 GitHub release idempotency
+
+For an existing release, verify:
+
+- Exact tag
+- Target commit
+- Expected title
+- Draft state
+- Prerelease state
+- Release notes policy
+- Asset name
+- Asset bytes/digest
+- No conflicting assets
+
+Use the exact changelog version section as release notes or explicitly define the changelog as the sole source of truth. Do not accept a generic or stale release merely because one asset matches.
+
+## 10.7 Trusted-publishing npm version
+
+Use one shared implementation and constant for trusted-publishing npm validation.
+
+The workflow must call the same checked helper exercised by tests. Do not duplicate an inline parser/version constant that can drift from `scripts/check-trusted-publishing-npm.mjs`.
+
+## 10.8 Live governance
+
+Treat desired governance and captured governance as different artifacts.
+
+Add a read-only scheduled or manually dispatched audit, where APIs permit, for:
+
+- Main branch/ruleset enforcement
+- Exact required check contexts
+- Tag protection
+- Release environment reviewers
+- Self-review prevention
+- Actions policy
+- Action pin policy
+- Absence of a long-lived `NPM_TOKEN`
+- npm trusted-publisher repository/workflow/environment identity
+
+Fail or open a maintenance issue on drift without mutating controls from PR CI.
+
+Where npm or GitHub does not expose a reliable read API, mark the item `Live-pending` and document the exact manual verification. Never convert a static JSON snapshot into “live proof” by naming it `live`.
+
+The current single-reviewer plus prevent-self-review topology may deadlock a solo maintainer. Record the required external correction:
+
+- At least two eligible actors, or
+- A documented independent tagger/approver flow
+
+Do not modify repository/environment settings without approval.
+
+Parse workflow YAML in tests and assert the actual job graph:
+
+- Publish job has no checkout or install
+- Publish job has only `id-token: write`
+- Registry verification has no ID-token
+- GitHub release job has only the required contents permission
+- Dependencies and job conditions are correct
+- The exact tarball flows through validate → consumer → publish → registry verify → release
+
+Do not rely primarily on regexes that can match comments or break on equivalent formatting.
+
+Live provenance from a real protected-tag publication must remain `Live-pending` until such a release is explicitly authorized and performed. Merge readiness must not circularly require a tag-only release job that cannot run before merge.
+
+# 11. Stack discipline
+
+Implement in dependency order.
+
+For each owning layer:
+
+1. Reproduce each assigned defect at that layer’s current head.
+2. Add the smallest focused failing test.
+3. Implement the correction.
+4. Run narrow checks.
+5. Run the complete checks available at that exact layer.
+6. Record exact evidence.
+7. Restack every descendant onto the corrected predecessor.
+8. Re-run affected descendant checks.
+9. Re-review the new three-dot diff for scope leakage.
+
+Do not hide an earlier layer’s missing implementation by wiring it only in #84.
+
+Preferred ownership:
+
+- #77: CFG/path-state core, state joins, evaluation order, shared per-file cache foundation
+- #78: bindings, scopes, closures, identity, alias stability; move comment-scanner work to its real owner unless it genuinely belongs here
+- #79: lifecycle engine and stateful ServiceNow rules
+- #80: declaration-derived Fluent registry and import/factory identity
+- #81: option descriptors, canonical Now.ID, directives
+- #82: context/engine profiles and rule semantics
+- #83: catalog, public exports, docs, examples, migration assets
+- #84: host integration, packed consumers, compatibility, evidence, benchmark
+- #85: privileged release workflow and live-governance contracts
+
+If the existing stack cannot preserve unique, coherent ownership without unreasonable history surgery, document the evidence and propose the smallest justified restack. Do not silently keep fictional rollback boundaries.
+
+Keep implementation PRs as real drafts until their own acceptance criteria pass. Since changing remote PR state is an external action, report the exact recommended title/draft/base changes rather than applying them without approval.
+
+# 12. Required verification
+
+Use a clean installation whenever dependencies or the lockfile change.
+
+During iteration, run the narrowest relevant tests. Before declaring the working tree complete, run every applicable repository gate, including the actual equivalents of:
+
+- Clean `npm ci`
+- Formatting check
+- Typecheck
+- Build
+- Unit tests
+- Rule tests
+- Integration tests
+- Real Oxlint host tests
+- Real ESLint/TypeScript host tests
+- Valid-fixture typecheck
+- Documentation generation/drift check
+- Catalog consistency check
+- Manifest check
+- oxfmt integration
+- Packed-consumer tests
+- Compatibility consistency check
+- Supported runtime matrix
+- Benchmark correctness/scaling check
+- Artifact inspection
+- Workflow graph/action-pin check
+- Nonpublishing release check
+- Canonical `npm run validate`
+
+Do not claim local execution of Node 20/22/24/26 unless those actual runtimes were used.
+
+Every gate must fail closed on parser errors, missing tools, malformed output, stale build output, unavailable required metrics, and unexpected diagnostics.
+
+# 13. Definition of done
+
+The remediation is complete only when:
+
+1. Every unique substantive PR comment/review finding has a recorded disposition and evidence.
+2. Every confirmed semantic defect has a red-before-green regression at the owning layer.
+3. No test calls a known unsafe false negative “valid.”
+4. Control-flow, binding, identity, lifecycle, context, and Fluent analyses share consistent authority.
+5. Every shipped rule is registered, documented, configurable, and tested through the real host.
+6. Every documented rule, preset, command, export, example, version, and compatibility claim is executable from the packed package.
+7. The Fluent manifest is proven from version-pinned declarations rather than self-snapshots.
+8. `npm run validate` succeeds from a clean checkout at the intended final nonpublishing head.
+9. Required CI cells run their advertised real runtimes and normal peer resolution.
+10. Benchmark artifacts contain the current run and cannot record parser/config failures as performance samples.
+11. Release validation builds and inspects one clean tarball and every later job uses exactly those bytes.
+12. The publish job has no checkout, install, scripts, long-lived token, or unrelated permission.
+13. Provenance verification proves subject and workflow identity.
+14. Package, changelog, docs, tag policy, registry policy, and release asset identity cannot diverge.
+15. Live controls that cannot be proven in code remain explicitly `Live-pending`.
+16. No tag, publish, merge, release, branch push, PR-state mutation, or governance mutation has been performed without approval.
+
+# 14. Final report
+
+Return a self-contained implementation report containing:
+
+- Executive summary
+- Exact current heads and bases inspected
+- Finding-disposition table
+- Changes grouped by owning PR/layer
+- Important design decisions and why
+- Tests added, including which ones failed before each fix
+- Complete verification commands and results
+- Actual runtime/tool matrix used
+- Public API and migration impact
+- Package/version decision
+- Performance evidence
+- Release-workflow security properties
+- Remaining live/manual governance actions
+- Any blocked validation and the precise reason
+- Recommended restack, PR-title, draft-state, and merge order
+- Explicit confirmation that no release/tag/publish/merge or other unauthorized external action occurred
+
+Do not stop after making the existing tests pass. The result must make the implementation, tests, documentation, compatibility evidence, and release claims agree with reality.
