@@ -37,13 +37,16 @@ const CURSOR_METHODS = new Set([
 function isCursorNextCall(node: unknown, cursorName: string, analysis: ProvenanceQuery): boolean {
   if (!isNode(node) || node.type !== "CallExpression") return false;
   const call = node as ESTree.CallExpression;
-  if (staticPropertyName(call.callee) !== "next" || call.callee.type !== "MemberExpression") return false;
+  if (staticPropertyName(call.callee) !== "next" || call.callee.type !== "MemberExpression")
+    return false;
   const object = (call.callee as ESTree.MemberExpression).object;
   return getName(object) === cursorName && analysis.ofExpression(object)?.kind === "GlideRecord";
 }
 
 function isCursorLoopTest(node: unknown, cursorName: string, analysis: ProvenanceQuery): boolean {
-  return truthyPathRequiresCursorNext(node, (candidate) => isCursorNextCall(candidate, cursorName, analysis));
+  return truthyPathRequiresCursorNext(node, (candidate) =>
+    isCursorNextCall(candidate, cursorName, analysis),
+  );
 }
 
 function isExtracted(node: unknown): boolean {
@@ -59,11 +62,7 @@ function isExtracted(node: unknown): boolean {
   return false;
 }
 
-function isGlideElementArg(
-  node: unknown,
-  cursorName: string,
-  analysis: ProvenanceQuery,
-): boolean {
+function isGlideElementArg(node: unknown, cursorName: string, analysis: ProvenanceQuery): boolean {
   if (!isNode(node) || isExtracted(node)) return false;
   if (node.type === "CallExpression") {
     const call = node as ESTree.CallExpression;

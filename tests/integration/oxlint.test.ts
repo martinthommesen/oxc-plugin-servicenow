@@ -64,9 +64,15 @@ describe("oxlint host integration", () => {
   it("reports the expected rules on the bad Fluent fixture", () => {
     const report = runOxlint([fixturesDir]);
     const rules = pluginRulesFor(report, "bad-fluent.now.ts");
-    for (const id of ["servicenow/fluent-proper-imports", "servicenow/require-fluent-id"]) {
-      assert.ok(rules.includes(id), `missing ${id} (got ${rules.join(", ") || "(none)"})`);
-    }
+    assert.ok(
+      rules.includes("servicenow/fluent-proper-imports"),
+      `missing import diagnostic (got ${rules.join(", ") || "(none)"})`,
+    );
+    assert.equal(
+      rules.includes("servicenow/require-fluent-id"),
+      false,
+      "wrong-module imports must not cascade semantic diagnostics",
+    );
   });
 
   it("reports no plugin diagnostics on the clean examples", () => {

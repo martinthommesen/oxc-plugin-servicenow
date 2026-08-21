@@ -1,15 +1,15 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
-import { staticMemberChain } from "../utils/ast.js";
+import { getName } from "../utils/ast.js";
+import { beginRuleFile } from "./helpers.js";
 
 export const noPackagesCalls = defineRule({
   meta: {
     type: "problem",
     docs: {
       description:
-        "Disallow the Rhino `Packages.*` bridge. It is unsupported in scoped apps and on modern runtimes.",
-      recommended: "recommended",
+        "Disallow the Rhino `Packages.*` bridge when `Packages` is the unresolved platform global.",
       url: ruleDocsUrl("no-packages-calls"),
     },
     messages: {
@@ -20,14 +20,16 @@ export const noPackagesCalls = defineRule({
   createOnce(context) {
     return {
       MemberExpression(node) {
+        const { analysis } = beginRuleFile(context);
         const member = node as ESTree.MemberExpression;
-        const chain = staticMemberChain(member);
-        if (!chain || chain[0] !== "Packages") return;
-        // Only report the outermost member expression of the chain so
-        // Packages.java.lang.String yields one diagnostic, not three.
+        const root = rootIdentifier(member);
+        if (!root || getName(root) !== "Packages" || !analysis.isPlatformGlobal(root)) return;
         const ancestors = context.sourceCode.getAncestors(node);
         const parent = ancestors[ancestors.length - 1] as ESTree.Node | undefined;
-        if (parent?.type === "MemberExpression" && parent.object === node) {
+        if (
+          parent?.type === "MemberExpression" &&
+          (parent as ESTree.MemberExpression).object === node
+        ) {
           return;
         }
         context.report({ node, messageId: "packages" });
@@ -35,3 +37,11 @@ export const noPackagesCalls = defineRule({
     };
   },
 });
+
+function rootIdentifier(node: ESTree.MemberExpression): ESTree.Node | null {
+  let current: ESTree.Node = node as unknown as ESTree.Node;
+  while (current.type === "MemberExpression") {
+    current = (current as ESTree.MemberExpression).object as ESTree.Node;
+  }
+  return getName(current) ? current : null;
+}

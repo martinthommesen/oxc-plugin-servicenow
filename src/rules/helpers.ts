@@ -1,5 +1,5 @@
 import type { Context, ESTree } from "@oxlint/plugins";
-import { getFileAnalysis, type FileAnalysis, type ProvenanceQuery } from "../analysis/index.js";
+import { getFileAnalysis, type FileAnalysis, type ProvenanceQuery } from "../analysis/internal.js";
 import type { ServiceNowScriptContext } from "../types.js";
 
 export interface RuleFileState {

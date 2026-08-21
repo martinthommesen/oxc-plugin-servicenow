@@ -1,18 +1,10 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
-import { staticPropertyName, type ProvenanceQuery } from "../analysis/index.js";
+import { staticPropertyName, type ProvenanceQuery } from "../analysis/internal.js";
 import { isClientCapableContext } from "../context/index.js";
 import { ruleDocsUrl } from "../constants.js";
-import { getName, isNode } from "../utils/ast.js";
+import { getName, isNode, unwrapExpression } from "../utils/ast.js";
 import { beginRuleFile } from "./helpers.js";
-
-const NON_CALLABLE_EXPRESSIONS = new Set([
-  "Literal",
-  "TemplateLiteral",
-  "ObjectExpression",
-  "ArrayExpression",
-  "ClassExpression",
-]);
 
 function isNullishCallback(node: unknown, analysis: ProvenanceQuery): boolean {
   if (!node) return true;
@@ -30,8 +22,39 @@ function isNullishCallback(node: unknown, analysis: ProvenanceQuery): boolean {
   return false;
 }
 
-function isStaticallyNonCallable(node: unknown): boolean {
-  return isNode(node) && NON_CALLABLE_EXPRESSIONS.has(node.type);
+function callbackKind(
+  node: unknown,
+  analysis: ProvenanceQuery,
+): "callable" | "invalid" | "unknown" {
+  const value = unwrapExpression(node);
+  if (!isNode(value)) return "unknown";
+  if (value.type === "FunctionExpression" || value.type === "ArrowFunctionExpression")
+    return "callable";
+  if (value.type === "Identifier") {
+    const name = getName(value);
+    if (!name) return "unknown";
+    const binding = analysis.bindings.resolve(name, value);
+    if (!binding) return "unknown";
+    if (binding.kind === "function") return "callable";
+    if (binding.kind === "const" && binding.node.type === "VariableDeclarator") {
+      const init = unwrapExpression((binding.node as ESTree.VariableDeclarator).init);
+      if (
+        isNode(init) &&
+        (init.type === "FunctionExpression" || init.type === "ArrowFunctionExpression")
+      ) {
+        return "callable";
+      }
+    }
+    return "unknown";
+  }
+  if (
+    value.type === "Literal" ||
+    value.type === "ObjectExpression" ||
+    value.type === "ArrayExpression"
+  ) {
+    return "invalid";
+  }
+  return "unknown";
 }
 
 export const requireCallbackForGetreference = defineRule({
@@ -45,6 +68,8 @@ export const requireCallbackForGetreference = defineRule({
     messages: {
       missingCallback:
         "`getReference()` without a callback blocks the browser. Pass a function as the second argument.",
+      invalidCallback:
+        "`getReference()` received a value that is not callable. Pass a function as the second argument.",
     },
   },
   createOnce(context) {
@@ -65,11 +90,12 @@ export const requireCallbackForGetreference = defineRule({
         // when no syntactic second argument is present.
         if (call.arguments.some((argument) => argument.type === "SpreadElement")) return;
         const callback = call.arguments[1];
-        if (
-          call.arguments.length >= 2 &&
-          !isNullishCallback(callback, analysis) &&
-          !isStaticallyNonCallable(callback)
-        ) return;
+        if (call.arguments.length >= 2 && !isNullishCallback(callback, analysis)) {
+          if (callbackKind(callback, analysis) === "invalid") {
+            context.report({ node, messageId: "invalidCallback" });
+          }
+          return;
+        }
         context.report({ node, messageId: "missingCallback" });
       },
     };

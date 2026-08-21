@@ -1,5 +1,6 @@
 import type { ESTree } from "@oxlint/plugins";
-import { analyzePathBindings, dedupePathFindings, mergeTri } from "./path-state.js";
+import { nodeStart } from "../utils/ast.js";
+import { analyzePathBindings, mergeTri } from "./path-state.js";
 import type { ProvenanceQuery } from "./provenance.js";
 
 export interface WindowedDeleteFinding {
@@ -23,6 +24,7 @@ export function findWindowedDeleteMultiple(
   analysis: ProvenanceQuery,
 ): WindowedDeleteFinding[] {
   const findings: WindowedDeleteFinding[] = [];
+  const reported = new Set<number>();
   analyzePathBindings<WindowData>({
     program,
     analysis,
@@ -35,12 +37,13 @@ export function findWindowedDeleteMultiple(
       if (!rec || !objectName || !property) return;
       if (WINDOW.has(property)) rec.data.windowed = true;
       if (property === "deleteMultiple" && rec.data.windowed === true) {
-        findings.push({ node: call, name: objectName, method: property });
+        const key = nodeStart(call);
+        if (!reported.has(key)) {
+          reported.add(key);
+          findings.push({ node: call, name: objectName, method: property });
+        }
       }
     },
-    onBudgetExceeded() {
-      findings.length = 0;
-    },
   });
-  return dedupePathFindings(findings);
+  return findings;
 }

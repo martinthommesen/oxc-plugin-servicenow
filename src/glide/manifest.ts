@@ -8,7 +8,7 @@
  * Evidence: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html
  */
 
-export const GLIDE_API_RELEASE = "zurich";
+export const GLIDE_API_RELEASE: ServiceNowRelease = "zurich";
 
 export const GLIDE_SCOPED_RECORD_EVIDENCE =
   "https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html";
@@ -34,18 +34,24 @@ export interface GlideMethodCapability {
   roles: readonly GlideMethodRole[];
   evidence: string;
   apiScope: GlideApiScope;
+  supportedScopes: readonly GlideApiScope[];
+  releases: readonly ServiceNowRelease[];
 }
 
 function method(
   name: string,
   roles: readonly GlideMethodRole[],
-  extra: Partial<Pick<GlideMethodCapability, "evidence" | "apiScope">> = {},
+  extra: Partial<
+    Pick<GlideMethodCapability, "evidence" | "apiScope" | "supportedScopes" | "releases">
+  > = {},
 ): GlideMethodCapability {
   return {
     name,
     roles,
     evidence: extra.evidence ?? GLIDE_SCOPED_RECORD_EVIDENCE,
     apiScope: extra.apiScope ?? "scoped",
+    supportedScopes: extra.supportedScopes ?? ["scoped", "global"],
+    releases: extra.releases ?? [GLIDE_API_RELEASE],
   };
 }
 
@@ -81,6 +87,7 @@ export const GLIDE_RECORD_METHODS: readonly GlideMethodCapability[] = [
   method("get", ["executor"]),
   method("getAsync", ["executor"], {
     apiScope: "global",
+    supportedScopes: ["global"],
     evidence: GLIDE_GLOBAL_RECORD_EVIDENCE,
   }),
   method("next", ["consumer"]),
@@ -129,3 +136,100 @@ export const GLIDE_VALUE_EXTRACTORS = namesWithRole("value-extractor");
 
 /** Every method name in the versioned table, including neutrals. */
 export const GLIDE_KNOWN_METHODS = new Set(GLIDE_RECORD_METHODS.map((entry) => entry.name));
+
+class ReadonlySetView<T> implements ReadonlySet<T> {
+  readonly #values: Set<T>;
+
+  constructor(values: Iterable<T>) {
+    this.#values = new Set(values);
+    Object.freeze(this);
+  }
+
+  get size(): number {
+    return this.#values.size;
+  }
+  has(value: T): boolean {
+    return this.#values.has(value);
+  }
+  forEach(callbackfn: (value: T, value2: T, set: ReadonlySet<T>) => void, thisArg?: unknown): void {
+    this.#values.forEach((value) => callbackfn.call(thisArg, value, value, this));
+  }
+  entries(): SetIterator<[T, T]> {
+    return this.#values.entries();
+  }
+  keys(): SetIterator<T> {
+    return this.#values.keys();
+  }
+  values(): SetIterator<T> {
+    return this.#values.values();
+  }
+  [Symbol.iterator](): SetIterator<T> {
+    return this.#values[Symbol.iterator]();
+  }
+  get [Symbol.toStringTag](): string {
+    return "Set";
+  }
+}
+
+function readonlyNames(
+  entries: readonly GlideMethodCapability[],
+  role?: GlideMethodRole,
+): ReadonlySet<string> {
+  return new ReadonlySetView(
+    entries
+      .filter((entry) => role === undefined || entry.roles.includes(role))
+      .map((entry) => entry.name),
+  );
+}
+
+export interface GlideCapabilityView {
+  readonly scope: ApplicationScope;
+  readonly release: ServiceNowRelease;
+  readonly methods: readonly GlideMethodCapability[];
+  readonly filters: ReadonlySet<string>;
+  readonly modifiers: ReadonlySet<string>;
+  readonly systemBypass: ReadonlySet<string>;
+  readonly executors: ReadonlySet<string>;
+  readonly consumers: ReadonlySet<string>;
+  readonly bulk: ReadonlySet<string>;
+  readonly valueExtractors: ReadonlySet<string>;
+  readonly knownMethods: ReadonlySet<string>;
+}
+
+const CAPABILITY_CACHE = new Map<string, GlideCapabilityView>();
+
+/** Select documented methods for one exact application scope and release. */
+export function resolveGlideCapabilities(input: {
+  scope: ApplicationScope;
+  release?: ServiceNowRelease;
+}): GlideCapabilityView {
+  const release = input.release ?? GLIDE_API_RELEASE;
+  const key = `${input.scope}:${release}`;
+  const existing = CAPABILITY_CACHE.get(key);
+  if (existing) return existing;
+  const effectiveScope: GlideApiScope = input.scope === "global" ? "global" : "scoped";
+  const methods = Object.freeze(
+    GLIDE_RECORD_METHODS.filter(
+      (entry) => entry.releases.includes(release) && entry.supportedScopes.includes(effectiveScope),
+    ),
+  );
+  const filters = readonlyNames(methods, "filter");
+  const shape = readonlyNames(methods, "shape");
+  const view: GlideCapabilityView = Object.freeze({
+    scope: input.scope,
+    release,
+    methods,
+    filters,
+    modifiers: new ReadonlySetView([...filters, ...shape]),
+    systemBypass: readonlyNames(methods, "acl-bypass"),
+    executors: readonlyNames(methods, "executor"),
+    consumers: readonlyNames(methods, "consumer"),
+    bulk: readonlyNames(methods, "bulk"),
+    valueExtractors: readonlyNames(methods, "value-extractor"),
+    knownMethods: readonlyNames(methods),
+  });
+  CAPABILITY_CACHE.set(key, view);
+  return view;
+}
+import type { ServiceNowRelease } from "../settings/releases.js";
+import type { ApplicationScope } from "../types.js";

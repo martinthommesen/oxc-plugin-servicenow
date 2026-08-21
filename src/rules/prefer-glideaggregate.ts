@@ -1,96 +1,47 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
-import { GLIDE_RECORD_CTORS, ruleDocsUrl } from "../constants.js";
-import { declaredName, getName, isNewNamed, memberName } from "../utils/ast.js";
-
-interface GrBinding {
-  counted: boolean;
-  iterated: boolean;
-  onlyIncremented: boolean;
-  countNode: ESTree.Node | null;
-}
-
-function emptyBinding(): GrBinding {
-  return { counted: false, iterated: false, onlyIncremented: false, countNode: null };
-}
-
-function isIncrement(node: ESTree.Node): boolean {
-  if (node.type === "UpdateExpression") return true;
-  if (node.type === "AssignmentExpression") {
-    const op = (node as ESTree.AssignmentExpression).operator;
-    return op === "+=";
-  }
-  return false;
-}
+import { ruleDocsUrl } from "../constants.js";
+import { getName, isNode, isValueReference, nodeStart, walk } from "../utils/ast.js";
+import { staticPropertyName } from "../analysis/internal.js";
+import { isServerInstanceContext } from "../context/index.js";
+import { beginRuleFile } from "./helpers.js";
 
 export const preferGlideaggregate = defineRule({
   meta: {
     type: "suggestion",
     docs: {
       description:
-        "Prefer GlideAggregate for counting records instead of GlideRecord.getRowCount() or iterate-to-count loops.",
-      recommended: "recommended",
+        "Prefer GlideAggregate for counting records instead of proven GlideRecord.getRowCount() or iterate-to-count loops.",
       url: ruleDocsUrl("prefer-glideaggregate"),
     },
-    hasSuggestions: true,
     messages: {
       getRowCount:
-        "`{{name}}.getRowCount()` loads every matching row. Use `GlideAggregate` with `addAggregate('COUNT')` instead.",
+        "`{{name}}.getRowCount()` loads every matching row. Use `GlideAggregate` with `addAggregate('COUNT')` instead. This diagnostic does not rewrite the query; copy filters by hand.",
       iterateCount:
-        "`{{name}}` is only iterated to count rows. Use `GlideAggregate` — it is dramatically faster on large tables.",
+        "This loop only counts rows from `{{name}}`. Use `GlideAggregate` with `addAggregate('COUNT')` instead.",
     },
   },
   createOnce(context) {
-    let bindings: Map<string, GrBinding>;
-
     return {
       before() {
-        bindings = new Map();
-      },
-      VariableDeclarator(node) {
-        const decl = node as ESTree.VariableDeclarator;
-        const name = declaredName(decl);
-        if (name && decl.init && GLIDE_RECORD_CTORS.some((ctor) => isNewNamed(decl.init, ctor))) {
-          bindings.set(name, emptyBinding());
-        }
-      },
-      AssignmentExpression(node) {
-        const assign = node as ESTree.AssignmentExpression;
-        const name = getName(assign.left);
-        if (name && GLIDE_RECORD_CTORS.some((ctor) => isNewNamed(assign.right, ctor))) {
-          bindings.set(name, emptyBinding());
-        }
+        if (!isServerInstanceContext(beginRuleFile(context).context)) return false;
       },
       CallExpression(node) {
+        const { analysis } = beginRuleFile(context);
         const call = node as ESTree.CallExpression;
-        const member = memberName(call.callee);
-        if (!member) return;
-        const binding = bindings.get(member.object);
-        if (!binding) return;
+        if (call.callee.type !== "MemberExpression") return;
+        const member = call.callee as ESTree.MemberExpression;
+        const property = staticPropertyName(member);
+        if (!property) return;
+        const receiver = glideRecordReceiver(analysis, member.object);
+        if (!receiver) return;
 
-        if (member.property === "getRowCount") {
-          binding.counted = true;
-          binding.countNode = node;
+        if (property === "getRowCount") {
           context.report({
             node,
             messageId: "getRowCount",
-            data: { name: member.object },
-            suggest: [
-              {
-                desc: `Replace with GlideAggregate COUNT on ${member.object}`,
-                fix(fixer) {
-                  return fixer.replaceText(
-                    node,
-                    `(function () { var __ga = new GlideAggregate(${member.object}.getTableName ? ${member.object}.getTableName() : '/* table */'); __ga.addAggregate('COUNT'); __ga.query(); return __ga.next() ? parseInt(__ga.getAggregate('COUNT'), 10) : 0; })()`,
-                  );
-                },
-              },
-            ],
+            data: { name: receiver.name },
           });
-        }
-
-        if (member.property === "next") {
-          binding.iterated = true;
         }
       },
       WhileStatement(node) {
@@ -99,43 +50,162 @@ export const preferGlideaggregate = defineRule({
       ForStatement(node) {
         checkLoopBody(node as ESTree.ForStatement);
       },
-      after() {
-        for (const [name, binding] of bindings) {
-          if (binding.iterated && binding.onlyIncremented && !binding.counted) {
-            context.report({
-              node: binding.countNode ?? (context.sourceCode.ast as unknown as ESTree.Node),
-              messageId: "iterateCount",
-              data: { name },
-            });
-          }
-        }
-      },
     };
 
+    function glideRecordReceiver(
+      analysis: ReturnType<typeof beginRuleFile>["analysis"],
+      node: unknown,
+    ): { id: number; name: string } | null {
+      const proven = analysis.ofExpression(node);
+      if (
+        !proven ||
+        proven.kind !== "GlideRecord" ||
+        proven.invalid ||
+        proven.escaped ||
+        proven.objectId === undefined
+      ) {
+        return null;
+      }
+      return { id: proven.objectId, name: getName(node) ?? "record" };
+    }
+
     function checkLoopBody(node: ESTree.WhileStatement | ESTree.ForStatement) {
+      const { analysis } = beginRuleFile(context);
       const test = node.test;
       if (!test || test.type !== "CallExpression") return;
-      const member = memberName((test as ESTree.CallExpression).callee);
-      if (!member || member.property !== "next") return;
-      const binding = bindings.get(member.object);
-      if (!binding) return;
+      const callee = (test as ESTree.CallExpression).callee;
+      if (callee.type !== "MemberExpression") return;
+      if (staticPropertyName(callee) !== "next") return;
+      const receiver = glideRecordReceiver(analysis, callee.object);
+      if (!receiver) return;
 
       const body = node.body;
-      const statements =
-        body.type === "BlockStatement" ? (body as ESTree.BlockStatement).body : [body];
+      const statements = body.type === "BlockStatement" ? [...body.body] : [body];
       const meaningful = statements.filter((stmt) => stmt.type !== "EmptyStatement");
-      const onlyIncremented =
-        meaningful.length === 0 ||
-        meaningful.every((stmt) => {
-          if (stmt.type === "ExpressionStatement") {
-            return isIncrement((stmt as ESTree.ExpressionStatement).expression as ESTree.Node);
-          }
-          return false;
-        });
-      if (onlyIncremented) {
-        binding.onlyIncremented = true;
-        binding.countNode = node;
+      const updates: ESTree.Node[] = [];
+      if (node.type === "ForStatement" && node.update) updates.push(node.update as ESTree.Node);
+      for (const statement of meaningful) {
+        if (statement.type !== "ExpressionStatement") return;
+        updates.push((statement as ESTree.ExpressionStatement).expression as ESTree.Node);
       }
+      // An empty loop proves no counting behavior. Every reachable statement
+      // must be one of the three exact numeric counter forms.
+      if (updates.length === 0) return;
+      let counterId: number | undefined;
+      for (const update of updates) {
+        const target = counterUpdateTarget(update, analysis);
+        if (!target) return;
+        if (counterId === undefined) counterId = target;
+        if (counterId !== target) return;
+      }
+      if (counterId === undefined) return;
+      const declaration = counterDeclaration(counterId, analysis);
+      if (
+        !declaration ||
+        !counterHasOnlyAllowedUses(counterId, declaration, node, new Set(updates), analysis)
+      )
+        return;
+      context.report({ node, messageId: "iterateCount", data: { name: receiver.name } });
+    }
+
+    function counterUpdateTarget(
+      node: ESTree.Node,
+      analysis: ReturnType<typeof beginRuleFile>["analysis"],
+    ): number | null {
+      if (node.type === "UpdateExpression") {
+        const update = node as ESTree.UpdateExpression;
+        if (
+          update.operator !== "++" ||
+          !isNode(update.argument) ||
+          update.argument.type !== "Identifier"
+        )
+          return null;
+        const name = getName(update.argument);
+        const resolved = name ? analysis.bindings.resolve(name, update.argument) : null;
+        return resolved?.id ?? null;
+      }
+      if (node.type !== "AssignmentExpression") return null;
+      const assignment = node as ESTree.AssignmentExpression;
+      if (
+        assignment.operator !== "+=" ||
+        !isNode(assignment.left) ||
+        assignment.left.type !== "Identifier"
+      )
+        return null;
+      const value = assignment.right as { type?: string; value?: unknown };
+      if (value.type !== "Literal" || value.value !== 1) return null;
+      const name = getName(assignment.left);
+      const resolved = name ? analysis.bindings.resolve(name, assignment.left) : null;
+      return resolved?.id ?? null;
+    }
+
+    function counterDeclaration(
+      id: number,
+      analysis: ReturnType<typeof beginRuleFile>["analysis"],
+    ): ESTree.VariableDeclarator | null {
+      let declaration: ESTree.Node | null = null;
+      walk(context.sourceCode.ast as unknown as ESTree.Node, {
+        VariableDeclarator(node) {
+          const candidate = node as ESTree.VariableDeclarator;
+          if (!isNode(candidate.id) || candidate.id.type !== "Identifier") return;
+          const resolved = analysis.bindings.resolve(getName(candidate.id) ?? "", candidate.id);
+          if (resolved?.id === id) declaration = candidate;
+        },
+      });
+      if (!declaration) return null;
+      const init = (declaration as ESTree.VariableDeclarator).init as {
+        type?: string;
+        value?: unknown;
+      } | null;
+      return init && init.type === "Literal" && typeof init.value === "number"
+        ? (declaration as ESTree.VariableDeclarator)
+        : null;
+    }
+
+    function counterHasOnlyAllowedUses(
+      id: number,
+      declaration: ESTree.VariableDeclarator,
+      loop: ESTree.Node,
+      allowedUpdates: ReadonlySet<ESTree.Node>,
+      analysis: ReturnType<typeof beginRuleFile>["analysis"],
+    ): boolean {
+      let valid = true;
+      const loopStart = nodeStart(loop);
+      const loopEnd =
+        (loop as { end?: number; range?: readonly number[] }).end ??
+        (loop as { range?: readonly number[] }).range?.[1] ??
+        loopStart;
+      const ancestors: ESTree.Node[] = [];
+      walk(
+        context.sourceCode.ast as unknown as ESTree.Node,
+        {
+          Identifier(node) {
+            if (!isValueReference(node, ancestors)) return;
+            const name = getName(node);
+            const resolved = name ? analysis.bindings.resolve(name, node, ancestors) : null;
+            if (resolved?.id !== id) return;
+            const parent = ancestors[ancestors.length - 2];
+            const isDeclaration =
+              parent?.type === "VariableDeclarator" &&
+              (parent as ESTree.VariableDeclarator).id === node;
+            if (isDeclaration && parent === declaration) return;
+            if (parent && allowedUpdates.has(parent)) return;
+            const position = nodeStart(node);
+            if (position < loopStart || position <= loopEnd) {
+              valid = false;
+              return;
+            }
+            const writesAfter =
+              (parent?.type === "UpdateExpression" &&
+                (parent as ESTree.UpdateExpression).argument === node) ||
+              (parent?.type === "AssignmentExpression" &&
+                (parent as ESTree.AssignmentExpression).left === node);
+            if (writesAfter) valid = false;
+          },
+        },
+        ancestors,
+      );
+      return valid;
     }
   },
 });

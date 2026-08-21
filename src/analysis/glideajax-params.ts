@@ -1,5 +1,5 @@
 import type { ESTree } from "@oxlint/plugins";
-import { getStringValue } from "../utils/ast.js";
+import { getStringValue, nodeStart } from "../utils/ast.js";
 import { classifyStaticArg } from "./static-args.js";
 import { analyzePathBindings, dedupePathFindings, mergeTri } from "./path-state.js";
 import type { ProvenanceQuery } from "./provenance.js";
@@ -7,7 +7,7 @@ import type { ProvenanceQuery } from "./provenance.js";
 export interface GlideAjaxParamFinding {
   node: ESTree.CallExpression;
   name: string;
-  messageId: "missingName" | "emptyValue" | "badPrefix" | "afterTerminal";
+  messageId: "missingName" | "emptyValue" | "invalidValue" | "badPrefix" | "afterTerminal";
   param?: string;
 }
 
@@ -29,15 +29,18 @@ function mergeSysparm(left: SysparmNameState, right: SysparmNameState): SysparmN
   return "unknown";
 }
 
-function sysparmValueState(call: ESTree.CallExpression): SysparmNameState {
+function sysparmValueState(
+  call: ESTree.CallExpression,
+  analysis: ProvenanceQuery,
+): SysparmNameState | "invalid" {
   if (call.arguments.length < 2) return "empty";
-  const value = classifyStaticArg(call.arguments[1]);
+  const value = classifyStaticArg(call.arguments[1], analysis);
   switch (value) {
     case "missing":
     case "empty":
       return "empty";
     case "present":
-      return true;
+      return getStringValue(call.arguments[1]) !== null ? true : "invalid";
     case "unknown":
       return "unknown";
     default: {
@@ -57,6 +60,13 @@ export function findGlideAjaxParamIssues(
   analysis: ProvenanceQuery,
 ): GlideAjaxParamFinding[] {
   const findings: GlideAjaxParamFinding[] = [];
+  const reported = new Set<string>();
+  const report = (finding: GlideAjaxParamFinding): void => {
+    const key = `${nodeStart(finding.node)}:${finding.messageId}`;
+    if (reported.has(key)) return;
+    reported.add(key);
+    findings.push(finding);
+  };
   analyzePathBindings<AjaxData>({
     program,
     analysis,
@@ -76,24 +86,35 @@ export function findGlideAjaxParamIssues(
       if (!rec || !objectName || !property) return;
       if (property === "addParam") {
         if (rec.data.terminal === true) {
-          findings.push({ node: call, name: objectName, messageId: "afterTerminal" });
+          report({ node: call, name: objectName, messageId: "afterTerminal" });
         }
         const key = getStringValue(call.arguments[0]);
-        if (key === null) {
+        const keyEvidence = classifyStaticArg(call.arguments[0], analysis);
+        if (key === null && keyEvidence === "unknown") {
           rec.data.sysparmName = mergeSysparm(rec.data.sysparmName, "unknown");
           rec.data.uncertain = true;
         } else if (key === "sysparm_name") {
-          rec.data.sysparmName = sysparmValueState(call);
+          const valueState = sysparmValueState(call, analysis);
+          if (valueState === "invalid") {
+            report({ node: call, name: objectName, messageId: "invalidValue" });
+            rec.data.sysparmName = "unknown";
+            rec.data.uncertain = true;
+          } else {
+            rec.data.sysparmName = valueState;
+          }
           if (rec.data.sysparmName === "unknown") rec.data.uncertain = true;
-        } else if (!key.startsWith("sysparm_")) {
-          findings.push({ node: call, name: objectName, messageId: "badPrefix", param: key });
+        } else if (key !== null && key.length > 0 && !key.startsWith("sysparm_")) {
+          report({ node: call, name: objectName, messageId: "badPrefix", param: key });
         }
       }
       if (TERMINAL.has(property)) {
-        if (rec.data.sysparmName === false || (rec.data.sysparmName === "unknown" && !rec.data.uncertain)) {
-          findings.push({ node: call, name: objectName, messageId: "missingName" });
+        if (
+          rec.data.sysparmName === false ||
+          (rec.data.sysparmName === "unknown" && !rec.data.uncertain)
+        ) {
+          report({ node: call, name: objectName, messageId: "missingName" });
         } else if (rec.data.sysparmName === "empty") {
-          findings.push({ node: call, name: objectName, messageId: "emptyValue" });
+          report({ node: call, name: objectName, messageId: "emptyValue" });
         }
         rec.data.terminal = true;
         rec.data.sysparmName = false;

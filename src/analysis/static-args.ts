@@ -1,5 +1,6 @@
 import type { ESTree } from "@oxlint/plugins";
-import { getStringValue, isNode, unwrapExpression } from "../utils/ast.js";
+import { getName, getStringValue, isNode, unwrapExpression } from "../utils/ast.js";
+import type { ProvenanceQuery } from "./provenance.js";
 
 export type StaticArgEvidence = "missing" | "empty" | "present" | "unknown";
 
@@ -10,16 +11,20 @@ export type StaticArgEvidence = "missing" | "empty" | "present" | "unknown";
  * A non-empty static string or other literal is present.
  * Dynamic expressions stay unknown.
  */
-export function classifyStaticArg(arg: unknown): StaticArgEvidence {
+export function classifyStaticArg(arg: unknown, analysis?: ProvenanceQuery): StaticArgEvidence {
   if (arg === undefined || arg === null) return "missing";
   if (!isNode(arg)) return "unknown";
   if (arg.type === "SpreadElement") return "unknown";
   const value = unwrapExpression(arg);
   if (!isNode(value)) return "unknown";
 
+  if (value.type === "Identifier" && getName(value) === "undefined") {
+    return !analysis || analysis.isPlatformGlobal(value) ? "empty" : "unknown";
+  }
   if (value.type === "UnaryExpression" && (value as ESTree.UnaryExpression).operator === "void") {
     return "empty";
   }
+  if (value.type === "ObjectExpression" || value.type === "ArrayExpression") return "present";
   const literalNode = value as { type?: string; value?: unknown };
   if (literalNode.type === "Literal" || literalNode.type === "StringLiteral") {
     const literal = literalNode.value;

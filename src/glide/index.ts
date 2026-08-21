@@ -11,5 +11,11 @@ export {
   GLIDE_SCOPED_RECORD_EVIDENCE,
   GLIDE_SYSTEM_BYPASS_METHODS,
   GLIDE_VALUE_EXTRACTORS,
+  resolveGlideCapabilities,
 } from "./manifest.js";
-export type { GlideApiScope, GlideMethodCapability, GlideMethodRole } from "./manifest.js";
+export type {
+  GlideApiScope,
+  GlideCapabilityView,
+  GlideMethodCapability,
+  GlideMethodRole,
+} from "./manifest.js";

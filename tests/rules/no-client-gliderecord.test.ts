@@ -5,9 +5,14 @@ const RULE = "no-client-gliderecord" as const;
 
 describe(RULE, () => {
   it("flags GlideRecord in a client filename", () => {
-    assertInvalid(`var gr = new GlideRecord("sys_user");`, RULE, { messageId: "glideRecord" }, {
-      filename: "incident.client.js",
-    });
+    assertInvalid(
+      `var gr = new GlideRecord("sys_user");`,
+      RULE,
+      { messageId: "glideRecord" },
+      {
+        filename: "incident.client.js",
+      },
+    );
   });
 
   it("flags GlideRecord when g_form is used", () => {
@@ -16,6 +21,38 @@ describe(RULE, () => {
       RULE,
       { messageId: "glideRecord" },
       { filename: "onChange.js" },
+    );
+  });
+
+  it("flags global namespace and computed constructors", () => {
+    assertInvalid(
+      `new global.GlideRecord("incident");
+new global["GlideRecordSecure"]("task");`,
+      RULE,
+      { messageId: "glideRecord", count: 2 },
+      { filename: "form.client.js" },
+    );
+  });
+
+  it("flags direct and destructured constructor aliases", () => {
+    assertInvalid(
+      `var GR = GlideRecord;
+const { GlideRecordSecure: GRS } = global;
+new GR("incident");
+new GRS("task");`,
+      RULE,
+      { messageId: "glideRecord", count: 2 },
+      { filename: "form.client.js" },
+    );
+  });
+
+  it("forgets a reassigned constructor alias", () => {
+    assertValid(
+      `var GR = GlideRecord;
+GR = LocalRecord;
+new GR("incident");`,
+      RULE,
+      { filename: "form.client.js" },
     );
   });
 
