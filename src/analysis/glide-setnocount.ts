@@ -1,6 +1,6 @@
 import type { ESTree } from "@oxlint/plugins";
 import { GLIDE_QUERY_EXECUTORS } from "../glide/query-methods.js";
-import { analyzePathBindings, mergeTri } from "./path-state.js";
+import { analyzePathBindings, dedupePathFindings, mergeTri } from "./path-state.js";
 import type { ProvenanceQuery } from "./provenance.js";
 
 export interface ChooseWindowCountFinding {
@@ -116,6 +116,10 @@ export function findChooseWindowWithoutNoCount(
         wantsCount: false,
       };
     },
+    onBudgetExceeded() {
+      pending.length = 0;
+      usedRowCount.clear();
+    },
   });
 
   const findings: ChooseWindowCountFinding[] = [];
@@ -123,5 +127,5 @@ export function findChooseWindowWithoutNoCount(
     if (usedRowCount.has(`${item.objectId}:${item.epoch}`)) continue;
     findings.push({ node: item.node, name: item.name });
   }
-  return findings;
+  return dedupePathFindings(findings);
 }

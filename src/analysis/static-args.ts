@@ -1,5 +1,5 @@
 import type { ESTree } from "@oxlint/plugins";
-import { getName, getStringValue, isNode, unwrapExpression } from "../utils/ast.js";
+import { getStringValue, isNode, unwrapExpression } from "../utils/ast.js";
 
 export type StaticArgEvidence = "missing" | "empty" | "present" | "unknown";
 
@@ -17,9 +17,6 @@ export function classifyStaticArg(arg: unknown): StaticArgEvidence {
   const value = unwrapExpression(arg);
   if (!isNode(value)) return "unknown";
 
-  if (value.type === "Identifier" && getName(value) === "undefined") {
-    return "empty";
-  }
   if (value.type === "UnaryExpression" && (value as ESTree.UnaryExpression).operator === "void") {
     return "empty";
   }

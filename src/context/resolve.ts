@@ -111,7 +111,11 @@ function resolveSurfaces(
     return { surfaces: new Set(settings.surfaces), confidence: "explicit" };
   }
 
-  if (settings.scriptType !== "auto" && settings.scriptType !== "unknown" && settings.scriptType !== "fluent") {
+  if (settings.scriptType === "unknown") {
+    return { surfaces: new Set(), confidence: "explicit" };
+  }
+
+  if (settings.scriptType !== "auto" && settings.scriptType !== "fluent") {
     const surface = kindToSurface(settings.scriptType);
     return { surfaces: new Set(surface ? [surface] : []), confidence: "explicit" };
   }

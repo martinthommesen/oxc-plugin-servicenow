@@ -75,7 +75,7 @@ function resolveBindingOrigin(
   bindings: FileBindings,
   imports: ReadonlyMap<number, FluentImportBinding>,
   seen: Set<number>,
-): FluentImportBinding | null {
+): { origin: FluentImportBinding; aliases: LexicalBinding[] } | null {
   const expr = unwrapExpression(node);
   if (!isNode(expr)) return null;
 
@@ -85,14 +85,12 @@ function resolveBindingOrigin(
     const binding = bindings.tree.resolve(name, expr, ancestors);
     if (!binding || seen.has(binding.id)) return null;
     const imported = imports.get(binding.id);
-    if (imported) return imported;
+    if (imported) return { origin: imported, aliases: [] };
     const init = declarationInit(binding);
     if (!init) return null;
     seen.add(binding.id);
-    // A declaration node has enough source/span information for ScopeTree to
-    // resolve its initializer.  The caller's ancestors are retained for
-    // hosts that provide richer lexical scope data.
-    return resolveBindingOrigin(init, [...ancestors, binding.node], bindings, imports, seen);
+    const resolved = resolveBindingOrigin(init, [binding.node], bindings, imports, seen);
+    return resolved ? { origin: resolved.origin, aliases: [binding, ...resolved.aliases] } : null;
   }
 
   if (expr.type !== "MemberExpression") return null;
@@ -106,8 +104,11 @@ function resolveBindingOrigin(
     imports,
     seen,
   );
-  if (!namespace || namespace.exportedName !== "*") return null;
-  return { ...namespace, exportedName: exported };
+  if (!namespace || namespace.origin.exportedName !== "*") return null;
+  return {
+    origin: { ...namespace.origin, exportedName: exported },
+    aliases: namespace.aliases,
+  };
 }
 
 /**
@@ -122,7 +123,7 @@ export function resolveFluentBindingOrigin(
   bindings: FileBindings,
   imports: ReadonlyMap<number, FluentImportBinding>,
 ): FluentBindingOrigin | null {
-  return resolveBindingOrigin(node, ancestors, bindings, imports, new Set());
+  return resolveBindingOrigin(node, ancestors, bindings, imports, new Set())?.origin ?? null;
 }
 
 function isStableAlias(
@@ -173,16 +174,14 @@ export function resolveFluentCandidate(
   const expr = unwrapExpression(callee);
   if (!isNode(expr)) return null;
   const apis = apisByName(manifest);
-  const origin = resolveFluentBindingOrigin(expr, ancestors, bindings, imports);
-  if (!origin || origin.exportedName === "*" || origin.exportedName === "default") return null;
+  const resolved = resolveBindingOrigin(expr, ancestors, bindings, imports, new Set());
+  const origin = resolved?.origin;
+  if (!resolved || !origin || origin.exportedName === "*" || origin.exportedName === "default") return null;
 
   // For a mutable alias, resolve only while the binding remains a stable
   // import/alias. A later assignment must not keep identifying the old API.
-  if (expr.type === "Identifier") {
-    const binding = bindings.tree.resolve(getName(expr) ?? "", expr, ancestors);
-    const program = ancestors.find((ancestor) => ancestor.type === "Program");
-    if (binding && !isStableAlias(expr, binding, program, bindings)) return null;
-  }
+  const program = ancestors.find((ancestor) => ancestor.type === "Program");
+  if (resolved.aliases.some((binding) => !isStableAlias(expr, binding, program, bindings))) return null;
   const capability = apis.get(origin.exportedName);
   return capability ? { capability, origin } : null;
 }

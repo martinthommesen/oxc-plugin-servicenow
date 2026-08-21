@@ -53,6 +53,15 @@ export function resetPathBudgetExceededCount(): void {
   budgetExceededCount = 0;
 }
 
+export function dedupePathFindings<T extends { node: ESTree.Node }>(findings: T[]): T[] {
+  const seen = new WeakSet<ESTree.Node>();
+  return findings.filter((finding) => {
+    if (seen.has(finding.node)) return false;
+    seen.add(finding.node);
+    return true;
+  });
+}
+
 interface WorkBudget {
   remaining: number;
 }
@@ -168,6 +177,15 @@ function isDefinitelyTrue(node: unknown): boolean {
   const expr = unwrapExpression(node);
   if (!isNode(expr)) return false;
   return expr.type === "Literal" && (expr as unknown as { value?: unknown }).value === true;
+}
+
+function isDefinitelyFalse(node: unknown): boolean {
+  const expr = unwrapExpression(node);
+  return Boolean(
+    isNode(expr) &&
+      expr.type === "Literal" &&
+      (expr as unknown as { value?: unknown }).value === false,
+  );
 }
 
 export function visitChildren(
@@ -919,6 +937,14 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
       case "IfStatement": {
         const stmt = node as ESTree.IfStatement;
         visit(stmt.test, state, false);
+        if (isDefinitelyTrue(stmt.test)) {
+          visit(stmt.consequent, state, false);
+          break;
+        }
+        if (isDefinitelyFalse(stmt.test)) {
+          if (stmt.alternate) visit(stmt.alternate, state, false);
+          break;
+        }
         const consequent = snapshotState(state, cloneData, budget);
         visit(stmt.consequent, consequent, false);
         const alternate = snapshotState(state, cloneData, budget);
@@ -929,6 +955,14 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
       case "ConditionalExpression": {
         const expr = node as ESTree.ConditionalExpression;
         visit(expr.test, state, false);
+        if (isDefinitelyTrue(expr.test)) {
+          visit(expr.consequent, state, false);
+          break;
+        }
+        if (isDefinitelyFalse(expr.test)) {
+          visit(expr.alternate, state, false);
+          break;
+        }
         const consequent = snapshotState(state, cloneData, budget);
         visit(expr.consequent, consequent, false);
         const alternate = snapshotState(state, cloneData, budget);
@@ -965,10 +999,11 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
         const abruptExits: EnvState<T>[] = [];
         let hasDefault = false;
         let fall: EnvState<T> | undefined;
+        const directState = snapshotState(before, cloneData, budget);
         for (const switchCase of stmt.cases) {
           if (!switchCase.test) hasDefault = true;
-          const direct = snapshotState(before, cloneData, budget);
-          if (switchCase.test) visit(switchCase.test, direct, false);
+          if (switchCase.test) visit(switchCase.test, directState, false);
+          const direct = snapshotState(directState, cloneData, budget);
           const entry = fall
             ? mergeStates(direct, fall, emptyData, mergeData, mergeDistinctData, alloc)
             : direct;
@@ -1028,8 +1063,10 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
           ? (node as ESTree.ForStatement).test
           : isWhile
             ? (node as ESTree.WhileStatement).test
-            : undefined;
-        const infinite = (isFor || isWhile) && isDefinitelyTrue(test);
+            : isDoWhile
+              ? (node as ESTree.DoWhileStatement).test
+              : undefined;
+        const infinite = (isFor || isWhile || isDoWhile) && isDefinitelyTrue(test);
         const exits: EnvState<T>[] =
           isDoWhile || infinite ? [] : [snapshotState(testState, cloneData, budget)];
         const initialHeader = snapshotState(isDoWhile ? beforeTest : testState, cloneData, budget);
@@ -1132,7 +1169,11 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
           const objectId = objectFromExpr(state, object);
           rec = recordOf(state, objectId);
         }
-        for (const arg of call.arguments) visit(arg, state, false);
+        const argumentIds: Array<ObjectId | undefined> = [];
+        for (const arg of call.arguments) {
+          visit(arg, state, false);
+          argumentIds.push(objectFromExpr(state, arg));
+        }
         onCall({ call, rec, objectName, property });
         const direct = unwrapExpression(call.callee);
         let fn: ESTree.Node | undefined;
@@ -1142,15 +1183,25 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
           const binding = resolveBinding(bindings, direct, ancestors);
           fn = binding ? functionDefs.get(binding.id) : undefined;
         }
-        if (fn && !activeFunctions.has(fn)) {
+        const deferred = Boolean((fn as unknown as { generator?: boolean } | undefined)?.generator);
+        if (fn && !deferred && !activeFunctions.has(fn)) {
           activeFunctions.add(fn);
           const invocation = snapshotState(state, cloneData, budget);
-          const argumentIds = call.arguments.map((argument) => objectFromExpr(state, argument));
           const params = (fn as unknown as { params: readonly ESTree.Node[] }).params;
           ancestors.push(fn);
           for (let index = 0; index < params.length; index += 1) {
-            visitPatternExpressions(invocation, params[index]);
-            bindPattern(invocation, params[index], argumentIds[index]);
+            const param = unwrapExpression(params[index]);
+            if (
+              index >= call.arguments.length &&
+              isNode(param) &&
+              param.type === "AssignmentPattern"
+            ) {
+              const assignment = param as ESTree.AssignmentPattern;
+              visit(assignment.right, invocation, false);
+              bindPattern(invocation, assignment.left, objectFromExpr(invocation, assignment.right));
+            } else {
+              bindPattern(invocation, params[index], argumentIds[index]);
+            }
           }
           const body = (fn as unknown as { body: ESTree.Node }).body;
           visit(body, invocation, false);
@@ -1159,13 +1210,17 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
           for (const path of returned) {
             if (path.completion === "return") setCompletion(path, "normal");
           }
-          const merged = mergeMany(returned, emptyData, mergeData, mergeDistinctData, alloc);
-          if (merged) {
-            for (const id of state.objects.keys()) {
-              const updated = merged.objects.get(id);
-              if (updated) state.objects.set(id, updated);
+          const capturedIds = capturesOf(fn);
+          const projected = returned.map((path) => {
+            const result = snapshotState(state, cloneData, budget);
+            result.objects = new Map(path.objects);
+            for (const id of capturedIds) {
+              result.env.set(id, path.env.get(id));
             }
-          }
+            setCompletion(result, path.completion, path.completionLabel ?? null);
+            return result;
+          });
+          joinInto(state, projected);
           activeFunctions.delete(fn);
         } else {
           if (fn) {

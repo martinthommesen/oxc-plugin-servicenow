@@ -1,6 +1,6 @@
 import type { ESTree } from "@oxlint/plugins";
 import { getStringValue } from "../utils/ast.js";
-import { analyzePathBindings, mergeTri } from "./path-state.js";
+import { analyzePathBindings, dedupePathFindings, mergeTri } from "./path-state.js";
 import type { ProvenanceQuery } from "./provenance.js";
 
 export interface AggregateFinding {
@@ -114,6 +114,9 @@ export function findGlideAggregateIssues(
         }
       }
     },
+    onBudgetExceeded() {
+      findings.length = 0;
+    },
   });
-  return findings;
+  return dedupePathFindings(findings);
 }

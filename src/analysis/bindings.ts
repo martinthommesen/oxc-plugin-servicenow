@@ -12,7 +12,7 @@ export interface LexicalBinding {
   scopeId: number;
 }
 
-export type ScopeKind = "module" | "function" | "block" | "loop" | "switch" | "catch";
+export type ScopeKind = "module" | "function" | "class" | "block" | "loop" | "switch" | "catch";
 
 export interface ScopeNode {
   id: number;
@@ -258,6 +258,14 @@ export function buildScopeTree(ast: ESTree.Node): ScopeTree {
     ClassDeclaration(node) {
       const name = getName((node as { id?: ESTree.Node }).id);
       if (name) tree.declare(name, "class", node);
+    },
+    ClassExpression(node) {
+      tree.enter("class", node);
+      const name = getName((node as { id?: ESTree.Node }).id);
+      if (name) tree.declare(name, "class", node);
+    },
+    "ClassExpression:exit"(node) {
+      tree.exit(node);
     },
   });
   return tree;

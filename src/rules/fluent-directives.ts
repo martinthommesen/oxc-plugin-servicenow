@@ -37,6 +37,8 @@ export const fluentDirectives = defineRule({
       typo: "Unknown Fluent directive `@{{name}}`. Did you mean `@{{suggestion}}`?",
       dangling:
         "`@fluent-ignore` has no following statement to suppress. Place it on the line immediately above the diagnostic.",
+      misplaced:
+        "`@fluent-disable-sync-for-file` must be on the first line of the file.",
       tsIgnore:
         "`@ts-ignore` does not suppress Fluent diagnostics. Use `@fluent-ignore` on the previous line.",
     },
@@ -65,6 +67,12 @@ export const fluentDirectives = defineRule({
             if (!name || !name.startsWith("fluent-")) continue;
 
             if (KNOWN.has(name)) {
+              if (
+                name === "fluent-disable-sync-for-file" &&
+                locOf(comment, text).start.line !== 1
+              ) {
+                context.report({ loc: locOf(comment, text), messageId: "misplaced" });
+              }
               if (name === "fluent-ignore" && isDangling(comment, text)) {
                 context.report({ loc: locOf(comment, text), messageId: "dangling" });
               }

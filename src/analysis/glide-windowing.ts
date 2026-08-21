@@ -1,5 +1,5 @@
 import type { ESTree } from "@oxlint/plugins";
-import { analyzePathBindings, mergeTri } from "./path-state.js";
+import { analyzePathBindings, dedupePathFindings, mergeTri } from "./path-state.js";
 import type { ProvenanceQuery } from "./provenance.js";
 
 export interface WindowedDeleteFinding {
@@ -38,6 +38,9 @@ export function findWindowedDeleteMultiple(
         findings.push({ node: call, name: objectName, method: property });
       }
     },
+    onBudgetExceeded() {
+      findings.length = 0;
+    },
   });
-  return findings;
+  return dedupePathFindings(findings);
 }

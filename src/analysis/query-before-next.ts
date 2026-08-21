@@ -1,6 +1,6 @@
 import type { ESTree } from "@oxlint/plugins";
 import { GLIDE_QUERY_EXECUTORS } from "../glide/query-methods.js";
-import { analyzePathBindings } from "./path-state.js";
+import { analyzePathBindings, dedupePathFindings } from "./path-state.js";
 import type { ProvenanceQuery, QueryState } from "./provenance.js";
 
 export interface MissingQueryFinding {
@@ -37,13 +37,16 @@ export function findMissingQueryBeforeNext(
     }),
     onCall({ call, rec, objectName, property }) {
       if (!rec || !property) return;
-      if (GLIDE_QUERY_EXECUTORS.has(property) && rec.data.queryState === "unopened") {
+      if (GLIDE_QUERY_EXECUTORS.has(property)) {
         rec.data.queryState = "opened";
       }
       if (property === "next" && (rec.data.queryState === "unopened" || rec.data.queryState === "unknown")) {
         findings.push({ node: call, name: objectName ?? "record" });
       }
     },
+    onBudgetExceeded() {
+      findings.length = 0;
+    },
   });
-  return findings;
+  return dedupePathFindings(findings);
 }

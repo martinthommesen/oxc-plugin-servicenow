@@ -4,7 +4,7 @@ import {
   GLIDE_QUERY_MODIFIERS,
   GLIDE_RESULT_CONSUMERS,
 } from "../glide/query-methods.js";
-import { analyzePathBindings, mergeTri } from "./path-state.js";
+import { analyzePathBindings, dedupePathFindings, mergeTri } from "./path-state.js";
 import type { ProvenanceQuery } from "./provenance.js";
 
 export interface QueryModifierFinding {
@@ -48,6 +48,9 @@ export function findQueryModifiersAfterQuery(
         findings.push({ node: call, name: objectName, method: property });
       }
     },
+    onBudgetExceeded() {
+      findings.length = 0;
+    },
   });
-  return findings;
+  return dedupePathFindings(findings);
 }

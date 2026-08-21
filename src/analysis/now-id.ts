@@ -121,7 +121,7 @@ function canonicalAlias(
   analysis: ProvenanceQuery,
   seen: Set<number>,
 ): boolean {
-  if (analysis.isPlatformGlobal(root)) return true;
+  if (getName(root) === "Now" && analysis.isPlatformGlobal(root)) return true;
   const name = getName(root);
   if (!name) return false;
   const binding = analysis.bindings.tree.resolve(name, root);
@@ -153,12 +153,25 @@ export function isCanonicalNowInclude(node: unknown, analysis: ProvenanceQuery):
       ? (expr as ESTree.CallExpression).callee
       : expr;
   const chain = staticChain(callee);
-  if (!chain || chain[1] !== "include") return false;
+  if (!chain || chain.length !== 2 || chain[1] !== "include") return false;
   return isCanonicalNow(isNode(callee) ? callee : expr, analysis);
 }
 
-function parentOf(ancestors: readonly ESTree.Node[]): ESTree.Node | undefined {
-  return ancestors.length >= 2 ? ancestors[ancestors.length - 2] : undefined;
+function valueParentOf(
+  ancestors: readonly ESTree.Node[],
+  node: ESTree.Node,
+): ESTree.Node | undefined {
+  let child = node;
+  for (let index = ancestors.length - 2; index >= 0; index -= 1) {
+    const parent = ancestors[index];
+    if (!parent) continue;
+    if (unwrapExpr(parent) === child) {
+      child = parent;
+      continue;
+    }
+    return parent;
+  }
+  return undefined;
 }
 
 function isPropertyValue(parent: ESTree.Node | undefined, node: ESTree.Node, key: string): boolean {
@@ -280,6 +293,9 @@ function collectNowIdFacts(program: ESTree.Node, analysis: ProvenanceQuery): Map
       if (!rec || rec.data.nowIdKey == null) return;
       facts.set(node, rec.data.nowIdKey);
     },
+    onBudgetExceeded() {
+      facts.clear();
+    },
   });
   return facts;
 }
@@ -302,14 +318,14 @@ export function findNowIdMisuses(
       MemberExpression(node) {
         const fact = facts.get(node);
         if (!fact) return;
-        const parent = parentOf(ancestors);
+        const parent = valueParentOf(ancestors, node);
         if (isTypeOnlyUse(parent) || feedsId(parent, node) || isAliasInit(parent, node)) return;
         findings.push({ node, key: fact.kind === "static" ? fact.key : null });
       },
       Identifier(node) {
         const fact = facts.get(node);
         if (!fact) return;
-        const parent = parentOf(ancestors);
+        const parent = valueParentOf(ancestors, node);
         if (isDeclarationId(parent, node) || isNonValuePropertyKey(parent, node) || isTypeOnlyUse(parent)) return;
         if (feedsId(parent, node) || isAliasInit(parent, node)) return;
         findings.push({ node, key: fact.kind === "static" ? fact.key : null });
@@ -333,7 +349,7 @@ export function findDuplicateFluentIds(
   const ancestors: ESTree.Node[] = [];
 
   const consider = (node: ESTree.Node): void => {
-    const parent = parentOf(ancestors);
+    const parent = valueParentOf(ancestors, node);
     if (!feedsId(parent, node)) return;
     const fact = facts.get(node);
     if (!fact || fact.kind !== "static") return;
