@@ -32,7 +32,7 @@
   },
   "typescript": {
     "minimum": "5.5.4",
-    "current": "7.0.2"
+    "current": "6.0.3"
   },
   "fluentSdk": [
     "3.0.0",
@@ -86,7 +86,7 @@
       "eslint": "9.39.5",
       "oxfmt": "0.64.0",
       "typescriptEslint": "8.67.0",
-      "typescript": "7.0.2"
+      "typescript": "6.0.3"
     },
     {
       "id": "node24-host",
@@ -112,7 +112,7 @@
       "eslint": "9.39.5",
       "oxfmt": "0.64.0",
       "typescriptEslint": "8.67.0",
-      "typescript": "7.0.2"
+      "typescript": "6.0.3"
     }
   ]
 }
