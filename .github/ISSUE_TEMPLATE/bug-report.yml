@@ -1,0 +1,60 @@
+name: Bug report
+description: Report a reproducible defect in a rule, preset, or package surface.
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: Do not report security vulnerabilities here. Use private vulnerability reporting.
+  - type: input
+    id: package-version
+    attributes:
+      label: Package version
+      placeholder: 1.1.0
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Runtime and host
+      description: Include the Node version and the Oxlint, ESLint, or oxfmt version.
+      placeholder: Node 24.16.0, Oxlint 1.79.0
+    validations:
+      required: true
+  - type: textarea
+    id: configuration
+    attributes:
+      label: Configuration
+      description: Include the smallest relevant configuration. Remove secrets and private data.
+      render: json
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Include source code, the command, and the complete diagnostic output.
+      render: javascript
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I removed credentials, customer data, instance URLs, and proprietary code.
+          required: true
+        - label: I searched existing issues and discussions.
+          required: true

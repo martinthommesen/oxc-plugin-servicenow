@@ -1,5 +1,19 @@
 # Contributing
 
+Thank you for improving the project.
+Before you start, search existing issues and discussions.
+Use the issue forms for defects, rule proposals, and feature requests.
+Ask usage questions in GitHub Discussions.
+
+Follow the [code of conduct](CODE_OF_CONDUCT.md).
+Use the process in [SECURITY.md](SECURITY.md) to report vulnerabilities.
+Do not report a vulnerability through a public issue.
+
+Fork the repository and create a focused branch.
+Open a pull request against `main`.
+Keep each pull request limited to one reviewable purpose.
+Sign off web commits and explain any public compatibility change.
+
 ## Validation
 
 Run every local gate with one command:
