@@ -44,6 +44,10 @@ export function findWindowedDeleteMultiple(
         }
       }
     },
+    onBudgetExceeded() {
+      findings.length = 0;
+      reported.clear();
+    },
   });
   return findings;
 }

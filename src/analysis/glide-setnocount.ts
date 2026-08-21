@@ -126,6 +126,9 @@ export function findChooseWindowWithoutNoCount(
         }
       }
     },
+    onBudgetExceeded() {
+      finalized.clear();
+    },
   });
 
   return [...finalized].map(([node, name]) => ({ node, name }));

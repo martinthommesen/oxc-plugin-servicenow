@@ -54,8 +54,11 @@ export const FIX_SCRIPT_FILE =
 export const SERVER_FILE = /(?:^|[-_.])server(?=\.[cm]?js$)/i;
 
 const CLIENT_DIR = /(?:^|\/)client(?:\/|$)/i;
-const BR_DIR = /(?:^|\/)br(?:\/|$)/i;
-const SI_DIR = /(?:^|\/)script-include(?:\/|$)/i;
+const BR_DIR = /(?:^|\/)(?:br|business[-_]?rules?)(?:\/|$)/i;
+const SI_DIR = /(?:^|\/)(?:script[-_]?includes?|si)(?:\/|$)/i;
+const UI_ACTION_DIR = /(?:^|\/)(?:ui[-_]?actions?|ua)(?:\/|$)/i;
+const SCHEDULED_DIR = /(?:^|\/)(?:scheduled[-_]?scripts?|ss)(?:\/|$)/i;
+const FIX_SCRIPT_DIR = /(?:^|\/)(?:fix[-_]?scripts?|fix)(?:\/|$)/i;
 const SERVER_DIR = /(?:^|\/)server(?:\/|$)/i;
 const CLIENT_GLOBAL_RE = new RegExp(`\\b(?:${CLIENT_GLOBALS_STRONG.join("|")})\\b`);
 export const ES_LATEST_IN_COMMENT = /(^|\s)@sn-es-latest\b/;
@@ -82,13 +85,22 @@ export function surfacesFromFilename(filename: string): ScriptSurface[] {
   const path = normalizeFilename(filename);
   const file = basename(path);
   const surfaces = new Set<ScriptSurface>();
-  if (UI_ACTION_FILE.test(file)) surfaces.add("ui-action");
+  if (UI_ACTION_FILE.test(file) || UI_ACTION_DIR.test(path)) surfaces.add("ui-action");
   if (CLIENT_FILE.test(file) || CLIENT_DIR.test(path)) surfaces.add("client");
   if (BR_FILE.test(file) || BR_DIR.test(path)) surfaces.add("business-rule");
   if (SI_FILE.test(file) || SI_DIR.test(path)) surfaces.add("script-include");
-  if (SCHEDULED_FILE.test(file)) surfaces.add("scheduled-script");
-  if (FIX_SCRIPT_FILE.test(file)) surfaces.add("fix-script");
+  if (SCHEDULED_FILE.test(file) || SCHEDULED_DIR.test(path)) surfaces.add("scheduled-script");
+  if (FIX_SCRIPT_FILE.test(file) || FIX_SCRIPT_DIR.test(path)) surfaces.add("fix-script");
   if (SERVER_DIR.test(path) || SERVER_FILE.test(file)) surfaces.add("server");
+
+  if (
+    surfaces.has("server") &&
+    [...surfaces].some((surface) =>
+      ["business-rule", "script-include", "scheduled-script", "fix-script"].includes(surface),
+    )
+  ) {
+    surfaces.delete("server");
+  }
 
   if (surfaces.has("ui-action")) {
     if ([...surfaces].some((surface) => !["ui-action", "client", "server"].includes(surface)))

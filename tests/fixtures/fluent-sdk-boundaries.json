@@ -6,9 +6,17 @@
       "idRequirements": { "List": "required" }
     },
     "4.1.0": {
-      "present": ["BusinessRule", "List"],
-      "absent": ["AliasTemplate", "CatalogItemRecordProducer", "ScheduledScript", "SPMenu", "StateModel", "UiAction", "UiPage"],
+      "present": ["BusinessRule", "List", "UiAction", "UiPage"],
+      "absent": ["AliasTemplate", "CatalogItemRecordProducer", "ScheduledScript", "SPMenu", "StateModel"],
       "idRequirements": { "List": "deprecated" }
+    },
+    "4.3.0": {
+      "present": ["CatalogItemRecordProducer", "UiAction", "UiPage"],
+      "absent": ["AliasTemplate", "ScheduledScript", "SPMenu", "StateModel"]
+    },
+    "4.5.0": {
+      "present": ["CatalogItemRecordProducer", "ScheduledScript", "SPMenu", "UiAction", "UiPage"],
+      "absent": ["AliasTemplate", "StateModel"]
     },
     "4.8.0": {
       "present": ["AliasTemplate", "CatalogItemRecordProducer", "ScheduledScript", "SPMenu", "UiAction", "UiPage"],

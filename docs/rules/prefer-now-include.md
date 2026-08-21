@@ -3,7 +3,7 @@
 Large inline `script` / HTML / CSS payloads belong in their own file and should be loaded with `Now.include()`.
 
 - **Family:** fluent
-- **Preset:** recommended
+- **Preset:** strict
 - **Default severity:** warn
 - **Fixable:** no
 - **Suggestions:** no

@@ -207,6 +207,10 @@ describe("engine extras", () => {
     assertValid("var Packages = 2; var y = Packages;", "no-packages-calls");
   });
 
+  it("no-packages-calls ignores an unclassified file", () => {
+    assertValid("var value = Packages.example;", "no-packages-calls", { filename: "plain.js" });
+  });
+
   it("no-weak-references flags WeakRef in any instance mode", () => {
     assertInvalid(`var ref = new WeakRef(obj);`, "no-weak-references", { messageId: "weak" });
   });

@@ -49,8 +49,10 @@ function callbackKind(
   }
   if (
     value.type === "Literal" ||
+    value.type === "TemplateLiteral" ||
     value.type === "ObjectExpression" ||
-    value.type === "ArrayExpression"
+    value.type === "ArrayExpression" ||
+    value.type === "ClassExpression"
   ) {
     return "invalid";
   }

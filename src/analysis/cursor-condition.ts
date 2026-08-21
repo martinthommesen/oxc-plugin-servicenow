@@ -17,6 +17,50 @@ function intersect(sets: readonly Set<number>[]): Set<number> {
   return result;
 }
 
+function truthyBooleanOperand(node: ESTree.Node): ESTree.Node | null {
+  if (node.type !== "BinaryExpression") return null;
+  const binary = node as ESTree.BinaryExpression;
+  const left = unwrapExpression(binary.left);
+  const right = unwrapExpression(binary.right);
+  const literal = (candidate: unknown): unknown =>
+    isNode(candidate) && candidate.type === "Literal"
+      ? (candidate as { value?: unknown }).value
+      : undefined;
+  const required =
+    binary.operator === "===" || binary.operator === "=="
+      ? true
+      : binary.operator === "!==" || binary.operator === "!="
+        ? false
+        : undefined;
+  if (required === undefined) return null;
+  if (literal(left) === required && isNode(right)) return right;
+  if (literal(right) === required && isNode(left)) return left;
+  return null;
+}
+
+export function definitelySkipsDoWhileTest(node: unknown): boolean {
+  if (!isNode(node)) return false;
+  if (
+    node.type === "BreakStatement" ||
+    node.type === "ReturnStatement" ||
+    node.type === "ThrowStatement"
+  ) {
+    return true;
+  }
+  if (node.type === "BlockStatement") {
+    return (node as ESTree.BlockStatement).body.some(definitelySkipsDoWhileTest);
+  }
+  if (node.type === "IfStatement") {
+    const statement = node as ESTree.IfStatement;
+    return Boolean(
+      statement.alternate &&
+        definitelySkipsDoWhileTest(statement.consequent) &&
+        definitelySkipsDoWhileTest(statement.alternate),
+    );
+  }
+  return false;
+}
+
 function proof(node: unknown, cursorId: (node: unknown) => number | null): TruthProof {
   const expr = unwrapExpression(node);
   if (!isNode(expr)) {
@@ -26,6 +70,8 @@ function proof(node: unknown, cursorId: (node: unknown) => number | null): Truth
   if (id !== null) {
     return { required: new Set([id]), canBeTruthy: true, canBeFalsy: true, canBeNullish: false };
   }
+  const compared = truthyBooleanOperand(expr);
+  if (compared) return proof(compared, cursorId);
   if (expr.type === "Literal") {
     const value = (expr as unknown as { value?: unknown }).value;
     return {

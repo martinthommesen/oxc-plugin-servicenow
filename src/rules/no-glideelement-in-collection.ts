@@ -3,7 +3,10 @@ import type { ESTree } from "@oxlint/plugins";
 import { getName, isNode, unwrapExpression } from "../utils/ast.js";
 import { staticPropertyName } from "../analysis/internal.js";
 import { isFunctionLikeNode, visitChildren } from "../analysis/path-state.js";
-import { truthyPathRequiredCursorIds } from "../analysis/cursor-condition.js";
+import {
+  definitelySkipsDoWhileTest,
+  truthyPathRequiredCursorIds,
+} from "../analysis/cursor-condition.js";
 import { isServerInstanceContext } from "../context/index.js";
 import { ruleDocsUrl } from "../constants.js";
 import { beginRuleFile } from "./helpers.js";
@@ -145,6 +148,15 @@ function findRetainedElements(
 
   function visit(node: unknown, cursorIds: ReadonlySet<number>): void {
     if (!isNode(node)) return;
+    if (node.type === "CallExpression") {
+      const call = node as ESTree.CallExpression;
+      const callee = unwrapExpression(call.callee);
+      if (isNode(callee) && isFunctionLikeNode(callee)) {
+        for (const argument of call.arguments) visit(argument, cursorIds);
+        visit((callee as unknown as { body: ESTree.Node }).body, cursorIds);
+        return;
+      }
+    }
     if (isFunctionLikeNode(node)) {
       visitChildren(node, (child) => visit(child, new Set()));
       return;
@@ -156,7 +168,7 @@ function findRetainedElements(
         ...cursorIdsRequiredForBody(statement.test, analysis),
       ]);
       visit(statement.test, cursorIds);
-      visit(statement.body, nextIds);
+      if (!definitelySkipsDoWhileTest(statement.body)) visit(statement.body, nextIds);
       return;
     }
     if (node.type === "DoWhileStatement") {

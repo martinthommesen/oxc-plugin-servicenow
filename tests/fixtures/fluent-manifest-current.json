@@ -7,6 +7,8 @@
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
+      "introduced": null,
+      "deprecated": null,
       "evidence": "https://github.com/ServiceNow/sdk-examples/acl-sample"
     },
     {
@@ -14,13 +16,17 @@
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
-      "evidence": "https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core-4.11.0.tgz"
+      "introduced": "4.8.0",
+      "deprecated": null,
+      "evidence": "https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core-4.8.0.tgz"
     },
     {
       "name": "AliasTemplate",
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
+      "introduced": "4.8.0",
+      "deprecated": null,
       "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples"
     },
     {
@@ -28,13 +34,17 @@
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
-      "evidence": "https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core-4.11.0.tgz"
+      "introduced": "4.3.0",
+      "deprecated": null,
+      "evidence": "https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core-4.3.0.tgz"
     },
     {
       "name": "ApplicationMenu",
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
+      "introduced": null,
+      "deprecated": null,
       "evidence": "https://github.com/ServiceNow/sdk-examples/applicationmenu-sample"
     },
     {
@@ -42,6 +52,8 @@
       "module": "@servicenow/sdk/core",
       "kind": "column",
       "idRequirement": "forbidden",
+      "introduced": null,
+      "deprecated": null,
       "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html (Table schema column helpers)"
     },
     {
@@ -49,6 +61,8 @@
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
+      "introduced": null,
+      "deprecated": null,
       "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples/businessrule-sample"
     },
     {
@@ -56,6 +70,8 @@
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
+      "introduced": null,
+      "deprecated": null,
       "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples"
     },
     {
@@ -63,6 +79,8 @@
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
+      "introduced": null,
+      "deprecated": null,
       "evidence": "https://github.com/ServiceNow/sdk-examples/service-catalog-sample"
     },
     {
@@ -70,6 +88,8 @@
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
+      "introduced": "4.3.0",
+      "deprecated": null,
       "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples"
     },
     {
@@ -77,6 +97,8 @@
       "module": "@servicenow/sdk/core",
       "kind": "column",
       "idRequirement": "forbidden",
+      "introduced": null,
+      "deprecated": null,
       "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html (Table schema column helpers)"
     },
     {
@@ -84,6 +106,8 @@
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
+      "introduced": null,
+      "deprecated": null,
       "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples/clientscript-sample"
     },
     {
@@ -91,13 +115,17 @@
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
-      "evidence": "https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core-4.11.0.tgz"
+      "introduced": "4.5.0",
+      "deprecated": null,
+      "evidence": "https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core-4.5.0.tgz"
     },
     {
       "name": "ConditionsColumn",
       "module": "@servicenow/sdk/core",
       "kind": "column",
       "idRequirement": "forbidden",
+      "introduced": null,
+      "deprecated": null,
       "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html (Table schema column helpers)"
     },
     {
@@ -105,6 +133,8 @@
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
+      "introduced": null,
+      "deprecated": null,
       "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples"
     },
     {
@@ -112,27 +142,35 @@
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
-      "evidence": "https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core-4.11.0.tgz"
+      "introduced": "4.0.0",
+      "deprecated": null,
+      "evidence": "https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core-4.0.0.tgz"
     },
     {
       "name": "Dashboard",
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
-      "evidence": "https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core-4.11.0.tgz"
+      "introduced": "4.3.0",
+      "deprecated": null,
+      "evidence": "https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core-4.3.0.tgz"
     },
     {
       "name": "DataPolicy",
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
-      "evidence": "https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core-4.11.0.tgz"
+      "introduced": "4.7.0",
+      "deprecated": null,
+      "evidence": "https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core-4.7.0.tgz"
     },
     {
       "name": "DateColumn",
       "module": "@servicenow/sdk/core",
       "kind": "column",
       "idRequirement": "forbidden",
+      "introduced": null,
+      "deprecated": null,
       "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html (Table schema column helpers)"
     },
     {
@@ -140,6 +178,8 @@
       "module": "@servicenow/sdk/core",
       "kind": "column",
       "idRequirement": "forbidden",
+      "introduced": null,
+      "deprecated": null,
       "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html (Table schema column helpers)"
     },
     {
@@ -147,6 +187,8 @@
       "module": "@servicenow/sdk/core",
       "kind": "column",
       "idRequirement": "forbidden",
+      "introduced": null,
+      "deprecated": null,
       "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html (Table schema column helpers)"
     },
     {
@@ -154,13 +196,17 @@
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
-      "evidence": "https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core-4.11.0.tgz"
+      "introduced": "4.3.0",
+      "deprecated": null,
+      "evidence": "https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core-4.3.0.tgz"
     },
     {
       "name": "FieldNameColumn",
       "module": "@servicenow/sdk/core",
       "kind": "column",
       "idRequirement": "forbidden",
+      "introduced": null,
+      "deprecated": null,
       "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html (Table schema column helpers)"
     },
     {
@@ -168,6 +214,8 @@
       "module": "unknown",
       "kind": "automation",
       "idRequirement": "unknown",
+      "introduced": null,
+      "deprecated": null,
       "evidence": "https://github.com/ServiceNow/sdk-examples/flow-sample"
     },
     {
@@ -175,6 +223,8 @@
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
+      "introduced": "4.11.0",
+      "deprecated": null,
       "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples"
     },
     {
@@ -182,6 +232,8 @@
       "module": "@servicenow/sdk/core",
       "kind": "column",
       "idRequirement": "forbidden",
+      "introduced": null,
+      "deprecated": null,
       "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html (Table schema column helpers)"
     },
     {
@@ -189,13 +241,17 @@
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
-      "evidence": "https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core-4.11.0.tgz"
+      "introduced": "4.4.0",
+      "deprecated": null,
+      "evidence": "https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core-4.4.0.tgz"
     },
     {
       "name": "InboundEmailAction",
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
+      "introduced": null,
+      "deprecated": null,
       "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples"
     },
     {
@@ -203,6 +259,8 @@
       "module": "@servicenow/sdk/core",
       "kind": "column",
       "idRequirement": "forbidden",
+      "introduced": null,
+      "deprecated": null,
       "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html (Table schema column helpers)"
     },
     {
@@ -210,20 +268,26 @@
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
-      "evidence": "https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core-4.11.0.tgz"
+      "introduced": "4.0.0",
+      "deprecated": null,
+      "evidence": "https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core-4.0.0.tgz"
     },
     {
       "name": "LinterCheck",
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
-      "evidence": "https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core-4.11.0.tgz"
+      "introduced": "4.5.0",
+      "deprecated": null,
+      "evidence": "https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core-4.5.0.tgz"
     },
     {
       "name": "List",
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "deprecated",
+      "introduced": null,
+      "deprecated": "4.1.0",
       "evidence": "https://github.com/ServiceNow/sdk-examples/list-sample"
     },
     {
@@ -231,6 +295,8 @@
       "module": "@servicenow/sdk/core",
       "kind": "column",
       "idRequirement": "forbidden",
+      "introduced": null,
+      "deprecated": null,
       "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html (Table schema column helpers)"
     },
     {
@@ -238,6 +304,8 @@
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
+      "introduced": null,
+      "deprecated": null,
       "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples"
     },
     {
@@ -245,6 +313,8 @@
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
+      "introduced": null,
+      "deprecated": null,
       "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples/record-sample"
     },
     {
@@ -252,6 +322,8 @@
       "module": "@servicenow/sdk/core",
       "kind": "column",
       "idRequirement": "forbidden",
+      "introduced": null,
+      "deprecated": null,
       "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html (Table schema column helpers)"
     },
     {
@@ -259,6 +331,8 @@
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
+      "introduced": null,
+      "deprecated": null,
       "evidence": "https://github.com/ServiceNow/sdk-examples/restapi-sample"
     },
     {
@@ -266,20 +340,26 @@
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
-      "evidence": "https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core-4.11.0.tgz"
+      "introduced": "4.8.0",
+      "deprecated": null,
+      "evidence": "https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core-4.8.0.tgz"
     },
     {
       "name": "RetryPolicy",
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
-      "evidence": "https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core-4.11.0.tgz"
+      "introduced": "4.8.0",
+      "deprecated": null,
+      "evidence": "https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core-4.8.0.tgz"
     },
     {
       "name": "Role",
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "deprecated",
+      "introduced": null,
+      "deprecated": "4.0.0",
       "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples"
     },
     {
@@ -287,6 +367,8 @@
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
+      "introduced": "4.5.0",
+      "deprecated": null,
       "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples"
     },
     {
@@ -294,6 +376,8 @@
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
+      "introduced": null,
+      "deprecated": null,
       "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples/script-action-sample"
     },
     {
@@ -301,6 +385,8 @@
       "module": "@servicenow/sdk/core",
       "kind": "column",
       "idRequirement": "forbidden",
+      "introduced": null,
+      "deprecated": null,
       "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html (Table schema column helpers)"
     },
     {
@@ -308,6 +394,8 @@
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
+      "introduced": null,
+      "deprecated": null,
       "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples/script-include-sample"
     },
     {
@@ -315,20 +403,26 @@
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
-      "evidence": "https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core-4.11.0.tgz"
+      "introduced": "4.5.0",
+      "deprecated": null,
+      "evidence": "https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core-4.5.0.tgz"
     },
     {
       "name": "ServicePortal",
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
-      "evidence": "https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core-4.11.0.tgz"
+      "introduced": "4.5.0",
+      "deprecated": null,
+      "evidence": "https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core-4.5.0.tgz"
     },
     {
       "name": "Sla",
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
+      "introduced": "4.3.0",
+      "deprecated": null,
       "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples"
     },
     {
@@ -336,13 +430,17 @@
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
-      "evidence": "https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core-4.11.0.tgz"
+      "introduced": "4.0.0",
+      "deprecated": null,
+      "evidence": "https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core-4.0.0.tgz"
     },
     {
       "name": "SPMenu",
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
+      "introduced": "4.5.0",
+      "deprecated": null,
       "evidence": "https://github.com/ServiceNow/sdk-examples/service-portal-sample"
     },
     {
@@ -350,20 +448,26 @@
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
-      "evidence": "https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core-4.11.0.tgz"
+      "introduced": "4.6.0",
+      "deprecated": null,
+      "evidence": "https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core-4.6.0.tgz"
     },
     {
       "name": "SPTheme",
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
-      "evidence": "https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core-4.11.0.tgz"
+      "introduced": "4.5.0",
+      "deprecated": null,
+      "evidence": "https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core-4.5.0.tgz"
     },
     {
       "name": "SPWidget",
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
+      "introduced": null,
+      "deprecated": null,
       "evidence": "https://github.com/ServiceNow/sdk-examples/service-portal-sample"
     },
     {
@@ -371,13 +475,17 @@
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
-      "evidence": "https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core-4.11.0.tgz"
+      "introduced": "4.0.0",
+      "deprecated": null,
+      "evidence": "https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core-4.0.0.tgz"
     },
     {
       "name": "StateModel",
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
+      "introduced": "4.10.0",
+      "deprecated": null,
       "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples"
     },
     {
@@ -385,6 +493,8 @@
       "module": "@servicenow/sdk/core",
       "kind": "column",
       "idRequirement": "forbidden",
+      "introduced": null,
+      "deprecated": null,
       "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html (Table schema column helpers)"
     },
     {
@@ -392,6 +502,8 @@
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "forbidden",
+      "introduced": null,
+      "deprecated": null,
       "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples/table-sample"
     },
     {
@@ -399,13 +511,17 @@
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
-      "evidence": "https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core-4.11.0.tgz"
+      "introduced": "4.5.0",
+      "deprecated": null,
+      "evidence": "https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core-4.5.0.tgz"
     },
     {
       "name": "TableNameColumn",
       "module": "@servicenow/sdk/core",
       "kind": "column",
       "idRequirement": "forbidden",
+      "introduced": null,
+      "deprecated": null,
       "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html (Table schema column helpers)"
     },
     {
@@ -413,6 +529,8 @@
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
+      "introduced": null,
+      "deprecated": null,
       "evidence": "https://github.com/ServiceNow/sdk-examples/test-atf-sample"
     },
     {
@@ -420,6 +538,8 @@
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
+      "introduced": "4.11.0",
+      "deprecated": null,
       "evidence": "https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core-4.11.0.tgz"
     },
     {
@@ -427,6 +547,8 @@
       "module": "@servicenow/sdk/core",
       "kind": "column",
       "idRequirement": "forbidden",
+      "introduced": null,
+      "deprecated": null,
       "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html (Table schema column helpers)"
     },
     {
@@ -434,6 +556,8 @@
       "module": "@servicenow/sdk/core",
       "kind": "column",
       "idRequirement": "forbidden",
+      "introduced": null,
+      "deprecated": null,
       "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html (Table schema column helpers)"
     },
     {
@@ -441,6 +565,8 @@
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
+      "introduced": "4.0.0",
+      "deprecated": null,
       "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples/ui-action-sample"
     },
     {
@@ -448,6 +574,8 @@
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
+      "introduced": "4.0.0",
+      "deprecated": null,
       "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples/ui-page-sample"
     },
     {
@@ -455,6 +583,8 @@
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
+      "introduced": null,
+      "deprecated": null,
       "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples"
     },
     {
@@ -462,6 +592,8 @@
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
+      "introduced": null,
+      "deprecated": null,
       "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html and https://github.com/ServiceNow/sdk-examples/user-preference-sample"
     },
     {
@@ -469,6 +601,8 @@
       "module": "@servicenow/sdk/core",
       "kind": "column",
       "idRequirement": "forbidden",
+      "introduced": null,
+      "deprecated": null,
       "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html (Table schema column helpers)"
     },
     {
@@ -476,14 +610,18 @@
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
-      "evidence": "https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core-4.11.0.tgz"
+      "introduced": "4.3.0",
+      "deprecated": null,
+      "evidence": "https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core-4.3.0.tgz"
     },
     {
       "name": "Workspace",
       "module": "@servicenow/sdk/core",
       "kind": "entity",
       "idRequirement": "required",
-      "evidence": "https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core-4.11.0.tgz"
+      "introduced": "4.3.0",
+      "deprecated": null,
+      "evidence": "https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core-4.3.0.tgz"
     }
   ],
   "directives": [
@@ -502,5 +640,17 @@
       "placement": "first-line",
       "evidence": "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html"
     }
-  ]
+  ],
+  "typos": {
+    "fluent-ignre": "fluent-ignore",
+    "fluent-igonre": "fluent-ignore",
+    "fluent-ignore-next-line": "fluent-ignore",
+    "fluent-ignore-sync": "fluent-disable-sync",
+    "fluent-disable": "fluent-disable-sync",
+    "fluent-disable-sync-next-line": "fluent-disable-sync",
+    "fluent-disable-sync-file": "fluent-disable-sync-for-file",
+    "fluent-disable-file": "fluent-disable-sync-for-file",
+    "fluent-skip": "fluent-ignore",
+    "fluent-nosync": "fluent-disable-sync"
+  }
 }

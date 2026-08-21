@@ -52,6 +52,10 @@ export function findMissingQueryBeforeNext(
         }
       }
     },
+    onBudgetExceeded() {
+      findings.length = 0;
+      reported.clear();
+    },
   });
   return findings;
 }

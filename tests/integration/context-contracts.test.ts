@@ -60,7 +60,7 @@ const cases: Array<{
         ruleId: "servicenow/validate-gliderecord-calls",
         messageId: "unusedReturn",
         message:
-          "The return value of `record.insert()` is ignored. Check `insert`, `update`, `get`, and `next`. Bulk methods such as `updateMultiple` and `deleteMultiple` are not flagged.",
+          "The return value of `record.insert()` is ignored. Check `insert`, `update`, `deleteRecord`, `get`, and `next`. Bulk methods such as `updateMultiple` and `deleteMultiple` are not flagged.",
       },
       {
         ruleId: "servicenow/no-system-query-bypass",

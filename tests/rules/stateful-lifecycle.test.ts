@@ -395,6 +395,62 @@ while (incident.next()) {
       { ...SERVER, settings: { scope: "global", release: "zurich" } },
     );
   });
+
+  it("recognizes boolean-comparison cursor conditions", () => {
+    assertInvalid(
+      `var incident = new GlideRecord("incident");
+incident.query();
+while (incident.next() === true) {
+  var caller = new GlideRecord("sys_user");
+  caller.query();
+}`,
+      RULE,
+      { messageId: "nestedQuery" },
+      SERVER,
+    );
+  });
+
+  it("flags a query after next in a loop test", () => {
+    assertInvalid(
+      `var incident = new GlideRecord("incident");
+var caller = new GlideRecord("sys_user");
+incident.query();
+while (incident.next() && caller.query()) {}`,
+      RULE,
+      { messageId: "nestedQuery" },
+      SERVER,
+    );
+  });
+
+  it("keeps an invoked function expression inside the cursor loop", () => {
+    assertInvalid(
+      `var incident = new GlideRecord("incident");
+incident.query();
+while (incident.next()) {
+  (function () {
+    var caller = new GlideRecord("sys_user");
+    caller.query();
+  })();
+}`,
+      RULE,
+      { messageId: "nestedQuery" },
+      SERVER,
+    );
+  });
+
+  it("does not revisit a do-while body after an unconditional exit", () => {
+    assertValid(
+      `var incident = new GlideRecord("incident");
+incident.query();
+do {
+  var caller = new GlideRecord("sys_user");
+  caller.query();
+  break;
+} while (incident.next());`,
+      RULE,
+      SERVER,
+    );
+  });
 });
 
 describe("require-query-before-next executors", () => {

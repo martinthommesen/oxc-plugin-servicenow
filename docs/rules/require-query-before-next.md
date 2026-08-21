@@ -1,10 +1,10 @@
-# servicenow/validate-gliderecord-calls
+# servicenow/require-query-before-next
 
-Deprecated alias. Prefer `require-query-before-next`. Still reports missing query-before-next and unused insert/update/get/next returns. `chooseWindow()` does not open a cursor.
+Require a proven GlideRecord binding to call `.query()` or `.get()` before `.next()`. `chooseWindow()` does not execute a query. Ambiguous branches are silent.
 
 - **Family:** classic
-- **Preset:** off
-- **Default severity:** warn
+- **Preset:** recommended
+- **Default severity:** error
 - **Fixable:** no
 - **Suggestions:** no
 
@@ -16,7 +16,6 @@ Deprecated alias. Prefer `require-query-before-next`. Still reports missing quer
 var gr = new GlideRecord("incident");
 gr.addActiveQuery();
 gr.next();
-gr.insert();
 ```
 
 ## Correct
