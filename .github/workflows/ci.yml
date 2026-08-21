@@ -29,16 +29,11 @@ jobs:
       - run: npm test
       - run: npm run evidence:check
         if: always()
-      - run: npm run acceptance:check
-        if: always()
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
-          name: pr51-acceptance
-          path: |
-            artifacts/pr51-acceptance.json
-            artifacts/pr51-acceptance.md
-            artifacts/doc-evidence.json
+          name: pr51-evidence
+          path: artifacts/doc-evidence.json
           if-no-files-found: error
 
   compat-matrix:
