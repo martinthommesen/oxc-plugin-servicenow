@@ -1,8 +1,6 @@
 import type { ESTree } from "@oxlint/plugins";
 
 type AnyNode = ESTree.Node | Record<string, unknown>;
-const MAX_WALK_DEPTH = 512;
-
 export function isNode(value: unknown): value is ESTree.Node {
   return Boolean(
     value && typeof value === "object" && typeof (value as { type?: unknown }).type === "string",
@@ -354,25 +352,34 @@ export function walk(
   seen: WeakSet<object> = new WeakSet(),
 ): void {
   if (!isNode(node)) return;
-  if (ancestors.length >= MAX_WALK_DEPTH) return;
-  if (seen.has(node)) return;
-  seen.add(node);
-  const typed = node as ESTree.Node;
-  ancestors.push(typed);
-  visitors[typed.type]?.(typed);
+  const stack: Array<{ node: ESTree.Node; exit: boolean }> = [
+    { node: node as ESTree.Node, exit: false },
+  ];
+  while (stack.length > 0) {
+    const frame = stack.pop()!;
+    if (frame.exit) {
+      visitors[`${frame.node.type}:exit`]?.(frame.node);
+      ancestors.pop();
+      continue;
+    }
+    if (seen.has(frame.node)) continue;
+    seen.add(frame.node);
+    ancestors.push(frame.node);
+    visitors[frame.node.type]?.(frame.node);
+    stack.push({ node: frame.node, exit: true });
 
-  for (const key of Object.keys(node)) {
-    if (WALK_SKIP_KEYS.has(key)) continue;
-    const value = (node as unknown as Record<string, unknown>)[key];
-    if (Array.isArray(value)) {
-      for (const child of value) {
-        if (isNode(child)) walk(child, visitors, ancestors, seen);
+    const children: ESTree.Node[] = [];
+    for (const key of Object.keys(frame.node)) {
+      if (WALK_SKIP_KEYS.has(key)) continue;
+      const value = (frame.node as unknown as Record<string, unknown>)[key];
+      if (Array.isArray(value)) {
+        for (const child of value) if (isNode(child)) children.push(child);
+      } else if (isNode(value)) {
+        children.push(value);
       }
-    } else if (isNode(value)) {
-      walk(value, visitors, ancestors, seen);
+    }
+    for (let index = children.length - 1; index >= 0; index -= 1) {
+      stack.push({ node: children[index]!, exit: false });
     }
   }
-
-  visitors[`${typed.type}:exit`]?.(typed);
-  ancestors.pop();
 }
