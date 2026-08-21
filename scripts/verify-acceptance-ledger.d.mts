@@ -12,6 +12,7 @@ export interface AcceptanceCriterion {
 }
 
 export function repoFilePath(path: string): string;
+export function searchableRepoFiles(): string[];
 export function parseCriteria(source: string): AcceptanceCriterion[];
 export function criteriaSha256(criteria: AcceptanceCriterion[]): string;
 export function validateMapping(
