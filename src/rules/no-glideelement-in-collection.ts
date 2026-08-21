@@ -1,9 +1,12 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
-import { getName, isNode } from "../utils/ast.js";
+import { getName, isNode, unwrapExpression } from "../utils/ast.js";
 import { staticPropertyName } from "../analysis/index.js";
 import { isFunctionLikeNode, visitChildren } from "../analysis/path-state.js";
-import { truthyPathRequiresCursorNext } from "../analysis/cursor-condition.js";
+import {
+  definitelySkipsDoWhileTest,
+  truthyPathRequiredCursorNexts,
+} from "../analysis/cursor-condition.js";
 import { GLIDE_VALUE_EXTRACTORS } from "../glide/query-methods.js";
 import { isServerInstanceContext } from "../context/index.js";
 import { ruleDocsUrl } from "../constants.js";
@@ -32,10 +35,15 @@ const CURSOR_MEMBERS = new Set([
   "setValue",
 ]);
 
-function isExtracted(node: unknown): boolean {
+function isExtracted(
+  node: unknown,
+  analysis: ReturnType<typeof beginRuleFile>["analysis"],
+): boolean {
   if (!isNode(node) || node.type !== "CallExpression") return false;
   const call = node as ESTree.CallExpression;
-  if (getName(call.callee) === "String") return true;
+  if (getName(call.callee) === "String" && analysis.isPlatformGlobal(call.callee as ESTree.Node)) {
+    return true;
+  }
   const property = staticPropertyName(call.callee);
   return property === "toString" || (property !== null && GLIDE_VALUE_EXTRACTORS.has(property));
 }
@@ -67,28 +75,25 @@ function isCursorNextCall(
   return objectIdOfCursor(analysis, call.callee.object);
 }
 
-function isCursorNext(
+function cursorNextIds(
   node: unknown,
   analysis: ReturnType<typeof beginRuleFile>["analysis"],
-): number | null {
-  const ids = new Set<number>();
-  const collect = (candidate: unknown): boolean => {
-    const id = isCursorNextCall(candidate, analysis);
-    if (id === null) return false;
-    ids.add(id);
-    return true;
-  };
-  if (!truthyPathRequiresCursorNext(node, collect) || ids.size !== 1) return null;
-  return ids.values().next().value ?? null;
+): Set<number> {
+  return truthyPathRequiredCursorNexts(node, (candidate) =>
+    isCursorNextCall(candidate, analysis),
+  );
 }
 function isGlideElement(
   node: unknown,
   cursorIds: ReadonlySet<number>,
   analysis: ReturnType<typeof beginRuleFile>["analysis"],
 ): number | null {
-  if (!isNode(node) || isExtracted(node)) return null;
+  if (!isNode(node) || isExtracted(node, analysis)) return null;
   if (node.type === "CallExpression") {
     const call = node as ESTree.CallExpression;
+    if (getName(call.callee) === "String") {
+      return isGlideElement(call.arguments[0], cursorIds, analysis);
+    }
     if (staticPropertyName(call.callee) !== "getElement" || call.callee.type !== "MemberExpression") {
       return null;
     }
@@ -111,35 +116,41 @@ function findRetainedElements(
 
   function visit(node: unknown, cursorIds: ReadonlySet<number>): void {
     if (!isNode(node)) return;
+    if (node.type === "CallExpression") {
+      const call = node as ESTree.CallExpression;
+      const callee = unwrapExpression(call.callee);
+      if (isNode(callee) && isFunctionLikeNode(callee)) {
+        for (const argument of call.arguments) visit(argument, cursorIds);
+        visit((callee as unknown as { body: ESTree.Node }).body, cursorIds);
+        return;
+      }
+    }
     if (isFunctionLikeNode(node)) {
       visitChildren(node, (child) => visit(child, new Set()));
       return;
     }
     if (node.type === "WhileStatement") {
       const statement = node as ESTree.WhileStatement;
-      const id = isCursorNext(statement.test, analysis);
       const nextIds = new Set(cursorIds);
-      if (id !== null) nextIds.add(id);
+      for (const id of cursorNextIds(statement.test, analysis)) nextIds.add(id);
       visit(statement.test, cursorIds);
       visit(statement.body, nextIds);
       return;
     }
     if (node.type === "DoWhileStatement") {
       const statement = node as ESTree.DoWhileStatement;
-      const id = isCursorNext(statement.test, analysis);
       const nextIds = new Set(cursorIds);
-      if (id !== null) nextIds.add(id);
+      for (const id of cursorNextIds(statement.test, analysis)) nextIds.add(id);
       visit(statement.body, cursorIds);
       visit(statement.test, cursorIds);
-      visit(statement.body, nextIds);
+      if (!definitelySkipsDoWhileTest(statement.body)) visit(statement.body, nextIds);
       return;
     }
     if (node.type === "ForStatement") {
       const statement = node as ESTree.ForStatement;
       const nextIds = new Set(cursorIds);
       if (statement.test) {
-        const id = isCursorNext(statement.test, analysis);
-        if (id !== null) nextIds.add(id);
+        for (const id of cursorNextIds(statement.test, analysis)) nextIds.add(id);
       }
       if (statement.init) visit(statement.init, cursorIds);
       if (statement.test) visit(statement.test, cursorIds);
@@ -168,7 +179,12 @@ function findRetainedElements(
   }
 
   visit(program, new Set());
-  return findings;
+  const seen = new WeakSet<ESTree.Node>();
+  return findings.filter((finding) => {
+    if (seen.has(finding.node)) return false;
+    seen.add(finding.node);
+    return true;
+  });
 }
 
 export const noGlideelementInCollection = defineRule({

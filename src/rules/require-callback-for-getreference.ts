@@ -6,6 +6,14 @@ import { ruleDocsUrl } from "../constants.js";
 import { getName, isNode } from "../utils/ast.js";
 import { beginRuleFile } from "./helpers.js";
 
+const NON_CALLABLE_EXPRESSIONS = new Set([
+  "Literal",
+  "TemplateLiteral",
+  "ObjectExpression",
+  "ArrayExpression",
+  "ClassExpression",
+]);
+
 function isNullishCallback(node: unknown, analysis: ProvenanceQuery): boolean {
   if (!node) return true;
   if (!isNode(node)) return false;
@@ -20,6 +28,10 @@ function isNullishCallback(node: unknown, analysis: ProvenanceQuery): boolean {
     return (node as ESTree.UnaryExpression).operator === "void";
   }
   return false;
+}
+
+function isStaticallyNonCallable(node: unknown): boolean {
+  return isNode(node) && NON_CALLABLE_EXPRESSIONS.has(node.type);
 }
 
 export const requireCallbackForGetreference = defineRule({
@@ -53,7 +65,11 @@ export const requireCallbackForGetreference = defineRule({
         // when no syntactic second argument is present.
         if (call.arguments.some((argument) => argument.type === "SpreadElement")) return;
         const callback = call.arguments[1];
-        if (call.arguments.length >= 2 && !isNullishCallback(callback, analysis)) return;
+        if (
+          call.arguments.length >= 2 &&
+          !isNullishCallback(callback, analysis) &&
+          !isStaticallyNonCallable(callback)
+        ) return;
         context.report({ node, messageId: "missingCallback" });
       },
     };
