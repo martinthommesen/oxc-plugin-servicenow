@@ -3,7 +3,11 @@ import { join, dirname } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const pins = JSON.parse(readFileSync(join(root, "scripts/action-pins.json"), "utf8"));
+const pins = Object.fromEntries(
+  JSON.parse(readFileSync(join(root, "scripts/action-pins.json"), "utf8")).map(
+    ({ action, commit }) => [action, commit],
+  ),
+);
 export function checkActionPins() {
   const workflows = readdirSync(join(root, ".github/workflows")).filter((name) =>
     /\.(?:yml|yaml)$/.test(name),

@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 2,
+  "repository": {
+    "owner": "martinthommesen",
+    "name": "oxc-plugin-servicenow",
+    "workflowPath": ".github/workflows/release.yml"
+  },
+  "principals": {
+    "controlledTagActor": {
+      "id": 4671202,
+      "login": "release-sentinel-sn",
+      "type": "Integration"
+    },
+    "environmentReviewers": [
+      {
+        "id": 267603464,
+        "login": "martinthommesen",
+        "type": "User"
+      }
+    ]
+  },
+  "environment": {
+    "name": "release",
+    "preventSelfReview": true,
+    "canAdminsBypass": false,
+    "deploymentPolicy": {
+      "protectedBranches": false,
+      "customBranchPolicies": true,
+      "branches": [],
+      "tags": ["v*"]
+    }
+  },
+  "mainRuleset": {
+    "name": "PR51 main governance",
+    "enforcement": "active",
+    "refPattern": "refs/heads/main",
+    "requiredStatusChecks": [
+      "test",
+      "bench",
+      "compat (min-hosts, 20.19.0)",
+      "compat (node22-host, 22.14.0)",
+      "compat (node24-host, 24.16.0)",
+      "compat (node26-host, 26.7.0)",
+      "compat (eslint9-current, 24.16.0)",
+      "docs",
+      "manifest",
+      "artifact",
+      "workflow"
+    ],
+    "codeql": "informational"
+  },
+  "releaseTagRulesets": {
+    "immutability": {
+      "name": "PR51 immutable release tags",
+      "enforcement": "active",
+      "refPattern": "refs/tags/v**",
+      "rules": ["deletion", "non_fast_forward"],
+      "bypassActors": []
+    },
+    "creation": {
+      "name": "PR51 controlled release tag creation",
+      "enforcement": "active",
+      "refPattern": "refs/tags/v**",
+      "rules": ["creation"],
+      "bypassActors": [
+        {
+          "id": 4671202,
+          "type": "Integration",
+          "mode": "always"
+        }
+      ]
+    }
+  },
+  "npmTrustedPublisher": {
+    "type": "github",
+    "repository": "martinthommesen/oxc-plugin-servicenow",
+    "workflowFilename": "release.yml",
+    "environment": "release",
+    "tagRefPattern": "refs/tags/v*",
+    "oidcSubject": "repo:martinthommesen/oxc-plugin-servicenow:environment:release"
+  }
+}

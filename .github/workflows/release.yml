@@ -1,31 +1,221 @@
-# Requires an NPM_TOKEN repo secret (or npm trusted publishing configured for this repo/workflow).
+# Publish one inspected tarball through npm trusted publishing.
 name: Release
+
 on:
   push:
     tags: ["v*"]
+
 permissions:
   contents: read
-  id-token: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
-  publish:
+  validate:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      tarball: ${{ steps.pack.outputs.tarball }}
+      tarball_sha256: ${{ steps.pack.outputs.sha256 }}
+      compat_matrix: ${{ steps.compat-matrix.outputs.value }}
+      oidc_subject: ${{ steps.meta.outputs.oidc_subject }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.2
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.16.0
+          cache: npm
+      - run: npm ci
+      - id: compat-matrix
+        run: echo "value=$(node scripts/check-compat-matrix.mjs --github-matrix)" >> "$GITHUB_OUTPUT"
+      - run: npm run workflow:check
+      - run: npm run compat:check
+      - run: npm run lint:check
+      - run: npm run format:check
+      - run: npm run typecheck
+      - run: npm run typecheck:fixtures
+      - run: npm run build
+      - run: npm test
+      - run: npm run evidence:check
+      - run: npm run acceptance:check
+      - run: npm run docs:check
+      - run: npm run manifest:check
+      - run: npm run bench
+      - id: meta
+        name: Verify tag, ancestry, changelog, and provenance identity
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          oidc_subject="$(node -p "require('./scripts/release-governance.json').npmTrustedPublisher.oidcSubject")"
+          test "v${version}" = "$GITHUB_REF_NAME"
+          test "$oidc_subject" = "repo:${GITHUB_REPOSITORY}:environment:release"
+          git fetch origin main
+          test "$GITHUB_SHA" = "$(git rev-parse origin/main)"
+          node scripts/check-release-artifact.mjs --changelog-only
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "oidc_subject=$oidc_subject" >> "$GITHUB_OUTPUT"
+      - id: pack
+        name: Build and inspect one tarball
+        run: |
+          node scripts/check-release-artifact.mjs \
+            --write-path "$RUNNER_TEMP/release-tarball-path" \
+            --publish-input-dir "$RUNNER_TEMP/release-publish-input"
+          tarball="$(cat "$RUNNER_TEMP/release-tarball-path")"
+          echo "tarball=$(basename "$tarball")" >> "$GITHUB_OUTPUT"
+          echo "sha256=$(shasum -a 256 "$tarball" | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release-tarball
+          path: ${{ steps.pack.outputs.tarball }}
+          if-no-files-found: error
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release-publish-input
+          path: ${{ runner.temp }}/release-publish-input
+          if-no-files-found: error
+
+  consumer:
+    needs: validate
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.validate.outputs.compat_matrix) }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.2
         with:
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 22
+          node-version: ${{ matrix.node }}
           cache: npm
-          registry-url: https://registry.npmjs.org
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: release-tarball
+          path: .
       - run: npm ci
-      - run: npm run typecheck
-      - run: npm run build
-      - run: npm test
-      - run: npm run docs:check
-      - name: Verify tag matches package version
-        run: |
-          test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
-      - run: npm publish --provenance --access public
+      - name: Install and test the exact tarball
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          CELL: ${{ matrix.cell }}
+          SHA256: ${{ needs.validate.outputs.tarball_sha256 }}
+          TARBALL: ${{ needs.validate.outputs.tarball }}
+        run: npx --no-install tsx scripts/compat-consumer.mjs --cell "$CELL" --tarball "./$TARBALL" --sha256 "$SHA256"
+
+  publication-state:
+    needs: [validate, consumer]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      state: ${{ steps.state.outputs.state }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.16.0
+          registry-url: https://registry.npmjs.org
+      - id: state
+        env:
+          VERSION: ${{ needs.validate.outputs.version }}
+        run: |
+          result="$(node scripts/publish-release-package.mjs --state-only --version "$VERSION")"
+          echo "$result"
+          echo "state=$(node -e 'const value=JSON.parse(process.argv[1]); process.stdout.write(value.state)' "$result")" >> "$GITHUB_OUTPUT"
+
+  publish:
+    if: ${{ needs.publication-state.outputs.state == 'absent' }}
+    needs: [validate, consumer, publication-state]
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      id-token: write
+    outputs:
+      outcome: ${{ steps.publish.outputs.outcome }}
+    steps:
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.5.0
+          registry-url: https://registry.npmjs.org
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: release-publish-input
+          path: release-publish-input
+      - id: publish
+        name: Publish through the reviewed artifact-only helper
+        env:
+          VERSION: ${{ needs.validate.outputs.version }}
+        run: |
+          result="$(node release-publish-input/scripts/publish-release-package.mjs \
+            --input-dir release-publish-input \
+            --version "$VERSION")"
+          echo "$result"
+          echo "outcome=$(node -e 'const value=JSON.parse(process.argv[1]); process.stdout.write(value.outcome)' "$result")" >> "$GITHUB_OUTPUT"
+
+  registry-verify:
+    if: ${{ always() && needs.validate.result == 'success' && needs.consumer.result == 'success' && needs.publication-state.result == 'success' && (needs.publication-state.outputs.state == 'existing' || needs.publish.result == 'success') }}
+    needs: [validate, consumer, publication-state, publish]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.16.0
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: release-tarball
+          path: .
+      - run: npm ci --ignore-scripts
+      - name: Verify exact registry bytes, provenance identity, exports, and declarations
+        env:
+          OIDC_SUBJECT: ${{ needs.validate.outputs.oidc_subject }}
+          TARBALL: ${{ needs.validate.outputs.tarball }}
+          VERSION: ${{ needs.validate.outputs.version }}
+        run: |
+          node scripts/verify-published-package.mjs \
+            --tarball "./$TARBALL" \
+            --version "$VERSION" \
+            --repository "https://github.com/${GITHUB_REPOSITORY}" \
+            --workflow ".github/workflows/release.yml" \
+            --environment release \
+            --ref "$GITHUB_REF" \
+            --commit "$GITHUB_SHA" \
+            --oidc-subject "$OIDC_SUBJECT"
+
+  github-release:
+    if: ${{ needs.registry-verify.result == 'success' }}
+    needs: [validate, registry-verify]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: release-tarball
+          path: .
+      - name: Create or verify the GitHub release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARBALL: ${{ needs.validate.outputs.tarball }}
+          VERSION: ${{ needs.validate.outputs.version }}
+        run: |
+          node scripts/create-github-release.mjs \
+            --tag "$GITHUB_REF_NAME" \
+            --version "$VERSION" \
+            --expected-commit "$GITHUB_SHA" \
+            --tarball "./$TARBALL"

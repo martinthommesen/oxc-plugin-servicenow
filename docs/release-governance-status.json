@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 2,
+  "evidenceStatus": "point-in-time-verified",
+  "liveVerification": "partial",
+  "warning": "This capture records verified controls at one point in time. Run the governance audit again before release.",
+  "capturedAt": "2026-08-21T12:02:51Z",
+  "repository": "martinthommesen/oxc-plugin-servicenow",
+  "verified": {
+    "mainRuleset": {
+      "id": 21081867,
+      "name": "PR51 main governance",
+      "enforcement": "active",
+      "refPattern": "refs/heads/main",
+      "requiredStatusChecks": [
+        "test",
+        "bench",
+        "compat (min-hosts, 20.19.0)",
+        "compat (node22-host, 22.14.0)",
+        "compat (node24-host, 24.16.0)",
+        "compat (node26-host, 26.7.0)",
+        "compat (eslint9-current, 24.16.0)",
+        "docs",
+        "manifest",
+        "artifact",
+        "workflow"
+      ],
+      "additionalRules": [
+        "deletion",
+        "non_fast_forward",
+        "pull_request",
+        "code_scanning",
+        "code_quality",
+        "code_coverage",
+        "required_linear_history"
+      ],
+      "bypassActors": []
+    },
+    "releaseTagRulesets": {
+      "immutability": {
+        "id": 21081873,
+        "name": "PR51 immutable release tags",
+        "rules": ["deletion", "non_fast_forward"],
+        "bypassActors": []
+      },
+      "creation": {
+        "id": 21143599,
+        "name": "PR51 controlled release tag creation",
+        "rules": ["creation"],
+        "bypassActors": [{ "id": 4671202, "type": "Integration", "mode": "always" }]
+      }
+    },
+    "releaseEnvironment": {
+      "id": 20240747277,
+      "name": "release",
+      "canAdminsBypass": false,
+      "preventSelfReview": true,
+      "reviewers": [{ "id": 267603464, "login": "martinthommesen", "type": "User" }],
+      "deploymentPolicy": {
+        "protectedBranches": false,
+        "customBranchPolicies": true,
+        "branches": [],
+        "tags": ["v*"]
+      }
+    },
+    "releaseSentinel": {
+      "appId": 4671202,
+      "slug": "release-sentinel-sn",
+      "installationId": 155434410,
+      "repositorySelection": ["oxc-plugin-servicenow"],
+      "permissions": { "contents": "write", "metadata": "read" },
+      "actionsVariable": "RELEASE_SENTINEL_CLIENT_ID",
+      "actionsSecret": "RELEASE_SENTINEL_PRIVATE_KEY"
+    },
+    "actions": {
+      "enabled": true,
+      "allowedActions": "selected",
+      "githubOwnedAllowed": true,
+      "verifiedCreatorsAllowed": false,
+      "shaPinningRequired": true,
+      "defaultWorkflowPermissions": "read",
+      "canApprovePullRequestReviews": false
+    }
+  },
+  "livePending": [
+    {
+      "item": "npm trusted-publisher repository, workflow, and environment identity",
+      "reason": "The npm trust read API returned 401 without an authenticated npm publishing session.",
+      "manualCheck": "npm trust list oxc-plugin-servicenow --json"
+    },
+    {
+      "item": "stable release provenance",
+      "reason": "No stable protected-tag release has been authorized or run."
+    }
+  ]
+}
