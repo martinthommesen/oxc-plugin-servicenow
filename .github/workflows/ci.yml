@@ -7,13 +7,93 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.16.0
+          cache: npm
+      - run: npm ci
+      - run: npm run lint:check
+      - run: npm run format:check
+      - run: npm run typecheck
+      - run: npm run typecheck:fixtures
+      - run: npm run build
+      - run: npm test
+      - run: npm run evidence:check
+        if: always()
+      - run: npm run acceptance:check
+        if: always()
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: pr51-acceptance
+          path: |
+            artifacts/pr51-acceptance.json
+            artifacts/pr51-acceptance.md
+            artifacts/doc-evidence.json
+          if-no-files-found: error
+
+  compat-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.value }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.16.0
+      - id: matrix
+        run: echo "value=$(node scripts/check-compat-matrix.mjs --github-matrix)" >> "$GITHUB_OUTPUT"
+
+  bench:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.14.0
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Extract the target-branch benchmark baseline
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" = "pull_request" ]]; then
+            git fetch --no-tags origin "$GITHUB_BASE_REF"
+            baseline_commit="$(git merge-base HEAD "origin/$GITHUB_BASE_REF")"
+          else
+            baseline_commit="$GITHUB_SHA"
+          fi
+          test -n "$baseline_commit"
+          git show "$baseline_commit:docs/performance-baseline.json" > "$RUNNER_TEMP/performance-baseline.json"
+      - run: npm run bench -- --baseline "$RUNNER_TEMP/performance-baseline.json" --output artifacts/performance-current.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: performance-current
+          path: |
+            artifacts/performance-current.json
+            artifacts/performance-failure.json
+          if-no-files-found: error
+
+  compat:
+    needs: compat-matrix
+    runs-on: ubuntu-latest
     strategy:
-      matrix:
-        node: [20, 22]
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.compat-matrix.outputs.matrix) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -23,7 +103,58 @@ jobs:
           node-version: ${{ matrix.node }}
           cache: npm
       - run: npm ci
-      - run: npm run typecheck
       - run: npm run build
-      - run: npm test
+      - name: Packed consumer cell
+        env:
+          SN_COMPAT_CELL: ${{ matrix.cell }}
+        run: npx tsx scripts/compat-consumer.mjs --cell "$SN_COMPAT_CELL"
+
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.16.0
+          cache: npm
+      - run: npm ci
       - run: npm run docs:check
+
+  manifest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.16.0
+          cache: npm
+      - run: npm ci
+      - run: npm run manifest:check
+
+  artifact:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.16.0
+          cache: npm
+      - run: npm ci
+      - run: npm run release:check
+
+  workflow:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.16.0
+      - run: npm run workflow:check

@@ -60,6 +60,41 @@ describe("plugin export", () => {
     }
   });
 
+  it("catalog preset metadata matches exported maps", () => {
+    for (const entry of ruleCatalog) {
+      const inRecommended = entry.ruleId in configs.recommendedRules;
+      const inClassicEs5 = entry.ruleId in configs.classicEs5Rules;
+      const inEs2021 = entry.ruleId in configs.es2021Rules;
+      if (entry.preset === "recommended") {
+        assert.ok(inRecommended, `${entry.name} is catalogued as recommended`);
+      }
+      if (entry.preset === "classic-es5") {
+        assert.ok(inClassicEs5, `${entry.name} is catalogued as classic-es5`);
+      }
+      if (entry.preset === "es2021") {
+        assert.ok(inEs2021, `${entry.name} is catalogued as es2021`);
+      }
+      if (entry.preset === "strict") {
+        assert.ok(entry.ruleId in configs.strictRules, `${entry.name} is catalogued as strict`);
+        assert.equal(inRecommended, false, `${entry.name} should not be in recommended`);
+      }
+      if (entry.preset === false) {
+        assert.equal(inRecommended, false, `${entry.name} should stay off recommended`);
+      }
+      for (const placement of entry.placements) {
+        if (placement.profile === "recommended") {
+          assert.equal(configs.recommendedRules[entry.ruleId], placement.severity);
+        }
+        if (placement.profile === "security") {
+          assert.equal(configs.securityRules[entry.ruleId], placement.severity);
+        }
+        if (placement.profile === "policy") {
+          assert.equal(configs.policyRules[entry.ruleId], placement.severity);
+        }
+      }
+    }
+  });
+
   it("flat configs reference the plugin", () => {
     assert.equal(configs.flat.recommended.plugins.servicenow, plugin);
     assert.equal(configs.flat.strict.plugins.servicenow, plugin);
@@ -95,6 +130,7 @@ describe("plugin export", () => {
       for (const example of entry.bad) {
         const messages = lint(example.code, entry.name, {
           filename: example.filename ?? "test.js",
+          settings: example.settings,
         });
         if (messages.some((message) => message.fixedSource !== undefined)) sawFix = true;
         if (messages.some((message) => (message.suggestions?.length ?? 0) > 0)) {

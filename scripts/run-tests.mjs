@@ -1,13 +1,27 @@
 import { spawn } from "node:child_process";
+import { mkdirSync } from "node:fs";
 import { readdir, stat } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { dirname, isAbsolute, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const require = createRequire(import.meta.url);
 const tsxCli = require.resolve("tsx/cli");
-const searchArgs = process.argv.slice(2);
+const args = process.argv.slice(2);
+const reportIndex = args.indexOf("--report-json");
+let reportJson;
+if (reportIndex !== -1) {
+  const value = args[reportIndex + 1];
+  if (!value || value.startsWith("-")) {
+    console.error("--report-json requires a path");
+    process.exit(1);
+  }
+  reportJson = isAbsolute(value) ? value : join(process.cwd(), value);
+  mkdirSync(dirname(reportJson), { recursive: true });
+  args.splice(reportIndex, 2);
+}
+const searchArgs = args;
 const searchRoots =
   searchArgs.length > 0 ? searchArgs.map((entry) => join(root, entry)) : [join(root, "tests")];
 
@@ -53,10 +67,22 @@ if (files.length === 0) {
 // Release/packed integration tests build and inspect the ignored dist tree. Keep
 // test files serial so a test-side build cannot race an Oxlint subprocess in
 // another file and expose a half-written module graph.
-const child = spawn(process.execPath, [tsxCli, "--test", "--test-concurrency=1", ...files], {
-  stdio: "inherit",
-  cwd: root,
-});
+const reporterArgs = reportJson
+  ? [
+      "--test-reporter=spec",
+      "--test-reporter-destination=stdout",
+      `--test-reporter=${join(root, "scripts/test-json-reporter.mjs")}`,
+      `--test-reporter-destination=${reportJson}`,
+    ]
+  : [];
+const child = spawn(
+  process.execPath,
+  [tsxCli, "--test", "--test-concurrency=1", ...reporterArgs, ...files],
+  {
+    stdio: "inherit",
+    cwd: root,
+  },
+);
 
 child.on("exit", (code, signal) => {
   if (signal) {
