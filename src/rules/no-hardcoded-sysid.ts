@@ -158,14 +158,7 @@ export const noHardcodedSysid = defineRule({
           }
           segments.push({ node: expression, value, child: true });
         }
-        reportStaticSegments(
-          context,
-          node,
-          segments,
-          allowed,
-          lastBinding,
-          ignoreHashNames,
-        );
+        reportStaticSegments(context, node, segments, allowed, lastBinding, ignoreHashNames);
       },
       BinaryExpression(node) {
         const expression = node as ESTree.BinaryExpression;

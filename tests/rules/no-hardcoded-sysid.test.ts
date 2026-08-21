@@ -52,11 +52,10 @@ describe(RULE, () => {
   });
 
   it("reports a cross-boundary sys_id beside a complete child sys_id", () => {
-    assertInvalid(
-      `var id = "${ID}" + "-97c04b3b" + "1b12100043ab85e5bd0713e2";`,
-      RULE,
-      { messageId: "hardcoded", count: 2 },
-    );
+    assertInvalid(`var id = "${ID}" + "-97c04b3b" + "1b12100043ab85e5bd0713e2";`, RULE, {
+      messageId: "hardcoded",
+      count: 2,
+    });
   });
 
   it("does not suppress a sys_id for a generic hash-like name", () => {

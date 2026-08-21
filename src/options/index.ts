@@ -15,7 +15,6 @@ export type {
   StringOptionField,
 } from "./descriptor.js";
 export {
-  RULE_OPTION_DESCRIPTORS,
   fluentNamingConventionOptions,
   noHardcodedSysidOptions,
   noHardcodedTableNamesOptions,
@@ -23,7 +22,6 @@ export {
   requireFluentIdOptions,
 } from "./descriptors.js";
 export type {
-  ConfigurableRuleName,
   FluentNamingOptions,
   NamingStyle,
   NoHardcodedSysIdOptions,

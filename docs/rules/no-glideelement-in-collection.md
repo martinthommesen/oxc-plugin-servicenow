@@ -4,13 +4,37 @@ Direct GlideRecord field access is a GlideElement tied to the cursor. Do not `pu
 
 - **Family:** classic
 - **Preset:** recommended
+- **Placements:** recommended (error), business-rule (error)
 - **Default severity:** error
-- **Fixable:** no
+- **Fix safety:** diagnostic only
 - **Suggestions:** no
+- **Authoring:** classic
+- **Surfaces:** Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent.
+- **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
+- **Last verified:** 2026-08-20
+- **Implementation:** [`src/rules/no-glideelement-in-collection.ts`](../../src/rules/no-glideelement-in-collection.ts)
+
+## Applicability
+
+| Dimension | Value |
+| --- | --- |
+| Authoring | classic |
+| Surfaces | Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent. |
+| Minimum surface confidence | filename-inferred |
+| JavaScript modes | n/a |
+| Application scopes | global, scoped, unknown |
+| ServiceNow releases | zurich |
+| Fluent SDK range | n/a |
+
+## Options
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| _(none)_ | | | This rule has no options. |
 
 ## Incorrect
 
-### ❌ push field
+### Incorrect: push field
 
 ```js
 var numbers = [];
@@ -23,7 +47,7 @@ while (incident.next()) {
 
 ## Correct
 
-### ✅ getValue
+### Correct: getValue
 
 ```js
 var numbers = [];
@@ -34,7 +58,46 @@ while (incident.next()) {
 }
 ```
 
+## Limitations
+
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
+
+## Known false positives
+
+- None recorded.
+
+## Known false negatives
+
+- None recorded.
+
+## Intentional scope boundaries
+
+- None recorded.
+
+## Overlaps
+
+- None recorded.
+
+## Fix safety
+
+- Classification: diagnostic only
+- Lifecycle assumptions: No extra lifecycle assumptions.
+
+## Evidence
+
+- **A GlideElement from a cursor follows the cursor; collections must store extracted values.**
+  - Verification ID: `rule-evidence-a6b70c8c`
+  - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html
+  - Verified by: manual
+  - Verified at: 2026-08-20
+- **Recommended hosts report pushing a cursor field into an array.**
+  - Verification ID: `rule-evidence-00753aa8`
+  - URL: tests/integration/profiles/invalid/glideelement-push.br.js
+  - Verified by: integration-test
+  - Verified at: 2026-08-20
+
 ## See also
 
-- [ServiceNow Fluent overview](https://servicenow.github.io/sdk/guides/fluent-overview)
+- [Contributor rule-authoring guide](../rule-authoring.md)
+- [Project non-goals](../non-goals.md)
 - [oxlint JS plugins](https://oxc.rs/docs/guide/usage/linter/js-plugins.html)

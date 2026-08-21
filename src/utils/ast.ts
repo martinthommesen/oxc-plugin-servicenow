@@ -273,7 +273,9 @@ export function commentText(comment: CommentLike): string {
 }
 
 /** Extract comment bodies when the host does not expose `getAllComments()`. */
-export function fallbackComments(text: string): Array<{ value: string; start: number; end: number }> {
+export function fallbackComments(
+  text: string,
+): Array<{ value: string; start: number; end: number }> {
   const comments: Array<{ value: string; start: number; end: number }> = [];
   let index = 0;
   let allowBlock = true;

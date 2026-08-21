@@ -3,10 +3,7 @@ import { getName, isNode, unwrapExpression } from "../utils/ast.js";
 import { staticPropertyName } from "./members.js";
 import type { ProvenanceQuery } from "./provenance.js";
 import { isFunctionLikeNode, visitChildren } from "./path-state.js";
-import {
-  definitelySkipsDoWhileTest,
-  truthyPathRequiresCursorNext,
-} from "./cursor-condition.js";
+import { definitelySkipsDoWhileTest, truthyPathRequiresCursorNext } from "./cursor-condition.js";
 
 export interface QueryInLoopFinding {
   node: ESTree.CallExpression;
@@ -99,10 +96,7 @@ function visit(
     // is known to have passed a cursor condition.
     visit(stmt.body, cursorDepth, analysis, findings);
     visitCondition(stmt.test, cursorDepth, analysis, findings);
-    if (
-      loopBodyRequiresCursor(stmt.test, analysis) &&
-      !definitelySkipsDoWhileTest(stmt.body)
-    ) {
+    if (loopBodyRequiresCursor(stmt.test, analysis) && !definitelySkipsDoWhileTest(stmt.body)) {
       visit(stmt.body, cursorDepth + 1, analysis, findings);
     }
     return;

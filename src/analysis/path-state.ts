@@ -183,8 +183,8 @@ function isDefinitelyFalse(node: unknown): boolean {
   const expr = unwrapExpression(node);
   return Boolean(
     isNode(expr) &&
-      expr.type === "Literal" &&
-      (expr as unknown as { value?: unknown }).value === false,
+    expr.type === "Literal" &&
+    (expr as unknown as { value?: unknown }).value === false,
   );
 }
 
@@ -1198,7 +1198,11 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
             ) {
               const assignment = param as ESTree.AssignmentPattern;
               visit(assignment.right, invocation, false);
-              bindPattern(invocation, assignment.left, objectFromExpr(invocation, assignment.right));
+              bindPattern(
+                invocation,
+                assignment.left,
+                objectFromExpr(invocation, assignment.right),
+              );
             } else {
               bindPattern(invocation, params[index], argumentIds[index]);
             }
