@@ -4,13 +4,37 @@ Full-script Business Rules must wrap logic in the standard IIFE so top-level var
 
 - **Family:** classic
 - **Preset:** recommended
+- **Placements:** recommended (error), business-rule (error)
 - **Default severity:** error
-- **Fixable:** no
+- **Fix safety:** diagnostic only
 - **Suggestions:** no
+- **Authoring:** classic
+- **Surfaces:** Applies to business-rule when those surfaces are known. Unknown surfaces stay silent.
+- **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
+- **Last verified:** 2026-08-20
+- **Implementation:** [`src/rules/require-business-rule-wrapper.ts`](../../src/rules/require-business-rule-wrapper.ts)
+
+## Applicability
+
+| Dimension | Value |
+| --- | --- |
+| Authoring | classic |
+| Surfaces | Applies to business-rule when those surfaces are known. Unknown surfaces stay silent. |
+| Minimum surface confidence | explicit-only |
+| JavaScript modes | n/a |
+| Application scopes | global, scoped, unknown |
+| ServiceNow releases | zurich |
+| Fluent SDK range | n/a |
+
+## Options
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| _(none)_ | | | This rule has no options. |
 
 ## Incorrect
 
-### ❌ unwrapped
+### Incorrect: unwrapped
 
 ```js
 var targetGroup = gs.getProperty("x_acme.target_group");
@@ -21,7 +45,7 @@ if (current.assignment_group.nil()) {
 
 ## Correct
 
-### ✅ IIFE wrapper
+### Correct: IIFE wrapper
 
 ```js
 (function executeRule(current, previous) {
@@ -32,7 +56,46 @@ if (current.assignment_group.nil()) {
 })(current, previous);
 ```
 
+## Limitations
+
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-boundary: Body-only Business Rule source does not contain the platform wrapper.
+
+## Known false positives
+
+- None recorded.
+
+## Known false negatives
+
+- None recorded.
+
+## Intentional scope boundaries
+
+- Body-only Business Rule source does not contain the platform wrapper.
+
+## Overlaps
+
+- None recorded.
+
+## Fix safety
+
+- Classification: diagnostic only
+- Lifecycle assumptions: No extra lifecycle assumptions.
+
+## Evidence
+
+- **Full-script Business Rules use the executeRule(current, previous) IIFE so top-level bindings do not leak.**
+  - Verification ID: `rule-evidence-1c40659e`
+  - URL: https://www.servicenow.com/docs/r/application-development/business-rules-classic/c_BusinessRules.html
+  - Verified by: manual
+  - Verified at: 2026-08-20
+- **The wrapper rule reports only when businessRuleSourceFormat is full-script.**
+  - Verification ID: `rule-evidence-a86c29c7`
+  - URL: tests/integration/profiles/invalid/unwrapped.br.js
+  - Verified by: integration-test
+  - Verified at: 2026-08-20
+
 ## See also
 
-- [ServiceNow Fluent overview](https://servicenow.github.io/sdk/guides/fluent-overview)
+- [Contributor rule-authoring guide](../rule-authoring.md)
+- [Project non-goals](../non-goals.md)
 - [oxlint JS plugins](https://oxc.rs/docs/guide/usage/linter/js-plugins.html)

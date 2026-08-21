@@ -4,19 +4,43 @@
 
 - **Family:** classic
 - **Preset:** recommended
+- **Placements:** recommended (error), client (error)
 - **Default severity:** error
-- **Fixable:** no
+- **Fix safety:** diagnostic only
 - **Suggestions:** no
+- **Authoring:** classic
+- **Surfaces:** Applies to client, server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent.
+- **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
+- **Last verified:** 2026-08-20
+- **Implementation:** [`src/rules/no-gs-now.ts`](../../src/rules/no-gs-now.ts)
+
+## Applicability
+
+| Dimension | Value |
+| --- | --- |
+| Authoring | classic |
+| Surfaces | Applies to client, server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent. |
+| Minimum surface confidence | filename-inferred |
+| JavaScript modes | n/a |
+| Application scopes | global, scoped, unknown |
+| ServiceNow releases | zurich |
+| Fluent SDK range | n/a |
+
+## Options
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| _(none)_ | | | This rule has no options. |
 
 ## Incorrect
 
-### ❌ gs.now
+### Incorrect: gs.now
 
 ```js
 current.u_opened = gs.now();
 ```
 
-### ❌ gs.nowDateTime
+### Incorrect: gs.nowDateTime
 
 ```js
 current.u_opened = gs.nowDateTime();
@@ -24,13 +48,52 @@ current.u_opened = gs.nowDateTime();
 
 ## Correct
 
-### ✅ GlideDateTime
+### Correct: GlideDateTime
 
 ```js
 current.u_opened = new GlideDateTime();
 ```
 
+## Limitations
+
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-boundary: Local objects named gs are not the platform global.
+
+## Known false positives
+
+- None recorded.
+
+## Known false negatives
+
+- None recorded.
+
+## Intentional scope boundaries
+
+- Local objects named gs are not the platform global.
+
+## Overlaps
+
+- `servicenow/no-display-value-date-comparison`
+
+## Fix safety
+
+- Classification: diagnostic only
+- Lifecycle assumptions: No extra lifecycle assumptions.
+
+## Evidence
+
+- **gs.now() and gs.nowDateTime() return display strings, not GlideDateTime objects.**
+  - Verification ID: `rule-evidence-f4c2d565`
+  - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideDateTimeAPI.html
+  - Verified by: manual
+  - Verified at: 2026-08-20
+- **Host fixtures report gs.now on Business Rule files.**
+  - Verification ID: `rule-evidence-2bea52fc`
+  - URL: tests/integration/fixtures/bad-business-rule.br.js
+  - Verified by: integration-test
+  - Verified at: 2026-08-20
+
 ## See also
 
-- [ServiceNow Fluent overview](https://servicenow.github.io/sdk/guides/fluent-overview)
+- [Contributor rule-authoring guide](../rule-authoring.md)
+- [Project non-goals](../non-goals.md)
 - [oxlint JS plugins](https://oxc.rs/docs/guide/usage/linter/js-plugins.html)

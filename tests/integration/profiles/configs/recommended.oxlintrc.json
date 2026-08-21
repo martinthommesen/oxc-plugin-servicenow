@@ -1,15 +1,14 @@
 {
-  "$schema": "../../../node_modules/oxlint/configuration_schema.json",
+  "$schema": "../../../../node_modules/oxlint/configuration_schema.json",
   "jsPlugins": [
     {
       "name": "servicenow",
-      "specifier": "../../.."
+      "specifier": "../../../.."
     }
   ],
   "settings": {
     "servicenow": {
-      "scopePrefix": "x_acme",
-      "ecmaLatest": false
+      "scopePrefix": "x_acme"
     }
   },
   "rules": {
@@ -36,16 +35,5 @@
     "servicenow/no-unfiltered-gliderecord-bulk-operation": "warn",
     "servicenow/no-sync-glideajax": "error",
     "servicenow/no-async-iterators": "error"
-  },
-  "overrides": [
-    {
-      "files": [
-        "**/*.now.ts"
-      ],
-      "rules": {
-        "servicenow/no-promise": "off",
-        "servicenow/no-async-await": "off"
-      }
-    }
-  ]
+  }
 }
