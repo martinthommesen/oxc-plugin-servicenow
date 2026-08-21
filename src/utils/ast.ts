@@ -1,12 +1,11 @@
 import type { ESTree } from "@oxlint/plugins";
 
 type AnyNode = ESTree.Node | Record<string, unknown>;
+const MAX_WALK_DEPTH = 512;
 
 export function isNode(value: unknown): value is ESTree.Node {
   return Boolean(
-    value &&
-      typeof value === "object" &&
-      typeof (value as { type?: unknown }).type === "string",
+    value && typeof value === "object" && typeof (value as { type?: unknown }).type === "string",
   );
 }
 
@@ -42,6 +41,37 @@ export function getStringValue(node: unknown): string | null {
     return rec.quasis[0].value?.cooked ?? rec.quasis[0].value?.raw ?? null;
   }
 
+  return null;
+}
+
+/** Resolve a bounded, side-effect-free string expression. */
+export function getStaticStringValue(node: unknown, depth = 0): string | null {
+  if (depth > 32) return null;
+  const inner = unwrapExpression(node);
+  const direct = getStringValue(inner);
+  if (direct !== null) return direct;
+  if (!isNode(inner)) return null;
+  if (inner.type === "BinaryExpression" && (inner as ESTree.BinaryExpression).operator === "+") {
+    const binary = inner as ESTree.BinaryExpression;
+    const left = getStaticStringValue(binary.left, depth + 1);
+    const right = getStaticStringValue(binary.right, depth + 1);
+    return left === null || right === null ? null : left + right;
+  }
+  if (inner.type === "TemplateLiteral") {
+    const template = inner as ESTree.TemplateLiteral;
+    let value = "";
+    for (let index = 0; index < template.quasis.length; index += 1) {
+      const quasi = template.quasis[index];
+      if (!quasi) return null;
+      value += quasi.value.cooked ?? quasi.value.raw;
+      const expression = template.expressions[index];
+      if (!expression) continue;
+      const resolved = getStaticStringValue(expression, depth + 1);
+      if (resolved === null) return null;
+      value += resolved;
+    }
+    return value;
+  }
   return null;
 }
 
@@ -120,14 +150,14 @@ export function memberName(node: unknown): { object: string; property: string } 
 
 export function staticMemberChain(node: unknown): string[] | null {
   const parts: string[] = [];
-  let current: unknown = node;
+  let current: unknown = unwrapExpression(node);
 
   while (current && isNode(current) && current.type === "MemberExpression") {
     const member = current as unknown as ESTree.MemberExpression;
     const prop = member.computed ? getStringValue(member.property) : getName(member.property);
     if (!prop) return null;
     parts.unshift(prop);
-    current = member.object;
+    current = unwrapExpression(member.object);
   }
 
   const root = getName(current);
@@ -172,10 +202,7 @@ export function propertyKeyName(property: ESTree.ObjectProperty): string | null 
     : (getName(property.key) ?? getStringValue(property.key));
 }
 
-export function objectProperty(
-  object: unknown,
-  key: string,
-): ESTree.ObjectProperty | null {
+export function objectProperty(object: unknown, key: string): ESTree.ObjectProperty | null {
   if (!isNode(object) || object.type !== "ObjectExpression") return null;
   const expr = object as unknown as ESTree.ObjectExpression;
   for (const prop of expr.properties) {
@@ -246,50 +273,14 @@ export function commentText(comment: CommentLike): string {
   return comment.value.trim();
 }
 
-/** Extract `//` and `/*` comment bodies when `sourceCode.getAllComments` is missing. */
-export function fallbackComments(text: string): Array<{ value: string; start: number; end: number }> {
-  const out: Array<{ value: string; start: number; end: number }> = [];
-  const length = text.length;
-  let index = 0;
-  let allowBlock = true;
-  while (index < length) {
-    if (text.charCodeAt(index) !== 47) {
-      index += 1;
-      continue;
-    }
-    const next = text.charCodeAt(index + 1);
-    if (next === 47) {
-      const start = index;
-      index += 2;
-      while (index < length && text.charCodeAt(index) !== 10) {
-        index += 1;
-      }
-      out.push({ value: text.slice(start + 2, index), start, end: index });
-      continue;
-    }
-    if (next === 42 && allowBlock) {
-      const start = index;
-      let cursor = index + 2;
-      let closed = -1;
-      while (cursor < length - 1) {
-        if (text.charCodeAt(cursor) === 42 && text.charCodeAt(cursor + 1) === 47) {
-          closed = cursor + 2;
-          break;
-        }
-        cursor += 1;
-      }
-      if (closed === -1) {
-        allowBlock = false;
-        index += 1;
-        continue;
-      }
-      out.push({ value: text.slice(start + 2, closed - 2), start, end: closed });
-      index = closed;
-      continue;
-    }
-    index += 1;
-  }
-  return out;
+/** Stable source offset across ESTree, ESLint, and Oxlint node adapters. */
+export function nodeStart(node: ESTree.Node): number {
+  const compatible = node as unknown as {
+    start?: number;
+    range?: readonly number[];
+    span?: { start?: number };
+  };
+  return compatible.start ?? compatible.range?.[0] ?? compatible.span?.start ?? -1;
 }
 
 /** Keys that are not syntactic children. ESLint AST nodes also store `parent`. */
@@ -322,6 +313,7 @@ export function walk(
   seen: WeakSet<object> = new WeakSet(),
 ): void {
   if (!isNode(node)) return;
+  if (ancestors.length >= MAX_WALK_DEPTH) return;
   if (seen.has(node)) return;
   seen.add(node);
   const typed = node as ESTree.Node;

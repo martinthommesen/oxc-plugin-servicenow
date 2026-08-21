@@ -3,7 +3,7 @@ import { PLUGIN_NAME } from "../constants.js";
 import { rules as allRules } from "../rules/index.js";
 import type { RuleName } from "../rules/index.js";
 import type { ServiceNowSettings } from "../types.js";
-import { fallbackComments, isNode, walk } from "../utils/ast.js";
+import { isNode, walk } from "../utils/ast.js";
 
 export interface LintMessage {
   ruleId: string;
@@ -22,15 +22,23 @@ export interface LintMessage {
 type FixEdit = { range: [number, number]; text: string };
 
 const fixer = {
-  replaceText: (n: { start?: number; end?: number }, text: string) =>
-    ({ range: [n.start ?? 0, n.end ?? 0] as [number, number], text }),
+  replaceText: (n: { start?: number; end?: number }, text: string) => ({
+    range: [n.start ?? 0, n.end ?? 0] as [number, number],
+    text,
+  }),
   replaceTextRange: (range: [number, number], text: string) => ({ range, text }),
-  insertTextBefore: (n: { start?: number }, text: string) =>
-    ({ range: [n.start ?? 0, n.start ?? 0] as [number, number], text }),
-  insertTextAfter: (n: { end?: number }, text: string) =>
-    ({ range: [n.end ?? 0, n.end ?? 0] as [number, number], text }),
-  remove: (n: { start?: number; end?: number }) =>
-    ({ range: [n.start ?? 0, n.end ?? 0] as [number, number], text: "" }),
+  insertTextBefore: (n: { start?: number }, text: string) => ({
+    range: [n.start ?? 0, n.start ?? 0] as [number, number],
+    text,
+  }),
+  insertTextAfter: (n: { end?: number }, text: string) => ({
+    range: [n.end ?? 0, n.end ?? 0] as [number, number],
+    text,
+  }),
+  remove: (n: { start?: number; end?: number }) => ({
+    range: [n.start ?? 0, n.end ?? 0] as [number, number],
+    text: "",
+  }),
 };
 
 function applyFixes(
@@ -41,9 +49,7 @@ function applyFixes(
   if (raw == null) return undefined;
   const edits = Array.isArray(raw) ? raw : [raw];
   if (edits.length === 0) return undefined;
-  const sorted = edits
-    .slice()
-    .sort((a, b) => b.range[0] - a.range[0] || b.range[1] - a.range[1]);
+  const sorted = edits.slice().sort((a, b) => b.range[0] - a.range[0] || b.range[1] - a.range[1]);
   for (let i = 0; i < sorted.length; i++) {
     const current = sorted[i]!;
     for (let j = i + 1; j < sorted.length; j++) {
@@ -74,7 +80,10 @@ export interface ParsedSource {
   comments?: Array<{ value: string; start: number; end: number }>;
 }
 
-function interpolate(template: string, data?: Record<string, string | number | boolean | bigint | null | undefined>): string {
+function interpolate(
+  template: string,
+  data?: Record<string, string | number | boolean | bigint | null | undefined>,
+): string {
   if (!data) return template;
   return template.replace(/\{\{(\w+)\}\}/g, (_, key: string) => String(data[key] ?? ""));
 }
@@ -85,7 +94,14 @@ function lineCol(text: string, index: number): { line: number; column: number } 
   return { line: lines.length, column: (lines[lines.length - 1] ?? "").length };
 }
 
-function locFromNode(node: { start?: number; end?: number; loc?: { start: { line: number; column: number }; end?: { line: number; column: number } } }, text: string) {
+function locFromNode(
+  node: {
+    start?: number;
+    end?: number;
+    loc?: { start: { line: number; column: number }; end?: { line: number; column: number } };
+  },
+  text: string,
+) {
   if (node.loc?.start) {
     return {
       line: node.loc.start.line,
@@ -115,7 +131,7 @@ export function applyRules(
 ): LintMessage[] {
   const filename = options.filename ?? "test.js";
   const selected = options.ruleNames ?? (Object.keys(allRules) as RuleName[]);
-  const comments = parsed.comments ?? fallbackComments(source);
+  const comments = parsed.comments ?? [];
   const messages: LintMessage[] = [];
   const ancestors: ESTree.Node[] = [];
 
@@ -155,16 +171,25 @@ export function applyRules(
       report(diagnostic: {
         message?: string | null;
         messageId?: string | null;
-        node?: { start?: number; end?: number; loc?: { start: { line: number; column: number }; end?: { line: number; column: number } } };
+        node?: {
+          start?: number;
+          end?: number;
+          loc?: { start: { line: number; column: number }; end?: { line: number; column: number } };
+        };
         loc?: { start: { line: number; column: number }; end?: { line: number; column: number } };
         data?: Record<string, string | number | boolean | bigint | null | undefined>;
         fix?: (f: typeof fixer) => FixEdit | FixEdit[] | null | undefined;
-        suggest?: Array<{ desc: string; fix: (f: typeof fixer) => FixEdit | FixEdit[] | null | undefined }>;
+        suggest?: Array<{
+          desc: string;
+          fix: (f: typeof fixer) => FixEdit | FixEdit[] | null | undefined;
+        }>;
       }) {
         const meta = rule.meta as { messages?: Record<string, string> } | undefined;
         const template =
           diagnostic.message ??
-          (diagnostic.messageId && meta?.messages ? meta.messages[diagnostic.messageId] : undefined) ??
+          (diagnostic.messageId && meta?.messages
+            ? meta.messages[diagnostic.messageId]
+            : undefined) ??
           diagnostic.messageId ??
           "violation";
         const loc = diagnostic.loc
