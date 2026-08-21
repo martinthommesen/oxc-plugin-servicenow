@@ -140,9 +140,12 @@ function measure(configPath, targets) {
     let stdout = "";
     let stderr = "";
     let peakRssKb = 0;
-    const poll = setInterval(() => {
+    const sampleRss = () => {
       if (child.pid) peakRssKb = Math.max(peakRssKb, readPeakRssKb(child.pid));
-    }, 10);
+    };
+    sampleRss();
+    child.once("spawn", sampleRss);
+    const poll = setInterval(sampleRss, 10);
     child.stdout.setEncoding("utf8");
     child.stderr.setEncoding("utf8");
     child.stdout.on("data", (chunk) => (stdout += chunk));
