@@ -1,9 +1,9 @@
 # servicenow/no-hardcoded-table-names
 
-String-literal table names in `GlideRecord` / `GlideRecordSecure` / `GlideAggregate` are hard to rename. Prefer named constants or Fluent table exports.
+Optional organizational policy. String-literal table names in `GlideRecord` / `GlideRecordSecure` / `GlideAggregate` are hard to rename. Prefer named constants or Fluent table exports.
 
 - **Family:** classic
-- **Preset:** strict
+- **Preset:** off
 - **Default severity:** warn
 - **Fixable:** no
 - **Suggestions:** no

@@ -1,9 +1,9 @@
 # servicenow/no-complex-fluent-logic
 
-`.now.ts` files should declare metadata. Loops, classes, try/catch, and multi-statement functions belong in `src/server/`.
+Optional architectural policy. `.now.ts` files should declare metadata. Loops, classes, try/catch, and multi-statement functions belong in `src/server/`. Not enabled in recommended or strict.
 
 - **Family:** fluent
-- **Preset:** recommended
+- **Preset:** off
 - **Default severity:** warn
 - **Fixable:** no
 - **Suggestions:** no

@@ -1,6 +1,6 @@
 # servicenow/require-fluent-id
 
-Fluent entities must declare `$id`. Prefer `Now.ID['descriptive-key']` so `keys.ts` stays readable.
+Fluent entities must declare `$id` when the selected SDK manifest marks the imported factory as requiring an id. Prefer canonical `Now.ID['descriptive-key']`.
 
 - **Family:** fluent
 - **Preset:** recommended
@@ -35,7 +35,7 @@ BusinessRule({
   table: "incident",
   name: "Log state",
   when: "after",
-  action: ["update"],
+            action: ["update"],
 });
 ```
 

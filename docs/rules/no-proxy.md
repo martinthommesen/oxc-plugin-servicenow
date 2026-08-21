@@ -1,9 +1,9 @@
 # servicenow/no-proxy
 
-`Proxy` is unsupported on the classic engine.
+`Proxy` is unsupported in Compatibility and ES5 Standards mode.
 
 - **Family:** engine
-- **Preset:** recommended
+- **Preset:** classic-es5
 - **Default severity:** error
 - **Fixable:** no
 - **Suggestions:** no

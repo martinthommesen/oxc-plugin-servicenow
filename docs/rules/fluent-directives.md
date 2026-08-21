@@ -1,6 +1,6 @@
 # servicenow/fluent-directives
 
-Validate `@fluent-ignore` and `@fluent-disable-sync`, catch typos, and reject `@ts-ignore` as a Fluent suppress.
+Validate `@fluent-ignore`, `@fluent-disable-sync`, and `@fluent-disable-sync-for-file` against the selected SDK manifest. Previous-line directives attach to the next statement. Catch typos and reject `@ts-ignore` as a Fluent suppress.
 
 - **Family:** fluent
 - **Preset:** recommended

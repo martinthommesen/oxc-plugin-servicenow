@@ -1,9 +1,9 @@
 # servicenow/no-typed-arrays
 
-TypedArray and DataView constructors are unsupported on the classic engine.
+TypedArray and DataView constructors are unsupported in Compatibility and ES5 Standards mode. ES2021 still rejects BigInt64Array / BigUint64Array.
 
 - **Family:** engine
-- **Preset:** recommended
+- **Preset:** classic-es5
 - **Default severity:** error
 - **Fixable:** no
 - **Suggestions:** no

@@ -1,9 +1,9 @@
 # servicenow/no-async-await
 
-async/await is not implemented on the classic engine.
+async/await is not implemented in Compatibility or ES5 Standards mode.
 
 - **Family:** engine
-- **Preset:** recommended
+- **Preset:** classic-es5
 - **Default severity:** error
 - **Fixable:** no
 - **Suggestions:** no
