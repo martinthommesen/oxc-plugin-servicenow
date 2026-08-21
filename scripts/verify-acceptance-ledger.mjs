@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { arch, platform, release } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -291,6 +291,19 @@ function runTests() {
   return JSON.parse(readFileSync(testReportPath, "utf8"));
 }
 
+export function searchableRepoFiles() {
+  const files = [];
+  const visit = (directory) => {
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      const path = join(directory, entry.name);
+      if (entry.isDirectory()) visit(path);
+      else if (entry.isFile()) files.push(relative(root, path));
+    }
+  };
+  for (const directory of ["src", "scripts", "tests"]) visit(join(root, directory));
+  return files.filter((path) => path !== "scripts/pr51-acceptance.json");
+}
+
 function verifyProofs(mapping, report) {
   const errors = [];
   const byKey = new Map();
@@ -300,14 +313,7 @@ function verifyProofs(mapping, report) {
     entries.push(test);
     byKey.set(key, entries);
   }
-  const searchableFiles = execFileSync("rg", ["--files", "src", "scripts", "tests"], {
-    cwd: root,
-    encoding: "utf8",
-  })
-    .trim()
-    .split("\n")
-    .filter(Boolean)
-    .filter((path) => path !== "scripts/pr51-acceptance.json");
+  const searchableFiles = searchableRepoFiles();
   for (const item of mapping.criteria) {
     if (item.disposition === "Verified at exact head") {
       if (!item.command || item.proofs.length === 0)

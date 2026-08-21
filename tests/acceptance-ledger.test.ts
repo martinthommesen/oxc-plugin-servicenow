@@ -5,6 +5,7 @@ import { describe, it } from "node:test";
 import {
   parseCriteria,
   repoFilePath,
+  searchableRepoFiles,
   validateMapping,
   validateSnapshot,
 } from "../scripts/verify-acceptance-ledger.mjs";
@@ -68,5 +69,12 @@ describe("PR51 acceptance mapping", () => {
     for (const unsafe of ["../outside", "/tmp/outside", "folder\\outside", ""]) {
       assert.throws(() => repoFilePath(unsafe), /unsafe repository path/);
     }
+  });
+
+  it("inventories proof files without an external search command", () => {
+    const files = searchableRepoFiles();
+    assert.ok(files.includes("tests/acceptance-ledger.test.ts"));
+    assert.ok(files.includes("scripts/verify-acceptance-ledger.mjs"));
+    assert.ok(!files.includes("scripts/pr51-acceptance.json"));
   });
 });
