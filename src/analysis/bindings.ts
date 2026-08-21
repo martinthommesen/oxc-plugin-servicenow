@@ -1,7 +1,15 @@
 import type { Context, ESTree } from "@oxlint/plugins";
 import { getName, isNode, walk } from "../utils/ast.js";
 
-export type BindingKind = "var" | "let" | "const" | "param" | "function" | "class" | "import" | "catch";
+export type BindingKind =
+  | "var"
+  | "let"
+  | "const"
+  | "param"
+  | "function"
+  | "class"
+  | "import"
+  | "catch";
 
 export interface LexicalBinding {
   /** Stable identity for this declaration. Distinct from runtime object identity. */
@@ -9,10 +17,20 @@ export interface LexicalBinding {
   name: string;
   kind: BindingKind;
   node: ESTree.Node;
+  /** Ordered declarations that contribute to this binding. */
+  declarations: readonly ESTree.Node[];
   scopeId: number;
 }
 
-export type ScopeKind = "module" | "function" | "class" | "block" | "loop" | "switch" | "catch";
+export type ScopeKind =
+  | "module"
+  | "function"
+  | "class"
+  | "static-block"
+  | "block"
+  | "loop"
+  | "switch"
+  | "catch";
 
 export interface ScopeNode {
   id: number;
@@ -53,22 +71,31 @@ export class ScopeTree {
     }
   }
 
-  declare(name: string, kind: BindingKind, node: ESTree.Node): void {
+  declare(name: string, kind: BindingKind, node: ESTree.Node): LexicalBinding | null {
     const target = kind === "var" ? this.varScope() : this.current;
-    if (!target) return;
-    target.bindings.set(name, {
+    if (!target) return null;
+    const existing = target.bindings.get(name);
+    if (kind === "var" && existing?.kind === "var") {
+      (existing.declarations as unknown as ESTree.Node[]).push(node);
+      return existing;
+    }
+    const binding: LexicalBinding = {
       id: this.nextBindingId++,
       name,
       kind,
       node,
+      declarations: [node],
       scopeId: target.id,
-    });
+    };
+    target.bindings.set(name, binding);
+    return binding;
   }
 
   private varScope(): ScopeNode | null {
     let scope = this.current;
     while (scope) {
-      if (scope.kind === "function" || scope.kind === "module") return scope;
+      if (scope.kind === "function" || scope.kind === "module" || scope.kind === "static-block")
+        return scope;
       scope = scope.parent;
     }
     return this.current;
@@ -107,7 +134,11 @@ export class ScopeTree {
     return best;
   }
 
-  resolve(name: string, node: ESTree.Node, ancestors: readonly ESTree.Node[] = []): LexicalBinding | null {
+  resolve(
+    name: string,
+    node: ESTree.Node,
+    ancestors: readonly ESTree.Node[] = [],
+  ): LexicalBinding | null {
     let scope = this.scopeForNode(node, ancestors);
     while (scope) {
       const binding = scope.bindings.get(name);
@@ -117,7 +148,11 @@ export class ScopeTree {
     return null;
   }
 
-  hasLocalBinding(name: string, node: ESTree.Node, ancestors: readonly ESTree.Node[] = []): boolean {
+  hasLocalBinding(
+    name: string,
+    node: ESTree.Node,
+    ancestors: readonly ESTree.Node[] = [],
+  ): boolean {
     return this.resolve(name, node, ancestors) !== null;
   }
 }
@@ -153,10 +188,7 @@ export function collectPatternNames(node: unknown, names: string[]): void {
   }
 }
 
-function declareParams(
-  tree: ScopeTree,
-  node: { params: readonly unknown[] },
-): void {
+function declareParams(tree: ScopeTree, node: { params: readonly unknown[] }): void {
   for (const param of node.params) {
     const names: string[] = [];
     collectPatternNames(param, names);
@@ -258,6 +290,11 @@ export function buildScopeTree(ast: ESTree.Node): ScopeTree {
     ClassDeclaration(node) {
       const name = getName((node as { id?: ESTree.Node }).id);
       if (name) tree.declare(name, "class", node);
+      tree.enter("class", node);
+      if (name) tree.declare(name, "class", node);
+    },
+    "ClassDeclaration:exit"(node) {
+      tree.exit(node);
     },
     ClassExpression(node) {
       tree.enter("class", node);
@@ -265,6 +302,12 @@ export function buildScopeTree(ast: ESTree.Node): ScopeTree {
       if (name) tree.declare(name, "class", node);
     },
     "ClassExpression:exit"(node) {
+      tree.exit(node);
+    },
+    StaticBlock(node) {
+      tree.enter("static-block", node);
+    },
+    "StaticBlock:exit"(node) {
       tree.exit(node);
     },
   });
@@ -294,7 +337,11 @@ interface HostScope {
  * ServiceNow names such as `gs` and `current` are unresolved identifiers, so
  * a false result does not mean the name is local. Use host scope defs first.
  */
-function hostHasDefinedBinding(context: Context, node: ESTree.Node, name: string): boolean | undefined {
+function hostHasDefinedBinding(
+  context: Context,
+  node: ESTree.Node,
+  name: string,
+): boolean | undefined {
   const sourceCode = context.sourceCode as {
     getScope?: (node: ESTree.Node) => HostScope | null;
   };
@@ -303,10 +350,7 @@ function hostHasDefinedBinding(context: Context, node: ESTree.Node, name: string
     let scope: HostScope | null | undefined = sourceCode.getScope(node);
     while (scope) {
       const variable = scope.set?.get(name) ?? scope.variables?.find((item) => item.name === name);
-      if (
-        variable &&
-        variable.defs.some((def) => def.type !== "ImplicitGlobalVariable")
-      ) {
+      if (variable && variable.defs.some((def) => def.type !== "ImplicitGlobalVariable")) {
         return true;
       }
       scope = scope.upper;
@@ -318,7 +362,9 @@ function hostHasDefinedBinding(context: Context, node: ESTree.Node, name: string
 }
 
 export function createFileBindings(context: Context, ast?: ESTree.Node): FileBindings {
-  const program = (ast ?? (context.sourceCode.ast as ESTree.Node | undefined)) as ESTree.Node | undefined;
+  const program = (ast ?? (context.sourceCode.ast as ESTree.Node | undefined)) as
+    | ESTree.Node
+    | undefined;
   const tree = program ? buildScopeTree(program) : new ScopeTree();
 
   return {
