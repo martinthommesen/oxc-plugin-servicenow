@@ -1,5 +1,12 @@
 import type { ESTree } from "@oxlint/plugins";
-import { getName, isNode, isValueReference, unwrapExpression, WALK_SKIP_KEYS, walk } from "../utils/ast.js";
+import {
+  getName,
+  isNode,
+  isValueReference,
+  unwrapExpression,
+  WALK_SKIP_KEYS,
+  walk,
+} from "../utils/ast.js";
 import type { FileBindings, LexicalBinding, ScopeNode } from "./bindings.js";
 import { isFunctionLike } from "./bindings.js";
 import { staticPropertyName } from "./members.js";
@@ -8,6 +15,7 @@ import type { ProvenanceKind, ProvenanceQuery } from "./provenance.js";
 export type BindingId = number;
 export type ObjectId = number;
 export type Completion = "normal" | "return" | "throw" | "break" | "continue";
+type InternalCompletion = Completion | "unreachable";
 
 export interface SharedRecord<T> {
   id: ObjectId;
@@ -30,12 +38,34 @@ export interface PathRefInput<T> {
   bindingId: BindingId | null;
 }
 
-type AbruptCompletion = Exclude<Completion, "normal">;
+type AbruptCompletion = Exclude<InternalCompletion, "normal">;
+
+const DEFAULT_MAX_WORK = 50_000;
+const MAX_PATH_DEPTH = 128;
+const BUDGET_EXCEEDED = Symbol("path-analysis-budget-exceeded");
+let budgetExceededCount = 0;
+
+export function getPathBudgetExceededCount(): number {
+  return budgetExceededCount;
+}
+
+export function resetPathBudgetExceededCount(): void {
+  budgetExceededCount = 0;
+}
+
+interface WorkBudget {
+  remaining: number;
+}
+
+function spendWork(budget: WorkBudget, amount = 1): void {
+  budget.remaining -= amount;
+  if (budget.remaining < 0) throw BUDGET_EXCEEDED;
+}
 
 interface EnvState<T> {
   env: Map<BindingId, ObjectId | undefined>;
   objects: Map<ObjectId, SharedRecord<T>>;
-  completion: Completion;
+  completion: InternalCompletion;
   /** Label on break/continue completions, if any. */
   completionLabel?: string | null;
   /** Alternative abrupt paths retained until their owning construct consumes them. */
@@ -49,17 +79,33 @@ export interface PathAnalysisOptions<T> {
   emptyData: () => T;
   cloneData: (data: T) => T;
   mergeData: (left: T, right: T) => T;
+  /** Merge different runtime identities only when the domain proves both are values of the same abstract kind. */
+  mergeDistinctData?: (left: T, right: T) => T | undefined;
+  equalsData: (left: T, right: T) => boolean;
   onCall: (input: PathCallInput<T>) => void;
   onRef?: (input: PathRefInput<T>) => void;
   /** Allocate an object when an expression is a proven constructed value. */
   onValue?: (node: ESTree.Node) => T | undefined;
+  /** Inspect every reachable program completion after the shared traversal. */
+  onExit?: (states: readonly PathExitState<T>[]) => void;
+  /** Internal deterministic work cap. Exceeding it degrades this pass to unknown. */
+  maxWork?: number;
+  onBudgetExceeded?: () => void;
+}
+
+export interface PathExitState<T> {
+  completion: Completion | "unreachable";
+  records: readonly SharedRecord<T>[];
 }
 
 export function isFunctionLikeNode(node: ESTree.Node): boolean {
   return isFunctionLike(node);
 }
 
-export function mergeTri(left: boolean | "unknown", right: boolean | "unknown"): boolean | "unknown" {
+export function mergeTri(
+  left: boolean | "unknown",
+  right: boolean | "unknown",
+): boolean | "unknown" {
   if (left === right) return left;
   return "unknown";
 }
@@ -67,29 +113,38 @@ export function mergeTri(left: boolean | "unknown", right: boolean | "unknown"):
 function cloneAbrupt<T>(
   abrupt: Map<AbruptCompletion, EnvState<T>[]>,
   cloneData: (data: T) => T,
+  budget: WorkBudget,
 ): Map<AbruptCompletion, EnvState<T>[]> {
   const copy = new Map<AbruptCompletion, EnvState<T>[]>();
   for (const [kind, paths] of abrupt) {
-    copy.set(kind, paths.map((path) => snapshotState(path, cloneData)));
+    copy.set(
+      kind,
+      paths.map((path) => snapshotState(path, cloneData, budget)),
+    );
   }
   return copy;
 }
 
-function clearAbrupt<T>(state: EnvState<T>): void {
-  state.abrupt.clear();
-}
-
-function pathWithoutAlternatives<T>(state: EnvState<T>, cloneData: (data: T) => T): EnvState<T> {
-  const copy = snapshotState(state, cloneData);
+function pathWithoutAlternatives<T>(
+  state: EnvState<T>,
+  cloneData: (data: T) => T,
+  budget: WorkBudget,
+): EnvState<T> {
+  const copy = snapshotState(state, cloneData, budget);
   copy.abrupt.clear();
   return copy;
 }
 
 /** Return every reachable completion represented by one abstract state. */
-function completionPaths<T>(state: EnvState<T>, cloneData: (data: T) => T): EnvState<T>[] {
+function completionPaths<T>(
+  state: EnvState<T>,
+  cloneData: (data: T) => T,
+  budget: WorkBudget,
+): EnvState<T>[] {
   const paths: EnvState<T>[] = [];
   const add = (path: EnvState<T>): void => {
-    const copy = pathWithoutAlternatives(path, cloneData);
+    spendWork(budget);
+    const copy = pathWithoutAlternatives(path, cloneData, budget);
     paths.push(copy);
     for (const nested of path.abrupt.values()) {
       for (const child of nested) add(child);
@@ -99,15 +154,20 @@ function completionPaths<T>(state: EnvState<T>, cloneData: (data: T) => T): EnvS
   return paths;
 }
 
-function setCompletion<T>(state: EnvState<T>, completion: Completion, label: string | null = null): void {
+function setCompletion<T>(
+  state: EnvState<T>,
+  completion: InternalCompletion,
+  label: string | null = null,
+): void {
   state.completion = completion;
   state.completionLabel = label;
 }
 
-function resetLoopCompletion<T>(state: EnvState<T>): void {
-  if (state.completion === "break" || state.completion === "continue") {
-    setCompletion(state, "normal");
-  }
+function isDefinitelyTrue(node: unknown): boolean {
+  if (node == null) return true;
+  const expr = unwrapExpression(node);
+  if (!isNode(expr)) return false;
+  return expr.type === "Literal" && (expr as unknown as { value?: unknown }).value === true;
 }
 
 export function visitChildren(
@@ -134,7 +194,12 @@ function cloneRecord<T>(rec: SharedRecord<T>, cloneData: (data: T) => T): Shared
   };
 }
 
-function snapshotState<T>(state: EnvState<T>, cloneData: (data: T) => T): EnvState<T> {
+function snapshotState<T>(
+  state: EnvState<T>,
+  cloneData: (data: T) => T,
+  budget: WorkBudget,
+): EnvState<T> {
+  spendWork(budget, 1 + state.env.size + state.objects.size);
   const objects = new Map<ObjectId, SharedRecord<T>>();
   for (const [id, rec] of state.objects) {
     objects.set(id, cloneRecord(rec, cloneData));
@@ -144,7 +209,7 @@ function snapshotState<T>(state: EnvState<T>, cloneData: (data: T) => T): EnvSta
     objects,
     completion: state.completion,
     completionLabel: state.completionLabel,
-    abrupt: cloneAbrupt(state.abrupt, cloneData),
+    abrupt: cloneAbrupt(state.abrupt, cloneData, budget),
   };
 }
 
@@ -154,8 +219,12 @@ function mergeRecords<T>(
   emptyData: () => T,
   mergeData: (left: T, right: T) => T,
 ): SharedRecord<T> | undefined {
-  if (!left) return right ? { ...right, escaped: true, invalid: true, data: mergeData(right.data, emptyData()) } : undefined;
-  if (!right) return { ...left, escaped: true, invalid: true, data: mergeData(left.data, emptyData()) };
+  if (!left)
+    return right
+      ? { ...right, escaped: true, invalid: true, data: mergeData(right.data, emptyData()) }
+      : undefined;
+  if (!right)
+    return { ...left, escaped: true, invalid: true, data: mergeData(left.data, emptyData()) };
   if (left.id !== right.id) return undefined;
   return {
     id: left.id,
@@ -174,45 +243,103 @@ function mergeStates<T>(
   right: EnvState<T>,
   emptyData: () => T,
   mergeData: (left: T, right: T) => T,
+  mergeDistinctData?: (left: T, right: T) => T | undefined,
+  alloc?: () => ObjectId,
 ): EnvState<T> {
   const env = new Map<BindingId, ObjectId | undefined>();
   const objects = new Map<ObjectId, SharedRecord<T>>();
+  const objectIds = new Set([...left.objects.keys(), ...right.objects.keys()]);
+  for (const objectId of objectIds) {
+    const merged = mergeRecords(
+      left.objects.get(objectId),
+      right.objects.get(objectId),
+      emptyData,
+      mergeData,
+    );
+    if (merged) objects.set(objectId, merged);
+  }
   const ids = new Set([...left.env.keys(), ...right.env.keys()]);
   for (const bindingId of ids) {
     const leftId = left.env.get(bindingId);
     const rightId = right.env.get(bindingId);
     const leftHas = left.env.has(bindingId);
     const rightHas = right.env.has(bindingId);
-    if (!leftHas || !rightHas || leftId === undefined || rightId === undefined || leftId !== rightId) {
+    if (!leftHas || !rightHas || leftId === undefined || rightId === undefined) {
       env.set(bindingId, undefined);
       continue;
     }
-    const merged = mergeRecords(left.objects.get(leftId), right.objects.get(rightId), emptyData, mergeData);
-    if (!merged) {
+    if (leftId !== rightId) {
+      const leftRecord = left.objects.get(leftId);
+      const rightRecord = right.objects.get(rightId);
+      const data =
+        leftRecord && rightRecord
+          ? mergeDistinctData?.(leftRecord.data, rightRecord.data)
+          : undefined;
+      if (data !== undefined && alloc) {
+        const id = alloc();
+        objects.set(id, {
+          id,
+          escaped: leftRecord!.escaped || rightRecord!.escaped,
+          invalid: leftRecord!.invalid || rightRecord!.invalid,
+          data,
+        });
+        env.set(bindingId, id);
+      } else {
+        env.set(bindingId, undefined);
+      }
+      continue;
+    }
+    if (!objects.has(leftId)) {
       env.set(bindingId, undefined);
       continue;
     }
     env.set(bindingId, leftId);
-    objects.set(leftId, merged);
   }
   return { env, objects, completion: "normal", abrupt: new Map() };
+}
+
+function statesEqual<T>(
+  left: EnvState<T>,
+  right: EnvState<T>,
+  equalsData: (left: T, right: T) => boolean,
+): boolean {
+  if (left.completion !== right.completion || left.completionLabel !== right.completionLabel)
+    return false;
+  if (left.env.size !== right.env.size || left.objects.size !== right.objects.size) return false;
+  for (const [id, value] of left.env) {
+    if (!right.env.has(id) || right.env.get(id) !== value) return false;
+  }
+  for (const [id, record] of left.objects) {
+    const other = right.objects.get(id);
+    if (!other) return false;
+    if (record.escaped !== other.escaped || record.invalid !== other.invalid) return false;
+    if (!equalsData(record.data, other.data)) return false;
+  }
+  return true;
 }
 
 function mergeMany<T>(
   paths: EnvState<T>[],
   emptyData: () => T,
   mergeData: (left: T, right: T) => T,
+  mergeDistinctData?: (left: T, right: T) => T | undefined,
+  alloc?: () => ObjectId,
 ): EnvState<T> | undefined {
   const reachable = paths.filter((path) => path.completion === "normal");
   if (reachable.length === 0) return undefined;
   let current = reachable[0]!;
   for (let i = 1; i < reachable.length; i++) {
-    current = mergeStates(current, reachable[i]!, emptyData, mergeData);
+    current = mergeStates(current, reachable[i]!, emptyData, mergeData, mergeDistinctData, alloc);
   }
   return current;
 }
 
-function replaceWith<T>(target: EnvState<T>, source: EnvState<T>, cloneData?: (data: T) => T): void {
+function replaceWith<T>(
+  target: EnvState<T>,
+  source: EnvState<T>,
+  cloneData?: (data: T) => T,
+  budget?: WorkBudget,
+): void {
   target.env.clear();
   for (const [id, objectId] of source.env) target.env.set(id, objectId);
   target.objects.clear();
@@ -221,8 +348,12 @@ function replaceWith<T>(target: EnvState<T>, source: EnvState<T>, cloneData?: (d
   target.completionLabel = source.completionLabel;
   target.abrupt.clear();
   if (cloneData) {
+    if (!budget) throw new Error("path analysis budget is required when cloning state");
     for (const [kind, paths] of source.abrupt) {
-      target.abrupt.set(kind, paths.map((path) => snapshotState(path, cloneData)));
+      target.abrupt.set(
+        kind,
+        paths.map((path) => snapshotState(path, cloneData, budget)),
+      );
     }
   } else {
     for (const [kind, paths] of source.abrupt) target.abrupt.set(kind, paths);
@@ -260,7 +391,7 @@ function resolveBinding(
   const expr = unwrapExpression(node);
   const name = getName(expr);
   if (!name || !isNode(expr)) return null;
-  return bindings.tree.resolve(name, expr, ancestors);
+  return bindings.resolve(name, expr, ancestors);
 }
 
 function scopeContains(scope: ScopeNode | null, block: ESTree.Node): boolean {
@@ -272,10 +403,7 @@ function scopeContains(scope: ScopeNode | null, block: ESTree.Node): boolean {
   return false;
 }
 
-function capturedBindings(
-  fn: ESTree.Node,
-  bindings: FileBindings,
-): BindingId[] {
+function capturedBindings(fn: ESTree.Node, bindings: FileBindings): BindingId[] {
   const found = new Set<BindingId>();
   const ancestors: ESTree.Node[] = [];
   const visit = (node: unknown): void => {
@@ -285,7 +413,7 @@ function capturedBindings(
     if (isFunctionLike(node) && node !== fn) return;
     ancestors.push(node);
     if (node.type === "Identifier" && isValueReference(node, ancestors)) {
-      const binding = bindings.tree.resolve(getName(node) ?? "", node, ancestors);
+      const binding = bindings.resolve(getName(node) ?? "", node, ancestors);
       const declared = binding ? bindings.tree.scopeById(binding.scopeId) : null;
       if (binding && !scopeContains(declared, fn)) found.add(binding.id);
     }
@@ -301,7 +429,26 @@ function capturedBindings(
  * identity. Abrupt completions do not join into later statements.
  */
 export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
-  const { program, analysis, kinds, emptyData, cloneData, mergeData, onCall, onRef, onValue } = options;
+  const {
+    program,
+    analysis,
+    kinds,
+    emptyData,
+    cloneData,
+    mergeData,
+    mergeDistinctData,
+    equalsData,
+    onCall,
+    onRef,
+    onValue,
+    onExit,
+    maxWork = DEFAULT_MAX_WORK,
+    onBudgetExceeded,
+  } = options;
+  if (!Number.isSafeInteger(maxWork) || maxWork < 1) {
+    throw new RangeError("path analysis maxWork must be a positive safe integer");
+  }
+  const budget: WorkBudget = { remaining: maxWork };
   const bindings = analysis.bindings;
   let nextObjectId = 1;
   const alloc = (): ObjectId => {
@@ -311,22 +458,50 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
   const ancestors: ESTree.Node[] = [];
   const newExpressionIds = new WeakMap<ESTree.Node, ObjectId>();
   const platformObjects = new Map<string, ObjectId>();
-  const capturedBindingIds = new Set<BindingId>();
   const functionDefs = new Map<BindingId, ESTree.Node>();
+  const declaredFunctions = new Map<BindingId, ESTree.Node>();
+  const directlyCalledFunctions = new WeakSet<ESTree.Node>();
   const activeFunctions = new Set<ESTree.Node>();
+  const functionCaptures = new WeakMap<ESTree.Node, readonly BindingId[]>();
   const PLATFORM_ALIASES = new Set(["g_form", "gs", "current"]);
 
-  // Collect captures before execution so a hoisted function declaration can
-  // invalidate a later `var` assignment regardless of source order.
-  walk(options.program, {
+  const capturesOf = (fn: ESTree.Node): readonly BindingId[] => {
+    const existing = functionCaptures.get(fn);
+    if (existing) return existing;
+    const captures = capturedBindings(fn, bindings);
+    functionCaptures.set(fn, captures);
+    return captures;
+  };
+
+  // Function declarations are callable before their source position. Record
+  // only callable identity here; captured runtime values remain temporal.
+  walk(program, {
     FunctionDeclaration(node) {
-      for (const id of capturedBindings(node, bindings)) capturedBindingIds.add(id);
+      const id = (node as { id?: ESTree.Node | null }).id;
+      const name = getName(id);
+      if (!id || !name) return;
+      const binding = bindings.resolve(name, id);
+      if (binding) {
+        functionDefs.set(binding.id, node);
+        declaredFunctions.set(binding.id, node);
+      }
     },
-    FunctionExpression(node) {
-      for (const id of capturedBindings(node, bindings)) capturedBindingIds.add(id);
+    VariableDeclarator(node) {
+      const declaration = node as ESTree.VariableDeclarator;
+      const id = unwrapExpression(declaration.id);
+      const init = unwrapExpression(declaration.init);
+      if (!isNode(id) || id.type !== "Identifier" || !isNode(init) || !isFunctionLike(init)) return;
+      const binding = bindings.resolve(getName(id) ?? "", id);
+      if (binding) declaredFunctions.set(binding.id, init);
     },
-    ArrowFunctionExpression(node) {
-      for (const id of capturedBindings(node, bindings)) capturedBindingIds.add(id);
+  });
+  walk(program, {
+    CallExpression(node) {
+      const callee = unwrapExpression((node as ESTree.CallExpression).callee);
+      if (!isNode(callee) || callee.type !== "Identifier") return;
+      const binding = bindings.resolve(getName(callee) ?? "", callee);
+      const fn = binding ? declaredFunctions.get(binding.id) : undefined;
+      if (fn) directlyCalledFunctions.add(fn);
     },
   });
 
@@ -343,7 +518,10 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
     return created;
   };
 
-  const recordOf = (state: EnvState<T>, objectId: ObjectId | undefined): SharedRecord<T> | undefined => {
+  const recordOf = (
+    state: EnvState<T>,
+    objectId: ObjectId | undefined,
+  ): SharedRecord<T> | undefined => {
     if (objectId === undefined) return undefined;
     const rec = state.objects.get(objectId);
     if (!rec || rec.invalid || rec.escaped) return undefined;
@@ -382,7 +560,12 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
       };
       state.objects.set(rec.id, rec);
       newExpressionIds.set(expr, rec.id);
-      onRef?.({ node: expr, rec, name: getName((expr as ESTree.NewExpression).callee), bindingId: null });
+      onRef?.({
+        node: expr,
+        rec,
+        name: getName((expr as ESTree.NewExpression).callee),
+        bindingId: null,
+      });
       return rec.id;
     }
     if (expr.type === "SequenceExpression") {
@@ -440,6 +623,15 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
       case "Identifier": {
         const binding = resolveBinding(bindings, expr, ancestors);
         if (!binding) return;
+        const fn = functionDefs.get(binding.id);
+        if (fn) {
+          for (const capturedId of capturesOf(fn)) {
+            const capturedObjectId = state.env.get(capturedId);
+            const captured =
+              capturedObjectId === undefined ? undefined : state.objects.get(capturedObjectId);
+            if (captured) captured.escaped = true;
+          }
+        }
         const objectId = state.env.get(binding.id);
         if (objectId === undefined) return;
         const rec = state.objects.get(objectId);
@@ -495,14 +687,6 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
     }
   };
 
-  const markCapturedBinding = (state: EnvState<T>, bindingId: BindingId): void => {
-    if (!capturedBindingIds.has(bindingId)) return;
-    const objectId = state.env.get(bindingId);
-    if (objectId === undefined) return;
-    const rec = state.objects.get(objectId);
-    if (rec) rec.escaped = true;
-  };
-
   const invalidatePattern = (state: EnvState<T>, pattern: unknown): void => {
     const inner = unwrapExpression(pattern);
     if (!isNode(inner)) return;
@@ -510,7 +694,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
       const binding = resolveBinding(bindings, inner, ancestors);
       if (binding) {
         state.env.set(binding.id, undefined);
-        markCapturedBinding(state, binding.id);
+        functionDefs.delete(binding.id);
       }
       return;
     }
@@ -526,23 +710,28 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
       for (const prop of (inner as ESTree.ObjectPattern).properties) {
         if (!isNode(prop)) continue;
         if (prop.type === "RestElement") invalidatePattern(state, prop.argument);
-        else if (prop.type === "Property") invalidatePattern(state, (prop as ESTree.ObjectProperty).value);
+        else if (prop.type === "Property")
+          invalidatePattern(state, (prop as ESTree.ObjectProperty).value);
       }
       return;
     }
     if (inner.type === "ArrayPattern") {
-      for (const element of (inner as ESTree.ArrayPattern).elements) invalidatePattern(state, element);
+      for (const element of (inner as ESTree.ArrayPattern).elements)
+        invalidatePattern(state, element);
     }
   };
 
-  const bindPattern = (state: EnvState<T>, pattern: unknown, objectId: ObjectId | undefined): void => {
+  const bindPattern = (
+    state: EnvState<T>,
+    pattern: unknown,
+    objectId: ObjectId | undefined,
+  ): void => {
     const inner = unwrapExpression(pattern);
     if (!isNode(inner)) return;
     if (inner.type === "Identifier") {
       const binding = resolveBinding(bindings, inner, ancestors);
       if (binding) {
         state.env.set(binding.id, objectId);
-        markCapturedBinding(state, binding.id);
       }
       return;
     }
@@ -571,7 +760,9 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
     const inner = unwrapExpression(pattern);
     if (!isNode(inner)) return;
     if (inner.type === "AssignmentPattern") {
-      visit((inner as ESTree.AssignmentPattern).right, state, false);
+      const withDefault = snapshotState(state, cloneData, budget);
+      visit((inner as ESTree.AssignmentPattern).right, withDefault, false);
+      joinInto(state, [snapshotState(state, cloneData, budget), withDefault]);
       visitPatternExpressions(state, (inner as ESTree.AssignmentPattern).left);
       return;
     }
@@ -592,7 +783,8 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
       return;
     }
     if (inner.type === "ArrayPattern") {
-      for (const element of (inner as ESTree.ArrayPattern).elements) visitPatternExpressions(state, element);
+      for (const element of (inner as ESTree.ArrayPattern).elements)
+        visitPatternExpressions(state, element);
     }
   };
 
@@ -603,18 +795,37 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
       return;
     }
     const objectId = objectFromExpr(state, right);
-    if (isNode(target) && (target.type === "ObjectPattern" || target.type === "ArrayPattern" || target.type === "RestElement")) {
+    if (
+      isNode(target) &&
+      (target.type === "ObjectPattern" ||
+        target.type === "ArrayPattern" ||
+        target.type === "RestElement")
+    ) {
       bindPattern(state, target, objectId);
       return;
     }
     bindPattern(state, left, objectId);
+    if (isNode(target) && target.type === "Identifier") {
+      const binding = resolveBinding(bindings, target, ancestors);
+      const value = unwrapExpression(right);
+      if (binding && isNode(value) && isFunctionLike(value)) {
+        functionDefs.set(binding.id, value);
+      } else if (binding && isNode(value) && value.type === "Identifier") {
+        const source = resolveBinding(bindings, value, ancestors);
+        const fn = source ? functionDefs.get(source.id) : undefined;
+        if (fn) functionDefs.set(binding.id, fn);
+        else functionDefs.delete(binding.id);
+      } else if (binding) {
+        functionDefs.delete(binding.id);
+      }
+    }
   };
 
   const joinInto = (state: EnvState<T>, paths: EnvState<T>[]): void => {
-    const flattened = paths.flatMap((path) => completionPaths(path, cloneData));
+    const flattened = paths.flatMap((path) => completionPaths(path, cloneData, budget));
     const normal = flattened.filter((path) => path.completion === "normal");
     const abrupt = flattened.filter((path) => path.completion !== "normal");
-    const merged = mergeMany(normal, emptyData, mergeData);
+    const merged = mergeMany(normal, emptyData, mergeData, mergeDistinctData, alloc);
     state.abrupt.clear();
     if (merged) {
       replaceWith(state, merged);
@@ -627,7 +838,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
       for (const path of abrupt.slice(1)) {
         const kind = path.completion as AbruptCompletion;
         const list = state.abrupt.get(kind) ?? [];
-        list.push(pathWithoutAlternatives(path, cloneData));
+        list.push(pathWithoutAlternatives(path, cloneData, budget));
         state.abrupt.set(kind, list);
       }
     } else {
@@ -637,20 +848,23 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
 
   const visit = (node: unknown, state: EnvState<T>, traverseRoot: boolean): void => {
     if (!isNode(node) || state.completion !== "normal") return;
+    if (ancestors.length >= MAX_PATH_DEPTH) throw BUDGET_EXCEEDED;
+    spendWork(budget);
 
     if (isFunctionLike(node) && !traverseRoot) {
-      for (const bindingId of capturedBindings(node, bindings)) {
-        const objectId = state.env.get(bindingId);
-        if (objectId === undefined) continue;
-        const rec = state.objects.get(objectId);
-        if (rec) rec.escaped = true;
+      if (node.type === "FunctionDeclaration") {
+        const id = (node as { id?: ESTree.Node | null }).id;
+        const binding = id ? resolveBinding(bindings, id, ancestors) : null;
+        if (binding) functionDefs.set(binding.id, node);
       }
-      const closure = snapshotState(state, cloneData);
-      const scope = bindings.tree.scopeForNode(node);
-      if (scope) {
-        for (const binding of scope.bindings.values()) closure.env.delete(binding.id);
+      // Analyze local syntax once, without definition-time outer values. A
+      // proven direct call below replays it with invocation-time arguments.
+      if (!directlyCalledFunctions.has(node)) {
+        const local = snapshotState(state, cloneData, budget);
+        local.env.clear();
+        local.objects.clear();
+        visit(node, local, true);
       }
-      visit(node, closure, true);
       return;
     }
 
@@ -664,25 +878,50 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
       case "VariableDeclarator": {
         const decl = node as ESTree.VariableDeclarator;
         if (decl.init) visit(decl.init, state, false);
-        assignFrom(state, decl.id, decl.init);
+        visitPatternExpressions(state, decl.id);
+        const declaration = ancestors[ancestors.length - 2];
+        // `var name;` is a runtime no-op when the hoisted binding already has
+        // a value. Lexical declarations still initialize their binding here.
+        if (
+          decl.init ||
+          declaration?.type !== "VariableDeclaration" ||
+          declaration.kind !== "var"
+        ) {
+          assignFrom(state, decl.id, decl.init);
+        }
         break;
       }
       case "AssignmentExpression": {
         const assign = node as ESTree.AssignmentExpression;
-        visit(assign.right, state, false);
+        const logicalAssignment = ["&&=", "||=", "??="].includes(assign.operator);
+        const target = unwrapExpression(assign.left);
+        if (isNode(target) && target.type === "MemberExpression") {
+          visit(target.object, state, false);
+          if (target.computed) visit(target.property, state, false);
+        } else if (assign.operator !== "=") {
+          visit(assign.left, state, false);
+        }
+        if (logicalAssignment) {
+          const afterLeft = snapshotState(state, cloneData, budget);
+          visit(assign.right, state, false);
+          joinInto(state, [afterLeft, snapshotState(state, cloneData, budget)]);
+        } else {
+          visit(assign.right, state, false);
+        }
         if (assign.operator === "=") {
+          visitPatternExpressions(state, assign.left);
           assignFrom(state, assign.left, assign.right);
         } else {
-          visit(assign.left, state, false);
+          invalidatePattern(state, assign.left);
         }
         break;
       }
       case "IfStatement": {
         const stmt = node as ESTree.IfStatement;
         visit(stmt.test, state, false);
-        const consequent = snapshotState(state, cloneData);
+        const consequent = snapshotState(state, cloneData, budget);
         visit(stmt.consequent, consequent, false);
-        const alternate = snapshotState(state, cloneData);
+        const alternate = snapshotState(state, cloneData, budget);
         if (stmt.alternate) visit(stmt.alternate, alternate, false);
         joinInto(state, [consequent, alternate]);
         break;
@@ -690,9 +929,9 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
       case "ConditionalExpression": {
         const expr = node as ESTree.ConditionalExpression;
         visit(expr.test, state, false);
-        const consequent = snapshotState(state, cloneData);
+        const consequent = snapshotState(state, cloneData, budget);
         visit(expr.consequent, consequent, false);
-        const alternate = snapshotState(state, cloneData);
+        const alternate = snapshotState(state, cloneData, budget);
         visit(expr.alternate, alternate, false);
         joinInto(state, [consequent, alternate]);
         break;
@@ -700,36 +939,54 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
       case "LogicalExpression": {
         const expr = node as ESTree.LogicalExpression;
         visit(expr.left, state, false);
-        const afterLeft = snapshotState(state, cloneData);
+        const afterLeft = snapshotState(state, cloneData, budget);
         visit(expr.right, state, false);
-        joinInto(state, [afterLeft, snapshotState(state, cloneData)]);
+        joinInto(state, [afterLeft, snapshotState(state, cloneData, budget)]);
+        break;
+      }
+      case "LabeledStatement": {
+        const statement = node as ESTree.LabeledStatement;
+        const label = getName(statement.label);
+        visit(statement.body, state, false);
+        const paths = completionPaths(state, cloneData, budget);
+        for (const path of paths) {
+          if (path.completion === "break" && path.completionLabel === label) {
+            setCompletion(path, "normal");
+          }
+        }
+        joinInto(state, paths);
         break;
       }
       case "SwitchStatement": {
         const stmt = node as ESTree.SwitchStatement;
         visit(stmt.discriminant, state, false);
-        const before = snapshotState(state, cloneData);
+        const before = snapshotState(state, cloneData, budget);
         const exits: EnvState<T>[] = [];
+        const abruptExits: EnvState<T>[] = [];
         let hasDefault = false;
-        let fall = snapshotState(before, cloneData);
+        let fall: EnvState<T> | undefined;
         for (const switchCase of stmt.cases) {
           if (!switchCase.test) hasDefault = true;
-          const entry = mergeStates(snapshotState(before, cloneData), fall, emptyData, mergeData);
-          if (switchCase.test) visit(switchCase.test, entry, false);
+          const direct = snapshotState(before, cloneData, budget);
+          if (switchCase.test) visit(switchCase.test, direct, false);
+          const entry = fall
+            ? mergeStates(direct, fall, emptyData, mergeData, mergeDistinctData, alloc)
+            : direct;
           for (const consequent of switchCase.consequent) visit(consequent, entry, false);
-          if (entry.completion === "break") {
-            entry.completion = "normal";
+          if (entry.completion === "break" && !entry.completionLabel) {
+            setCompletion(entry, "normal");
             exits.push(entry);
-            fall = snapshotState(before, cloneData);
+            fall = undefined;
           } else if (entry.completion === "normal") {
             fall = entry;
           } else {
-            fall = snapshotState(before, cloneData);
+            abruptExits.push(entry);
+            fall = undefined;
           }
         }
         if (!hasDefault) exits.push(before);
-        else if (fall.completion === "normal") exits.push(fall);
-        joinInto(state, exits.length > 0 ? exits : [before]);
+        if (fall?.completion === "normal") exits.push(fall);
+        joinInto(state, [...exits, ...abruptExits]);
         break;
       }
       case "ForStatement":
@@ -746,14 +1003,20 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
         if (node.type === "ForInStatement" || node.type === "ForOfStatement") {
           const iterable = node as ESTree.ForInStatement | ESTree.ForOfStatement;
           if (iterable.right) visit(iterable.right, state, false);
-          if (iterable.left) visit(iterable.left, state, false);
         }
 
-        const beforeTest = snapshotState(state, cloneData);
-        const testState = snapshotState(beforeTest, cloneData);
+        const beforeTest = snapshotState(state, cloneData, budget);
+        const testState = snapshotState(beforeTest, cloneData, budget);
         const isFor = node.type === "ForStatement";
         const isWhile = node.type === "WhileStatement";
         const isDoWhile = node.type === "DoWhileStatement";
+        const parent = ancestors[ancestors.length - 2];
+        const loopLabel =
+          parent?.type === "LabeledStatement" && (parent as ESTree.LabeledStatement).body === node
+            ? getName((parent as ESTree.LabeledStatement).label)
+            : null;
+        const ownsLoopCompletion = (path: EnvState<T>, kind: "break" | "continue"): boolean =>
+          path.completion === kind && (!path.completionLabel || path.completionLabel === loopLabel);
         if (isFor) {
           const test = (node as ESTree.ForStatement).test;
           if (test) visit(test, testState, false);
@@ -761,70 +1024,104 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
           visit((node as ESTree.WhileStatement).test, testState, false);
         }
 
-        if (isDoWhile) {
-          // A do/while always enters its body once. `continue` still flows
-          // through the owning condition before the next iteration.
-          const bodyState = snapshotState(beforeTest, cloneData);
-          visit((node as ESTree.DoWhileStatement).body, bodyState, false);
-          const bodyCompletion = bodyState.completion;
-          if (bodyCompletion === "break") {
-            resetLoopCompletion(bodyState);
-          } else if (bodyCompletion === "continue") {
-            resetLoopCompletion(bodyState);
-            visit((node as ESTree.DoWhileStatement).test, bodyState, false);
-          } else if (bodyCompletion === "normal") {
-            visit((node as ESTree.DoWhileStatement).test, bodyState, false);
+        const test = isFor
+          ? (node as ESTree.ForStatement).test
+          : isWhile
+            ? (node as ESTree.WhileStatement).test
+            : undefined;
+        const infinite = (isFor || isWhile) && isDefinitelyTrue(test);
+        const exits: EnvState<T>[] =
+          isDoWhile || infinite ? [] : [snapshotState(testState, cloneData, budget)];
+        const initialHeader = snapshotState(isDoWhile ? beforeTest : testState, cloneData, budget);
+        let header = snapshotState(initialHeader, cloneData, budget);
+        for (let iteration = 0; iteration < 16; iteration += 1) {
+          const bodyState = snapshotState(header, cloneData, budget);
+          if (node.type === "ForInStatement" || node.type === "ForOfStatement") {
+            const left = (node as ESTree.ForInStatement | ESTree.ForOfStatement).left;
+            if (left.type === "VariableDeclaration") visit(left, bodyState, false);
+            else invalidatePattern(bodyState, left);
           }
-          const after = snapshotState(bodyState, cloneData);
-          joinInto(state, [after]);
-          break;
-        }
+          const body = isFor
+            ? (node as ESTree.ForStatement).body
+            : isWhile
+              ? (node as ESTree.WhileStatement).body
+              : isDoWhile
+                ? (node as ESTree.DoWhileStatement).body
+                : (node as ESTree.ForInStatement | ESTree.ForOfStatement).body;
+          visit(body, bodyState, false);
 
-        // While/for/for-in/for-of can take the zero-body path after their
-        // header/test effects, or enter one iteration from that same state.
-        const bodyState = snapshotState(testState, cloneData);
-        if (isFor) {
-          visit((node as ESTree.ForStatement).body, bodyState, false);
-        } else if (isWhile) {
-          visit((node as ESTree.WhileStatement).body, bodyState, false);
-        } else {
-          visit((node as ESTree.ForInStatement | ESTree.ForOfStatement).body, bodyState, false);
-        }
-
-        const bodyCompletion = bodyState.completion;
-        if (bodyCompletion === "break") {
-          // break exits the loop and skips a for-update expression.
-          resetLoopCompletion(bodyState);
-        } else {
-          // Both labeled and unlabeled continue target the owning loop here;
-          // consuming it before the update/test models JavaScript's target
-          // semantics instead of dropping those side effects.
-          if (bodyCompletion === "continue") resetLoopCompletion(bodyState);
-          if (isFor) {
-            const update = (node as ESTree.ForStatement).update;
-            if (update) visit(update, bodyState, false);
+          const backEdges: EnvState<T>[] = [];
+          for (const path of completionPaths(bodyState, cloneData, budget)) {
+            if (ownsLoopCompletion(path, "break")) {
+              setCompletion(path, "normal");
+              exits.push(path);
+              continue;
+            }
+            if (ownsLoopCompletion(path, "continue")) setCompletion(path, "normal");
+            if (path.completion !== "normal") {
+              exits.push(path);
+              continue;
+            }
+            if (isFor) {
+              const update = (node as ESTree.ForStatement).update;
+              if (update) visit(update, path, false);
+            }
+            if (isDoWhile) {
+              visit((node as ESTree.DoWhileStatement).test, path, false);
+            } else if (test) {
+              visit(test, path, false);
+            }
+            if (!infinite) exits.push(snapshotState(path, cloneData, budget));
+            backEdges.push(path);
           }
+          const back = mergeMany(backEdges, emptyData, mergeData, mergeDistinctData, alloc);
+          if (!back) break;
+          const nextHeader = mergeStates(
+            initialHeader,
+            back,
+            emptyData,
+            mergeData,
+            mergeDistinctData,
+            alloc,
+          );
+          if (statesEqual(header, nextHeader, equalsData)) break;
+          header = nextHeader;
         }
-        const after = snapshotState(bodyState, cloneData);
-        joinInto(state, [testState, after]);
+        if (exits.length === 0) setCompletion(state, "unreachable");
+        else joinInto(state, exits);
         break;
       }
 
       case "TryStatement": {
         const stmt = node as ESTree.TryStatement;
-        const before = snapshotState(state, cloneData);
-        const tried = snapshotState(before, cloneData);
+        const tried = snapshotState(state, cloneData, budget);
         visit(stmt.block, tried, false);
-        const caught = snapshotState(before, cloneData);
-        if (stmt.handler) visit(stmt.handler, caught, false);
-        const afterTry = mergeMany([tried, caught], emptyData, mergeData);
-        if (afterTry) replaceWith(state, afterTry);
-        else replaceWith(state, tried.completion === "normal" ? tried : caught);
-        if (stmt.finalizer) visit(stmt.finalizer, state, false);
+        const handled: EnvState<T>[] = [];
+        for (const path of completionPaths(tried, cloneData, budget)) {
+          if (path.completion === "throw" && stmt.handler) {
+            setCompletion(path, "normal");
+            visit(stmt.handler, path, false);
+          }
+          handled.push(path);
+        }
+        if (stmt.finalizer) {
+          for (const path of handled) {
+            if (path.completion === "unreachable") continue;
+            const priorCompletion = path.completion;
+            const priorLabel = path.completionLabel ?? null;
+            setCompletion(path, "normal");
+            visit(stmt.finalizer, path, false);
+            if (path.completion === "normal") setCompletion(path, priorCompletion, priorLabel);
+          }
+        }
+        joinInto(state, handled);
         break;
       }
       case "CallExpression": {
         const call = node as ESTree.CallExpression;
+        // Capture the evaluated receiver before arguments can reassign its
+        // binding. Nested argument calls still mutate the same object record.
+        visit(call.callee, state, false);
         const callee = unwrapExpression(call.callee);
         const property = staticPropertyName(callee);
         let objectName: string | null = null;
@@ -835,12 +1132,56 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
           const objectId = objectFromExpr(state, object);
           rec = recordOf(state, objectId);
         }
+        for (const arg of call.arguments) visit(arg, state, false);
         onCall({ call, rec, objectName, property });
-        for (const arg of call.arguments) markEscape(state, arg);
-        visitChildren(node, (child) => visit(child, state, false));
+        const direct = unwrapExpression(call.callee);
+        let fn: ESTree.Node | undefined;
+        if (isNode(direct) && isFunctionLike(direct)) {
+          fn = direct;
+        } else if (isNode(direct) && direct.type === "Identifier") {
+          const binding = resolveBinding(bindings, direct, ancestors);
+          fn = binding ? functionDefs.get(binding.id) : undefined;
+        }
+        if (fn && !activeFunctions.has(fn)) {
+          activeFunctions.add(fn);
+          const invocation = snapshotState(state, cloneData, budget);
+          const argumentIds = call.arguments.map((argument) => objectFromExpr(state, argument));
+          const params = (fn as unknown as { params: readonly ESTree.Node[] }).params;
+          ancestors.push(fn);
+          for (let index = 0; index < params.length; index += 1) {
+            visitPatternExpressions(invocation, params[index]);
+            bindPattern(invocation, params[index], argumentIds[index]);
+          }
+          const body = (fn as unknown as { body: ESTree.Node }).body;
+          visit(body, invocation, false);
+          ancestors.pop();
+          const returned = completionPaths(invocation, cloneData, budget);
+          for (const path of returned) {
+            if (path.completion === "return") setCompletion(path, "normal");
+          }
+          const merged = mergeMany(returned, emptyData, mergeData, mergeDistinctData, alloc);
+          if (merged) {
+            for (const id of state.objects.keys()) {
+              const updated = merged.objects.get(id);
+              if (updated) state.objects.set(id, updated);
+            }
+          }
+          activeFunctions.delete(fn);
+        } else {
+          if (fn) {
+            for (const capturedId of capturesOf(fn)) {
+              const objectId = state.env.get(capturedId);
+              const captured = objectId === undefined ? undefined : state.objects.get(objectId);
+              if (captured) captured.escaped = true;
+            }
+          }
+          for (const arg of call.arguments) markEscape(state, arg);
+        }
         break;
       }
       case "NewExpression": {
+        const prior = newExpressionIds.get(node);
+        if (prior !== undefined) state.objects.delete(prior);
         for (const arg of (node as ESTree.NewExpression).arguments) markEscape(state, arg);
         objectFromExpr(state, node);
         visitChildren(node, (child) => visit(child, state, false));
@@ -857,10 +1198,10 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
         state.completion = "throw";
         break;
       case "BreakStatement":
-        state.completion = "break";
+        setCompletion(state, "break", getName((node as ESTree.BreakStatement).label));
         break;
       case "ContinueStatement":
-        state.completion = "continue";
+        setCompletion(state, "continue", getName((node as ESTree.ContinueStatement).label));
         break;
       case "Identifier": {
         if (isValueReference(node, ancestors)) {
@@ -886,5 +1227,25 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
     ancestors.pop();
   };
 
-  visit(program, { env: new Map(), objects: new Map(), completion: "normal", abrupt: new Map() }, true);
+  const finalState: EnvState<T> = {
+    env: new Map(),
+    objects: new Map(),
+    completion: "normal",
+    abrupt: new Map(),
+  };
+  try {
+    visit(program, finalState, true);
+    if (onExit) {
+      onExit(
+        completionPaths(finalState, cloneData, budget).map((path) => ({
+          completion: path.completion,
+          records: [...path.objects.values()],
+        })),
+      );
+    }
+  } catch (error) {
+    if (error !== BUDGET_EXCEEDED) throw error;
+    budgetExceededCount += 1;
+    onBudgetExceeded?.();
+  }
 }
