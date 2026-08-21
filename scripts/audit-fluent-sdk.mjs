@@ -192,7 +192,7 @@ export function moduleResolver(sdk, core) {
     let target = exportTarget(exports[subpath]);
     const wildcard = exportTarget(exports["./*"]);
     if (!target && wildcard) {
-      target = wildcard.replace("*", subpath.slice(2));
+      target = wildcard.replaceAll("*", subpath.slice(2));
     }
     assert.equal(typeof target, "string", `${specifier}: core package export missing`);
     const filename = `package/${target.replace(/^\.\//u, "")}`;
