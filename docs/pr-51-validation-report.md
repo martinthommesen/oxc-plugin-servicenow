@@ -10,22 +10,24 @@ Readiness terms have these meanings:
 - **Live-pending**: only a protected post-merge tag, registry, or GitHub action can supply the proof.
 - **Release-verified**: the stable protected-tag run supplied exact live evidence.
 
-## Current-head status
+## Current status
 
-The current tracking state is not **Merge-ready**. These blockers remain:
+PR #51 is a tracking record. Do not merge it.
 
-- No current result is linked to the exact head of each owning dependent pull request.
-- Ledger rows 2, 9, 14–20, 27, 29, 37, 38, 42–45, 49, 51, 52, 57, 58, 65, 68, 71, 74, 83, 85, and 101–103 were contradicted by the review at `b87972a`.
-- Issues #57, #58, #64, #66, #69, #70, #72, #74, and #75 had acceptance requirements omitted from the former ledger. Their restored rows are **Pending**.
-- Issue #75 requires actual dependent pull requests with isolated review and rollback boundaries. Ordered commits and document labels do not satisfy it.
-- Applicable clean-checkout tests, real Oxlint and ESLint host checks, inspected-artifact checks, review, and executable governance checks must run again at each exact owning head or merge commit.
-- Historical checkpoint commands and GitHub runs below refer to older commits. They cannot produce **Verified-at-head** for a changed or rebased head.
+Implementation is complete in PRs #77–#85. Community-health files are complete in PR #87. Each current child head passed its required GitHub checks on 2026-08-21.
 
-The merge gate does not require a stable tag. It evaluates current code and configuration at the exact pull request head or merge commit. It requires applicable clean-checkout tests, real hosts, inspected-artifact checks, review, and executable governance checks.
+The final local acceptance capture on PR #85 recorded these results:
+
+- 794 tests passed and 0 failed.
+- 450 criteria are verified.
+- 53 criteria remain pending until the stack merges.
+- 30 criteria remain live-pending until a protected release runs.
+
+Merge the child PRs in order. After each predecessor merges, retarget only the next PR to `main` and wait for the new required checks. A prior stacked-branch result does not prove the changed merge candidate.
 
 ## Post-merge release status
 
-The release remains **Live-pending**. After the reviewed stack merges to protected `main`, a controlled protected tag must drive approved OpenID Connect (OIDC) publication. The same run must supply registry integrity, exact cryptographic provenance identity, public-import, exact-tag-target, and GitHub release evidence. Only that stable protected-tag evidence can make the release **Release-verified**. Issues #58 and #76 remain open until this evidence exists.
+The release remains **Live-pending**. After the reviewed stack merges to protected `main`, the maintainer can approve a controlled tag request. Release Sentinel creates the lightweight tag at the exact protected `main` commit. The release workflow must then prove npm OpenID Connect (OIDC) publication, registry integrity, exact cryptographic provenance identity, public imports, exact tag targeting, and GitHub release creation. Issues #58 and #76 remain open until this evidence exists.
 
 ---
 
