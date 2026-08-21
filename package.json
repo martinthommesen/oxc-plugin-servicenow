@@ -57,9 +57,10 @@
     "clean": "rm -rf dist",
     "prepack": "npm run clean && npm run build",
     "prepublishOnly": "npm run clean && npm run build && npm test",
-    "test": "node scripts/run-tests.mjs",
+    "test": "node scripts/run-tests.mjs && npm run fluent:check",
     "test:integration": "node scripts/run-tests.mjs tests/integration",
     "typecheck": "tsc --noEmit -p tsconfig.json",
+    "fluent:check": "tsx scripts/check-fluent-manifest.mjs",
     "docs": "tsx scripts/generate-rule-docs.mjs",
     "docs:check": "tsx scripts/generate-rule-docs.mjs && git diff --exit-code -- docs/rules"
   },

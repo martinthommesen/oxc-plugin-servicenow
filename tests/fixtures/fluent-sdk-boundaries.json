@@ -1,0 +1,26 @@
+{
+  "versions": {
+    "3.0.0": {
+      "present": ["BusinessRule", "List"],
+      "absent": ["AliasTemplate", "CatalogItemRecordProducer", "ScheduledScript", "SPMenu", "StateModel", "UiAction", "UiPage"],
+      "idRequirements": { "List": "required" }
+    },
+    "4.1.0": {
+      "present": ["BusinessRule", "List"],
+      "absent": ["AliasTemplate", "CatalogItemRecordProducer", "ScheduledScript", "SPMenu", "StateModel", "UiAction", "UiPage"],
+      "idRequirements": { "List": "deprecated" }
+    },
+    "4.8.0": {
+      "present": ["AliasTemplate", "CatalogItemRecordProducer", "ScheduledScript", "SPMenu", "UiAction", "UiPage"],
+      "absent": ["StateModel"]
+    },
+    "4.10.0": {
+      "present": ["StateModel"],
+      "absent": []
+    },
+    "4.11.0": {
+      "present": ["StateModel"],
+      "absent": []
+    }
+  }
+}
