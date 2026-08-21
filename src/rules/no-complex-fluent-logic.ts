@@ -1,7 +1,8 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
-import { isFluentFile } from "../utils/filenames.js";
+import { isFluentContext } from "../context/index.js";
+import { beginRuleFile } from "./helpers.js";
 
 const BANNED: Record<string, string> = {
   FunctionDeclaration: "function declarations",
@@ -35,7 +36,8 @@ export const noComplexFluentLogic = defineRule({
   createOnce(context) {
     return {
       before() {
-        if (!isFluentFile(context.filename)) return false;
+        const { context: script } = beginRuleFile(context);
+        if (!isFluentContext(script)) return false;
       },
       FunctionDeclaration: banned,
       ClassDeclaration: banned,
