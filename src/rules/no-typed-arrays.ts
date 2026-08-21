@@ -10,8 +10,7 @@ export const noTypedArrays = defineRule({
   meta: {
     type: "problem",
     docs: {
-      description:
-        "Disallow TypedArray and DataView constructors in classic ServiceNow scripts.",
+      description: "Disallow TypedArray and DataView constructors in classic ServiceNow scripts.",
       recommended: "recommended",
       url: ruleDocsUrl("no-typed-arrays"),
     },

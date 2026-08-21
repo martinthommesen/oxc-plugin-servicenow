@@ -9,9 +9,7 @@ const require = createRequire(import.meta.url);
 const tsxCli = require.resolve("tsx/cli");
 const searchArgs = process.argv.slice(2);
 const searchRoots =
-  searchArgs.length > 0
-    ? searchArgs.map((entry) => join(root, entry))
-    : [join(root, "tests")];
+  searchArgs.length > 0 ? searchArgs.map((entry) => join(root, entry)) : [join(root, "tests")];
 
 /**
  * Collect `*.test.ts` files without relying on Node 22 glob expansion.
