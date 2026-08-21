@@ -77,15 +77,15 @@ export function checkCompatibilityMatrix() {
       errors.push(`${name} is ${actual ?? "missing"}; matrix requires ${expected}`);
   }
 
-  for (const workflow of [".github/workflows/ci.yml"]) {
-    const text = readFileSync(join(root, workflow), "utf8");
-    if (!text.includes("node scripts/check-compat-matrix.mjs --github-matrix")) {
-      errors.push(`${workflow} does not generate its matrix from scripts/compat-matrix.json`);
-    }
-    if (!text.includes("fromJSON(needs."))
-      errors.push(`${workflow} does not consume the generated matrix`);
-    if (/^\s+- cell:/m.test(text)) errors.push(`${workflow} contains copied compatibility cells`);
+  const workflow = ".github/workflows/ci.yml";
+  const workflowText = readFileSync(join(root, workflow), "utf8");
+  if (!workflowText.includes("node scripts/check-compat-matrix.mjs --github-matrix")) {
+    errors.push(`${workflow} does not generate its matrix from scripts/compat-matrix.json`);
   }
+  if (!workflowText.includes("fromJSON(needs."))
+    errors.push(`${workflow} does not consume the generated matrix`);
+  if (/^\s+- cell:/m.test(workflowText))
+    errors.push(`${workflow} contains copied compatibility cells`);
 
   if (errors.length) throw new Error(`compatibility matrix check failed:\n${errors.join("\n")}`);
   return {
