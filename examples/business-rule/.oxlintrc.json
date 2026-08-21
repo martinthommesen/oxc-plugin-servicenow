@@ -1,0 +1,26 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "jsPlugins": [
+    {
+      "name": "servicenow",
+      "specifier": "oxc-plugin-servicenow"
+    }
+  ],
+  "settings": {
+    "servicenow": {
+      "surfaces": [
+        "business-rule"
+      ],
+      "businessRuleSourceFormat": "full-script"
+    }
+  },
+  "rules": {
+    "servicenow/require-query-before-next": "error",
+    "servicenow/no-br-current-update": "error",
+    "servicenow/no-delete-multiple-with-windowing": "error",
+    "servicenow/validate-glideaggregate-calls": "error",
+    "servicenow/no-glideelement-in-collection": "error",
+    "servicenow/no-gliderecord-query-modifier-after-query": "error",
+    "servicenow/require-business-rule-wrapper": "error"
+  }
+}
