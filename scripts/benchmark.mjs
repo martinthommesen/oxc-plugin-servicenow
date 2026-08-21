@@ -295,7 +295,9 @@ async function main() {
       console.log(`${row.fixture} ${row.profile} ${row.elapsedMs}ms rss=${row.peakRssKb}KB`);
     console.log(`scale small->large recommended: ${summary.scale}x`);
     console.log(`wrote current benchmark ${outputPath}`);
-    checkBenchmarkRegression(results, baseline);
+    for (const trend of checkBenchmarkRegression(results, baseline)) {
+      console.warn(`performance trend: ${trend}`);
+    }
     if (writeBaseline) {
       assertBenchmarkFixtureSet(results, results);
       writeFileSync(

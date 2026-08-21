@@ -36,10 +36,13 @@ A performance change blocks release when:
 
 - `classic-large/recommended` exceeds 5,000 ms
 - the recommended large/small scale ratio exceeds 4
+
+CI also reports trend warnings when:
+
 - a fixture's median elapsed time exceeds `baseline * 1.5 + 100 ms`
 - a fixture's peak RSS exceeds `baseline * 1.25 + 25,000 KB`
 
-Those thresholds detect repeated full-file analysis and quadratic scans. They are not nanosecond budgets.
+Absolute measurements from uncontrolled public runners are trend evidence. The blocking limits detect repeated full-file analysis and quadratic scans.
 
 The path-sensitive interpreter also has a deterministic per-pass work budget and a maximum traversal depth. If either limit is reached, the pass stops and returns unknown facts. This fail-safe bounds adversarial machine-generated input without inventing a definite result.
 

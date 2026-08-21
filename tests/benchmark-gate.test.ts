@@ -79,6 +79,20 @@ describe("benchmark regression gate", () => {
     );
   });
 
+  it("reports absolute runner variance as trend evidence", () => {
+    const baseline = {
+      results: [row("classic-small/recommended", 100), row("classic-large/recommended", 200)],
+      regression,
+    };
+    const trends = checkBenchmarkRegression(
+      [row("classic-small/recommended", 300, 500), row("classic-large/recommended", 600, 500)],
+      baseline,
+    );
+    assert.equal(trends.length, 4);
+    assert.match(trends.join("\n"), /elapsed/);
+    assert.match(trends.join("\n"), /RSS/);
+  });
+
   it("accepts only a clean, complete Oxlint result", () => {
     const valid = { status: 0, signal: null, stdout: '{"diagnostics":[]}', stderr: "" };
     assert.deepEqual(validateOxlintProcessResult(valid), { diagnostics: [] });

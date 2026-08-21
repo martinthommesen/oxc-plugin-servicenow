@@ -116,22 +116,21 @@ export function checkBenchmarkRegression(results, baseline) {
   validateThresholds(baseline.regression);
   const baselineRows = baseline.results ?? [];
   assertBenchmarkFixtureSet(results, baselineRows);
+  const trends = [];
   for (const row of results) {
     const previous = baselineRows.find((item) => caseKey(item) === caseKey(row));
     const elapsedLimit =
       previous.elapsedMs * baseline.regression.elapsedMultiplier +
       baseline.regression.elapsedFloorMs;
     if (row.elapsedMs > elapsedLimit) {
-      throw new Error(
+      trends.push(
         `${row.fixture}/${row.profile} elapsed ${row.elapsedMs}ms exceeded ${elapsedLimit}ms`,
       );
     }
     const rssLimit =
       previous.peakRssKb * baseline.regression.rssMultiplier + baseline.regression.rssFloorKb;
     if (row.peakRssKb > rssLimit) {
-      throw new Error(
-        `${row.fixture}/${row.profile} RSS ${row.peakRssKb}KB exceeded ${rssLimit}KB`,
-      );
+      trends.push(`${row.fixture}/${row.profile} RSS ${row.peakRssKb}KB exceeded ${rssLimit}KB`);
     }
   }
   const large = results.find((row) => row.fixture === "classic-large/recommended");
@@ -147,4 +146,5 @@ export function checkBenchmarkRegression(results, baseline) {
       `classic-large/recommended exceeded ${baseline.regression.maxRecommendedLargeMs}ms`,
     );
   }
+  return trends;
 }
