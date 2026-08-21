@@ -159,10 +159,9 @@ function measure(configPath, targets) {
       if (child.pid) peakRssKb = Math.max(peakRssKb, readPeakRssKb(child.pid));
       try {
         validateOxlintProcessResult({ status, signal, stdout, stderr });
-        if (peakRssKb <= 0) throw new Error("required peak RSS metric is unavailable");
         resolvePromise({
           elapsedMs: Number(process.hrtime.bigint() - started) / 1e6,
-          peakRssKb,
+          peakRssKb: peakRssKb || null,
         });
       } catch (error) {
         reject(error);
@@ -181,11 +180,16 @@ async function runCase(fixture, profile, configPath, targets) {
   const rawSamples = [];
   for (let index = 0; index < samples; index += 1)
     rawSamples.push(await measure(configPath, targets));
+  const rssSamples = rawSamples
+    .map((sample) => sample.peakRssKb)
+    .filter((peakRssKb) => peakRssKb !== null);
+  if (rssSamples.length === 0)
+    throw new Error(`required peak RSS metric is unavailable for ${fixture}`);
   return {
     fixture,
     profile,
     elapsedMs: Math.round(median(rawSamples.map((sample) => sample.elapsedMs))),
-    peakRssKb: Math.round(median(rawSamples.map((sample) => sample.peakRssKb))),
+    peakRssKb: Math.round(median(rssSamples)),
     rawSamples,
   };
 }

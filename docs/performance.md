@@ -17,7 +17,7 @@ The command generates deterministic fixtures and times the real `oxlint` executa
 - skip-path client files
 - a mixed repository
 
-Each case records raw samples, median elapsed time, and peak RSS after one warm-up run and ten samples. A sample is rejected unless Oxlint exits successfully, emits one complete JSON document, and reports no diagnostics.
+Each case records raw samples, median elapsed time, and peak RSS after one warm-up run and ten samples. A sample is rejected unless Oxlint exits successfully, emits one complete JSON document, and reports no diagnostics. A missed raw RSS measurement is recorded as `null`. The case fails when every sample lacks RSS evidence.
 
 Profiles compared:
 
