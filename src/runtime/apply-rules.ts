@@ -3,7 +3,7 @@ import { PLUGIN_NAME } from "../constants.js";
 import { rules as allRules } from "../rules/index.js";
 import type { RuleName } from "../rules/index.js";
 import type { ServiceNowSettings } from "../types.js";
-import { isNode, walk } from "../utils/ast.js";
+import { fallbackComments, isNode, walk } from "../utils/ast.js";
 
 export interface LintMessage {
   ruleId: string;
@@ -131,7 +131,7 @@ export function applyRules(
 ): LintMessage[] {
   const filename = options.filename ?? "test.js";
   const selected = options.ruleNames ?? (Object.keys(allRules) as RuleName[]);
-  const comments = parsed.comments ?? [];
+  const comments = parsed.comments ?? fallbackComments(source);
   const messages: LintMessage[] = [];
   const ancestors: ESTree.Node[] = [];
 
