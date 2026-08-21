@@ -274,6 +274,46 @@ export function commentText(comment: CommentLike): string {
   return comment.value.trim();
 }
 
+/** Extract comment bodies when the host does not expose `getAllComments()`. */
+export function fallbackComments(text: string): Array<{ value: string; start: number; end: number }> {
+  const comments: Array<{ value: string; start: number; end: number }> = [];
+  let index = 0;
+  let allowBlock = true;
+
+  while (index < text.length) {
+    if (text.charCodeAt(index) !== 47) {
+      index += 1;
+      continue;
+    }
+
+    const next = text.charCodeAt(index + 1);
+    if (next === 47) {
+      const start = index;
+      index += 2;
+      while (index < text.length && text.charCodeAt(index) !== 10) index += 1;
+      comments.push({ value: text.slice(start + 2, index), start, end: index });
+      continue;
+    }
+
+    if (next === 42 && allowBlock) {
+      const start = index;
+      const close = text.indexOf("*/", index + 2);
+      if (close === -1) {
+        allowBlock = false;
+        index += 1;
+        continue;
+      }
+      index = close + 2;
+      comments.push({ value: text.slice(start + 2, close), start, end: index });
+      continue;
+    }
+
+    index += 1;
+  }
+
+  return comments;
+}
+
 /** Stable source offset across ESTree, ESLint, and Oxlint node adapters. */
 export function nodeStart(node: ESTree.Node): number {
   const compatible = node as unknown as {
