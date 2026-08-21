@@ -79,7 +79,8 @@
     "acceptance:check": "tsx scripts/verify-acceptance-ledger.mjs",
     "evidence:check": "tsx scripts/verify-doc-evidence.mjs",
     "bench": "tsx scripts/benchmark.mjs",
-    "validate": "npm run workflow:check && npm run compat:check && npm run lint:check && npm run format:check && npm run typecheck && npm run typecheck:fixtures && npm run build && npm test && npm run evidence:check && npm run docs:check && npm run manifest:check && npm run bench",
+    "release:check": "node scripts/check-release-artifact.mjs",
+    "validate": "npm run workflow:check && npm run compat:check && npm run lint:check && npm run format:check && npm run typecheck && npm run typecheck:fixtures && npm run build && npm test && npm run evidence:check && npm run acceptance:check && npm run docs:check && npm run manifest:check && npm run bench && npm run release:check -- --consumer",
     "workflow:check": "node scripts/check-action-pins.mjs",
     "compat:check": "node scripts/check-compat-matrix.mjs"
   },
