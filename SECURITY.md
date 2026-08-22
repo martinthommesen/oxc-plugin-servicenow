@@ -22,7 +22,7 @@ Remove credentials, customer data, and proprietary ServiceNow code from every re
 
 The maintainer will acknowledge a complete report within seven days.
 The maintainer will then confirm the impact and coordinate a fix.
-The reporter and maintainer will agree on disclosure timing.
+The reporter and maintainer will coordinate disclosure timing.
 Do not disclose the issue before a fix or coordinated advisory is available.
 
 ## Scope

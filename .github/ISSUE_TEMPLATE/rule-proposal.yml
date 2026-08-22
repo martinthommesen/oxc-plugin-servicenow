@@ -50,7 +50,7 @@ body:
       options:
         - label: I reviewed docs/non-goals.md.
           required: true
-        - label: The rule can avoid matching platform APIs by name alone.
+        - label: The rule does not match platform APIs by name alone.
           required: true
         - label: I searched existing rules and proposals.
           required: true
