@@ -527,14 +527,15 @@ rec.next();`,
     );
   });
 
-  it("runs a catch handler only for a reachable throw", () => {
-    assertValid(
+  it("keeps the pre-call state when the call itself may throw", () => {
+    assertInvalid(
       `var rec = new GlideRecord("incident");
 try {
   throw (rec.query(), new Error("stop"));
 } catch (error) {}
 rec.next();`,
       "require-query-before-next",
+      { messageId: "missingQuery" },
     );
   });
 
