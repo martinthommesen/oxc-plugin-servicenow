@@ -10,7 +10,7 @@ export const recommendedRules: RuleConfigMap = {
   [`${PLUGIN_NAME}/prefer-glideaggregate`]: "warn",
   [`${PLUGIN_NAME}/no-client-gliderecord`]: "error",
   [`${PLUGIN_NAME}/no-gs-now`]: "error",
-  [`${PLUGIN_NAME}/validate-gliderecord-calls`]: "warn",
+  [`${PLUGIN_NAME}/require-query-before-next`]: "warn",
   [`${PLUGIN_NAME}/no-br-current-update`]: "error",
   [`${PLUGIN_NAME}/fluent-proper-imports`]: "error",
   [`${PLUGIN_NAME}/fluent-directives`]: "warn",

@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { Linter } from "eslint";
-import plugin, { configs } from "../../src/index.js";
+import plugin, { configs, ruleCatalog } from "../../src/index.js";
 
 const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
 
@@ -36,9 +36,9 @@ function ruleIds(messages: Array<{ ruleId: string | null }>): string[] {
 }
 
 describe("eslint host integration", () => {
-  it("loads 24 rules each with a create shim", () => {
+  it("loads every catalogued rule with a create shim", () => {
     const names = Object.keys(plugin.rules);
-    assert.equal(names.length, 24);
+    assert.equal(names.length, ruleCatalog.length);
     for (const name of names) {
       const rule = plugin.rules[name as keyof typeof plugin.rules] as { create?: unknown };
       assert.equal(typeof rule.create, "function", `${name} should have a create shim`);

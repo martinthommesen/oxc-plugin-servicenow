@@ -189,6 +189,30 @@ export const ruleCatalog: RuleCatalogEntry[] = [
       },
     ],
   }),
+  entry("require-query-before-next", {
+    title: "Require query before next",
+    family: "classic",
+    preset: "recommended",
+    severity: "warn",
+    fixable: false,
+    hasSuggestions: false,
+    description:
+      "Require a proven GlideRecord binding to call `.query()` or `.get()` before `.next()`. `chooseWindow()` does not execute a query.",
+    bad: [
+      {
+        name: "next without query",
+        filename: "incident.br.js",
+        code: `var gr = new GlideRecord("incident");\ngr.next();`,
+      },
+    ],
+    good: [
+      {
+        name: "query then next",
+        filename: "incident.br.js",
+        code: `var gr = new GlideRecord("incident");\ngr.query();\nwhile (gr.next()) {\n  gs.info(gr.number);\n}`,
+      },
+    ],
+  }),
   entry("validate-gliderecord-calls", {
     title: "Validate GlideRecord calls",
     family: "classic",

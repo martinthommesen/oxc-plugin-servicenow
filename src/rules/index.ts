@@ -22,6 +22,7 @@ import { noWeakReferences } from "./no-weak-references.js";
 import { preferGlideaggregate } from "./prefer-glideaggregate.js";
 import { preferNowInclude } from "./prefer-now-include.js";
 import { requireFluentId } from "./require-fluent-id.js";
+import { requireQueryBeforeNext } from "./require-query-before-next.js";
 import { validateGliderecordCalls } from "./validate-gliderecord-calls.js";
 
 export const rules = {
@@ -49,6 +50,7 @@ export const rules = {
   "no-proxy": noProxy,
   "no-unsupported-syntax": noUnsupportedSyntax,
   "no-sync-glideajax": noSyncGlideajax,
+  "require-query-before-next": requireQueryBeforeNext,
 } satisfies Record<string, Rule>;
 
 export type RuleName = keyof typeof rules;

@@ -6,7 +6,7 @@ import { recommendedRules } from "./recommended.js";
 export const strictRules: RuleConfigMap = {
   ...recommendedRules,
   [`${PLUGIN_NAME}/prefer-glideaggregate`]: "error",
-  [`${PLUGIN_NAME}/validate-gliderecord-calls`]: "error",
+  [`${PLUGIN_NAME}/require-query-before-next`]: "error",
   [`${PLUGIN_NAME}/prefer-now-include`]: "error",
   [`${PLUGIN_NAME}/fluent-directives`]: "error",
   [`${PLUGIN_NAME}/fluent-naming-convention`]: "error",
