@@ -22,7 +22,11 @@ Do not publish another person's private information.
 Project maintainers may edit, hide, lock, or remove content that violates this policy.
 They may also limit or end a person's participation.
 
-Use GitHub's content-reporting tools to report abusive behavior.
+For a confidential report directly to project maintainers, use the
+[private report form](https://github.com/martinthommesen/oxc-plugin-servicenow/security/advisories/new)
+and start the title with `Conduct report:`. The form is also used for security reports, but a
+conduct report does not need to describe a security vulnerability.
+Use GitHub's content-reporting tools when GitHub also needs to review abusive behavior.
 If public follow-up is safe, start a [GitHub Discussion](https://github.com/martinthommesen/oxc-plugin-servicenow/discussions).
 Do not publish private details in an issue or discussion.
 
