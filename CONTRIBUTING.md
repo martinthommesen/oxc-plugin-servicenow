@@ -1,5 +1,19 @@
 # Contributing
 
+Thank you for improving the project.
+Before you start, search existing issues and discussions.
+Use the issue forms for defects, rule proposals, and feature requests.
+Ask usage questions in GitHub Discussions.
+
+Follow the [code of conduct](CODE_OF_CONDUCT.md).
+Use the process in [SECURITY.md](SECURITY.md) to report vulnerabilities.
+Do not report a vulnerability through a public issue.
+
+Fork the repository and create a focused branch.
+Open a pull request against `main`.
+Keep each pull request limited to one reviewable purpose.
+Sign off web commits and explain any public compatibility change.
+
 ## Validation
 
 Run every local gate with one command:
@@ -8,9 +22,9 @@ Run every local gate with one command:
 npm run validate
 ```
 
-That command runs lint, format, type, build, test, generated-documentation, and Fluent-manifest checks.
+That command checks workflow action pins and the compatibility matrix; runs lint, format, project and fixture typechecking, build, tests, and Fluent-manifest verification; then checks evidence, acceptance, generated-documentation consistency, benchmarks, and the release artifact with a packed consumer.
 
-`npm test` runs `scripts/run-tests.mjs`. That script lists every `*.test.ts` file and passes the list to `tsx --test`. Do not use a quoted `tests/**/*.test.ts` glob. Node 20 treats that path as one missing file.
+`npm test` runs the serial TypeScript suite through `scripts/run-tests.mjs`, then runs `npm run fluent:check`. The test runner lists every `*.test.ts` file and passes the list to `tsx --test`. Do not use a quoted `tests/**/*.test.ts` glob. Node 20 treats that path as one missing file.
 
 ## Add a rule
 
@@ -43,12 +57,14 @@ Add a short note under `Unreleased` in `CHANGELOG.md` for user-visible rule, pre
 
 ## Release
 
-1. Complete the desired governance IDs in `scripts/release-governance.json` and run the read-only governance audit.
+1. Confirm the desired policy and principal IDs in `scripts/release-governance.json`, then run the read-only GitHub audit with `node scripts/check-release-governance.mjs`.
 2. Set the package version and add the exact changelog heading for that version.
 3. Run `npm run validate`.
 4. Merge to `main`. Tag `v<version>` at the exact current protected `main` tip.
 5. Let `.github/workflows/release.yml` validate and publish the uploaded tarball through the protected `release` environment.
-6. Confirm that registry integrity, provenance identity, public imports, and the GitHub release all match the inspected artifact.
+6. Confirm that `validate / Verify release tag is current main tip`, `registry-verify` through `node scripts/verify-published-package.mjs`, and `github-release` through `node scripts/create-github-release.mjs` all pass against the inspected artifact. These gates cover registry integrity, provenance identity, public imports, and the GitHub release asset and commit.
+
+Keep `main` unchanged until the release workflow's initial tip check passes. Protected release tags are immutable; never move one to recover from a mismatch.
 
 The publish job uses npm trusted-publishing OIDC and has only `id-token: write`. Do not set `NPM_TOKEN`. Do not publish from a pull request or a working tree.
 

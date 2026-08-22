@@ -12229,7 +12229,7 @@
       "proofs": [
         {
           "file": "tests/release/layer7.test.ts",
-          "fullName": "release automation gates > resolves only existing lightweight or bounded annotated tags at the expected commit"
+          "fullName": "release automation gates > requires the release tag commit to equal the freshly fetched main tip"
         }
       ],
       "caseIds": [],
@@ -12262,7 +12262,7 @@
       "proofs": [
         {
           "file": "tests/release/layer7.test.ts",
-          "fullName": "release automation gates > parses the workflow graph and proves least-privilege job boundaries"
+          "fullName": "release automation gates > requires the release tag commit to equal the freshly fetched main tip"
         }
       ],
       "caseIds": [],

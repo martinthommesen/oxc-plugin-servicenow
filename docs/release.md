@@ -22,6 +22,8 @@ Release readiness also requires approved external actions:
 6. Approve the protected `release` environment deployment.
 7. Verify the registry package, provenance, and GitHub release.
 
+Keep `main` unchanged until the release workflow's initial tip check passes. The check runs immediately after checkout and before dependency installation. If the tip changed first, cut a new version after review; protected release tags are immutable and must not be moved.
+
 These steps are live-pending. Do not describe a green local check as live release proof.
 
 ## Release identity
