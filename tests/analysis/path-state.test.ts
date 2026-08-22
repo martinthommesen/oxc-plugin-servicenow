@@ -10,6 +10,7 @@ import {
 import { findGlideAjaxParamIssues } from "../../src/analysis/glideajax-params.js";
 import type { ProvenanceQuery } from "../../src/analysis/provenance.js";
 import { ctorProvenanceKind } from "../../src/analysis/provenance.js";
+import { resolveGlideCapabilities } from "../../src/glide/manifest.js";
 
 interface Data {
   calls: string[];
@@ -29,11 +30,11 @@ function analysisFor(program: any): ProvenanceQuery {
   const bindings = createFileBindings(context, program);
   return {
     bindings,
+    glide: resolveGlideCapabilities({ scope: "global", release: "zurich" }),
     ofIdentifier: () => null,
     ofExpression: () => null,
     isPlatformGlobal: () => true,
-    isPlatformCtor: (_node, names) =>
-      names.includes("GlideRecord") || names.includes("GlideAjax"),
+    isPlatformCtor: (_node, names) => names.includes("GlideRecord") || names.includes("GlideAjax"),
     isPlatformMember: () => false,
   };
 }
