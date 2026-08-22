@@ -53,11 +53,20 @@ export function resetPathBudgetExceededCount(): void {
   budgetExceededCount = 0;
 }
 
-export function dedupePathFindings<T extends { node: ESTree.Node }>(findings: T[]): T[] {
-  const seen = new WeakSet<ESTree.Node>();
+export function dedupePathFindings<T extends { node: ESTree.Node }>(
+  findings: T[],
+  keyOf?: (finding: T) => string,
+): T[] {
+  const seen = new WeakMap<ESTree.Node, Set<string>>();
   return findings.filter((finding) => {
-    if (seen.has(finding.node)) return false;
-    seen.add(finding.node);
+    let keys = seen.get(finding.node);
+    if (!keys) {
+      keys = new Set();
+      seen.set(finding.node, keys);
+    }
+    const key = keyOf?.(finding) ?? "";
+    if (keys.has(key)) return false;
+    keys.add(key);
     return true;
   });
 }
@@ -313,7 +322,7 @@ function mergeStates<T>(
     }
     env.set(bindingId, leftId);
   }
-  return { env, objects, completion: "normal", abrupt: new Map() };
+  return { env, objects, completion: "normal", completionLabel: null, abrupt: new Map() };
 }
 
 function statesEqual<T>(
@@ -421,19 +430,36 @@ function scopeContains(scope: ScopeNode | null, block: ESTree.Node): boolean {
   return false;
 }
 
+function bindingIsInNestedFunction(
+  bindingScope: ScopeNode | null,
+  functionScope: ScopeNode | null,
+): boolean {
+  if (!bindingScope || !functionScope || bindingScope === functionScope) return false;
+  let current: ScopeNode | null = bindingScope;
+  while (current && current !== functionScope) {
+    if (current.kind === "function") return true;
+    current = current.parent;
+  }
+  return false;
+}
+
 function capturedBindings(fn: ESTree.Node, bindings: FileBindings): BindingId[] {
   const found = new Set<BindingId>();
+  const functionScope = bindings.tree.scopeForNode(fn);
   const ancestors: ESTree.Node[] = [];
   const visit = (node: unknown): void => {
     if (!isNode(node)) return;
-    // A nested closure has its own capture set. Do not accidentally attribute
-    // its references to the containing function.
-    if (isFunctionLike(node) && node !== fn) return;
     ancestors.push(node);
     if (node.type === "Identifier" && isValueReference(node, ancestors)) {
       const binding = bindings.resolve(getName(node) ?? "", node, ancestors);
       const declared = binding ? bindings.tree.scopeById(binding.scopeId) : null;
-      if (binding && !scopeContains(declared, fn)) found.add(binding.id);
+      if (
+        binding &&
+        !scopeContains(declared, fn) &&
+        !bindingIsInNestedFunction(declared, functionScope)
+      ) {
+        found.add(binding.id);
+      }
     }
     visitChildren(node, (child) => visit(child));
     ancestors.pop();
@@ -1019,7 +1045,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
             fall = undefined;
           }
         }
-        if (!hasDefault) exits.push(before);
+        if (!hasDefault) exits.push(snapshotState(directState, cloneData, budget));
         if (fall?.completion === "normal") exits.push(fall);
         joinInto(state, [...exits, ...abruptExits]);
         break;
@@ -1071,6 +1097,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
           isDoWhile || infinite ? [] : [snapshotState(testState, cloneData, budget)];
         const initialHeader = snapshotState(isDoWhile ? beforeTest : testState, cloneData, budget);
         let header = snapshotState(initialHeader, cloneData, budget);
+        let converged = false;
         for (let iteration = 0; iteration < 16; iteration += 1) {
           const bodyState = snapshotState(header, cloneData, budget);
           if (node.type === "ForInStatement" || node.type === "ForOfStatement") {
@@ -1112,7 +1139,10 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
             backEdges.push(path);
           }
           const back = mergeMany(backEdges, emptyData, mergeData, mergeDistinctData, alloc);
-          if (!back) break;
+          if (!back) {
+            converged = true;
+            break;
+          }
           const nextHeader = mergeStates(
             initialHeader,
             back,
@@ -1121,16 +1151,21 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
             mergeDistinctData,
             alloc,
           );
-          if (statesEqual(header, nextHeader, equalsData)) break;
+          if (statesEqual(header, nextHeader, equalsData)) {
+            converged = true;
+            break;
+          }
           header = nextHeader;
         }
         if (exits.length === 0) setCompletion(state, "unreachable");
-        else joinInto(state, exits);
+        else if (converged) joinInto(state, exits);
+        else throw BUDGET_EXCEEDED;
         break;
       }
 
       case "TryStatement": {
         const stmt = node as ESTree.TryStatement;
+        const beforeTry = snapshotState(state, cloneData, budget);
         const tried = snapshotState(state, cloneData, budget);
         visit(stmt.block, tried, false);
         const handled: EnvState<T>[] = [];
@@ -1138,6 +1173,12 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
           if (path.completion === "throw" && stmt.handler) {
             setCompletion(path, "normal");
             visit(stmt.handler, path, false);
+            handled.push(path);
+            continue;
+          } else if (path.completion === "normal" && stmt.handler) {
+            const possibleThrow = snapshotState(beforeTry, cloneData, budget);
+            visit(stmt.handler, possibleThrow, false);
+            handled.push(possibleThrow);
           }
           handled.push(path);
         }
@@ -1222,6 +1263,19 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
           });
           joinInto(state, projected);
           activeFunctions.delete(fn);
+        } else if (fn && deferred) {
+          const parent = ancestors[ancestors.length - 2];
+          const discarded =
+            parent?.type === "ExpressionStatement" &&
+            (parent as ESTree.ExpressionStatement).expression === call;
+          if (!discarded) {
+            for (const capturedId of capturesOf(fn)) {
+              const objectId = state.env.get(capturedId);
+              const captured = objectId === undefined ? undefined : state.objects.get(objectId);
+              if (captured) captured.escaped = true;
+            }
+          }
+          for (const arg of call.arguments) markEscape(state, arg);
         } else {
           if (fn) {
             for (const capturedId of capturesOf(fn)) {
