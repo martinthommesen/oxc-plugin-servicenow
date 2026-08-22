@@ -7,13 +7,111 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
+# PRs #77-#83 predate the expanded evidence pipeline in #84. GitHub evaluates
+# every member of a native stack against main's current required contexts, so
+# these jobs provide real, layer-compatible evidence under those context names.
+# PR #84 replaces this bridge with the thresholded benchmark, full compatibility
+# harness, generated-evidence checks, and release-oriented artifact validation.
 jobs:
   test:
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.16.0
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run build
+      - run: npm test
+
+  bench:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.14.0
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Analyzer smoke benchmark
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from "node:assert/strict";
+          import { performance } from "node:perf_hooks";
+          import { Linter } from "eslint";
+          import plugin from "./dist/index.js";
+          const linter = new Linter({ configType: "flat" });
+          const source = 'var id = "97c04b3b1b12100043ab85e5bd0713e2";\n';
+          const config = [plugin.configs.flat.recommended];
+          const iterations = 100;
+          const start = performance.now();
+          let diagnostics = 0;
+          for (let index = 0; index < iterations; index += 1) {
+            const messages = linter.verify(source, config, { filename: "bench.br.js" });
+            assert.ok(
+              messages.some(({ ruleId }) => ruleId === "servicenow/no-hardcoded-sysid"),
+            );
+            diagnostics += messages.length;
+          }
+          const elapsedMs = performance.now() - start;
+          assert.ok(diagnostics >= iterations);
+          assert.ok(elapsedMs < 30_000, `lint smoke benchmark took ${elapsedMs.toFixed(1)}ms`);
+          console.log(
+            JSON.stringify({
+              iterations,
+              diagnostics,
+              elapsedMs: Number(elapsedMs.toFixed(1)),
+            }),
+          );
+          NODE
+
+  compat:
+    name: compat (${{ matrix.cell }}, ${{ matrix.node }})
+    runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        node: [20, 22]
+        include:
+          - cell: min-hosts
+            node: 20.19.0
+            npm: 10.8.2
+            oxlint: 1.79.0
+            eslint: 9.0.0
+            oxfmt: 0.64.0
+          - cell: node22-host
+            node: 22.14.0
+            npm: 10.9.2
+            oxlint: 1.79.0
+            eslint: 9.39.5
+            oxfmt: 0.64.0
+          - cell: node24-host
+            node: 24.16.0
+            npm: 11.13.0
+            oxlint: 1.79.0
+            eslint: 10.8.1
+            oxfmt: 0.64.0
+          - cell: node26-host
+            node: 26.7.0
+            npm: 11.19.0
+            oxlint: 1.79.0
+            eslint: 10.8.1
+            oxfmt: 0.64.0
+          - cell: eslint9-current
+            node: 24.16.0
+            npm: 11.13.0
+            oxlint: 1.79.0
+            eslint: 9.39.5
+            oxfmt: 0.64.0
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -22,8 +120,195 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
           cache: npm
+      - run: npm install --global npm@${{ matrix.npm }}
+      - name: Verify runtime versions
+        run: |
+          test "$(node --version)" = "v${{ matrix.node }}"
+          test "$(npm --version)" = "${{ matrix.npm }}"
       - run: npm ci
-      - run: npm run typecheck
       - run: npm run build
-      - run: npm test
+      - name: Install and execute the packed plugin with pinned hosts
+        env:
+          CELL: ${{ matrix.cell }}
+          ESLINT_VERSION: ${{ matrix.eslint }}
+          OXFMT_VERSION: ${{ matrix.oxfmt }}
+          OXLINT_VERSION: ${{ matrix.oxlint }}
+        run: |
+          npm pack --json --ignore-scripts --pack-destination "$RUNNER_TEMP" > "$RUNNER_TEMP/pack.json"
+          tarball_name="$(PACK_JSON="$RUNNER_TEMP/pack.json" node --input-type=module -e 'import { readFileSync } from "node:fs"; const records = JSON.parse(readFileSync(process.env.PACK_JSON, "utf8")); if (records.length !== 1 || !records[0].filename) process.exit(1); process.stdout.write(records[0].filename);')"
+          tarball="$RUNNER_TEMP/$tarball_name"
+          consumer="$RUNNER_TEMP/consumer-$CELL"
+          mkdir -p "$consumer"
+          cd "$consumer"
+          npm init --yes >/dev/null
+          if test "$CELL" = "min-hosts" && node -e 'const range = require(process.argv[1]).peerDependencies?.oxfmt ?? ""; process.exit(range.includes("0.16.0") ? 0 : 1)' "$GITHUB_WORKSPACE/package.json"; then
+            OXFMT_VERSION=0.16.0
+            export OXFMT_VERSION
+          fi
+          npm install --ignore-scripts --no-audit --no-fund "$tarball" "oxlint@$OXLINT_VERSION" "eslint@$ESLINT_VERSION" "oxfmt@$OXFMT_VERSION"
+          EXPECTED_ESLINT="$ESLINT_VERSION" EXPECTED_OXFMT="$OXFMT_VERSION" EXPECTED_OXLINT="$OXLINT_VERSION" node --input-type=module <<'NODE'
+          import assert from "node:assert/strict";
+          import { copyFileSync, readFileSync, writeFileSync } from "node:fs";
+          const expected = {
+            eslint: process.env.EXPECTED_ESLINT,
+            oxfmt: process.env.EXPECTED_OXFMT,
+            oxlint: process.env.EXPECTED_OXLINT,
+          };
+          for (const [name, version] of Object.entries(expected)) {
+            const actual = JSON.parse(
+              readFileSync(`node_modules/${name}/package.json`, "utf8"),
+            ).version;
+            assert.equal(actual, version, `${name} did not resolve exactly`);
+          }
+          const plugin = await import("oxc-plugin-servicenow");
+          assert.equal(plugin.default?.meta?.name, "servicenow");
+          assert.ok(plugin.default?.configs?.flat?.recommended);
+          writeFileSync("bad.br.js", 'var id = "97c04b3b1b12100043ab85e5bd0713e2";\n');
+          writeFileSync(
+            "eslint.config.mjs",
+            'import plugin from "oxc-plugin-servicenow";\nexport default [plugin.configs.flat.recommended];\n',
+          );
+          writeFileSync(
+            ".oxlintrc.json",
+            JSON.stringify({
+              jsPlugins: [{ name: "servicenow", specifier: "oxc-plugin-servicenow" }],
+              rules: { "servicenow/no-hardcoded-sysid": "error" },
+            }),
+          );
+          copyFileSync(
+            "node_modules/oxc-plugin-servicenow/oxfmt.recommended.json",
+            ".oxfmtrc.json",
+          );
+          writeFileSync("formatted.js", "const answer = 42;\n");
+          NODE
+          set +e
+          ./node_modules/.bin/oxlint --format json bad.br.js > oxlint-report.json
+          oxlint_status="$?"
+          ./node_modules/.bin/eslint --format json bad.br.js > eslint-report.json
+          eslint_status="$?"
+          set -e
+          test "$oxlint_status" -eq 1
+          test "$eslint_status" -eq 1
+          node --input-type=module <<'NODE'
+          import assert from "node:assert/strict";
+          import { readFileSync } from "node:fs";
+          const oxlint = JSON.parse(readFileSync("oxlint-report.json", "utf8"));
+          assert.ok(
+            (oxlint.diagnostics ?? []).some(({ code }) =>
+              String(code).includes("no-hardcoded-sysid"),
+            ),
+          );
+          const eslint = JSON.parse(readFileSync("eslint-report.json", "utf8"));
+          assert.ok(
+            eslint
+              .flatMap(({ messages }) => messages)
+              .some(({ ruleId }) => ruleId === "servicenow/no-hardcoded-sysid"),
+          );
+          NODE
+          ./node_modules/.bin/oxfmt --check formatted.js
+
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.16.0
+          cache: npm
+      - run: npm ci
       - run: npm run docs:check
+
+  manifest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.16.0
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Verify public exports and capability manifests
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from "node:assert/strict";
+          import { existsSync, readFileSync } from "node:fs";
+          import plugin from "./dist/index.js";
+          import { DEFAULT_FLUENT_MANIFEST } from "./dist/fluent/manifest.js";
+          import { GLIDE_RECORD_METHODS } from "./dist/glide/manifest.js";
+          const pkg = JSON.parse(readFileSync("package.json", "utf8"));
+          const targets = [];
+          const collect = (value) => {
+            if (typeof value === "string") targets.push(value);
+            else if (value && typeof value === "object") Object.values(value).forEach(collect);
+          };
+          collect(pkg.exports);
+          for (const target of targets) {
+            assert.match(target, /^\.\//);
+            assert.ok(existsSync(target), `missing export target ${target}`);
+          }
+          assert.equal(plugin.meta.version, pkg.version);
+          assert.equal(plugin.meta.name, "servicenow");
+          const unique = (values, label) =>
+            assert.equal(new Set(values).size, values.length, `duplicate ${label}`);
+          assert.ok(DEFAULT_FLUENT_MANIFEST.version);
+          assert.ok(DEFAULT_FLUENT_MANIFEST.apis.length > 0);
+          unique(DEFAULT_FLUENT_MANIFEST.apis.map(({ name }) => name), "Fluent API");
+          unique(DEFAULT_FLUENT_MANIFEST.directives.map(({ name }) => name), "Fluent directive");
+          for (const entry of [
+            ...DEFAULT_FLUENT_MANIFEST.apis,
+            ...DEFAULT_FLUENT_MANIFEST.directives,
+          ]) {
+            assert.ok(entry.name && entry.evidence);
+            assert.ok(entry.evidenceRecords.length > 0, `${entry.name} has no evidence records`);
+            for (const evidence of entry.evidenceRecords) {
+              assert.ok(evidence.url && evidence.symbol && evidence.version);
+            }
+          }
+          assert.ok(GLIDE_RECORD_METHODS.length > 0);
+          unique(GLIDE_RECORD_METHODS.map(({ name }) => name), "Glide method");
+          for (const entry of GLIDE_RECORD_METHODS) {
+            assert.ok(entry.name && entry.evidence && entry.roles.length > 0);
+            assert.ok(entry.apiScope === "scoped" || entry.apiScope === "global");
+          }
+          console.log(
+            `validated ${targets.length} export targets, ${DEFAULT_FLUENT_MANIFEST.apis.length} Fluent APIs, and ${GLIDE_RECORD_METHODS.length} Glide methods`,
+          );
+          NODE
+
+  artifact:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.16.0
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Install and import the exact packed artifact
+        run: |
+          npm pack --json --ignore-scripts --pack-destination "$RUNNER_TEMP" > "$RUNNER_TEMP/artifact-pack.json"
+          tarball_name="$(PACK_JSON="$RUNNER_TEMP/artifact-pack.json" node --input-type=module -e 'import { readFileSync } from "node:fs"; const records = JSON.parse(readFileSync(process.env.PACK_JSON, "utf8")); if (records.length !== 1 || !records[0].filename) process.exit(1); process.stdout.write(records[0].filename);')"
+          consumer="$RUNNER_TEMP/artifact-consumer"
+          mkdir -p "$consumer"
+          cd "$consumer"
+          npm init --yes >/dev/null
+          npm install --ignore-scripts --no-audit --no-fund "$RUNNER_TEMP/$tarball_name"
+          node --input-type=module -e 'const plugin = await import("oxc-plugin-servicenow"); const config = await import("oxc-plugin-servicenow/oxfmt"); if (plugin.default?.meta?.name !== "servicenow" || typeof config !== "object") process.exit(1);'
+
+  workflow:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Reject mutable action references
+        run: |
+          node --input-type=module -e 'import { readFileSync, readdirSync } from "node:fs"; const files = readdirSync(".github/workflows").filter((name) => /\.ya?ml$/.test(name)); const bad = []; for (const file of files) { const source = readFileSync(`.github/workflows/${file}`, "utf8"); for (const match of source.matchAll(/^\s*(?:-\s+)?uses:\s+([^\s#]+)/gm)) if (!/@[0-9a-f]{40}$/.test(match[1])) bad.push(`${file}: ${match[1]}`); } if (bad.length) { console.error(bad.join("\n")); process.exit(1); }'
