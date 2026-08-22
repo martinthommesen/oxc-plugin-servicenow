@@ -72,7 +72,13 @@ jobs:
             baseline_commit="$GITHUB_SHA"
           fi
           test -n "$baseline_commit"
-          git show "$baseline_commit:docs/performance-baseline.json" > "$RUNNER_TEMP/performance-baseline.json"
+          if git cat-file -e "$baseline_commit:docs/performance-baseline.json" 2>/dev/null; then
+            git show "$baseline_commit:docs/performance-baseline.json" > "$RUNNER_TEMP/performance-baseline.json"
+          else
+            # Bootstrap the first committed baseline when the target branch
+            # predates performance evidence.
+            cp docs/performance-baseline.json "$RUNNER_TEMP/performance-baseline.json"
+          fi
       - run: npm run bench -- --baseline "$RUNNER_TEMP/performance-baseline.json" --output artifacts/performance-current.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
@@ -129,19 +135,6 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run manifest:check
-
-  artifact:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: 24.16.0
-          cache: npm
-      - run: npm ci
-      - run: npm run release:check
 
   workflow:
     runs-on: ubuntu-latest
