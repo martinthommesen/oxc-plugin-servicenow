@@ -187,4 +187,13 @@ describe("fluent-directives", () => {
       { filename: NOW },
     );
   });
+
+  it("requires the file-wide directive on line one", () => {
+    assertInvalid(
+      `import { Record } from "@servicenow/sdk/core";\n// @fluent-disable-sync-for-file\n`,
+      "fluent-directives",
+      { messageId: "misplaced" },
+      { filename: NOW },
+    );
+  });
 });
