@@ -62,7 +62,7 @@ Add a short note under `Unreleased` in `CHANGELOG.md` for user-visible rule, pre
 3. Run `npm run validate`.
 4. Merge to `main`. Tag `v<version>` at the exact current protected `main` tip.
 5. Let `.github/workflows/release.yml` validate and publish the uploaded tarball through the protected `release` environment.
-6. Confirm that registry integrity, provenance identity, public imports, and the GitHub release all match the inspected artifact.
+6. Confirm that `validate / Verify release tag is current main tip`, `registry-verify` through `node scripts/verify-published-package.mjs`, and `github-release` through `node scripts/create-github-release.mjs` all pass against the inspected artifact. These gates cover registry integrity, provenance identity, public imports, and the GitHub release asset and commit.
 
 Keep `main` unchanged until the release workflow's initial tip check passes. Protected release tags are immutable; never move one to recover from a mismatch.
 
