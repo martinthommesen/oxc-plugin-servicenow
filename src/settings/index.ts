@@ -1,5 +1,5 @@
 import type { Context } from "@oxlint/plugins";
-import type { ServiceNowSettings, ValidatedServiceNowSettings } from "../types.js";
+import type { ReadonlyServiceNowSettings, ValidatedServiceNowSettings } from "../types.js";
 import { structuralFingerprint, validateServiceNowSettings } from "./validate.js";
 import type { ValidatedSettingsResult } from "./validate.js";
 
@@ -47,8 +47,8 @@ export function getValidatedSettings(context: Context): ValidatedServiceNowSetti
  * @deprecated Prefer {@link getValidatedSettings}. Returns the raw object for
  * callers that have not migrated. Invalid shapes still throw.
  */
-export function getSettings(context: Context): ServiceNowSettings {
-  return getValidatedSettings(context) as ServiceNowSettings;
+export function getSettings(context: Context): ReadonlyServiceNowSettings {
+  return getValidatedSettings(context) as ReadonlyServiceNowSettings;
 }
 
 export function optionAt<T>(context: Context, index: number, fallback: T): T {

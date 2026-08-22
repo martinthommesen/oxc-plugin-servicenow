@@ -80,7 +80,8 @@
     "acceptance:check": "tsx scripts/verify-acceptance-ledger.mjs",
     "evidence:check": "tsx scripts/verify-doc-evidence.mjs",
     "bench": "tsx scripts/benchmark.mjs",
-    "validate": "npm run workflow:check && npm run compat:check && npm run lint:check && npm run format:check && npm run typecheck && npm run typecheck:fixtures && npm run build && npm test && npm run evidence:check && npm run docs:check && npm run manifest:check && npm run bench",
+    "release:check": "node scripts/check-release-artifact.mjs",
+    "validate": "npm run workflow:check && npm run compat:check && npm run lint:check && npm run format:check && npm run typecheck && npm run typecheck:fixtures && npm run build && npm test && npm run evidence:check && npm run acceptance:check && npm run docs:check && npm run manifest:check && npm run bench && npm run release:check -- --consumer",
     "workflow:check": "node scripts/check-action-pins.mjs",
     "compat:check": "node scripts/check-compat-matrix.mjs"
   },
@@ -108,11 +109,15 @@
     }
   },
   "devDependencies": {
+    "@sigstore/core": "3.2.1",
+    "@sigstore/mock": "0.12.1",
+    "@sigstore/verify": "3.1.1",
     "@types/node": "^26.2.0",
     "eslint": "^10.8.1",
     "oxc-parser": "^0.145.0",
     "oxfmt": "^0.64.0",
     "oxlint": "1.79.0",
+    "sigstore": "4.1.1",
     "tsx": "^4.19.0",
     "typescript": "^7.0.2",
     "yaml": "2.9.0"

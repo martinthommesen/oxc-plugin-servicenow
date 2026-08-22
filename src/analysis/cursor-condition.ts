@@ -38,27 +38,55 @@ function truthyBooleanOperand(node: ESTree.Node): ESTree.Node | null {
   return null;
 }
 
-export function definitelySkipsDoWhileTest(node: unknown): boolean {
-  if (!isNode(node)) return false;
+interface DoWhileCompletion {
+  /** At least one path can continue with the following statement. */
+  normal: boolean;
+  /** At least one path reaches this do/while's test through `continue`. */
+  test: boolean;
+}
+
+function doWhileCompletion(node: unknown): DoWhileCompletion {
+  if (!isNode(node)) return { normal: true, test: false };
   if (
     node.type === "BreakStatement" ||
     node.type === "ReturnStatement" ||
     node.type === "ThrowStatement"
   ) {
-    return true;
+    return { normal: false, test: false };
+  }
+  if (node.type === "ContinueStatement") {
+    return { normal: false, test: true };
   }
   if (node.type === "BlockStatement") {
-    return (node as ESTree.BlockStatement).body.some(definitelySkipsDoWhileTest);
+    let normal = true;
+    let test = false;
+    for (const statement of (node as ESTree.BlockStatement).body) {
+      if (!normal) break;
+      const completion = doWhileCompletion(statement);
+      test ||= completion.test;
+      normal = completion.normal;
+    }
+    return { normal, test };
   }
   if (node.type === "IfStatement") {
     const statement = node as ESTree.IfStatement;
-    return Boolean(
-      statement.alternate &&
-      definitelySkipsDoWhileTest(statement.consequent) &&
-      definitelySkipsDoWhileTest(statement.alternate),
-    );
+    const consequent = doWhileCompletion(statement.consequent);
+    const alternate = statement.alternate
+      ? doWhileCompletion(statement.alternate)
+      : { normal: true, test: false };
+    return {
+      normal: consequent.normal || alternate.normal,
+      test: consequent.test || alternate.test,
+    };
   }
-  return false;
+  // Stay conservative for loops, switches, labels, and try statements whose
+  // targeted completion cannot be determined from this statement alone.
+  return { normal: true, test: false };
+}
+
+export function definitelySkipsDoWhileTest(node: unknown): boolean {
+  const completion = doWhileCompletion(node);
+  return !completion.normal && !completion.test;
 }
 
 function proof(node: unknown, cursorId: (node: unknown) => number | null): TruthProof {
@@ -98,6 +126,29 @@ function proof(node: unknown, cursorId: (node: unknown) => number | null): Truth
       canBeFalsy: alternatives.some((item) => item.canBeFalsy),
       canBeNullish: alternatives.some((item) => item.canBeNullish),
     };
+  }
+  if (expr.type === "BinaryExpression") {
+    const binary = expr as ESTree.BinaryExpression;
+    if (["===", "==", "!==", "!="].includes(binary.operator)) {
+      const left = proof(binary.left, cursorId);
+      const right = proof(binary.right, cursorId);
+      const literal = (node: unknown, value: boolean): boolean =>
+        isNode(node) &&
+        node.type === "Literal" &&
+        (node as unknown as { value?: unknown }).value === value;
+      if (
+        (literal(binary.right, true) && ["===", "=="].includes(binary.operator)) ||
+        (literal(binary.right, false) && ["!==", "!="].includes(binary.operator))
+      ) {
+        return left;
+      }
+      if (
+        (literal(binary.left, true) && ["===", "=="].includes(binary.operator)) ||
+        (literal(binary.left, false) && ["!==", "!="].includes(binary.operator))
+      ) {
+        return right;
+      }
+    }
   }
   if (expr.type === "LogicalExpression") {
     const logical = expr as ESTree.LogicalExpression;

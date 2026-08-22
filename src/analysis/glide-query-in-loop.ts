@@ -72,8 +72,16 @@ function visit(
     const call = node as ESTree.CallExpression;
     const callee = unwrapExpression(call.callee);
     if (isNode(callee) && isFunctionLikeNode(callee)) {
+      // An immediately invoked function executes at the caller's current
+      // cursor depth. Preserve JavaScript evaluation order: arguments run
+      // before parameter defaults and the function body. Ordinary nested
+      // declarations stay separate.
       for (const argument of call.arguments) visit(argument, cursorDepth, analysis, findings);
-      visit((callee as unknown as { body: ESTree.Node }).body, cursorDepth, analysis, findings);
+      const invoked = callee as unknown as { params?: unknown[]; body: ESTree.Node };
+      for (const parameter of invoked.params ?? []) {
+        visit(parameter, cursorDepth, analysis, findings);
+      }
+      visit(invoked.body, cursorDepth, analysis, findings);
       return;
     }
   }

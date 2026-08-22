@@ -40,8 +40,8 @@ function filterEvidence(
   call: ESTree.CallExpression,
   analysis: ProvenanceQuery,
 ): boolean | "unknown" | null {
-  if (property === "addActiveQuery") return true;
   if (!analysis.glide.filters.has(property)) return null;
+  if (property === "addActiveQuery") return true;
   if (!FIELD_OR_ENCODED_FILTERS.has(property)) return "unknown";
 
   const first = classifyStaticArg(call.arguments[0], analysis);
@@ -104,7 +104,7 @@ export function findUnfilteredBulkOperations(
         }
         return;
       }
-      if (!analysis.glide.knownMethods.has(property) && rec.data.filtered === false) {
+      if (!analysis.glide.knownMethods.has(property) && rec.data.filtered !== true) {
         rec.data.filtered = "unknown";
         rec.data.uncertain = true;
       }

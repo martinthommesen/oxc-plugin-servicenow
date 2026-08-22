@@ -7,6 +7,7 @@ import {
   parseCriteria,
   repoFilePath,
   searchableRepoFiles,
+  criteriaAuthorityDigest,
   validateMapping,
   validateSnapshot,
 } from "../scripts/verify-acceptance-ledger.mjs";
@@ -70,6 +71,16 @@ describe("PR51 acceptance mapping", () => {
     assert.ok(
       validateMapping(criteria, orphaned).some((error) => error.startsWith("orphaned mapping")),
     );
+  });
+
+  it("binds row identity and source text to an aggregate authority digest", () => {
+    const mutated = structuredClone(mapping);
+    mutated.criteria[0].id = "PR51-MUTATED";
+    mutated.criteria[0].source.text = "mutated requirement";
+    mutated.criteria[0].source.digest = "mutated digest";
+    mutated.criteriaDigest = criteriaAuthorityDigest(mutated.criteria, mutated.goal.sha256);
+    assert.equal(mutated.goal.sha256, mapping.goal.sha256);
+    assert.ok(validateSnapshot(mutated).includes("criteria authority digest changed"));
   });
 
   it("keeps fixture reads inside the repository", () => {

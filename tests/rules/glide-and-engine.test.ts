@@ -182,17 +182,32 @@ describe("engine extras", () => {
   });
 
   it("no-packages-calls flags Packages", () => {
-    assertInvalid(`var n = Packages.java.lang.System.nanoTime();`, "no-packages-calls", {
-      messageId: "packages",
-    });
+    assertInvalid(
+      `var n = Packages.java.lang.System.nanoTime();`,
+      "no-packages-calls",
+      {
+        messageId: "packages",
+      },
+      { filename: "src/server/test.js" },
+    );
   });
 
   it("no-packages-calls reports a Packages chain once", () => {
-    assertInvalid('var s = new Packages.java.lang.String("x");', "no-packages-calls", { count: 1 });
+    assertInvalid(
+      'var s = new Packages.java.lang.String("x");',
+      "no-packages-calls",
+      { count: 1 },
+      { filename: "src/server/test.js" },
+    );
   });
 
   it("no-packages-calls flags dynamic computed access", () => {
-    assertInvalid("var value = Packages[name][member];", "no-packages-calls", { count: 1 });
+    assertInvalid(
+      "var value = Packages[name][member];",
+      "no-packages-calls",
+      { count: 1 },
+      { filename: "src/server/test.js" },
+    );
   });
 
   it("no-packages-calls allows Packages as an object key", () => {
@@ -209,6 +224,23 @@ describe("engine extras", () => {
 
   it("no-packages-calls ignores an unclassified file", () => {
     assertValid("var value = Packages.example;", "no-packages-calls", { filename: "plain.js" });
+  });
+
+  it("does not assume an ordinary unknown-context JavaScript file is ServiceNow", () => {
+    assertValid(`var n = Packages.java.lang.System.nanoTime();`, "no-packages-calls", {
+      filename: "index.js",
+    });
+  });
+
+  it("treats the documented _next cursor equivalent as requiring a query", () => {
+    for (const scope of ["global", "scoped"] as const) {
+      assertInvalid(
+        `var gr = new GlideRecord("incident"); gr._next();`,
+        "validate-gliderecord-calls",
+        { messageId: "missingQuery" },
+        { filename: "src/server/test.js", settings: { scope } },
+      );
+    }
   });
 
   it("no-weak-references flags WeakRef in any instance mode", () => {

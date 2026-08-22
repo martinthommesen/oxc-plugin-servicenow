@@ -866,6 +866,12 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
       replaceWith(state, merged);
       state.completion = "normal";
       state.completionLabel = null;
+      for (const path of abrupt) {
+        const kind = path.completion as AbruptCompletion;
+        const list = state.abrupt.get(kind) ?? [];
+        list.push(pathWithoutAlternatives(path, cloneData, budget));
+        state.abrupt.set(kind, list);
+      }
     } else if (abrupt.length > 0) {
       // Keep one completion in the primary state and retain all other
       // alternatives. Owning loops/switches/try statements consume them.

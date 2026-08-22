@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
+import type { ESTree } from "@oxlint/plugins";
 import { describe, it } from "node:test";
-import { fallbackComments, walk } from "../../src/utils/ast.js";
+import { parse } from "../helpers/rule-tester.js";
+import { fallbackComments, getName, isValueReference, walk } from "../../src/utils/ast.js";
 
 describe("fallbackComments", () => {
   it("extracts line and block comments without a backtracking regex", () => {
@@ -44,5 +46,38 @@ describe("walk", () => {
     let visited = 0;
     walk(node, { ExpressionStatement: () => (visited += 1) });
     assert.equal(visited, 1_000);
+  });
+});
+
+function parentReferences(source: string, parentType: string, name: string): boolean[] {
+  const parsed = parse(source, "references.ts");
+  const references: boolean[] = [];
+  const ancestors: ESTree.Node[] = [];
+  walk(
+    parsed.ast as unknown as ESTree.Node,
+    {
+      Identifier(node) {
+        const parent = ancestors.at(-2);
+        if (getName(node) === name && parent?.type === parentType)
+          references.push(isValueReference(node, ancestors));
+      },
+    },
+    ancestors,
+  );
+  return references;
+}
+
+describe("AST value references", () => {
+  it("counts shorthand property values as reads", () => {
+    assert.deepEqual(
+      parentReferences("const value = 1; const record = { value };", "Property", "value"),
+      [true, true],
+    );
+  });
+
+  it("does not treat ExportSpecifier.local as a value read", () => {
+    const source = "const value = 1; export { value as published };";
+    assert.deepEqual(parentReferences(source, "ExportSpecifier", "value"), [false]);
+    assert.deepEqual(parentReferences(source, "ExportSpecifier", "published"), [false]);
   });
 });

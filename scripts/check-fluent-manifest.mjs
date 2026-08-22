@@ -18,6 +18,9 @@ const { FLUENT_DECLARATION_SNAPSHOTS } = await import(
 const { compareFluentVersions, isAllowedFluentEvidenceLocation } = await import(
   pathToFileURL(join(root, "src/fluent/evidence.ts")).href
 );
+const { assertFluentLifecycleMatches } = await import(
+  pathToFileURL(join(root, "src/fluent/lifecycle.ts")).href
+);
 
 const REQUIRED_DIRECTIVES = [
   "fluent-ignore",
@@ -50,6 +53,12 @@ function summarize(manifest) {
       evidence: directive.evidence,
     })),
     typos: manifest.typos,
+    lifecycle: Object.fromEntries(
+      manifest.apis.map((api) => [
+        api.name,
+        { introduced: api.introduced ?? null, deprecated: api.deprecated ?? null },
+      ]),
+    ),
   };
 }
 
@@ -221,9 +230,41 @@ for (const version of SUPPORTED_FLUENT_SDK_VERSIONS) {
   );
   assert.deepEqual(runtime.absent, detail.absent, `${version}: negative capability snapshot`);
   const manifest = fluentManifests().find((item) => item.sdkVersion === version);
+  assert.ok(manifest, `${version}: runtime manifest missing`);
+  assert.deepEqual(runtime.typos, DEFAULT_FLUENT_MANIFEST.typos, `${version}: typo snapshot`);
+  for (const [name, lifecycle] of Object.entries(runtime.lifecycle)) {
+    const api = manifest.apis.find((item) => item.name === name);
+    assert.ok(api, `${version}: lifecycle API ${name} missing from manifest`);
+    const expectedLifecycle = {
+      ...lifecycle,
+      deprecated:
+        lifecycle.deprecated ??
+        (api.idRequirement === "deprecated"
+          ? api.evidenceRecords.find((record) => record.transition === "deprecated")?.version
+          : undefined) ??
+        null,
+    };
+    try {
+      assertFluentLifecycleMatches(api, expectedLifecycle, `${version}: ${name}`);
+    } catch (error) {
+      assert.fail(error instanceof Error ? error.message : String(error));
+    }
+  }
   const names = new Set(manifest.apis.map((api) => api.name));
   for (const name of Object.keys(detail.discoveredCapabilities)) {
+    if (!runtime.lifecycle[name]) continue;
     assert.ok(names.has(name), `${version}: declaration-proven required factory ${name} missing`);
+  }
+  for (const [name, lifecycle] of Object.entries(runtime.lifecycle)) {
+    if (!lifecycle.introduced) continue;
+    for (const priorVersion of SUPPORTED_FLUENT_SDK_VERSIONS) {
+      if (compareFluentVersions(priorVersion, lifecycle.introduced) >= 0) continue;
+      const priorManifest = fluentManifests().find((item) => item.sdkVersion === priorVersion);
+      assert.ok(
+        !priorManifest?.apis.some((api) => api.name === name),
+        `${name} leaked before ${lifecycle.introduced}`,
+      );
+    }
   }
   for (const name of ["DatabaseIndex", "Module", "ScriptedRestApi", "UiFormatter"]) {
     assert.ok(detail.absent.includes(name), `${version}: phantom ${name} unexpectedly exported`);

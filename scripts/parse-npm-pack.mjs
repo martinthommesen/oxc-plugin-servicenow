@@ -31,5 +31,14 @@ export function parseNpmPackJson(value) {
   if (matches.length !== 1) {
     throw new Error(`expected exactly one npm pack record with filename, found ${matches.length}`);
   }
-  return matches[0];
+  const record = matches[0];
+  if (
+    basename(record.filename) !== record.filename ||
+    record.filename.startsWith("-") ||
+    !/^[0-9A-Za-z._-]+\.tgz$/.test(record.filename)
+  ) {
+    throw new Error(`unsafe npm pack filename ${JSON.stringify(record.filename)}`);
+  }
+  return record;
 }
+import { basename } from "node:path";

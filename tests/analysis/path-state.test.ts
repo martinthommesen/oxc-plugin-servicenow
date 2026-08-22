@@ -182,6 +182,17 @@ describe("path-state evaluator", () => {
     assert.deepEqual(result.calls, ["next:opened"]);
   });
 
+  it("keeps a conditional continue path for the do-while test", () => {
+    const result = run(`
+      const gr = new GlideRecord("incident");
+      do {
+        if (retry) continue;
+        break;
+      } while ((gr.query(), false));
+    `);
+    assert.ok(result.queryEvents > 0);
+  });
+
   it("stops a stable loop after its abstract state converges", () => {
     const result = run(`
       const gr = new GlideRecord("incident");

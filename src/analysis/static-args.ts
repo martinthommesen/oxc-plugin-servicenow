@@ -7,7 +7,7 @@ export type StaticArgEvidence = "missing" | "empty" | "present" | "unknown";
 /**
  * Classify one call argument as static evidence.
  *
- * Missing, `null`, `undefined`, `void`, and empty strings are empty.
+ * Missing, `null`, unshadowed `undefined`, `void`, and empty strings are empty.
  * A non-empty static string or other literal is present.
  * Dynamic expressions stay unknown.
  */

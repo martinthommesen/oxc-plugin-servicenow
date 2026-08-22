@@ -6,6 +6,7 @@
     "criteria": 533,
     "criteriaSha256": "8c69c68424ca8495a7888c2f8b34784c973f23d6d7c08b81aa099d9545e9d2ce"
   },
+  "criteriaDigest": "6f9473920d9ffde625bcf68418da08cde196282c91661c2d40608c9bfff68d02",
   "criteria": [
     {
       "id": "PR51-64EA58AEE4C9",
@@ -1118,7 +1119,11 @@
       "proofs": [
         {
           "file": "tests/analysis/foundation.test.ts",
-          "fullName": "path identity and completion > runs a catch handler only for a reachable throw"
+          "fullName": "path identity and completion > does not run a catch handler on a normal-only path"
+        },
+        {
+          "file": "tests/analysis/path-state.test.ts",
+          "fullName": "path-state evaluator > visits a catch handler after an explicit throw"
         }
       ],
       "caseIds": [],
@@ -1358,7 +1363,7 @@
       "proofs": [
         {
           "file": "tests/analysis/foundation.test.ts",
-          "fullName": "path identity and completion > runs a catch handler only for a reachable throw"
+          "fullName": "path identity and completion > does not fabricate a catch path when no handler exists"
         }
       ],
       "caseIds": [],
@@ -1417,8 +1422,8 @@
       "implementationFiles": ["src/analysis/path-state.ts", "src/analysis/bindings.ts"],
       "proofs": [
         {
-          "file": "tests/analysis/foundation.test.ts",
-          "fullName": "path identity and completion > runs a catch handler only for a reachable throw"
+          "file": "tests/analysis/path-state.test.ts",
+          "fullName": "path-state evaluator > visits a catch handler after an explicit throw"
         }
       ],
       "caseIds": [],

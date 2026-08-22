@@ -1,6 +1,6 @@
 # servicenow/no-gliderecord-query-in-loop
 
-A `query()`, `get()`, or `getAsync()` inside a proven GlideRecord / GlideAggregate `.next()` loop is an N+1 pattern. Unrelated iterators with `.next()` do not establish cursor depth.
+A `query()` or `get()` inside a proven GlideRecord / GlideAggregate `.next()` loop is an N+1 pattern. Unrelated iterators with `.next()` do not establish cursor depth.
 
 - **Family:** classic
 - **Preset:** strict

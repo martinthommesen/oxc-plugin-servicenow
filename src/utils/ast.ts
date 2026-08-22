@@ -113,8 +113,8 @@ export function isValueReference(node: ESTree.Node, ancestors: readonly ESTree.N
     case "Property":
     case "PropertyDefinition":
     case "MethodDefinition": {
-      const prop = parent as { key?: unknown; computed?: boolean };
-      return prop.key !== node || prop.computed === true;
+      const prop = parent as { key?: unknown; computed?: boolean; shorthand?: boolean };
+      return prop.key !== node || prop.computed === true || prop.shorthand === true;
     }
     case "FunctionDeclaration":
     case "FunctionExpression":

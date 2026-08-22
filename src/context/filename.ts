@@ -27,6 +27,7 @@ export const CLIENT_FILE_GLOBS = scriptGlobs([
   "**/*onsubmit*",
   "**/*ui-policy*",
   "**/*ui_policy*",
+  "**/*.client.ui-action",
   "**/client/**/*",
   "**/src/client/**/*",
 ]);
@@ -93,7 +94,11 @@ export function surfacesFromFilename(filename: string): ScriptSurface[] {
   if (SI_FILE.test(file) || SI_DIR.test(path)) surfaces.add("script-include");
   if (SCHEDULED_FILE.test(file) || SCHEDULED_DIR.test(path)) surfaces.add("scheduled-script");
   if (FIX_SCRIPT_FILE.test(file) || FIX_SCRIPT_DIR.test(path)) surfaces.add("fix-script");
-  if (SERVER_DIR.test(path) || SERVER_FILE.test(file)) surfaces.add("server");
+  // A generic server directory is weaker evidence than a specific script
+  // subtype in the filename. Keep `src/server/helper.si.js` as a Script
+  // Include rather than making the evidence contradictory and returning [].
+  const specificSurface = [...surfaces].some((surface) => surface !== "server");
+  if (!specificSurface && (SERVER_DIR.test(path) || SERVER_FILE.test(file))) surfaces.add("server");
 
   if (
     surfaces.has("server") &&
