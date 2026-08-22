@@ -1119,7 +1119,11 @@
       "proofs": [
         {
           "file": "tests/analysis/foundation.test.ts",
-          "fullName": "path identity and completion > runs a catch handler only for a reachable throw"
+          "fullName": "path identity and completion > does not run a catch handler on a normal-only path"
+        },
+        {
+          "file": "tests/analysis/path-state.test.ts",
+          "fullName": "path-state evaluator > visits a catch handler after an explicit throw"
         }
       ],
       "caseIds": [],
@@ -1359,7 +1363,7 @@
       "proofs": [
         {
           "file": "tests/analysis/foundation.test.ts",
-          "fullName": "path identity and completion > runs a catch handler only for a reachable throw"
+          "fullName": "path identity and completion > does not fabricate a catch path when no handler exists"
         }
       ],
       "caseIds": [],
@@ -1418,8 +1422,8 @@
       "implementationFiles": ["src/analysis/path-state.ts", "src/analysis/bindings.ts"],
       "proofs": [
         {
-          "file": "tests/analysis/foundation.test.ts",
-          "fullName": "path identity and completion > runs a catch handler only for a reachable throw"
+          "file": "tests/analysis/path-state.test.ts",
+          "fullName": "path-state evaluator > visits a catch handler after an explicit throw"
         }
       ],
       "caseIds": [],
