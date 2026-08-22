@@ -1,18 +1,27 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
-import plugin, { configs, PACKAGE_NAME, PACKAGE_VERSION, PLUGIN_NAME, rules } from "../src/index.js";
+import plugin, { configs } from "../src/index.js";
+import * as publicApi from "../src/index.js";
 import { ruleCatalog } from "../src/catalog.js";
+import { PACKAGE_NAME, PACKAGE_VERSION, PLUGIN_NAME } from "../src/constants.js";
+import { rules } from "../src/rules/index.js";
 import { lint } from "./helpers/rule-tester.js";
 
 describe("plugin export", () => {
+  it("exports only the supported runtime API", () => {
+    assert.deepEqual(Object.keys(publicApi).sort(), ["configs", "default", "plugin"]);
+  });
+
   it("has the servicenow plugin name", () => {
     assert.equal(plugin.meta.name, PLUGIN_NAME);
     assert.equal(PACKAGE_NAME, "oxc-plugin-servicenow");
   });
 
   it("PACKAGE_VERSION matches package.json", () => {
-    const manifest = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as {
+    const manifest = JSON.parse(
+      readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+    ) as {
       version: string;
     };
     assert.equal(PACKAGE_VERSION, manifest.version);
@@ -27,7 +36,11 @@ describe("plugin export", () => {
 
   it("every rule implements createOnce", () => {
     for (const [name, rule] of Object.entries(rules)) {
-      const rec = rule as { createOnce?: unknown; create?: unknown; meta?: { docs?: { url?: string }; messages?: unknown } };
+      const rec = rule as {
+        createOnce?: unknown;
+        create?: unknown;
+        meta?: { docs?: { url?: string }; messages?: unknown };
+      };
       assert.equal(typeof rec.createOnce, "function", `${name} should use createOnce`);
       assert.ok(rec.meta?.docs?.url, `${name} is missing docs.url`);
       assert.ok(rec.meta?.messages, `${name} is missing messages`);
@@ -58,6 +71,10 @@ describe("plugin export", () => {
       assert.ok(config.files.includes("**/*.now.ts"), `${config.name} missing **/*.now.ts`);
       assert.ok(!config.files.includes("**/*.ts"), `${config.name} should not include **/*.ts`);
     }
+  });
+
+  it("the client flat config includes compound UI Action filenames", () => {
+    assert.ok(configs.flat.client.files.includes("**/*.client.ui-action.js"));
   });
 
   it("catalog fixable and hasSuggestions match rule meta and real output", () => {

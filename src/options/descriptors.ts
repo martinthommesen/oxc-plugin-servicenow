@@ -108,13 +108,3 @@ export const fluentNamingConventionOptions: RuleOptionsDescriptor<FluentNamingOp
     },
   },
 };
-
-export const RULE_OPTION_DESCRIPTORS = {
-  "no-hardcoded-sysid": noHardcodedSysidOptions,
-  "no-hardcoded-table-names": noHardcodedTableNamesOptions,
-  "require-fluent-id": requireFluentIdOptions,
-  "prefer-now-include": preferNowIncludeOptions,
-  "fluent-naming-convention": fluentNamingConventionOptions,
-} as const;
-
-export type ConfigurableRuleName = keyof typeof RULE_OPTION_DESCRIPTORS;

@@ -4,13 +4,37 @@
 
 - **Family:** classic
 - **Preset:** recommended
+- **Placements:** recommended (error), client (error)
 - **Default severity:** error
-- **Fixable:** no
+- **Fix safety:** diagnostic only
 - **Suggestions:** no
+- **Authoring:** classic
+- **Surfaces:** Applies to client, ui-action when those surfaces are known. Unknown surfaces stay silent.
+- **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
+- **Last verified:** 2026-08-20
+- **Implementation:** [`src/rules/require-callback-for-getreference.ts`](../../src/rules/require-callback-for-getreference.ts)
+
+## Applicability
+
+| Dimension | Value |
+| --- | --- |
+| Authoring | classic |
+| Surfaces | Applies to client, ui-action when those surfaces are known. Unknown surfaces stay silent. |
+| Minimum surface confidence | filename-inferred |
+| JavaScript modes | n/a |
+| Application scopes | global, scoped, unknown |
+| ServiceNow releases | zurich |
+| Fluent SDK range | n/a |
+
+## Options
+
+| Name | Type | Default | Description |
+| --- | --- | --- | --- |
+| _(none)_ | | | This rule has no options. |
 
 ## Incorrect
 
-### ❌ sync getReference
+### Incorrect: sync getReference
 
 ```js
 function onChange() {
@@ -21,7 +45,7 @@ function onChange() {
 
 ## Correct
 
-### ✅ async getReference
+### Correct: async getReference
 
 ```js
 function onChange() {
@@ -31,7 +55,46 @@ function onChange() {
 }
 ```
 
+## Limitations
+
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-boundary: Local objects named g_form are not the platform global.
+
+## Known false positives
+
+- None recorded.
+
+## Known false negatives
+
+- None recorded.
+
+## Intentional scope boundaries
+
+- Local objects named g_form are not the platform global.
+
+## Overlaps
+
+- None recorded.
+
+## Fix safety
+
+- Classification: diagnostic only
+- Lifecycle assumptions: No extra lifecycle assumptions.
+
+## Evidence
+
+- **g_form.getReference without a callback is a synchronous server request.**
+  - Verification ID: `rule-evidence-8728c187`
+  - URL: https://www.servicenow.com/docs/r/api-reference/c_GlideFormAPI.html
+  - Verified by: manual
+  - Verified at: 2026-08-20
+- **Recommended hosts report the one-argument form.**
+  - Verification ID: `rule-evidence-49fd26e6`
+  - URL: tests/integration/profiles/invalid/sync-getreference.client.js
+  - Verified by: integration-test
+  - Verified at: 2026-08-20
+
 ## See also
 
-- [ServiceNow Fluent overview](https://servicenow.github.io/sdk/guides/fluent-overview)
+- [Contributor rule-authoring guide](../rule-authoring.md)
+- [Project non-goals](../non-goals.md)
 - [oxlint JS plugins](https://oxc.rs/docs/guide/usage/linter/js-plugins.html)

@@ -54,8 +54,8 @@ export function definitelySkipsDoWhileTest(node: unknown): boolean {
     const statement = node as ESTree.IfStatement;
     return Boolean(
       statement.alternate &&
-        definitelySkipsDoWhileTest(statement.consequent) &&
-        definitelySkipsDoWhileTest(statement.alternate),
+      definitelySkipsDoWhileTest(statement.consequent) &&
+      definitelySkipsDoWhileTest(statement.alternate),
     );
   }
   return false;

@@ -12,7 +12,9 @@ export const PLUGIN_NAME = "servicenow";
 export const PACKAGE_NAME = "oxc-plugin-servicenow";
 
 function readPackageVersion(): string {
-  const manifest = JSON.parse(readFileSync(fileURLToPath(new URL("../package.json", import.meta.url)), "utf8")) as {
+  const manifest = JSON.parse(
+    readFileSync(fileURLToPath(new URL("../package.json", import.meta.url)), "utf8"),
+  ) as {
     version: string;
   };
   return manifest.version;

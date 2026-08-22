@@ -4,7 +4,8 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { Linter } from "eslint";
-import plugin, { configs, ruleCatalog } from "../../src/index.js";
+import { ruleCatalog } from "../../src/catalog.js";
+import plugin, { configs } from "../../src/index.js";
 
 const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
 

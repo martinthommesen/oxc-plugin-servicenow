@@ -1,6 +1,6 @@
 {
   "name": "oxc-plugin-servicenow",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "description": "First-class Oxlint + oxfmt tooling for ServiceNow Fluent (.now.ts) and classic ServiceNow JavaScript.",
   "keywords": [
     "oxlint",
@@ -37,6 +37,11 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
+    "./analysis": {
+      "types": "./dist/analysis/index.d.ts",
+      "import": "./dist/analysis/index.js",
+      "default": "./dist/analysis/index.js"
+    },
     "./oxfmt": {
       "types": "./dist/oxfmt/index.d.ts",
       "import": "./dist/oxfmt/index.js",
@@ -61,16 +66,25 @@
     "test:integration": "node scripts/run-tests.mjs tests/integration",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "fluent:check": "tsx scripts/check-fluent-manifest.mjs",
+    "lint:check": "oxlint --disable-nested-config --deny-warnings --ignore-pattern 'tests/integration/profiles/**' src scripts tests",
+    "format": "oxfmt -c .oxfmtrc.json --write src scripts tests",
+    "format:check": "oxfmt -c .oxfmtrc.json --check src scripts tests",
     "docs": "tsx scripts/generate-rule-docs.mjs",
-    "docs:check": "tsx scripts/generate-rule-docs.mjs && git diff --exit-code -- docs/rules"
+    "docs:check": "tsx scripts/generate-rule-docs.mjs && git diff --exit-code -- docs/rules README.md examples tests/integration/profiles/configs/recommended.oxlintrc.json tests/integration/profiles/configs/strict.oxlintrc.json tests/integration/profiles/mixed/.oxlintrc.json tests/integration/fixtures/.oxlintrc.json",
+    "manifest:check": "tsx scripts/check-fluent-manifest.mjs",
+    "manifest:update": "tsx scripts/audit-fluent-sdk.mjs --update",
+    "manifest:drift": "tsx scripts/audit-fluent-sdk.mjs --registry",
+    "test:fluent": "node scripts/run-tests.mjs tests/fluent-manifest.test.ts tests/rules/fluent-identity.test.ts",
+    "validate": "npm run lint:check && npm run format:check && npm run typecheck && npm run build && npm test && npm run docs:check && npm run manifest:check"
   },
   "dependencies": {
     "@oxlint/plugins": "^1.79.0"
   },
   "peerDependencies": {
-    "eslint": ">=9.0.0",
-    "oxfmt": ">=0.16.0",
-    "oxlint": ">=1.79.0 <2"
+    "eslint": ">=9.0.0 <11",
+    "oxfmt": ">=0.64.0 <1",
+    "oxlint": ">=1.79.0 <2",
+    "typescript-eslint": ">=8.0.0 <9"
   },
   "peerDependenciesMeta": {
     "eslint": {
@@ -81,12 +95,16 @@
     },
     "oxlint": {
       "optional": true
+    },
+    "typescript-eslint": {
+      "optional": true
     }
   },
   "devDependencies": {
     "@types/node": "^26.2.0",
     "eslint": "^10.8.1",
     "oxc-parser": "^0.145.0",
+    "oxfmt": "^0.64.0",
     "oxlint": "1.79.0",
     "tsx": "^4.19.0",
     "typescript": "^7.0.2",

@@ -100,11 +100,7 @@ config.$id = (id as unknown);`,
   });
 
   it("accepts a directly wrapped identity sink", () => {
-    assertValid(
-      `BusinessRule({ $id: (Now.ID["wrapped-direct"] as string)! });`,
-      REF,
-      NOW,
-    );
+    assertValid(`BusinessRule({ $id: (Now.ID["wrapped-direct"] as string)! });`, REF, NOW);
   });
 
   it("reports reading an identity on the left of a compound assignment", () => {

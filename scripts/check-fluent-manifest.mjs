@@ -251,7 +251,8 @@ for (const [version, expected] of Object.entries(boundaryFixture.versions)) {
 }
 for (const manifest of fluentManifests()) {
   for (const api of DEFAULT_FLUENT_MANIFEST.apis) {
-    if (!api.introduced || compareFluentVersions(manifest.sdkVersion, api.introduced) >= 0) continue;
+    if (!api.introduced || compareFluentVersions(manifest.sdkVersion, api.introduced) >= 0)
+      continue;
     assert.ok(
       !manifest.apis.some((candidate) => candidate.name === api.name),
       `${api.name} leaked before ${api.introduced}`,

@@ -1,0 +1,13 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "categories": {
+    "correctness": "warn"
+  },
+  "ignorePatterns": [
+    "dist/**",
+    "artifacts/**",
+    "tests/fixtures/**",
+    "tests/integration/fixtures/**",
+    "tests/integration/context-fixtures/**"
+  ]
+}

@@ -9,6 +9,8 @@ function scriptGlobs(stems: readonly string[]): string[] {
 
 export const CLIENT_FILE_GLOBS = scriptGlobs([
   "**/*.client",
+  "**/*.client.ui-action",
+  "**/*.client.ui_action",
   "**/*.cs",
   "**/*client-script*",
   "**/*client_script*",
