@@ -310,6 +310,70 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.16.0
+          cache: npm
+      - run: npm ci --ignore-scripts
       - name: Reject mutable action references
         run: |
-          node --input-type=module -e 'import { readFileSync, readdirSync } from "node:fs"; const files = readdirSync(".github/workflows").filter((name) => /\.ya?ml$/.test(name)); const bad = []; for (const file of files) { const source = readFileSync(".github/workflows/" + file, "utf8"); for (const match of source.matchAll(/^\s*(?:-\s+)?uses:\s+([^\s#]+)/gm)) if (!/@[0-9a-f]{40}$/.test(match[1])) bad.push(file + ": " + match[1]); } if (bad.length) { console.error(bad.join("\n")); process.exit(1); }'
+          node --input-type=module <<'NODE'
+          import { readFileSync, readdirSync } from "node:fs";
+          import { parseDocument } from "yaml";
+
+          const errors = [];
+          const files = readdirSync(".github/workflows")
+            .filter((name) => /\.ya?ml$/.test(name))
+            .sort();
+          for (const file of files) {
+            const document = parseDocument(
+              readFileSync(`.github/workflows/${file}`, "utf8"),
+              { strict: true, merge: true },
+            );
+            const parseProblems = [...document.errors, ...document.warnings];
+            if (parseProblems.length > 0) {
+              for (const problem of parseProblems) errors.push(`${file}: ${problem.message}`);
+              continue;
+            }
+            let workflow;
+            try {
+              workflow = document.toJS({ maxAliasCount: 100 });
+            } catch (error) {
+              errors.push(`${file}: ${error instanceof Error ? error.message : String(error)}`);
+              continue;
+            }
+            const references = [];
+            const jobs = workflow && typeof workflow === "object" ? workflow.jobs : undefined;
+            if (jobs && typeof jobs === "object" && !Array.isArray(jobs)) {
+              for (const job of Object.values(jobs)) {
+                if (!job || typeof job !== "object" || Array.isArray(job)) continue;
+                if (Object.hasOwn(job, "uses")) references.push(job.uses);
+                if (!Array.isArray(job.steps)) continue;
+                for (const step of job.steps) {
+                  if (
+                    step &&
+                    typeof step === "object" &&
+                    !Array.isArray(step) &&
+                    Object.hasOwn(step, "uses")
+                  ) {
+                    references.push(step.uses);
+                  }
+                }
+              }
+            }
+            for (const reference of references) {
+              if (typeof reference !== "string") {
+                errors.push(`${file}: uses must be a string action reference`);
+                continue;
+              }
+              if (reference.startsWith("./")) continue;
+              if (!/^[^@\s]+@[0-9a-f]{40}$/.test(reference)) {
+                errors.push(`${file}: ${reference} is not pinned to a full SHA`);
+              }
+            }
+          }
+          if (errors.length > 0) {
+            console.error(errors.join("\n"));
+            process.exit(1);
+          }
+          NODE
