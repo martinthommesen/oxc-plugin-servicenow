@@ -219,25 +219,26 @@ outer.next();`,
 });
 
 describe("path identity and completion", () => {
-  it("caps generic AST traversal depth", () => {
+  it("traverses deeply nested ASTs without a silent depth cap", () => {
     let node: Record<string, unknown> = { type: "Identifier", name: "value" };
     for (let depth = 0; depth < 1_000; depth += 1) {
       node = { type: "ExpressionStatement", expression: node };
     }
     let visited = 0;
     walk(node, { ExpressionStatement: () => (visited += 1) });
-    assert.equal(visited, 512);
+    assert.equal(visited, 1_000);
   });
 
   it("degrades pathological nested loops to unknown within the work budget", () => {
     resetPathBudgetExceededCount();
     const code = `var rec = new GlideRecord("incident");\n${"while (flag) {".repeat(400)}rec.next();${"}".repeat(400)}`;
     const started = Date.now();
-    applyRules(code, parse(code, "nested.br.js"), {
+    const messages = applyRules(code, parse(code, "nested.br.js"), {
       filename: "nested.br.js",
       ruleNames: ["require-query-before-next"],
     });
     assert.ok(getPathBudgetExceededCount() > 0);
+    assert.deepEqual(messages, []);
     assert.ok(Date.now() - started < 5_000, "path analysis exceeded five seconds");
   });
 
@@ -526,14 +527,15 @@ rec.next();`,
     );
   });
 
-  it("runs a catch handler only for a reachable throw", () => {
-    assertValid(
+  it("keeps the pre-call state when the call itself may throw", () => {
+    assertInvalid(
       `var rec = new GlideRecord("incident");
 try {
   throw (rec.query(), new Error("stop"));
 } catch (error) {}
 rec.next();`,
       "require-query-before-next",
+      { messageId: "missingQuery" },
     );
   });
 

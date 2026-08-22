@@ -28,6 +28,39 @@ function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
 }
 
+function lifecycleSnapshot(version, capabilities, discoveredCapabilities) {
+  const atOrAfter = (left, right) => {
+    const a = left.split(".").map(Number);
+    const b = right.split(".").map(Number);
+    return a[0] > b[0] || (a[0] === b[0] && (a[1] > b[1] || (a[1] === b[1] && a[2] >= b[2])));
+  };
+  return Object.fromEntries(
+    [...new Set([...Object.keys(capabilities), ...Object.keys(discoveredCapabilities)])]
+      .sort()
+      .map((name) => {
+        const api = DEFAULT_FLUENT_MANIFEST.apis.find((item) => item.name === name);
+        if (api?.introduced && !atOrAfter(version, api.introduced)) return null;
+        const introduced =
+          api?.introduced ??
+          (api
+            ? null
+            : (SUPPORTED_FLUENT_SDK_VERSIONS.find(
+                (candidate) =>
+                  FLUENT_DECLARATION_SNAPSHOTS[candidate]?.discoveredCapabilities[name],
+              ) ?? null));
+        return [
+          name,
+          {
+            introduced,
+            deprecated:
+              api?.deprecated && atOrAfter(version, api.deprecated) ? api.deprecated : null,
+          },
+        ];
+      })
+      .filter((entry) => entry !== null),
+  );
+}
+
 export function verifyIntegrity(bytes, integrity, label) {
   const [algorithm, expected] = integrity.split("-", 2);
   assert.equal(algorithm, "sha512", `${label}: unsupported integrity algorithm`);
@@ -386,6 +419,8 @@ async function auditVersion(version, metadataByName) {
     capabilities,
     discoveredCapabilities,
     absent,
+    typos: DEFAULT_FLUENT_MANIFEST.typos,
+    lifecycle: lifecycleSnapshot(version, capabilities, discoveredCapabilities),
     unresolvedBareExports: [...resolver.unresolvedBareExports].sort(),
     unreviewedRequiredFactories,
   };
@@ -399,6 +434,8 @@ export function runtimeSnapshot(snapshot) {
         capabilities: item.capabilities,
         discoveredCapabilities: item.discoveredCapabilities,
         absent: item.absent,
+        typos: item.typos,
+        lifecycle: item.lifecycle,
       },
     ]),
   );

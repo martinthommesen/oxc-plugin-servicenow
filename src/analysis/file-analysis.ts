@@ -182,6 +182,11 @@ function buildFileAnalysis(context: Context): FileAnalysis {
         if (node.type === "Identifier") identifierAtNode.set(node, snap);
         provenanceAtNode.set(node, snap);
       },
+      onBudgetExceeded() {
+        provenanceAtNode.clear();
+        identifierAtNode.clear();
+        nowIdAt.clear();
+      },
     });
 
     const ancestors: ESTree.Node[] = [];

@@ -149,6 +149,20 @@ describe("settings validation", () => {
 });
 
 describe("release and context resolution", () => {
+  it("does not reject filename-derived Fluent authoring with classic surfaces", () => {
+    const context = {
+      filename: "client.now.ts",
+      settings: { servicenow: { surfaces: ["client"] } },
+      sourceCode: { text: "", getAllComments: () => [] },
+      options: [],
+    } as unknown as Context;
+    const script = resolveScriptContext(context);
+    assert.equal(script.authoring, "classic");
+    assert.deepEqual([...script.surfaces], ["client"]);
+    assert.equal(script.sources.authoring, "explicit");
+    assert.equal(script.sources.surfaces, "explicit");
+  });
+
   it("accepts the documented Zurich release and rejects unknown values", () => {
     assert.equal(validateServiceNowSettings({ release: "zurich" }).settings.release, "zurich");
     assert.throws(() => validateServiceNowSettings({ release: "zurichx" }), /release.*one of/);
@@ -198,6 +212,40 @@ describe("classifyFile compatibility", () => {
       "ui-action",
     );
   });
+
+  it("recognizes record-type directories", () => {
+    const cases = [
+      ["src/business-rules/update.js", "business-rule"],
+      ["src/script-includes/helper.js", "script-include"],
+      ["src/ui-actions/close.js", "ui-action"],
+      ["src/fix-scripts/repair.js", "fix-script"],
+      ["src/scheduled-scripts/nightly.js", "scheduled-script"],
+    ] as const;
+    for (const [filename, expected] of cases) {
+      const context = {
+        filename,
+        settings: {},
+        sourceCode: { text: "", getAllComments: () => [] },
+        options: [],
+      } as unknown as Context;
+      assert.deepEqual([...resolveScriptContext(context).surfaces], [expected]);
+    }
+  });
+
+  it("keeps a specific record type inside a server directory", () => {
+    for (const [filename, expected] of [
+      ["src/server/incident.br.js", "business-rule"],
+      ["src/server/helper.si.js", "script-include"],
+    ] as const) {
+      const context = {
+        filename,
+        settings: {},
+        sourceCode: { text: "", getAllComments: () => [] },
+        options: [],
+      } as unknown as Context;
+      assert.deepEqual([...resolveScriptContext(context).surfaces], [expected]);
+    }
+  });
 });
 
 describe("context-aware engine rules", () => {
@@ -214,6 +262,15 @@ describe("context-aware engine rules", () => {
       "no-async-iterators",
       { messageId: "forAwait" },
       { settings: ES2021 },
+    );
+  });
+
+  it("uses an explicit mode for engine-wide bans on an unclassified file", () => {
+    assertInvalid(
+      "async function drain(items) { for await (const item of items) {} }",
+      "no-async-iterators",
+      { messageId: "forAwait" },
+      { filename: "plain.js", settings: ES2021 },
     );
   });
 

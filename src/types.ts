@@ -135,6 +135,15 @@ export interface ServiceNowSettings {
   fluentSdkVersion?: string;
 }
 
+/** Read-only view returned by the deprecated `getSettings` compatibility API. */
+export type ReadonlyServiceNowSettings = Readonly<
+  Omit<ServiceNowSettings, "allowedSysIds" | "allowedTables" | "surfaces">
+> & {
+  readonly allowedSysIds?: readonly string[];
+  readonly allowedTables?: readonly string[];
+  readonly surfaces?: "auto" | readonly ScriptSurface[];
+};
+
 /**
  * Normalized settings after runtime validation.
  * Deprecated fields are preserved so migration docs can mention them.

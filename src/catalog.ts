@@ -991,7 +991,7 @@ BusinessRule({ table: "incident" });`,
       {
         name: "Now.ID",
         filename: "log-state.now.ts",
-        code: `import { BusinessRule } from "@servicenow/sdk/core";\n\nBusinessRule({\n  $id: Now.ID["log-state"],\n  table: "incident",\n  name: "Log state",\n  when: "after",\n            action: ["update"],\n});`,
+        code: `import { BusinessRule } from "@servicenow/sdk/core";\n\nBusinessRule({\n  $id: Now.ID["log-state"],\n  table: "incident",\n  name: "Log state",\n  when: "after",\n  action: ["update"],\n});`,
       },
     ],
   }),
@@ -1038,7 +1038,7 @@ BusinessRule({ table: "incident" });`,
       {
         name: "kebab-case",
         filename: "log-state.now.ts",
-        code: `import { BusinessRule } from "@servicenow/sdk/core";\n\nBusinessRule({\n  $id: Now.ID["log-state"],\n  table: "incident",\n            name: "Log state",\n});`,
+        code: `import { BusinessRule } from "@servicenow/sdk/core";\n\nBusinessRule({\n  $id: Now.ID["log-state"],\n  table: "incident",\n  name: "Log state",\n});`,
       },
     ],
   }),
@@ -2105,7 +2105,7 @@ if (display < "2026-01-01") gs.info(display);`,
     fixable: false,
     hasSuggestions: false,
     description:
-      "A `query()`, `get()`, or `getAsync()` inside a proven GlideRecord / GlideAggregate `.next()` loop is an N+1 pattern. Unrelated iterators with `.next()` do not establish cursor depth.",
+      "A `query()` or `get()` inside a proven GlideRecord / GlideAggregate `.next()` loop is an N+1 pattern. Unrelated iterators with `.next()` do not establish cursor depth.",
     bad: [
       {
         name: "nested get",

@@ -1,6 +1,7 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
+import { isInstanceScript } from "../context/index.js";
 import { getName } from "../utils/ast.js";
 import { beginRuleFile } from "./helpers.js";
 
@@ -18,12 +19,26 @@ export const noPackagesCalls = defineRule({
     },
   },
   createOnce(context) {
+    let analysis: ReturnType<typeof beginRuleFile>["analysis"];
+    let script: ReturnType<typeof beginRuleFile>["context"];
     return {
+      before() {
+        const file = beginRuleFile(context);
+        if (!isInstanceScript(file.context)) return false;
+        analysis = file.analysis;
+        script = file.context;
+      },
       MemberExpression(node) {
-        const { analysis } = beginRuleFile(context);
         const member = node as ESTree.MemberExpression;
         const root = rootIdentifier(member);
-        if (!root || getName(root) !== "Packages" || !analysis.isPlatformGlobal(root)) return;
+        if (
+          !root ||
+          getName(root) !== "Packages" ||
+          !analysis.isPlatformGlobal(root) ||
+          script.authoring !== "classic" ||
+          script.sources.surfaces === "unknown"
+        )
+          return;
         const ancestors = context.sourceCode.getAncestors(node);
         const parent = ancestors[ancestors.length - 1] as ESTree.Node | undefined;
         if (

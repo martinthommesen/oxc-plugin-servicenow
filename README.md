@@ -327,7 +327,7 @@ Per-file `// @sn-es-latest` still maps to `es2021` with inferred confidence. Pre
 | [`require-business-rule-wrapper`](docs/rules/require-business-rule-wrapper.md) | recommended |  | Full-script Business Rules must wrap logic in the standard IIFE so top-level variables do not leak |
 | [`no-display-value-date-comparison`](docs/rules/no-display-value-date-comparison.md) | strict |  | Do not relationally compare `GlideDateTime.getDisplayValue()` strings |
 | [`no-unfiltered-gliderecord-bulk-operation`](docs/rules/no-unfiltered-gliderecord-bulk-operation.md) | recommended |  | `updateMultiple()` / `deleteMultiple()` without a proven restricting filter can touch every row |
-| [`no-gliderecord-query-in-loop`](docs/rules/no-gliderecord-query-in-loop.md) | strict |  | A `query()`, `get()`, or `getAsync()` inside a proven GlideRecord / GlideAggregate `.next()` loop is an N+1 pattern |
+| [`no-gliderecord-query-in-loop`](docs/rules/no-gliderecord-query-in-loop.md) | strict |  | A `query()` or `get()` inside a proven GlideRecord / GlideAggregate `.next()` loop is an N+1 pattern |
 | [`prefer-setnocount-with-choosewindow`](docs/rules/prefer-setnocount-with-choosewindow.md) | strict |  | Zurich scoped GlideRecord documents that `query()` after `chooseWindow()` runs `COUNT(*)` unless `setNoCount()` or `setLimit()` skips it |
 | [`no-system-query-bypass`](docs/rules/no-system-query-bypass.md) | security |  | Opt-in security review for documented ACL-bypass query APIs |
 | [`no-sync-glideajax`](docs/rules/no-sync-glideajax.md) | recommended |  | `getXMLWait()` blocks the browser and does not work in Service Portal |
@@ -585,7 +585,7 @@ replacement.
 
 ## Tested compatibility
 
-The table is generated from `scripts/compat-matrix.json`. See [Compatibility](docs/compatibility.md) for the full packed-consumer matrix.
+These declared ranges are validated by the repository test suite.
 
 <!-- generated:compatibility:start -->
 | Component | Tested range |
@@ -605,9 +605,9 @@ npm install
 npm run validate
 ```
 
-`npm run validate` runs typecheck, build, tests, generated-doc consistency, the Fluent manifest check, the real Oxlint benchmark, and `release:check -- --consumer`. Tests include oxlint, ESLint, oxfmt, profile fixtures, and a packed-package consumer. `release:check` inspects one tarball and runs consumer tests on that file. See [Release provenance](docs/release.md).
+`npm run validate` runs lint, format, typecheck, build, tests, generated-doc consistency, and the Fluent manifest check.
 
-See [Contributing](CONTRIBUTING.md), [Write a ServiceNow lint rule](docs/rule-authoring.md), [Compatibility](docs/compatibility.md), and [Non-goals](docs/non-goals.md).
+See [Contributing](CONTRIBUTING.md), [Write a ServiceNow lint rule](docs/rule-authoring.md), and [Non-goals](docs/non-goals.md).
 
 Rules live in `src/rules/`. Each rule has:
 

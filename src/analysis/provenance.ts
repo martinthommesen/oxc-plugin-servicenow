@@ -40,7 +40,7 @@ const CTOR_TO_KIND: Record<string, ProvenanceKind> = {
 
 export function ctorProvenanceKind(name: string | null): ProvenanceKind | null {
   if (!name) return null;
-  return CTOR_TO_KIND[name] ?? null;
+  return Object.prototype.hasOwnProperty.call(CTOR_TO_KIND, name) ? CTOR_TO_KIND[name]! : null;
 }
 
 export interface ProvenanceQuery {

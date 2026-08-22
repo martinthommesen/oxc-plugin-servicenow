@@ -10,6 +10,9 @@ const goalPath = join(root, "PR51-REMEDIATION-GOAL.md");
 const mappingPath = join(root, "scripts/pr51-acceptance.json");
 const artifactsDir = join(root, "artifacts");
 const testReportPath = join(artifactsDir, "pr51-test-results.json");
+const ACCEPTANCE_GOAL_SHA256 = "22f9e1d3d370eaa88001d8c7587f2878b7955a8d9b80922de5848696096a2dc1";
+const ACCEPTANCE_AUTHORITY_DIGEST =
+  "6f9473920d9ffde625bcf68418da08cde196282c91661c2d40608c9bfff68d02";
 
 export function repoFilePath(path) {
   if (typeof path !== "string" || path === "" || path.includes("\0") || path.includes("\\")) {
@@ -43,6 +46,22 @@ const dispositionLabels = new Set([
 
 function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
+}
+
+export function criteriaAuthorityDigest(criteria, goalSha256) {
+  return sha256(
+    `${goalSha256}\n` +
+      criteria
+        .map((item) =>
+          JSON.stringify({
+            id: item.id,
+            heading: item.source.heading,
+            text: item.source.text,
+            digest: item.source.digest,
+          }),
+        )
+        .join("\n"),
+  );
 }
 
 function normalize(value) {
@@ -203,9 +222,31 @@ export function validateSnapshot(mapping) {
     if (!allowedDispositions.has(item.disposition))
       errors.push(`${item.id} has invalid disposition ${item.disposition}`);
   }
+  if (mapping.goal?.sha256 !== ACCEPTANCE_GOAL_SHA256) errors.push("goal authority changed");
+  if (
+    mapping.criteriaDigest !== ACCEPTANCE_AUTHORITY_DIGEST ||
+    mapping.criteriaDigest !== criteriaAuthorityDigest(mapping.criteria ?? [], mapping.goal?.sha256)
+  )
+    errors.push("criteria authority digest changed");
   if (mapping.criteria?.length !== mapping.goal?.criteria)
     errors.push("goal criterion count changed");
+  if (mapping.goal?.criteriaSha256 !== criteriaSha256(mapping.criteria ?? []))
+    errors.push("goal criteria digest changed");
   return errors;
+}
+
+export function criteriaSha256(criteria) {
+  return sha256(
+    JSON.stringify(
+      criteria.map(({ id, source }) => ({
+        id,
+        heading: source.heading,
+        line: source.line,
+        text: source.text,
+        digest: source.digest,
+      })),
+    ),
+  );
 }
 
 function updateMapping(source, parsed) {
@@ -233,7 +274,13 @@ function updateMapping(source, parsed) {
   });
   const result = {
     schemaVersion: 1,
-    goal: { path: "PR51-REMEDIATION-GOAL.md", sha256: sha256(source), criteria: criteria.length },
+    goal: {
+      path: "PR51-REMEDIATION-GOAL.md",
+      sha256: sha256(source),
+      criteria: criteria.length,
+      criteriaSha256: criteriaSha256(criteria),
+    },
+    criteriaDigest: criteriaAuthorityDigest(criteria, sha256(source)),
     criteria,
   };
   writeFileSync(mappingPath, `${JSON.stringify(result, null, 2)}\n`);

@@ -3,9 +3,11 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 import {
+  criteriaSha256,
   parseCriteria,
   repoFilePath,
   searchableRepoFiles,
+  criteriaAuthorityDigest,
   validateMapping,
   validateSnapshot,
 } from "../scripts/verify-acceptance-ledger.mjs";
@@ -22,6 +24,7 @@ describe("PR51 acceptance mapping", () => {
       mapping.goal.sha256,
       "22f9e1d3d370eaa88001d8c7587f2878b7955a8d9b80922de5848696096a2dc1",
     );
+    assert.equal(mapping.goal.criteriaSha256, criteriaSha256(mapping.criteria));
     assert.deepEqual(validateSnapshot(mapping), []);
     assert.equal(
       mapping.criteria.find(
@@ -57,11 +60,27 @@ describe("PR51 acceptance mapping", () => {
       validateMapping(criteria, changed).some((error) => error.startsWith("changed source")),
     );
 
+    const changedSnapshot = structuredClone(mapping);
+    changedSnapshot.criteria[0]!.source.text += " changed";
+    changedSnapshot.criteria[0]!.source.digest =
+      "26cefa8d3b3bb5c0fac67cebe1984393308d3376aa9ed573eb88a50b478947f1";
+    assert.ok(validateSnapshot(changedSnapshot).includes("goal criteria digest changed"));
+
     const orphaned = structuredClone(fixture);
     orphaned.criteria[0]!.id = "PR51-ORPHANED";
     assert.ok(
       validateMapping(criteria, orphaned).some((error) => error.startsWith("orphaned mapping")),
     );
+  });
+
+  it("binds row identity and source text to an aggregate authority digest", () => {
+    const mutated = structuredClone(mapping);
+    mutated.criteria[0].id = "PR51-MUTATED";
+    mutated.criteria[0].source.text = "mutated requirement";
+    mutated.criteria[0].source.digest = "mutated digest";
+    mutated.criteriaDigest = criteriaAuthorityDigest(mutated.criteria, mutated.goal.sha256);
+    assert.equal(mutated.goal.sha256, mapping.goal.sha256);
+    assert.ok(validateSnapshot(mutated).includes("criteria authority digest changed"));
   });
 
   it("keeps fixture reads inside the repository", () => {

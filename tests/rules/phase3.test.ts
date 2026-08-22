@@ -730,6 +730,52 @@ while (incident.next()) {
     );
   });
 
+  it("keeps cursor depth through an immediately invoked function", () => {
+    assertInvalid(
+      `var incident = new GlideRecord("incident");
+incident.query();
+while (incident.next()) {
+  (function () {
+    var caller = new GlideRecord("sys_user");
+    caller.get(incident.getValue("caller_id"));
+  })();
+}`,
+      RULE,
+      { messageId: "nestedQuery" },
+      SERVER,
+    );
+  });
+
+  it("keeps cursor depth through an immediately invoked arrow", () => {
+    assertInvalid(
+      `var incident = new GlideRecord("incident");
+incident.query();
+while (incident.next()) {
+  (() => {
+    var caller = new GlideRecord("sys_user");
+    caller.get("abc");
+  })();
+}`,
+      RULE,
+      { messageId: "nestedQuery" },
+      SERVER,
+    );
+  });
+
+  it("recognizes a boolean cursor test", () => {
+    assertInvalid(
+      `var incident = new GlideRecord("incident");
+incident.query();
+while (incident.next() === true) {
+  var caller = new GlideRecord("sys_user");
+  caller.get("abc");
+}`,
+      RULE,
+      { messageId: "nestedQuery" },
+      SERVER,
+    );
+  });
+
   it("allows a query outside the loop and a fixed array loop", () => {
     assertValid(
       `var incident = new GlideRecord("incident");

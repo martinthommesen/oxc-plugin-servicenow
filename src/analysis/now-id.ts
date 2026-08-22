@@ -133,7 +133,7 @@ export function isCanonicalNowInclude(node: unknown, analysis: ProvenanceQuery):
       ? (expr as ESTree.CallExpression).callee
       : expr;
   const chain = staticMemberChain(callee);
-  if (!chain || chain[1] !== "include") return false;
+  if (!chain || chain.length !== 2 || chain[1] !== "include") return false;
   return isCanonicalNow(isNode(callee) ? callee : expr, analysis);
 }
 

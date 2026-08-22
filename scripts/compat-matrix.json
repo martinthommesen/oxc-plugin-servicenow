@@ -31,7 +31,7 @@
     "current": "8.67.0"
   },
   "typescript": {
-    "minimum": "5.8.3",
+    "minimum": "5.5.4",
     "current": "6.0.3"
   },
   "fluentSdk": [
@@ -76,7 +76,7 @@
       "eslint": "9.0.0",
       "oxfmt": "0.64.0",
       "typescriptEslint": "8.0.0",
-      "typescript": "5.8.3"
+      "typescript": "5.5.4"
     },
     {
       "id": "node22-host",

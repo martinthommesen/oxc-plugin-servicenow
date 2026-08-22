@@ -27,6 +27,7 @@ describe("ESLint flat profile context contracts", () => {
       "x.cs.cjs",
       "catalog-client.mjs",
       "sys_script_client_onchange.js",
+      "approve.client.ui-action.js",
       "src/client/x.js",
     ]) {
       assert.ok(

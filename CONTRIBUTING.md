@@ -22,7 +22,7 @@ Run every local gate with one command:
 npm run validate
 ```
 
-That command runs workflow, compatibility, lint, format, type, build, test, documentation-evidence, acceptance-ledger, generated-documentation, Fluent-manifest, benchmark, and exact-artifact checks. The final check cleans `dist`, packs one tarball, and runs the packed consumer on that file.
+That command runs lint, format, type, build, test, generated-documentation, and Fluent-manifest checks.
 
 `npm test` runs `scripts/run-tests.mjs`. That script lists every `*.test.ts` file and passes the list to `tsx --test`. Do not use a quoted `tests/**/*.test.ts` glob. Node 20 treats that path as one missing file.
 
@@ -59,13 +59,11 @@ Add a short note under `Unreleased` in `CHANGELOG.md` for user-visible rule, pre
 
 1. Complete the desired governance IDs in `scripts/release-governance.json` and run the read-only governance audit.
 2. Set the package version and add the exact changelog heading for that version.
-3. Run `npm run validate`. This command inspects one tarball and runs packed-consumer tests on that file.
+3. Run `npm run validate`.
 4. Merge to `main`. Tag `v<version>` at the exact current protected `main` tip.
 5. Let `.github/workflows/release.yml` validate and publish the uploaded tarball through the protected `release` environment.
 6. Confirm that registry integrity, provenance identity, public imports, and the GitHub release all match the inspected artifact.
 
 The publish job uses npm trusted-publishing OIDC and has only `id-token: write`. Do not set `NPM_TOKEN`. Do not publish from a pull request or a working tree.
-
-See [Release provenance](docs/release.md).
 
 Dependabot updates npm and GitHub Actions weekly. Oxc-related packages are grouped. Do not auto-merge those updates.

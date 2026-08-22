@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   GLIDE_API_RELEASE,
+  GLIDE_CURSOR_ADVANCERS,
   GLIDE_FILTER_METHODS,
-  GLIDE_GLOBAL_RECORD_EVIDENCE,
   GLIDE_QUERY_EXECUTORS,
   GLIDE_RECORD_METHODS,
   GLIDE_SCOPED_RECORD_EVIDENCE,
@@ -25,15 +25,16 @@ describe("GlideRecord method manifest", () => {
     assert.equal(names.length, new Set(names).size);
   });
 
-  it("lists getAsync as a global executor with its own evidence", () => {
-    const getAsync = GLIDE_RECORD_METHODS.find((entry) => entry.name === "getAsync");
-    assert.ok(getAsync);
-    assert.deepEqual([...getAsync.roles], ["executor"]);
-    assert.equal(getAsync.apiScope, "global");
-    assert.equal(getAsync.evidence, GLIDE_GLOBAL_RECORD_EVIDENCE);
-    assert.equal(GLIDE_QUERY_EXECUTORS.has("getAsync"), true);
+  it("does not invent an undocumented global executor", () => {
+    assert.equal(
+      GLIDE_RECORD_METHODS.some((entry) => entry.name === "getAsync"),
+      false,
+    );
+    assert.equal(GLIDE_QUERY_EXECUTORS.has("getAsync"), false);
     assert.equal(GLIDE_QUERY_EXECUTORS.has("query"), true);
     assert.equal(GLIDE_QUERY_EXECUTORS.has("get"), true);
+    assert.equal(GLIDE_CURSOR_ADVANCERS.has("next"), true);
+    assert.equal(GLIDE_CURSOR_ADVANCERS.has("_next"), true);
   });
 
   it("selects capabilities by exact scope and release", () => {
@@ -42,8 +43,10 @@ describe("GlideRecord method manifest", () => {
     const unknown = resolveGlideCapabilities({ scope: "unknown", release: "zurich" });
     assert.equal(scoped.executors.has("query"), true);
     assert.equal(scoped.executors.has("getAsync"), false);
-    assert.equal(global.executors.has("getAsync"), true);
+    assert.equal(global.executors.has("getAsync"), false);
     assert.equal(unknown.executors.has("getAsync"), false);
+    assert.equal(scoped.cursorAdvancers.has("_next"), true);
+    assert.equal(global.cursorAdvancers.has("_next"), true);
     assert.equal(resolveGlideCapabilities({ scope: "scoped", release: "zurich" }), scoped);
     assert.equal("add" in scoped.executors, false);
   });

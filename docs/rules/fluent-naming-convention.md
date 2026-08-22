@@ -59,7 +59,7 @@ import { BusinessRule } from "@servicenow/sdk/core";
 BusinessRule({
   $id: Now.ID["log-state"],
   table: "incident",
-            name: "Log state",
+  name: "Log state",
 });
 ```
 

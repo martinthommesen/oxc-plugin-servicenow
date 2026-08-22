@@ -6,7 +6,7 @@ import { findMissingQueryBeforeNext, staticPropertyName } from "../analysis/inte
 import { beginRuleFile } from "./helpers.js";
 import { isServerInstanceContext } from "../context/index.js";
 
-const UNUSED_RETURN = new Set(["insert", "update", "get", "next"]);
+const UNUSED_RETURN = new Set(["insert", "update", "deleteRecord", "get", "next"]);
 
 /**
  * @deprecated Split into `require-query-before-next` plus narrower rules.
@@ -28,7 +28,7 @@ export const validateGliderecordCalls = defineRule({
     },
     messages: {
       unusedReturn:
-        "The return value of `{{name}}.{{method}}()` is ignored. Check `insert`, `update`, `get`, and `next`. Bulk methods such as `updateMultiple` and `deleteMultiple` are not flagged.",
+        "The return value of `{{name}}.{{method}}()` is ignored. Check `insert`, `update`, `deleteRecord`, `get`, and `next`. Bulk methods such as `updateMultiple` and `deleteMultiple` are not flagged.",
       missingQuery:
         "`{{name}}.next()` is called without a preceding `.query()` or `.get()` on every path. Call `.query()` or `.get()` on every path before `.next()`; `chooseWindow()` only configures a later query.",
     },
