@@ -61,7 +61,7 @@ BusinessRule({
   table: "incident",
   name: "Log state",
   when: "after",
-            action: ["update"],
+  action: ["update"],
 });
 ```
 

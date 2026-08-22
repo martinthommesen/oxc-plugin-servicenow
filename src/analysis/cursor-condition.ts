@@ -17,6 +17,78 @@ function intersect(sets: readonly Set<number>[]): Set<number> {
   return result;
 }
 
+function truthyBooleanOperand(node: ESTree.Node): ESTree.Node | null {
+  if (node.type !== "BinaryExpression") return null;
+  const binary = node as ESTree.BinaryExpression;
+  const left = unwrapExpression(binary.left);
+  const right = unwrapExpression(binary.right);
+  const literal = (candidate: unknown): unknown =>
+    isNode(candidate) && candidate.type === "Literal"
+      ? (candidate as { value?: unknown }).value
+      : undefined;
+  const required =
+    binary.operator === "===" || binary.operator === "=="
+      ? true
+      : binary.operator === "!==" || binary.operator === "!="
+        ? false
+        : undefined;
+  if (required === undefined) return null;
+  if (literal(left) === required && isNode(right)) return right;
+  if (literal(right) === required && isNode(left)) return left;
+  return null;
+}
+
+interface DoWhileCompletion {
+  /** At least one path can continue with the following statement. */
+  normal: boolean;
+  /** At least one path reaches this do/while's test through `continue`. */
+  test: boolean;
+}
+
+function doWhileCompletion(node: unknown): DoWhileCompletion {
+  if (!isNode(node)) return { normal: true, test: false };
+  if (
+    node.type === "BreakStatement" ||
+    node.type === "ReturnStatement" ||
+    node.type === "ThrowStatement"
+  ) {
+    return { normal: false, test: false };
+  }
+  if (node.type === "ContinueStatement") {
+    return { normal: false, test: true };
+  }
+  if (node.type === "BlockStatement") {
+    let normal = true;
+    let test = false;
+    for (const statement of (node as ESTree.BlockStatement).body) {
+      if (!normal) break;
+      const completion = doWhileCompletion(statement);
+      test ||= completion.test;
+      normal = completion.normal;
+    }
+    return { normal, test };
+  }
+  if (node.type === "IfStatement") {
+    const statement = node as ESTree.IfStatement;
+    const consequent = doWhileCompletion(statement.consequent);
+    const alternate = statement.alternate
+      ? doWhileCompletion(statement.alternate)
+      : { normal: true, test: false };
+    return {
+      normal: consequent.normal || alternate.normal,
+      test: consequent.test || alternate.test,
+    };
+  }
+  // Stay conservative for loops, switches, labels, and try statements whose
+  // targeted completion cannot be determined from this statement alone.
+  return { normal: true, test: false };
+}
+
+export function definitelySkipsDoWhileTest(node: unknown): boolean {
+  const completion = doWhileCompletion(node);
+  return !completion.normal && !completion.test;
+}
+
 function proof(node: unknown, cursorId: (node: unknown) => number | null): TruthProof {
   const expr = unwrapExpression(node);
   if (!isNode(expr)) {
@@ -26,6 +98,8 @@ function proof(node: unknown, cursorId: (node: unknown) => number | null): Truth
   if (id !== null) {
     return { required: new Set([id]), canBeTruthy: true, canBeFalsy: true, canBeNullish: false };
   }
+  const compared = truthyBooleanOperand(expr);
+  if (compared) return proof(compared, cursorId);
   if (expr.type === "Literal") {
     const value = (expr as unknown as { value?: unknown }).value;
     return {

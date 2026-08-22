@@ -222,6 +222,10 @@ describe("engine extras", () => {
     assertValid("var Packages = 2; var y = Packages;", "no-packages-calls");
   });
 
+  it("no-packages-calls ignores an unclassified file", () => {
+    assertValid("var value = Packages.example;", "no-packages-calls", { filename: "plain.js" });
+  });
+
   it("does not assume an ordinary unknown-context JavaScript file is ServiceNow", () => {
     assertValid(`var n = Packages.java.lang.System.nanoTime();`, "no-packages-calls", {
       filename: "index.js",

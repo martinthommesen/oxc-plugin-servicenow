@@ -11,10 +11,6 @@ The 2.0.0 release includes the validated settings, context, rule, and release-go
 - Rule options use one descriptor for host schema, runtime parsing, and generated docs. Invalid types throw a path-specific `ServiceNowConfigError`.
 - Shared validated settings defaults are deeply frozen, including nested `allowedSysIds` and `allowedTables`.
 - Generated rule pages include a structured applicability matrix, evidence records, false-positive and false-negative lists, overlaps, and fix safety. `npm run docs:check` fails on stale metadata.
-- `npm run bench` measures the real Oxlint executable (time, scale, and peak RSS) and compares recommended, one-rule, all, and plugin-disabled profiles.
-- Packed-consumer compatibility covers the declared oxlint, ESLint, oxfmt, TypeScript, and typescript-eslint boundaries. CI runs the five authoritative cells on Node 20.19.0, 22.14.0, 24.16.0, and 26.7.0.
-- `npm run release:check` cleans `dist`, builds, packs one tarball with `--ignore-scripts`, and records per-file metadata and hashes. `npm run validate` runs packed-consumer tests on that same file.
-- The protected-tag release workflow requires the exact changelog heading before it can publish. The release jobs remain unexecuted and live-pending.
 
 ### Analysis
 
@@ -30,7 +26,6 @@ The 2.0.0 release includes the validated settings, context, rule, and release-go
 - `PACKAGE_VERSION` is read from `package.json`.
 - New `settings.servicenow.businessRuleWhen` metadata. Default `unknown`.
 - New strict/warn rule: `prefer-setnocount-with-choosewindow`.
-- Packed-package consumer tests run oxlint, ESLint, and oxfmt from `npm pack` output.
 - Example projects cover Compatibility, ES5, ES2021, client, Business Rule, UI Action, Fluent, and mixed repositories.
 - Phase 5 research notes record implement/hold/reject decisions for issues #35–#40.
 
@@ -41,7 +36,7 @@ The 2.0.0 release includes the validated settings, context, rule, and release-go
 - Versioned Zurich GlideRecord method table in `src/glide/manifest.ts` drives filter, modifier, and ACL-bypass names.
 - Rule catalog placements now generate preset maps, README rule tables, and recommended oxlintrc copies. `npm run docs` deletes stale rule pages.
 - Packed-package consumer test installs `npm pack` output and runs oxlint against the published exports.
-- Contributor docs: `npm run validate`, rule-authoring guide, compatibility matrix, and non-goals policy.
+- Contributor docs: `npm run validate`, rule-authoring guide, and non-goals policy.
 - `npm test` lists `*.test.ts` files so Node 20 CI does not treat a quoted glob as a missing path.
 
 ### Breaking — 2.0.0 foundation

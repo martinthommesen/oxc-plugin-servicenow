@@ -43,6 +43,21 @@ describe(RULE, () => {
     });
   });
 
+  it("reports template quasi and interpolation sys_ids independently", () => {
+    const other = "46f3e38e2f7710004f58e7d9d5d0e0b8";
+    assertInvalid(`var id = \`${ID}-\${"${other}"}\`;`, RULE, {
+      messageId: "hardcoded",
+      count: 2,
+    });
+  });
+
+  it("reports a cross-boundary sys_id beside a complete child sys_id", () => {
+    assertInvalid(`var id = "${ID}" + "-97c04b3b" + "1b12100043ab85e5bd0713e2";`, RULE, {
+      messageId: "hardcoded",
+      count: 2,
+    });
+  });
+
   it("does not suppress a sys_id for a generic hash-like name", () => {
     assertInvalid(`var userHash = "${ID}";`, RULE, { messageId: "hardcoded" });
   });

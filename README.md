@@ -585,7 +585,7 @@ replacement.
 
 ## Tested compatibility
 
-The table is generated from `scripts/compat-matrix.json`. See [Compatibility](docs/compatibility.md) for the full packed-consumer matrix.
+These declared ranges are validated by the repository test suite.
 
 <!-- generated:compatibility:start -->
 | Component | Tested range |
@@ -605,9 +605,9 @@ npm install
 npm run validate
 ```
 
-`npm run validate` runs typecheck, build, tests, generated-doc consistency, the Fluent manifest check, the real Oxlint benchmark, and `release:check -- --consumer`. Tests include oxlint, ESLint, oxfmt, profile fixtures, and a packed-package consumer. `release:check` inspects one tarball and runs consumer tests on that file. See [Release provenance](docs/release.md).
+`npm run validate` runs lint, format, typecheck, build, tests, generated-doc consistency, and the Fluent manifest check.
 
-See [Contributing](CONTRIBUTING.md), [Write a ServiceNow lint rule](docs/rule-authoring.md), [Compatibility](docs/compatibility.md), and [Non-goals](docs/non-goals.md).
+See [Contributing](CONTRIBUTING.md), [Write a ServiceNow lint rule](docs/rule-authoring.md), and [Non-goals](docs/non-goals.md).
 
 Rules live in `src/rules/`. Each rule has:
 

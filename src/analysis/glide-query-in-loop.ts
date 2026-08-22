@@ -3,7 +3,7 @@ import { getName, isNode, unwrapExpression } from "../utils/ast.js";
 import { staticPropertyName } from "./members.js";
 import type { ProvenanceQuery } from "./provenance.js";
 import { isFunctionLikeNode, visitChildren } from "./path-state.js";
-import { truthyPathRequiresCursorNext } from "./cursor-condition.js";
+import { definitelySkipsDoWhileTest, truthyPathRequiresCursorNext } from "./cursor-condition.js";
 
 export interface QueryInLoopFinding {
   node: ESTree.CallExpression;
@@ -73,10 +73,15 @@ function visit(
     const callee = unwrapExpression(call.callee);
     if (isNode(callee) && isFunctionLikeNode(callee)) {
       // An immediately invoked function executes at the caller's current
-      // cursor depth. Ordinary nested declarations remain separate paths.
-      const functionNode = callee as ESTree.Node & { body: unknown };
-      visit(functionNode.body, cursorDepth, analysis, findings);
+      // cursor depth. Preserve JavaScript evaluation order: arguments run
+      // before parameter defaults and the function body. Ordinary nested
+      // declarations stay separate.
       for (const argument of call.arguments) visit(argument, cursorDepth, analysis, findings);
+      const invoked = callee as unknown as { params?: unknown[]; body: ESTree.Node };
+      for (const parameter of invoked.params ?? []) {
+        visit(parameter, cursorDepth, analysis, findings);
+      }
+      visit(invoked.body, cursorDepth, analysis, findings);
       return;
     }
   }
@@ -88,7 +93,7 @@ function visit(
   if (node.type === "WhileStatement") {
     const stmt = node as ESTree.WhileStatement;
     const nextDepth = loopBodyRequiresCursor(stmt.test, analysis) ? cursorDepth + 1 : cursorDepth;
-    visit(stmt.test, cursorDepth, analysis, findings);
+    visitCondition(stmt.test, cursorDepth, analysis, findings);
     visit(stmt.body, nextDepth, analysis, findings);
     return;
   }
@@ -98,8 +103,8 @@ function visit(
     // The first do/while body runs before its test; only the subsequent path
     // is known to have passed a cursor condition.
     visit(stmt.body, cursorDepth, analysis, findings);
-    visit(stmt.test, cursorDepth, analysis, findings);
-    if (loopBodyRequiresCursor(stmt.test, analysis)) {
+    visitCondition(stmt.test, cursorDepth, analysis, findings);
+    if (loopBodyRequiresCursor(stmt.test, analysis) && !definitelySkipsDoWhileTest(stmt.body)) {
       visit(stmt.body, cursorDepth + 1, analysis, findings);
     }
     return;
@@ -110,7 +115,7 @@ function visit(
     const nextDepth =
       stmt.test && loopBodyRequiresCursor(stmt.test, analysis) ? cursorDepth + 1 : cursorDepth;
     if (stmt.init) visit(stmt.init, cursorDepth, analysis, findings);
-    if (stmt.test) visit(stmt.test, cursorDepth, analysis, findings);
+    if (stmt.test) visitCondition(stmt.test, cursorDepth, analysis, findings);
     visit(stmt.body, nextDepth, analysis, findings);
     if (stmt.update) visit(stmt.update, nextDepth, analysis, findings);
     if (stmt.update && containsCursorNext(stmt.update, analysis)) {
@@ -135,4 +140,33 @@ function visit(
   }
 
   visitChildren(node, (child) => visit(child, cursorDepth, analysis, findings));
+}
+
+function visitCondition(
+  node: unknown,
+  cursorDepth: number,
+  analysis: ProvenanceQuery,
+  findings: QueryInLoopFinding[],
+): void {
+  const expr = unwrapExpression(node);
+  if (!isNode(expr)) return;
+  if (expr.type === "LogicalExpression") {
+    const logical = expr as ESTree.LogicalExpression;
+    visitCondition(logical.left, cursorDepth, analysis, findings);
+    const rightDepth =
+      logical.operator === "&&" && loopBodyRequiresCursor(logical.left, analysis)
+        ? cursorDepth + 1
+        : cursorDepth;
+    visitCondition(logical.right, rightDepth, analysis, findings);
+    return;
+  }
+  if (expr.type === "SequenceExpression") {
+    let depth = cursorDepth;
+    for (const value of (expr as ESTree.SequenceExpression).expressions) {
+      visit(value, depth, analysis, findings);
+      if (isCursorNextCall(value, analysis)) depth += 1;
+    }
+    return;
+  }
+  visit(expr, cursorDepth, analysis, findings);
 }

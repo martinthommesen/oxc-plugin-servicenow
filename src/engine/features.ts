@@ -155,7 +155,12 @@ export function isFeatureAllowed(id: EngineFeatureId, mode: JavaScriptMode): boo
 export function shouldDiagnoseFeature(ctx: ServiceNowScriptContext, id: EngineFeatureId): boolean {
   if (isFluentContext(ctx)) return false;
   const spec = ENGINE_FEATURES[id];
-  if (spec.unsupportedInAllInstanceModes) return appliesToInstanceScripts(ctx);
+  if (spec.unsupportedInAllInstanceModes) {
+    return (
+      appliesToInstanceScripts(ctx) ||
+      (ctx.javascriptMode !== "unknown" && ctx.sources.javascriptMode === "explicit")
+    );
+  }
   const restricted: Array<"compatibility" | "es5" | "es2021"> = [];
   for (const mode of ["compatibility", "es5", "es2021"] as const) {
     if (spec.support[mode] !== "supported") restricted.push(mode);

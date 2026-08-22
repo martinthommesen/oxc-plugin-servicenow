@@ -66,7 +66,15 @@ g_form.getReference("caller_id", handleCaller);`,
   });
 
   it("flags statically non-callable callbacks", () => {
-    for (const callback of ["false", "42", '"handler"', "{}", "[]"]) {
+    for (const callback of [
+      "false",
+      "42",
+      '"handler"',
+      "`handler`",
+      "{}",
+      "[]",
+      "class Handler {}",
+    ]) {
       assertInvalid(
         `g_form.getReference("caller_id", ${callback});`,
         RULE,

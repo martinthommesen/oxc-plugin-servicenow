@@ -2491,6 +2491,14 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         introduced: null,
         deprecated: null,
       },
+      UiAction: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPage: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
       UserPreference: {
         introduced: null,
         deprecated: null,
@@ -3086,6 +3094,14 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
       },
       TranslatedTextColumn: {
         introduced: null,
+        deprecated: null,
+      },
+      UiAction: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPage: {
+        introduced: "4.0.0",
         deprecated: null,
       },
       UserPreference: {
@@ -3685,6 +3701,14 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         introduced: null,
         deprecated: null,
       },
+      UiAction: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPage: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
       UserPreference: {
         introduced: null,
         deprecated: null,
@@ -4282,6 +4306,14 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         introduced: null,
         deprecated: null,
       },
+      UiAction: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPage: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
       UserPreference: {
         introduced: null,
         deprecated: null,
@@ -4877,6 +4909,14 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
       },
       TranslatedTextColumn: {
         introduced: null,
+        deprecated: null,
+      },
+      UiAction: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPage: {
+        introduced: "4.0.0",
         deprecated: null,
       },
       UserPreference: {
@@ -5496,6 +5536,14 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         introduced: null,
         deprecated: null,
       },
+      UiAction: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPage: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
       UiPolicy: {
         introduced: null,
         deprecated: null,
@@ -6082,6 +6130,10 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         introduced: null,
         deprecated: null,
       },
+      CatalogItemRecordProducer: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
       ChoiceColumn: {
         introduced: null,
         deprecated: null,
@@ -6216,6 +6268,14 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
       },
       TranslatedTextColumn: {
         introduced: null,
+        deprecated: null,
+      },
+      UiAction: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPage: {
+        introduced: "4.0.0",
         deprecated: null,
       },
       UiPolicy: {
@@ -6866,6 +6926,10 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         introduced: null,
         deprecated: null,
       },
+      CatalogItemRecordProducer: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
       ChoiceColumn: {
         introduced: null,
         deprecated: null,
@@ -7004,6 +7068,14 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
       },
       TranslatedTextColumn: {
         introduced: null,
+        deprecated: null,
+      },
+      UiAction: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPage: {
+        introduced: "4.0.0",
         deprecated: null,
       },
       UiPolicy: {
@@ -7654,6 +7726,10 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         introduced: null,
         deprecated: null,
       },
+      CatalogItemRecordProducer: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
       ChoiceColumn: {
         introduced: null,
         deprecated: null,
@@ -7792,6 +7868,14 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
       },
       TranslatedTextColumn: {
         introduced: null,
+        deprecated: null,
+      },
+      UiAction: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPage: {
+        introduced: "4.0.0",
         deprecated: null,
       },
       UiPolicy: {
@@ -8530,6 +8614,10 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         introduced: null,
         deprecated: null,
       },
+      CatalogItemRecordProducer: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
       ChoiceColumn: {
         introduced: null,
         deprecated: null,
@@ -8630,6 +8718,10 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         introduced: "4.0.0",
         deprecated: null,
       },
+      SPMenu: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
       SPTheme: {
         introduced: "4.5.0",
         deprecated: null,
@@ -8640,6 +8732,10 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
       },
       SPWidgetDependency: {
         introduced: "4.0.0",
+        deprecated: null,
+      },
+      ScheduledScript: {
+        introduced: "4.5.0",
         deprecated: null,
       },
       ScriptAction: {
@@ -8692,6 +8788,14 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
       },
       TranslatedTextColumn: {
         introduced: null,
+        deprecated: null,
+      },
+      UiAction: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPage: {
+        introduced: "4.0.0",
         deprecated: null,
       },
       UiPolicy: {
@@ -9456,6 +9560,10 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         introduced: null,
         deprecated: null,
       },
+      CatalogItemRecordProducer: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
       ChoiceColumn: {
         introduced: null,
         deprecated: null,
@@ -9560,6 +9668,10 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         introduced: "4.0.0",
         deprecated: null,
       },
+      SPMenu: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
       SPPageRouteMap: {
         introduced: "4.6.0",
         deprecated: null,
@@ -9574,6 +9686,10 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
       },
       SPWidgetDependency: {
         introduced: "4.0.0",
+        deprecated: null,
+      },
+      ScheduledScript: {
+        introduced: "4.5.0",
         deprecated: null,
       },
       ScriptAction: {
@@ -9626,6 +9742,14 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
       },
       TranslatedTextColumn: {
         introduced: null,
+        deprecated: null,
+      },
+      UiAction: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPage: {
+        introduced: "4.0.0",
         deprecated: null,
       },
       UiPolicy: {
@@ -10390,6 +10514,10 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         introduced: null,
         deprecated: null,
       },
+      CatalogItemRecordProducer: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
       ChoiceColumn: {
         introduced: null,
         deprecated: null,
@@ -10494,6 +10622,10 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         introduced: "4.0.0",
         deprecated: null,
       },
+      SPMenu: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
       SPPageRouteMap: {
         introduced: "4.6.0",
         deprecated: null,
@@ -10508,6 +10640,10 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
       },
       SPWidgetDependency: {
         introduced: "4.0.0",
+        deprecated: null,
+      },
+      ScheduledScript: {
+        introduced: "4.5.0",
         deprecated: null,
       },
       ScriptAction: {
@@ -10560,6 +10696,14 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
       },
       TranslatedTextColumn: {
         introduced: null,
+        deprecated: null,
+      },
+      UiAction: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPage: {
+        introduced: "4.0.0",
         deprecated: null,
       },
       UiPolicy: {
@@ -11333,6 +11477,10 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         introduced: null,
         deprecated: null,
       },
+      CatalogItemRecordProducer: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
       ChoiceColumn: {
         introduced: null,
         deprecated: null,
@@ -11441,6 +11589,10 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         introduced: "4.0.0",
         deprecated: null,
       },
+      SPMenu: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
       SPPageRouteMap: {
         introduced: "4.6.0",
         deprecated: null,
@@ -11455,6 +11607,10 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
       },
       SPWidgetDependency: {
         introduced: "4.0.0",
+        deprecated: null,
+      },
+      ScheduledScript: {
+        introduced: "4.5.0",
         deprecated: null,
       },
       ScriptAction: {
@@ -11507,6 +11663,14 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
       },
       TranslatedTextColumn: {
         introduced: null,
+        deprecated: null,
+      },
+      UiAction: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPage: {
+        introduced: "4.0.0",
         deprecated: null,
       },
       UiPolicy: {
@@ -12280,6 +12444,10 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         introduced: null,
         deprecated: null,
       },
+      CatalogItemRecordProducer: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
       ChoiceColumn: {
         introduced: null,
         deprecated: null,
@@ -12388,6 +12556,10 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         introduced: "4.0.0",
         deprecated: null,
       },
+      SPMenu: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
       SPPageRouteMap: {
         introduced: "4.6.0",
         deprecated: null,
@@ -12402,6 +12574,10 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
       },
       SPWidgetDependency: {
         introduced: "4.0.0",
+        deprecated: null,
+      },
+      ScheduledScript: {
+        introduced: "4.5.0",
         deprecated: null,
       },
       ScriptAction: {
@@ -12454,6 +12630,14 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
       },
       TranslatedTextColumn: {
         introduced: null,
+        deprecated: null,
+      },
+      UiAction: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPage: {
+        introduced: "4.0.0",
         deprecated: null,
       },
       UiPolicy: {
@@ -13227,6 +13411,10 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         introduced: null,
         deprecated: null,
       },
+      CatalogItemRecordProducer: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
       ChoiceColumn: {
         introduced: null,
         deprecated: null,
@@ -13335,6 +13523,10 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         introduced: "4.0.0",
         deprecated: null,
       },
+      SPMenu: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
       SPPageRouteMap: {
         introduced: "4.6.0",
         deprecated: null,
@@ -13349,6 +13541,10 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
       },
       SPWidgetDependency: {
         introduced: "4.0.0",
+        deprecated: null,
+      },
+      ScheduledScript: {
+        introduced: "4.5.0",
         deprecated: null,
       },
       ScriptAction: {
@@ -13401,6 +13597,14 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
       },
       TranslatedTextColumn: {
         introduced: null,
+        deprecated: null,
+      },
+      UiAction: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPage: {
+        introduced: "4.0.0",
         deprecated: null,
       },
       UiPolicy: {
@@ -14227,7 +14431,7 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         deprecated: null,
       },
       CatalogItemRecordProducer: {
-        introduced: "4.8.0",
+        introduced: "4.3.0",
         deprecated: null,
       },
       ChoiceColumn: {
@@ -14347,7 +14551,7 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         deprecated: null,
       },
       SPMenu: {
-        introduced: "4.8.0",
+        introduced: "4.5.0",
         deprecated: null,
       },
       SPPageRouteMap: {
@@ -14367,7 +14571,7 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         deprecated: null,
       },
       ScheduledScript: {
-        introduced: "4.8.0",
+        introduced: "4.5.0",
         deprecated: null,
       },
       ScriptAction: {
@@ -14423,11 +14627,11 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         deprecated: null,
       },
       UiAction: {
-        introduced: "4.8.0",
+        introduced: "4.0.0",
         deprecated: null,
       },
       UiPage: {
-        introduced: "4.8.0",
+        introduced: "4.0.0",
         deprecated: null,
       },
       UiPolicy: {
@@ -15254,7 +15458,7 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         deprecated: null,
       },
       CatalogItemRecordProducer: {
-        introduced: "4.8.0",
+        introduced: "4.3.0",
         deprecated: null,
       },
       ChoiceColumn: {
@@ -15374,7 +15578,7 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         deprecated: null,
       },
       SPMenu: {
-        introduced: "4.8.0",
+        introduced: "4.5.0",
         deprecated: null,
       },
       SPPageRouteMap: {
@@ -15394,7 +15598,7 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         deprecated: null,
       },
       ScheduledScript: {
-        introduced: "4.8.0",
+        introduced: "4.5.0",
         deprecated: null,
       },
       ScriptAction: {
@@ -15450,11 +15654,11 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         deprecated: null,
       },
       UiAction: {
-        introduced: "4.8.0",
+        introduced: "4.0.0",
         deprecated: null,
       },
       UiPage: {
-        introduced: "4.8.0",
+        introduced: "4.0.0",
         deprecated: null,
       },
       UiPolicy: {
@@ -16281,7 +16485,7 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         deprecated: null,
       },
       CatalogItemRecordProducer: {
-        introduced: "4.8.0",
+        introduced: "4.3.0",
         deprecated: null,
       },
       ChoiceColumn: {
@@ -16401,7 +16605,7 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         deprecated: null,
       },
       SPMenu: {
-        introduced: "4.8.0",
+        introduced: "4.5.0",
         deprecated: null,
       },
       SPPageRouteMap: {
@@ -16421,7 +16625,7 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         deprecated: null,
       },
       ScheduledScript: {
-        introduced: "4.8.0",
+        introduced: "4.5.0",
         deprecated: null,
       },
       ScriptAction: {
@@ -16477,11 +16681,11 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         deprecated: null,
       },
       UiAction: {
-        introduced: "4.8.0",
+        introduced: "4.0.0",
         deprecated: null,
       },
       UiPage: {
-        introduced: "4.8.0",
+        introduced: "4.0.0",
         deprecated: null,
       },
       UiPolicy: {
@@ -17308,7 +17512,7 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         deprecated: null,
       },
       CatalogItemRecordProducer: {
-        introduced: "4.8.0",
+        introduced: "4.3.0",
         deprecated: null,
       },
       ChoiceColumn: {
@@ -17428,7 +17632,7 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         deprecated: null,
       },
       SPMenu: {
-        introduced: "4.8.0",
+        introduced: "4.5.0",
         deprecated: null,
       },
       SPPageRouteMap: {
@@ -17448,7 +17652,7 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         deprecated: null,
       },
       ScheduledScript: {
-        introduced: "4.8.0",
+        introduced: "4.5.0",
         deprecated: null,
       },
       ScriptAction: {
@@ -17504,11 +17708,11 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         deprecated: null,
       },
       UiAction: {
-        introduced: "4.8.0",
+        introduced: "4.0.0",
         deprecated: null,
       },
       UiPage: {
-        introduced: "4.8.0",
+        introduced: "4.0.0",
         deprecated: null,
       },
       UiPolicy: {
@@ -18335,7 +18539,7 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         deprecated: null,
       },
       CatalogItemRecordProducer: {
-        introduced: "4.8.0",
+        introduced: "4.3.0",
         deprecated: null,
       },
       ChoiceColumn: {
@@ -18455,7 +18659,7 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         deprecated: null,
       },
       SPMenu: {
-        introduced: "4.8.0",
+        introduced: "4.5.0",
         deprecated: null,
       },
       SPPageRouteMap: {
@@ -18475,7 +18679,7 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         deprecated: null,
       },
       ScheduledScript: {
-        introduced: "4.8.0",
+        introduced: "4.5.0",
         deprecated: null,
       },
       ScriptAction: {
@@ -18531,11 +18735,11 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         deprecated: null,
       },
       UiAction: {
-        introduced: "4.8.0",
+        introduced: "4.0.0",
         deprecated: null,
       },
       UiPage: {
-        introduced: "4.8.0",
+        introduced: "4.0.0",
         deprecated: null,
       },
       UiPolicy: {
@@ -19372,7 +19576,7 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         deprecated: null,
       },
       CatalogItemRecordProducer: {
-        introduced: "4.8.0",
+        introduced: "4.3.0",
         deprecated: null,
       },
       ChoiceColumn: {
@@ -19492,7 +19696,7 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         deprecated: null,
       },
       SPMenu: {
-        introduced: "4.8.0",
+        introduced: "4.5.0",
         deprecated: null,
       },
       SPPageRouteMap: {
@@ -19512,7 +19716,7 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         deprecated: null,
       },
       ScheduledScript: {
-        introduced: "4.8.0",
+        introduced: "4.5.0",
         deprecated: null,
       },
       ScriptAction: {
@@ -19572,11 +19776,11 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         deprecated: null,
       },
       UiAction: {
-        introduced: "4.8.0",
+        introduced: "4.0.0",
         deprecated: null,
       },
       UiPage: {
-        introduced: "4.8.0",
+        introduced: "4.0.0",
         deprecated: null,
       },
       UiPolicy: {
@@ -20413,7 +20617,7 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         deprecated: null,
       },
       CatalogItemRecordProducer: {
-        introduced: "4.8.0",
+        introduced: "4.3.0",
         deprecated: null,
       },
       ChoiceColumn: {
@@ -20533,7 +20737,7 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         deprecated: null,
       },
       SPMenu: {
-        introduced: "4.8.0",
+        introduced: "4.5.0",
         deprecated: null,
       },
       SPPageRouteMap: {
@@ -20553,7 +20757,7 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         deprecated: null,
       },
       ScheduledScript: {
-        introduced: "4.8.0",
+        introduced: "4.5.0",
         deprecated: null,
       },
       ScriptAction: {
@@ -20613,11 +20817,11 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         deprecated: null,
       },
       UiAction: {
-        introduced: "4.8.0",
+        introduced: "4.0.0",
         deprecated: null,
       },
       UiPage: {
-        introduced: "4.8.0",
+        introduced: "4.0.0",
         deprecated: null,
       },
       UiPolicy: {
@@ -21481,7 +21685,7 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         deprecated: null,
       },
       CatalogItemRecordProducer: {
-        introduced: "4.8.0",
+        introduced: "4.3.0",
         deprecated: null,
       },
       ChoiceColumn: {
@@ -21605,7 +21809,7 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         deprecated: null,
       },
       SPMenu: {
-        introduced: "4.8.0",
+        introduced: "4.5.0",
         deprecated: null,
       },
       SPPageRouteMap: {
@@ -21625,7 +21829,7 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         deprecated: null,
       },
       ScheduledScript: {
-        introduced: "4.8.0",
+        introduced: "4.5.0",
         deprecated: null,
       },
       ScriptAction: {
@@ -21689,11 +21893,11 @@ export const FLUENT_DECLARATION_SNAPSHOTS = {
         deprecated: null,
       },
       UiAction: {
-        introduced: "4.8.0",
+        introduced: "4.0.0",
         deprecated: null,
       },
       UiPage: {
-        introduced: "4.8.0",
+        introduced: "4.0.0",
         deprecated: null,
       },
       UiPolicy: {

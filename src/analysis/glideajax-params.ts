@@ -1,7 +1,7 @@
 import type { ESTree } from "@oxlint/plugins";
 import { getStringValue, nodeStart } from "../utils/ast.js";
 import { classifyStaticArg } from "./static-args.js";
-import { analyzePathBindings, mergeTri } from "./path-state.js";
+import { analyzePathBindings, dedupePathFindings, mergeTri } from "./path-state.js";
 import type { ProvenanceQuery } from "./provenance.js";
 
 export interface GlideAjaxParamFinding {
@@ -121,6 +121,9 @@ export function findGlideAjaxParamIssues(
         rec.data.uncertain = false;
       }
     },
+    onBudgetExceeded() {
+      findings.length = 0;
+    },
   });
-  return findings;
+  return dedupePathFindings(findings, (finding) => finding.messageId);
 }

@@ -10,9 +10,6 @@ const goalPath = join(root, "PR51-REMEDIATION-GOAL.md");
 const mappingPath = join(root, "scripts/pr51-acceptance.json");
 const artifactsDir = join(root, "artifacts");
 const testReportPath = join(artifactsDir, "pr51-test-results.json");
-// Tracked authority for the committed goal and its canonical row projection.
-// Keep this alongside the verifier so a mapping cannot rewrite both the rows
-// and their derived digest while retaining the old goal commitment.
 const ACCEPTANCE_GOAL_SHA256 = "22f9e1d3d370eaa88001d8c7587f2878b7955a8d9b80922de5848696096a2dc1";
 const ACCEPTANCE_AUTHORITY_DIGEST =
   "6f9473920d9ffde625bcf68418da08cde196282c91661c2d40608c9bfff68d02";
@@ -233,7 +230,23 @@ export function validateSnapshot(mapping) {
     errors.push("criteria authority digest changed");
   if (mapping.criteria?.length !== mapping.goal?.criteria)
     errors.push("goal criterion count changed");
+  if (mapping.goal?.criteriaSha256 !== criteriaSha256(mapping.criteria ?? []))
+    errors.push("goal criteria digest changed");
   return errors;
+}
+
+export function criteriaSha256(criteria) {
+  return sha256(
+    JSON.stringify(
+      criteria.map(({ id, source }) => ({
+        id,
+        heading: source.heading,
+        line: source.line,
+        text: source.text,
+        digest: source.digest,
+      })),
+    ),
+  );
 }
 
 function updateMapping(source, parsed) {
@@ -261,7 +274,12 @@ function updateMapping(source, parsed) {
   });
   const result = {
     schemaVersion: 1,
-    goal: { path: "PR51-REMEDIATION-GOAL.md", sha256: sha256(source), criteria: criteria.length },
+    goal: {
+      path: "PR51-REMEDIATION-GOAL.md",
+      sha256: sha256(source),
+      criteria: criteria.length,
+      criteriaSha256: criteriaSha256(criteria),
+    },
     criteriaDigest: criteriaAuthorityDigest(criteria, sha256(source)),
     criteria,
   };

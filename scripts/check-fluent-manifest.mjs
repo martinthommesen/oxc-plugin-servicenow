@@ -43,6 +43,8 @@ function summarize(manifest) {
       module: api.module,
       kind: api.kind,
       idRequirement: api.idRequirement,
+      introduced: api.introduced ?? null,
+      deprecated: api.deprecated ?? null,
       evidence: api.evidence,
     })),
     directives: manifest.directives.map((directive) => ({
@@ -79,6 +81,7 @@ function assertManifest(manifest) {
     if (expected) assert.equal(directive.placement, expected, `${directive.name} placement`);
   }
   for (const api of manifest.apis) {
+    const canonical = DEFAULT_FLUENT_MANIFEST.apis.find((candidate) => candidate.name === api.name);
     assert.ok(api.evidence && api.evidence.length > 8, `${api.name} needs evidence`);
     assert.ok(api.module === "unknown" || api.module.startsWith("@"), `${api.name} module`);
     assert.ok(
@@ -97,14 +100,28 @@ function assertManifest(manifest) {
       }
       if (record.transition === "introduced")
         assert.equal(record.version, api.introduced, `${api.name} introduction evidence`);
-      if (record.transition === "deprecated") {
-        const declared = DEFAULT_FLUENT_MANIFEST.apis.find((item) => item.name === api.name);
+      if (record.transition === "deprecated")
         assert.equal(
           record.version,
-          declared?.deprecated ?? null,
+          api.deprecated ?? canonical?.deprecated,
           `${api.name} deprecation evidence`,
         );
-      }
+    }
+    if (api.introduced) {
+      assert.ok(
+        api.evidenceRecords.some(
+          (record) => record.transition === "introduced" && record.version === api.introduced,
+        ),
+        `${api.name} needs introduction evidence`,
+      );
+    }
+    if (api.deprecated) {
+      assert.ok(
+        api.evidenceRecords.some(
+          (record) => record.transition === "deprecated" && record.version === api.deprecated,
+        ),
+        `${api.name} needs deprecation evidence`,
+      );
     }
     if (api.introduced && api.deprecated) {
       assert.ok(
@@ -218,8 +235,17 @@ for (const version of SUPPORTED_FLUENT_SDK_VERSIONS) {
   for (const [name, lifecycle] of Object.entries(runtime.lifecycle)) {
     const api = manifest.apis.find((item) => item.name === name);
     assert.ok(api, `${version}: lifecycle API ${name} missing from manifest`);
+    const expectedLifecycle = {
+      ...lifecycle,
+      deprecated:
+        lifecycle.deprecated ??
+        (api.idRequirement === "deprecated"
+          ? api.evidenceRecords.find((record) => record.transition === "deprecated")?.version
+          : undefined) ??
+        null,
+    };
     try {
-      assertFluentLifecycleMatches(api, lifecycle, `${version}: ${name}`);
+      assertFluentLifecycleMatches(api, expectedLifecycle, `${version}: ${name}`);
     } catch (error) {
       assert.fail(error instanceof Error ? error.message : String(error));
     }
@@ -243,6 +269,35 @@ for (const version of SUPPORTED_FLUENT_SDK_VERSIONS) {
   for (const name of ["DatabaseIndex", "Module", "ScriptedRestApi", "UiFormatter"]) {
     assert.ok(detail.absent.includes(name), `${version}: phantom ${name} unexpectedly exported`);
     assert.ok(!names.has(name), `${version}: phantom ${name} present in runtime manifest`);
+  }
+}
+
+const boundaryFixture = JSON.parse(
+  await readFile(join(root, "tests/fixtures/fluent-sdk-boundaries.json"), "utf8"),
+);
+for (const [version, expected] of Object.entries(boundaryFixture.versions)) {
+  const manifest = fluentManifests().find((item) => item.sdkVersion === version);
+  assert.ok(manifest, `missing manifest for boundary fixture ${version}`);
+  const names = new Set(manifest.apis.map((api) => api.name));
+  for (const name of expected.present) {
+    assert.ok(names.has(name), `${version} declaration capability ${name} missing`);
+  }
+  for (const name of expected.absent ?? []) {
+    assert.ok(!names.has(name), `${version} declaration capability ${name} leaked`);
+  }
+  const policies = new Map(manifest.apis.map((api) => [api.name, api.idRequirement]));
+  for (const [name, policy] of Object.entries(expected.idRequirements ?? {})) {
+    assert.equal(policies.get(name), policy, `${version} ${name} id policy`);
+  }
+}
+for (const manifest of fluentManifests()) {
+  for (const api of DEFAULT_FLUENT_MANIFEST.apis) {
+    if (!api.introduced || compareFluentVersions(manifest.sdkVersion, api.introduced) >= 0)
+      continue;
+    assert.ok(
+      !manifest.apis.some((candidate) => candidate.name === api.name),
+      `${api.name} leaked before ${api.introduced}`,
+    );
   }
 }
 

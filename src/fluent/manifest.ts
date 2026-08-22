@@ -123,7 +123,7 @@ export const DEFAULT_FLUENT_MANIFEST: FluentSdkManifest = {
     }),
     entity("CatalogClientScript", "required"),
     entity("CatalogItem", "required", { evidence: `${SDK_EXAMPLES}/service-catalog-sample` }),
-    entity("CatalogItemRecordProducer", "required", { introduced: "4.8.0" }),
+    entity("CatalogItemRecordProducer", "required", { introduced: "4.3.0" }),
     entity("ClientScript", "required", {
       evidence: `${FLUENT_OVERVIEW} and ${SDK_EXAMPLES}/clientscript-sample`,
     }),
@@ -160,9 +160,9 @@ export const DEFAULT_FLUENT_MANIFEST: FluentSdkManifest = {
     entity("RestApi", "required", { evidence: `${SDK_EXAMPLES}/restapi-sample` }),
     entity("Role", "required"),
     entity("Sla", "required", { introduced: "4.3.0" }),
-    entity("ScheduledScript", "required", { introduced: "4.8.0" }),
+    entity("ScheduledScript", "required", { introduced: "4.5.0" }),
     entity("SPMenu", "required", {
-      introduced: "4.8.0",
+      introduced: "4.5.0",
       evidence: `${SDK_EXAMPLES}/service-portal-sample`,
     }),
     entity("SPWidget", "required", { evidence: `${SDK_EXAMPLES}/service-portal-sample` }),
@@ -180,11 +180,11 @@ export const DEFAULT_FLUENT_MANIFEST: FluentSdkManifest = {
       evidence: `${FLUENT_OVERVIEW} and ${SDK_EXAMPLES}/script-include-sample`,
     }),
     entity("UiAction", "required", {
-      introduced: "4.8.0",
+      introduced: "4.0.0",
       evidence: `${FLUENT_OVERVIEW} and ${SDK_EXAMPLES}/ui-action-sample`,
     }),
     entity("UiPage", "required", {
-      introduced: "4.8.0",
+      introduced: "4.0.0",
       evidence: `${FLUENT_OVERVIEW} and ${SDK_EXAMPLES}/ui-page-sample`,
     }),
     entity("UiPolicy", "required"),

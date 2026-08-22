@@ -108,6 +108,10 @@ describe("plugin export", () => {
     }
   });
 
+  it("the client flat config includes compound UI Action filenames", () => {
+    assert.ok(configs.flat.client.files.includes("**/*.client.ui-action.js"));
+  });
+
   it("catalog fixable and hasSuggestions match rule meta and real output", () => {
     for (const entry of ruleCatalog) {
       const rec = rules[entry.name] as {

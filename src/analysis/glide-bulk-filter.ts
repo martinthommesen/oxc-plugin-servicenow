@@ -1,7 +1,7 @@
 import type { ESTree } from "@oxlint/plugins";
 import { getStringValue, nodeStart } from "../utils/ast.js";
 import { classifyStaticArg } from "./static-args.js";
-import { analyzePathBindings, mergeTri } from "./path-state.js";
+import { analyzePathBindings, dedupePathFindings, mergeTri } from "./path-state.js";
 import type { ProvenanceQuery } from "./provenance.js";
 
 export interface UnfilteredBulkFinding {
@@ -109,6 +109,9 @@ export function findUnfilteredBulkOperations(
         rec.data.uncertain = true;
       }
     },
+    onBudgetExceeded() {
+      findings.length = 0;
+    },
   });
-  return findings;
+  return dedupePathFindings(findings);
 }

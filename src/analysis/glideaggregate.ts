@@ -153,6 +153,10 @@ export function findGlideAggregateIssues(
         }
       }
     },
+    onBudgetExceeded() {
+      findings.length = 0;
+      reported.clear();
+    },
   });
   return findings;
 }

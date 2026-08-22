@@ -49,6 +49,10 @@ export function findQueryModifiersAfterQuery(
         }
       }
     },
+    onBudgetExceeded() {
+      findings.length = 0;
+      reported.clear();
+    },
   });
   return findings;
 }
