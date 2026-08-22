@@ -104,5 +104,5 @@ export function findGlideAjaxParamIssues(
       findings.length = 0;
     },
   });
-  return dedupePathFindings(findings);
+  return dedupePathFindings(findings, (finding) => finding.messageId);
 }
