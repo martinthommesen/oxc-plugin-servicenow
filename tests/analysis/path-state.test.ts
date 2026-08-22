@@ -139,6 +139,48 @@ describe("path-state evaluator", () => {
     assert.ok(result.calls.includes("next:unknown"));
   });
 
+  it("does not visit a catch handler after a demonstrably non-throwing try body", () => {
+    const result = run(`
+      const gr = new GlideRecord("incident");
+      try { const answer = 42; } catch (error) { gr.next(); }
+    `);
+    assert.deepEqual(result.calls, []);
+  });
+
+  it("visits a catch handler before an operation that may throw", () => {
+    const result = run(`
+      const gr = new GlideRecord("incident");
+      try { maybeThrow(); } catch (error) { gr.query(); }
+      gr.next();
+    `);
+    assert.ok(result.calls.includes("next:unknown"));
+  });
+
+  it("keeps argument effects on the call-invocation catch path", () => {
+    const result = run(`
+      const gr = new GlideRecord("incident");
+      try { maybeThrow(gr.query()); } catch (error) { gr.next(); }
+    `);
+    assert.ok(result.calls.includes("next:opened"));
+  });
+
+  it("keeps argument effects on the constructor-invocation catch path", () => {
+    const result = run(`
+      const gr = new GlideRecord("incident");
+      try { new MaybeThrow(gr.query()); } catch (error) { gr.next(); }
+    `);
+    assert.ok(result.calls.includes("next:opened"));
+  });
+
+  it("visits a catch handler after an explicit throw", () => {
+    const result = run(`
+      const gr = new GlideRecord("incident");
+      try { throw error; } catch (error) { gr.query(); }
+      gr.next();
+    `);
+    assert.deepEqual(result.calls, ["next:opened"]);
+  });
+
   it("stops a stable loop after its abstract state converges", () => {
     const result = run(`
       const gr = new GlideRecord("incident");
@@ -170,6 +212,32 @@ describe("path-state evaluator", () => {
       gr.next();
     `);
     assert.deepEqual(result.calls, ["query:none", "next:none"]);
+  });
+
+  it("escapes an enclosing function local captured by an escaping callback", () => {
+    const result = run(`
+      function factory() {
+        const gr = new GlideRecord("incident");
+        const callback = () => gr.query();
+        use(callback);
+        gr.next();
+      }
+      factory();
+    `);
+    assert.deepEqual(result.calls, ["query:none", "next:none"]);
+  });
+
+  it("does not escape an enclosing function local when its callback is direct-only", () => {
+    const result = run(`
+      function factory() {
+        const gr = new GlideRecord("incident");
+        const callback = () => gr.query();
+        callback();
+        gr.next();
+      }
+      factory();
+    `);
+    assert.deepEqual(result.calls, ["next:opened"]);
   });
 
   it("does not execute or escape discarded generator bodies", () => {

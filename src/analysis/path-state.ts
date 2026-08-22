@@ -430,22 +430,8 @@ function scopeContains(scope: ScopeNode | null, block: ESTree.Node): boolean {
   return false;
 }
 
-function bindingIsInNestedFunction(
-  bindingScope: ScopeNode | null,
-  functionScope: ScopeNode | null,
-): boolean {
-  if (!bindingScope || !functionScope || bindingScope === functionScope) return false;
-  let current: ScopeNode | null = bindingScope;
-  while (current && current !== functionScope) {
-    if (current.kind === "function") return true;
-    current = current.parent;
-  }
-  return false;
-}
-
 function capturedBindings(fn: ESTree.Node, bindings: FileBindings): BindingId[] {
   const found = new Set<BindingId>();
-  const functionScope = bindings.tree.scopeForNode(fn);
   const ancestors: ESTree.Node[] = [];
   const visit = (node: unknown): void => {
     if (!isNode(node)) return;
@@ -453,11 +439,7 @@ function capturedBindings(fn: ESTree.Node, bindings: FileBindings): BindingId[] 
     if (node.type === "Identifier" && isValueReference(node, ancestors)) {
       const binding = bindings.resolve(getName(node) ?? "", node, ancestors);
       const declared = binding ? bindings.tree.scopeById(binding.scopeId) : null;
-      if (
-        binding &&
-        !scopeContains(declared, fn) &&
-        !bindingIsInNestedFunction(declared, functionScope)
-      ) {
+      if (binding && !scopeContains(declared, fn)) {
         found.add(binding.id);
       }
     }
@@ -507,7 +489,16 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
   const directlyCalledFunctions = new WeakSet<ESTree.Node>();
   const activeFunctions = new Set<ESTree.Node>();
   const functionCaptures = new WeakMap<ESTree.Node, readonly BindingId[]>();
+  const tryThrowPaths: EnvState<T>[][] = [];
   const PLATFORM_ALIASES = new Set(["g_form", "gs", "current"]);
+
+  const recordPossibleThrow = (state: EnvState<T>): void => {
+    const paths = tryThrowPaths[tryThrowPaths.length - 1];
+    if (!paths || state.completion !== "normal") return;
+    const possibleThrow = snapshotState(state, cloneData, budget);
+    setCompletion(possibleThrow, "throw");
+    paths.push(possibleThrow);
+  };
 
   const capturesOf = (fn: ESTree.Node): readonly BindingId[] => {
     const existing = functionCaptures.get(fn);
@@ -1165,20 +1156,21 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
 
       case "TryStatement": {
         const stmt = node as ESTree.TryStatement;
-        const beforeTry = snapshotState(state, cloneData, budget);
         const tried = snapshotState(state, cloneData, budget);
-        visit(stmt.block, tried, false);
+        const possibleThrows: EnvState<T>[] = [];
+        tryThrowPaths.push(possibleThrows);
+        try {
+          visit(stmt.block, tried, false);
+        } finally {
+          tryThrowPaths.pop();
+        }
         const handled: EnvState<T>[] = [];
-        for (const path of completionPaths(tried, cloneData, budget)) {
+        for (const path of [...completionPaths(tried, cloneData, budget), ...possibleThrows]) {
           if (path.completion === "throw" && stmt.handler) {
             setCompletion(path, "normal");
             visit(stmt.handler, path, false);
             handled.push(path);
             continue;
-          } else if (path.completion === "normal" && stmt.handler) {
-            const possibleThrow = snapshotState(beforeTry, cloneData, budget);
-            visit(stmt.handler, possibleThrow, false);
-            handled.push(possibleThrow);
           }
           handled.push(path);
         }
@@ -1197,6 +1189,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
       }
       case "CallExpression": {
         const call = node as ESTree.CallExpression;
+        recordPossibleThrow(state);
         // Capture the evaluated receiver before arguments can reassign its
         // binding. Nested argument calls still mutate the same object record.
         visit(call.callee, state, false);
@@ -1215,6 +1208,8 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
           visit(arg, state, false);
           argumentIds.push(objectFromExpr(state, arg));
         }
+        // Invocation remains able to throw after all argument effects complete.
+        recordPossibleThrow(state);
         onCall({ call, rec, objectName, property });
         const direct = unwrapExpression(call.callee);
         let fn: ESTree.Node | undefined;
@@ -1289,11 +1284,16 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
         break;
       }
       case "NewExpression": {
-        const prior = newExpressionIds.get(node);
+        const expr = node as ESTree.NewExpression;
+        recordPossibleThrow(state);
+        const prior = newExpressionIds.get(expr);
         if (prior !== undefined) state.objects.delete(prior);
-        for (const arg of (node as ESTree.NewExpression).arguments) markEscape(state, arg);
-        objectFromExpr(state, node);
-        visitChildren(node, (child) => visit(child, state, false));
+        visit(expr.callee, state, false);
+        for (const arg of expr.arguments) visit(arg, state, false);
+        // Construction can throw after argument evaluation but before allocation.
+        recordPossibleThrow(state);
+        for (const arg of expr.arguments) markEscape(state, arg);
+        objectFromExpr(state, expr);
         break;
       }
       case "ReturnStatement":
