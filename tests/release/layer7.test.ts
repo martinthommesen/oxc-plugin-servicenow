@@ -204,6 +204,23 @@ describe("release automation gates", () => {
     );
   });
 
+  it("requires the release tag commit to equal the freshly fetched main tip", () => {
+    const steps = workflow.jobs.validate.steps as any[];
+    const tipIndex = steps.findIndex(
+      (step) => step.name === "Verify release tag is current main tip",
+    );
+    const installIndex = steps.findIndex((step) => step.run === "npm ci");
+    assert.ok(tipIndex > 0, "release main-tip step is missing");
+    assert.ok(tipIndex < installIndex, "release main-tip check must run before dependency install");
+    const commands = steps[tipIndex].run
+      .split("\n")
+      .map((line: string) => line.trim())
+      .filter(Boolean);
+    const equality = 'test "$GITHUB_SHA" = "$(git rev-parse origin/main)"';
+    assert.deepEqual(commands, ["git fetch origin main", equality]);
+    assert.doesNotMatch(workflowText, /merge-base --is-ancestor/);
+  });
+
   it("creates releases with tag verification and prerelease mode", () => {
     assert.deepEqual(releaseAction(undefined, "pkg.tgz"), "create");
     assert.equal(releaseAction({ tagName: "v2.0.0", assets: [] }, "pkg.tgz"), "upload-asset");

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Fixed
+
+- Release validation now rejects tags that do not point to the exact current protected `main` tip.
+
 ## 2.0.0 — 2026-08-22
 
 The 2.0.0 release includes the validated settings, context, rule, and release-governance changes documented below.

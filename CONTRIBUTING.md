@@ -22,9 +22,9 @@ Run every local gate with one command:
 npm run validate
 ```
 
-That command runs lint, format, type, build, test, generated-documentation, and Fluent-manifest checks.
+That command checks workflow action pins and the compatibility matrix; runs lint, format, project and fixture typechecking, build, tests, and Fluent-manifest verification; then checks evidence, acceptance, generated-documentation consistency, benchmarks, and the release artifact with a packed consumer.
 
-`npm test` runs `scripts/run-tests.mjs`. That script lists every `*.test.ts` file and passes the list to `tsx --test`. Do not use a quoted `tests/**/*.test.ts` glob. Node 20 treats that path as one missing file.
+`npm test` runs the serial TypeScript suite through `scripts/run-tests.mjs`, then runs `npm run fluent:check`. The test runner lists every `*.test.ts` file and passes the list to `tsx --test`. Do not use a quoted `tests/**/*.test.ts` glob. Node 20 treats that path as one missing file.
 
 ## Add a rule
 
@@ -57,12 +57,14 @@ Add a short note under `Unreleased` in `CHANGELOG.md` for user-visible rule, pre
 
 ## Release
 
-1. Complete the desired governance IDs in `scripts/release-governance.json` and run the read-only governance audit.
+1. Confirm the desired policy and principal IDs in `scripts/release-governance.json`, then run the read-only GitHub audit with `node scripts/check-release-governance.mjs`.
 2. Set the package version and add the exact changelog heading for that version.
 3. Run `npm run validate`.
 4. Merge to `main`. Tag `v<version>` at the exact current protected `main` tip.
 5. Let `.github/workflows/release.yml` validate and publish the uploaded tarball through the protected `release` environment.
 6. Confirm that registry integrity, provenance identity, public imports, and the GitHub release all match the inspected artifact.
+
+Keep `main` unchanged until the release workflow's initial tip check passes. Protected release tags are immutable; never move one to recover from a mismatch.
 
 The publish job uses npm trusted-publishing OIDC and has only `id-token: write`. Do not set `NPM_TOKEN`. Do not publish from a pull request or a working tree.
 

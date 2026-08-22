@@ -605,7 +605,7 @@ npm install
 npm run validate
 ```
 
-`npm run validate` runs lint, format, typecheck, build, tests, generated-doc consistency, and the Fluent manifest check.
+`npm run validate` checks workflow action pins and the compatibility matrix; runs lint, format, project and fixture typechecking, build, tests, and Fluent-manifest verification; then checks evidence, acceptance, generated-documentation consistency, benchmarks, and the release artifact with a packed consumer.
 
 See [Contributing](CONTRIBUTING.md), [Write a ServiceNow lint rule](docs/rule-authoring.md), and [Non-goals](docs/non-goals.md).
 

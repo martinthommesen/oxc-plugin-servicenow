@@ -154,7 +154,8 @@ describe("release artifact gates", () => {
     assert.doesNotMatch(uncommented, /NPM_TOKEN/);
     assert.doesNotMatch(uncommented, /secrets\./);
     assert.match(workflow, /git rev-parse origin\/main/);
-    assert.match(workflow, /merge-base --is-ancestor/);
+    assert.match(workflow, /test "\$GITHUB_SHA" = "\$\(git rev-parse origin\/main\)"/);
+    assert.doesNotMatch(workflow, /merge-base --is-ancestor/);
     assert.doesNotMatch(workflow, /npm run compat -- --all/);
     assert.match(workflow, /compat-consumer\.mjs --cell .* --tarball/);
     assert.match(workflow, /--sha256 "\$SHA256"/);
