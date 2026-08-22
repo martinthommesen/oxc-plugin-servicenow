@@ -1,9 +1,9 @@
 # servicenow/no-bigint
 
-BigInt literals and `BigInt()` are unsupported on the classic engine.
+BigInt literals and `BigInt()` are unsupported in Compatibility or ES5 Standards mode.
 
 - **Family:** engine
-- **Preset:** recommended
+- **Preset:** classic-es5
 - **Default severity:** error
 - **Fixable:** no
 - **Suggestions:** no

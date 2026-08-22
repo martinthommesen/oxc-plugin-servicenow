@@ -8,6 +8,7 @@ import {
   GLIDE_RECORD_METHODS,
   GLIDE_SCOPED_RECORD_EVIDENCE,
   GLIDE_SYSTEM_BYPASS_METHODS,
+  resolveGlideCapabilities,
 } from "../../src/glide/index.js";
 
 describe("GlideRecord method manifest", () => {
@@ -35,11 +36,25 @@ describe("GlideRecord method manifest", () => {
     assert.equal(GLIDE_QUERY_EXECUTORS.has("get"), true);
   });
 
+  it("selects capabilities by exact scope and release", () => {
+    const scoped = resolveGlideCapabilities({ scope: "scoped", release: "zurich" });
+    const global = resolveGlideCapabilities({ scope: "global", release: "zurich" });
+    const unknown = resolveGlideCapabilities({ scope: "unknown", release: "zurich" });
+    assert.equal(scoped.executors.has("query"), true);
+    assert.equal(scoped.executors.has("getAsync"), false);
+    assert.equal(global.executors.has("getAsync"), true);
+    assert.equal(unknown.executors.has("getAsync"), false);
+    assert.equal(resolveGlideCapabilities({ scope: "scoped", release: "zurich" }), scoped);
+    assert.equal("add" in scoped.executors, false);
+  });
+
   it("lists only documented ACL-bypass methods", () => {
-    assert.deepEqual(
-      [...GLIDE_SYSTEM_BYPASS_METHODS].sort(),
-      ["addSystemEncodedQuery", "addSystemOrderBy", "addSystemOrderByDesc", "addSystemQuery"],
-    );
+    assert.deepEqual([...GLIDE_SYSTEM_BYPASS_METHODS].sort(), [
+      "addSystemEncodedQuery",
+      "addSystemOrderBy",
+      "addSystemOrderByDesc",
+      "addSystemQuery",
+    ]);
     assert.equal(GLIDE_SYSTEM_BYPASS_METHODS.has("addSystemFoo"), false);
     assert.equal(GLIDE_SYSTEM_BYPASS_METHODS.has("addQuery"), false);
   });

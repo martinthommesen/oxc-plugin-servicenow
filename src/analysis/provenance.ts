@@ -1,5 +1,6 @@
 import type { Context, ESTree } from "@oxlint/plugins";
 import type { FileBindings } from "./bindings.js";
+import type { GlideCapabilityView } from "../glide/manifest.js";
 
 export type ProvenanceKind =
   | "GlideRecord"
@@ -49,6 +50,7 @@ export interface ProvenanceQuery {
   isPlatformCtor(node: unknown, names: readonly string[]): boolean;
   isPlatformMember(node: unknown, object: string, property?: string): boolean;
   bindings: FileBindings;
+  glide: GlideCapabilityView;
 }
 
 export function getAncestors(context: Context, node: ESTree.Node): ESTree.Node[] {

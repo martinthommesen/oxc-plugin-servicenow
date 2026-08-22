@@ -1,9 +1,9 @@
 # servicenow/no-unsupported-syntax
 
-Optional chaining, nullish coalescing, logical assignment, private class members, and RegExp lookbehind are unsupported classically.
+Optional chaining, nullish coalescing, logical assignment, private instance members, and RegExp lookbehind are unsupported in Compatibility and ES5 Standards mode.
 
 - **Family:** engine
-- **Preset:** recommended
+- **Preset:** classic-es5
 - **Default severity:** error
 - **Fixable:** no
 - **Suggestions:** no

@@ -1,35 +1,33 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
-import { FLUENT_ENTITIES_REQUIRING_ID, ruleDocsUrl } from "../constants.js";
-import { getName, getStringValue, isNowIdAccess, objectProperty, objectPropertyValue } from "../utils/ast.js";
-import { isFluentFile } from "../utils/filenames.js";
+import { getAncestors } from "../analysis/internal.js";
+import { isProvenNowIdValue } from "../analysis/now-id.js";
+import { ruleDocsUrl } from "../constants.js";
+import { getStringValue, objectProperty } from "../utils/ast.js";
+import { isFluentContext } from "../context/index.js";
+import {
+  parseRuleOptions,
+  requireFluentIdOptions,
+  schemaFromDescriptor,
+} from "../options/index.js";
+import type { RequireFluentIdOptions } from "../options/index.js";
 import { isSysId } from "../utils/sysid.js";
+import { beginRuleFile } from "./helpers.js";
 
-export interface RequireFluentIdOptions {
-  preferNowId?: boolean;
-}
+export type { RequireFluentIdOptions };
 
 export const requireFluentId = defineRule({
   meta: {
     type: "problem",
     docs: {
       description:
-        "Require Fluent entities to declare `$id`, preferably via `Now.ID['descriptive-key']`.",
-      recommended: "recommended",
+        "Require Fluent entities to declare `$id` when the selected SDK manifest marks the imported API as requiring an id. Prefer `Now.ID['descriptive-key']`.",
       url: ruleDocsUrl("require-fluent-id"),
     },
-    schema: [
-      {
-        type: "object",
-        additionalProperties: false,
-        properties: {
-          preferNowId: { type: "boolean" },
-        },
-      },
-    ],
+    schema: schemaFromDescriptor(requireFluentIdOptions),
     messages: {
       missing:
-        "`{{api}}()` is missing `$id`. Fluent uses `$id` to track the record in `keys.ts` across syncs. Add `$id: Now.ID['{{hint}}']`.",
+        "`{{api}}()` is missing `$id`. The Fluent SDK manifest requires `$id` for this API so `keys.ts` can track the record. Add `$id: Now.ID['{{hint}}']`.",
       preferNowId:
         "Prefer `$id: Now.ID['descriptive-key']` over a raw {{kind}}. Named IDs survive export / import and stay readable in diffs.",
       rawSysId:
@@ -41,13 +39,16 @@ export const requireFluentId = defineRule({
 
     return {
       before() {
-        if (!isFluentFile(context.filename)) return false;
-        preferNowId = (context.options[0] as RequireFluentIdOptions | undefined)?.preferNowId !== false;
+        const { context: script } = beginRuleFile(context);
+        if (!isFluentContext(script)) return false;
+        preferNowId = parseRuleOptions(requireFluentIdOptions, context.options).preferNowId;
       },
       CallExpression(node) {
+        const { file, analysis } = beginRuleFile(context);
         const call = node as ESTree.CallExpression;
-        const api = getName(call.callee);
-        if (!api || !FLUENT_ENTITIES_REQUIRING_ID.has(api)) return;
+        const ancestors = getAncestors(context, call);
+        const capability = file.fluent.resolveFactory(call.callee, ancestors);
+        if (!capability || capability.idRequirement !== "required") return;
         const arg = call.arguments[0];
         if (!arg || arg.type !== "ObjectExpression") return;
 
@@ -56,7 +57,7 @@ export const requireFluentId = defineRule({
           context.report({
             node: call.callee as unknown as ESTree.Node,
             messageId: "missing",
-            data: { api, hint: hintFrom(arg, api) },
+            data: { api: capability.name, hint: hintFrom(arg, capability.name) },
           });
           return;
         }
@@ -69,29 +70,21 @@ export const requireFluentId = defineRule({
         }
 
         if (!preferNowId) return;
-        if (isNowIdAccess(value)) return;
-
+        if (isProvenNowIdValue(value, analysis, file.nowIdAt)) return;
         const kind = literal != null ? "string" : value.type === "Literal" ? "literal" : "value";
-        context.report({
-          node: value,
-          messageId: "preferNowId",
-          data: { kind },
-        });
+        context.report({ node: value, messageId: "preferNowId", data: { kind } });
       },
     };
   },
 });
 
-function hintFrom(arg: ESTree.Node, api: string): string {
-  const name = objectPropertyValue(arg, "name");
-  const named = name ? getStringValue(name) : null;
-  if (named) return kebab(named);
-  return kebab(api);
-}
-
-function kebab(value: string): string {
-  return value
-    .replace(/([a-z])([A-Z])/g, "$1-$2")
-    .replace(/[\s_]+/g, "-")
-    .toLowerCase();
+function hintFrom(arg: ESTree.ObjectExpression, api: string): string {
+  const name = objectProperty(arg, "name");
+  const nameValue = name ? getStringValue(name.value) : null;
+  if (nameValue)
+    return nameValue
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
+  return api.toLowerCase();
 }

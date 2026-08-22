@@ -11,12 +11,10 @@ import type {
   ValidatedServiceNowSettings,
 } from "../types.js";
 import { resolveFluentManifest } from "../fluent/registry.js";
-import {
-  isSupportedServiceNowRelease,
-  SUPPORTED_SERVICENOW_RELEASES,
-} from "./releases.js";
+import { isSupportedServiceNowRelease, SUPPORTED_SERVICENOW_RELEASES } from "./releases.js";
 import { ServiceNowSettingsError } from "./errors.js";
 import { deepFreeze } from "./freeze.js";
+import { immutableSet } from "../utils/immutable.js";
 
 const SCRIPT_KINDS = new Set<ScriptKind>([
   "fluent",
@@ -50,22 +48,6 @@ const BR_FORMATS = new Set<BusinessRuleSourceFormat>(["full-script", "body-only"
 
 const BR_WHEN = new Set<BusinessRuleWhen>(["before", "after", "async", "display", "unknown"]);
 
-const ALLOWED_KEYS = new Set([
-  "allowedSysIds",
-  "allowedTables",
-  "scriptType",
-  "ecmaLatest",
-  "javascriptMode",
-  "authoring",
-  "surfaces",
-  "scope",
-  "scopePrefix",
-  "release",
-  "businessRuleSourceFormat",
-  "businessRuleWhen",
-  "fluentSdkVersion",
-]);
-
 const IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/;
 const SCOPE_PREFIX = /^[a-z][a-z0-9_]*$/;
 const SDK_VERSION = /^\d+\.\d+\.\d+(?:-[A-Za-z0-9.-]+)?$/;
@@ -76,13 +58,39 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
+export function structuralFingerprint(value: object): string | undefined {
+  try {
+    const seen = new WeakMap<object, number>();
+    let nextReference = 0;
+    function visit(item: unknown): string {
+      if (item === null) return "null";
+      if (typeof item !== "object") return `${typeof item}:${String(item)}`;
+      const prior = seen.get(item);
+      if (prior !== undefined) return `ref:${prior}`;
+      seen.set(item, nextReference);
+      nextReference += 1;
+      if (Array.isArray(item)) return `array:[${item.map(visit).join(",")}]`;
+      return `object:{${Object.keys(item)
+        .sort()
+        .map((key) => `${JSON.stringify(key)}:${visit((item as Record<string, unknown>)[key])}`)
+        .join(",")}}`;
+    }
+    return visit(value);
+  } catch {
+    return undefined;
+  }
+}
+
 function expectStringArray(path: string, value: unknown): string[] {
   if (!Array.isArray(value)) {
     throw new ServiceNowSettingsError(path, `expected an array of strings, got ${typeName(value)}`);
   }
   return value.map((item, index) => {
     if (typeof item !== "string") {
-      throw new ServiceNowSettingsError(`${path}[${index}]`, `expected a string, got ${typeName(item)}`);
+      throw new ServiceNowSettingsError(
+        `${path}[${index}]`,
+        `expected a string, got ${typeName(item)}`,
+      );
     }
     return item;
   });
@@ -104,6 +112,190 @@ function expectEnum<T extends string>(path: string, value: unknown, allowed: Rea
   return value as T;
 }
 
+export interface SettingsFieldDescriptor<T> {
+  readonly defaultValue: () => T;
+  readonly parse: (path: string, value: unknown, deprecations: SettingsDeprecation[]) => T;
+}
+
+type ParsedSettings<D extends Record<string, SettingsFieldDescriptor<unknown>>> = {
+  [K in keyof D]: D[K] extends SettingsFieldDescriptor<infer T> ? T : never;
+};
+
+export function deriveSettingsDescriptorProducts<
+  const D extends Record<string, SettingsFieldDescriptor<unknown>>,
+>(descriptor: D) {
+  const keys = immutableSet(Object.keys(descriptor));
+  function defaults(): ParsedSettings<D> {
+    return Object.fromEntries(
+      Object.entries(descriptor).map(([key, field]) => [key, field.defaultValue()]),
+    ) as ParsedSettings<D>;
+  }
+  function parse(
+    raw: Record<string, unknown>,
+    deprecations: SettingsDeprecation[],
+  ): ParsedSettings<D> {
+    const values = defaults();
+    for (const [key, field] of Object.entries(descriptor)) {
+      if (raw[key] !== undefined) {
+        (values as Record<string, unknown>)[key] = field.parse(`.${key}`, raw[key], deprecations);
+      }
+    }
+    return values;
+  }
+  function validate(
+    raw: Record<string, unknown>,
+    deprecations: SettingsDeprecation[] = [],
+  ): ParsedSettings<D> {
+    return deepFreeze(parse(raw, deprecations));
+  }
+  function fingerprint(value: ParsedSettings<D>): string {
+    return structuralFingerprint(value) ?? "unavailable";
+  }
+  return Object.freeze({ keys, defaults, parse, validate, fingerprint });
+}
+
+const SETTINGS_DESCRIPTOR = {
+  allowedSysIds: {
+    defaultValue: () => [] as string[],
+    parse(path: string, value: unknown) {
+      const ids = expectStringArray(path, value);
+      for (const [index, id] of ids.entries()) {
+        if (!SYS_ID.test(id)) {
+          throw new ServiceNowSettingsError(
+            `${path}[${index}]`,
+            "expected a 32-character lowercase hexadecimal sys_id",
+          );
+        }
+      }
+      return ids;
+    },
+  },
+  allowedTables: {
+    defaultValue: () => [] as string[],
+    parse(path: string, value: unknown) {
+      const tables = expectStringArray(path, value);
+      for (const [index, table] of tables.entries()) {
+        if (!TABLE_NAME.test(table)) {
+          throw new ServiceNowSettingsError(
+            `${path}[${index}]`,
+            "expected a lowercase ServiceNow table name",
+          );
+        }
+      }
+      return tables;
+    },
+  },
+  scriptType: {
+    defaultValue: () => "auto" as const,
+    parse(path: string, value: unknown, deprecations: SettingsDeprecation[]) {
+      const scriptType = expectEnum(path, value, SCRIPT_TYPE_VALUES) as "auto" | ScriptKind;
+      if (scriptType !== "auto") {
+        deprecations.push({
+          path: "settings.servicenow.scriptType",
+          message:
+            "`scriptType` is deprecated. Set `authoring` and `surfaces` instead. `scriptType` remains mapped for one major-release cycle.",
+        });
+      }
+      return scriptType;
+    },
+  },
+  ecmaLatest: {
+    defaultValue: () => undefined as boolean | undefined,
+    parse(path: string, value: unknown, deprecations: SettingsDeprecation[]) {
+      if (typeof value !== "boolean") {
+        throw new ServiceNowSettingsError(path, `expected a boolean, got ${typeName(value)}`);
+      }
+      deprecations.push({
+        path: "settings.servicenow.ecmaLatest",
+        message:
+          "`ecmaLatest` is deprecated. Set `javascriptMode` to `es2021`, `es5`, `compatibility`, or `unknown`. `true` maps to `es2021`. `false` does not assume ES5.",
+      });
+      return value;
+    },
+  },
+  javascriptMode: {
+    defaultValue: () => undefined as JavaScriptMode | undefined,
+    parse: (path: string, value: unknown) => expectEnum(path, value, JAVASCRIPT_MODES),
+  },
+  authoring: {
+    defaultValue: () => "auto" as const,
+    parse: (path: string, value: unknown) => expectEnum(path, value, AUTHORING_VALUES),
+  },
+  surfaces: {
+    defaultValue: (): "auto" | ScriptSurface[] => "auto",
+    parse(path: string, value: unknown) {
+      if (value === "auto") return "auto" as const;
+      if (!Array.isArray(value)) {
+        throw new ServiceNowSettingsError(
+          path,
+          `expected "auto" or an array of surfaces, got ${typeName(value)}`,
+        );
+      }
+      const surfaces = value.map((item, index) => expectEnum(`${path}[${index}]`, item, SURFACES));
+      if (surfaces.length === 0) {
+        throw new ServiceNowSettingsError(
+          path,
+          'expected a non-empty array. Omit the setting or use "auto" when the surface is unknown.',
+        );
+      }
+      if (new Set(surfaces).size !== surfaces.length) {
+        throw new ServiceNowSettingsError(path, "duplicate surface values");
+      }
+      return surfaces;
+    },
+  },
+  scope: {
+    defaultValue: () => "unknown" as const,
+    parse: (path: string, value: unknown) => expectEnum(path, value, SCOPES),
+  },
+  scopePrefix: {
+    defaultValue: () => undefined as string | undefined,
+    parse(path: string, value: unknown) {
+      if (typeof value !== "string" || !SCOPE_PREFIX.test(value)) {
+        throw new ServiceNowSettingsError(
+          path,
+          "expected a lowercase application scope prefix such as x_acme",
+        );
+      }
+      return value;
+    },
+  },
+  release: {
+    defaultValue: () => undefined as ValidatedServiceNowSettings["release"],
+    parse(path: string, value: unknown) {
+      if (typeof value !== "string" || !isSupportedServiceNowRelease(value)) {
+        throw new ServiceNowSettingsError(
+          path,
+          `expected one of ${SUPPORTED_SERVICENOW_RELEASES.join(", ")}, got ${JSON.stringify(value)}`,
+        );
+      }
+      return value;
+    },
+  },
+  businessRuleSourceFormat: {
+    defaultValue: () => "unknown" as const,
+    parse: (path: string, value: unknown) => expectEnum(path, value, BR_FORMATS),
+  },
+  businessRuleWhen: {
+    defaultValue: () => "unknown" as const,
+    parse: (path: string, value: unknown) => expectEnum(path, value, BR_WHEN),
+  },
+  fluentSdkVersion: {
+    defaultValue: () => undefined as string | undefined,
+    parse(path: string, value: unknown) {
+      if (typeof value !== "string" || !SDK_VERSION.test(value)) {
+        throw new ServiceNowSettingsError(path, "expected a semver string such as 4.1.0");
+      }
+      resolveFluentManifest(value);
+      return value;
+    },
+  },
+} satisfies {
+  [K in keyof ValidatedServiceNowSettings]: SettingsFieldDescriptor<ValidatedServiceNowSettings[K]>;
+};
+
+const SETTINGS_PRODUCTS = deriveSettingsDescriptorProducts(SETTINGS_DESCRIPTOR);
+
 export interface ValidatedSettingsResult {
   readonly settings: ValidatedServiceNowSettings;
   readonly deprecations: readonly SettingsDeprecation[];
@@ -113,21 +305,9 @@ export interface ValidatedSettingsResult {
  * Validate and normalize `settings.servicenow`.
  * Throws {@link ServiceNowSettingsError} for unknown keys, wrong types, or conflicts.
  */
-const EMPTY_SETTINGS: ValidatedServiceNowSettings = deepFreeze({
-  allowedSysIds: [],
-  allowedTables: [],
-  scriptType: "auto",
-  ecmaLatest: undefined,
-  javascriptMode: undefined,
-  authoring: "auto",
-  surfaces: "auto",
-  scope: "unknown",
-  scopePrefix: undefined,
-  release: undefined,
-  businessRuleSourceFormat: "unknown",
-  businessRuleWhen: "unknown",
-  fluentSdkVersion: undefined,
-});
+const EMPTY_SETTINGS: ValidatedServiceNowSettings = deepFreeze(
+  SETTINGS_PRODUCTS.validate({}) as ValidatedServiceNowSettings,
+);
 
 const EMPTY_RESULT: ValidatedSettingsResult = deepFreeze({
   settings: EMPTY_SETTINGS,
@@ -143,59 +323,14 @@ export function validateServiceNowSettings(raw: unknown): ValidatedSettingsResul
   }
 
   for (const key of Object.keys(raw)) {
-    if (!ALLOWED_KEYS.has(key)) {
+    if (!SETTINGS_PRODUCTS.keys.has(key)) {
       throw new ServiceNowSettingsError(`.${key}`, "unknown setting");
     }
   }
 
   const deprecations: SettingsDeprecation[] = [];
-  const allowedSysIds = raw.allowedSysIds === undefined ? [] : expectStringArray(".allowedSysIds", raw.allowedSysIds);
-  for (const [index, id] of allowedSysIds.entries()) {
-    if (!SYS_ID.test(id)) {
-      throw new ServiceNowSettingsError(
-        `.allowedSysIds[${index}]`,
-        "expected a 32-character lowercase hexadecimal sys_id",
-      );
-    }
-  }
-
-  const allowedTables =
-    raw.allowedTables === undefined ? [] : expectStringArray(".allowedTables", raw.allowedTables);
-  for (const [index, table] of allowedTables.entries()) {
-    if (!TABLE_NAME.test(table)) {
-      throw new ServiceNowSettingsError(`.allowedTables[${index}]`, "expected a lowercase ServiceNow table name");
-    }
-  }
-
-  let scriptType: "auto" | ScriptKind = "auto";
-  if (raw.scriptType !== undefined) {
-    scriptType = expectEnum(".scriptType", raw.scriptType, SCRIPT_TYPE_VALUES) as "auto" | ScriptKind;
-    if (scriptType !== "auto") {
-      deprecations.push({
-        path: "settings.servicenow.scriptType",
-        message:
-          "`scriptType` is deprecated. Set `authoring` and `surfaces` instead. `scriptType` remains mapped for one major-release cycle.",
-      });
-    }
-  }
-
-  let ecmaLatest: boolean | undefined;
-  if (raw.ecmaLatest !== undefined) {
-    if (typeof raw.ecmaLatest !== "boolean") {
-      throw new ServiceNowSettingsError(".ecmaLatest", `expected a boolean, got ${typeName(raw.ecmaLatest)}`);
-    }
-    ecmaLatest = raw.ecmaLatest;
-    deprecations.push({
-      path: "settings.servicenow.ecmaLatest",
-      message:
-        "`ecmaLatest` is deprecated. Set `javascriptMode` to `es2021`, `es5`, `compatibility`, or `unknown`. `true` maps to `es2021`. `false` does not assume ES5.",
-    });
-  }
-
-  let javascriptMode: JavaScriptMode | undefined;
-  if (raw.javascriptMode !== undefined) {
-    javascriptMode = expectEnum(".javascriptMode", raw.javascriptMode, JAVASCRIPT_MODES);
-  }
+  const settings = SETTINGS_PRODUCTS.validate(raw, deprecations) as ValidatedServiceNowSettings;
+  const { scriptType, ecmaLatest, javascriptMode, authoring, surfaces } = settings;
 
   if (ecmaLatest === true && javascriptMode !== undefined && javascriptMode !== "es2021") {
     throw new ServiceNowSettingsError(
@@ -204,44 +339,28 @@ export function validateServiceNowSettings(raw: unknown): ValidatedSettingsResul
     );
   }
 
-  const authoring =
-    raw.authoring === undefined
-      ? "auto"
-      : expectEnum(".authoring", raw.authoring, AUTHORING_VALUES);
-
-  let surfaces: "auto" | ScriptSurface[] = "auto";
-  if (raw.surfaces !== undefined) {
-    if (raw.surfaces === "auto") {
-      surfaces = "auto";
-    } else if (Array.isArray(raw.surfaces)) {
-      surfaces = raw.surfaces.map((item, index) =>
-        expectEnum(`.surfaces[${index}]`, item, SURFACES),
-      );
-      if (new Set(surfaces).size !== surfaces.length) {
-        throw new ServiceNowSettingsError(".surfaces", "duplicate surface values");
-      }
-    } else {
-      throw new ServiceNowSettingsError(
-        ".surfaces",
-        `expected "auto" or an array of surfaces, got ${typeName(raw.surfaces)}`,
-      );
-    }
-  }
-
   if (scriptType !== "auto" && scriptType !== "unknown" && scriptType !== "fluent") {
-    if (surfaces !== "auto" && !surfaces.includes(scriptType)) {
+    if (surfaces !== "auto" && (surfaces.length !== 1 || surfaces[0] !== scriptType)) {
       throw new ServiceNowSettingsError(
         ".scriptType",
-        `conflicts with surfaces ${JSON.stringify(surfaces)}. Use surfaces only.`,
+        `conflicts with surfaces ${JSON.stringify(surfaces)}. Omit deprecated scriptType and use surfaces only.`,
       );
     }
   }
 
   if (scriptType === "fluent" && authoring === "classic") {
-    throw new ServiceNowSettingsError(".scriptType", 'conflicts with authoring "classic". Use authoring only.');
+    throw new ServiceNowSettingsError(
+      ".scriptType",
+      'conflicts with authoring "classic". Use authoring only.',
+    );
   }
 
-  if (scriptType !== "auto" && scriptType !== "unknown" && scriptType !== "fluent" && authoring === "fluent") {
+  if (
+    scriptType !== "auto" &&
+    scriptType !== "unknown" &&
+    scriptType !== "fluent" &&
+    authoring === "fluent"
+  ) {
     throw new ServiceNowSettingsError(
       ".scriptType",
       `conflicts with authoring "fluent". Use authoring only.`,
@@ -262,65 +381,8 @@ export function validateServiceNowSettings(raw: unknown): ValidatedSettingsResul
     );
   }
 
-  const scope = raw.scope === undefined ? "unknown" : expectEnum(".scope", raw.scope, SCOPES);
-
-  let scopePrefix: string | undefined;
-  if (raw.scopePrefix !== undefined) {
-    if (typeof raw.scopePrefix !== "string" || !SCOPE_PREFIX.test(raw.scopePrefix)) {
-      throw new ServiceNowSettingsError(
-        ".scopePrefix",
-        "expected a lowercase application scope prefix such as x_acme",
-      );
-    }
-    scopePrefix = raw.scopePrefix;
-  }
-
-  let release: ValidatedServiceNowSettings["release"];
-  if (raw.release !== undefined) {
-    if (typeof raw.release !== "string" || !isSupportedServiceNowRelease(raw.release)) {
-      throw new ServiceNowSettingsError(
-        ".release",
-        `expected one of ${SUPPORTED_SERVICENOW_RELEASES.join(", ")}, got ${JSON.stringify(raw.release)}`,
-      );
-    }
-    release = raw.release;
-  }
-
-  const businessRuleSourceFormat =
-    raw.businessRuleSourceFormat === undefined
-      ? "unknown"
-      : expectEnum(".businessRuleSourceFormat", raw.businessRuleSourceFormat, BR_FORMATS);
-
-  const businessRuleWhen =
-    raw.businessRuleWhen === undefined
-      ? "unknown"
-      : expectEnum(".businessRuleWhen", raw.businessRuleWhen, BR_WHEN);
-
-  let fluentSdkVersion: string | undefined;
-  if (raw.fluentSdkVersion !== undefined) {
-    if (typeof raw.fluentSdkVersion !== "string" || !SDK_VERSION.test(raw.fluentSdkVersion)) {
-      throw new ServiceNowSettingsError(".fluentSdkVersion", "expected a semver string such as 4.1.0");
-    }
-    fluentSdkVersion = raw.fluentSdkVersion;
-    resolveFluentManifest(fluentSdkVersion);
-  }
-
   return deepFreeze({
-    settings: {
-      allowedSysIds,
-      allowedTables,
-      scriptType,
-      ecmaLatest,
-      javascriptMode,
-      authoring,
-      surfaces,
-      scope,
-      scopePrefix,
-      release,
-      businessRuleSourceFormat,
-      businessRuleWhen,
-      fluentSdkVersion,
-    },
+    settings,
     deprecations,
   });
 }

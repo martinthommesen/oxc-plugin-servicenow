@@ -1,6 +1,6 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
-import { findWindowedDeleteMultiple } from "../analysis/index.js";
+import { findWindowedDeleteMultiple } from "../analysis/internal.js";
 import { isServerInstanceContext } from "../context/index.js";
 import { ruleDocsUrl } from "../constants.js";
 import { beginRuleFile } from "./helpers.js";

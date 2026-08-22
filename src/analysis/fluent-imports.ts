@@ -38,13 +38,20 @@ export function collectFluentImports(
       const localNode = (spec as { local?: ESTree.Node }).local;
       const local = getName(localNode);
       if (!local || !localNode) continue;
-      const binding = bindings.tree.resolve(local, localNode, [program, decl, spec as unknown as ESTree.Node]);
+      const binding = bindings.resolve(local, localNode, [
+        program,
+        decl,
+        spec as unknown as ESTree.Node,
+      ]);
       if (!binding) continue;
       let exportedName = "*";
       if (spec.type === "ImportSpecifier") {
         const imported = spec.imported;
         exportedName =
-          getName(imported) ?? getStringValue(imported) ?? (imported as { name?: string }).name ?? "*";
+          getName(imported) ??
+          getStringValue(imported) ??
+          (imported as { name?: string }).name ??
+          "*";
       } else if (spec.type === "ImportDefaultSpecifier") {
         exportedName = "default";
       }
@@ -59,7 +66,7 @@ export function collectFluentImports(
 }
 
 function declarationInit(binding: LexicalBinding): ESTree.Node | null {
-  if (binding.kind !== "const" && binding.kind !== "let") return null;
+  if (binding.kind !== "const" && binding.kind !== "let" && binding.kind !== "var") return null;
   if (binding.node.type !== "VariableDeclarator") return null;
   const declaration = binding.node as ESTree.VariableDeclarator;
   // Only simple aliases are accepted.  Destructuring can bind several values
@@ -69,28 +76,97 @@ function declarationInit(binding: LexicalBinding): ESTree.Node | null {
   return isNode(declaration.init) ? declaration.init : null;
 }
 
+const CONDITIONAL_WRITE_ANCESTORS = new Set([
+  "IfStatement",
+  "SwitchStatement",
+  "SwitchCase",
+  "ForStatement",
+  "ForInStatement",
+  "ForOfStatement",
+  "WhileStatement",
+  "DoWhileStatement",
+  "TryStatement",
+  "CatchClause",
+  "ConditionalExpression",
+  "LogicalExpression",
+  "FunctionDeclaration",
+  "FunctionExpression",
+  "ArrowFunctionExpression",
+]);
+
+function latestSimpleValue(
+  binding: LexicalBinding,
+  use: ESTree.Node,
+  program: ESTree.Node | undefined,
+  bindings: FileBindings,
+): ESTree.Node | null {
+  const useStart = (use as { start?: number }).start ?? Number.POSITIVE_INFINITY;
+  let value = declarationInit(binding);
+  let valueOffset = (binding.node as { start?: number }).start ?? -1;
+  let uncertain = false;
+  if (!program || binding.kind === "const") return value;
+  const ancestors: ESTree.Node[] = [];
+  walk(
+    program,
+    {
+      AssignmentExpression(node) {
+        const assignment = node as ESTree.AssignmentExpression;
+        const start = (node as { start?: number }).start ?? Number.POSITIVE_INFINITY;
+        if (start >= useStart) return;
+        const left = unwrapExpression(assignment.left);
+        if (!isNode(left) || left.type !== "Identifier") return;
+        const resolved = bindings.resolve(getName(left) ?? "", left, ancestors);
+        if (resolved?.id !== binding.id) return;
+        if (
+          assignment.operator !== "=" ||
+          ancestors.slice(0, -1).some((ancestor) => CONDITIONAL_WRITE_ANCESTORS.has(ancestor.type))
+        ) {
+          uncertain = true;
+          return;
+        }
+        if (start > valueOffset) {
+          value = isNode(assignment.right) ? assignment.right : null;
+          valueOffset = start;
+        }
+      },
+      UpdateExpression(node) {
+        const start = (node as { start?: number }).start ?? Number.POSITIVE_INFINITY;
+        if (start >= useStart) return;
+        const argument = unwrapExpression((node as ESTree.UpdateExpression).argument);
+        if (!isNode(argument) || argument.type !== "Identifier") return;
+        const resolved = bindings.resolve(getName(argument) ?? "", argument, ancestors);
+        if (resolved?.id === binding.id) uncertain = true;
+      },
+    },
+    ancestors,
+  );
+  return uncertain ? null : value;
+}
+
 function resolveBindingOrigin(
   node: ESTree.Node,
   ancestors: readonly ESTree.Node[],
   bindings: FileBindings,
   imports: ReadonlyMap<number, FluentImportBinding>,
   seen: Set<number>,
-): { origin: FluentImportBinding; aliases: LexicalBinding[] } | null {
+): FluentImportBinding | null {
   const expr = unwrapExpression(node);
   if (!isNode(expr)) return null;
 
   if (expr.type === "Identifier") {
     const name = getName(expr);
     if (!name) return null;
-    const binding = bindings.tree.resolve(name, expr, ancestors);
+    const binding = bindings.resolve(name, expr, ancestors);
     if (!binding || seen.has(binding.id)) return null;
     const imported = imports.get(binding.id);
-    if (imported) return { origin: imported, aliases: [] };
-    const init = declarationInit(binding);
+    if (imported) return imported;
+    const init = latestSimpleValue(binding, expr, bindings.tree.root?.block, bindings);
     if (!init) return null;
     seen.add(binding.id);
-    const resolved = resolveBindingOrigin(init, [binding.node], bindings, imports, seen);
-    return resolved ? { origin: resolved.origin, aliases: [binding, ...resolved.aliases] } : null;
+    // A declaration node has enough source/span information for ScopeTree to
+    // resolve its initializer.  The caller's ancestors are retained for
+    // hosts that provide richer lexical scope data.
+    return resolveBindingOrigin(init, [...ancestors, binding.node], bindings, imports, seen);
   }
 
   if (expr.type !== "MemberExpression") return null;
@@ -104,64 +180,18 @@ function resolveBindingOrigin(
     imports,
     seen,
   );
-  if (!namespace || namespace.origin.exportedName !== "*") return null;
-  return {
-    origin: { ...namespace.origin, exportedName: exported },
-    aliases: namespace.aliases,
-  };
+  if (!namespace || namespace.exportedName !== "*") return null;
+  return { ...namespace, exportedName: exported };
 }
 
-/**
- * Resolve a direct import, a proven const/let alias, or a namespace member.
- * `let` aliases are accepted only while their declaration is the sole known
- * assignment; later assignments are conservatively rejected by the binding
- * identity check in `resolveFactory` (see `isStableAlias`).
- */
+/** Resolve a direct import, a program-point alias, or a namespace member. */
 export function resolveFluentBindingOrigin(
   node: ESTree.Node,
   ancestors: readonly ESTree.Node[],
   bindings: FileBindings,
   imports: ReadonlyMap<number, FluentImportBinding>,
 ): FluentBindingOrigin | null {
-  return resolveBindingOrigin(node, ancestors, bindings, imports, new Set())?.origin ?? null;
-}
-
-function isStableAlias(
-  node: ESTree.Node,
-  binding: LexicalBinding,
-  program: ESTree.Node | undefined,
-  bindings: FileBindings,
-): boolean {
-  if (binding.kind === "const" || binding.kind === "import") return true;
-  if (binding.kind !== "let" || !program) return false;
-  // A let alias is safe when no write other than its declaration exists.  Do
-  // not infer stability from identifier spelling; resolve every write to the
-  // lexical BindingId so shadowed aliases remain independent.
-  let writes = 0;
-  const ancestors: ESTree.Node[] = [];
-  walk(
-    program,
-    {
-      AssignmentExpression(current) {
-        const assignment = current as ESTree.AssignmentExpression;
-        const left = unwrapExpression(assignment.left);
-        if (!isNode(left) || left.type !== "Identifier") return;
-        const name = getName(left);
-        if (!name) return;
-        const resolved = bindings.tree.resolve(name, left, ancestors);
-        if (resolved?.id === binding.id) writes += 1;
-      },
-      UpdateExpression(current) {
-        const argument = unwrapExpression((current as ESTree.UpdateExpression).argument);
-        if (!isNode(argument) || argument.type !== "Identifier") return;
-        const name = getName(argument);
-        const resolved = name ? bindings.tree.resolve(name, argument, ancestors) : null;
-        if (resolved?.id === binding.id) writes += 1;
-      },
-    },
-    ancestors,
-  );
-  return writes === 0 && node.start !== undefined;
+  return resolveBindingOrigin(node, ancestors, bindings, imports, new Set());
 }
 
 export function resolveFluentCandidate(
@@ -174,14 +204,9 @@ export function resolveFluentCandidate(
   const expr = unwrapExpression(callee);
   if (!isNode(expr)) return null;
   const apis = apisByName(manifest);
-  const resolved = resolveBindingOrigin(expr, ancestors, bindings, imports, new Set());
-  const origin = resolved?.origin;
-  if (!resolved || !origin || origin.exportedName === "*" || origin.exportedName === "default") return null;
+  const origin = resolveFluentBindingOrigin(expr, ancestors, bindings, imports);
+  if (!origin || origin.exportedName === "*" || origin.exportedName === "default") return null;
 
-  // For a mutable alias, resolve only while the binding remains a stable
-  // import/alias. A later assignment must not keep identifying the old API.
-  const program = ancestors.find((ancestor) => ancestor.type === "Program");
-  if (resolved.aliases.some((binding) => !isStableAlias(expr, binding, program, bindings))) return null;
   const capability = apis.get(origin.exportedName);
   return capability ? { capability, origin } : null;
 }

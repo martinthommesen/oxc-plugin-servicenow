@@ -1,6 +1,6 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
-import { findGlideAggregateIssues } from "../analysis/index.js";
+import { findGlideAggregateIssues } from "../analysis/internal.js";
 import { isServerInstanceContext } from "../context/index.js";
 import { ruleDocsUrl } from "../constants.js";
 import { beginRuleFile } from "./helpers.js";
@@ -17,7 +17,7 @@ export const validateGlideaggregateCalls = defineRule({
       missingQuery:
         "`{{name}}.{{method}}()` runs before `query()`. Configure aggregates, call `query()`, then read results.",
       unknownAggregate:
-        "`{{name}}.getAggregate()` reads `{{tuple}}`, which was not registered with `addAggregate()`.",
+        "`{{name}}.getAggregate()` reads `{{tuple}}`, which was not registered with `addAggregate()`. Register that exact aggregate before `query()`.",
     },
   },
   createOnce(context) {

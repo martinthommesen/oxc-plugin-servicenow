@@ -1,6 +1,6 @@
 import type { ESTree } from "@oxlint/plugins";
-import { getStringValue } from "../utils/ast.js";
-import { analyzePathBindings, dedupePathFindings, mergeTri } from "./path-state.js";
+import { getStringValue, nodeStart } from "../utils/ast.js";
+import { analyzePathBindings } from "./path-state.js";
 import type { ProvenanceQuery } from "./provenance.js";
 
 export interface AggregateFinding {
@@ -11,11 +11,16 @@ export interface AggregateFinding {
   tuple?: string;
 }
 
-interface AggData {
-  queried: boolean | "unknown";
+interface AggregateAlternative {
+  queried: boolean;
   committed: Set<string>;
   pending: Set<string>;
-  dynamicAggregate: boolean;
+  committedDynamic: boolean;
+  pendingDynamic: boolean;
+}
+
+interface AggData {
+  alternatives: AggregateAlternative[];
 }
 
 function tupleKey(type: string, field: string | null): string {
@@ -26,21 +31,36 @@ function cloneSet(values: Set<string>): Set<string> {
   return new Set(values);
 }
 
-function intersectSet(left: Set<string>, right: Set<string>): Set<string> {
-  return new Set([...left].filter((item) => right.has(item)));
-}
-
-function setsEqual(left: Set<string>, right: Set<string>): boolean {
-  return left.size === right.size && [...left].every((item) => right.has(item));
-}
-
 function cloneAgg(data: AggData): AggData {
+  return { alternatives: data.alternatives.map(cloneAlternative) };
+}
+
+function cloneAlternative(value: AggregateAlternative): AggregateAlternative {
   return {
-    queried: data.queried,
-    committed: cloneSet(data.committed),
-    pending: cloneSet(data.pending),
-    dynamicAggregate: data.dynamicAggregate,
+    queried: value.queried,
+    committed: cloneSet(value.committed),
+    pending: cloneSet(value.pending),
+    committedDynamic: value.committedDynamic,
+    pendingDynamic: value.pendingDynamic,
   };
+}
+
+function alternativeKey(value: AggregateAlternative): string {
+  return JSON.stringify({
+    queried: value.queried,
+    committed: [...value.committed].sort(),
+    pending: [...value.pending].sort(),
+    committedDynamic: value.committedDynamic,
+    pendingDynamic: value.pendingDynamic,
+  });
+}
+
+function mergeAlternatives(left: AggData, right: AggData): AggData {
+  const alternatives = new Map<string, AggregateAlternative>();
+  for (const value of [...left.alternatives, ...right.alternatives]) {
+    alternatives.set(alternativeKey(value), cloneAlternative(value));
+  }
+  return { alternatives: [...alternatives.values()] };
 }
 
 /**
@@ -55,57 +75,76 @@ export function findGlideAggregateIssues(
   analysis: ProvenanceQuery,
 ): AggregateFinding[] {
   const findings: AggregateFinding[] = [];
+  const reported = new Set<string>();
+  const report = (finding: AggregateFinding): void => {
+    const key = `${nodeStart(finding.node)}:${finding.messageId}`;
+    if (reported.has(key)) return;
+    reported.add(key);
+    findings.push(finding);
+  };
   analyzePathBindings<AggData>({
     program,
     analysis,
     kinds: ["GlideAggregate"],
     emptyData: () => ({
-      queried: false,
-      committed: new Set(),
-      pending: new Set(),
-      dynamicAggregate: false,
+      alternatives: [
+        {
+          queried: false,
+          committed: new Set(),
+          pending: new Set(),
+          committedDynamic: false,
+          pendingDynamic: false,
+        },
+      ],
     }),
     cloneData: cloneAgg,
     equalsData: (left, right) =>
-      left.queried === right.queried &&
-      setsEqual(left.committed, right.committed) &&
-      setsEqual(left.pending, right.pending) &&
-      left.dynamicAggregate === right.dynamicAggregate,
-    mergeData: (left, right) => ({
-      queried: mergeTri(left.queried, right.queried),
-      committed: intersectSet(left.committed, right.committed),
-      pending: intersectSet(left.pending, right.pending),
-      dynamicAggregate: left.dynamicAggregate || right.dynamicAggregate,
-    }),
+      left.alternatives.length === right.alternatives.length &&
+      left.alternatives.every(
+        (value, index) => alternativeKey(value) === alternativeKey(right.alternatives[index]!),
+      ),
+    mergeData: mergeAlternatives,
     onCall({ call, rec, objectName, property }) {
-      if (!rec || !objectName || !property) return;
+      if (!rec || !property) return;
       if (property === "addAggregate") {
         const type = getStringValue(call.arguments[0]);
         const field = call.arguments[1] ? getStringValue(call.arguments[1]) : "";
         if (!type || (call.arguments[1] && field === null)) {
-          rec.data.dynamicAggregate = true;
+          for (const value of rec.data.alternatives) value.pendingDynamic = true;
           return;
         }
-        rec.data.pending.add(tupleKey(type, field || null));
+        for (const value of rec.data.alternatives) value.pending.add(tupleKey(type, field || null));
       }
       if (property === "query") {
-        rec.data.committed = cloneSet(rec.data.pending);
-        rec.data.queried = true;
-      }
-      if (property === "next" || property === "getAggregate") {
-        if (rec.data.queried === false || rec.data.queried === "unknown") {
-          findings.push({ node: call, name: objectName, messageId: "missingQuery", method: property });
+        for (const value of rec.data.alternatives) {
+          value.committed = cloneSet(value.pending);
+          value.committedDynamic = value.pendingDynamic;
+          value.queried = true;
         }
       }
-      if (property === "getAggregate" && rec.data.queried === true && !rec.data.dynamicAggregate) {
+      if (property === "next" || property === "getAggregate") {
+        if (rec.data.alternatives.some((value) => !value.queried)) {
+          report({
+            node: call,
+            name: objectName ?? "aggregate",
+            messageId: "missingQuery",
+            method: property,
+          });
+        }
+      }
+      if (property === "getAggregate") {
         const type = getStringValue(call.arguments[0]);
         const field = call.arguments[1] ? getStringValue(call.arguments[1]) : "";
         if (type && (!call.arguments[1] || field !== null)) {
           const key = tupleKey(type, field || null);
-          if (!rec.data.committed.has(key)) {
-            findings.push({
+          if (
+            rec.data.alternatives.some(
+              (value) => value.queried && !value.committedDynamic && !value.committed.has(key),
+            )
+          ) {
+            report({
               node: call,
-              name: objectName,
+              name: objectName ?? "aggregate",
               messageId: "unknownAggregate",
               method: property,
               tuple: key,
@@ -116,7 +155,8 @@ export function findGlideAggregateIssues(
     },
     onBudgetExceeded() {
       findings.length = 0;
+      reported.clear();
     },
   });
-  return dedupePathFindings(findings);
+  return findings;
 }

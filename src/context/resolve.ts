@@ -1,5 +1,4 @@
 import type { Context } from "@oxlint/plugins";
-import { fallbackComments } from "../utils/ast.js";
 import { getValidatedSettingsResult } from "../settings/index.js";
 import type {
   ContextConfidence,
@@ -13,6 +12,7 @@ import type {
   ValidatedServiceNowSettings,
 } from "../types.js";
 import { ServiceNowSettingsError } from "../settings/errors.js";
+import { immutableSet } from "../utils/immutable.js";
 import {
   ES_LATEST_IN_COMMENT,
   authoringFromFilename,
@@ -20,7 +20,7 @@ import {
   surfacesFromFilename,
 } from "./filename.js";
 
-const CONFIDENCE_RANK: Record<ContextConfidence, number> = {
+export const CONTEXT_CONFIDENCE_ORDER: Readonly<Record<ContextConfidence, number>> = {
   unknown: 0,
   inferred: 1,
   filename: 2,
@@ -29,7 +29,7 @@ const CONFIDENCE_RANK: Record<ContextConfidence, number> = {
 
 function weakest(sources: ContextSourceMap): ContextConfidence {
   return [sources.authoring, sources.surfaces, sources.javascriptMode, sources.scope].reduce(
-    (min, item) => (CONFIDENCE_RANK[item] < CONFIDENCE_RANK[min] ? item : min),
+    (min, item) => (CONTEXT_CONFIDENCE_ORDER[item] < CONTEXT_CONFIDENCE_ORDER[min] ? item : min),
   );
 }
 
@@ -52,14 +52,11 @@ function kindToSurface(kind: ScriptKind): ScriptSurface | undefined {
 }
 
 function commentsOf(context: Context): Array<{ value: string }> {
-  const sourceCode = context.sourceCode as {
-    getAllComments?: () => Array<{ value: string }>;
-    text: string;
-  };
+  const sourceCode = context.sourceCode as { getAllComments?: () => Array<{ value: string }> };
   if (typeof sourceCode.getAllComments === "function") {
     return sourceCode.getAllComments();
   }
-  return fallbackComments(sourceCode.text);
+  return [];
 }
 
 function hasEsLatestPragma(context: Context): boolean {
@@ -111,11 +108,11 @@ function resolveSurfaces(
     return { surfaces: new Set(settings.surfaces), confidence: "explicit" };
   }
 
-  if (settings.scriptType === "unknown") {
-    return { surfaces: new Set(), confidence: "explicit" };
-  }
-
-  if (settings.scriptType !== "auto" && settings.scriptType !== "fluent") {
+  if (
+    settings.scriptType !== "auto" &&
+    settings.scriptType !== "unknown" &&
+    settings.scriptType !== "fluent"
+  ) {
     const surface = kindToSurface(settings.scriptType);
     return { surfaces: new Set(surface ? [surface] : []), confidence: "explicit" };
   }
@@ -198,19 +195,24 @@ export function resolveScriptContext(
     extras.inferSurfaces,
   );
   const localDeprecations = [...deprecations];
-  const javascriptMode = resolveJavaScriptMode(context, settings, authoring.authoring, localDeprecations);
+  const javascriptMode = resolveJavaScriptMode(
+    context,
+    settings,
+    authoring.authoring,
+    localDeprecations,
+  );
   const scopeConfidence: ContextConfidence = settings.scope === "unknown" ? "unknown" : "explicit";
 
-  const sources: ContextSourceMap = {
+  const sources: ContextSourceMap = Object.freeze({
     authoring: authoring.confidence,
     surfaces: surfaces.confidence,
     javascriptMode: javascriptMode.confidence,
     scope: scopeConfidence,
-  };
+  });
 
-  return {
+  return Object.freeze({
     authoring: authoring.authoring,
-    surfaces: surfaces.surfaces,
+    surfaces: immutableSet(surfaces.surfaces),
     javascriptMode: javascriptMode.mode,
     scope: settings.scope,
     // Confidence is the weakest independent dimension. A strong filename or
@@ -220,8 +222,8 @@ export function resolveScriptContext(
     businessRuleSourceFormat: settings.businessRuleSourceFormat,
     businessRuleWhen: settings.businessRuleWhen,
     settings,
-    deprecations: localDeprecations,
-  };
+    deprecations: Object.freeze(localDeprecations),
+  });
 }
 
 export function hasSurface(ctx: ServiceNowScriptContext, surface: ScriptSurface): boolean {
@@ -234,11 +236,7 @@ export function isFluentContext(ctx: ServiceNowScriptContext): boolean {
 
 export function isInstanceScript(ctx: ServiceNowScriptContext): boolean {
   if (ctx.authoring === "fluent") return false;
-  return (
-    ctx.sources.authoring !== "unknown" ||
-    ctx.sources.surfaces !== "unknown" ||
-    ctx.javascriptMode !== "unknown"
-  );
+  return ctx.sources.authoring !== "unknown" || ctx.sources.surfaces !== "unknown";
 }
 
 export function javascriptModeIs(
@@ -256,7 +254,7 @@ export function appliesInJavaScriptModes(
   ctx: ServiceNowScriptContext,
   modes: readonly JavaScriptMode[],
 ): boolean {
-  if (!isInstanceScript(ctx)) return false;
+  if (isFluentContext(ctx)) return false;
   if (ctx.javascriptMode === "unknown") return false;
   return modes.includes(ctx.javascriptMode);
 }
@@ -269,13 +267,6 @@ export function appliesToInstanceScripts(ctx: ServiceNowScriptContext): boolean 
   return isInstanceScript(ctx);
 }
 
-const SURFACE_MIN: Record<ContextConfidence, number> = {
-  unknown: 0,
-  inferred: 1,
-  filename: 2,
-  explicit: 3,
-};
-
 export function appliesOnSurface(
   ctx: ServiceNowScriptContext,
   surface: ScriptSurface,
@@ -283,7 +274,7 @@ export function appliesOnSurface(
 ): boolean {
   if (isFluentContext(ctx)) return false;
   if (!ctx.surfaces.has(surface)) return false;
-  return SURFACE_MIN[ctx.sources.surfaces] >= SURFACE_MIN[minimum];
+  return CONTEXT_CONFIDENCE_ORDER[ctx.sources.surfaces] >= CONTEXT_CONFIDENCE_ORDER[minimum];
 }
 
 const SERVER_ONLY_SURFACES: readonly ScriptSurface[] = [
@@ -303,9 +294,13 @@ export function isClientCapableContext(ctx: ServiceNowScriptContext): boolean {
   return appliesOnSurface(ctx, "client");
 }
 
-function hasServerExecutionSurface(ctx: ServiceNowScriptContext): boolean {
-  if (SERVER_ONLY_SURFACES.some((surface) => appliesOnSurface(ctx, surface))) return true;
-  if (appliesOnSurface(ctx, "ui-action") && appliesOnSurface(ctx, "server")) return true;
+function hasServerExecutionSurface(
+  ctx: ServiceNowScriptContext,
+  minimum: ContextConfidence,
+): boolean {
+  if (SERVER_ONLY_SURFACES.some((surface) => appliesOnSurface(ctx, surface, minimum))) return true;
+  if (appliesOnSurface(ctx, "ui-action", minimum) && appliesOnSurface(ctx, "server", minimum))
+    return true;
   // A bare UI Action may execute on either side. Without explicit server
   // evidence, do not report server-only diagnostics.
   return false;
@@ -314,7 +309,18 @@ function hasServerExecutionSurface(ctx: ServiceNowScriptContext): boolean {
 /**
  * Server-side instance scripts. Unknown surface is not server-capable.
  */
-export function isServerInstanceContext(ctx: ServiceNowScriptContext): boolean {
+export function isServerInstanceContext(
+  ctx: ServiceNowScriptContext,
+  minimum: ContextConfidence = "inferred",
+): boolean {
   if (isFluentContext(ctx)) return false;
-  return hasServerExecutionSurface(ctx);
+  return hasServerExecutionSurface(ctx, minimum);
+}
+
+export function isMixedUiActionContext(ctx: ServiceNowScriptContext): boolean {
+  return (
+    appliesOnSurface(ctx, "ui-action") &&
+    appliesOnSurface(ctx, "client") &&
+    appliesOnSurface(ctx, "server")
+  );
 }
