@@ -20,10 +20,17 @@ export const noPackagesCalls = defineRule({
   createOnce(context) {
     return {
       MemberExpression(node) {
-        const { analysis } = beginRuleFile(context);
+        const { analysis, context: script } = beginRuleFile(context);
         const member = node as ESTree.MemberExpression;
         const root = rootIdentifier(member);
-        if (!root || getName(root) !== "Packages" || !analysis.isPlatformGlobal(root)) return;
+        if (
+          !root ||
+          getName(root) !== "Packages" ||
+          !analysis.isPlatformGlobal(root) ||
+          script.authoring !== "classic" ||
+          script.sources.surfaces === "unknown"
+        )
+          return;
         const ancestors = context.sourceCode.getAncestors(node);
         const parent = ancestors[ancestors.length - 1] as ESTree.Node | undefined;
         if (

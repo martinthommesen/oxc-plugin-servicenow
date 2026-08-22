@@ -24,6 +24,9 @@ const NPM_ERROR_STATUSES = new Map([
   ["E403", 403],
   ["E404", 404],
   ["E429", 429],
+  ["E502", 502],
+  ["E503", 503],
+  ["E504", 504],
 ]);
 
 function fail(message, kind = "published-package", details = {}) {
@@ -386,7 +389,8 @@ function expectedAttestationPath(name, version) {
 }
 
 export function canonicalAttestationUrl(view, name, version) {
-  const records = Array.isArray(view?.dist?.attestations) ? view.dist.attestations : [];
+  const raw = view?.dist?.attestations;
+  const records = Array.isArray(raw) ? raw : raw && typeof raw === "object" ? [raw] : [];
   const candidates = records.filter(
     (item) => item?.provenance?.predicateType === PREDICATE_TYPE && typeof item.url === "string",
   );

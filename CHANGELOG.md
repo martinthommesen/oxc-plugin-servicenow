@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 2.0.0 — 2026-08-22
+
+The 2.0.0 release includes the validated settings, context, rule, and release-governance changes documented below.
+
 ### Validation
 
 - Rule options use one descriptor for host schema, runtime parsing, and generated docs. Invalid types throw a path-specific `ServiceNowConfigError`.

@@ -11,6 +11,7 @@ import { checkActionPins } from "../../scripts/check-action-pins.mjs";
 import {
   collectLiveGovernance,
   compareGovernance,
+  normalizeLiveGovernance,
   validateDesiredGovernance,
 } from "../../scripts/check-release-governance.mjs";
 import { packageTargetPath } from "../../scripts/check-release-artifact.mjs";
@@ -56,6 +57,9 @@ const governanceWorkflow = parse(
 ) as any;
 const desiredFixture = JSON.parse(
   readFileSync(path.join(repoRoot, "tests/fixtures/release-governance/desired.json"), "utf8"),
+);
+const authoritativeDesiredFixture = JSON.parse(
+  readFileSync(path.join(repoRoot, "scripts/release-governance.json"), "utf8"),
 );
 const liveFixture = JSON.parse(
   readFileSync(path.join(repoRoot, "tests/fixtures/release-governance/valid.json"), "utf8"),
@@ -282,10 +286,18 @@ describe("release automation gates", () => {
         ];
       },
       (value) => {
+        value.releaseTagRulesets.creation.bypassActors = [];
+      },
+      (value) => {
         value.releaseTagRulesets.creation.rules = [];
       },
       (value) => {
         value.mainRuleset.requiredStatusChecks = ["test"];
+      },
+      (value) => {
+        value.mainRuleset.rules = value.mainRuleset.rules.filter(
+          (rule: string) => rule !== "pull_request",
+        );
       },
       (value) => {
         value.npmTrustedPublisher.workflowFilename = "other.yml";
@@ -296,6 +308,190 @@ describe("release automation gates", () => {
       mutate(changed);
       assert.equal(compareGovernance(desiredFixture, changed).ok, false);
     }
+  });
+
+  it("rejects every main protection rule and security-critical parameter drift", () => {
+    assert.deepEqual(validateDesiredGovernance(authoritativeDesiredFixture), []);
+    const weakenedDesired = clone(authoritativeDesiredFixture);
+    weakenedDesired.mainRuleset.rules = weakenedDesired.mainRuleset.rules.filter(
+      (rule: string) => rule !== "code_scanning",
+    );
+    assert.notDeepEqual(validateDesiredGovernance(weakenedDesired), []);
+    const weakenedParameters = clone(authoritativeDesiredFixture);
+    const pullRequest = weakenedParameters.mainRuleset.ruleParameters.find(
+      (item: any) => item.type === "pull_request",
+    );
+    assert.ok(pullRequest);
+    pullRequest.parameters.required_review_thread_resolution = false;
+    assert.notDeepEqual(validateDesiredGovernance(weakenedParameters), []);
+    const weakenedContexts = clone(authoritativeDesiredFixture);
+    const statusChecks = weakenedContexts.mainRuleset.ruleParameters.find(
+      (item: any) => item.type === "required_status_checks",
+    );
+    assert.ok(statusChecks);
+    statusChecks.parameters.required_status_checks.pop();
+    assert.notDeepEqual(validateDesiredGovernance(weakenedContexts), []);
+    const weakenedIdentity = clone(authoritativeDesiredFixture);
+    weakenedIdentity.mainRuleset.enforcement = "disabled";
+    assert.notDeepEqual(validateDesiredGovernance(weakenedIdentity), []);
+    const weakenedMainRef = clone(authoritativeDesiredFixture);
+    weakenedMainRef.mainRuleset.refPattern = "refs/heads/release";
+    assert.notDeepEqual(validateDesiredGovernance(weakenedMainRef), []);
+    const weakenedTagIdentity = clone(authoritativeDesiredFixture);
+    weakenedTagIdentity.releaseTagRulesets.creation.refPattern = "refs/heads/main";
+    assert.notDeepEqual(validateDesiredGovernance(weakenedTagIdentity), []);
+    const weakenedTagEnforcement = clone(authoritativeDesiredFixture);
+    weakenedTagEnforcement.releaseTagRulesets.immutability.enforcement = "evaluate";
+    assert.notDeepEqual(validateDesiredGovernance(weakenedTagEnforcement), []);
+    const weakenedExclusions = clone(authoritativeDesiredFixture);
+    weakenedExclusions.mainRuleset.refExcludes = ["refs/heads/main"];
+    assert.notDeepEqual(validateDesiredGovernance(weakenedExclusions), []);
+    const weakenedEnvironment = clone(authoritativeDesiredFixture);
+    weakenedEnvironment.environment.name = "preview";
+    assert.notDeepEqual(validateDesiredGovernance(weakenedEnvironment), []);
+    assert.equal(
+      compareGovernance(authoritativeDesiredFixture, authoritativeDesiredFixture).ok,
+      true,
+    );
+    const reordered = clone(authoritativeDesiredFixture);
+    reordered.mainRuleset.ruleParameters.reverse();
+    assert.equal(compareGovernance(authoritativeDesiredFixture, reordered).ok, true);
+
+    const reject = (mutate: (value: any) => void) => {
+      const changed = clone(authoritativeDesiredFixture);
+      mutate(changed);
+      assert.equal(compareGovernance(authoritativeDesiredFixture, changed).ok, false);
+    };
+    for (const rule of authoritativeDesiredFixture.mainRuleset.rules) {
+      reject((value) => {
+        value.mainRuleset.rules = value.mainRuleset.rules.filter((item: string) => item !== rule);
+      });
+    }
+    reject((value) => {
+      value.mainRuleset.bypassActors = [{ id: 7, type: "Integration", mode: "always" }];
+    });
+    reject((value) => {
+      value.mainRuleset.target = "tag";
+    });
+    reject((value) => {
+      value.releaseTagRulesets.creation.target = "branch";
+    });
+
+    const parameterMutations: Array<[string, (parameters: any) => void]> = [
+      [
+        "required approving reviews",
+        (parameters) => (parameters.required_approving_review_count = 1),
+      ],
+      ["dismiss stale reviews", (parameters) => (parameters.dismiss_stale_reviews_on_push = false)],
+      ["required reviewers", (parameters) => (parameters.required_reviewers = [{ id: 7 }])],
+      ["code-owner review", (parameters) => (parameters.require_code_owner_review = true)],
+      ["last-push approval", (parameters) => (parameters.require_last_push_approval = true)],
+      [
+        "review-thread resolution",
+        (parameters) => (parameters.required_review_thread_resolution = false),
+      ],
+      [
+        "unattributed-change approval",
+        (parameters) => (parameters.require_extra_approval_for_unattributed_changes = false),
+      ],
+      ["allowed merge methods", (parameters) => (parameters.allowed_merge_methods = ["merge"])],
+      [
+        "strict status checks",
+        (parameters) => (parameters.strict_required_status_checks_policy = false),
+      ],
+      [
+        "status-check creation enforcement",
+        (parameters) => (parameters.do_not_enforce_on_create = true),
+      ],
+      [
+        "required status context",
+        (parameters) =>
+          (parameters.required_status_checks = parameters.required_status_checks.slice(1)),
+      ],
+      [
+        "CodeQL security threshold",
+        (parameters) => (parameters.code_scanning_tools[0].security_alerts_threshold = "high"),
+      ],
+      [
+        "CodeQL alert threshold",
+        (parameters) => (parameters.code_scanning_tools[0].alerts_threshold = "high"),
+      ],
+      ["code quality severity", (parameters) => (parameters.severity = "high")],
+      ["minimum coverage", (parameters) => (parameters.minimum_coverage = 80)],
+      ["maximum coverage drop", (parameters) => (parameters.max_coverage_drop = 4)],
+    ];
+    for (const [label, mutateParameters] of parameterMutations) {
+      reject((value) => {
+        const type = label.includes("status")
+          ? "required_status_checks"
+          : label.includes("CodeQL")
+            ? "code_scanning"
+            : label.includes("quality")
+              ? "code_quality"
+              : label.includes("coverage")
+                ? "code_coverage"
+                : "pull_request";
+        const rule = value.mainRuleset.ruleParameters.find((item: any) => item.type === type);
+        assert.ok(rule, `${label}: rule parameter fixture missing`);
+        mutateParameters(rule.parameters);
+      });
+    }
+  });
+
+  it("rejects raw live self-review bypasses and missing tag-creation bypass", () => {
+    const raw = {
+      rulesets: [],
+      environment: {
+        name: "release",
+        protection_rules: [{ type: "required_reviewers", prevent_self_review: false }],
+        can_admins_bypass: false,
+        deployment_branch_policy: { protected_branches: false, custom_branch_policies: true },
+      },
+      deploymentPolicies: [{ type: "tag", name: "v*" }],
+    };
+    const selfReviewResult = compareGovernance(authoritativeDesiredFixture, raw);
+    assert.ok(selfReviewResult.errors.includes("release environment does not prevent self-review"));
+
+    const missingBypass = clone(authoritativeDesiredFixture);
+    missingBypass.releaseTagRulesets.creation.bypassActors = [];
+    const bypassResult = compareGovernance(authoritativeDesiredFixture, missingBypass);
+    assert.ok(bypassResult.errors.includes("creation tag bypass actors drifted"));
+  });
+
+  it("rejects missing live rulesets instead of copying desired rules", () => {
+    const legacy = {
+      rulesets: [],
+      environment: {
+        name: "release",
+        prevent_self_review: true,
+        can_admins_bypass: false,
+        deployment_branch_policy: { protected_branches: false, custom_branch_policies: true },
+      },
+      deploymentPolicies: [{ type: "tag", name: "v*" }],
+    };
+    const result = compareGovernance(desiredFixture, legacy);
+    assert.equal(result.ok, false);
+    assert.ok(result.errors.some((error) => error.includes("ruleset identity drifted")));
+  });
+
+  it("preserves excluded live refs in the normalized ruleset", () => {
+    const expected = desiredFixture.releaseTagRulesets.creation;
+    const raw = {
+      rulesets: [
+        {
+          name: expected.name,
+          enforcement: expected.enforcement,
+          conditions: {
+            ref_name: { include: [expected.refPattern], exclude: ["refs/tags/v2**"] },
+          },
+          rules: [{ type: "creation" }],
+          bypass_actors: [],
+        },
+      ],
+    };
+    const normalized = normalizeLiveGovernance(raw, desiredFixture);
+    assert.deepEqual(normalized.releaseTagRulesets.creation.refExcludes, ["refs/tags/v2**"]);
+    assert.deepEqual(normalized.releaseTagRulesets.creation.refIncludes, [expected.refPattern]);
   });
 
   it("rejects an unsafe repository identity before calling external tools", () => {
@@ -447,6 +643,49 @@ describe("release automation gates", () => {
       isTransientRegistryError(Object.assign(new Error("forbidden"), { status: 403 })),
       false,
     );
+    for (const code of ["E502", "E503", "E504"]) {
+      assert.throws(
+        () =>
+          parseNpmCommandResult(
+            { status: 1, signal: null, stdout: JSON.stringify({ error: { code } }), stderr: "" },
+            "npm view",
+          ),
+        (error: any) => error.code === code && isTransientRegistryError(error),
+      );
+    }
+    for (const code of ["E502", "E503", "E504"]) {
+      let npmAttempts = 0;
+      const npmSleeps: number[] = [];
+      const value = await retryBounded(
+        async () => {
+          npmAttempts += 1;
+          if (npmAttempts < 2)
+            return parseNpmCommandResult(
+              {
+                status: 1,
+                signal: null,
+                stdout: JSON.stringify({ error: { code } }),
+                stderr: "",
+              },
+              "npm view",
+            );
+          return { ok: true };
+        },
+        {
+          timeoutMs: 100,
+          maxAttempts: 3,
+          initialDelayMs: 10,
+          maxDelayMs: 10,
+          now: () => 0,
+          sleep: async (ms) => {
+            npmSleeps.push(ms);
+          },
+        },
+      );
+      assert.deepEqual(value, { ok: true });
+      assert.equal(npmAttempts, 2);
+      assert.deepEqual(npmSleeps, [10]);
+    }
     await assert.rejects(
       retryBounded(
         async () => {
@@ -521,6 +760,18 @@ describe("release automation gates", () => {
       },
     };
     assert.equal(canonicalAttestationUrl(view, "pkg", "2.0.0"), url);
+    assert.equal(
+      canonicalAttestationUrl(
+        {
+          dist: {
+            attestations: { url, provenance: { predicateType: "https://slsa.dev/provenance/v1" } },
+          },
+        },
+        "pkg",
+        "2.0.0",
+      ),
+      url,
+    );
     assert.throws(
       () =>
         canonicalAttestationUrl(

@@ -149,6 +149,20 @@ describe("settings validation", () => {
 });
 
 describe("release and context resolution", () => {
+  it("does not reject filename-derived Fluent authoring with classic surfaces", () => {
+    const context = {
+      filename: "client.now.ts",
+      settings: { servicenow: { surfaces: ["client"] } },
+      sourceCode: { text: "", getAllComments: () => [] },
+      options: [],
+    } as unknown as Context;
+    const script = resolveScriptContext(context);
+    assert.equal(script.authoring, "classic");
+    assert.deepEqual([...script.surfaces], ["client"]);
+    assert.equal(script.sources.authoring, "explicit");
+    assert.equal(script.sources.surfaces, "explicit");
+  });
+
   it("accepts the documented Zurich release and rejects unknown values", () => {
     assert.equal(validateServiceNowSettings({ release: "zurich" }).settings.release, "zurich");
     assert.throws(() => validateServiceNowSettings({ release: "zurichx" }), /release.*one of/);

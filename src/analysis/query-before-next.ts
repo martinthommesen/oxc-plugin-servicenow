@@ -42,7 +42,7 @@ export function findMissingQueryBeforeNext(
         rec.data.queryState = "opened";
       }
       if (
-        property === "next" &&
+        analysis.glide.cursorAdvancers.has(property) &&
         (rec.data.queryState === "unopened" || rec.data.queryState === "unknown")
       ) {
         const key = nodeStart(call);

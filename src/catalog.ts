@@ -2105,7 +2105,7 @@ if (display < "2026-01-01") gs.info(display);`,
     fixable: false,
     hasSuggestions: false,
     description:
-      "A `query()`, `get()`, or `getAsync()` inside a proven GlideRecord / GlideAggregate `.next()` loop is an N+1 pattern. Unrelated iterators with `.next()` do not establish cursor depth.",
+      "A `query()` or `get()` inside a proven GlideRecord / GlideAggregate `.next()` loop is an N+1 pattern. Unrelated iterators with `.next()` do not establish cursor depth.",
     bad: [
       {
         name: "nested get",

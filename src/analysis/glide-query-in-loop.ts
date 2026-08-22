@@ -1,5 +1,5 @@
 import type { ESTree } from "@oxlint/plugins";
-import { getName, isNode } from "../utils/ast.js";
+import { getName, isNode, unwrapExpression } from "../utils/ast.js";
 import { staticPropertyName } from "./members.js";
 import type { ProvenanceQuery } from "./provenance.js";
 import { isFunctionLikeNode, visitChildren } from "./path-state.js";
@@ -68,6 +68,18 @@ function visit(
   findings: QueryInLoopFinding[],
 ): void {
   if (!isNode(node)) return;
+  if (node.type === "CallExpression") {
+    const call = node as ESTree.CallExpression;
+    const callee = unwrapExpression(call.callee);
+    if (isNode(callee) && isFunctionLikeNode(callee)) {
+      // An immediately invoked function executes at the caller's current
+      // cursor depth. Ordinary nested declarations remain separate paths.
+      const functionNode = callee as ESTree.Node & { body: unknown };
+      visit(functionNode.body, cursorDepth, analysis, findings);
+      for (const argument of call.arguments) visit(argument, cursorDepth, analysis, findings);
+      return;
+    }
+  }
   if (isFunctionLikeNode(node)) {
     visitChildren(node, (child) => visit(child, 0, analysis, findings));
     return;

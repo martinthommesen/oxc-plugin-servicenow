@@ -13,10 +13,6 @@ export const GLIDE_API_RELEASE: ServiceNowRelease = "zurich";
 export const GLIDE_SCOPED_RECORD_EVIDENCE =
   "https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html";
 
-/** Global (non-scoped) GlideRecord API. Used only for methods absent from the scoped page. */
-export const GLIDE_GLOBAL_RECORD_EVIDENCE =
-  "https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordAPI.html";
-
 export type GlideApiScope = "scoped" | "global";
 
 export type GlideMethodRole =
@@ -25,6 +21,7 @@ export type GlideMethodRole =
   | "acl-bypass"
   | "executor"
   | "consumer"
+  | "cursor-advance"
   | "bulk"
   | "value-extractor"
   | "neutral";
@@ -60,7 +57,6 @@ function method(
  *
  * `addOrCondition` belongs to `GlideQueryCondition`, not GlideRecord.
  * `addInactiveQuery` and `addNotExistsQuery` are not on the Zurich scoped page.
- * `getAsync` is documented on the global GlideRecord API, not the scoped page.
  */
 export const GLIDE_RECORD_METHODS: readonly GlideMethodCapability[] = [
   method("addActiveQuery", ["filter"]),
@@ -85,12 +81,8 @@ export const GLIDE_RECORD_METHODS: readonly GlideMethodCapability[] = [
   method("setCategory", ["shape"]),
   method("query", ["executor"]),
   method("get", ["executor"]),
-  method("getAsync", ["executor"], {
-    apiScope: "global",
-    supportedScopes: ["global"],
-    evidence: GLIDE_GLOBAL_RECORD_EVIDENCE,
-  }),
-  method("next", ["consumer"]),
+  method("next", ["consumer", "cursor-advance"]),
+  method("_next", ["consumer", "cursor-advance"]),
   method("hasNext", ["consumer"]),
   method("getRowCount", ["consumer"]),
   method("updateMultiple", ["bulk"]),
@@ -129,6 +121,9 @@ export const GLIDE_SYSTEM_BYPASS_METHODS = namesWithRole("acl-bypass");
 export const GLIDE_QUERY_EXECUTORS = namesWithRole("executor");
 
 export const GLIDE_RESULT_CONSUMERS = namesWithRole("consumer");
+
+/** Documented methods that advance a GlideRecord cursor and require an opened result. */
+export const GLIDE_CURSOR_ADVANCERS = namesWithRole("cursor-advance");
 
 export const GLIDE_BULK_METHODS = namesWithRole("bulk");
 
@@ -191,6 +186,7 @@ export interface GlideCapabilityView {
   readonly systemBypass: ReadonlySet<string>;
   readonly executors: ReadonlySet<string>;
   readonly consumers: ReadonlySet<string>;
+  readonly cursorAdvancers: ReadonlySet<string>;
   readonly bulk: ReadonlySet<string>;
   readonly valueExtractors: ReadonlySet<string>;
   readonly knownMethods: ReadonlySet<string>;
@@ -224,6 +220,7 @@ export function resolveGlideCapabilities(input: {
     systemBypass: readonlyNames(methods, "acl-bypass"),
     executors: readonlyNames(methods, "executor"),
     consumers: readonlyNames(methods, "consumer"),
+    cursorAdvancers: readonlyNames(methods, "cursor-advance"),
     bulk: readonlyNames(methods, "bulk"),
     valueExtractors: readonlyNames(methods, "value-extractor"),
     knownMethods: readonlyNames(methods),

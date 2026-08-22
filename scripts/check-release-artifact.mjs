@@ -230,7 +230,9 @@ export function tarballIntegrity(buffer) {
 export function normalizeNpmPackManifest(record, tarball) {
   const tarballBytes = readFileSync(tarball);
   const files = record.files.map((file) => {
-    const bytes = execFileSync("tar", ["-xOf", tarball, `package/${file.path}`]);
+    const bytes = execFileSync("tar", ["-xOf", tarball, `package/${file.path}`], {
+      maxBuffer: 64 * 1024 * 1024,
+    });
     if (bytes.byteLength !== file.size) {
       fail(`npm pack size mismatch for ${file.path}`);
     }

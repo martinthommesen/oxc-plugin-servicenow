@@ -61,4 +61,9 @@ describe("classifyFile", () => {
   it("classifies Windows server paths", () => {
     assert.equal(classifyFile("src\\server\\thing.js", "", {}), "server");
   });
+
+  it("prefers a specific subtype over a generic server directory", () => {
+    assert.deepEqual(surfacesFromFilename("src/server/incident.br.js"), ["business-rule"]);
+    assert.deepEqual(surfacesFromFilename("src/server/helper.si.js"), ["script-include"]);
+  });
 });

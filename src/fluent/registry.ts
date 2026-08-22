@@ -5,6 +5,7 @@ import {
   type FluentSdkManifest,
 } from "./manifest.js";
 import { FLUENT_DECLARATION_SNAPSHOTS } from "./declaration-snapshots.js";
+import { compareFluentVersions } from "./evidence.js";
 
 /** Reviewed default used when `fluentSdkVersion` is omitted. */
 export const DEFAULT_FLUENT_SDK_VERSION = "4.11.0";
@@ -235,6 +236,10 @@ interface DeclarationSnapshot {
   readonly capabilities: Readonly<Record<string, DeclarationCapability>>;
   readonly discoveredCapabilities: Readonly<Record<string, DeclarationCapability>>;
   readonly absent: readonly string[];
+  readonly typos: Readonly<Record<string, string>>;
+  readonly lifecycle: Readonly<
+    Record<string, { introduced: string | null; deprecated: string | null }>
+  >;
 }
 
 const DECLARATIONS = FLUENT_DECLARATION_SNAPSHOTS as unknown as Readonly<
@@ -251,6 +256,7 @@ function manifestForVersion(sdkVersion: string): FluentSdkManifest {
   const manual = new Map(DEFAULT_FLUENT_MANIFEST.apis.map((api) => [api.name, api]));
   const apis: FluentApiCapability[] = [];
   for (const api of DEFAULT_FLUENT_MANIFEST.apis) {
+    if (api.introduced && compareFluentVersions(sdkVersion, api.introduced) < 0) continue;
     if (api.module === "unknown") {
       apis.push({ ...api });
       continue;
@@ -261,7 +267,12 @@ function manifestForVersion(sdkVersion: string): FluentSdkManifest {
     apis.push({
       ...api,
       idRequirement: declaredPolicy === "unknown" ? api.idRequirement : declaredPolicy,
-      deprecated: declaredPolicy === "deprecated" ? sdkVersion : undefined,
+      deprecated:
+        declaredPolicy === "deprecated" &&
+        api.deprecated &&
+        compareFluentVersions(sdkVersion, api.deprecated) >= 0
+          ? api.deprecated
+          : undefined,
     });
   }
   for (const [name, declaration] of Object.entries(snapshot.discoveredCapabilities)) {

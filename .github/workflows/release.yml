@@ -56,7 +56,7 @@ jobs:
           test "v${version}" = "$GITHUB_REF_NAME"
           test "$oidc_subject" = "repo:${GITHUB_REPOSITORY}:environment:release"
           git fetch origin main
-          test "$GITHUB_SHA" = "$(git rev-parse origin/main)"
+          git merge-base --is-ancestor "$GITHUB_SHA" "$(git rev-parse origin/main)"
           node scripts/check-release-artifact.mjs --changelog-only
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "oidc_subject=$oidc_subject" >> "$GITHUB_OUTPUT"

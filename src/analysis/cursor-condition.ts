@@ -53,6 +53,29 @@ function proof(node: unknown, cursorId: (node: unknown) => number | null): Truth
       canBeNullish: alternatives.some((item) => item.canBeNullish),
     };
   }
+  if (expr.type === "BinaryExpression") {
+    const binary = expr as ESTree.BinaryExpression;
+    if (["===", "==", "!==", "!="].includes(binary.operator)) {
+      const left = proof(binary.left, cursorId);
+      const right = proof(binary.right, cursorId);
+      const literal = (node: unknown, value: boolean): boolean =>
+        isNode(node) &&
+        node.type === "Literal" &&
+        (node as unknown as { value?: unknown }).value === value;
+      if (
+        (literal(binary.right, true) && ["===", "=="].includes(binary.operator)) ||
+        (literal(binary.right, false) && ["!==", "!="].includes(binary.operator))
+      ) {
+        return left;
+      }
+      if (
+        (literal(binary.left, true) && ["===", "=="].includes(binary.operator)) ||
+        (literal(binary.left, false) && ["!==", "!="].includes(binary.operator))
+      ) {
+        return right;
+      }
+    }
+  }
   if (expr.type === "LogicalExpression") {
     const logical = expr as ESTree.LogicalExpression;
     const left = proof(logical.left, cursorId);

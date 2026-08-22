@@ -33,7 +33,19 @@
   "mainRuleset": {
     "name": "PR51 main governance",
     "enforcement": "active",
+    "target": "branch",
     "refPattern": "refs/heads/main",
+    "rules": [
+      "deletion",
+      "non_fast_forward",
+      "pull_request",
+      "required_status_checks",
+      "code_scanning",
+      "code_quality",
+      "code_coverage",
+      "required_linear_history"
+    ],
+    "bypassActors": [],
     "requiredStatusChecks": [
       "test",
       "bench",
@@ -47,12 +59,63 @@
       "artifact",
       "workflow"
     ],
-    "codeql": "informational"
+    "ruleParameters": [
+      { "type": "deletion", "parameters": null },
+      { "type": "non_fast_forward", "parameters": null },
+      {
+        "type": "pull_request",
+        "parameters": {
+          "required_approving_review_count": 0,
+          "dismiss_stale_reviews_on_push": true,
+          "required_reviewers": [],
+          "require_code_owner_review": false,
+          "require_last_push_approval": false,
+          "required_review_thread_resolution": true,
+          "require_extra_approval_for_unattributed_changes": true,
+          "allowed_merge_methods": ["squash", "rebase"]
+        }
+      },
+      {
+        "type": "required_status_checks",
+        "parameters": {
+          "strict_required_status_checks_policy": true,
+          "do_not_enforce_on_create": false,
+          "required_status_checks": [
+            { "context": "test" },
+            { "context": "bench" },
+            { "context": "compat (min-hosts, 20.19.0)" },
+            { "context": "compat (node22-host, 22.14.0)" },
+            { "context": "compat (node24-host, 24.16.0)" },
+            { "context": "compat (node26-host, 26.7.0)" },
+            { "context": "compat (eslint9-current, 24.16.0)" },
+            { "context": "docs" },
+            { "context": "manifest" },
+            { "context": "artifact" },
+            { "context": "workflow" }
+          ]
+        }
+      },
+      {
+        "type": "code_scanning",
+        "parameters": {
+          "code_scanning_tools": [
+            { "tool": "CodeQL", "security_alerts_threshold": "all", "alerts_threshold": "all" }
+          ]
+        }
+      },
+      { "type": "code_quality", "parameters": { "severity": "all" } },
+      {
+        "type": "code_coverage",
+        "parameters": { "minimum_coverage": 85, "max_coverage_drop": 3 }
+      },
+      { "type": "required_linear_history", "parameters": null }
+    ]
   },
   "releaseTagRulesets": {
     "immutability": {
       "name": "PR51 immutable release tags",
       "enforcement": "active",
+      "target": "tag",
       "refPattern": "refs/tags/v**",
       "rules": ["deletion", "non_fast_forward"],
       "bypassActors": []
@@ -60,6 +123,7 @@
     "creation": {
       "name": "PR51 controlled release tag creation",
       "enforcement": "active",
+      "target": "tag",
       "refPattern": "refs/tags/v**",
       "rules": ["creation"],
       "bypassActors": [

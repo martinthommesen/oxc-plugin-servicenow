@@ -5,6 +5,7 @@
     "sha256": "22f9e1d3d370eaa88001d8c7587f2878b7955a8d9b80922de5848696096a2dc1",
     "criteria": 533
   },
+  "criteriaDigest": "6f9473920d9ffde625bcf68418da08cde196282c91661c2d40608c9bfff68d02",
   "criteria": [
     {
       "id": "PR51-64EA58AEE4C9",

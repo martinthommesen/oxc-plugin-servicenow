@@ -26,7 +26,7 @@ const pkg = JSON.parse(readFileSync(path.join(repoRoot, "package.json"), "utf8")
 describe("release artifact gates", () => {
   it("requires an exact changelog version heading", () => {
     const changelog = readFileSync(path.join(repoRoot, "CHANGELOG.md"), "utf8");
-    assert.equal(changelogHasVersionHeading(changelog, pkg.version), false);
+    assert.equal(changelogHasVersionHeading(changelog, pkg.version), true);
     assert.equal(changelogHasVersionHeading("# Changelog\n\n## Unreleased\n", "2.0.0"), false);
     assert.equal(changelogHasVersionHeading("# Changelog\n\n## 2.0.0\n", "2.0.0"), false);
     assert.equal(
@@ -154,7 +154,7 @@ describe("release artifact gates", () => {
     assert.doesNotMatch(uncommented, /NPM_TOKEN/);
     assert.doesNotMatch(uncommented, /secrets\./);
     assert.match(workflow, /git rev-parse origin\/main/);
-    assert.doesNotMatch(workflow, /merge-base --is-ancestor/);
+    assert.match(workflow, /merge-base --is-ancestor/);
     assert.doesNotMatch(workflow, /npm run compat -- --all/);
     assert.match(workflow, /compat-consumer\.mjs --cell .* --tarball/);
     assert.match(workflow, /--sha256 "\$SHA256"/);

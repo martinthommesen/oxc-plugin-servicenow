@@ -4,8 +4,11 @@ import {
   DEFAULT_FLUENT_MANIFEST,
   entitiesRequiringId,
   knownDirectiveNames,
+  resolveFluentManifest,
 } from "../src/fluent/index.js";
+import { FLUENT_DECLARATION_SNAPSHOTS } from "../src/fluent/declaration-snapshots.js";
 import { compareFluentVersions, isAllowedFluentEvidenceLocation } from "../src/fluent/evidence.js";
+import { assertFluentLifecycleMatches } from "../src/fluent/lifecycle.js";
 
 function isHttpsServiceNowDocsUrl(evidence: string): boolean {
   let parsed: URL;
@@ -73,5 +76,28 @@ describe("Fluent SDK manifest", () => {
     assert.ok(compareFluentVersions("4.10.0", "4.9.2") > 0);
     assert.equal(compareFluentVersions("4.10.0", "4.10.0"), 0);
     assert.throws(() => compareFluentVersions("4.10", "4.10.0"));
+  });
+
+  it("rejects deleted introduced and deprecated lifecycle fields", () => {
+    const manifest = resolveFluentManifest("4.10.0");
+    const api = manifest.apis.find((item) => item.name === "StateModel");
+    const expected = FLUENT_DECLARATION_SNAPSHOTS["4.10.0"].lifecycle.StateModel;
+    assert.ok(api);
+    const mutated = { ...api };
+    delete mutated.introduced;
+    assert.throws(
+      () => assertFluentLifecycleMatches(mutated, expected),
+      /introduction lifecycle drifted/,
+    );
+
+    const list = resolveFluentManifest("4.11.0").apis.find((item) => item.name === "List");
+    const listExpected = FLUENT_DECLARATION_SNAPSHOTS["4.11.0"].lifecycle.List;
+    assert.ok(list);
+    const deprecatedMutation = { ...list };
+    delete deprecatedMutation.deprecated;
+    assert.throws(
+      () => assertFluentLifecycleMatches(deprecatedMutation, listExpected),
+      /deprecation lifecycle drifted/,
+    );
   });
 });

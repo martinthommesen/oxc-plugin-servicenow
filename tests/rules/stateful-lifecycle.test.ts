@@ -177,7 +177,7 @@ gr.deleteMultiple();`,
     );
   });
 
-  it("treats a shadowed undefined filter as dynamic", () => {
+  it("stays silent for a shadowed undefined filter", () => {
     assertValid(
       `function run(undefined) {
   var gr = new GlideRecord("task");
@@ -193,6 +193,17 @@ gr.deleteMultiple();`,
     assertValid(
       `var gr = new GlideRecord("task");
 gr.addQuery(fieldName, value);
+gr.deleteMultiple();`,
+      RULE,
+      SERVER,
+    );
+  });
+
+  it("stays silent after an unknown method follows merged filter state", () => {
+    assertValid(
+      `var gr = new GlideRecord("task");
+if (ready) gr.addQuery("active", true);
+gr.unknownMethod();
 gr.deleteMultiple();`,
       RULE,
       SERVER,
@@ -382,8 +393,8 @@ while (cursor.next()) {
     );
   });
 
-  it("flags getAsync inside a proven cursor loop", () => {
-    assertInvalid(
+  it("does not treat an undocumented getAsync as a nested query", () => {
+    assertValid(
       `var incident = new GlideRecord("incident");
 incident.query();
 while (incident.next()) {
@@ -391,19 +402,19 @@ while (incident.next()) {
   caller.getAsync(incident.getValue("caller_id"));
 }`,
       RULE,
-      { messageId: "nestedQuery" },
       { ...SERVER, settings: { scope: "global", release: "zurich" } },
     );
   });
 });
 
 describe("require-query-before-next executors", () => {
-  it("treats getAsync as a documented opener", () => {
-    assertValid(
+  it("does not treat an undocumented getAsync as an opener", () => {
+    assertInvalid(
       `var gr = new GlideRecord("incident");
 gr.getAsync(id);
 gr.next();`,
       "require-query-before-next",
+      { messageId: "missingQuery" },
       { ...SERVER, settings: { scope: "global", release: "zurich" } },
     );
     assertInvalid(
