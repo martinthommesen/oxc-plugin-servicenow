@@ -66,16 +66,23 @@
     "test:integration": "node scripts/run-tests.mjs tests/integration",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "fluent:check": "tsx scripts/check-fluent-manifest.mjs",
+    "typecheck:fixtures": "tsc --noEmit -p tsconfig.valid-fixtures.json",
     "lint:check": "oxlint --disable-nested-config --deny-warnings --ignore-pattern 'tests/integration/profiles/**' src scripts tests",
     "format": "oxfmt -c .oxfmtrc.json --write src scripts tests",
     "format:check": "oxfmt -c .oxfmtrc.json --check src scripts tests",
-    "docs": "tsx scripts/generate-rule-docs.mjs",
-    "docs:check": "tsx scripts/generate-rule-docs.mjs && git diff --exit-code -- docs/rules README.md examples tests/integration/profiles/configs/recommended.oxlintrc.json tests/integration/profiles/configs/strict.oxlintrc.json tests/integration/profiles/mixed/.oxlintrc.json tests/integration/fixtures/.oxlintrc.json",
+    "docs": "tsx scripts/generate-rule-docs.mjs && tsx scripts/generate-compatibility-docs.mjs",
+    "docs:check": "tsx scripts/generate-rule-docs.mjs && tsx scripts/generate-compatibility-docs.mjs && tsx scripts/check-catalog-docs.mjs && git diff --exit-code -- docs/rules README.md docs/compatibility.md examples tests/integration/profiles/configs/recommended.oxlintrc.json tests/integration/profiles/configs/strict.oxlintrc.json tests/integration/profiles/mixed/.oxlintrc.json tests/integration/fixtures/.oxlintrc.json",
+    "compat": "tsx scripts/compat-consumer.mjs",
     "manifest:check": "tsx scripts/check-fluent-manifest.mjs",
     "manifest:update": "tsx scripts/audit-fluent-sdk.mjs --update",
     "manifest:drift": "tsx scripts/audit-fluent-sdk.mjs --registry",
-    "test:fluent": "node scripts/run-tests.mjs tests/fluent-manifest.test.ts tests/rules/fluent-identity.test.ts",
-    "validate": "npm run lint:check && npm run format:check && npm run typecheck && npm run build && npm test && npm run docs:check && npm run manifest:check"
+    "test:fluent": "node scripts/run-tests.mjs tests/fluent-manifest.test.ts tests/rules/fluent-identity.test.ts tests/integration/packed-consumer.test.ts",
+    "acceptance:check": "tsx scripts/verify-acceptance-ledger.mjs",
+    "evidence:check": "tsx scripts/verify-doc-evidence.mjs",
+    "bench": "tsx scripts/benchmark.mjs",
+    "validate": "npm run workflow:check && npm run compat:check && npm run lint:check && npm run format:check && npm run typecheck && npm run typecheck:fixtures && npm run build && npm test && npm run evidence:check && npm run docs:check && npm run manifest:check && npm run bench",
+    "workflow:check": "node scripts/check-action-pins.mjs",
+    "compat:check": "node scripts/check-compat-matrix.mjs"
   },
   "dependencies": {
     "@oxlint/plugins": "^1.79.0"
