@@ -4,21 +4,31 @@ import type { MutationQuery } from "./mutations.js";
 export interface PlatformMethodAuthorityFacts {
   readonly bindingWrites: BindingWriteQuery;
   readonly mutations: MutationQuery;
+  readonly browserMutations?: MutationQuery;
 }
 
 interface GlobalObjectMethodOptions {
   readonly prototypeConstructor?: string;
+  readonly runtime?: "instance" | "browser";
 }
 
 function hasReceiverMethodAuthority(
   facts: PlatformMethodAuthorityFacts,
+  mutations: MutationQuery,
   receiver: unknown,
   property: string,
 ): boolean {
   return (
     !facts.bindingWrites.hasDynamicScope() &&
-    !facts.mutations.isObjectPropertyAuthorityLost(receiver, property)
+    !mutations.isObjectPropertyAuthorityLost(receiver, property)
   );
+}
+
+function mutationsFor(
+  facts: PlatformMethodAuthorityFacts,
+  runtime: "instance" | "browser",
+): MutationQuery {
+  return runtime === "browser" ? (facts.browserMutations ?? facts.mutations) : facts.mutations;
 }
 
 /**
@@ -34,12 +44,14 @@ export function hasAuthoritativeGlobalObjectMethod(
   property: string,
   options: GlobalObjectMethodOptions,
 ): boolean {
-  if (!hasReceiverMethodAuthority(facts, receiver, property)) return false;
-  if (facts.mutations.isGlobalAuthorityLost(globalName)) return false;
-  if (facts.mutations.isGlobalPathAuthorityLost([globalName, property])) return false;
+  const mutations = mutationsFor(facts, options.runtime ?? "instance");
+  if (!hasReceiverMethodAuthority(facts, mutations, receiver, property)) return false;
+  if (mutations.isGlobalAuthorityLost(globalName)) return false;
+  if (mutations.isGlobalPathAuthorityLost([globalName, property])) return false;
   return !(
     options.prototypeConstructor &&
-    facts.mutations.isGlobalPathAuthorityLost([options.prototypeConstructor, "prototype", property])
+    (mutations.isGlobalPathAuthorityLost([options.prototypeConstructor, "prototype"]) ||
+      mutations.isGlobalPathAuthorityLost([options.prototypeConstructor, "prototype", property]))
   );
 }
 
@@ -54,10 +66,13 @@ export function hasAuthoritativeConstructedMethod(
   receiver: unknown,
   constructorName: string,
   property: string,
+  runtime: "instance" | "browser" = "instance",
 ): boolean {
+  const mutations = mutationsFor(facts, runtime);
   return (
-    hasReceiverMethodAuthority(facts, receiver, property) &&
-    !facts.mutations.isGlobalAuthorityLost(constructorName) &&
-    !facts.mutations.isGlobalPathAuthorityLost([constructorName, "prototype", property])
+    hasReceiverMethodAuthority(facts, mutations, receiver, property) &&
+    !mutations.isGlobalAuthorityLost(constructorName) &&
+    !mutations.isGlobalPathAuthorityLost([constructorName, "prototype"]) &&
+    !mutations.isGlobalPathAuthorityLost([constructorName, "prototype", property])
   );
 }

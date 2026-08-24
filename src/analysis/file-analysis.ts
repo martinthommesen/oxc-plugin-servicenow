@@ -55,6 +55,8 @@ export interface FileAnalysis {
   provenance: ProvenanceQuery;
   /** Lazily indexed possible writes used to suppress diagnostics when API identity is uncertain. */
   mutations: MutationQuery;
+  /** Browser-runtime mutation semantics for client API authority checks. */
+  browserMutations: MutationQuery;
   fluent: FluentFileFacts;
   /** Program-point `Now.ID` facts keyed by the use-site node. */
   nowIdAt: ReadonlyMap<ESTree.Node, NowIdFact>;
@@ -241,6 +243,14 @@ function buildFileAnalysis(context: Context, tree: AnalysisTree): FileAnalysis {
     provenance,
     script.javascriptMode,
   );
+  const browserMutations = createMutationQuery(
+    program,
+    bindings,
+    bindingWrites,
+    provenance,
+    script.javascriptMode,
+    "browser",
+  );
   const manifest = resolveFluentManifest(settings.fluentSdkVersion);
   const imports = program ? collectFluentImports(program, bindings) : new Map();
 
@@ -250,6 +260,7 @@ function buildFileAnalysis(context: Context, tree: AnalysisTree): FileAnalysis {
     script,
     provenance,
     mutations,
+    browserMutations,
     nowIdAt,
     fluent: {
       manifest,

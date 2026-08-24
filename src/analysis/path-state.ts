@@ -10,7 +10,7 @@ import {
 import type { FileBindings, LexicalBinding, ScopeNode } from "./bindings.js";
 import { resolvePlatformGlobalName } from "./globals.js";
 import { isFunctionLike } from "./bindings.js";
-import { resolveConstValue, staticPropertyName } from "./members.js";
+import { isDefinitelyUndefinedValue, resolveConstValue, staticPropertyName } from "./members.js";
 import type { ProvenanceKind, ProvenanceQuery } from "./provenance.js";
 
 export type BindingId = number;
@@ -561,7 +561,12 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
   walk(program, {
     CallExpression(node) {
       const callee = unwrapExpression((node as ESTree.CallExpression).callee);
-      if (!isNode(callee) || callee.type !== "Identifier") return;
+      if (!isNode(callee)) return;
+      if (isFunctionLike(callee)) {
+        directlyCalledFunctions.add(callee);
+        return;
+      }
+      if (callee.type !== "Identifier") return;
       const binding = bindings.resolve(getName(callee) ?? "", callee);
       const fn = binding ? declaredFunctions.get(binding.id) : undefined;
       if (fn) directlyCalledFunctions.add(fn);
@@ -1320,13 +1325,18 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
           activeFunctions.add(fn);
           const invocation = snapshotState(state, cloneData, budget);
           const params = (fn as unknown as { params: readonly ESTree.Node[] }).params;
+          const hasSpreadArgument = call.arguments.some(
+            (argument) => argument.type === "SpreadElement",
+          );
           ancestors.push(fn);
           for (let index = 0; index < params.length; index += 1) {
             const param = unwrapExpression(params[index]);
             if (
-              index >= call.arguments.length &&
+              !hasSpreadArgument &&
               isNode(param) &&
-              param.type === "AssignmentPattern"
+              param.type === "AssignmentPattern" &&
+              (index >= call.arguments.length ||
+                isDefinitelyUndefinedValue(call.arguments[index], bindings))
             ) {
               const assignment = param as ESTree.AssignmentPattern;
               visit(assignment.right, invocation, false);
@@ -1336,7 +1346,11 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
                 objectFromExpr(invocation, assignment.right),
               );
             } else {
-              bindPattern(invocation, params[index], argumentIds[index]);
+              bindPattern(
+                invocation,
+                params[index],
+                hasSpreadArgument ? undefined : argumentIds[index],
+              );
             }
           }
           const body = (fn as unknown as { body: ESTree.Node }).body;

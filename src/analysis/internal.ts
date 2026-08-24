@@ -25,10 +25,13 @@ export type { PlatformMethodAuthorityFacts } from "./platform-method-authority.j
 export type { BindingId, ObjectId, Completion } from "./path-state.js";
 export {
   isDefinitelyNonCallable,
+  isDefinitelyNullishValue,
+  isDefinitelyUndefinedValue,
   staticPropertyName,
   staticCalleeProperty,
   isComputedUnknown,
   resolveConstValue,
+  resolveDominatingConstValue,
   resolveDestructuredConstMember,
 } from "./members.js";
 export { findMissingQueryBeforeNext } from "./query-before-next.js";

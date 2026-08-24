@@ -45,8 +45,10 @@ function buildIndex(program: ESTree.Node | undefined, bindings: FileBindings): B
         dynamicScope = true;
       },
       CallExpression(node) {
-        const callee = unwrapExpression((node as ESTree.CallExpression).callee);
+        const call = node as ESTree.CallExpression;
+        const callee = unwrapExpression(call.callee);
         if (
+          !call.optional &&
           isNode(callee) &&
           callee.type === "Identifier" &&
           callee.name === "eval" &&

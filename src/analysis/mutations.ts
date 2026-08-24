@@ -16,6 +16,7 @@ import {
 } from "./globals.js";
 import {
   isDefinitelyNonCallable,
+  isDefinitelyNullishValue,
   resolveConstValue,
   resolveDestructuredConstMember,
   staticPropertyName,
@@ -37,6 +38,8 @@ export interface MutationQuery {
   /** True when any write or escape makes the object's platform method identity uncertain. */
   isObjectPropertyAuthorityLost(object: unknown, property: string): boolean;
 }
+
+export type MutationRuntime = "instance" | "browser";
 
 interface MutationIndex {
   globals: ReadonlySet<string>;
@@ -123,6 +126,7 @@ function buildIndex(
   bindingWrites: BindingWriteQuery,
   provenance: ProvenanceQuery,
   javascriptMode: JavaScriptMode,
+  runtime: MutationRuntime,
 ): MutationIndex {
   const callable = emptyMutationFacts();
   const authority = emptyMutationFacts();
@@ -139,7 +143,9 @@ function buildIndex(
   });
   if (!program) return result();
 
-  const globalThisCanExist = javascriptMode !== "es5" && javascriptMode !== "compatibility";
+  const browserRuntime = runtime === "browser";
+  const globalThisCanExist =
+    browserRuntime || (javascriptMode !== "es5" && javascriptMode !== "compatibility");
   const recordGlobalPathInto = (path: readonly string[], facts: MutableMutationFacts): void => {
     facts.globalPaths.add(pathKey(path));
     if (!GLOBAL_OBJECT_NAMES.has(path[0] ?? "")) return;
@@ -196,9 +202,18 @@ function buildIndex(
     node: unknown,
     seen: ReadonlySet<ESTree.Node> = new Set(),
   ): readonly string[] | null => {
-    const value = stableAliasValue(node);
+    const direct = unwrapExpression(node);
+    if (!isNode(direct) || seen.has(direct)) return null;
+    const directSeen = new Set(seen);
+    directSeen.add(direct);
+    const selected = resolveDestructuredConstMember(direct, bindings);
+    if (selected?.fallback === null) {
+      const base = authorityGlobalPath(selected.source, directSeen);
+      return base ? [...base, selected.property] : null;
+    }
+    const value = stableAliasValue(direct);
     if (!value || seen.has(value)) return null;
-    const next = new Set(seen);
+    const next = new Set(directSeen);
     next.add(value);
     if (value.type === "Identifier") {
       const name = resolvePlatformGlobalName(value, bindings);
@@ -363,7 +378,9 @@ function buildIndex(
       // ServiceNow documents Reflect.apply as disallowed in every reviewed
       // instance mode, so it cannot establish a replacement on the stock
       // runtime even when its target is a supported Object mutator.
-      return null;
+      if (!browserRuntime) return null;
+      const target = staticBuiltin(call.arguments[0]);
+      return target ? { ...target, arguments: arrayArguments(call.arguments[2]) } : null;
     }
     if (direct) return { ...direct, arguments: directArguments(call.arguments) };
 
@@ -464,6 +481,9 @@ function buildIndex(
   };
 
   const writtenObjectProperties = (node: unknown): readonly string[] | null => {
+    // Object.assign ignores null and undefined sources. Treating them as an
+    // unknown object would erase otherwise authoritative platform methods.
+    if (isDefinitelyNullishValue(node, bindings)) return [];
     const object = stableAliasValue(node);
     if (!object || object.type !== "ObjectExpression") return null;
     const properties = new Set<string>();
@@ -587,20 +607,23 @@ function buildIndex(
         }
         return;
       }
-      if (ownerName === "Reflect") return;
+      if (ownerName === "Reflect" && !browserRuntime) return;
       if (
         ownerName === "Object" &&
         (method === "assign" || method === "setPrototypeOf") &&
+        !browserRuntime &&
         !globalThisCanExist
       ) {
         return;
       }
       const mutatesProperties =
-        ownerName === "Object" &&
-        (method === "defineProperty" ||
-          method === "defineProperties" ||
-          method === "assign" ||
-          method === "setPrototypeOf");
+        (ownerName === "Object" &&
+          (method === "defineProperty" ||
+            method === "defineProperties" ||
+            method === "assign" ||
+            method === "setPrototypeOf")) ||
+        (ownerName === "Reflect" &&
+          (method === "defineProperty" || method === "set" || method === "setPrototypeOf"));
       if (!mutatesProperties) return;
       if (effectiveArguments === null) {
         globals.add("*");
@@ -617,6 +640,14 @@ function buildIndex(
         recordProperty(target, getStaticStringValue(effectiveArguments[1]), authority);
         if (!descriptorMayInstallCallable(effectiveArguments[2])) return;
         recordProperty(target, getStaticStringValue(effectiveArguments[1]));
+        return;
+      }
+      if (ownerName === "Reflect" && method === "set") {
+        const property = getStaticStringValue(effectiveArguments[1]);
+        recordProperty(target, property, authority);
+        if (!definitelyCannotInstallCallable(effectiveArguments[2])) {
+          recordProperty(target, property);
+        }
         return;
       }
       if (method === "defineProperties") {
@@ -646,10 +677,11 @@ export function createMutationQuery(
   bindingWrites: BindingWriteQuery,
   provenance: ProvenanceQuery,
   javascriptMode: JavaScriptMode,
+  runtime: MutationRuntime = "instance",
 ): MutationQuery {
   let index: MutationIndex | undefined;
   const getIndex = () =>
-    (index ??= buildIndex(program, bindings, bindingWrites, provenance, javascriptMode));
+    (index ??= buildIndex(program, bindings, bindingWrites, provenance, javascriptMode, runtime));
   return Object.freeze({
     isGlobalWritten(name: string) {
       return getIndex().globals.has(name) || getIndex().globals.has("*");
