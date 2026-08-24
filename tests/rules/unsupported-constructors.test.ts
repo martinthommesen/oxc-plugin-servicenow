@@ -67,6 +67,43 @@ create(value);`,
     });
   });
 
+  it("requires a bare alias origin to be guarded before capture", () => {
+    assertInvalid(
+      `const Ref = WeakRef;
+if (typeof WeakRef === "function") {
+  new Ref(value);
+}`,
+      "no-weak-references",
+      { messageId: "weak" },
+      AUSTRALIA_ES2021,
+    );
+    assertValid(
+      `if (typeof WeakRef === "function") {
+  const Ref = WeakRef;
+  new Ref(value);
+}`,
+      "no-weak-references",
+      AUSTRALIA_ES2021,
+    );
+    assertValid(
+      `const Ref = globalThis.WeakRef;
+if (typeof Ref === "function") {
+  new Ref(value);
+}`,
+      "no-weak-references",
+      AUSTRALIA_ES2021,
+    );
+    assertInvalid(
+      `const Cache = globalThis.WeakMap;
+if (typeof Cache === "function") {
+  new Cache();
+}`,
+      "no-weak-collections",
+      { messageId: "weak" },
+      { settings: ES5 },
+    );
+  });
+
   it("does not accept guards invalidated before invocation", () => {
     assertInvalid(
       `if (typeof WeakRef === "function") {
@@ -75,6 +112,54 @@ create(value);`,
 }`,
       "no-weak-references",
       { messageId: "weak" },
+      AUSTRALIA_ES2021,
+    );
+    for (const mutation of [
+      `Object.defineProperty(globalThis, "WeakRef", { value: null });`,
+      `Object.defineProperties(globalThis, { WeakRef: { value: null } });`,
+      `Object.assign(globalThis, { WeakRef: null });`,
+      `const { defineProperty } = Object;
+defineProperty(globalThis, "WeakRef", { value: null });`,
+      `const define = Object.defineProperty;
+define(globalThis, "WeakRef", { value: null });`,
+      `Object.defineProperty.call(Object, globalThis, "WeakRef", { value: null });`,
+      `Object.defineProperty.apply(Object, [globalThis, "WeakRef", { value: null }]);`,
+      `const define = Object.defineProperty.bind(Object);
+define(globalThis, "WeakRef", { value: null });`,
+    ]) {
+      assertInvalid(
+        `if (typeof WeakRef === "function") {
+  ${mutation}
+  new WeakRef(value);
+}`,
+        "no-weak-references",
+        { messageId: "weak" },
+        AUSTRALIA_ES2021,
+      );
+    }
+    assertValid(
+      `if (typeof WeakRef === "function") {
+  new WeakRef(value);
+  Object.defineProperty(globalThis, "WeakRef", { value: null });
+}`,
+      "no-weak-references",
+      AUSTRALIA_ES2021,
+    );
+    assertValid(
+      `Object.defineProperty = function () {};
+if (typeof WeakRef === "function") {
+  Object.defineProperty(globalThis, "WeakRef", { value: null });
+  new WeakRef(value);
+}`,
+      "no-weak-references",
+      AUSTRALIA_ES2021,
+    );
+    assertValid(
+      `if (typeof WeakRef === "function") {
+  Object.assign(globalThis, "text", null);
+  new WeakRef(value);
+}`,
+      "no-weak-references",
       AUSTRALIA_ES2021,
     );
   });
@@ -99,6 +184,22 @@ const ref = new WeakRef(value);`,
       { messageId: "weak" },
       AUSTRALIA_ES2021,
     );
+    for (const replacement of ["{}", "[]"]) {
+      assertInvalid(
+        `WeakRef = ${replacement};
+const ref = new WeakRef(value);`,
+        "no-weak-references",
+        { messageId: "weak" },
+        AUSTRALIA_ES2021,
+      );
+      assertInvalid(
+        `Object.defineProperty(globalThis, "WeakRef", { value: ${replacement} });
+const ref = new globalThis.WeakRef(value);`,
+        "no-weak-references",
+        { messageId: "weak" },
+        AUSTRALIA_ES2021,
+      );
+    }
   });
 
   it("stays silent under direct-eval uncertainty", () => {

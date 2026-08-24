@@ -9,7 +9,11 @@ import {
   platformGlobalNamespaceAccess,
   resolvePlatformGlobalName,
 } from "../analysis/globals.js";
-import { findStablePlatformConstructorCalls } from "../analysis/internal.js";
+import {
+  builtInCallMayWritePlatformProperty,
+  findStablePlatformConstructorCalls,
+  type PlatformGlobalAliasOrigin,
+} from "../analysis/internal.js";
 import type { EngineFeatureId } from "../engine/index.js";
 import { isFeatureAllowed, shouldDiagnoseFeature } from "../engine/index.js";
 import { beginRuleFile } from "./helpers.js";
@@ -48,7 +52,9 @@ export function unsupportedConstructorRule(options: UnsupportedConstructorRuleOp
             mutationSemantics: "callable",
           })) {
             if (!shouldDiagnoseFeature(script, options.features[finding.name]!)) continue;
-            if (isAvailabilityProtected(context, finding.node, finding.name)) continue;
+            if (isAvailabilityProtected(context, finding.node, finding.name, finding.aliasOrigin)) {
+              continue;
+            }
             context.report({ node: finding.node, messageId: "weak", data: { name: finding.name } });
           }
         },
@@ -61,11 +67,21 @@ function isAvailabilityProtected(
   context: Context,
   invocation: ESTree.CallExpression | ESTree.NewExpression,
   name: string,
+  aliasOrigin: PlatformGlobalAliasOrigin | null,
 ): boolean {
-  const { analysis, context: script } = beginRuleFile(context);
-  const namespace = platformGlobalNamespaceAccess(invocation.callee, analysis.bindings);
-  const namespaceIsSafe =
-    namespace === null ||
+  const { analysis, context: script, file } = beginRuleFile(context);
+  const isConstructorAccess = (candidate: unknown): boolean =>
+    resolvePlatformGlobalName(candidate, analysis.bindings) === name;
+  const isCallInvalidation = (call: ESTree.CallExpression): boolean =>
+    builtInCallMayWritePlatformProperty(
+      call,
+      "globalThis",
+      name,
+      script.javascriptMode,
+      analysis,
+      file,
+    );
+  const globalThisIsSafeAt = (namespace: ESTree.Node): boolean =>
     isFeatureAllowed("global-this", script.javascriptMode, script.settings.release) ||
     isAvailabilityGuarded(
       context,
@@ -77,10 +93,29 @@ function isAvailabilityProtected(
         guardCacheKey: "unsupported-constructor:global-this",
       },
     );
-  if (!namespaceIsSafe) return false;
+  const namespace = platformGlobalNamespaceAccess(invocation.callee, analysis.bindings);
+  if (namespace && !globalThisIsSafeAt(namespace)) return false;
 
-  const isConstructorAccess = (candidate: unknown): boolean =>
-    resolvePlatformGlobalName(candidate, analysis.bindings) === name;
+  if (aliasOrigin?.qualified) {
+    const originNamespace =
+      platformGlobalNamespaceAccess(aliasOrigin.node, analysis.bindings) ??
+      (directPlatformGlobalName(aliasOrigin.node, analysis.bindings) === "globalThis"
+        ? aliasOrigin.node
+        : null);
+    if (!originNamespace || !globalThisIsSafeAt(originNamespace)) return false;
+  } else if (
+    aliasOrigin &&
+    !isAvailabilityGuarded(context, aliasOrigin.node, analysis, isConstructorAccess, {
+      allowDirectAccessGuard: false,
+      guardCacheKey: `unsupported-constructor:origin:${name}`,
+      isCallInvalidation,
+      isPropertyExistenceTest: (property, object) =>
+        property === name && resolvePlatformGlobalName(object, analysis.bindings) === "globalThis",
+    })
+  ) {
+    return false;
+  }
+
   const hasSafeQualifiedOrigin = (candidate: unknown): boolean =>
     isConstructorAccess(candidate) &&
     platformGlobalNamespaceAccess(candidate, analysis.bindings) !== null;
@@ -88,6 +123,7 @@ function isAvailabilityProtected(
   return isInvocationAvailabilityGuarded(context, invocation, analysis, isConstructorAccess, {
     allowDirectAccessGuard: hasSafeQualifiedOrigin,
     guardCacheKey: `unsupported-constructor:${name}`,
+    isCallInvalidation,
     isPropertyExistenceTest: (property, object) =>
       property === name && resolvePlatformGlobalName(object, analysis.bindings) === "globalThis",
     isOptionalInvocation: (candidate) =>

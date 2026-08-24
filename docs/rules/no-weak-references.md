@@ -1,6 +1,6 @@
 # servicenow/no-weak-references
 
-WeakRef and FinalizationRegistry are disallowed in every instance JavaScript mode, including ES2021. Direct calls and stable same-execution aliases report; guarded or visibly polyfilled calls stay silent.
+WeakRef and FinalizationRegistry are disallowed in every instance JavaScript mode, including ES2021. Direct calls and stable same-execution aliases report; a bare alias must be captured inside its availability guard, while visibly polyfilled calls stay silent.
 
 - **Family:** engine
 - **Preset:** recommended
@@ -81,8 +81,8 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-b
   - URL: https://www.servicenow.com/docs/r/zurich/api-reference/scripts/javascript-engine-feature-support.html
   - Verified by: manual
   - Verified at: 2026-08-20
-- **Fixtures cover stable aliases, lexical shadows, availability guards, callable polyfills, non-callable replacements, and dynamic-scope uncertainty.**
-  - Verification ID: `rule-evidence-aca2de6b`
+- **Fixtures cover stable aliases, guarded alias capture, built-in guard invalidation, callable polyfills, non-callable replacements, lexical shadows, and dynamic scope.**
+  - Verification ID: `rule-evidence-46d6a600`
   - URL: tests/rules/unsupported-constructors.test.ts
   - Verified by: fixture
   - Verified at: 2026-08-24

@@ -7,7 +7,13 @@ import type { ProvenanceQuery } from "./provenance.js";
 
 const MAX_CONSTRUCTOR_CALL_SITES = 20_000;
 
+export interface PlatformGlobalAliasOrigin {
+  readonly node: ESTree.Node;
+  readonly qualified: boolean;
+}
+
 export interface PlatformConstructorCallFinding {
+  readonly aliasOrigin: PlatformGlobalAliasOrigin | null;
   readonly name: string;
   readonly node: ESTree.CallExpression | ESTree.NewExpression;
 }
@@ -42,6 +48,11 @@ interface ConstructorSyntaxIndex {
   readonly declarators: WeakMap<ESTree.VariableDeclarator, DeclaratorFacts>;
   readonly callSites: readonly CallSite[];
   readonly callBudgetExceeded: boolean;
+}
+
+interface ResolvedPlatformGlobal {
+  readonly aliasOrigin: PlatformGlobalAliasOrigin | null;
+  readonly name: string;
 }
 
 const syntaxIndexByProgram = new WeakMap<ESTree.Node, ConstructorSyntaxIndex>();
@@ -183,7 +194,7 @@ export function findStablePlatformConstructorCalls({
   const destructuredName = (
     declaration: ESTree.VariableDeclarator,
     bindingId: number,
-  ): string | null => {
+  ): ResolvedPlatformGlobal | null => {
     if (declaration.id.type !== "ObjectPattern" || !directNamespace(declaration.init)) return null;
     const facts = declarators.get(declaration);
     if (!facts) return null;
@@ -195,7 +206,9 @@ export function findStablePlatformConstructorCalls({
       const localBinding = analysis.bindings.resolve(local.name, local);
       if (localBinding?.id !== bindingId) continue;
       const name = propertyKeyName(property);
-      return name && nameSet.has(name) ? name : null;
+      return name && nameSet.has(name) && declaration.init
+        ? { aliasOrigin: { node: declaration.init, qualified: true }, name }
+        : null;
     }
     return null;
   };
@@ -204,7 +217,7 @@ export function findStablePlatformConstructorCalls({
     node: unknown,
     useBoundary: ESTree.Node,
     seen: ReadonlySet<number> = new Set(),
-  ): string | null => {
+  ): ResolvedPlatformGlobal | null => {
     const value = unwrapExpression(node);
     if (!isNode(value)) return null;
 
@@ -218,13 +231,21 @@ export function findStablePlatformConstructorCalls({
         !(mutationSemantics === "authority"
           ? mutations.isGlobalPathAuthorityLost([namespace, name])
           : mutations.isGlobalPathWritten([namespace, name]))
-        ? name
+        ? {
+            aliasOrigin: seen.size > 0 ? { node: value, qualified: true } : null,
+            name,
+          }
         : null;
     }
 
     if (value.type !== "Identifier") return null;
     if (nameSet.has(value.name) && analysis.bindings.isPlatformGlobal(value)) {
-      return constructorIdentityIsStable(value.name) ? value.name : null;
+      return constructorIdentityIsStable(value.name)
+        ? {
+            aliasOrigin: seen.size > 0 ? { node: value, qualified: false } : null,
+            name: value.name,
+          }
+        : null;
     }
 
     const binding = analysis.bindings.resolve(value.name, value);
@@ -250,7 +271,7 @@ export function findStablePlatformConstructorCalls({
     }
 
     const selected = destructuredName(declaration, binding.id);
-    if (selected) return constructorIdentityIsStable(selected) ? selected : null;
+    if (selected) return constructorIdentityIsStable(selected.name) ? selected : null;
     if (declaration.id.type !== "Identifier" || declaration.id.name !== binding.name) return null;
     const next = new Set(seen);
     next.add(binding.id);
@@ -259,8 +280,8 @@ export function findStablePlatformConstructorCalls({
 
   const findings: PlatformConstructorCallFinding[] = [];
   for (const callSite of callSites) {
-    const name = resolveConstructor(callSite.callee, callSite.executionBoundary);
-    if (name) findings.push({ name, node: callSite.node });
+    const resolved = resolveConstructor(callSite.callee, callSite.executionBoundary);
+    if (resolved) findings.push({ ...resolved, node: callSite.node });
   }
   return findings;
 }

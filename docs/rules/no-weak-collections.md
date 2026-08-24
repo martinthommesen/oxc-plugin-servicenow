@@ -1,6 +1,6 @@
 # servicenow/no-weak-collections
 
-WeakMap and WeakSet are disallowed in Compatibility and ES5 Standards mode. ES2021 supports them. Direct calls and stable same-execution aliases report; guarded or visibly polyfilled calls stay silent.
+WeakMap and WeakSet are disallowed in Compatibility and ES5 Standards mode. ES2021 supports them. Direct calls and stable same-execution aliases report; bare aliases captured before a later guard still report, while visibly polyfilled calls stay silent.
 
 - **Family:** engine
 - **Preset:** classic-es5
@@ -81,8 +81,8 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-b
   - URL: https://www.servicenow.com/docs/r/zurich/api-reference/scripts/javascript-engine-feature-support.html
   - Verified by: manual
   - Verified at: 2026-08-20
-- **Fixtures cover WeakMap aliases, availability guards, and shared constructor-provenance behavior.**
-  - Verification ID: `rule-evidence-fe332f1c`
+- **Fixtures cover WeakMap aliases, guarded alias capture, availability invalidation, and shared constructor-provenance behavior.**
+  - Verification ID: `rule-evidence-eccf608c`
   - URL: tests/rules/unsupported-constructors.test.ts
   - Verified by: fixture
   - Verified at: 2026-08-24

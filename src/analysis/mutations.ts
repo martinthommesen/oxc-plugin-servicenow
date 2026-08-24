@@ -23,6 +23,7 @@ import {
 } from "./members.js";
 import type { ProvenanceQuery } from "./provenance.js";
 import type { JavaScriptMode } from "../types.js";
+import { resolveBuiltinCall, resolveBuiltinReference } from "./builtin-calls.js";
 
 export interface MutationQuery {
   /** True when a callable replacement may have been installed for the global. */
@@ -57,16 +58,6 @@ interface MutableMutationFacts {
   readonly globalPaths: Set<string>;
   readonly objectProperties: Set<string>;
   readonly objectPropertyWildcards: Set<string>;
-}
-
-interface BuiltinReference {
-  owner: string;
-  method: string;
-}
-
-interface BuiltinCall extends BuiltinReference {
-  /** Null means the invocation is proven but its effective arguments are unknown. */
-  arguments: readonly unknown[] | null;
 }
 
 const MAX_NAMESPACE_ESCAPE_DEPTH = 32;
@@ -321,101 +312,8 @@ function buildIndex(
     }
   };
 
-  const staticBuiltin = (node: unknown): BuiltinReference | null => {
-    const direct = unwrapExpression(node);
-    if (!isNode(direct)) return null;
-    const selected = resolveDestructuredConstMember(direct, bindings);
-    if (selected) {
-      if (selected.fallback !== null && !isDefinitelyNonCallable(selected.fallback, bindings)) {
-        return null;
-      }
-      if (platformGlobalNamespaceAccess(selected.source, bindings) && !globalThisCanExist) {
-        return null;
-      }
-      const owner = resolvePlatformGlobalName(selected.source, bindings);
-      return owner ? { owner, method: selected.property } : null;
-    }
-    const value = resolveConstValue(direct, bindings);
-    if (!value) return null;
-    if (platformGlobalNamespaceAccess(value, bindings) && !globalThisCanExist) {
-      return null;
-    }
-    if (value.type === "MemberExpression") {
-      const method = staticPropertyName(value);
-      const owner = resolvePlatformGlobalName(value.object, bindings);
-      return owner && method ? { owner, method } : null;
-    }
-    return null;
-  };
-
-  const arrayArguments = (node: unknown): readonly unknown[] | null => {
-    const value = resolveConstValue(node, bindings);
-    if (value?.type !== "ArrayExpression") return null;
-    return value.elements.some((element) => element?.type === "SpreadElement")
-      ? null
-      : value.elements;
-  };
-
-  const directArguments = (arguments_: readonly unknown[]): readonly unknown[] | null =>
-    arguments_.some((argument) => isNode(argument) && argument.type === "SpreadElement")
-      ? null
-      : arguments_;
-
-  const boundBuiltin = (
-    node: unknown,
-  ): (BuiltinReference & { arguments: readonly unknown[] | null }) | null => {
-    const value = resolveConstValue(node, bindings);
-    if (value?.type !== "CallExpression") return null;
-    const callee = resolveConstValue(value.callee, bindings);
-    if (callee?.type !== "MemberExpression" || staticPropertyName(callee) !== "bind") return null;
-    const wrapped = staticBuiltin(callee.object);
-    return wrapped ? { ...wrapped, arguments: directArguments(value.arguments.slice(1)) } : null;
-  };
-
-  const calledBuiltin = (call: ESTree.CallExpression): BuiltinCall | null => {
-    const direct = staticBuiltin(call.callee);
-    if (direct?.owner === "Reflect" && direct.method === "apply") {
-      // ServiceNow documents Reflect.apply as disallowed in every reviewed
-      // instance mode, so it cannot establish a replacement on the stock
-      // runtime even when its target is a supported Object mutator.
-      if (!browserRuntime) return null;
-      const target = staticBuiltin(call.arguments[0]);
-      return target ? { ...target, arguments: arrayArguments(call.arguments[2]) } : null;
-    }
-    if (direct) return { ...direct, arguments: directArguments(call.arguments) };
-
-    const callee = resolveConstValue(call.callee, bindings);
-    if (callee?.type === "MemberExpression") {
-      const helper = staticPropertyName(callee);
-      const wrapped = staticBuiltin(callee.object);
-      if (wrapped && helper === "call") {
-        return { ...wrapped, arguments: directArguments(call.arguments.slice(1)) };
-      }
-      if (wrapped && helper === "apply") {
-        return { ...wrapped, arguments: arrayArguments(call.arguments[1]) };
-      }
-    }
-
-    const bound = boundBuiltin(call.callee);
-    if (!bound) return null;
-    const invocationArguments = directArguments(call.arguments);
-    return {
-      ...bound,
-      arguments:
-        bound.arguments === null || invocationArguments === null
-          ? null
-          : [...bound.arguments, ...invocationArguments],
-    };
-  };
-
-  const definitelyCannotInstallCallable = (node: unknown): boolean => {
-    const value = resolveConstValue(node, bindings);
-    if (!value) return false;
-    if (value.type === "Literal") return true;
-    if (value.type === "UnaryExpression" && value.operator === "void") return true;
-    if (value.type !== "Identifier" || getName(value) !== "undefined") return false;
-    return bindings.isPlatformGlobal(value);
-  };
+  const definitelyCannotInstallCallable = (node: unknown): boolean =>
+    isDefinitelyNonCallable(node, bindings);
 
   const descriptorMayInstallCallable = (node: unknown): boolean => {
     const descriptor = resolveConstValue(node, bindings);
@@ -587,13 +485,16 @@ function buildIndex(
     },
     CallExpression(node) {
       const call = node as ESTree.CallExpression;
-      const builtin = calledBuiltin(call);
+      const builtin = resolveBuiltinCall(call, bindings, {
+        allowGlobalThis: globalThisCanExist,
+        allowReflectApply: browserRuntime,
+      });
       if (!builtin) {
         // In modes without globalThis, resolving a qualified callee throws
         // before arguments are evaluated. Those arguments therefore cannot
         // escape or mutate a platform namespace.
         if (platformGlobalNamespaceAccess(call.callee, bindings) && !globalThisCanExist) return;
-        const direct = staticBuiltin(call.callee);
+        const direct = resolveBuiltinReference(call.callee, bindings, globalThisCanExist);
         // Object/Reflect intrinsics are modeled below. In particular, the
         // reviewed instance engines reject Reflect mutation helpers, so their
         // arguments must not create fictional writes.

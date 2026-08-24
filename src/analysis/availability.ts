@@ -17,6 +17,8 @@ export interface AvailabilityGuardOptions {
   guardCacheKey?: string;
   /** Recognize a structural property-existence test such as `"x" in owner`. */
   isPropertyExistenceTest?: (property: string, object: ESTree.Node) => boolean;
+  /** Recognize a modeled call that writes the guarded access. */
+  isCallInvalidation?: (call: ESTree.CallExpression) => boolean;
   isOptionalInvocation?: (invocation: Invocation) => boolean;
 }
 
@@ -197,6 +199,7 @@ function isImmediatelyInvoked(node: ESTree.Node, ancestors: readonly ESTree.Node
 function containsAccessInvalidation(
   root: ESTree.Node,
   isAccess: (node: unknown) => boolean,
+  isCallInvalidation: (call: ESTree.CallExpression) => boolean,
 ): boolean {
   let invalidated = false;
   const ancestors: ESTree.Node[] = [];
@@ -228,6 +231,10 @@ function containsAccessInvalidation(
       },
       ForOfStatement(node) {
         if (!isDeferred() && isAccess((node as ESTree.ForOfStatement).left)) invalidated = true;
+      },
+      CallExpression(node) {
+        const call = node as ESTree.CallExpression;
+        if (!isDeferred() && isCallInvalidation(call)) invalidated = true;
       },
     },
     ancestors,
@@ -297,6 +304,7 @@ function hasInvalidationOnPath(
   target: ESTree.Node,
   ancestors: readonly ESTree.Node[],
   isAccess: (node: unknown) => boolean,
+  isCallInvalidation: (call: ESTree.CallExpression) => boolean,
 ): boolean {
   const path = [...ancestors, target];
   const rootIndex = path.findIndex((node) => sameNode(node, root));
@@ -305,7 +313,9 @@ function hasInvalidationOnPath(
     const parent = path[index]!;
     const child = path[index + 1]!;
     if (
-      nodesEvaluatedBefore(parent, child).some((node) => containsAccessInvalidation(node, isAccess))
+      nodesEvaluatedBefore(parent, child).some((node) =>
+        containsAccessInvalidation(node, isAccess, isCallInvalidation),
+      )
     ) {
       return true;
     }
@@ -344,6 +354,7 @@ function precedingExitGuard(
   isAccess: (node: unknown) => boolean,
   allowsDirectAccessGuard: (node: unknown) => boolean,
   isPropertyExistenceTest: (property: string, object: ESTree.Node) => boolean,
+  isCallInvalidation: (call: ESTree.CallExpression) => boolean,
   cacheKey: string | undefined,
 ): boolean {
   if (parent.type !== "Program" && parent.type !== "BlockStatement") return false;
@@ -402,8 +413,9 @@ function precedingExitGuard(
     if (guardIndex === null || guardIndex === undefined) return false;
     const intervening = body.slice(guardIndex + 1, childIndex);
     return (
-      !intervening.some((statement) => containsAccessInvalidation(statement, isAccess)) &&
-      !hasInvalidationOnPath(child, target, ancestors, isAccess)
+      !intervening.some((statement) =>
+        containsAccessInvalidation(statement, isAccess, isCallInvalidation),
+      ) && !hasInvalidationOnPath(child, target, ancestors, isAccess, isCallInvalidation)
     );
   }
 
@@ -414,8 +426,9 @@ function precedingExitGuard(
     if (!previous || !guardProves(previous)) continue;
     const intervening = body.slice(index + 1, childIndex);
     return (
-      !intervening.some((statement) => containsAccessInvalidation(statement, isAccess)) &&
-      !hasInvalidationOnPath(child, target, ancestors, isAccess)
+      !intervening.some((statement) =>
+        containsAccessInvalidation(statement, isAccess, isCallInvalidation),
+      ) && !hasInvalidationOnPath(child, target, ancestors, isAccess, isCallInvalidation)
     );
   }
   return false;
@@ -439,10 +452,11 @@ export function isAvailabilityGuarded(
   const allowsDirectAccessGuard =
     typeof directGuardOption === "function" ? directGuardOption : () => directGuardOption;
   const isPropertyExistenceTest = options.isPropertyExistenceTest ?? (() => false);
+  const isCallInvalidation = options.isCallInvalidation ?? (() => false);
   const ancestors = getAncestors(context, target);
   const source = context.sourceCode as unknown as object;
   const guardRemainsValid = (root: ESTree.Node): boolean =>
-    !hasInvalidationOnPath(root, target, ancestors, isAccess);
+    !hasInvalidationOnPath(root, target, ancestors, isAccess, isCallInvalidation);
   let child: ESTree.Node = target;
   for (let index = ancestors.length - 1; index >= 0; index -= 1) {
     const parent = ancestors[index]!;
@@ -545,7 +559,8 @@ export function isAvailabilityGuarded(
     } else if (parent.type === "ForStatement") {
       const statement = parent as ESTree.ForStatement;
       const bodyInvalidatesUpdate =
-        sameNode(statement.update, child) && containsAccessInvalidation(statement.body, isAccess);
+        sameNode(statement.update, child) &&
+        containsAccessInvalidation(statement.body, isAccess, isCallInvalidation);
       if (
         statement.test &&
         (sameNode(statement.body, child) || sameNode(statement.update, child)) &&
@@ -574,6 +589,7 @@ export function isAvailabilityGuarded(
         isAccess,
         allowsDirectAccessGuard,
         isPropertyExistenceTest,
+        isCallInvalidation,
         options.guardCacheKey,
       )
     ) {
