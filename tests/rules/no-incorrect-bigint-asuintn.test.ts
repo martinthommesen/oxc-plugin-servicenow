@@ -116,7 +116,7 @@ describe(RULE, () => {
     assertValid(code, RULE, { filename: "metadata.now.ts", settings: ZURICH });
     assertValid(code, RULE, {
       filename: "mixed.ui-action.js",
-      settings: { ...ZURICH, surfaces: ["client", "server"] },
+      settings: { ...ZURICH, surfaces: ["client", "server", "ui-action"] },
     });
   });
 });
