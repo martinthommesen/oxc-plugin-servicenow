@@ -62,17 +62,26 @@ function directArguments(arguments_: readonly unknown[]): readonly unknown[] | n
     : arguments_;
 }
 
+export function resolveBuiltinBindCall(
+  call: ESTree.CallExpression,
+  bindings: FileBindings,
+  allowGlobalThis: boolean,
+): (BuiltinReference & { readonly arguments: readonly unknown[] | null }) | null {
+  const callee = resolveConstValue(call.callee, bindings);
+  if (callee?.type !== "MemberExpression" || staticPropertyName(callee) !== "bind") return null;
+  const wrapped = resolveBuiltinReference(callee.object, bindings, allowGlobalThis);
+  return wrapped ? { ...wrapped, arguments: directArguments(call.arguments.slice(1)) } : null;
+}
+
 function boundBuiltin(
   node: unknown,
   bindings: FileBindings,
   allowGlobalThis: boolean,
 ): (BuiltinReference & { readonly arguments: readonly unknown[] | null }) | null {
   const value = resolveConstValue(node, bindings);
-  if (value?.type !== "CallExpression") return null;
-  const callee = resolveConstValue(value.callee, bindings);
-  if (callee?.type !== "MemberExpression" || staticPropertyName(callee) !== "bind") return null;
-  const wrapped = resolveBuiltinReference(callee.object, bindings, allowGlobalThis);
-  return wrapped ? { ...wrapped, arguments: directArguments(value.arguments.slice(1)) } : null;
+  return value?.type === "CallExpression"
+    ? resolveBuiltinBindCall(value, bindings, allowGlobalThis)
+    : null;
 }
 
 export function resolveBuiltinCall(

@@ -23,7 +23,11 @@ import {
 } from "./members.js";
 import type { ProvenanceQuery } from "./provenance.js";
 import type { JavaScriptMode } from "../types.js";
-import { resolveBuiltinCall, resolveBuiltinReference } from "./builtin-calls.js";
+import {
+  resolveBuiltinBindCall,
+  resolveBuiltinCall,
+  resolveBuiltinReference,
+} from "./builtin-calls.js";
 
 export interface MutationQuery {
   /** True when a callable replacement may have been installed for the global. */
@@ -348,8 +352,10 @@ function buildIndex(
     descriptors: boolean,
   ): readonly string[] | null => {
     const object = resolveConstValue(node, bindings);
-    if (object && definitelyCannotInstallCallable(object)) return [];
-    if (!object || object.type !== "ObjectExpression") return null;
+    if (!object) return null;
+    if (object.type !== "ObjectExpression") {
+      return definitelyCannotInstallCallable(object) ? [] : null;
+    }
     const properties = new Map<string, boolean>();
     for (const item of object.properties) {
       if (item.type === "SpreadElement") return null;
@@ -494,6 +500,8 @@ function buildIndex(
         // before arguments are evaluated. Those arguments therefore cannot
         // escape or mutate a platform namespace.
         if (platformGlobalNamespaceAccess(call.callee, bindings) && !globalThisCanExist) return;
+        const bound = resolveBuiltinBindCall(call, bindings, globalThisCanExist);
+        if (bound?.owner === "Object" || bound?.owner === "Reflect") return;
         const direct = resolveBuiltinReference(call.callee, bindings, globalThisCanExist);
         // Object/Reflect intrinsics are modeled below. In particular, the
         // reviewed instance engines reject Reflect mutation helpers, so their
