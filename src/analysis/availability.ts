@@ -9,7 +9,11 @@ type AvailabilityAnalysis = Pick<ProvenanceQuery, "bindings" | "isPlatformGlobal
 export interface AvailabilityGuardOptions {
   /** Whether reading an absent feature yields undefined instead of throwing. */
   allowDirectAccessGuard?: boolean | ((node: unknown) => boolean);
-  /** Stable per-feature key used to cache dominating guard clauses per block. */
+  /**
+   * Stable per-feature key used to cache dominating guards per block. Callers
+   * sharing a key must also provide equivalent access, direct-guard, and
+   * property-existence predicates because those predicates build the cache.
+   */
   guardCacheKey?: string;
   /** Recognize a structural property-existence test such as `"x" in owner`. */
   isPropertyExistenceTest?: (property: string, object: ESTree.Node) => boolean;

@@ -63,7 +63,7 @@ var bytes = [0, 1, 2];
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-boundary: DataView BigInt setters stay silent because the reviewed ServiceNow tables establish only the getter methods. scope-boundary: Any possible direct constructor, prototype, or instance-method write in the file conservatively suppresses affected diagnostics, regardless of source order. scope-boundary: Passing a typed-array constructor or DataView.prototype to unknown code suppresses affected method diagnostics because that code can install replacements. false-negative: Calls through a reassigned Object mutation helper are treated as unknown; the rule does not assume the custom helper failed to install a DataView method.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-boundary: DataView BigInt setters stay silent because the reviewed ServiceNow tables establish only the getter methods. scope-boundary: Any possible direct constructor, prototype, or instance-method write in the file conservatively suppresses affected diagnostics, regardless of source order. scope-boundary: Passing a typed-array constructor or DataView.prototype to unknown code suppresses affected method diagnostics because that code can install replacements. false-negative: Calls through a reassigned typed-array/DataView mutation helper are treated as unknown; the rule does not assume the custom helper failed to install a DataView method.
 
 ## Known false positives
 
@@ -71,7 +71,7 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-b
 
 ## Known false negatives
 
-- Calls through a reassigned Object mutation helper are treated as unknown; the rule does not assume the custom helper failed to install a DataView method.
+- Calls through a reassigned typed-array/DataView mutation helper are treated as unknown; the rule does not assume the custom helper failed to install a DataView method.
 
 ## Intentional scope boundaries
 

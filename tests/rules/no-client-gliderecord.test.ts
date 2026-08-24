@@ -212,6 +212,10 @@ new GR("incident");`,
     assertValid(`var gr = new GlideRecord("sys_user");`, RULE, {
       filename: "unknown.client.js",
     });
+    assertValid(`var gr = new GlideRecord("sys_user");`, RULE, {
+      filename: "unknown.client.js",
+      settings: { scope: "unknown" },
+    });
   });
 
   it("allows GlideRecord on the server", () => {

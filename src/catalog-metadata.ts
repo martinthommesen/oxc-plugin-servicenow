@@ -59,6 +59,8 @@ export const SN_GR = GLIDE_RECORD_EVIDENCE.zurich.scoped;
 export const SN_GR_GLOBAL = GLIDE_RECORD_EVIDENCE.zurich.global;
 export const SN_GR_AUSTRALIA = GLIDE_RECORD_EVIDENCE.australia.scoped;
 export const SN_GR_GLOBAL_AUSTRALIA = GLIDE_RECORD_EVIDENCE.australia.global;
+export const SN_GA =
+  "https://www.servicenow.com/docs/r/zurich/api-reference/server-api-reference/c_GlideAggregateScopedAPI.html";
 export const SN_GA_AUSTRALIA =
   "https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideAggregateScopedAPI.html";
 export const SN_GA_GLOBAL_AUSTRALIA =
@@ -198,24 +200,24 @@ export const CATALOG_RELEASE_REVIEWS = Object.freeze({
         Object.freeze({
           url: SN_GR_AUSTRALIA,
           claim:
-            "The Australia scoped GlideRecord API was reviewed for the methods and lifecycle facts used by this rule.",
+            "The Australia-scoped GlideRecord API was reviewed for the methods and lifecycle facts used by this rule.",
         }),
         Object.freeze({
           url: SN_GR_GLOBAL_AUSTRALIA,
           claim:
-            "The Australia global GlideRecord API was reviewed for the methods and lifecycle facts used by this rule.",
+            "The Australia-global GlideRecord API was reviewed for the methods and lifecycle facts used by this rule.",
         }),
       ]),
       "glide-aggregate": Object.freeze([
         Object.freeze({
           url: SN_GA_AUSTRALIA,
           claim:
-            "The Australia scoped GlideAggregate API was reviewed for the methods and lifecycle facts used by this rule.",
+            "The Australia-scoped GlideAggregate API was reviewed for the methods and lifecycle facts used by this rule.",
         }),
         Object.freeze({
           url: SN_GA_GLOBAL_AUSTRALIA,
           claim:
-            "The Australia global GlideAggregate API was reviewed for the methods and lifecycle facts used by this rule.",
+            "The Australia-global GlideAggregate API was reviewed for the methods and lifecycle facts used by this rule.",
         }),
       ]),
     }),
@@ -351,11 +353,13 @@ export function formatSurfaces(applicability: StructuredApplicability): string {
   if (surfaces.length === 1 && surfaces[0] === "fluent") {
     return "Fluent `.now.ts` metadata only.";
   }
-  if (javascriptModes !== "n/a") {
-    const uiActionQualification = surfaces.includes("ui-action")
+  const uiActionQualification = !surfaces.includes("ui-action")
+    ? ""
+    : surfaces.includes("server")
       ? " UI Actions require an explicit server surface; mixed client/server UI Actions stay silent because execution regions are not classified."
-      : "";
+      : " Mixed client/server UI Actions stay silent because execution regions are not classified.";
+  if (javascriptModes !== "n/a") {
     return `Applies to ${surfaces.join(", ")} when those surfaces are known.${uiActionQualification} An explicit javascriptMode also enables documented engine checks in otherwise unclassified files.`;
   }
-  return `Applies to ${surfaces.join(", ")} when those surfaces are known. Unknown surfaces stay silent.`;
+  return `Applies to ${surfaces.join(", ")} when those surfaces are known.${uiActionQualification} Unknown surfaces stay silent.`;
 }

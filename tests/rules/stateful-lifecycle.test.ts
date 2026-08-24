@@ -1,4 +1,5 @@
 import { describe, it } from "node:test";
+import { SUPPORTED_SERVICENOW_RELEASES } from "../../src/settings/releases.js";
 import { assertInvalid, assertValid } from "../helpers/rule-tester.js";
 
 const SERVER = { filename: "incident.br.js" };
@@ -221,22 +222,24 @@ gr.deleteMultiple();`,
       { messageId: "unfiltered" },
       SERVER,
     );
-    assertInvalid(
-      `var gr = new GlideRecord("task");
+    for (const release of SUPPORTED_SERVICENOW_RELEASES) {
+      assertInvalid(
+        `var gr = new GlideRecord("task");
 gr._query();
 gr.deleteMultiple();`,
-      RULE,
-      { messageId: "unfiltered" },
-      { ...SERVER, settings: { scope: "scoped", release: "zurich" } },
-    );
-    assertInvalid(
-      `var gr = new GlideRecord("task");
+        RULE,
+        { messageId: "unfiltered" },
+        { ...SERVER, settings: { scope: "scoped", release } },
+      );
+      assertInvalid(
+        `var gr = new GlideRecord("task");
 gr.queryNoDomain();
 gr.deleteMultiple();`,
-      RULE,
-      { messageId: "unfiltered" },
-      { ...SERVER, settings: { scope: "global", release: "zurich" } },
-    );
+        RULE,
+        { messageId: "unfiltered" },
+        { ...SERVER, settings: { scope: "global", release } },
+      );
+    }
   });
 });
 
@@ -554,6 +557,42 @@ incident.query();
 while (incident.next()) {
   (function (value = caller.query()) {})("supplied");
 }`,
+      RULE,
+      SERVER,
+    );
+    for (const argument of ["undefined", "void 0", "missing"]) {
+      assertInvalid(
+        `var incident = new GlideRecord("incident");
+var caller = new GlideRecord("sys_user");
+const missing = undefined;
+incident.query();
+while (incident.next()) {
+  (function (value = caller.query()) {})(${argument});
+}`,
+        RULE,
+        { messageId: "nestedQuery" },
+        SERVER,
+      );
+    }
+    assertValid(
+      `var undefined = "supplied";
+var incident = new GlideRecord("incident");
+var caller = new GlideRecord("sys_user");
+incident.query();
+while (incident.next()) {
+  (function (value = caller.query()) {})(undefined);
+}`,
+      RULE,
+      SERVER,
+    );
+    assertValid(
+      `var incident = new GlideRecord("incident");
+var caller = new GlideRecord("sys_user");
+incident.query();
+while (incident.next()) {
+  (function (value = caller.query()) {})(missing);
+}
+const missing = undefined;`,
       RULE,
       SERVER,
     );

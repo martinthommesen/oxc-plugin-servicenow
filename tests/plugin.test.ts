@@ -62,7 +62,7 @@ describe("plugin export", () => {
       const rule = rules[entry.name] as { meta?: { docs?: { url?: string } } };
       assert.equal(entry.docsUrl, expected, entry.name);
       assert.equal(rule.meta?.docs?.url, expected, entry.name);
-      assert.equal(expected.includes("/blob/main/"), false, entry.name);
+      assert.equal(entry.docsUrl.includes("/blob/main/"), false, entry.name);
     }
   });
 

@@ -426,6 +426,8 @@ incident.next();`,
       RULE,
       SERVER,
     );
+    // Member-object evaluation captures `first` before the computed key
+    // reassigns it, so the call can refresh the original cursor.
     assertValid(
       `var first = new GlideRecord("incident");
 first.query();
@@ -912,12 +914,12 @@ while (incident.next()) run();`,
       SERVER,
     );
     assertInvalid(
-      `function eval() {}
+      `function evalShadow() {}
 function lookupCaller() {
   var caller = new GlideRecord("sys_user");
   caller.query();
 }
-eval("");
+evalShadow("");
 var incident = new GlideRecord("incident");
 incident.query();
 while (incident.next()) lookupCaller();`,
@@ -991,6 +993,18 @@ while (incident.next()) {
   caller.query();
 }
 lookupCaller = replacement;
+var incident = new GlideRecord("incident");
+incident.query();
+while (incident.next()) lookupCaller();`,
+      RULE,
+      SERVER,
+    );
+    assertValid(
+      `const lookupCaller = () => {
+  var caller = new GlideRecord("sys_user");
+  caller.query();
+};
+eval("lookupCaller = replacement");
 var incident = new GlideRecord("incident");
 incident.query();
 while (incident.next()) lookupCaller();`,

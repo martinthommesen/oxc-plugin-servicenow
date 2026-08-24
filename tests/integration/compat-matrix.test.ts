@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { parseNpmPackJson } from "../../scripts/parse-npm-pack.mjs";
-import { repoRoot } from "./helpers.js";
+import { repoRoot, TSX_CLI_EXECUTION_PATTERN } from "./helpers.js";
 import { checkCompatibilityMatrix } from "../../scripts/check-compat-matrix.mjs";
 import { SUPPORTED_SERVICENOW_RELEASES } from "../../src/settings/index.js";
 
@@ -18,7 +18,7 @@ describe("compatibility matrix", () => {
     const workflow = readFileSync(path.join(repoRoot, ".github/workflows/ci.yml"), "utf8");
     assert.match(workflow, /node scripts\/run-tests\.mjs tests\/utils\/ast\.test\.ts/);
     assert.match(workflow, /node scripts\/compat-consumer\.mjs --cell/);
-    assert.doesNotMatch(workflow, /npx .*tsx .*compat-consumer/);
+    assert.doesNotMatch(workflow, TSX_CLI_EXECUTION_PATTERN);
   });
 
   it("matches declared package ranges", () => {
@@ -86,7 +86,14 @@ describe("compatibility matrix", () => {
     assert.ok(docs.includes(matrix.oxlint.minimum));
     assert.ok(docs.includes(matrix.eslint.minimum));
     assert.ok(docs.includes(matrix.oxfmt.highestCompatible));
-    assert.ok(matrix.serviceNowReleases.every((release) => docs.includes(release)));
+    const releaseRow = docs
+      .split("\n")
+      .find((line) => line.startsWith("| ServiceNow release knowledge |"));
+    assert.ok(releaseRow, "compatibility table is missing the ServiceNow release row");
+    const documentedReleases = new Set(releaseRow.split("|")[3]!.trim().split(", "));
+    for (const release of matrix.serviceNowReleases) {
+      assert.ok(documentedReleases.has(release), `compatibility table is missing ${release}`);
+    }
   });
 
   it("parses legacy npm pack arrays and npm 12 package-keyed output", () => {
