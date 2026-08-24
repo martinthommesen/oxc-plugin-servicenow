@@ -5,7 +5,7 @@ import type { MutationQuery } from "./mutations.js";
 import { staticPropertyName } from "./members.js";
 import type { ProvenanceQuery } from "./provenance.js";
 
-const MAX_CONSTRUCTOR_CALL_SITES = 20_000;
+const MAX_PLATFORM_CALL_SITES = 20_000;
 
 export interface PlatformGlobalAliasOrigin {
   readonly node: ESTree.Node;
@@ -16,6 +16,13 @@ export interface PlatformConstructorCallFinding {
   readonly aliasOrigin: PlatformGlobalAliasOrigin | null;
   readonly name: string;
   readonly node: ESTree.CallExpression | ESTree.NewExpression;
+}
+
+export interface PlatformStaticMethodCallFinding {
+  readonly aliasOrigin: PlatformGlobalAliasOrigin | null;
+  readonly method: string;
+  readonly name: string;
+  readonly node: ESTree.CallExpression;
 }
 
 export interface PlatformConstructorCallOptions {
@@ -33,6 +40,13 @@ export interface PlatformConstructorCallOptions {
   readonly mutationSemantics?: "authority" | "callable";
 }
 
+export interface PlatformStaticMethodCallOptions extends Omit<
+  PlatformConstructorCallOptions,
+  "names"
+> {
+  readonly methods: Readonly<Record<string, readonly string[]>>;
+}
+
 interface DeclaratorFacts {
   readonly executionBoundary: ESTree.Node;
   readonly statementContainer: ESTree.Program | ESTree.BlockStatement | null;
@@ -44,7 +58,7 @@ interface CallSite {
   readonly node: ESTree.CallExpression | ESTree.NewExpression;
 }
 
-interface ConstructorSyntaxIndex {
+interface PlatformCallSyntaxIndex {
   readonly declarators: WeakMap<ESTree.VariableDeclarator, DeclaratorFacts>;
   readonly callSites: readonly CallSite[];
   readonly callBudgetExceeded: boolean;
@@ -55,7 +69,13 @@ interface ResolvedPlatformGlobal {
   readonly name: string;
 }
 
-const syntaxIndexByProgram = new WeakMap<ESTree.Node, ConstructorSyntaxIndex>();
+interface StablePlatformGlobalResolver {
+  readonly callSites: readonly CallSite[];
+  readonly pathIdentityIsStable: (path: readonly string[]) => boolean;
+  readonly resolve: (node: unknown, useBoundary: ESTree.Node) => ResolvedPlatformGlobal | null;
+}
+
+const syntaxIndexByProgram = new WeakMap<ESTree.Node, PlatformCallSyntaxIndex>();
 
 function functionLike(node: ESTree.Node | undefined): boolean {
   return (
@@ -103,7 +123,7 @@ function containsNode(container: ESTree.Node, node: ESTree.Node): boolean {
   );
 }
 
-function constructorSyntaxIndex(program: ESTree.Node): ConstructorSyntaxIndex {
+function platformCallSyntaxIndex(program: ESTree.Node): PlatformCallSyntaxIndex {
   const existing = syntaxIndexByProgram.get(program);
   if (existing) return existing;
 
@@ -113,7 +133,7 @@ function constructorSyntaxIndex(program: ESTree.Node): ConstructorSyntaxIndex {
   let callBudgetExceeded = false;
 
   const recordCallSite = (node: ESTree.CallExpression | ESTree.NewExpression): void => {
-    if (callSites.length >= MAX_CONSTRUCTOR_CALL_SITES) {
+    if (callSites.length >= MAX_PLATFORM_CALL_SITES) {
       callBudgetExceeded = true;
       return;
     }
@@ -147,14 +167,17 @@ function constructorSyntaxIndex(program: ESTree.Node): ConstructorSyntaxIndex {
   return created;
 }
 
-/**
- * Find calls to platform constructors whose identity is structurally stable.
- *
- * Mutable and path-dependent aliases deliberately stay unknown. This analysis
- * is intended for recommended diagnostics where silence is safer than
- * attributing a local replacement to the ServiceNow API.
- */
-export function findStablePlatformConstructorCalls({
+function mutationPathChanged(
+  mutations: MutationQuery,
+  path: readonly string[],
+  semantics: "authority" | "callable",
+): boolean {
+  return semantics === "authority"
+    ? mutations.isGlobalPathAuthorityLost(path)
+    : mutations.isGlobalPathWritten(path);
+}
+
+function stablePlatformGlobalResolver({
   program,
   analysis,
   bindingWrites,
@@ -162,24 +185,25 @@ export function findStablePlatformConstructorCalls({
   names,
   namespaces = [],
   mutationSemantics = "authority",
-}: PlatformConstructorCallOptions): readonly PlatformConstructorCallFinding[] {
+}: PlatformConstructorCallOptions): StablePlatformGlobalResolver | null {
   const nameSet = new Set(names);
   const namespaceSet = new Set(namespaces);
-  const { declarators, callSites, callBudgetExceeded } = constructorSyntaxIndex(program);
+  const { declarators, callSites, callBudgetExceeded } = platformCallSyntaxIndex(program);
 
-  if (bindingWrites.hasDynamicScope() || callBudgetExceeded) return [];
+  if (bindingWrites.hasDynamicScope() || callBudgetExceeded) return null;
 
-  const constructorIdentityIsStable = (name: string): boolean => {
+  const pathIdentityIsStable = (path: readonly string[]): boolean =>
+    !mutationPathChanged(mutations, path, mutationSemantics) &&
+    !namespaces.some((namespace) =>
+      mutationPathChanged(mutations, [namespace, ...path], mutationSemantics),
+    );
+
+  const globalIdentityIsStable = (name: string): boolean => {
     const globalChanged =
       mutationSemantics === "authority"
         ? mutations.isGlobalAuthorityLost(name)
         : mutations.isGlobalWritten(name);
-    const pathChanged = namespaces.some((namespace) =>
-      mutationSemantics === "authority"
-        ? mutations.isGlobalPathAuthorityLost([namespace, name])
-        : mutations.isGlobalPathWritten([namespace, name]),
-    );
-    return !globalChanged && !pathChanged;
+    return !globalChanged && pathIdentityIsStable([name]);
   };
 
   const directNamespace = (node: unknown): string | null => {
@@ -213,7 +237,7 @@ export function findStablePlatformConstructorCalls({
     return null;
   };
 
-  const resolveConstructor = (
+  const resolve = (
     node: unknown,
     useBoundary: ESTree.Node,
     seen: ReadonlySet<number> = new Set(),
@@ -224,13 +248,7 @@ export function findStablePlatformConstructorCalls({
     if (value.type === "MemberExpression") {
       const name = staticPropertyName(value);
       const namespace = directNamespace(value.object);
-      return name &&
-        namespace &&
-        nameSet.has(name) &&
-        constructorIdentityIsStable(name) &&
-        !(mutationSemantics === "authority"
-          ? mutations.isGlobalPathAuthorityLost([namespace, name])
-          : mutations.isGlobalPathWritten([namespace, name]))
+      return name && namespace && nameSet.has(name) && globalIdentityIsStable(name)
         ? {
             aliasOrigin: seen.size > 0 ? { node: value, qualified: true } : null,
             name,
@@ -240,7 +258,7 @@ export function findStablePlatformConstructorCalls({
 
     if (value.type !== "Identifier") return null;
     if (nameSet.has(value.name) && analysis.bindings.isPlatformGlobal(value)) {
-      return constructorIdentityIsStable(value.name)
+      return globalIdentityIsStable(value.name)
         ? {
             aliasOrigin: seen.size > 0 ? { node: value, qualified: false } : null,
             name: value.name,
@@ -271,17 +289,76 @@ export function findStablePlatformConstructorCalls({
     }
 
     const selected = destructuredName(declaration, binding.id);
-    if (selected) return constructorIdentityIsStable(selected.name) ? selected : null;
+    if (selected) return globalIdentityIsStable(selected.name) ? selected : null;
     if (declaration.id.type !== "Identifier" || declaration.id.name !== binding.name) return null;
     const next = new Set(seen);
     next.add(binding.id);
-    return resolveConstructor(declaration.init, facts.executionBoundary, next);
+    return resolve(declaration.init, facts.executionBoundary, next);
   };
 
+  return { callSites, pathIdentityIsStable, resolve };
+}
+
+/**
+ * Find calls to platform constructors whose identity is structurally stable.
+ *
+ * Mutable and path-dependent aliases deliberately stay unknown. This analysis
+ * is intended for high-confidence diagnostics where silence is safer than
+ * attributing a local replacement to the ServiceNow API or engine.
+ */
+export function findStablePlatformConstructorCalls({
+  program,
+  analysis,
+  bindingWrites,
+  mutations,
+  names,
+  namespaces = [],
+  mutationSemantics = "authority",
+}: PlatformConstructorCallOptions): readonly PlatformConstructorCallFinding[] {
+  const resolver = stablePlatformGlobalResolver({
+    program,
+    analysis,
+    bindingWrites,
+    mutations,
+    names,
+    namespaces,
+    mutationSemantics,
+  });
+  if (!resolver) return [];
+
   const findings: PlatformConstructorCallFinding[] = [];
-  for (const callSite of callSites) {
-    const resolved = resolveConstructor(callSite.callee, callSite.executionBoundary);
+  for (const callSite of resolver.callSites) {
+    const resolved = resolver.resolve(callSite.callee, callSite.executionBoundary);
     if (resolved) findings.push({ ...resolved, node: callSite.node });
+  }
+  return findings;
+}
+
+/** Find calls to static methods on structurally stable platform globals. */
+export function findStablePlatformStaticMethodCalls({
+  methods,
+  ...options
+}: PlatformStaticMethodCallOptions): readonly PlatformStaticMethodCallFinding[] {
+  const methodSets = new Map(
+    Object.entries(methods).map(([name, candidates]) => [name, new Set(candidates)]),
+  );
+  const resolver = stablePlatformGlobalResolver({
+    ...options,
+    names: [...methodSets.keys()],
+  });
+  if (!resolver) return [];
+
+  const findings: PlatformStaticMethodCallFinding[] = [];
+  for (const callSite of resolver.callSites) {
+    if (callSite.node.type !== "CallExpression") continue;
+    const callee = unwrapExpression(callSite.callee);
+    if (!isNode(callee) || callee.type !== "MemberExpression") continue;
+    const method = staticPropertyName(callee);
+    if (!method) continue;
+    const resolved = resolver.resolve(callee.object, callSite.executionBoundary);
+    if (!resolved || !methodSets.get(resolved.name)?.has(method)) continue;
+    if (!resolver.pathIdentityIsStable([resolved.name, method])) continue;
+    findings.push({ ...resolved, method, node: callSite.node });
   }
   return findings;
 }

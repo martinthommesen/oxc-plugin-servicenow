@@ -3,6 +3,7 @@ import type { Context, ESTree } from "@oxlint/plugins";
 import {
   isAvailabilityGuarded,
   isInvocationAvailabilityGuarded,
+  type AvailabilityGuardOptions,
 } from "../analysis/availability.js";
 import {
   directPlatformGlobalName,
@@ -12,7 +13,10 @@ import {
 import {
   builtInCallMayWritePlatformProperty,
   findStablePlatformConstructorCalls,
-  type PlatformGlobalAliasOrigin,
+  resolveConstValue,
+  staticPropertyName,
+  type PlatformConstructorCallFinding,
+  type PlatformStaticMethodCallFinding,
 } from "../analysis/internal.js";
 import type { EngineFeatureId } from "../engine/index.js";
 import { isFeatureAllowed, shouldDiagnoseFeature } from "../engine/index.js";
@@ -52,7 +56,7 @@ export function unsupportedConstructorRule(options: UnsupportedConstructorRuleOp
             mutationSemantics: "callable",
           })) {
             if (!shouldDiagnoseFeature(script, options.features[finding.name]!)) continue;
-            if (isAvailabilityProtected(context, finding.node, finding.name, finding.aliasOrigin)) {
+            if (isUnsupportedGlobalInvocationProtected(context, finding)) {
               continue;
             }
             context.report({ node: finding.node, messageId: "weak", data: { name: finding.name } });
@@ -63,16 +67,16 @@ export function unsupportedConstructorRule(options: UnsupportedConstructorRuleOp
   });
 }
 
-function isAvailabilityProtected(
+export function isUnsupportedGlobalInvocationProtected(
   context: Context,
-  invocation: ESTree.CallExpression | ESTree.NewExpression,
-  name: string,
-  aliasOrigin: PlatformGlobalAliasOrigin | null,
+  finding: PlatformConstructorCallFinding | PlatformStaticMethodCallFinding,
 ): boolean {
+  const { aliasOrigin, name, node: invocation } = finding;
+  const method = "method" in finding ? finding.method : undefined;
   const { analysis, context: script, file } = beginRuleFile(context);
   const isConstructorAccess = (candidate: unknown): boolean =>
     resolvePlatformGlobalName(candidate, analysis.bindings) === name;
-  const isCallInvalidation = (call: ESTree.CallExpression): boolean =>
+  const isRootCallInvalidation = (call: ESTree.CallExpression): boolean =>
     builtInCallMayWritePlatformProperty(
       call,
       "globalThis",
@@ -80,6 +84,19 @@ function isAvailabilityProtected(
       script.javascriptMode,
       analysis,
       file,
+    );
+  const isMethodCallInvalidation = (call: ESTree.CallExpression): boolean =>
+    isRootCallInvalidation(call) ||
+    Boolean(
+      method &&
+      builtInCallMayWritePlatformProperty(
+        call,
+        name,
+        method,
+        script.javascriptMode,
+        analysis,
+        file,
+      ),
     );
   const globalThisIsSafeAt = (namespace: ESTree.Node): boolean =>
     isFeatureAllowed("global-this", script.javascriptMode, script.settings.release) ||
@@ -108,7 +125,7 @@ function isAvailabilityProtected(
     !isAvailabilityGuarded(context, aliasOrigin.node, analysis, isConstructorAccess, {
       allowDirectAccessGuard: false,
       guardCacheKey: `unsupported-constructor:origin:${name}`,
-      isCallInvalidation,
+      isCallInvalidation: isRootCallInvalidation,
       isPropertyExistenceTest: (property, object) =>
         property === name && resolvePlatformGlobalName(object, analysis.bindings) === "globalThis",
     })
@@ -116,19 +133,66 @@ function isAvailabilityProtected(
     return false;
   }
 
+  const staticMethodNode = (candidate: unknown): ESTree.MemberExpression | null => {
+    const value = resolveConstValue(candidate, analysis.bindings);
+    return value?.type === "MemberExpression" &&
+      staticPropertyName(value) === method &&
+      resolvePlatformGlobalName(value.object, analysis.bindings) === name
+      ? value
+      : null;
+  };
   const hasSafeQualifiedOrigin = (candidate: unknown): boolean =>
     isConstructorAccess(candidate) &&
     platformGlobalNamespaceAccess(candidate, analysis.bindings) !== null;
-
-  return isInvocationAvailabilityGuarded(context, invocation, analysis, isConstructorAccess, {
+  const rootGuardOptions = {
     allowDirectAccessGuard: hasSafeQualifiedOrigin,
-    guardCacheKey: `unsupported-constructor:${name}`,
-    isCallInvalidation,
+    guardCacheKey: `unsupported-global:root:${name}`,
+    isCallInvalidation: isRootCallInvalidation,
     isPropertyExistenceTest: (property, object) =>
       property === name && resolvePlatformGlobalName(object, analysis.bindings) === "globalThis",
+    isOptionalInvocation: (candidate) => {
+      if (candidate.type !== "CallExpression" || !candidate.optional) return false;
+      if (method === undefined) return hasSafeQualifiedOrigin(candidate.callee);
+      const callee = staticMethodNode(candidate.callee);
+      return Boolean(callee?.optional && platformGlobalNamespaceAccess(callee, analysis.bindings));
+    },
+  } satisfies AvailabilityGuardOptions;
+  const rootIsProtected = isInvocationAvailabilityGuarded(
+    context,
+    invocation,
+    analysis,
+    isConstructorAccess,
+    rootGuardOptions,
+  );
+  if (!method || !rootIsProtected) return rootIsProtected;
+
+  const isStaticMethodAccess = (candidate: unknown): boolean => {
+    const value = staticMethodNode(candidate);
+    return Boolean(
+      value &&
+      isAvailabilityGuarded(context, value, analysis, isConstructorAccess, rootGuardOptions),
+    );
+  };
+  const optionalMethodInvocationIsSafe = (candidate: ESTree.CallExpression): boolean => {
+    const callee = resolveConstValue(candidate.callee, analysis.bindings);
+    return Boolean(
+      candidate.optional &&
+      callee?.type === "MemberExpression" &&
+      callee.optional &&
+      staticMethodNode(callee) &&
+      platformGlobalNamespaceAccess(callee, analysis.bindings),
+    );
+  };
+
+  return isInvocationAvailabilityGuarded(context, invocation, analysis, isStaticMethodAccess, {
+    allowDirectAccessGuard: isStaticMethodAccess,
+    guardCacheKey: `unsupported-global:method:${name}:${method}`,
+    isCallInvalidation: isMethodCallInvalidation,
+    isPropertyExistenceTest: (property, object) =>
+      property === method &&
+      isConstructorAccess(object) &&
+      isAvailabilityGuarded(context, object, analysis, isConstructorAccess, rootGuardOptions),
     isOptionalInvocation: (candidate) =>
-      candidate.type === "CallExpression" &&
-      Boolean(candidate.optional) &&
-      hasSafeQualifiedOrigin(candidate.callee),
+      candidate.type === "CallExpression" && optionalMethodInvocationIsSafe(candidate),
   });
 }
