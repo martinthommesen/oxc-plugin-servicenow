@@ -62,6 +62,18 @@ describe(RULE, () => {
     );
   });
 
+  it("resolves the declaration in its containing block", () => {
+    assertInvalid(
+      `{
+  helper();
+  function helper(helper) { return helper; }
+}`,
+      RULE,
+      { messageId: "unhoisted" },
+      { settings: ZURICH },
+    );
+  });
+
   it("does not report declarations already hoisted by Zurich", () => {
     for (const code of [
       `helper();
@@ -103,6 +115,48 @@ function helper() { return 1; }`,
     ]) {
       assertValid(code, RULE, { settings: ZURICH });
     }
+  });
+
+  it("stays silent for statically unreachable pre-declaration reads", () => {
+    for (const code of [
+      `function run() {
+  {
+    return;
+    helper();
+    function helper() { return 1; }
+  }
+}`,
+      `function run() {
+  {
+    throw failure;
+    helper();
+    function helper() { return 1; }
+  }
+}`,
+      `while (ready) {
+  break;
+  helper();
+  function helper() { return 1; }
+}`,
+      `while (ready) {
+  continue;
+  helper();
+  function helper() { return 1; }
+}`,
+    ]) {
+      assertValid(code, RULE, { settings: ZURICH });
+    }
+  });
+
+  it("ignores TypeScript-only pre-declaration references", () => {
+    assertValid(
+      `{
+  type Helper = typeof helper;
+  function helper() { return 1; }
+}`,
+      RULE,
+      { settings: ZURICH },
+    );
   });
 
   it("requires stable lexical resolution", () => {

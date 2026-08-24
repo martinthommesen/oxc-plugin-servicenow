@@ -16,6 +16,13 @@ interface BlockFunctionDeclaration {
   readonly name: string;
 }
 
+const ABRUPT_STATEMENTS = new Set([
+  "ReturnStatement",
+  "ThrowStatement",
+  "BreakStatement",
+  "ContinueStatement",
+]);
+
 function isFunctionNode(
   node: ESTree.Node | undefined,
 ): node is ESTree.Function | ESTree.ArrowFunctionExpression {
@@ -56,6 +63,25 @@ function crossesClassBoundary(
     );
 }
 
+function followsAbruptCompletion(
+  ancestors: readonly ESTree.Node[],
+  declarationBlock: ESTree.BlockStatement,
+): boolean {
+  let child = ancestors.at(-1);
+  for (let index = ancestors.length - 2; index >= 0; index -= 1) {
+    const parent = ancestors[index]!;
+    if (parent.type === "BlockStatement" && child) {
+      const statementIndex = parent.body.indexOf(child as ESTree.Statement);
+      for (let sibling = 0; sibling < statementIndex; sibling += 1) {
+        if (ABRUPT_STATEMENTS.has(parent.body[sibling]!.type)) return true;
+      }
+      if (parent === declarationBlock) return false;
+    }
+    child = parent;
+  }
+  return false;
+}
+
 /**
  * Find reads that execute in the same body before a nested block function's
  * declaration. Pre-Australia Rhino did not hoist these declarations to their
@@ -87,7 +113,7 @@ export function findUnhoistedBlockFunctionUses(
         // Function-body declarations were already hoisted correctly. The
         // Australia fix concerns declarations in nested blocks.
         if (isFunctionNode(blockParent) && blockParent.body === block) return;
-        const binding = bindings.resolve(id.name, id, ancestors);
+        const binding = bindings.resolve(id.name, block);
         const boundary = executionBoundary(ancestors);
         if (!binding || binding.kind !== "function" || !boundary) return;
         if (bindingWrites.isWritten(binding.id)) return;
@@ -123,6 +149,7 @@ export function findUnhoistedBlockFunctionUses(
         if (useStart < 0 || declarationStart < 0 || useStart >= declarationStart) return;
         if (executionBoundary(ancestors) !== declaration.boundary) return;
         if (crossesClassBoundary(declaration.block, ancestors)) return;
+        if (followsAbruptCompletion(ancestors, declaration.block)) return;
         findings.push({
           declaration: declaration.declaration,
           name: declaration.name,
