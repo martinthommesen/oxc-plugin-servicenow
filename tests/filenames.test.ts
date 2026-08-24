@@ -52,11 +52,17 @@ describe("classifyFile", () => {
     for (const filename of [
       "incident.acl.js",
       "incident.access-control.cjs",
+      "read.access.control.js",
       "sys_security_acl_read.mjs",
       "src/access-controls/read.js",
+      "src/access_control/read.cjs",
+      "src/accesscontrol/read.mjs",
       "src/acl/write.js",
     ]) {
       assert.deepEqual(surfacesFromFilename(filename), ["acl"], filename);
+    }
+    for (const filename of ["accesscontroller.js", "sys_security_aclanything.js"]) {
+      assert.deepEqual(surfacesFromFilename(filename), [], filename);
     }
     assert.deepEqual(surfacesFromFilename("src/security/helper.js"), []);
     assert.deepEqual(surfacesFromFilename("src/client/read.acl.js"), []);

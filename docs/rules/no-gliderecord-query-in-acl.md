@@ -54,7 +54,7 @@ answer = gs.hasRole("x_acme.agent") && current.active && current.assigned_to == 
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-boundary: Uncalled helpers and deferred callbacks stay silent because their execution during this ACL evaluation is not proven. false-negative: A GlideRecord passed to an unresolved helper stays silent after escape because the helper may replace or otherwise invalidate its method identity. scope-boundary: Global-only query executors stay silent when application scope is unknown. false-negative: A visible GlideRecord prototype or relevant instance-method mutation suppresses matching ACL diagnostics throughout the file. lifecycle: Only query executions on the immediate ACL evaluation path are reviewed. Directly invoked local helpers inherit call-time object identity; uncalled functions, generators, deferred callbacks, escaped objects, unsupported scope-specific methods, and uncertain platform-method authority stay silent.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-boundary: Uncalled helpers and deferred callbacks stay silent because their execution during this ACL evaluation is not proven. scope-boundary: A query after the first await stays silent because that continuation does not run during the helper's immediate invocation. false-negative: A GlideRecord passed to an unresolved helper stays silent after escape because the helper may replace or otherwise invalidate its method identity. scope-boundary: Global-only query executors stay silent when application scope is unknown. false-negative: A visible GlideRecord prototype or relevant instance-method mutation suppresses matching ACL diagnostics throughout the file. lifecycle: Only query executions before the first asynchronous suspension on the immediate ACL evaluation path are reviewed. Directly invoked local helpers inherit call-time object identity; uncalled functions, generators, deferred callbacks, post-await continuations, escaped objects, unsupported scope-specific methods, and uncertain platform-method authority stay silent.
 
 ## Known false positives
 
@@ -68,6 +68,7 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-b
 ## Intentional scope boundaries
 
 - Uncalled helpers and deferred callbacks stay silent because their execution during this ACL evaluation is not proven.
+- A query after the first await stays silent because that continuation does not run during the helper's immediate invocation.
 - Global-only query executors stay silent when application scope is unknown.
 
 ## Overlaps
@@ -77,7 +78,7 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-b
 ## Fix safety
 
 - Classification: diagnostic only
-- Lifecycle assumptions: Only query executions on the immediate ACL evaluation path are reviewed. Directly invoked local helpers inherit call-time object identity; uncalled functions, generators, deferred callbacks, escaped objects, unsupported scope-specific methods, and uncertain platform-method authority stay silent.
+- Lifecycle assumptions: Only query executions before the first asynchronous suspension on the immediate ACL evaluation path are reviewed. Directly invoked local helpers inherit call-time object identity; uncalled functions, generators, deferred callbacks, post-await continuations, escaped objects, unsupported scope-specific methods, and uncertain platform-method authority stay silent.
 
 ## Evidence
 
@@ -96,8 +97,13 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-b
   - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideAggregateScopedAPI.html
   - Verified by: manual
   - Verified at: 2026-08-24
-- **Path-sensitive fixtures cover query executors, aliases, joins, reassignment, shadowing, direct helper calls, escape, deferred code, scope-specific APIs, and platform-method mutation.**
-  - Verification ID: `rule-evidence-642a5921`
+- **The Australia ACL guidance documents current as the record available to a custom ACL script.**
+  - Verification ID: `rule-evidence-a6a6d86f`
+  - URL: https://www.servicenow.com/docs/r/platform-security/access-control/t_CreateAnACLRule.html
+  - Verified by: manual
+  - Verified at: 2026-08-24
+- **Path-sensitive fixtures cover query executors, current, aliases, joins, reassignment, shadowing, direct and async helper calls, escape, deferred code, scope-specific APIs, and platform-method mutation.**
+  - Verification ID: `rule-evidence-7c851911`
   - URL: tests/rules/no-gliderecord-query-in-acl.test.ts
   - Verified by: fixture
   - Verified at: 2026-08-24

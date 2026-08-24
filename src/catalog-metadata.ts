@@ -90,6 +90,8 @@ export const SN_SECURE_DATA =
   "https://www.servicenow.com/docs/r/zurich/application-development/building-applications/secure-data.html";
 export const SN_SECURE_DATA_AUSTRALIA =
   "https://www.servicenow.com/docs/r/application-development/secure-data.html";
+export const SN_ACL_AUSTRALIA =
+  "https://www.servicenow.com/docs/r/platform-security/access-control/t_CreateAnACLRule.html";
 export const SN_PACKAGES_REMOVAL =
   "https://www.servicenow.com/docs/r/api-reference/scripts/c_PackagesCallRemovalTool.html";
 

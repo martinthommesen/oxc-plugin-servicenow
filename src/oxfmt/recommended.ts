@@ -1,3 +1,5 @@
+import { ACL_FILE_GLOBS } from "../context/filename.js";
+
 /**
  * Recommended oxfmt configuration for ServiceNow Fluent + classic scripts.
  *
@@ -64,15 +66,12 @@ export const recommendedOxfmtConfig: OxfmtConfig = {
         "**/*.client.js",
         "**/*.br.js",
         "**/*.si.js",
-        "**/*.acl.js",
         "**/*.client.ui-action.js",
         "**/*.server.ui-action.js",
         "**/*.ui-action.js",
         "**/src/server/**/*.js",
         "**/src/client/**/*.js",
-        "**/acl/**/*.js",
-        "**/access-control/**/*.js",
-        "**/access-controls/**/*.js",
+        ...ACL_FILE_GLOBS,
       ],
       options: {
         printWidth: 120,

@@ -35,6 +35,17 @@ count.query();`,
     );
   });
 
+  it("reports query executors on the authoritative current record and its aliases", () => {
+    assertInvalid(
+      `current.query();
+var record = current;
+record.get("abc");`,
+      RULE,
+      { messageId: "query", count: 2, includes: "GlideRecord" },
+      ACL,
+    );
+  });
+
   it("tracks aliases, static computed members, and all-path object joins", () => {
     assertInvalid(
       `var user = new GlideRecord("sys_user");
@@ -194,6 +205,75 @@ load();`,
     );
   });
 
+  it("stops directly invoked async helpers at their first suspension", () => {
+    assertInvalid(
+      `async function load() {
+  var before = new GlideRecord("sys_user");
+  before.query();
+  await later();
+  var after = new GlideRecord("sys_user");
+  after.query();
+}
+load();`,
+      RULE,
+      { messageId: "query", count: 1, includes: "before" },
+      ACL,
+    );
+    assertValid(
+      `async function load() {
+  await later();
+  var user = new GlideRecord("sys_user");
+  user.query();
+}
+load();`,
+      RULE,
+      ACL,
+    );
+  });
+
+  it("keeps suspended calls out of the immediate path and resumes the caller", () => {
+    assertValid(
+      `async function load() {
+  var user = new GlideRecord("sys_user");
+  try {
+    await pending;
+  } finally {
+    user.query();
+  }
+}
+load();`,
+      RULE,
+      ACL,
+    );
+    assertValid(
+      `async function load() {
+  var user = new GlideRecord("sys_user");
+  user.get(await id());
+}
+load();`,
+      RULE,
+      ACL,
+    );
+    assertInvalid(
+      `async function load() { await later(); }
+load();
+var user = new GlideRecord("sys_user");
+user.query();`,
+      RULE,
+      { messageId: "query", count: 1, includes: "user" },
+      ACL,
+    );
+    assertInvalid(
+      `async function load() { throw failure; }
+load();
+var user = new GlideRecord("sys_user");
+user.query();`,
+      RULE,
+      { messageId: "query", count: 1, includes: "user" },
+      ACL,
+    );
+  });
+
   it("does not guess undocumented aggregate executors", () => {
     assertValid(
       `var count = new GlideAggregate("incident");
@@ -224,6 +304,21 @@ user.query();`,
       `eval("GlideRecord = LocalRecord");
 var user = new GlideRecord("sys_user");
 user.query();`,
+    ]) {
+      assertValid(code, RULE, ACL);
+    }
+  });
+
+  it("suppresses current diagnostics after its method authority is lost", () => {
+    for (const code of [
+      `current = localRecord;
+current.query();`,
+      `current.query = localQuery;
+current.query();`,
+      `prepare(current);
+current.query();`,
+      `function check(current) { current.query(); }
+check(localRecord);`,
     ]) {
       assertValid(code, RULE, ACL);
     }

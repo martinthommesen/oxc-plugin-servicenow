@@ -77,15 +77,24 @@ describe("ESLint flat profile context contracts", () => {
     for (const filename of [
       "read.acl.js",
       "incident.access-control.cjs",
+      "read.access.control.js",
       "sys_security_acl_read.mjs",
       "src/access-controls/read.js",
+      "src/access_control/read.cjs",
+      "src/accesscontrol/read.mjs",
     ]) {
       assert.ok(
         ids(configs.flat.acl, code, filename).includes("servicenow/no-gliderecord-query-in-acl"),
         filename,
       );
     }
-    assert.deepEqual(ids(configs.flat.acl, code, "helper.server.js"), []);
+    for (const filename of [
+      "helper.server.js",
+      "accesscontroller.js",
+      "sys_security_aclanything.js",
+    ]) {
+      assert.deepEqual(ids(configs.flat.acl, code, filename), [], filename);
+    }
   });
 
   it("supplies Fluent authoring for .now.ts", () => {

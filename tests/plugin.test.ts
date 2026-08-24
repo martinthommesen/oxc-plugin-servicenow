@@ -140,8 +140,12 @@ describe("plugin export", () => {
   });
 
   it("the ACL flat config selects ACL export names and supplies the ACL surface", () => {
-    assert.ok(configs.flat.acl.files.includes("**/*.acl.js"));
-    assert.ok(configs.flat.acl.files.includes("**/sys_security_acl*.js"));
+    assert.ok(configs.flat.acl.files.includes("**/{acl,*[-_.]acl}.{js,cjs,mjs}"));
+    assert.ok(
+      configs.flat.acl.files.includes(
+        "**/{access.control,access.controls,*[-_.]access.control,*[-_.]access.controls}.{js,cjs,mjs}",
+      ),
+    );
     assert.deepEqual(configs.flat.acl.settings.servicenow.surfaces, ["acl"]);
   });
 

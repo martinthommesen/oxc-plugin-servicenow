@@ -2706,8 +2706,14 @@ record.deleteMultiple = localDelete;`,
           "2026-08-24",
         ),
         metadata.evidenceRecord(
+          metadata.SN_ACL_AUSTRALIA,
+          "The Australia ACL guidance documents current as the record available to a custom ACL script.",
+          "manual",
+          "2026-08-24",
+        ),
+        metadata.evidenceRecord(
           "tests/rules/no-gliderecord-query-in-acl.test.ts",
-          "Path-sensitive fixtures cover query executors, aliases, joins, reassignment, shadowing, direct helper calls, escape, deferred code, scope-specific APIs, and platform-method mutation.",
+          "Path-sensitive fixtures cover query executors, current, aliases, joins, reassignment, shadowing, direct and async helper calls, escape, deferred code, scope-specific APIs, and platform-method mutation.",
           "fixture",
           "2026-08-24",
         ),
@@ -2722,7 +2728,7 @@ record.deleteMultiple = localDelete;`,
       {
         overlaps: ["servicenow/no-gliderecord-query-in-loop"],
         lifecycleAssumptions:
-          "Only query executions on the immediate ACL evaluation path are reviewed. Directly invoked local helpers inherit call-time object identity; uncalled functions, generators, deferred callbacks, escaped objects, unsupported scope-specific methods, and uncertain platform-method authority stay silent.",
+          "Only query executions before the first asynchronous suspension on the immediate ACL evaluation path are reviewed. Directly invoked local helpers inherit call-time object identity; uncalled functions, generators, deferred callbacks, post-await continuations, escaped objects, unsupported scope-specific methods, and uncertain platform-method authority stay silent.",
       },
     ),
     placements: [
@@ -2744,6 +2750,20 @@ record.deleteMultiple = localDelete;`,
   user.query();
 }
 scheduleLater(loadUser);`,
+      },
+      {
+        caseId: "acl-query-post-await",
+        kind: "scope-boundary",
+        description:
+          "A query after the first await stays silent because that continuation does not run during the helper's immediate invocation.",
+        name: "post-await continuation",
+        filename: "incident.acl.js",
+        code: `async function loadUser() {
+  await later();
+  var user = new GlideRecord("sys_user");
+  user.query();
+}
+loadUser();`,
       },
       {
         caseId: "acl-query-escaped-record",

@@ -10,6 +10,10 @@ const configPath = path.join(repoRoot, "oxfmt.recommended.json");
 const fixtures = [
   path.join(repoRoot, "tests/integration/profiles/oxfmt/sample.br.js"),
   path.join(repoRoot, "tests/integration/profiles/oxfmt/sample.now.ts"),
+  path.join(repoRoot, "tests/integration/profiles/oxfmt/read.access.control.js"),
+  path.join(repoRoot, "tests/integration/profiles/oxfmt/access_control/read.js"),
+  path.join(repoRoot, "tests/integration/profiles/oxfmt/accesscontroller.js"),
+  path.join(repoRoot, "tests/integration/profiles/oxfmt/sys_security_aclanything.js"),
 ];
 const exampleProjects = [
   "business-rule",

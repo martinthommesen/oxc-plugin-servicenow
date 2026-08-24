@@ -42,19 +42,21 @@ export const BUSINESS_RULE_FILE_GLOBS = scriptGlobs([
   "**/src/br/**/*",
 ]);
 
-export const ACL_FILE_GLOBS = scriptGlobs([
-  "**/*.acl",
-  "**/*access-control*",
-  "**/*access_control*",
-  "**/*accesscontrol*",
-  "**/sys_security_acl*",
-  "**/acl/**/*",
-  "**/acls/**/*",
-  "**/access-control/**/*",
-  "**/access-controls/**/*",
-  "**/access_control/**/*",
-  "**/access_controls/**/*",
-]);
+const SCRIPT_EXTENSION_GLOB = "{js,cjs,mjs}";
+
+export const ACL_FILE_GLOBS = [
+  `**/{acl,*[-_.]acl}.${SCRIPT_EXTENSION_GLOB}`,
+  `**/{acl,*[-_.]acl}[-_.]*.${SCRIPT_EXTENSION_GLOB}`,
+  `**/{access-control,access-controls,*[-_.]access-control,*[-_.]access-controls}.${SCRIPT_EXTENSION_GLOB}`,
+  `**/{access-control,access-controls,*[-_.]access-control,*[-_.]access-controls}[-_.]*.${SCRIPT_EXTENSION_GLOB}`,
+  `**/{access_control,access_controls,*[-_.]access_control,*[-_.]access_controls}.${SCRIPT_EXTENSION_GLOB}`,
+  `**/{access_control,access_controls,*[-_.]access_control,*[-_.]access_controls}[-_.]*.${SCRIPT_EXTENSION_GLOB}`,
+  `**/{access.control,access.controls,*[-_.]access.control,*[-_.]access.controls}.${SCRIPT_EXTENSION_GLOB}`,
+  `**/{access.control,access.controls,*[-_.]access.control,*[-_.]access.controls}[-_.]*.${SCRIPT_EXTENSION_GLOB}`,
+  `**/{accesscontrol,accesscontrols,*[-_.]accesscontrol,*[-_.]accesscontrols}.${SCRIPT_EXTENSION_GLOB}`,
+  `**/{accesscontrol,accesscontrols,*[-_.]accesscontrol,*[-_.]accesscontrols}[-_.]*.${SCRIPT_EXTENSION_GLOB}`,
+  `**/{acl,acls,access-control,access-controls,access_control,access_controls,accesscontrol,accesscontrols}/**/*.${SCRIPT_EXTENSION_GLOB}`,
+];
 
 export const CLIENT_FILE =
   /(?:^|[-_.])(?:client[-_.]?script|catalog[-_.]?client|ui[-_.]?script|on[-_.]?change|on[-_.]?load|on[-_.]?submit|ui[-_.]?policy)(?=[-_.]|$)|^(?:sys_script_client|catalog_script_client)(?=[-_.]|$)|(?:^|[-_.])(?:client|cs)(?=[-_.]|$)/i;

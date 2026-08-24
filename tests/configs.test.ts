@@ -24,6 +24,10 @@ const presets110 = JSON.parse(
   strict: Record<string, string>;
 };
 
+const shippedOxfmtConfig: unknown = JSON.parse(
+  readFileSync(new URL("../oxfmt.recommended.json", import.meta.url), "utf8"),
+);
+
 describe("configs", () => {
   it("recommended enables the core classic + Fluent rules", () => {
     assert.equal(recommendedRules["servicenow/no-hardcoded-sysid"], "error");
@@ -88,7 +92,11 @@ describe("configs", () => {
         item.files.some((file) => file.includes(".server.js")),
       ),
     );
-    assert.ok(recommendedOxfmtConfig.overrides.some((item) => item.files.includes("**/*.acl.js")));
+    assert.ok(
+      recommendedOxfmtConfig.overrides.some((item) =>
+        item.files.includes("**/{acl,*[-_.]acl}.{js,cjs,mjs}"),
+      ),
+    );
     assert.ok(
       recommendedOxfmtConfig.overrides.some((item) =>
         ["**/*.ui-action.js", "**/*.client.ui-action.js", "**/*.server.ui-action.js"].every(
@@ -97,6 +105,13 @@ describe("configs", () => {
       ),
     );
     assert.ok(recommendedOxfmtConfig.ignorePatterns.includes("**/.now/**"));
+  });
+
+  it("keeps the shipped oxfmt JSON synchronized with the TypeScript preset", () => {
+    assert.deepEqual(shippedOxfmtConfig, {
+      $schema: "./node_modules/oxfmt/configuration_schema.json",
+      ...recommendedOxfmtConfig,
+    });
   });
 
   it("pins the immutable 1.1 preset source and documents every map difference", () => {

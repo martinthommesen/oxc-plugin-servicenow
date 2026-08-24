@@ -2,15 +2,17 @@ import type { ESTree } from "@oxlint/plugins";
 import { analyzePathBindings, dedupePathFindings } from "./path-state.js";
 import {
   hasAuthoritativeConstructedMethod,
+  hasAuthoritativeGlobalObjectMethod,
   hasAuthoritativeGlideRecordMethod,
   type PlatformMethodAuthorityFacts,
 } from "./platform-method-authority.js";
 import type { ProvenanceQuery } from "./provenance.js";
 
 type QueryKind = "GlideRecord" | "GlideAggregate";
+type QueryReceiverKind = QueryKind | "current";
 
 interface AclQueryData {
-  kind: QueryKind | null;
+  kind: QueryReceiverKind | null;
 }
 
 export interface AclQueryFinding {
@@ -20,9 +22,13 @@ export interface AclQueryFinding {
   kind: QueryKind;
 }
 
-function queryKindAt(analysis: ProvenanceQuery, node: ESTree.Node): QueryKind | null {
+function queryKindAt(analysis: ProvenanceQuery, node: ESTree.Node): QueryReceiverKind | null {
   const proven = analysis.ofExpression(node);
-  return proven?.kind === "GlideRecord" || proven?.kind === "GlideAggregate" ? proven.kind : null;
+  return proven?.kind === "GlideRecord" ||
+    proven?.kind === "GlideAggregate" ||
+    proven?.kind === "current"
+    ? proven.kind
+    : null;
 }
 
 /**
@@ -51,6 +57,7 @@ export function findAclQueries(
     mergeDistinctData: (left, right) =>
       left.kind !== null && left.kind === right.kind ? { kind: left.kind } : undefined,
     analyzeUncalledFunctions: false,
+    stopAtAwait: true,
     retainUnboundRecords: false,
     onRef({ node, rec }) {
       if (!rec || rec.data.kind !== null) return;
@@ -59,18 +66,38 @@ export function findAclQueries(
     onCall({ call, rec, receiver, objectName, property }) {
       if (!rec || !receiver || !property || !rec.data.kind) return;
       const kind = rec.data.kind;
-      const authoritative =
-        kind === "GlideRecord"
-          ? analysis.glide.executors.has(property) &&
-            hasAuthoritativeGlideRecordMethod(authority, receiver, property)
-          : property === "query" &&
+      let authoritative: boolean;
+      switch (kind) {
+        case "GlideRecord":
+          authoritative =
+            analysis.glide.executors.has(property) &&
+            hasAuthoritativeGlideRecordMethod(authority, receiver, property);
+          break;
+        case "GlideAggregate":
+          authoritative =
+            property === "query" &&
             hasAuthoritativeConstructedMethod(authority, receiver, "GlideAggregate", property);
+          break;
+        case "current":
+          authoritative =
+            analysis.glide.executors.has(property) &&
+            hasAuthoritativeGlobalObjectMethod(authority, receiver, "current", property, {
+              prototypeConstructor: "GlideRecord",
+            });
+          break;
+        default: {
+          const unexpected: never = kind;
+          return unexpected;
+        }
+      }
       if (!authoritative) return;
       findings.push({
         node: call,
-        name: objectName ?? (kind === "GlideRecord" ? "record" : "aggregate"),
+        name:
+          objectName ??
+          (kind === "current" ? "current" : kind === "GlideRecord" ? "record" : "aggregate"),
         method: property,
-        kind,
+        kind: kind === "current" ? "GlideRecord" : kind,
       });
     },
     onBudgetExceeded() {
