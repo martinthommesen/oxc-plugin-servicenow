@@ -26,6 +26,7 @@
 - `no-glideelement-in-collection` now follows path-proven local field aliases through reassignment, shadowing, all-path branch joins, nested literals, escapes, and immediately invoked function parameters; numeric update coercion also invalidates shared object aliases.
 - The public `analyzeProvenance(context, ast)` overload once again analyzes the supplied AST, partitions its cache by tree identity, and never applies the host parser's scope graph to foreign nodes.
 - Engine compatibility diagnostics now stay silent when a relevant namespace object escapes to an unknown helper that could install replacement methods, while passing the method value itself does not taint its owner.
+- Unknown JavaScript mode now conservatively records possible `globalThis` mutations, and cyclic destructured platform-global aliases terminate safely instead of overflowing the analysis stack.
 - `no-gliderecord-query-in-loop` now carries proven cursor depth through direct calls to stable one-call-site local helpers, while mutable, multiply called, generator, shadowed, dynamically scoped, and indirect helpers remain conservatively silent.
 - `no-client-gliderecord` now resolves stable, block-dominating constructor aliases and suppresses diagnostics whenever path-dependent assignments, dynamic scope, namespace escape, or visible platform replacement make constructor identity uncertain.
 - `no-hardcoded-sysid` now resolves hash-context owners from AST ancestry, preserving the correct owner around nested sibling expressions and preventing suppression from leaking into nested function or class bodies.
@@ -34,7 +35,7 @@
 - GlideRecord, GlideRecordSecure, GlideAggregate, and GlideDateTime analyses now apply the same authority model across cursor lifecycle, bulk safety, aggregation, counting, N+1, GlideElement, and security-review diagnostics; domain-specific uncertainty remains path- and epoch-aware, and fresh host values are re-established on later loop evaluations.
 - Canonical full-script Business Rule wrappers preserve `current.update()` authority across their required synchronous `current` argument while remaining silent after a pre-call escape, parameter reassignment, receiver-method replacement, or GlideRecord prototype mutation.
 - Allocation-site refreshes detach stale aliases, instance-method authority remains scoped to stable receiver identities, and computed security review requires at least one still-authoritative bypass candidate.
-- Cursor-loop analysis evaluates defaults selected by explicit `undefined`, and GlideElement retention is checked on the first `while` iteration even when the body exits immediately.
+- Cursor-loop analysis evaluates defaults selected by explicit `undefined`, stops expanding immutable helper aliases under dynamic scope, and checks GlideElement retention on the first `while` iteration even when the body exits immediately.
 - Release validation now rejects tags that do not point to the exact current protected `main` tip.
 - GlideRecord lifecycle analysis now recognizes the documented `_query()`, `_next()`, and global-only `queryNoDomain()` APIs without guessing when application scope is unknown.
 - ESLint no longer suppresses same-offset query lifecycle diagnostics in later files through retained `createOnce` state.

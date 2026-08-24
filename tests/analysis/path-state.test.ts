@@ -241,35 +241,45 @@ describe("path-state evaluator", () => {
         consume(value);
       }
     `).ast as any;
-    let observed = false;
+    let observed: "left" | "right" | "joined" | undefined;
     let budgetExceeded = false;
 
-    analyzePathBindings<{ value: true }>({
+    type JoinedValue = { value: "left" | "right" | "joined" };
+    const mergeValue = (left: JoinedValue, right: JoinedValue): JoinedValue => ({
+      value: left.value === right.value ? left.value : "joined",
+    });
+
+    analyzePathBindings<JoinedValue>({
       program,
       analysis: analysisFor(program),
       kinds: [],
-      emptyData: () => ({ value: true }),
+      emptyData: () => ({ value: "joined" }),
       cloneData: (data) => ({ ...data }),
-      mergeData: () => ({ value: true }),
-      mergeDistinctData: () => ({ value: true }),
-      equalsData: () => true,
+      mergeData: mergeValue,
+      mergeDistinctData: mergeValue,
+      equalsData: (left, right) => left.value === right.value,
       onCall() {},
       onValue(node) {
-        return node.type === "MemberExpression" ? { value: true } : undefined;
+        if (node.type !== "MemberExpression" || node.property.type !== "Identifier") {
+          return undefined;
+        }
+        if (node.property.name === "left") return { value: "left" };
+        if (node.property.name === "right") return { value: "right" };
+        return undefined;
       },
       retainUnboundRecords: false,
       onRef({ node, rec }) {
         if (node.type === "Identifier" && node.name === "value" && rec && !rec.invalid) {
-          observed = true;
+          observed = rec.data.value;
         }
       },
       onBudgetExceeded() {
-        observed = false;
+        observed = undefined;
         budgetExceeded = true;
       },
     });
 
-    assert.equal(observed, true);
+    assert.equal(observed, "joined");
     assert.equal(budgetExceeded, false);
   });
 
