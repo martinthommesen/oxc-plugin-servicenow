@@ -15,6 +15,7 @@ describe("ServiceNow engine feature matrix", () => {
       "bigint-narrowing",
       "date-fraction-digits",
       "error-iserror",
+      "function-call-apply-thisarg",
       "promise-try",
       "promise-withresolvers",
       "set-methods",
@@ -60,6 +61,7 @@ describe("ServiceNow engine feature matrix", () => {
       "array-from-thisarg",
       "bigint-narrowing",
       "error-iserror",
+      "function-call-apply-thisarg",
       "promise-try",
       "promise-withresolvers",
       "set-methods",
@@ -74,6 +76,7 @@ describe("ServiceNow engine feature matrix", () => {
     }
     assert.equal(featureSupport("set-methods", "es5"), "unsupported");
     assert.equal(featureSupport("array-from-thisarg", "es5"), "unsupported");
+    assert.equal(featureSupport("function-call-apply-thisarg", "es5"), "unsupported");
     assert.equal(featureSupport("bigint-narrowing", "es5"), "unsupported");
     assert.equal(featureSupport("typed-array-factories", "es5"), "disallowed");
     for (const mode of ["compatibility", "es5", "es2021"] as const) {
@@ -88,6 +91,7 @@ describe("ServiceNow engine feature matrix", () => {
       "array-from-thisarg",
       "bigint-narrowing",
       "error-iserror",
+      "function-call-apply-thisarg",
       "date-fraction-digits",
       "promise-try",
       "promise-withresolvers",
