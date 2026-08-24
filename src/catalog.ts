@@ -911,6 +911,12 @@ record.update = localUpdate;`,
           "integration-test",
           "2026-08-24",
         ),
+        metadata.evidenceRecord(
+          "tests/rules/layer3-consumers.test.ts",
+          "Canonical wrapper fixtures distinguish the required synchronous current argument from pre-call escape, receiver replacement, and GlideRecord prototype mutation.",
+          "fixture",
+          "2026-08-24",
+        ),
       ],
       {
         overlaps: [],
@@ -931,6 +937,16 @@ record.update = localUpdate;`,
         filename: "reassigned.br.js",
         code: `current.update();
 current = getOtherRecord();`,
+      },
+      {
+        caseId: "no-br-current-update-method-mutation",
+        kind: "false-negative",
+        description:
+          "A possible current.update or GlideRecord.prototype.update mutation suppresses matching calls throughout the file.",
+        name: "visible update replacement",
+        filename: "mutated-method.br.js",
+        code: `current.update = localUpdate;
+current.update();`,
       },
     ],
     title: "No current.update() in Business Rules",

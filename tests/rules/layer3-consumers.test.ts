@@ -76,6 +76,42 @@ service.now();`,
       FULL_SCRIPT,
     );
   });
+
+  it("keeps canonical current authority temporal and method-specific", () => {
+    assertValid(
+      `(function executeRule(current, previous) {
+  prepare(current);
+  current.update();
+})(current, previous);`,
+      "no-br-current-update",
+      FULL_SCRIPT,
+    );
+    assertValid(
+      `(function executeRule(current, previous) {
+  current.update = localUpdate;
+  current.update();
+})(current, previous);`,
+      "no-br-current-update",
+      FULL_SCRIPT,
+    );
+    assertValid(
+      `(function executeRule(current, previous) {
+  GlideRecord.prototype.update = localUpdate;
+  current.update();
+})(current, previous);`,
+      "no-br-current-update",
+      FULL_SCRIPT,
+    );
+    assertInvalid(
+      `(function executeRule(current, previous) {
+  current.update();
+  prepare(current);
+})(current, previous);`,
+      "no-br-current-update",
+      { messageId: "update" },
+      FULL_SCRIPT,
+    );
+  });
 });
 
 describe("Layer 3 identity-based stateful consumers", () => {

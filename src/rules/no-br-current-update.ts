@@ -58,12 +58,19 @@ export const noBrCurrentUpdate = defineRule({
           canonicalCurrentBindingId !== null &&
           binding?.node === canonicalCurrent &&
           binding.id === canonicalCurrentBindingId &&
-          !file.bindingWrites.isWritten(binding.id);
+          !file.bindingWrites.isWritten(binding.id) &&
+          (!proven || (proven.kind === "current" && !proven.invalid && !proven.escaped));
         if (!directGlobal && !alias && !wrapperParam) return;
         if (file.bindingWrites.hasDynamicScope()) return;
         if (directGlobal && file.mutations.isGlobalAuthorityLost("current")) return;
+        // Calling the canonical synchronous wrapper necessarily passes the
+        // global current object as an argument. The generic mutation index
+        // records that handoff as a possible namespace escape, but the
+        // structural wrapper and temporal provenance above prove this exact
+        // parameter use. Actual receiver/prototype mutation remains fatal.
         if (
-          file.mutations.isGlobalPathAuthorityLost(["current", "update"]) ||
+          (!wrapperParam && file.mutations.isGlobalPathAuthorityLost(["current", "update"])) ||
+          file.mutations.isGlobalPathAuthorityLost(["GlideRecord", "prototype", "update"]) ||
           file.mutations.isObjectPropertyAuthorityLost(member.object, "update")
         ) {
           return;
