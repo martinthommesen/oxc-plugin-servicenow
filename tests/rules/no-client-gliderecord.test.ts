@@ -38,11 +38,16 @@ new global["GlideRecordSecure"]("task");`,
   it("flags direct and destructured constructor aliases", () => {
     assertInvalid(
       `var GR = GlideRecord;
+const Alias = GR;
 const { GlideRecordSecure: GRS } = global;
-new GR("incident");
-new GRS("task");`,
+Alias("incident");
+new GRS("task");
+function onLoad() {
+  var InnerGR = GlideRecord;
+  new InnerGR("problem");
+}`,
       RULE,
-      { messageId: "glideRecord", count: 2 },
+      { messageId: "glideRecord", count: 3 },
       { filename: "form.client.js", settings: { scope: "scoped" } },
     );
   });
@@ -53,7 +58,149 @@ new GRS("task");`,
 GR = LocalRecord;
 new GR("incident");`,
       RULE,
-      { filename: "form.client.js" },
+      { filename: "form.client.js", settings: { scope: "scoped" } },
+    );
+  });
+
+  it("does not merge mutually exclusive constructor assignments", () => {
+    const options = { filename: "form.client.js", settings: { scope: "scoped" as const } };
+    assertValid(
+      `var GR;
+if (condition) {
+  GR = LocalRecord;
+} else {
+  GR = GlideRecord;
+}
+new GR("incident");`,
+      RULE,
+      options,
+    );
+    assertValid(
+      `var GR;
+if (condition) {
+  GR = GlideRecord;
+} else {
+  GR = LocalRecord;
+}
+new GR("incident");`,
+      RULE,
+      options,
+    );
+  });
+
+  it("stays silent for mutable aliases even when every branch selects a platform constructor", () => {
+    assertValid(
+      `var GR;
+if (condition) {
+  GR = GlideRecord;
+} else {
+  GR = GlideRecordSecure;
+}
+new GR("incident");`,
+      RULE,
+      { filename: "form.client.js", settings: { scope: "scoped" } },
+    );
+  });
+
+  it("requires an alias initializer to dominate the call in one execution body", () => {
+    assertValid(
+      `run();
+var GR = GlideRecord;
+function run() {
+  new GR("incident");
+}`,
+      RULE,
+      { filename: "form.client.js", settings: { scope: "scoped" } },
+    );
+    assertValid(
+      `if (condition) {
+  var ConditionalGR = GlideRecord;
+}
+new ConditionalGR("incident");`,
+      RULE,
+      { filename: "form.client.js", settings: { scope: "scoped" } },
+    );
+  });
+
+  it("distinguishes local eval from dynamic global scope", () => {
+    assertInvalid(
+      `function eval() {}
+var GR = GlideRecord;
+eval("GR = LocalRecord");
+new GR("incident");`,
+      RULE,
+      { messageId: "glideRecord" },
+      { filename: "form.client.js", settings: { scope: "scoped" } },
+    );
+    assertValid(
+      `var GR = GlideRecord;
+eval("GR = LocalRecord");
+new GR("incident");`,
+      RULE,
+      { filename: "form.client.js", settings: { scope: "scoped" } },
+    );
+  });
+
+  it("stays silent when the platform constructor can be replaced", () => {
+    const options = { filename: "form.client.js", settings: { scope: "scoped" as const } };
+    assertValid(
+      `GlideRecord = LocalRecord;
+new GlideRecord("incident");`,
+      RULE,
+      options,
+    );
+    assertValid(
+      `global.GlideRecord = LocalRecord;
+new GlideRecord("incident");
+new global.GlideRecord("task");`,
+      RULE,
+      options,
+    );
+    assertValid(
+      `global = localNamespace;
+new global.GlideRecord("incident");`,
+      RULE,
+      options,
+    );
+    assertValid(
+      `Object.defineProperty(global, "GlideRecord", { value: LocalRecord });
+new GlideRecord("incident");`,
+      RULE,
+      options,
+    );
+  });
+
+  it("treats escaping the namespace, but not its constructor value, as a possible mutation", () => {
+    assertValid(
+      `prepare(global);
+new GlideRecord("incident");
+new global.GlideRecord("task");`,
+      RULE,
+      { filename: "form.client.js", settings: { scope: "scoped" } },
+    );
+    assertInvalid(
+      `prepare(global.GlideRecord);
+new global.GlideRecord("incident");`,
+      RULE,
+      { messageId: "glideRecord" },
+      { filename: "form.client.js", settings: { scope: "scoped" } },
+    );
+  });
+
+  it("rejects destructuring defaults and shadowed namespaces", () => {
+    const options = { filename: "form.client.js", settings: { scope: "scoped" as const } };
+    assertValid(
+      `const { GlideRecord: GR = LocalRecord } = global;
+new GR("incident");`,
+      RULE,
+      options,
+    );
+    assertValid(
+      `function run(global) {
+  new global.GlideRecord("incident");
+}`,
+      RULE,
+      options,
     );
   });
 

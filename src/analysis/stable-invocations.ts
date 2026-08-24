@@ -1,6 +1,6 @@
 import type { ESTree } from "@oxlint/plugins";
 import { isNode, unwrapExpression, walk } from "../utils/ast.js";
-import type { FileBindings } from "./bindings.js";
+import { forEachResolvedPatternBinding, type FileBindings } from "./bindings.js";
 import { resolveConstValue } from "./members.js";
 
 const MAX_STABLE_CALL_SITES = 20_000;
@@ -30,49 +30,6 @@ function executesImmediately(node: ImmediateFunction): boolean {
   return node.type === "ArrowFunctionExpression" || !node.generator;
 }
 
-function recordWrittenPattern(
-  target: unknown,
-  bindings: FileBindings,
-  ancestors: readonly ESTree.Node[],
-  written: Set<number>,
-): void {
-  const node = unwrapExpression(target);
-  if (!isNode(node)) return;
-  if (node.type === "Identifier") {
-    const binding = bindings.resolve(node.name, node, ancestors);
-    if (binding) written.add(binding.id);
-    return;
-  }
-  if (node.type === "AssignmentPattern") {
-    recordWrittenPattern(node.left, bindings, ancestors, written);
-    return;
-  }
-  if (node.type === "RestElement") {
-    recordWrittenPattern(node.argument, bindings, ancestors, written);
-    return;
-  }
-  if (node.type === "ArrayPattern") {
-    for (const element of node.elements) {
-      recordWrittenPattern(element, bindings, ancestors, written);
-    }
-    return;
-  }
-  if (node.type === "ObjectPattern") {
-    for (const property of node.properties) {
-      if (property.type === "RestElement") {
-        recordWrittenPattern(property.argument, bindings, ancestors, written);
-      } else {
-        recordWrittenPattern(
-          (property as ESTree.ObjectProperty).value,
-          bindings,
-          ancestors,
-          written,
-        );
-      }
-    }
-  }
-}
-
 /**
  * Index local functions whose runtime identity is stable enough to expand at
  * one direct call site. Multiple call sites stay unknown because the shared
@@ -87,31 +44,26 @@ export function analyzeStableInvocations(
   const ancestors: ESTree.Node[] = [];
   let hasDynamicScope = false;
   let callBudgetExceeded = false;
+  const recordWrittenPattern = (target: unknown): void => {
+    forEachResolvedPatternBinding(target, bindings, ancestors, (binding) => {
+      written.add(binding.id);
+    });
+  };
 
   walk(
     program,
     {
       AssignmentExpression(node) {
-        recordWrittenPattern(
-          (node as ESTree.AssignmentExpression).left,
-          bindings,
-          ancestors,
-          written,
-        );
+        recordWrittenPattern((node as ESTree.AssignmentExpression).left);
       },
       UpdateExpression(node) {
-        recordWrittenPattern(
-          (node as ESTree.UpdateExpression).argument,
-          bindings,
-          ancestors,
-          written,
-        );
+        recordWrittenPattern((node as ESTree.UpdateExpression).argument);
       },
       ForInStatement(node) {
-        recordWrittenPattern((node as ESTree.ForInStatement).left, bindings, ancestors, written);
+        recordWrittenPattern((node as ESTree.ForInStatement).left);
       },
       ForOfStatement(node) {
-        recordWrittenPattern((node as ESTree.ForOfStatement).left, bindings, ancestors, written);
+        recordWrittenPattern((node as ESTree.ForOfStatement).left);
       },
       WithStatement() {
         hasDynamicScope = true;

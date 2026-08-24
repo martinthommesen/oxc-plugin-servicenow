@@ -1,5 +1,5 @@
 import type { Context, ESTree } from "@oxlint/plugins";
-import { getName, isNode, walk } from "../utils/ast.js";
+import { getName, isNode, unwrapExpression, walk } from "../utils/ast.js";
 
 export type BindingKind =
   | "var"
@@ -185,6 +185,48 @@ export function collectPatternNames(node: unknown, names: string[]): void {
       return;
     default:
       return;
+  }
+}
+
+/** Visit every lexical binding written by an assignment-compatible pattern. */
+export function forEachResolvedPatternBinding(
+  target: unknown,
+  bindings: FileBindings,
+  ancestors: readonly ESTree.Node[],
+  visit: (binding: LexicalBinding) => void,
+): void {
+  const node = unwrapExpression(target);
+  if (!isNode(node)) return;
+  if (node.type === "Identifier") {
+    const binding = bindings.resolve(node.name, node, ancestors);
+    if (binding) visit(binding);
+    return;
+  }
+  if (node.type === "AssignmentPattern") {
+    forEachResolvedPatternBinding(node.left, bindings, ancestors, visit);
+    return;
+  }
+  if (node.type === "RestElement") {
+    forEachResolvedPatternBinding(node.argument, bindings, ancestors, visit);
+    return;
+  }
+  if (node.type === "ArrayPattern") {
+    for (const element of node.elements) {
+      forEachResolvedPatternBinding(element, bindings, ancestors, visit);
+    }
+    return;
+  }
+  if (node.type === "ObjectPattern") {
+    for (const property of node.properties) {
+      forEachResolvedPatternBinding(
+        property.type === "RestElement"
+          ? property.argument
+          : (property as ESTree.ObjectProperty).value,
+        bindings,
+        ancestors,
+        visit,
+      );
+    }
   }
 }
 

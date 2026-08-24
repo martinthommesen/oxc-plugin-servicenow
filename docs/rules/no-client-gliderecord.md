@@ -1,6 +1,6 @@
 # servicenow/no-client-gliderecord
 
-Client GlideRecord is unsupported in scoped applications. Query on the server with GlideAjax or Scripted REST.
+Proven platform GlideRecord calls are unsupported in scoped client applications. Query on the server with GlideAjax or Scripted REST.
 
 - **Family:** classic
 - **Preset:** recommended
@@ -11,7 +11,7 @@ Client GlideRecord is unsupported in scoped applications. Query on the server wi
 - **Authoring:** classic
 - **Surfaces:** Applies to client, ui-action when those surfaces are known. Unknown surfaces stay silent.
 - **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
-- **Last verified:** 2026-08-22
+- **Last verified:** 2026-08-24
 - **Implementation:** [`src/rules/no-client-gliderecord.ts`](../../src/rules/no-client-gliderecord.ts)
 
 ## Applicability
@@ -60,7 +60,7 @@ function onChange() {
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-boundary: Mixed client/server UI Actions stay silent because the rule cannot classify execution regions. scope-boundary: Global and unknown application scope stay silent because ServiceNow documents the client API in global applications and only marks scoped applications unsupported.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-boundary: Mixed client/server UI Actions stay silent because the rule cannot classify execution regions. scope-boundary: Global and unknown application scope stay silent because ServiceNow documents the client API in global applications and only marks scoped applications unsupported. false-negative: Aliases assigned outside their declaration stay silent even when every visible branch selects a platform constructor; proving that identity requires path-sensitive constructor-value analysis. false-negative: Aliases used from another function body stay silent because source order alone cannot prove that the initializer ran before the function was called.
 
 ## Known false positives
 
@@ -68,7 +68,8 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-b
 
 ## Known false negatives
 
-- None recorded.
+- Aliases assigned outside their declaration stay silent even when every visible branch selects a platform constructor; proving that identity requires path-sensitive constructor-value analysis.
+- Aliases used from another function body stay silent because source order alone cannot prove that the initializer ran before the function was called.
 
 ## Intentional scope boundaries
 
@@ -101,11 +102,16 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-b
   - URL: tests/integration/profiles/invalid/client-gliderecord.client.js
   - Verified by: integration-test
   - Verified at: 2026-08-20
-- **Oxlint and ESLint flag direct, global namespace, computed, aliased, and destructured constructors.**
-  - Verification ID: `rule-evidence-781ecc67`
+- **Oxlint and ESLint flag direct, global namespace, computed, stable aliased, and destructured constructors without leaking mutually exclusive alias assignments.**
+  - Verification ID: `rule-evidence-601c887d`
   - URL: tests/integration/context-contracts.test.ts
   - Verified by: integration-test
-  - Verified at: 2026-08-21
+  - Verified at: 2026-08-24
+- **Adversarial fixtures cover branch order, alias writes and dominance, shadowing, dynamic scope, namespace escape, and visible platform replacement.**
+  - Verification ID: `rule-evidence-759a7da8`
+  - URL: tests/rules/no-client-gliderecord.test.ts
+  - Verified by: fixture
+  - Verified at: 2026-08-24
 
 ## See also
 
