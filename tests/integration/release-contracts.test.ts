@@ -25,6 +25,8 @@ const ERROR_IS_ERROR = `var isPlatformError = Error.isError(value);`;
 const PROMISE_TRY = `var promise = Promise.try(load);`;
 const PROMISE_WITH_RESOLVERS = `var deferred = Promise.withResolvers();`;
 const BIGINT_AS_UINT_N = `var unsigned = BigInt.asUintN(64, -1n);`;
+const ARRAY_FROM_PRIMITIVE_THIS = `var values = Array.from(source, function (value) { return value; }, null);`;
+const ARRAY_FROM_OMITTED_THIS = `var values = Array.from(source, function (value) { return this.normalize(value); });`;
 const MAP = `var cache = new Map();`;
 const SET = `var seen = new Set();`;
 const SET_UNION = `const values = new Set(left);
@@ -187,6 +189,50 @@ const contracts: readonly ReleaseContract[] = [
     code: PROMISE_WITH_RESOLVERS,
     rule: "no-unsupported-static-methods",
     settings: { release: "australia", javascriptMode: "es2021" },
+  },
+  {
+    id: "zurich-array-from-primitive-this",
+    filename: "zurich-array-from-primitive-this.server.js",
+    code: ARRAY_FROM_PRIMITIVE_THIS,
+    rule: "no-incorrect-array-from-thisarg",
+    settings: { release: "zurich", javascriptMode: "es2021" },
+    messageId: "primitive",
+  },
+  {
+    id: "australia-array-from-primitive-this",
+    filename: "australia-array-from-primitive-this.server.js",
+    code: ARRAY_FROM_PRIMITIVE_THIS,
+    rule: "no-incorrect-array-from-thisarg",
+    settings: { release: "australia", javascriptMode: "es2021" },
+  },
+  {
+    id: "omitted-release-array-from-primitive-this",
+    filename: "omitted-array-from-primitive-this.server.js",
+    code: ARRAY_FROM_PRIMITIVE_THIS,
+    rule: "no-incorrect-array-from-thisarg",
+    settings: { javascriptMode: "es2021" },
+  },
+  {
+    id: "zurich-array-from-omitted-this",
+    filename: "zurich-array-from-omitted-this.server.js",
+    code: ARRAY_FROM_OMITTED_THIS,
+    rule: "no-incorrect-array-from-thisarg",
+    settings: { release: "zurich", javascriptMode: "es2021" },
+    messageId: "omitted",
+  },
+  {
+    id: "australia-array-from-omitted-this",
+    filename: "australia-array-from-omitted-this.server.js",
+    code: ARRAY_FROM_OMITTED_THIS,
+    rule: "no-incorrect-array-from-thisarg",
+    settings: { release: "australia", javascriptMode: "es2021" },
+  },
+  {
+    id: "omitted-release-array-from-omitted-this",
+    filename: "omitted-array-from-omitted-this.server.js",
+    code: ARRAY_FROM_OMITTED_THIS,
+    rule: "no-incorrect-array-from-thisarg",
+    settings: { javascriptMode: "es2021" },
   },
   {
     id: "zurich-bigint-asuintn",

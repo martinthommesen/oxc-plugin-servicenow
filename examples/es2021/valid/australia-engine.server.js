@@ -3,5 +3,10 @@ const bytes = Uint8Array.of(1, 2, 3);
 const ownsNumber = Object.hasOwn(current, "number");
 const combined = new Set(["incident"]).union(new Set(["task"]));
 const unsigned = BigInt.asUintN(64, -1n);
+const copied = Array.from([1, 2, 3], function (value) {
+  return value;
+}, null);
 
-gs.info(`${ownsNumber}:${values.length}:${bytes.length}:${combined.size}:${unsigned}`);
+gs.info(
+  `${ownsNumber}:${values.length}:${bytes.length}:${combined.size}:${unsigned}:${copied.length}`,
+);

@@ -11,6 +11,7 @@ import { SUPPORTED_SERVICENOW_RELEASES } from "../src/settings/index.js";
 describe("ServiceNow engine feature matrix", () => {
   it("has complete evidence and mode cells for every reviewed release", () => {
     const releaseUpdateFeatures = new Set([
+      "array-from-thisarg",
       "bigint-narrowing",
       "date-fraction-digits",
       "error-iserror",
@@ -56,6 +57,7 @@ describe("ServiceNow engine feature matrix", () => {
     }
     assert.equal(featureSupport("error-iserror", "es5"), "unsupported");
     for (const id of [
+      "array-from-thisarg",
       "bigint-narrowing",
       "error-iserror",
       "promise-try",
@@ -71,6 +73,7 @@ describe("ServiceNow engine feature matrix", () => {
       assert.equal(featureSupport(id, "es5"), "disallowed");
     }
     assert.equal(featureSupport("set-methods", "es5"), "unsupported");
+    assert.equal(featureSupport("array-from-thisarg", "es5"), "unsupported");
     assert.equal(featureSupport("bigint-narrowing", "es5"), "unsupported");
     assert.equal(featureSupport("typed-array-factories", "es5"), "disallowed");
     for (const mode of ["compatibility", "es5", "es2021"] as const) {
@@ -82,6 +85,7 @@ describe("ServiceNow engine feature matrix", () => {
 
   it("attributes Australia-added features to the official engine update", () => {
     for (const id of [
+      "array-from-thisarg",
       "bigint-narrowing",
       "error-iserror",
       "date-fraction-digits",

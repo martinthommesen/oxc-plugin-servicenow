@@ -25,6 +25,7 @@ export type EngineFeatureId =
   | "async-await"
   | "bigint"
   | "bigint-narrowing"
+  | "array-from-thisarg"
   | "at-method"
   | "typed-arrays"
   | "typed-array-factories"
@@ -262,6 +263,14 @@ export const ENGINE_FEATURES: Readonly<Record<EngineFeatureId, EngineFeature>> =
   "bigint-narrowing": australiaUpdateFeature(
     "bigint-narrowing",
     "Spec-correct BigInt.asUintN / BigInt.asIntN narrowing",
+    {
+      zurich: ["unsupported", "unsupported"],
+      australia: ["supported", "unsupported"],
+    },
+  ),
+  "array-from-thisarg": australiaUpdateFeature(
+    "array-from-thisarg",
+    "Spec-correct Array.from mapper thisArg",
     {
       zurich: ["unsupported", "unsupported"],
       australia: ["supported", "unsupported"],
