@@ -30,6 +30,7 @@ export type EngineFeatureId =
   | "error-iserror"
   | "promise-try"
   | "promise-withresolvers"
+  | "set-methods"
   | "global-this"
   | "function-tostring-method-source"
   | "proxy"
@@ -205,6 +206,10 @@ export const ENGINE_FEATURES: Readonly<Record<EngineFeatureId, EngineFeature>> =
       australia: ["supported", "disallowed"],
     },
   ),
+  "set-methods": australiaUpdateFeature("set-methods", "Set composition methods", {
+    zurich: ["unsupported", "unsupported"],
+    australia: ["supported", "unsupported"],
+  }),
   "global-this": unchanged("global-this", "globalThis", "supported", "disallowed"),
   "function-tostring-method-source": feature(
     "function-tostring-method-source",

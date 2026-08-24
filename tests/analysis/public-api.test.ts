@@ -144,6 +144,28 @@ describe("public analysis API", () => {
     assert.equal(query.isPlatformMember(aliasedMember, "DataView", "getBigInt64"), false);
   });
 
+  it("keeps rule-specific Set identity out of the public provenance contract", () => {
+    const code = "const values = new Set();\nvalues.union(other);\nconst proto = Set.prototype;";
+    const context = testContext(code, "set-methods.script-include.js");
+    const query = analyzeProvenance(context);
+    const values = lastIdentifier(context.sourceCode.ast as ESTree.Node, "values");
+    assert.equal(query.ofIdentifier(values), null);
+
+    let prototype: ESTree.MemberExpression | undefined;
+    walk(
+      context.sourceCode.ast as ESTree.Node,
+      {
+        MemberExpression(node) {
+          const member = node as ESTree.MemberExpression;
+          if (getName(member.object) === "Set") prototype = member;
+        },
+      },
+      [],
+    );
+    assert.ok(prototype);
+    assert.equal(query.isPlatformMember(prototype, "Set", "prototype"), true);
+  });
+
   it("analyzes an explicit AST independently from the host source tree", () => {
     resetAnalysisPassCount();
     const context = testContext(

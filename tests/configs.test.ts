@@ -75,6 +75,8 @@ describe("configs", () => {
       assert.equal(rules["servicenow/no-typed-arrays"], "error");
       assert.equal(rules["servicenow/no-unsupported-syntax"], "error");
     }
+    assert.equal(classicEs5Rules["servicenow/no-unsupported-set-methods"], undefined);
+    assert.equal(es2021Rules["servicenow/no-unsupported-set-methods"], "error");
     assert.equal(recommendedRules["servicenow/no-object-hasown"], undefined);
   });
 

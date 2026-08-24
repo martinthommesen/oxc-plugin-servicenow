@@ -393,5 +393,6 @@ describe("path-state evaluator", () => {
     assert.equal(ctorProvenanceKind("toString"), null);
     assert.equal(ctorProvenanceKind("constructor"), null);
     assert.equal(ctorProvenanceKind("GlideRecord"), "GlideRecord");
+    assert.equal(ctorProvenanceKind("Set"), "Set");
   });
 });
