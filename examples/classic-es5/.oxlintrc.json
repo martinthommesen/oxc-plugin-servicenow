@@ -22,6 +22,7 @@
     "servicenow/no-weak-references": "error",
     "servicenow/no-weak-collections": "error",
     "servicenow/no-object-hasown": "error",
+    "servicenow/no-unsupported-date-fraction": "error",
     "servicenow/no-unsupported-static-methods": "error",
     "servicenow/no-typed-arrays": "error",
     "servicenow/no-proxy": "error",

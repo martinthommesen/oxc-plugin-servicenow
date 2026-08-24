@@ -9,6 +9,7 @@
 - New `no-object-hasown` rule for Zurich and Compatibility/ES5 scripts. Australia ES2021 correctly permits `Object.hasOwn()`.
 - New `no-unsupported-static-methods` rule models the Australia ES2021 additions `Error.isError()`, `Promise.try()`, and `Promise.withResolvers()` with release-aware, binding-aware, guard-aware diagnostics.
 - New `no-unsupported-set-methods` rule covers all seven Set composition methods added in Australia ES2021, using path-sensitive receiver identity, platform-method authority, polyfill suppression, and receiver-specific availability guards.
+- New `no-unsupported-date-fraction` rule detects otherwise valid static ISO timestamps whose fractional-second length works in every Australia JavaScript mode but not Zurich.
 - `no-typed-arrays` now models Australia BigInt64 array support and detects unsupported constructors, static `from`/`of` factories, and documented `DataView` BigInt getters through proven object aliases.
 
 ### Fixed
