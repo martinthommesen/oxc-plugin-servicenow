@@ -38,6 +38,8 @@ describe(RULE, () => {
       `const values = new Set(left); const alias = values; alias.isSubsetOf(right);`,
       `const values = new Set(left); let alias; if (condition) alias = values; else alias = values; alias.isSupersetOf(right);`,
       `const values = new Set(left); if (condition) values.isDisjointFrom(right);`,
+      `const values = new Set(); function later() { return values.union(other); } later();`,
+      `const values = new Set(); (() => values.intersection(other))();`,
     ]) {
       assertInvalid(code, RULE, { messageId: "unsupported" }, { settings: ZURICH });
     }
@@ -53,7 +55,8 @@ describe(RULE, () => {
       `const values = condition ? new Set() : customCollection; values.union(other);`,
       `createSet().union(other);`,
       `const values = new Set(); installPolyfills(values); values.union(other);`,
-      `const values = new Set(); function later() { return values.union(other); } later();`,
+      `const values = new Set(); function later() { return values.union(other); }`,
+      `const values = new Set(); function later() { return values.union(other); } install(later); later();`,
       `class OrderedSet extends Set {} new OrderedSet().union(other);`,
       `eval(source); new Set().union(other);`,
       `new Set()[method](other);`,

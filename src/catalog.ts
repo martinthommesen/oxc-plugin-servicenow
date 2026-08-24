@@ -1867,7 +1867,7 @@ Object.hasOwn(record, "number");`,
         ),
         metadata.evidenceRecord(
           "tests/rules/no-unsupported-set-methods.test.ts",
-          "Fixtures cover all seven methods, release selection, object identity, aliases, joins, shadowing, escape, mutation, availability guards, and unsupported contexts.",
+          "Fixtures cover all seven methods, release selection, object identity, aliases, joins, directly invoked and escaping closures, shadowing, mutation, availability guards, and unsupported contexts.",
           "fixture",
           "2026-08-24",
         ),

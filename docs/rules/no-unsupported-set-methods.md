@@ -94,8 +94,8 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-n
   - URL: https://github.com/mozilla/rhino/pull/2029
   - Verified by: manual
   - Verified at: 2026-08-24
-- **Fixtures cover all seven methods, release selection, object identity, aliases, joins, shadowing, escape, mutation, availability guards, and unsupported contexts.**
-  - Verification ID: `rule-evidence-107056dc`
+- **Fixtures cover all seven methods, release selection, object identity, aliases, joins, directly invoked and escaping closures, shadowing, mutation, availability guards, and unsupported contexts.**
+  - Verification ID: `rule-evidence-fe4bc740`
   - URL: tests/rules/no-unsupported-set-methods.test.ts
   - Verified by: fixture
   - Verified at: 2026-08-24

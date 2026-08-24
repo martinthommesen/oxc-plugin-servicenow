@@ -19,7 +19,7 @@ export interface Provenance {
   kind: ProvenanceKind;
   /** Binding is no longer a reliable alias of the constructed object. */
   invalid: boolean;
-  /** Passed to a helper, stored, or closed over by a nested function. */
+  /** Passed to unknown code, stored externally, or captured by an escaping nested function. */
   escaped: boolean;
   queryState: QueryState;
   /** `setLimit` / `chooseWindow` was seen on this object. */
