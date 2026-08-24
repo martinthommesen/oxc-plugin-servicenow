@@ -11,6 +11,7 @@
 - New `no-unsupported-set-methods` rule covers all seven Set composition methods added in Australia ES2021, using path-sensitive receiver identity, platform-method authority, polyfill suppression, and receiver-specific availability guards.
 - New `no-unsupported-date-fraction` rule detects otherwise valid static ISO timestamps whose fractional-second length works in every Australia JavaScript mode but not Zurich.
 - New `no-map-set` rule reports binding-proven `Map` and `Set` calls in Compatibility and ES5 Standards mode, where both Zurich and Australia document their basic functionality as Not Supported.
+- New `no-incorrect-bigint-asuintn` rule identifies literal `BigInt.asUintN()` calls whose negative-result bug is fixed by Australia, while suppressing dynamic operands and non-native implementations.
 - `no-typed-arrays` now models Australia BigInt64 array support and detects unsupported constructors, static `from`/`of` factories, and documented `DataView` BigInt getters through proven object aliases.
 
 ### Fixed
