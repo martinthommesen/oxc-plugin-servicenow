@@ -89,9 +89,9 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-n
   - URL: https://www.servicenow.com/docs/r/api-reference/scripts/updates-javascript-engine.html
   - Verified by: manual
   - Verified at: 2026-08-24
-- **The linked Rhino implementation identifies intersection, union, difference, symmetricDifference, isSubsetOf, isSupersetOf, and isDisjointFrom as the added Set methods.**
-  - Verification ID: `rule-evidence-1a837e87`
-  - URL: https://github.com/mozilla/rhino/pull/2029
+- **The official Australia update links Rhino PR 2029, whose implementation identifies intersection, union, difference, symmetricDifference, isSubsetOf, isSupersetOf, and isDisjointFrom as the added Set methods.**
+  - Verification ID: `rule-evidence-0820b7c9`
+  - URL: https://www.servicenow.com/docs/r/api-reference/scripts/updates-javascript-engine.html
   - Verified by: manual
   - Verified at: 2026-08-24
 - **Fixtures cover all seven methods, release selection, object identity, aliases, joins, directly invoked and escaping closures, shadowing, mutation, availability guards, and unsupported contexts.**
