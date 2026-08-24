@@ -147,6 +147,7 @@ export const AUSTRALIA_RULE_REVIEWS = Object.freeze({
   "no-async-await": { status: "reviewed", basis: ["engine-matrix"] },
   "no-bigint": { status: "reviewed", basis: ["engine-matrix"] },
   "no-at-method": { status: "reviewed", basis: ["engine-matrix"] },
+  "no-map-set": { status: "reviewed", basis: ["engine-matrix"] },
   "no-weak-references": { status: "reviewed", basis: ["engine-matrix"] },
   "no-weak-collections": { status: "reviewed", basis: ["engine-matrix"] },
   "no-object-hasown": { status: "reviewed", basis: ["engine-matrix"] },

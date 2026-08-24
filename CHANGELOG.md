@@ -10,6 +10,7 @@
 - New `no-unsupported-static-methods` rule models the Australia ES2021 additions `Error.isError()`, `Promise.try()`, and `Promise.withResolvers()` with release-aware, binding-aware, guard-aware diagnostics.
 - New `no-unsupported-set-methods` rule covers all seven Set composition methods added in Australia ES2021, using path-sensitive receiver identity, platform-method authority, polyfill suppression, and receiver-specific availability guards.
 - New `no-unsupported-date-fraction` rule detects otherwise valid static ISO timestamps whose fractional-second length works in every Australia JavaScript mode but not Zurich.
+- New `no-map-set` rule reports binding-proven `Map` and `Set` calls in Compatibility and ES5 Standards mode, where both Zurich and Australia document their basic functionality as Not Supported.
 - `no-typed-arrays` now models Australia BigInt64 array support and detects unsupported constructors, static `from`/`of` factories, and documented `DataView` BigInt getters through proven object aliases.
 
 ### Fixed
@@ -19,6 +20,7 @@
 - `no-bigint` now resolves stable same-execution call aliases, requires safe alias capture, honors dominating availability guards and visible callable polyfills, and invalidates guards after modeled writes.
 - `no-promise` and `no-proxy` now resolve stable same-execution constructor and static-method owner aliases, require safe bare-alias capture, honor dominating availability guards, invalidate guards after modeled built-in writes, and avoid attributing visible callable polyfills or dynamic-scope replacements to ServiceNow.
 - `no-weak-references` and `no-weak-collections` now resolve stable same-execution constructor aliases, require bare aliases to be captured inside an availability guard, invalidate guards after modeled built-in writes, and distinguish callable polyfills from object, array, and other non-callable replacements.
+- `no-weak-collections` documentation no longer recommends `Map` or `Set` as a Compatibility/ES5 replacement; its message and example now use an ES5-compatible representation.
 - Private instance fields, methods, and accessors now report the documented ES2021 Not Supported status for both Zurich and Australia; private static members remain Supported.
 - Omitting `settings.servicenow.release` now keeps release-dependent facts unknown instead of silently selecting Zurich.
 - Australia support is fail-closed: every catalog rule requires an explicit, release-keyed review basis before a new release can appear in generated applicability metadata.
