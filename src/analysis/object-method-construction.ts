@@ -20,6 +20,21 @@ interface ObjectRecord {
   safe: boolean;
 }
 
+function numericPropertyKey(node: unknown): string | null {
+  const key = unwrapExpression(node);
+  if (!isNode(key) || key.type !== "Literal") return null;
+  const value = (key as { value?: unknown }).value;
+  return typeof value === "number" && Number.isFinite(value) ? String(value) : null;
+}
+
+function selectedMemberName(member: ESTree.MemberExpression): string | null {
+  return staticPropertyName(member) ?? numericPropertyKey(member.property);
+}
+
+function selectedObjectPropertyName(property: ESTree.ObjectProperty): string | null {
+  return propertyKeyName(property) ?? numericPropertyKey(property.key);
+}
+
 /** Resolve a same-execution const alias chain and reject any written alias. */
 function stableAliasTerminal(
   node: unknown,
@@ -61,7 +76,7 @@ function finalObjectMethod(object: ESTree.ObjectExpression, name: string): ESTre
       continue;
     }
     const property = item as ESTree.ObjectProperty;
-    const propertyName = propertyKeyName(property);
+    const propertyName = selectedObjectPropertyName(property);
     if (propertyName === null) {
       method = null;
       continue;
@@ -93,8 +108,8 @@ export function findObjectMethodConstructions(
       const callee = stableAliasTerminal(construction.callee, bindings, bindingWrites);
       if (!callee || callee.type !== "MemberExpression") return;
       const member = callee as ESTree.MemberExpression;
-      const method = staticPropertyName(member);
-      if (!method) return;
+      const method = selectedMemberName(member);
+      if (method === null) return;
       const object = resolveDominatingConstValue(member.object, bindings);
       if (!object || object.type !== "ObjectExpression") return;
       if (!finalObjectMethod(object, method)) return;
@@ -155,12 +170,6 @@ export function findObjectMethodConstructions(
         if (!isValueReference(node, ancestors)) return;
         const name = (node as { readonly name: string }).name;
         const binding = bindings.resolve(name, node, ancestors);
-        if (
-          binding?.node.type === "VariableDeclarator" &&
-          (binding.node as ESTree.VariableDeclarator).id === node
-        ) {
-          return;
-        }
         const record = binding ? recordByBinding.get(binding.id) : undefined;
         if (record && !record.allowedReferences.has(node)) record.safe = false;
       },

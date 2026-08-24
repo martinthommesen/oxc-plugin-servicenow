@@ -10,6 +10,8 @@ describe(RULE, () => {
     for (const code of [
       `new ({ create() {} }).create();`,
       `new ({ ["create"]() {} })["create"]();`,
+      `new ({ ""() {} })[""]();`,
+      `new ({ 0() {} })[0]();`,
       `const definitions = { create() {} };
 new definitions.create();`,
       `const definitions = { *create() { yield 1; } };

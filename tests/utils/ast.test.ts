@@ -68,6 +68,13 @@ function parentReferences(source: string, parentType: string, name: string): boo
 }
 
 describe("AST value references", () => {
+  it("does not treat variable declaration identifiers as value reads", () => {
+    assert.deepEqual(parentReferences("const value = 1;", "VariableDeclarator", "value"), [false]);
+    assert.deepEqual(parentReferences("const alias = value;", "VariableDeclarator", "value"), [
+      true,
+    ]);
+  });
+
   it("counts shorthand property values as reads", () => {
     assert.deepEqual(
       parentReferences("const value = 1; const record = { value };", "Property", "value"),
