@@ -42,10 +42,26 @@ export const BUSINESS_RULE_FILE_GLOBS = scriptGlobs([
   "**/src/br/**/*",
 ]);
 
+export const ACL_FILE_GLOBS = scriptGlobs([
+  "**/*.acl",
+  "**/*access-control*",
+  "**/*access_control*",
+  "**/*accesscontrol*",
+  "**/sys_security_acl*",
+  "**/acl/**/*",
+  "**/acls/**/*",
+  "**/access-control/**/*",
+  "**/access-controls/**/*",
+  "**/access_control/**/*",
+  "**/access_controls/**/*",
+]);
+
 export const CLIENT_FILE =
   /(?:^|[-_.])(?:client[-_.]?script|catalog[-_.]?client|ui[-_.]?script|on[-_.]?change|on[-_.]?load|on[-_.]?submit|ui[-_.]?policy)(?=[-_.]|$)|^(?:sys_script_client|catalog_script_client)(?=[-_.]|$)|(?:^|[-_.])(?:client|cs)(?=[-_.]|$)/i;
 export const BR_FILE =
   /(?:^|[-_.])business[-_.]?rule(?=[-_.]|$)|(?:^|[-_.])br(?=\.[cm]?js$)|^sys_script\.[cm]?js$/i;
+export const ACL_FILE =
+  /(?:^|[-_.])(?:access[-_.]?controls?|acl)(?=[-_.]|$)|^sys_security_acl(?=[-_.]|$)/i;
 export const SI_FILE =
   /(?:^|[-_.])script[-_.]?include(?=[-_.]|$)|(?:^|[-_.])si(?=\.[cm]?js$)|^sys_script_include(?=[-_.]|$)/i;
 export const UI_ACTION_FILE =
@@ -58,6 +74,7 @@ export const SERVER_FILE = /(?:^|[-_.])server(?=\.[cm]?js$)/i;
 
 const CLIENT_DIR = /(?:^|\/)client(?:\/|$)/i;
 const BR_DIR = /(?:^|\/)(?:br|business[-_]?rules?)(?:\/|$)/i;
+const ACL_DIR = /(?:^|\/)(?:acls?|access[-_]?controls?)(?:\/|$)/i;
 const SI_DIR = /(?:^|\/)(?:script[-_]?includes?|si)(?:\/|$)/i;
 const UI_ACTION_DIR = /(?:^|\/)(?:ui[-_]?actions?|ua)(?:\/|$)/i;
 const SCHEDULED_DIR = /(?:^|\/)(?:scheduled[-_]?scripts?|ss)(?:\/|$)/i;
@@ -90,6 +107,7 @@ export function surfacesFromFilename(filename: string): ScriptSurface[] {
   const surfaces = new Set<ScriptSurface>();
   if (UI_ACTION_FILE.test(file) || UI_ACTION_DIR.test(path)) surfaces.add("ui-action");
   if (CLIENT_FILE.test(file) || CLIENT_DIR.test(path)) surfaces.add("client");
+  if (ACL_FILE.test(file) || ACL_DIR.test(path)) surfaces.add("acl");
   if (BR_FILE.test(file) || BR_DIR.test(path)) surfaces.add("business-rule");
   if (SI_FILE.test(file) || SI_DIR.test(path)) surfaces.add("script-include");
   if (SCHEDULED_FILE.test(file) || SCHEDULED_DIR.test(path)) surfaces.add("scheduled-script");
@@ -103,7 +121,9 @@ export function surfacesFromFilename(filename: string): ScriptSurface[] {
   if (
     surfaces.has("server") &&
     [...surfaces].some((surface) =>
-      ["business-rule", "script-include", "scheduled-script", "fix-script"].includes(surface),
+      ["acl", "business-rule", "script-include", "scheduled-script", "fix-script"].includes(
+        surface,
+      ),
     )
   ) {
     surfaces.delete("server");

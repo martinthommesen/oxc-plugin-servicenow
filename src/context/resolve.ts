@@ -287,6 +287,7 @@ export function appliesOnSurface(
 }
 
 const SERVER_ONLY_SURFACES: readonly ScriptSurface[] = [
+  "acl",
   "business-rule",
   "script-include",
   "server",

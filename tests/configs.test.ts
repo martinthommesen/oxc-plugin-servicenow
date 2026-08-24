@@ -6,6 +6,7 @@ import { describe, it } from "node:test";
 import { recommendedOxfmtConfig } from "../src/oxfmt/index.js";
 import { ruleCatalog } from "../src/catalog.js";
 import {
+  aclRules,
   classicEs5Rules,
   es2021Rules,
   policyRules,
@@ -43,6 +44,7 @@ describe("configs", () => {
     assert.equal(recommendedRules["servicenow/no-unfiltered-gliderecord-bulk-operation"], "warn");
     assert.equal(recommendedRules["servicenow/no-display-value-date-comparison"], undefined);
     assert.equal(recommendedRules["servicenow/no-gliderecord-query-in-loop"], undefined);
+    assert.equal(recommendedRules["servicenow/no-gliderecord-query-in-acl"], undefined);
     assert.equal(recommendedRules["servicenow/no-system-query-bypass"], undefined);
     assert.equal(recommendedRules["servicenow/no-hardcoded-table-names"], undefined);
     assert.equal(recommendedRules["servicenow/validate-gliderecord-calls"], undefined);
@@ -56,6 +58,7 @@ describe("configs", () => {
     assert.equal(strictRules["servicenow/prefer-glideaggregate"], "warn");
     assert.equal(strictRules["servicenow/no-display-value-date-comparison"], "warn");
     assert.equal(strictRules["servicenow/no-gliderecord-query-in-loop"], "warn");
+    assert.equal(strictRules["servicenow/no-gliderecord-query-in-acl"], "warn");
     assert.equal(strictRules["servicenow/no-system-query-bypass"], undefined);
     assert.equal(strictRules["servicenow/no-packages-calls"], undefined);
     assert.equal(policyRules["servicenow/no-packages-calls"], "warn");
@@ -72,6 +75,8 @@ describe("configs", () => {
 
   it("security is opt-in and warn-only", () => {
     assert.equal(securityRules["servicenow/no-system-query-bypass"], "warn");
+    assert.equal(securityRules["servicenow/no-gliderecord-query-in-acl"], "warn");
+    assert.equal(aclRules["servicenow/no-gliderecord-query-in-acl"], "warn");
     assert.equal(recommendedRules["servicenow/no-system-query-bypass"], undefined);
   });
 
@@ -83,6 +88,7 @@ describe("configs", () => {
         item.files.some((file) => file.includes(".server.js")),
       ),
     );
+    assert.ok(recommendedOxfmtConfig.overrides.some((item) => item.files.includes("**/*.acl.js")));
     assert.ok(
       recommendedOxfmtConfig.overrides.some((item) =>
         ["**/*.ui-action.js", "**/*.client.ui-action.js", "**/*.server.ui-action.js"].every(

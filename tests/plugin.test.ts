@@ -139,6 +139,12 @@ describe("plugin export", () => {
     assert.ok(configs.flat.client.files.includes("**/*.client.ui-action.js"));
   });
 
+  it("the ACL flat config selects ACL export names and supplies the ACL surface", () => {
+    assert.ok(configs.flat.acl.files.includes("**/*.acl.js"));
+    assert.ok(configs.flat.acl.files.includes("**/sys_security_acl*.js"));
+    assert.deepEqual(configs.flat.acl.settings.servicenow.surfaces, ["acl"]);
+  });
+
   it("catalog fixable and hasSuggestions match rule meta and real output", () => {
     for (const entry of ruleCatalog) {
       const rec = rules[entry.name] as {

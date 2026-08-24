@@ -39,6 +39,7 @@
     "servicenow/prefer-now-include": "warn",
     "servicenow/fluent-naming-convention": "warn",
     "servicenow/no-display-value-date-comparison": "warn",
+    "servicenow/no-gliderecord-query-in-acl": "warn",
     "servicenow/no-gliderecord-query-in-loop": "warn",
     "servicenow/prefer-setnocount-with-choosewindow": "warn"
   }

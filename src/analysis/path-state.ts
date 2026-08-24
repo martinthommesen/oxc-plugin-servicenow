@@ -108,6 +108,12 @@ export interface PathAnalysisOptions<T> {
   /** Allocate an abstract value; a later evaluation refreshes an invalid or escaped site. */
   onValue?: (node: ESTree.Node) => T | undefined;
   /**
+   * Analyze function bodies that have no direct call in this file. Disable
+   * this for execution diagnostics that must not inspect deferred or dead
+   * helper bodies. Defaults to true for existing syntax and lifecycle passes.
+   */
+  analyzeUncalledFunctions?: boolean;
+  /**
    * Retain records that no surviving binding references after a control-flow
    * join. Risk domains need these records for exit findings; program-point
    * alias domains can disable retention to keep loop fixpoints finite.
@@ -494,6 +500,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
     onCall,
     onRef,
     onValue,
+    analyzeUncalledFunctions = true,
     retainUnboundRecords = true,
     onExit,
     maxWork = DEFAULT_MAX_WORK,
@@ -959,7 +966,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
       }
       // Analyze local syntax once, without definition-time outer values. A
       // proven direct call below replays it with invocation-time arguments.
-      if (!directlyCalledFunctions.has(node)) {
+      if (analyzeUncalledFunctions && !directlyCalledFunctions.has(node)) {
         const local = snapshotState(state, cloneData, budget);
         local.env.clear();
         local.objects.clear();

@@ -72,6 +72,22 @@ describe("ESLint flat profile context contracts", () => {
     assert.deepEqual(ids(configs.flat.businessRule, "current.update();", "sys_script2.js"), []);
   });
 
+  it("limits the ACL profile to ACL files and reviews proven queries", () => {
+    const code = 'var user = new GlideRecord("sys_user"); user.query();';
+    for (const filename of [
+      "read.acl.js",
+      "incident.access-control.cjs",
+      "sys_security_acl_read.mjs",
+      "src/access-controls/read.js",
+    ]) {
+      assert.ok(
+        ids(configs.flat.acl, code, filename).includes("servicenow/no-gliderecord-query-in-acl"),
+        filename,
+      );
+    }
+    assert.deepEqual(ids(configs.flat.acl, code, "helper.server.js"), []);
+  });
+
   it("supplies Fluent authoring for .now.ts", () => {
     assert.ok(
       ids(
