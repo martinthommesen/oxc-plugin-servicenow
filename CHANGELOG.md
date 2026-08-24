@@ -12,7 +12,7 @@
 - New `no-unsupported-date-fraction` rule detects otherwise valid static ISO timestamps whose fractional-second length works in every Australia JavaScript mode but not Zurich.
 - New `no-map-set` rule reports binding-proven `Map` and `Set` calls in Compatibility and ES5 Standards mode, where both Zurich and Australia document their basic functionality as Not Supported.
 - New `no-incorrect-bigint-asuintn` rule identifies literal `BigInt.asUintN()` calls whose negative-result bug is fixed by Australia, while suppressing dynamic operands and non-native implementations.
-- `no-typed-arrays` now models Australia BigInt64 array support and detects unsupported constructors, static `from`/`of` factories, and documented `DataView` BigInt getters through proven object aliases.
+- `no-typed-arrays` now models Australia BigInt64 array support and the separate Australia addition of static `TypedArray.from()` / `.of()` factories, while retaining constructor, alias, method-guard, polyfill, and documented `DataView` BigInt-getter coverage.
 
 ### Fixed
 

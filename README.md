@@ -280,6 +280,7 @@ Australia support is release-aware rather than a renamed Zurich default:
 | --- | --- | --- | --- |
 | `Object.hasOwn()` | Not Supported | Supported | Not Supported |
 | `BigInt64Array` / `BigUint64Array` | Not Supported | Supported | Not Supported |
+| `TypedArray.from()` / `TypedArray.of()` | Not Supported | Supported | Typed arrays Disallowed |
 | `BigInt.asUintN()` / `BigInt.asIntN()` narrowing | Incorrect edge cases | Corrected | BigInt Not Supported |
 | Private instance members | Not Supported | Not Supported | Not Supported |
 | `DataView` BigInt getters | Not Supported | Not Supported | Not Supported |
@@ -374,7 +375,7 @@ These rules run only when `javascriptMode` is known, except features that Servic
 | [`no-unsupported-date-fraction`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-unsupported-date-fraction.md) | classic-es5 | Australia adds variable-length ISO fractional-second parsing to all JavaScript modes, while Zurich accepts fractional seconds only when exactly three digits are present |
 | [`no-unsupported-set-methods`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-unsupported-set-methods.md) | es2021 | Set.prototype.intersection(), union(), difference(), symmetricDifference(), isSubsetOf(), isSupersetOf(), and isDisjointFrom() are available in Australia ES2021 but not Zurich ES2021 |
 | [`no-unsupported-static-methods`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-unsupported-static-methods.md) | es2021 | Error.isError(), Promise.try(), and Promise.withResolvers() are available in Australia ES2021 but not Zurich ES2021 |
-| [`no-typed-arrays`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-typed-arrays.md) | classic-es5 | General TypedArray constructors and their static from/of factories, plus DataView construction, are Disallowed by the ES5 cell, while BigInt64Array and BigUint64Array are Not Supported there |
+| [`no-typed-arrays`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-typed-arrays.md) | classic-es5 | General TypedArray constructors and DataView construction are Disallowed by the ES5 cell, while BigInt64Array and BigUint64Array are Not Supported there |
 | [`no-proxy`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-proxy.md) | classic-es5 | `Proxy` is unsupported in Compatibility and ES5 Standards mode |
 | [`no-unsupported-syntax`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-unsupported-syntax.md) | classic-es5 | The ES5 table marks optional chaining, nullish coalescing, logical assignment, private members, and RegExp lookbehind Not Supported |
 | [`no-async-iterators`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-async-iterators.md) | recommended | `for await…of` and async generators are disallowed in every instance JavaScript mode, including ES2021 |

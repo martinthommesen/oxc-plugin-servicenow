@@ -2445,6 +2445,12 @@ check(value);`,
           "2026-08-22",
         ),
         metadata.evidenceRecord(
+          metadata.SN_JS_ENGINE_UPDATES_AUSTRALIA,
+          "The Australia engine update lists Rhino PR 1966 as adding TypedArray.from and TypedArray.of in ES2021 mode.",
+          "manual",
+          "2026-08-24",
+        ),
+        metadata.evidenceRecord(
           metadata.SN_JS_MODES,
           "ServiceNow documents Compatibility as a third mode; the plugin explicitly applies ES5 feature cells to it as package policy.",
           "manual",
@@ -2452,9 +2458,15 @@ check(value);`,
         ),
         metadata.evidenceRecord(
           "tests/rules/glide-and-engine.test.ts",
-          "Fixtures cover constructors, static from/of factories, aliases, feature guards, DataView BigInt getters, mutation, and namespace escape.",
+          "Fixtures cover constructor-independent Zurich factory diagnostics, method guards, release omission, constructors, aliases, DataView BigInt getters, mutation, and namespace escape.",
           "fixture",
-          "2026-08-22",
+          "2026-08-24",
+        ),
+        metadata.evidenceRecord(
+          "tests/integration/release-contracts.test.ts",
+          "Real Oxlint and ESLint contracts verify general TypedArray factories in Zurich, Australia, and omitted-release ES2021 configurations.",
+          "integration-test",
+          "2026-08-24",
         ),
       ],
       {
@@ -2520,7 +2532,7 @@ new DataView(buffer).getBigInt64(0);`,
     fixable: false,
     hasSuggestions: false,
     description:
-      "General TypedArray constructors and their static from/of factories, plus DataView construction, are Disallowed by the ES5 cell, while BigInt64Array and BigUint64Array are Not Supported there. Zurich ES2021 also marks the BigInt arrays Not Supported; Australia ES2021 Supports them. DataView BigInt getters remain Not Supported. Compatibility follows ES5 by package policy.",
+      "General TypedArray constructors and DataView construction are Disallowed by the ES5 cell, while BigInt64Array and BigUint64Array are Not Supported there. Zurich ES2021 supports general constructors but not static TypedArray.from/of factories; Australia adds those factories and Supports BigInt arrays. DataView BigInt getters remain Not Supported. Compatibility follows ES5 by package policy.",
     bad: [
       {
         name: "Int8Array",
@@ -2535,13 +2547,27 @@ new DataView(buffer).getBigInt64(0);`,
         code: `var view = new DataView(buffer);\nvar value = view.getBigInt64(0);`,
       },
       {
+        name: "Int8Array static factory in Zurich",
+        filename: "script-include.js",
+        settings: { javascriptMode: "es2021", release: "zurich" },
+        code: `var values = Int8Array.from(source);`,
+      },
+      {
         name: "BigInt64Array static factory in Zurich",
         filename: "script-include.js",
         settings: { javascriptMode: "es2021", release: "zurich" },
         code: `var values = BigInt64Array.from(source);`,
       },
     ],
-    good: [{ name: "plain array", filename: "script-include.js", code: `var bytes = [0, 1, 2];` }],
+    good: [
+      { name: "plain array", filename: "script-include.js", code: `var bytes = [0, 1, 2];` },
+      {
+        name: "Int8Array static factory in Australia",
+        filename: "script-include.js",
+        settings: { javascriptMode: "es2021", release: "australia" },
+        code: `var values = Int8Array.from(source);`,
+      },
+    ],
   }),
   entry("no-proxy", noProxy, {
     ...metadata.meta(

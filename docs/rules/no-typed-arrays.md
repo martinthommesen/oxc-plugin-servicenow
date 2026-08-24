@@ -1,6 +1,6 @@
 # servicenow/no-typed-arrays
 
-General TypedArray constructors and their static from/of factories, plus DataView construction, are Disallowed by the ES5 cell, while BigInt64Array and BigUint64Array are Not Supported there. Zurich ES2021 also marks the BigInt arrays Not Supported; Australia ES2021 Supports them. DataView BigInt getters remain Not Supported. Compatibility follows ES5 by package policy.
+General TypedArray constructors and DataView construction are Disallowed by the ES5 cell, while BigInt64Array and BigUint64Array are Not Supported there. Zurich ES2021 supports general constructors but not static TypedArray.from/of factories; Australia adds those factories and Supports BigInt arrays. DataView BigInt getters remain Not Supported. Compatibility follows ES5 by package policy.
 
 - **Family:** engine
 - **Preset:** classic-es5
@@ -11,7 +11,7 @@ General TypedArray constructors and their static from/of factories, plus DataVie
 - **Authoring:** classic
 - **Surfaces:** Applies to server, acl, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. UI Actions require an explicit server surface; mixed client/server UI Actions stay silent because execution regions are not classified. An explicit javascriptMode also enables documented engine checks in otherwise unclassified files.
 - **JavaScript mode:** Runs when javascriptMode is compatibility, es5, es2021, unknown. Universal restrictions can run with unknown mode when the file is a known instance script.
-- **Last verified:** 2026-08-22
+- **Last verified:** 2026-08-24
 - **Implementation:** [`src/rules/no-typed-arrays.ts`](../../src/rules/no-typed-arrays.ts)
 
 ## Applicability
@@ -47,6 +47,12 @@ var view = new DataView(buffer);
 var value = view.getBigInt64(0);
 ```
 
+### Incorrect: Int8Array static factory in Zurich
+
+```js
+var values = Int8Array.from(source);
+```
+
 ### Incorrect: BigInt64Array static factory in Zurich
 
 ```js
@@ -59,6 +65,12 @@ var values = BigInt64Array.from(source);
 
 ```js
 var bytes = [0, 1, 2];
+```
+
+### Correct: Int8Array static factory in Australia
+
+```js
+var values = Int8Array.from(source);
 ```
 
 ## Limitations
@@ -100,16 +112,26 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-b
   - URL: https://www.servicenow.com/docs/r/api-reference/scripts/javascript-engine-feature-support.html
   - Verified by: manual
   - Verified at: 2026-08-22
+- **The Australia engine update lists Rhino PR 1966 as adding TypedArray.from and TypedArray.of in ES2021 mode.**
+  - Verification ID: `rule-evidence-3d19a43b`
+  - URL: https://www.servicenow.com/docs/r/api-reference/scripts/updates-javascript-engine.html
+  - Verified by: manual
+  - Verified at: 2026-08-24
 - **ServiceNow documents Compatibility as a third mode; the plugin explicitly applies ES5 feature cells to it as package policy.**
   - Verification ID: `rule-evidence-0d677df1`
   - URL: https://www.servicenow.com/docs/r/api-reference/scripts/c_JS_modes.html
   - Verified by: manual
   - Verified at: 2026-08-22
-- **Fixtures cover constructors, static from/of factories, aliases, feature guards, DataView BigInt getters, mutation, and namespace escape.**
-  - Verification ID: `rule-evidence-ffacc28e`
+- **Fixtures cover constructor-independent Zurich factory diagnostics, method guards, release omission, constructors, aliases, DataView BigInt getters, mutation, and namespace escape.**
+  - Verification ID: `rule-evidence-7b500c7f`
   - URL: tests/rules/glide-and-engine.test.ts
   - Verified by: fixture
-  - Verified at: 2026-08-22
+  - Verified at: 2026-08-24
+- **Real Oxlint and ESLint contracts verify general TypedArray factories in Zurich, Australia, and omitted-release ES2021 configurations.**
+  - Verification ID: `rule-evidence-b6da498a`
+  - URL: tests/integration/release-contracts.test.ts
+  - Verified by: integration-test
+  - Verified at: 2026-08-24
 
 ## See also
 

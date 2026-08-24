@@ -27,6 +27,7 @@ export type EngineFeatureId =
   | "bigint-narrowing"
   | "at-method"
   | "typed-arrays"
+  | "typed-array-factories"
   | "bigint64-arrays"
   | "dataview-bigint-getters"
   | "object-hasown"
@@ -216,6 +217,14 @@ export const ENGINE_FEATURES: Readonly<Record<EngineFeatureId, EngineFeature>> =
   bigint: unchanged("bigint", "BigInt", "supported", "unsupported"),
   "at-method": unchanged("at-method", "Array/String.prototype.at", "supported", "unsupported"),
   "typed-arrays": unchanged("typed-arrays", "TypedArray constructors", "supported", "disallowed"),
+  "typed-array-factories": australiaUpdateFeature(
+    "typed-array-factories",
+    "TypedArray.from / TypedArray.of",
+    {
+      zurich: ["unsupported", "disallowed"],
+      australia: ["supported", "disallowed"],
+    },
+  ),
   "bigint64-arrays": feature("bigint64-arrays", "BigInt64Array / BigUint64Array", {
     zurich: ["unsupported", "unsupported"],
     australia: ["supported", "unsupported"],
