@@ -44,7 +44,11 @@ Array.from(source, mapper);`,
 Array.from(source, mapper);`,
       `const mapper = function (value) { return () => this.normalize(value); };
 Array.from(source, mapper);`,
+      `Array.from(source, function (value) { throw () => this.normalize(value); });`,
       `Array.from(source, function (value = this.fallback) { return value; });`,
+      `Array.from(source, function (value) { return (() => this.normalize(value))(); });`,
+      `Array.from(source, function (value) { return class extends this.Base {}; });`,
+      `Array.from(source, function (value) { return class { [this.key]() {} }; });`,
     ]) {
       assertInvalid(code, RULE, { messageId: "omitted" }, { settings: ZURICH });
     }
@@ -101,8 +105,83 @@ run();`,
       `Array.from([], function (value) { return this.normalize(value); });`,
       `Array.from("", function (value) { return this.normalize(value); });`,
       "const source = ``; Array.from(source, function (value) { return this.normalize(value); });",
+      `const source = [];
+Array.from(source, function (value) { return this.normalize(value); });`,
+      `const source = [];
+Array.from(source, function (value) { return this.normalize(value); });
+source.push(1);`,
+      `const source = [];
+source.length;
+if (source) {}
+Array.from(source, function (value) { return this.normalize(value); });`,
+      `const source = [];
+source.length = 0;
+Array.from(source, function (value) { return this.normalize(value); });`,
+      `const source = [];
+const alias = source;
+alias.length;
+Array.from(source, function (value) { return this.normalize(value); });`,
+      `const source = [];
+Array.from(source, function (value) { return this.normalize(value); });
+Array.from(source, function (value) { return this.normalize(value); });`,
+      `const source = [];
+Array.from(source, function (value) {
+  source.push(value);
+  return this.normalize(value);
+});`,
+      `for (const callback of callbacks) {
+  handlers.push(function () {
+    const source = [];
+    Array.from(source, function (value) { return this.normalize(value); });
+    source.push(1);
+  });
+}`,
+      `Array.from(source, function (value) {
+  const unused = () => this.normalize(value);
+  return value;
+});`,
+      `Array.from(source, function (value) {
+  return (() => this.normalize(value)) && value;
+});`,
+      `Array.from(source, function (value) {
+  const local = {};
+  local.unused = () => this.normalize(value);
+  return value;
+});`,
+      `Array.from(source, function (value) {
+  return class { method() { return this.normalize(value); } };
+});`,
+      `Array.from(source, function (value) {
+  return class { [() => this.key]() {} };
+});`,
     ]) {
       assertValid(code, RULE, { settings: ZURICH });
+    }
+  });
+
+  it("does not treat a mutated const array initializer as permanently empty", () => {
+    for (const code of [
+      `const source = [];
+source.push(1);
+Array.from(source, function (value) { return this.normalize(value); });`,
+      `const source = [];
+const alias = source;
+alias.push(1);
+Array.from(source, function (value) { return this.normalize(value); });`,
+      `const source = [];
+for (const value of values) {
+  Array.from(source, function (item) { return this.normalize(item); });
+  source.push(value);
+}`,
+      `const source = [];
+function convert() {
+  Array.from(source, function (value) { return this.normalize(value); });
+  source.push(1);
+}
+convert();
+convert();`,
+    ]) {
+      assertInvalid(code, RULE, { messageId: "omitted" }, { settings: ZURICH });
     }
   });
 

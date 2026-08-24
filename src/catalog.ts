@@ -634,6 +634,32 @@ convert();`,
 });`,
       },
       {
+        caseId: "incorrect-array-from-nested-arrow-alias",
+        kind: "false-negative",
+        description:
+          "A nested arrow contributes mapper-this usage only when syntax proves that it is directly invoked, returned, thrown, or yielded. Arrows whose later invocation or escape requires alias analysis stay silent.",
+        name: "locally bound lexical arrow",
+        filename: "arrays.server.js",
+        settings: { javascriptMode: "es2021", release: "zurich" },
+        code: `Array.from(source, function (value) {
+  const normalize = () => this.normalize(value);
+  return normalize();
+});`,
+      },
+      {
+        caseId: "incorrect-array-from-empty-source",
+        kind: "scope-boundary",
+        description:
+          "The omitted-this diagnostic stays silent for a definitely empty source because the mapper cannot run. An empty const array remains proven only across non-mutating reads and direct const aliases.",
+        name: "definitely empty mapper source",
+        filename: "arrays.server.js",
+        settings: { javascriptMode: "es2021", release: "zurich" },
+        code: `const source = [];
+Array.from(source, function (value) {
+  return this.normalize(value);
+});`,
+      },
+      {
         caseId: "incorrect-array-from-ambiguous-arguments",
         kind: "false-negative",
         description:

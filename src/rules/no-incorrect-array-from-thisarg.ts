@@ -1,16 +1,18 @@
 import { defineRule } from "@oxlint/plugins";
 import type { Context, ESTree } from "@oxlint/plugins";
 import {
+  createEmptyArrayBindingQuery,
   findStablePlatformStaticMethodCalls,
   getAncestors,
   isDefinitelyNullishValue,
   resolveDominatingConstValue,
   type BindingWriteQuery,
+  type EmptyArrayBindingQuery,
   type FileBindings,
 } from "../analysis/internal.js";
 import { ruleDocsUrl } from "../constants.js";
 import { shouldDiagnoseFeature } from "../engine/index.js";
-import { getStringValue, isNode, WALK_SKIP_KEYS } from "../utils/ast.js";
+import { getStringValue, isNode, unwrapExpression, WALK_SKIP_KEYS } from "../utils/ast.js";
 import { beginRuleFile } from "./helpers.js";
 
 const METHODS = { Array: ["from"] } as const;
@@ -74,10 +76,29 @@ function isDefinitelyPrimitiveThisArgument(node: unknown, bindings: FileBindings
   );
 }
 
-function isDefinitelyEmptyMapperSource(node: unknown, bindings: FileBindings): boolean {
+function isDefinitelyEmptyMapperSource(
+  node: unknown,
+  bindings: FileBindings,
+  bindingReferences: EmptyArrayBindingQuery,
+): boolean {
+  const direct = unwrapExpression(node);
+  if (isNode(direct) && direct.type === "ArrayExpression") return direct.elements.length === 0;
   const value = resolveDominatingConstValue(node, bindings);
   if (!value) return false;
-  if (value.type === "ArrayExpression") return value.elements.length === 0;
+  if (value.type === "ArrayExpression") {
+    if (value.elements.length > 0 || !isNode(direct) || direct.type !== "Identifier") {
+      return false;
+    }
+    const binding = bindings.resolve(direct.name, direct);
+    if (binding?.kind !== "const" || binding.node.type !== "VariableDeclarator") return false;
+    const declaration = binding.node as ESTree.VariableDeclarator;
+    const initializer = unwrapExpression(declaration.init);
+    if (!isNode(initializer) || initializer !== value) return false;
+    // A const binding stabilizes only the array identity. Suppress an empty
+    // initializer only while every reference that could precede this call is
+    // a proven non-mutating read.
+    return bindingReferences.isUnchangedThrough(binding, direct);
+  }
   if (value.type === "Literal") return (value as { value?: unknown }).value === "";
   if (value.type !== "TemplateLiteral" || value.expressions.length > 0) return false;
   const quasi = value.quasis[0];
@@ -117,33 +138,114 @@ function isDefinitelySloppyMapper(context: Context, mapper: MapperFunction): boo
   return true;
 }
 
-/** Find `this` references belonging to this function, including lexical arrows. */
+function nestedArrowCanExposeThis(
+  arrow: MapperFunction,
+  parents: WeakMap<ESTree.Node, ESTree.Node>,
+): boolean {
+  let child = arrow as ESTree.Node;
+  let parent = parents.get(child);
+  while (parent) {
+    switch (parent.type) {
+      case "ReturnStatement":
+      case "ThrowStatement":
+        return true;
+      case "YieldExpression":
+        return !(parent as ESTree.YieldExpression).delegate;
+      case "CallExpression":
+        return (parent as ESTree.CallExpression).callee === child;
+      case "TaggedTemplateExpression":
+        return (parent as unknown as { tag?: unknown }).tag === child;
+      case "AssignmentExpression": {
+        const assignment = parent as ESTree.AssignmentExpression;
+        if (assignment.right !== child) return false;
+        break;
+      }
+      case "Property":
+        if ((parent as ESTree.ObjectProperty).value !== child) return false;
+        break;
+      case "ArrayExpression":
+      case "AwaitExpression":
+      case "ChainExpression":
+      case "ParenthesizedExpression":
+      case "TSAsExpression":
+      case "TSTypeAssertion":
+      case "TSNonNullExpression":
+      case "TSSatisfiesExpression":
+        break;
+      case "ConditionalExpression":
+        if ((parent as ESTree.ConditionalExpression).test === child) return false;
+        break;
+      case "LogicalExpression": {
+        const logical = parent as ESTree.LogicalExpression;
+        if (logical.left === child && logical.operator === "&&") return false;
+        break;
+      }
+      case "SequenceExpression":
+        if ((parent as ESTree.SequenceExpression).expressions.at(-1) !== child) return false;
+        break;
+      case "ArrowFunctionExpression":
+        if ((parent as ESTree.ArrowFunctionExpression).body !== child) return false;
+        break;
+      default:
+        return false;
+    }
+    child = parent;
+    parent = parents.get(child);
+  }
+  return false;
+}
+
+function pushClassOuterThisExpressions(
+  node: ESTree.Node,
+  stack: Array<{ node: ESTree.Node; parent: ESTree.Node | null }>,
+  parents: WeakMap<ESTree.Node, ESTree.Node>,
+): void {
+  const classNode = node as unknown as {
+    superClass?: unknown;
+    body?: { body?: readonly ESTree.Node[] };
+  };
+  if (isNode(classNode.superClass)) stack.push({ node: classNode.superClass, parent: node });
+  for (const element of classNode.body?.body ?? []) {
+    parents.set(element, node);
+    const member = element as unknown as { computed?: boolean; key?: unknown };
+    if (member.computed && isNode(member.key)) stack.push({ node: member.key, parent: element });
+  }
+}
+
+/** Find observable `this` references belonging to this function. */
 function mapperUsesOwnThis(mapper: MapperFunction): boolean {
-  const stack: ESTree.Node[] = [mapper.body, ...mapper.params];
+  const stack: Array<{ node: ESTree.Node; parent: ESTree.Node | null }> = [
+    { node: mapper.body, parent: null },
+    ...mapper.params.map((node) => ({ node, parent: null })),
+  ];
+  const parents = new WeakMap<ESTree.Node, ESTree.Node>();
   const seen = new WeakSet<object>();
   while (stack.length > 0) {
-    const node = stack.pop()!;
+    const { node, parent } = stack.pop()!;
     if (seen.has(node)) continue;
     seen.add(node);
+    if (parent) parents.set(node, parent);
     if (node.type === "ThisExpression") return true;
-    // Nested ordinary functions and classes establish a different `this`.
-    // Nested arrows deliberately remain traversable because they capture the
-    // mapper's `this`, even when the arrow escapes and runs later.
-    if (
-      node.type === "FunctionDeclaration" ||
-      node.type === "FunctionExpression" ||
-      node.type === "ClassDeclaration" ||
-      node.type === "ClassExpression"
-    ) {
+    if (node.type === "ArrowFunctionExpression" && !nestedArrowCanExposeThis(node, parents)) {
+      continue;
+    }
+    // Class heritage and computed keys run in the surrounding context, while
+    // class bodies establish their own strict `this` semantics.
+    if (node.type === "ClassDeclaration" || node.type === "ClassExpression") {
+      pushClassOuterThisExpressions(node, stack, parents);
+      continue;
+    }
+    // Nested ordinary functions establish a different `this`.
+    if (node.type === "FunctionDeclaration" || node.type === "FunctionExpression") {
       continue;
     }
     for (const key of Object.keys(node)) {
       if (WALK_SKIP_KEYS.has(key)) continue;
       const value = (node as unknown as Record<string, unknown>)[key];
       if (Array.isArray(value)) {
-        for (const child of value) if (isNode(child)) stack.push(child);
+        for (const child of value) if (isNode(child)) stack.push({ node: child, parent: node });
       } else if (isNode(value)) {
-        stack.push(value);
+        stack.push({ node: value, parent: node });
       }
     }
   }
@@ -180,7 +282,7 @@ export const noIncorrectArrayFromThisarg = defineRule({
       },
       Program(node) {
         const { analysis, file } = beginRuleFile(context);
-        for (const finding of findStablePlatformStaticMethodCalls({
+        const findings = findStablePlatformStaticMethodCalls({
           program: node as ESTree.Node,
           analysis,
           bindingWrites: file.bindingWrites,
@@ -188,7 +290,24 @@ export const noIncorrectArrayFromThisarg = defineRule({
           methods: METHODS,
           namespaces: ["globalThis"],
           mutationSemantics: "authority",
-        })) {
+        });
+        const stableArrayFromSources = new Set<ESTree.Node>();
+        const inlineArrayFromMappers = new Set<ESTree.Node>();
+        for (const finding of findings) {
+          const source = unwrapExpression(finding.node.arguments[0]);
+          if (isNode(source)) stableArrayFromSources.add(source);
+          const mapper = unwrapExpression(finding.node.arguments[1]);
+          if (isMapperFunction(mapper)) inlineArrayFromMappers.add(mapper as ESTree.Node);
+        }
+        const bindingReferences = createEmptyArrayBindingQuery(
+          node as ESTree.Node,
+          analysis.bindings,
+          {
+            knownNonMutatingReferences: stableArrayFromSources,
+            ignoredSubtrees: inlineArrayFromMappers,
+          },
+        );
+        for (const finding of findings) {
           const call = finding.node;
           if (call.arguments.some((argument) => argument.type === "SpreadElement")) continue;
           const source = call.arguments[0];
@@ -212,7 +331,9 @@ export const noIncorrectArrayFromThisarg = defineRule({
             continue;
           }
 
-          if (isDefinitelyEmptyMapperSource(source, analysis.bindings)) continue;
+          if (isDefinitelyEmptyMapperSource(source, analysis.bindings, bindingReferences)) {
+            continue;
+          }
 
           // Arrow functions ignore Call's thisArgument in both releases.
           if (mapper.type === "ArrowFunctionExpression") continue;

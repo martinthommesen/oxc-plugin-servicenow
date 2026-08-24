@@ -16,6 +16,8 @@ export { ctorProvenanceKind, getAncestors } from "./provenance.js";
 export type { Provenance, ProvenanceKind, ProvenanceQuery, QueryState } from "./provenance.js";
 export type { FileAnalysis } from "./file-analysis.js";
 export type { BindingWriteQuery } from "./binding-writes.js";
+export { createEmptyArrayBindingQuery } from "./empty-array-bindings.js";
+export type { EmptyArrayBindingQuery } from "./empty-array-bindings.js";
 export type { MutationQuery } from "./mutations.js";
 export {
   hasAuthoritativeConstructedMethod,

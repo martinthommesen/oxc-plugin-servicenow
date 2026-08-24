@@ -64,7 +64,7 @@ var values = Array.from(source, function (value) {
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-negative: Member expressions, parameters, mutable variables, and callable aliases crossing an execution boundary stay silent because the rule cannot prove the mapper's function semantics. scope-boundary: The omitted-third-argument diagnostic requires a syntax-proven non-strict ordinary mapper that reads its own this; strict functions, arrows, and mappers without such a read stay silent. false-negative: Spread arguments and calls with a definitely nullish source stay silent because argument positions or whether execution reaches mapper-this handling cannot be proven. false-negative: Primitive this arguments produced by calls, substitutions, or non-nullish compound expressions stay silent; the rule proves nullish expressions (including void), primitive literals, and no-substitution templates through dominating const aliases. scope-boundary: A possible Array owner or Array.from replacement suppresses diagnostics throughout the file; direct aliases of Array.from also stay silent because native method identity is not proven. scope-boundary: Calls stay silent when settings.servicenow.release is omitted because Zurich and Australia have different native behavior.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-negative: Member expressions, parameters, mutable variables, and callable aliases crossing an execution boundary stay silent because the rule cannot prove the mapper's function semantics. scope-boundary: The omitted-third-argument diagnostic requires a syntax-proven non-strict ordinary mapper that reads its own this; strict functions, arrows, and mappers without such a read stay silent. false-negative: A nested arrow contributes mapper-this usage only when syntax proves that it is directly invoked, returned, thrown, or yielded. Arrows whose later invocation or escape requires alias analysis stay silent. scope-boundary: The omitted-this diagnostic stays silent for a definitely empty source because the mapper cannot run. An empty const array remains proven only across non-mutating reads and direct const aliases. false-negative: Spread arguments and calls with a definitely nullish source stay silent because argument positions or whether execution reaches mapper-this handling cannot be proven. false-negative: Primitive this arguments produced by calls, substitutions, or non-nullish compound expressions stay silent; the rule proves nullish expressions (including void), primitive literals, and no-substitution templates through dominating const aliases. scope-boundary: A possible Array owner or Array.from replacement suppresses diagnostics throughout the file; direct aliases of Array.from also stay silent because native method identity is not proven. scope-boundary: Calls stay silent when settings.servicenow.release is omitted because Zurich and Australia have different native behavior.
 
 ## Known false positives
 
@@ -73,12 +73,14 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-n
 ## Known false negatives
 
 - Member expressions, parameters, mutable variables, and callable aliases crossing an execution boundary stay silent because the rule cannot prove the mapper's function semantics.
+- A nested arrow contributes mapper-this usage only when syntax proves that it is directly invoked, returned, thrown, or yielded. Arrows whose later invocation or escape requires alias analysis stay silent.
 - Spread arguments and calls with a definitely nullish source stay silent because argument positions or whether execution reaches mapper-this handling cannot be proven.
 - Primitive this arguments produced by calls, substitutions, or non-nullish compound expressions stay silent; the rule proves nullish expressions (including void), primitive literals, and no-substitution templates through dominating const aliases.
 
 ## Intentional scope boundaries
 
 - The omitted-third-argument diagnostic requires a syntax-proven non-strict ordinary mapper that reads its own this; strict functions, arrows, and mappers without such a read stay silent.
+- The omitted-this diagnostic stays silent for a definitely empty source because the mapper cannot run. An empty const array remains proven only across non-mutating reads and direct const aliases.
 - A possible Array owner or Array.from replacement suppresses diagnostics throughout the file; direct aliases of Array.from also stay silent because native method identity is not proven.
 - Calls stay silent when settings.servicenow.release is omitted because Zurich and Australia have different native behavior.
 
