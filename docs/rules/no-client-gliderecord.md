@@ -9,7 +9,7 @@ Proven platform GlideRecord calls are unsupported in scoped client applications.
 - **Fix safety:** diagnostic only
 - **Suggestions:** no
 - **Authoring:** classic
-- **Surfaces:** Applies to client, ui-action when those surfaces are known. Unknown surfaces stay silent.
+- **Surfaces:** Applies to client, ui-action when those surfaces are known. Mixed client/server UI Actions stay silent because execution regions are not classified. Unknown surfaces stay silent.
 - **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
 - **Last verified:** 2026-08-24
 - **Implementation:** [`src/rules/no-client-gliderecord.ts`](../../src/rules/no-client-gliderecord.ts)
@@ -19,7 +19,7 @@ Proven platform GlideRecord calls are unsupported in scoped client applications.
 | Dimension | Value |
 | --- | --- |
 | Authoring | classic |
-| Surfaces | Applies to client, ui-action when those surfaces are known. Unknown surfaces stay silent. |
+| Surfaces | Applies to client, ui-action when those surfaces are known. Mixed client/server UI Actions stay silent because execution regions are not classified. Unknown surfaces stay silent. |
 | Minimum surface confidence | filename-inferred |
 | JavaScript modes | n/a |
 | Application scopes | scoped |
@@ -60,7 +60,7 @@ function onChange() {
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-boundary: Mixed client/server UI Actions stay silent because the rule cannot classify execution regions. scope-boundary: Global and unknown application scope stay silent because ServiceNow documents the client API in global applications and only marks scoped applications unsupported. false-negative: Aliases assigned outside their declaration stay silent even when every visible branch selects a platform constructor; proving that identity requires path-sensitive constructor-value analysis. false-negative: Aliases used from another function body stay silent because source order alone cannot prove that the initializer ran before the function was called.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-boundary: Mixed client/server UI Actions stay silent because the rule cannot classify execution regions. scope-boundary: Global and unknown application scope stay silent because ServiceNow documents the client API in global applications and only marks scoped applications unsupported. false-negative: Aliases assigned outside their declaration stay silent even when every visible branch selects a platform constructor; proving that identity requires path-sensitive constructor-value analysis. false-negative: Aliases used from another function body stay silent because source order alone cannot prove that the initializer ran before the function was called. false-negative: A possible platform-constructor or namespace replacement suppresses matching calls throughout the file, including calls that appear before the replacement; source order alone does not establish runtime order across function bodies.
 
 ## Known false positives
 
@@ -70,6 +70,7 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-b
 
 - Aliases assigned outside their declaration stay silent even when every visible branch selects a platform constructor; proving that identity requires path-sensitive constructor-value analysis.
 - Aliases used from another function body stay silent because source order alone cannot prove that the initializer ran before the function was called.
+- A possible platform-constructor or namespace replacement suppresses matching calls throughout the file, including calls that appear before the replacement; source order alone does not establish runtime order across function bodies.
 
 ## Intentional scope boundaries
 

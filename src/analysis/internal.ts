@@ -15,6 +15,7 @@ export {
 export { ctorProvenanceKind, getAncestors } from "./provenance.js";
 export type { Provenance, ProvenanceKind, ProvenanceQuery, QueryState } from "./provenance.js";
 export type { FileAnalysis } from "./file-analysis.js";
+export type { BindingWriteQuery } from "./binding-writes.js";
 export type { MutationQuery } from "./mutations.js";
 export type { BindingId, ObjectId, Completion } from "./path-state.js";
 export {

@@ -37,6 +37,23 @@ describe("no-gs-now", () => {
   it("does not flag a shadowed gs binding", () => {
     assertValid("var gs = { now: function () { return 'x'; } }; var when = gs.now();", "no-gs-now");
   });
+
+  it("stays silent when the gs method identity can change", () => {
+    assertValid(`gs = localGs;\ngs.now();`, "no-gs-now");
+    assertValid(`gs = null;\ngs.now();`, "no-gs-now");
+    assertValid(`gs.now = localNow;\ngs.now();`, "no-gs-now");
+    assertValid(`gs.now = undefined;\ngs.now();`, "no-gs-now");
+    assertValid(`Object.defineProperty(gs, "now", { value: null });\ngs.now();`, "no-gs-now");
+    assertValid(`prepare(gs);\ngs.now();`, "no-gs-now");
+    assertValid(`var platform = gs;\nprepare(platform);\ngs.now();`, "no-gs-now");
+    assertInvalid(`prepare(gs.now);\ngs.now();`, "no-gs-now", { messageId: "server" });
+  });
+
+  it("keeps a stable gs object alias after the global binding changes", () => {
+    assertInvalid(`var service = gs;\ngs = localGs;\nservice.now();`, "no-gs-now", {
+      messageId: "server",
+    });
+  });
 });
 
 describe("validate-gliderecord-calls", () => {
@@ -113,6 +130,34 @@ describe("no-br-current-update", () => {
     assertValid(`current.state = 2;\ncurrent.update();`, "no-br-current-update", {
       filename: "close-incident.ui-action.js",
     });
+  });
+
+  it("stays silent when the body-only current identity can change", () => {
+    assertValid(`current = getOtherRecord();\ncurrent.update();`, "no-br-current-update", {
+      filename: "incident.br.js",
+    });
+    assertValid(`current = null;\ncurrent.update();`, "no-br-current-update", {
+      filename: "incident.br.js",
+    });
+    assertValid(`current.update = localUpdate;\ncurrent.update();`, "no-br-current-update", {
+      filename: "incident.br.js",
+    });
+    assertValid(`current.update = undefined;\ncurrent.update();`, "no-br-current-update", {
+      filename: "incident.br.js",
+    });
+    assertValid(
+      `Object.defineProperty(current, "update", { value: null });\ncurrent.update();`,
+      "no-br-current-update",
+      { filename: "incident.br.js" },
+    );
+    assertValid(`prepare(current);\ncurrent.update();`, "no-br-current-update", {
+      filename: "incident.br.js",
+    });
+    assertValid(
+      `var record = current;\nprepare(record);\ncurrent.update();`,
+      "no-br-current-update",
+      { filename: "incident.br.js" },
+    );
   });
 });
 
@@ -574,6 +619,15 @@ describe("engine extras", () => {
     assertValid(`Int8Array = CustomArray; new Int8Array(1);`, "no-typed-arrays", {
       settings: { javascriptMode: "es5", release: "australia" },
     });
+    assertValid(
+      `globalThis.DataView.prototype.getBigInt64 = custom;
+new DataView(buffer).getBigInt64(0);`,
+      "no-typed-arrays",
+      {
+        filename: "incident.br.js",
+        settings: { javascriptMode: "unknown", release: "australia" },
+      },
+    );
   });
 
   it("conservatively suppresses diagnostics after any possible relevant mutation", () => {
@@ -679,27 +733,7 @@ const view = new DataView(buffer); view.getBigInt64(0);`,
   });
 });
 
-describe("no-object-hasown", () => {
-  it("follows the Zurich and Australia release matrix", () => {
-    const code = `var owns = Object.hasOwn(record, "number");`;
-    assertInvalid(
-      code,
-      "no-object-hasown",
-      { messageId: "unsupported" },
-      { settings: { javascriptMode: "es2021", release: "zurich" } },
-    );
-    assertValid(code, "no-object-hasown", {
-      settings: { javascriptMode: "es2021", release: "australia" },
-    });
-    assertValid(code, "no-object-hasown", { settings: { javascriptMode: "es2021" } });
-    assertInvalid(
-      code,
-      "no-object-hasown",
-      { messageId: "unsupported" },
-      { settings: { javascriptMode: "es5" } },
-    );
-  });
-
+describe("server engine surface gating", () => {
   it("does not apply the server engine matrix to browser-executed client scripts", () => {
     assertValid(`Object.hasOwn(record, "number");`, "no-object-hasown", {
       filename: "form.client.js",
@@ -725,6 +759,28 @@ describe("no-object-hasown", () => {
         surfaces: ["client"],
       },
     });
+  });
+});
+
+describe("no-object-hasown", () => {
+  it("follows the Zurich and Australia release matrix", () => {
+    const code = `var owns = Object.hasOwn(record, "number");`;
+    assertInvalid(
+      code,
+      "no-object-hasown",
+      { messageId: "unsupported" },
+      { settings: { javascriptMode: "es2021", release: "zurich" } },
+    );
+    assertValid(code, "no-object-hasown", {
+      settings: { javascriptMode: "es2021", release: "australia" },
+    });
+    assertValid(code, "no-object-hasown", { settings: { javascriptMode: "es2021" } });
+    assertInvalid(
+      code,
+      "no-object-hasown",
+      { messageId: "unsupported" },
+      { settings: { javascriptMode: "es5" } },
+    );
   });
 
   it("recognizes static computed access and proven aliases", () => {
@@ -811,6 +867,13 @@ describe("no-object-hasown", () => {
     assertValid(`Object.hasOwn(record, "x"); Object.hasOwn = polyfill;`, "no-object-hasown", {
       settings,
     });
+    assertValid(
+      `const { Object: First } = Second;
+const { Object: Second } = First;
+First.hasOwn(record, "x");`,
+      "no-object-hasown",
+      { settings },
+    );
   });
 
   it("keeps release-portable availability guards silent", () => {

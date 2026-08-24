@@ -4,6 +4,8 @@ import { fileURLToPath } from "node:url";
 
 export const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
 export const oxlintBin = path.join(repoRoot, "node_modules", ".bin", "oxlint");
+export const TSX_CLI_EXECUTION_PATTERN =
+  /(?:^|[\n|&;]\s*|\brun:\s*)(?:(?:npx(?:\s+--no-install)?|npm exec(?:\s+--)?)\s+)?tsx(?:\s|$)/m;
 
 export type OxlintDiagnostic = {
   message: string;

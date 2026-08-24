@@ -144,6 +144,17 @@ const cases: Array<{
       },
     ],
   },
+  {
+    name: "mutated platform globals stay unknown",
+    fixture: "mutated-globals.br.js",
+    config: "auto-es5.oxlintrc.json",
+    settings: { authoring: "classic", surfaces: ["business-rule"] },
+    rules: {
+      "servicenow/no-br-current-update": "error",
+      "servicenow/no-gs-now": "error",
+    },
+    expected: [],
+  },
 ];
 
 function sorted<T extends { ruleId: string; message: string }>(items: T[]): T[] {

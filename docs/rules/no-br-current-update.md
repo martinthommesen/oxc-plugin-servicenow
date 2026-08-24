@@ -11,7 +11,7 @@
 - **Authoring:** classic
 - **Surfaces:** Applies to business-rule when those surfaces are known. Unknown surfaces stay silent.
 - **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
-- **Last verified:** 2026-08-20
+- **Last verified:** 2026-08-24
 - **Implementation:** [`src/rules/no-br-current-update.ts`](../../src/rules/no-br-current-update.ts)
 
 ## Applicability
@@ -52,7 +52,7 @@ current.work_notes = "Moved to In Progress";
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-negative: A possible current reassignment suppresses direct current.update calls throughout the file, including calls that appear before the reassignment.
 
 ## Known false positives
 
@@ -60,7 +60,7 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
 
 ## Known false negatives
 
-- None recorded.
+- A possible current reassignment suppresses direct current.update calls throughout the file, including calls that appear before the reassignment.
 
 ## Intentional scope boundaries
 
@@ -87,6 +87,11 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
   - URL: tests/integration/fixtures/bad-business-rule.br.js
   - Verified by: integration-test
   - Verified at: 2026-08-20
+- **Oxlint and ESLint stay silent when visible current binding replacement makes identity uncertain while canonical wrapper calls still report.**
+  - Verification ID: `rule-evidence-83d892a6`
+  - URL: tests/integration/context-contracts.test.ts
+  - Verified by: integration-test
+  - Verified at: 2026-08-24
 
 ## See also
 

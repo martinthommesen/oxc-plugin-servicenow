@@ -1,6 +1,6 @@
 import type { ESTree } from "@oxlint/plugins";
 import { isNode, propertyKeyName, unwrapExpression, walk } from "../utils/ast.js";
-import { forEachResolvedPatternBinding } from "./bindings.js";
+import type { BindingWriteQuery } from "./binding-writes.js";
 import type { MutationQuery } from "./mutations.js";
 import { staticPropertyName } from "./members.js";
 import type { ProvenanceQuery } from "./provenance.js";
@@ -15,6 +15,7 @@ export interface PlatformConstructorCallFinding {
 export interface PlatformConstructorCallOptions {
   readonly program: ESTree.Node;
   readonly analysis: ProvenanceQuery;
+  readonly bindingWrites: BindingWriteQuery;
   readonly mutations: MutationQuery;
   readonly names: readonly string[];
   readonly namespaces?: readonly string[];
@@ -22,7 +23,7 @@ export interface PlatformConstructorCallOptions {
 
 interface DeclaratorFacts {
   readonly executionBoundary: ESTree.Node;
-  readonly isDirectStatement: boolean;
+  readonly statementContainer: ESTree.Program | ESTree.BlockStatement | null;
 }
 
 interface CallSite {
@@ -47,20 +48,34 @@ function executionBoundary(ancestors: readonly ESTree.Node[]): ESTree.Node | nul
   return null;
 }
 
-function isDirectExecutionStatement(ancestors: readonly ESTree.Node[]): boolean {
+function directStatementContainer(
+  ancestors: readonly ESTree.Node[],
+): ESTree.Program | ESTree.BlockStatement | null {
   const declaration = ancestors.at(-2);
   const container = ancestors.at(-3);
-  if (declaration?.type !== "VariableDeclaration" || !container) return false;
-  if (container.type === "Program") return true;
-  if (container.type !== "BlockStatement") return false;
-  const owner = ancestors.at(-4) as (ESTree.Node & { body?: unknown }) | undefined;
-  return Boolean(owner && functionLike(owner) && owner.body === container);
+  if (declaration?.type !== "VariableDeclaration" || !container) return null;
+  return container.type === "Program" || container.type === "BlockStatement" ? container : null;
 }
 
 function definitelyPrecedes(left: unknown, right: ESTree.Node): boolean {
   const leftEnd = isNode(left) ? (left as { end?: number }).end : undefined;
   const rightStart = (right as { start?: number }).start;
   return typeof leftEnd === "number" && typeof rightStart === "number" && leftEnd <= rightStart;
+}
+
+function containsNode(container: ESTree.Node, node: ESTree.Node): boolean {
+  const containerStart = (container as { start?: number }).start;
+  const containerEnd = (container as { end?: number }).end;
+  const nodeStart = (node as { start?: number }).start;
+  const nodeEnd = (node as { end?: number }).end;
+  return (
+    typeof containerStart === "number" &&
+    typeof containerEnd === "number" &&
+    typeof nodeStart === "number" &&
+    typeof nodeEnd === "number" &&
+    containerStart <= nodeStart &&
+    nodeEnd <= containerEnd
+  );
 }
 
 /**
@@ -73,24 +88,17 @@ function definitelyPrecedes(left: unknown, right: ESTree.Node): boolean {
 export function findStablePlatformConstructorCalls({
   program,
   analysis,
+  bindingWrites,
   mutations,
   names,
   namespaces = [],
 }: PlatformConstructorCallOptions): readonly PlatformConstructorCallFinding[] {
   const nameSet = new Set(names);
   const namespaceSet = new Set(namespaces);
-  const written = new Set<number>();
   const declarators = new WeakMap<ESTree.VariableDeclarator, DeclaratorFacts>();
   const callSites: CallSite[] = [];
   const ancestors: ESTree.Node[] = [];
-  let hasDynamicScope = false;
   let callBudgetExceeded = false;
-
-  const recordWrittenPattern = (target: unknown): void => {
-    forEachResolvedPatternBinding(target, analysis.bindings, ancestors, (binding) => {
-      written.add(binding.id);
-    });
-  };
 
   const recordCallSite = (node: ESTree.CallExpression | ESTree.NewExpression): void => {
     if (callSites.length >= MAX_CONSTRUCTOR_CALL_SITES) {
@@ -109,49 +117,25 @@ export function findStablePlatformConstructorCalls({
         if (!boundary) return;
         declarators.set(node as ESTree.VariableDeclarator, {
           executionBoundary: boundary,
-          isDirectStatement: isDirectExecutionStatement(ancestors),
+          statementContainer: directStatementContainer(ancestors),
         });
-      },
-      AssignmentExpression(node) {
-        recordWrittenPattern((node as ESTree.AssignmentExpression).left);
-      },
-      UpdateExpression(node) {
-        recordWrittenPattern((node as ESTree.UpdateExpression).argument);
-      },
-      ForInStatement(node) {
-        recordWrittenPattern((node as ESTree.ForInStatement).left);
-      },
-      ForOfStatement(node) {
-        recordWrittenPattern((node as ESTree.ForOfStatement).left);
-      },
-      WithStatement() {
-        hasDynamicScope = true;
       },
       NewExpression(node) {
         recordCallSite(node as ESTree.NewExpression);
       },
       CallExpression(node) {
         const call = node as ESTree.CallExpression;
-        const callee = unwrapExpression(call.callee);
-        if (
-          isNode(callee) &&
-          callee.type === "Identifier" &&
-          callee.name === "eval" &&
-          analysis.bindings.isPlatformGlobal(callee)
-        ) {
-          hasDynamicScope = true;
-        }
         recordCallSite(call);
       },
     },
     ancestors,
   );
 
-  if (hasDynamicScope || callBudgetExceeded) return [];
+  if (bindingWrites.hasDynamicScope() || callBudgetExceeded) return [];
 
   const constructorIdentityIsStable = (name: string): boolean =>
-    !mutations.isGlobalWritten(name) &&
-    namespaces.every((namespace) => !mutations.isGlobalPathWritten([namespace, name]));
+    !mutations.isGlobalAuthorityLost(name) &&
+    namespaces.every((namespace) => !mutations.isGlobalPathAuthorityLost([namespace, name]));
 
   const directNamespace = (node: unknown): string | null => {
     const value = unwrapExpression(node);
@@ -159,7 +143,7 @@ export function findStablePlatformConstructorCalls({
       return null;
     }
     if (!analysis.bindings.isPlatformGlobal(value)) return null;
-    return mutations.isGlobalWritten(value.name) ? null : value.name;
+    return mutations.isGlobalAuthorityLost(value.name) ? null : value.name;
   };
 
   const destructuredName = (
@@ -197,7 +181,7 @@ export function findStablePlatformConstructorCalls({
         namespace &&
         nameSet.has(name) &&
         constructorIdentityIsStable(name) &&
-        !mutations.isGlobalPathWritten([namespace, name])
+        !mutations.isGlobalPathAuthorityLost([namespace, name])
         ? name
         : null;
     }
@@ -211,7 +195,7 @@ export function findStablePlatformConstructorCalls({
     if (
       !binding ||
       seen.has(binding.id) ||
-      written.has(binding.id) ||
+      bindingWrites.isWritten(binding.id) ||
       binding.declarations.length !== 1 ||
       binding.node.type !== "VariableDeclarator"
     ) {
@@ -220,8 +204,9 @@ export function findStablePlatformConstructorCalls({
     const declaration = binding.node as ESTree.VariableDeclarator;
     const facts = declarators.get(declaration);
     if (
-      !facts?.isDirectStatement ||
+      !facts?.statementContainer ||
       facts.executionBoundary !== useBoundary ||
+      !containsNode(facts.statementContainer, value) ||
       !declaration.init ||
       !definitelyPrecedes(declaration.init, value)
     ) {

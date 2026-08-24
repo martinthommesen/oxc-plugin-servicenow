@@ -1,6 +1,6 @@
 import type { ESTree } from "@oxlint/plugins";
 import { getName, isNode, unwrapExpression } from "../utils/ast.js";
-import { staticPropertyName } from "./members.js";
+import { resolveConstValue, staticPropertyName } from "./members.js";
 import type { ProvenanceQuery } from "./provenance.js";
 import { visitChildren } from "./path-state.js";
 import { definitelySkipsDoWhileTest, truthyPathRequiresCursorNext } from "./cursor-condition.js";
@@ -10,6 +10,7 @@ import {
   type ImmediateFunction,
   type StableInvocationQuery,
 } from "./stable-invocations.js";
+import type { BindingWriteQuery } from "./binding-writes.js";
 
 export interface QueryInLoopFinding {
   node: ESTree.CallExpression;
@@ -77,12 +78,13 @@ function containsCursorAdvance(node: unknown, analysis: ProvenanceQuery): boolea
 export function findQueriesInCursorLoops(
   program: ESTree.Node,
   analysis: ProvenanceQuery,
+  bindingWrites: BindingWriteQuery,
 ): QueryInLoopFinding[] {
   const findings: QueryInLoopFinding[] = [];
   const state: CursorVisitState = {
     analysis,
     findings,
-    invocations: analyzeStableInvocations(program, analysis.bindings),
+    invocations: analyzeStableInvocations(program, analysis.bindings, bindingWrites),
     activeFunctions: new Set(),
     visitedFunctionModes: new WeakMap(),
   };
@@ -120,11 +122,21 @@ function visitMissingParameterDefaults(
   state: CursorVisitState,
 ): void {
   if (call.arguments.some((argument) => argument.type === "SpreadElement")) return;
-  for (let index = call.arguments.length; index < fn.params.length; index += 1) {
+  for (let index = 0; index < fn.params.length; index += 1) {
     const parameter = unwrapExpression(fn.params[index]);
-    if (isNode(parameter) && parameter.type === "AssignmentPattern") {
-      visit(parameter.right, cursorDepth, state);
-    }
+    if (!isNode(parameter) || parameter.type !== "AssignmentPattern") continue;
+    const argument = call.arguments[index];
+    const value = argument
+      ? (resolveConstValue(argument, state.analysis.bindings) ?? unwrapExpression(argument))
+      : null;
+    const definitelyUndefined =
+      !argument ||
+      (isNode(value) &&
+        ((value.type === "UnaryExpression" && value.operator === "void") ||
+          (value.type === "Identifier" &&
+            value.name === "undefined" &&
+            state.analysis.bindings.isPlatformGlobal(value))));
+    if (definitelyUndefined) visit(parameter.right, cursorDepth, state);
   }
 }
 

@@ -12,12 +12,15 @@ import {
 // engine tables. Browser-only `window`/`self` must not be treated as instance
 // server globals.
 export const GLOBAL_OBJECT_NAMES = new Set(["globalThis"]);
+const MAX_PLATFORM_GLOBAL_ALIAS_DEPTH = 64;
 
 function platformGlobalName(
   node: unknown,
   bindings: FileBindings,
   followValueAlias: boolean,
+  depth = 0,
 ): string | null {
+  if (depth > MAX_PLATFORM_GLOBAL_ALIAS_DEPTH) return null;
   const direct = unwrapExpression(node);
   if (!isNode(direct)) return null;
   if (followValueAlias) {
@@ -25,7 +28,7 @@ function platformGlobalName(
     if (
       selected &&
       (selected.fallback === null || isDefinitelyNonCallable(selected.fallback, bindings)) &&
-      GLOBAL_OBJECT_NAMES.has(platformGlobalName(selected.source, bindings, true) ?? "")
+      GLOBAL_OBJECT_NAMES.has(platformGlobalName(selected.source, bindings, true, depth + 1) ?? "")
     ) {
       return selected.property;
     }
@@ -62,13 +65,14 @@ export function directPlatformGlobalName(node: unknown, bindings: FileBindings):
   return platformGlobalName(node, bindings, false);
 }
 
-/** Return the `globalThis` identifier read by a qualified access, if any. */
-export function platformGlobalNamespaceAccess(
+function findPlatformGlobalNamespaceAccess(
   node: unknown,
   bindings: FileBindings,
+  depth: number,
 ): ESTree.Node | null {
+  if (depth > MAX_PLATFORM_GLOBAL_ALIAS_DEPTH) return null;
   const selected = resolveDestructuredConstMember(node, bindings);
-  if (selected) return platformGlobalNamespaceAccess(selected.source, bindings);
+  if (selected) return findPlatformGlobalNamespaceAccess(selected.source, bindings, depth + 1);
   const value = resolveConstValue(node, bindings);
   if (!value || value.type !== "MemberExpression") return null;
   const object = resolveConstValue(value.object, bindings);
@@ -76,5 +80,13 @@ export function platformGlobalNamespaceAccess(
   if (object.type === "Identifier") {
     return getName(object) === "globalThis" && bindings.isPlatformGlobal(object) ? object : null;
   }
-  return platformGlobalNamespaceAccess(object, bindings);
+  return findPlatformGlobalNamespaceAccess(object, bindings, depth + 1);
+}
+
+/** Return the `globalThis` identifier read by a qualified access, if any. */
+export function platformGlobalNamespaceAccess(
+  node: unknown,
+  bindings: FileBindings,
+): ESTree.Node | null {
+  return findPlatformGlobalNamespaceAccess(node, bindings, 0);
 }

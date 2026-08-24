@@ -52,6 +52,18 @@ function onLoad() {
     );
   });
 
+  it("flags a stable constructor alias declared inside its use block", () => {
+    assertInvalid(
+      `if (condition) {
+  const GR = GlideRecord;
+  new GR("incident");
+}`,
+      RULE,
+      { messageId: "glideRecord" },
+      { filename: "form.client.js", settings: { scope: "scoped" } },
+    );
+  });
+
   it("forgets a reassigned constructor alias", () => {
     assertValid(
       `var GR = GlideRecord;
@@ -168,6 +180,36 @@ new GlideRecord("incident");`,
       RULE,
       options,
     );
+    assertValid(
+      `GlideRecord = null;
+new GlideRecord("incident");`,
+      RULE,
+      options,
+    );
+    assertValid(
+      `global.GlideRecord = undefined;
+new global.GlideRecord("incident");`,
+      RULE,
+      options,
+    );
+    assertValid(
+      `delete global.GlideRecord;
+new global.GlideRecord("incident");`,
+      RULE,
+      options,
+    );
+    assertValid(
+      `Object.defineProperty(global, "GlideRecord", { value: null });
+new GlideRecord("incident");`,
+      RULE,
+      options,
+    );
+    assertValid(
+      `new GlideRecord("incident");
+GlideRecord = LocalRecord;`,
+      RULE,
+      options,
+    );
   });
 
   it("treats escaping the namespace, but not its constructor value, as a possible mutation", () => {
@@ -183,6 +225,13 @@ new global.GlideRecord("task");`,
 new global.GlideRecord("incident");`,
       RULE,
       { messageId: "glideRecord" },
+      { filename: "form.client.js", settings: { scope: "scoped" } },
+    );
+    assertValid(
+      `var platform = global;
+prepare(platform);
+new GlideRecord("incident");`,
+      RULE,
       { filename: "form.client.js", settings: { scope: "scoped" } },
     );
   });
@@ -211,6 +260,10 @@ new GR("incident");`,
     });
     assertValid(`var gr = new GlideRecord("sys_user");`, RULE, {
       filename: "unknown.client.js",
+    });
+    assertValid(`var gr = new GlideRecord("sys_user");`, RULE, {
+      filename: "explicit-unknown.client.js",
+      settings: { scope: "unknown" },
     });
   });
 

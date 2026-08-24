@@ -62,7 +62,7 @@ export function assertValid(code: string, rule: RuleName, options: RunOptions = 
   assert.equal(
     messages.length,
     0,
-    `Expected no diagnostics, got:\n${messages.map((m) => `  - ${m.message}`).join("\n")}`,
+    `Expected no diagnostics, got:\n${messages.map((m) => `  - ${m.message}`).join("\n")}\nSource:\n${code}`,
   );
 }
 

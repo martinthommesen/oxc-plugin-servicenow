@@ -4,7 +4,7 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, it } from "node:test";
-import { repoRoot } from "./helpers.js";
+import { repoRoot, TSX_CLI_EXECUTION_PATTERN } from "./helpers.js";
 
 describe("tooling execution", () => {
   it("runs TypeScript tests and the JSON reporter without the tsx CLI", () => {
@@ -41,10 +41,7 @@ describe("tooling execution", () => {
       scripts: Record<string, string>;
     };
     const commands = Object.values(pkg.scripts).join("\n");
-    assert.doesNotMatch(
-      commands,
-      /(?:^|&&\s*)(?:(?:npx(?:\s+--no-install)?|npm exec(?:\s+--)?)\s+)?tsx(?:\s|$)/m,
-    );
+    assert.doesNotMatch(commands, TSX_CLI_EXECUTION_PATTERN);
     assert.equal(pkg.scripts.compat, "node scripts/compat-consumer.mjs");
     assert.equal(pkg.scripts["acceptance:check"], "node scripts/verify-acceptance-ledger.mjs");
     assert.match(

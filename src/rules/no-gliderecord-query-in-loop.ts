@@ -25,8 +25,12 @@ export const noGliderecordQueryInLoop = defineRule({
         if (!isServerInstanceContext(script)) return false;
       },
       Program(node) {
-        const { analysis } = beginRuleFile(context);
-        for (const finding of findQueriesInCursorLoops(node as ESTree.Node, analysis)) {
+        const { analysis, file } = beginRuleFile(context);
+        for (const finding of findQueriesInCursorLoops(
+          node as ESTree.Node,
+          analysis,
+          file.bindingWrites,
+        )) {
           context.report({
             node: finding.node,
             messageId: "nestedQuery",

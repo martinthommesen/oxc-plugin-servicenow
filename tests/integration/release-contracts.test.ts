@@ -205,6 +205,11 @@ describe("ServiceNow release contracts in real hosts", () => {
           eslint.map((message) => ({ ruleId: message.ruleId, messageId: message.messageId })),
           [{ ruleId: `servicenow/${contract.rule}`, messageId: contract.messageId }],
         );
+        assert.deepEqual(
+          oxlint.report.diagnostics.map((diagnostic) => diagnostic.message),
+          eslint.map((message) => message.message),
+          `${contract.id}: Oxlint and ESLint must select the same message identity`,
+        );
       } finally {
         rmSync(directory, { recursive: true, force: true });
       }

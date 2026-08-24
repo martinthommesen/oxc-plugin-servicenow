@@ -1,6 +1,7 @@
 import type { ESTree } from "@oxlint/plugins";
 import { isNode, unwrapExpression, walk } from "../utils/ast.js";
-import { forEachResolvedPatternBinding, type FileBindings } from "./bindings.js";
+import type { FileBindings } from "./bindings.js";
+import type { BindingWriteQuery } from "./binding-writes.js";
 import { resolveConstValue } from "./members.js";
 
 const MAX_STABLE_CALL_SITES = 20_000;
@@ -38,53 +39,18 @@ function executesImmediately(node: ImmediateFunction): boolean {
 export function analyzeStableInvocations(
   program: ESTree.Node,
   bindings: FileBindings,
+  bindingWrites: BindingWriteQuery,
 ): StableInvocationQuery {
-  const written = new Set<number>();
   const calls: ESTree.CallExpression[] = [];
-  const ancestors: ESTree.Node[] = [];
-  let hasDynamicScope = false;
   let callBudgetExceeded = false;
-  const recordWrittenPattern = (target: unknown): void => {
-    forEachResolvedPatternBinding(target, bindings, ancestors, (binding) => {
-      written.add(binding.id);
-    });
-  };
 
-  walk(
-    program,
-    {
-      AssignmentExpression(node) {
-        recordWrittenPattern((node as ESTree.AssignmentExpression).left);
-      },
-      UpdateExpression(node) {
-        recordWrittenPattern((node as ESTree.UpdateExpression).argument);
-      },
-      ForInStatement(node) {
-        recordWrittenPattern((node as ESTree.ForInStatement).left);
-      },
-      ForOfStatement(node) {
-        recordWrittenPattern((node as ESTree.ForOfStatement).left);
-      },
-      WithStatement() {
-        hasDynamicScope = true;
-      },
-      CallExpression(node) {
-        const call = node as ESTree.CallExpression;
-        const callee = unwrapExpression(call.callee);
-        if (
-          isNode(callee) &&
-          callee.type === "Identifier" &&
-          callee.name === "eval" &&
-          bindings.isPlatformGlobal(callee, ancestors)
-        ) {
-          hasDynamicScope = true;
-        }
-        if (calls.length < MAX_STABLE_CALL_SITES) calls.push(call);
-        else callBudgetExceeded = true;
-      },
+  walk(program, {
+    CallExpression(node) {
+      const call = node as ESTree.CallExpression;
+      if (calls.length < MAX_STABLE_CALL_SITES) calls.push(call);
+      else callBudgetExceeded = true;
     },
-    ancestors,
-  );
+  });
 
   const resolveBase = (callee: unknown): ImmediateFunction | null => {
     const direct = unwrapExpression(callee);
@@ -94,15 +60,19 @@ export function analyzeStableInvocations(
     // additional code at the call site. Keep expansion to a direct binding;
     // resolveConstValue may then follow its immutable aliases.
     if (direct.type !== "Identifier") return null;
+    // Lexical resolution is not authoritative anywhere in a file containing
+    // direct eval or `with`. Check before following const aliases as well as
+    // function declarations.
+    if (bindingWrites.hasDynamicScope()) return null;
     const value = resolveConstValue(direct, bindings);
     if (!value) return null;
     if (isFunctionNode(value)) return executesImmediately(value) ? value : null;
-    if (value.type !== "Identifier" || hasDynamicScope) return null;
+    if (value.type !== "Identifier") return null;
     const binding = bindings.resolve(value.name, value);
     if (
       binding?.kind !== "function" ||
       binding.node.type !== "FunctionDeclaration" ||
-      written.has(binding.id)
+      bindingWrites.isWritten(binding.id)
     ) {
       return null;
     }

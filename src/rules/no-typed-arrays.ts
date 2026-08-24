@@ -75,12 +75,13 @@ export const noTypedArrays = defineRule({
       },
     };
 
-    function check(node: ESTree.NewExpression | ESTree.CallExpression) {
-      const { analysis, context: script, file } = beginRuleFile(context);
-      const name = resolvePlatformGlobalName(node.callee, analysis.bindings);
-      if (!name || !ALL.has(name)) return;
-      if (file.mutations.isGlobalWritten(name)) return;
-      const namespaceAccess = platformGlobalNamespaceAccess(node.callee, analysis.bindings);
+    function constructorOriginIsSafe(
+      callee: unknown,
+      name: string,
+      cacheKeyPrefix: string,
+    ): boolean {
+      const { analysis, context: script } = beginRuleFile(context);
+      const namespaceAccess = platformGlobalNamespaceAccess(callee, analysis.bindings);
       const namespaceIsSafe =
         namespaceAccess === null ||
         isFeatureAllowed("global-this", script.javascriptMode, script.settings.release) ||
@@ -94,7 +95,7 @@ export const noTypedArrays = defineRule({
             guardCacheKey: "global-this",
           },
         );
-      const origin = resolveConstValue(node.callee, analysis.bindings);
+      const origin = resolveConstValue(callee, analysis.bindings);
       const bareOriginIsSafe =
         origin?.type !== "Identifier" ||
         directPlatformGlobalName(origin, analysis.bindings) !== name ||
@@ -105,9 +106,17 @@ export const noTypedArrays = defineRule({
           (candidate) => directPlatformGlobalName(candidate, analysis.bindings) === name,
           {
             allowDirectAccessGuard: false,
-            guardCacheKey: `no-typed-arrays:origin:${name}`,
+            guardCacheKey: `no-typed-arrays:${cacheKeyPrefix}:${name}`,
           },
         );
+      return namespaceIsSafe && bareOriginIsSafe;
+    }
+
+    function check(node: ESTree.NewExpression | ESTree.CallExpression) {
+      const { analysis, context: script, file } = beginRuleFile(context);
+      const name = resolvePlatformGlobalName(node.callee, analysis.bindings);
+      if (!name || !ALL.has(name)) return;
+      if (file.mutations.isGlobalWritten(name)) return;
       const isCtorGuardAccess = (candidate: unknown): boolean => {
         if (directPlatformGlobalName(candidate, analysis.bindings) === name) return true;
         const terminal = resolveConstValue(candidate, analysis.bindings);
@@ -123,8 +132,7 @@ export const noTypedArrays = defineRule({
         );
       };
       if (
-        namespaceIsSafe &&
-        bareOriginIsSafe &&
+        constructorOriginIsSafe(node.callee, name, "origin") &&
         isInvocationAvailabilityGuarded(context, node, analysis, isCtorGuardAccess, {
           allowDirectAccessGuard: hasSafeQualifiedOrigin,
           guardCacheKey: `no-typed-arrays:constructor:${name}`,
@@ -291,39 +299,10 @@ export const noTypedArrays = defineRule({
         return;
       }
 
-      const namespaceAccess = platformGlobalNamespaceAccess(callee.object, analysis.bindings);
-      const namespaceIsSafe =
-        namespaceAccess === null ||
-        isFeatureAllowed("global-this", script.javascriptMode, script.settings.release) ||
-        isAvailabilityGuarded(
-          context,
-          namespaceAccess,
-          analysis,
-          (candidate) => directPlatformGlobalName(candidate, analysis.bindings) === "globalThis",
-          {
-            allowDirectAccessGuard: false,
-            guardCacheKey: "global-this",
-          },
-        );
-      const origin = resolveConstValue(callee.object, analysis.bindings);
-      const bareOriginIsSafe =
-        origin?.type !== "Identifier" ||
-        directPlatformGlobalName(origin, analysis.bindings) !== name ||
-        isAvailabilityGuarded(
-          context,
-          origin,
-          analysis,
-          (candidate) => directPlatformGlobalName(candidate, analysis.bindings) === name,
-          {
-            allowDirectAccessGuard: false,
-            guardCacheKey: `no-typed-arrays:factory-origin:${name}`,
-          },
-        );
       const isConstructorAccess = (candidate: unknown): boolean =>
         resolvePlatformGlobalName(candidate, analysis.bindings) === name;
       if (
-        namespaceIsSafe &&
-        bareOriginIsSafe &&
+        constructorOriginIsSafe(callee.object, name, "factory-origin") &&
         isInvocationAvailabilityGuarded(context, node, analysis, isConstructorAccess, {
           allowDirectAccessGuard: (candidate) =>
             platformGlobalNamespaceAccess(candidate, analysis.bindings) !== null,

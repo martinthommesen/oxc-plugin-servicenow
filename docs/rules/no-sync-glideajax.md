@@ -9,7 +9,7 @@
 - **Fix safety:** diagnostic only
 - **Suggestions:** no
 - **Authoring:** classic
-- **Surfaces:** Applies to client, ui-action when those surfaces are known. Unknown surfaces stay silent.
+- **Surfaces:** Applies to client, ui-action when those surfaces are known. Mixed client/server UI Actions stay silent because execution regions are not classified. Unknown surfaces stay silent.
 - **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
 - **Last verified:** 2026-08-20
 - **Implementation:** [`src/rules/no-sync-glideajax.ts`](../../src/rules/no-sync-glideajax.ts)
@@ -19,7 +19,7 @@
 | Dimension | Value |
 | --- | --- |
 | Authoring | classic |
-| Surfaces | Applies to client, ui-action when those surfaces are known. Unknown surfaces stay silent. |
+| Surfaces | Applies to client, ui-action when those surfaces are known. Mixed client/server UI Actions stay silent because execution regions are not classified. Unknown surfaces stay silent. |
 | Minimum surface confidence | filename-inferred |
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
