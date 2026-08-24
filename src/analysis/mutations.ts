@@ -98,11 +98,12 @@ function buildIndex(
   const objectProperties = new Set<string>();
   const objectPropertyWildcards = new Set<string>();
   if (!program) return { globals, globalPaths, objectProperties, objectPropertyWildcards };
+  const modernGlobalsMayExist = javascriptMode !== "compatibility" && javascriptMode !== "es5";
 
   const recordGlobalPath = (path: readonly string[]): void => {
     globalPaths.add(pathKey(path));
     if (!GLOBAL_OBJECT_NAMES.has(path[0] ?? "")) return;
-    if (path[0] === "globalThis" && javascriptMode !== "es2021") return;
+    if (path[0] === "globalThis" && !modernGlobalsMayExist) return;
     const normalized = path.slice(1);
     if (normalized.length === 0 || normalized.includes("*")) {
       globals.add("*");
@@ -206,7 +207,7 @@ function buildIndex(
       if (selected.fallback !== null && !isDefinitelyNonCallable(selected.fallback, bindings)) {
         return null;
       }
-      if (platformGlobalNamespaceAccess(selected.source, bindings) && javascriptMode !== "es2021") {
+      if (platformGlobalNamespaceAccess(selected.source, bindings) && !modernGlobalsMayExist) {
         return null;
       }
       const owner = resolvePlatformGlobalName(selected.source, bindings);
@@ -214,7 +215,7 @@ function buildIndex(
     }
     const value = resolveConstValue(direct, bindings);
     if (!value) return null;
-    if (platformGlobalNamespaceAccess(value, bindings) && javascriptMode !== "es2021") {
+    if (platformGlobalNamespaceAccess(value, bindings) && !modernGlobalsMayExist) {
       return null;
     }
     if (value.type === "MemberExpression") {
@@ -425,7 +426,7 @@ function buildIndex(
       const call = node as ESTree.CallExpression;
       const builtin = calledBuiltin(call);
       if (!builtin) {
-        if (platformGlobalNamespaceAccess(call.callee, bindings) && javascriptMode !== "es2021") {
+        if (platformGlobalNamespaceAccess(call.callee, bindings) && !modernGlobalsMayExist) {
           return;
         }
         const direct = staticBuiltin(call.callee);
@@ -447,7 +448,7 @@ function buildIndex(
       if (
         ownerName === "Object" &&
         (method === "assign" || method === "setPrototypeOf") &&
-        javascriptMode !== "es2021"
+        !modernGlobalsMayExist
       ) {
         return;
       }

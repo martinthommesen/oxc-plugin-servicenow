@@ -9,7 +9,7 @@ A query inside a proven record cursor loop is an N+1 pattern. Direct IIFEs and s
 - **Fix safety:** diagnostic only
 - **Suggestions:** no
 - **Authoring:** classic
-- **Surfaces:** Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent.
+- **Surfaces:** Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. UI Actions require an explicit server surface; mixed client/server UI Actions stay silent because execution regions are not classified. Unknown surfaces stay silent.
 - **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
 - **Last verified:** 2026-08-22
 - **Implementation:** [`src/rules/no-gliderecord-query-in-loop.ts`](../../src/rules/no-gliderecord-query-in-loop.ts)
@@ -19,7 +19,7 @@ A query inside a proven record cursor loop is an N+1 pattern. Direct IIFEs and s
 | Dimension | Value |
 | --- | --- |
 | Authoring | classic |
-| Surfaces | Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent. |
+| Surfaces | Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. UI Actions require an explicit server surface; mixed client/server UI Actions stay silent because execution regions are not classified. Unknown surfaces stay silent. |
 | Minimum surface confidence | filename-inferred |
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
@@ -123,23 +123,23 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-n
   - URL: tests/rules/phase3.test.ts
   - Verified by: fixture
   - Verified at: 2026-08-22
-- **The Australia scoped GlideRecord API was reviewed for the methods and lifecycle facts used by this rule.**
-  - Verification ID: `rule-evidence-d9518475`
+- **The Australia-scoped GlideRecord API was reviewed for the methods and lifecycle facts used by this rule.**
+  - Verification ID: `rule-evidence-0aa93fce`
   - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html
   - Verified by: manual
   - Verified at: 2026-08-22
-- **The Australia global GlideRecord API was reviewed for the methods and lifecycle facts used by this rule.**
-  - Verification ID: `rule-evidence-68b67e16`
+- **The Australia-global GlideRecord API was reviewed for the methods and lifecycle facts used by this rule.**
+  - Verification ID: `rule-evidence-2bc8eb5d`
   - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordAPI.html
   - Verified by: manual
   - Verified at: 2026-08-22
-- **The Australia scoped GlideAggregate API was reviewed for the methods and lifecycle facts used by this rule.**
-  - Verification ID: `rule-evidence-bf481f69`
+- **The Australia-scoped GlideAggregate API was reviewed for the methods and lifecycle facts used by this rule.**
+  - Verification ID: `rule-evidence-6b04aafc`
   - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideAggregateScopedAPI.html
   - Verified by: manual
   - Verified at: 2026-08-22
-- **The Australia global GlideAggregate API was reviewed for the methods and lifecycle facts used by this rule.**
-  - Verification ID: `rule-evidence-e80857c0`
+- **The Australia-global GlideAggregate API was reviewed for the methods and lifecycle facts used by this rule.**
+  - Verification ID: `rule-evidence-b2643a55`
   - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideAggregateAPI.html
   - Verified by: manual
   - Verified at: 2026-08-22

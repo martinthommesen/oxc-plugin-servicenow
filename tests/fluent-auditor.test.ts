@@ -30,6 +30,8 @@ describe("Fluent SDK tarball trust boundary", () => {
       "https://registry.npmjs.org/@servicenow/sdk/-/sdk-4.10.1.tgz",
       "https://registry.npmjs.org/@servicenow/sdk/-/sdk-4.11.0.tgz?mirror=1",
       "https://user@registry.npmjs.org/@servicenow/sdk/-/sdk-4.11.0.tgz",
+      "http://registry.npmjs.org/@servicenow/sdk/-/sdk-4.11.0.tgz",
+      "https://registry.npmjs.org/@servicenow/sdk/-/sdk-4.11.0.tgz#artifact",
     ]) {
       assert.throws(
         () => canonicalRegistryTarballUrl(candidate, "@servicenow/sdk", "4.11.0"),
@@ -47,10 +49,12 @@ describe("Fluent SDK tarball trust boundary", () => {
       ),
       /declared response exceeds/,
     );
-    await assert.rejects(
-      readResponseBytes(new Response(Buffer.alloc(4)), "fixture", 3),
-      /response exceeds/,
-    );
+    const streamed = new Response(Buffer.alloc(4));
+    assert.equal(streamed.headers.has("content-length"), false);
+    await assert.rejects(readResponseBytes(streamed, "fixture", 3), (error) => {
+      assert.equal(String(error), "Error: fixture: response exceeds 3 bytes");
+      return true;
+    });
     assert.deepEqual(
       await readResponseBytes(
         new Response(Buffer.from("safe"), { headers: { "content-length": "4" } }),

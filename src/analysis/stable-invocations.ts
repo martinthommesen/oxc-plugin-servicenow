@@ -94,10 +94,13 @@ export function analyzeStableInvocations(
     // additional code at the call site. Keep expansion to a direct binding;
     // resolveConstValue may then follow its immutable aliases.
     if (direct.type !== "Identifier") return null;
+    // Lexical resolution is not authoritative anywhere in a file containing
+    // direct eval or `with`. Check before following immutable aliases too.
+    if (hasDynamicScope) return null;
     const value = resolveConstValue(direct, bindings);
     if (!value) return null;
     if (isFunctionNode(value)) return executesImmediately(value) ? value : null;
-    if (value.type !== "Identifier" || hasDynamicScope) return null;
+    if (value.type !== "Identifier") return null;
     const binding = bindings.resolve(value.name, value);
     if (
       binding?.kind !== "function" ||

@@ -9,7 +9,7 @@ The reviewed Zurich and Australia scoped GlideRecord references document that `q
 - **Fix safety:** diagnostic only
 - **Suggestions:** no
 - **Authoring:** classic
-- **Surfaces:** Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent.
+- **Surfaces:** Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. UI Actions require an explicit server surface; mixed client/server UI Actions stay silent because execution regions are not classified. Unknown surfaces stay silent.
 - **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
 - **Last verified:** 2026-08-22
 - **Implementation:** [`src/rules/prefer-setnocount-with-choosewindow.ts`](../../src/rules/prefer-setnocount-with-choosewindow.ts)
@@ -19,7 +19,7 @@ The reviewed Zurich and Australia scoped GlideRecord references document that `q
 | Dimension | Value |
 | --- | --- |
 | Authoring | classic |
-| Surfaces | Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent. |
+| Surfaces | Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. UI Actions require an explicit server surface; mixed client/server UI Actions stay silent because execution regions are not classified. Unknown surfaces stay silent. |
 | Minimum surface confidence | filename-inferred |
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
@@ -101,8 +101,8 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. lifecyc
   - URL: tests/integration/profiles/invalid/setnocount-second-query.br.js
   - Verified by: integration-test
   - Verified at: 2026-08-20
-- **The Australia global GlideRecord API was reviewed for the methods and lifecycle facts used by this rule.**
-  - Verification ID: `rule-evidence-85bf141a`
+- **The Australia-global GlideRecord API was reviewed for the methods and lifecycle facts used by this rule.**
+  - Verification ID: `rule-evidence-ea766c39`
   - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordAPI.html
   - Verified by: manual
   - Verified at: 2026-08-22
