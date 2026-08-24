@@ -1446,10 +1446,22 @@ Record({ table: "incident", data: {} });`,
           "2026-08-20",
         ),
         metadata.evidenceRecord(
-          "src/catalog.ts",
-          "Catalog examples cover array.at versus bracket access.",
+          metadata.SN_JS_FEATURES,
+          "String.prototype.at is unsupported in Compatibility and ES5 Standards modes.",
+          "manual",
+          "2026-08-24",
+        ),
+        metadata.evidenceRecord(
+          "tests/rules/no-at-method.test.ts",
+          "Fixtures cover Array/String prototype authority, modeled built-in replacement, dynamic scope, dominating feature guards, optional invocation, and shadowed near misses.",
           "fixture",
-          "2026-08-20",
+          "2026-08-24",
+        ),
+        metadata.evidenceRecord(
+          "tests/integration/profiles.test.ts",
+          "Real Oxlint and ESLint classic-ES5 profiles accept an explicit Array.prototype.at polyfill.",
+          "integration-test",
+          "2026-08-24",
         ),
       ],
       {
@@ -1468,6 +1480,17 @@ Record({ table: "incident", data: {} });`,
         settings: ES5,
         code: `customCollection.at(0);`,
       },
+      {
+        caseId: "no-at-method-visible-polyfill",
+        kind: "scope-boundary",
+        description:
+          "A possible Array or String constructor, prototype, or at-method replacement suppresses matching diagnostics throughout the file, regardless of source order.",
+        name: "visible Array.at polyfill",
+        filename: "polyfill.server.js",
+        settings: ES5,
+        code: `Array.prototype.at = localAt;
+var last = [1, 2].at(-1);`,
+      },
     ],
     title: "No .at()",
     family: "engine",
@@ -1475,7 +1498,8 @@ Record({ table: "incident", data: {} });`,
     severity: "error",
     fixable: false,
     hasSuggestions: false,
-    description: "`.at()` is not implemented in Compatibility or ES5 Standards mode.",
+    description:
+      "`.at()` is not implemented in Compatibility or ES5 Standards mode. Proven array/string literal receivers report unless the matching built-in authority is visibly replaced or a structural prototype-availability guard protects the call.",
     bad: [
       {
         name: "at",
@@ -1486,6 +1510,14 @@ Record({ table: "incident", data: {} });`,
     ],
     good: [
       { name: "index", filename: "script-include.js", code: `var last = list[list.length - 1];` },
+      {
+        name: "guarded polyfill use",
+        filename: "portable.server.js",
+        settings: ES5,
+        code: `if (typeof Array.prototype.at === "function") {
+  var last = [1, 2].at(-1);
+}`,
+      },
     ],
   }),
   entry("no-packages-calls", noPackagesCalls, {
