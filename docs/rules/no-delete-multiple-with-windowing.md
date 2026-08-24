@@ -9,7 +9,7 @@
 - **Fix safety:** diagnostic only
 - **Suggestions:** no
 - **Authoring:** classic
-- **Surfaces:** Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent.
+- **Surfaces:** Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. UI Actions require an explicit server surface; mixed client/server UI Actions stay silent because execution regions are not classified. Unknown surfaces stay silent.
 - **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
 - **Last verified:** 2026-08-22
 - **Implementation:** [`src/rules/no-delete-multiple-with-windowing.ts`](../../src/rules/no-delete-multiple-with-windowing.ts)
@@ -19,7 +19,7 @@
 | Dimension | Value |
 | --- | --- |
 | Authoring | classic |
-| Surfaces | Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent. |
+| Surfaces | Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. UI Actions require an explicit server surface; mixed client/server UI Actions stay silent because execution regions are not classified. Unknown surfaces stay silent. |
 | Minimum surface confidence | filename-inferred |
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
@@ -90,13 +90,13 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. lifecyc
   - URL: tests/integration/profiles/invalid/windowed-delete.br.js
   - Verified by: integration-test
   - Verified at: 2026-08-20
-- **The Australia scoped GlideRecord API was reviewed for the methods and lifecycle facts used by this rule.**
-  - Verification ID: `rule-evidence-b2a636ff`
+- **The Australia-scoped GlideRecord API was reviewed for the methods and lifecycle facts used by this rule.**
+  - Verification ID: `rule-evidence-0128acb8`
   - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html
   - Verified by: manual
   - Verified at: 2026-08-22
-- **The Australia global GlideRecord API was reviewed for the methods and lifecycle facts used by this rule.**
-  - Verification ID: `rule-evidence-8d4d3494`
+- **The Australia-global GlideRecord API was reviewed for the methods and lifecycle facts used by this rule.**
+  - Verification ID: `rule-evidence-0f21a303`
   - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordAPI.html
   - Verified by: manual
   - Verified at: 2026-08-22

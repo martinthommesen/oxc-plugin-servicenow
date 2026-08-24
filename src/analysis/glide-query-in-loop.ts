@@ -1,6 +1,6 @@
 import type { ESTree } from "@oxlint/plugins";
 import { getName, isNode, unwrapExpression } from "../utils/ast.js";
-import { staticPropertyName } from "./members.js";
+import { isDefinitelyUndefinedValue, staticPropertyName } from "./members.js";
 import type { ProvenanceQuery } from "./provenance.js";
 import { visitChildren } from "./path-state.js";
 import { definitelySkipsDoWhileTest, truthyPathRequiresCursorNext } from "./cursor-condition.js";
@@ -120,11 +120,13 @@ function visitMissingParameterDefaults(
   state: CursorVisitState,
 ): void {
   if (call.arguments.some((argument) => argument.type === "SpreadElement")) return;
-  for (let index = call.arguments.length; index < fn.params.length; index += 1) {
+  for (let index = 0; index < fn.params.length; index += 1) {
     const parameter = unwrapExpression(fn.params[index]);
-    if (isNode(parameter) && parameter.type === "AssignmentPattern") {
-      visit(parameter.right, cursorDepth, state);
-    }
+    if (!isNode(parameter) || parameter.type !== "AssignmentPattern") continue;
+    const argument = call.arguments[index];
+    const definitelyUndefined =
+      !argument || isDefinitelyUndefinedValue(argument, state.analysis.bindings);
+    if (definitelyUndefined) visit(parameter.right, cursorDepth, state);
   }
 }
 

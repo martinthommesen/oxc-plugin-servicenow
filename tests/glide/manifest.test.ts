@@ -96,6 +96,8 @@ describe("GlideRecord method manifest", () => {
     const scoped = new Set(GLIDE_DOCUMENTED_METHODS.australia.scoped);
     const global = new Set(GLIDE_DOCUMENTED_METHODS.australia.global);
     const union = new Set([...scoped, ...global]);
+    assert.equal(scoped.size, GLIDE_DOCUMENTED_METHODS.australia.scoped.length);
+    assert.equal(global.size, GLIDE_DOCUMENTED_METHODS.australia.global.length);
     assert.equal(scoped.size, 68);
     assert.equal(global.size, 96);
     assert.equal(union.size, 102);

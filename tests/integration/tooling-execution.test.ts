@@ -4,9 +4,25 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, it } from "node:test";
-import { repoRoot } from "./helpers.js";
+import { repoRoot, TSX_CLI_EXECUTION_PATTERN } from "./helpers.js";
 
 describe("tooling execution", () => {
+  it("recognizes package-selected tsx CLI invocations", () => {
+    for (const command of [
+      "tsx script.ts",
+      "npx --no-install tsx script.ts",
+      "npm exec -- tsx script.ts",
+      "npm exec --package=tsx -- tsx script.ts",
+      "run: npm exec --yes -- tsx script.ts",
+    ]) {
+      assert.match(command, TSX_CLI_EXECUTION_PATTERN, command);
+    }
+    assert.doesNotMatch(
+      "node --import ./scripts/register-tsx.mjs script.ts",
+      TSX_CLI_EXECUTION_PATTERN,
+    );
+  });
+
   it("runs TypeScript tests and the JSON reporter without the tsx CLI", () => {
     const directory = mkdtempSync(path.join(tmpdir(), "sn-test-runner-"));
     const env = { ...process.env };
@@ -41,10 +57,7 @@ describe("tooling execution", () => {
       scripts: Record<string, string>;
     };
     const commands = Object.values(pkg.scripts).join("\n");
-    assert.doesNotMatch(
-      commands,
-      /(?:^|&&\s*)(?:(?:npx(?:\s+--no-install)?|npm exec(?:\s+--)?)\s+)?tsx(?:\s|$)/m,
-    );
+    assert.doesNotMatch(commands, TSX_CLI_EXECUTION_PATTERN);
     assert.equal(pkg.scripts.compat, "node scripts/compat-consumer.mjs");
     assert.equal(pkg.scripts["acceptance:check"], "node scripts/verify-acceptance-ledger.mjs");
     assert.match(

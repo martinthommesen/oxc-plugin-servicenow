@@ -9,7 +9,7 @@ Optional migration policy. Review Rhino `Packages.*` bridge calls; Australia's r
 - **Fix safety:** diagnostic only
 - **Suggestions:** no
 - **Authoring:** classic
-- **Surfaces:** Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent.
+- **Surfaces:** Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. UI Actions require an explicit server surface; mixed client/server UI Actions stay silent because execution regions are not classified. Unknown surfaces stay silent.
 - **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
 - **Last verified:** 2026-08-22
 - **Implementation:** [`src/rules/no-packages-calls.ts`](../../src/rules/no-packages-calls.ts)
@@ -19,7 +19,7 @@ Optional migration policy. Review Rhino `Packages.*` bridge calls; Australia's r
 | Dimension | Value |
 | --- | --- |
 | Authoring | classic |
-| Surfaces | Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent. |
+| Surfaces | Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. UI Actions require an explicit server surface; mixed client/server UI Actions stay silent because execution regions are not classified. Unknown surfaces stay silent. |
 | Minimum surface confidence | filename-inferred |
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
@@ -50,11 +50,11 @@ var result = new GlideDateTime();
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-positive: The syntax-only review also flags Java classes outside the ServiceNow-class removal-tool scope. false-positive: Static source alone cannot prove that a record executes on a MID Server, which Australia documents as a separate review outcome.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-positive: The syntax-only review also flags Java classes outside the scope of the ServiceNow class-removal tool. false-positive: Static source alone cannot prove that a record executes on a MID Server, which Australia documents as a separate review outcome.
 
 ## Known false positives
 
-- The syntax-only review also flags Java classes outside the ServiceNow-class removal-tool scope.
+- The syntax-only review also flags Java classes outside the scope of the ServiceNow class-removal tool.
 - Static source alone cannot prove that a record executes on a MID Server, which Australia documents as a separate review outcome.
 
 ## Known false negatives

@@ -574,6 +574,15 @@ describe("engine extras", () => {
     assertValid(`Int8Array = CustomArray; new Int8Array(1);`, "no-typed-arrays", {
       settings: { javascriptMode: "es5", release: "australia" },
     });
+    assertValid(
+      `globalThis.DataView.prototype.getBigInt64 = custom;
+new DataView(buffer).getBigInt64(0);`,
+      "no-typed-arrays",
+      {
+        filename: "incident.br.js",
+        settings: { javascriptMode: "unknown", release: "australia" },
+      },
+    );
   });
 
   it("conservatively suppresses diagnostics after any possible relevant mutation", () => {
@@ -699,7 +708,9 @@ describe("no-object-hasown", () => {
       { settings: { javascriptMode: "es5" } },
     );
   });
+});
 
+describe("server engine surface gating", () => {
   it("does not apply the server engine matrix to browser-executed client scripts", () => {
     assertValid(`Object.hasOwn(record, "number");`, "no-object-hasown", {
       filename: "form.client.js",
@@ -726,7 +737,9 @@ describe("no-object-hasown", () => {
       },
     });
   });
+});
 
+describe("no-object-hasown", () => {
   it("recognizes static computed access and proven aliases", () => {
     assertInvalid(
       `const BuiltinObject = Object; BuiltinObject["hasOwn"](record, "number");`,
@@ -811,6 +824,13 @@ describe("no-object-hasown", () => {
     assertValid(`Object.hasOwn(record, "x"); Object.hasOwn = polyfill;`, "no-object-hasown", {
       settings,
     });
+    assertValid(
+      `const { Object: First } = Second;
+const { Object: Second } = First;
+First.hasOwn(record, "x");`,
+      "no-object-hasown",
+      { settings },
+    );
   });
 
   it("keeps release-portable availability guards silent", () => {

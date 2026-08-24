@@ -1255,7 +1255,7 @@ Record({ table: "incident", data: {} });`,
         caseId: "packages-non-servicenow-java-class",
         kind: "false-positive",
         description:
-          "The syntax-only review also flags Java classes outside the ServiceNow-class removal-tool scope.",
+          "The syntax-only review also flags Java classes outside the scope of the ServiceNow class-removal tool.",
         name: "non-ServiceNow Java class",
         filename: "src/server/java-bridge.js",
         code: `var value = new Packages.java.lang.String("value");`,
@@ -1295,7 +1295,7 @@ Record({ table: "incident", data: {} });`,
   }),
   entry("no-weak-references", noWeakReferences, {
     ...metadata.meta(
-      metadata.classic(metadata.CLASSIC_SURFACES, metadata.ALL_INSTANCE_MODES),
+      metadata.classic(metadata.SERVER_SURFACES, metadata.ALL_INSTANCE_MODES),
       [
         metadata.evidenceRecord(
           metadata.SN_JS_FEATURES,
@@ -1570,7 +1570,7 @@ new DataView(buffer).getBigInt64(0);`,
         caseId: "typed-array-mutator-authority",
         kind: "false-negative",
         description:
-          "Calls through a reassigned Object mutation helper are treated as unknown; the rule does not assume the custom helper failed to install a DataView method.",
+          "Calls through a reassigned typed-array/DataView mutation helper are treated as unknown; the rule does not assume the custom helper failed to install a DataView method.",
         name: "reassigned DataView mutation helper",
         filename: "custom-runtime.server.js",
         settings: { javascriptMode: "es2021", release: "australia" },
@@ -2425,7 +2425,7 @@ if (display < "2026-01-01") gs.info(display);`,
           "2026-08-22",
         ),
         metadata.evidenceRecord(
-          "https://www.servicenow.com/docs/r/zurich/api-reference/server-api-reference/c_GlideAggregateScopedAPI.html",
+          metadata.SN_GA,
           "GlideAggregate documents query() and next() for aggregate cursor iteration.",
           "manual",
           "2026-08-22",

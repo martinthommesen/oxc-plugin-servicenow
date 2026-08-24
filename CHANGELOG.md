@@ -26,7 +26,9 @@
 - `no-glideelement-in-collection` now follows path-proven local field aliases through reassignment, shadowing, all-path branch joins, nested literals, escapes, and immediately invoked function parameters; numeric update coercion also invalidates shared object aliases.
 - The public `analyzeProvenance(context, ast)` overload once again analyzes the supplied AST, partitions its cache by tree identity, and never applies the host parser's scope graph to foreign nodes.
 - Engine compatibility diagnostics now stay silent when a relevant namespace object escapes to an unknown helper that could install replacement methods, while passing the method value itself does not taint its owner.
+- Unknown JavaScript mode now conservatively records possible `globalThis` mutations, and cyclic destructured platform-global aliases terminate safely instead of overflowing the analysis stack.
 - `no-gliderecord-query-in-loop` now carries proven cursor depth through direct calls to stable one-call-site local helpers, while mutable, multiply called, generator, shadowed, dynamically scoped, and indirect helpers remain conservatively silent.
+- Stable helper calls now evaluate parameter defaults for explicit, provably `undefined` arguments and stop expanding immutable aliases before dynamic-scope resolution can become ambiguous.
 - Release validation now rejects tags that do not point to the exact current protected `main` tip.
 - GlideRecord lifecycle analysis now recognizes the documented `_query()`, `_next()`, and global-only `queryNoDomain()` APIs without guessing when application scope is unknown.
 - ESLint no longer suppresses same-offset query lifecycle diagnostics in later files through retained `createOnce` state.
