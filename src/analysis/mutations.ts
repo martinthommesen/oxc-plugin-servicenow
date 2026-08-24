@@ -573,7 +573,7 @@ function buildIndex(
       const call = node as ESTree.CallExpression;
       const builtin = calledBuiltin(call);
       if (!builtin) {
-        if (platformGlobalNamespaceAccess(call.callee, bindings) && javascriptMode !== "es2021") {
+        if (platformGlobalNamespaceAccess(call.callee, bindings) && !globalThisCanExist) {
           return;
         }
         const direct = staticBuiltin(call.callee);

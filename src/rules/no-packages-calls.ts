@@ -15,7 +15,7 @@ export const noPackagesCalls = defineRule({
     },
     messages: {
       packages:
-        "Review this `Packages.*` bridge use. ServiceNow documents planned prevention for calls to platform Java classes; other Java and MID Server uses require execution-context review.",
+        "Review this `Packages.*` bridge use. ServiceNow documents planned prevention for calls to ServiceNow Java classes beginning with the Australia release. Review other Java and MID Server calls against the execution context.",
     },
   },
   createOnce(context) {

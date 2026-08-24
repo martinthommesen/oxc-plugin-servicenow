@@ -770,7 +770,6 @@ describe("server engine surface gating", () => {
     });
   });
 });
-
 describe("no-object-hasown", () => {
   it("follows the Zurich and Australia release matrix", () => {
     const code = `var owns = Object.hasOwn(record, "number");`;

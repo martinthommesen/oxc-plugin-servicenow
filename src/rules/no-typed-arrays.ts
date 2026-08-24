@@ -89,7 +89,7 @@ export const noTypedArrays = defineRule({
           context,
           namespaceAccess,
           analysis,
-          (candidate) => directPlatformGlobalName(candidate, analysis.bindings) === "globalThis",
+          (node) => directPlatformGlobalName(node, analysis.bindings) === "globalThis",
           {
             allowDirectAccessGuard: false,
             guardCacheKey: "global-this",
@@ -103,7 +103,7 @@ export const noTypedArrays = defineRule({
           context,
           origin,
           analysis,
-          (candidate) => directPlatformGlobalName(candidate, analysis.bindings) === name,
+          (node) => directPlatformGlobalName(node, analysis.bindings) === name,
           {
             allowDirectAccessGuard: false,
             guardCacheKey: `no-typed-arrays:${cacheKeyPrefix}:${name}`,

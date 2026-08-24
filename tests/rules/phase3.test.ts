@@ -1043,6 +1043,18 @@ while (incident.next()) lookupCaller();`,
       SERVER,
     );
     assertValid(
+      `const lookupCaller = () => {
+  var caller = new GlideRecord("sys_user");
+  caller.query();
+};
+eval("lookupCaller = replacement");
+var incident = new GlideRecord("incident");
+incident.query();
+while (incident.next()) lookupCaller();`,
+      RULE,
+      SERVER,
+    );
+    assertValid(
       `function runQuery(record) { record.query(); }
 var caller = new GlideRecord("sys_user");
 runQuery(caller);
