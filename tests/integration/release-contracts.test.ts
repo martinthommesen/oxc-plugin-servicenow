@@ -175,9 +175,11 @@ describe("ServiceNow release contracts in real hosts", () => {
         );
         const oxlint = runOxlintProcess(config, [source]);
         assert.equal(oxlint.stderr, "");
-        const oxlintRules = oxlint.report.diagnostics
-          .map((diagnostic) => pluginRuleId(diagnostic.code))
-          .filter((ruleId): ruleId is string => ruleId !== undefined);
+        const oxlintPluginDiagnostics = oxlint.report.diagnostics.flatMap((diagnostic) => {
+          const ruleId = pluginRuleId(diagnostic.code);
+          return ruleId === undefined ? [] : [{ diagnostic, ruleId }];
+        });
+        const oxlintRules = oxlintPluginDiagnostics.map(({ ruleId }) => ruleId);
 
         const linter = new Linter({ configType: "flat" });
         const eslint = linter.verify(
@@ -206,7 +208,7 @@ describe("ServiceNow release contracts in real hosts", () => {
           [{ ruleId: `servicenow/${contract.rule}`, messageId: contract.messageId }],
         );
         assert.deepEqual(
-          oxlint.report.diagnostics.map((diagnostic) => diagnostic.message),
+          oxlintPluginDiagnostics.map(({ diagnostic }) => diagnostic.message),
           eslint.map((message) => message.message),
           `${contract.id}: Oxlint and ESLint must select the same message identity`,
         );
