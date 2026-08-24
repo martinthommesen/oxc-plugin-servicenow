@@ -1,6 +1,6 @@
 # servicenow/no-unsupported-syntax
 
-The ES5 table marks optional chaining, nullish coalescing, logical assignment, private members, and RegExp lookbehind Not Supported. Constructor-string lookbehind detection follows direct and stable same-execution built-in RegExp identity. Private instance members remain Not Supported in ES2021; Compatibility follows ES5 by package policy.
+The ES5 table marks ordinary object shorthand methods Not Supported and async/generator methods Disallowed. It also marks optional chaining, nullish coalescing, logical assignment, private members, and RegExp lookbehind Not Supported. Constructor-string lookbehind detection follows direct and stable same-execution built-in RegExp identity. Private instance members remain Not Supported in ES2021; Compatibility follows ES5 by package policy.
 
 - **Family:** engine
 - **Preset:** classic-es5
@@ -53,6 +53,12 @@ const Regex = RegExp;
 var matcher = Regex("(?<=a)b");
 ```
 
+### Incorrect: object shorthand method in ES5
+
+```js
+var definitions = { create() {} };
+```
+
 ## Correct
 
 ### Correct: explicit check
@@ -102,11 +108,11 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-b
 
 ## Evidence
 
-- **Several ES2015+ syntactic forms are unsupported in Compatibility and ES5 Standards modes.**
-  - Verification ID: `rule-evidence-8c372832`
+- **The feature table marks ordinary shorthand object methods Not Supported and async/generator object methods Disallowed in ES5 Standards mode; Compatibility follows those cells by package policy.**
+  - Verification ID: `rule-evidence-aec5a123`
   - URL: https://www.servicenow.com/docs/r/zurich/api-reference/scripts/javascript-engine-feature-support.html
   - Verified by: manual
-  - Verified at: 2026-08-20
+  - Verified at: 2026-08-24
 - **The Australia table marks private instance fields, methods, and accessors Not Supported in ES2021.**
   - Verification ID: `rule-evidence-da85fc02`
   - URL: https://www.servicenow.com/docs/r/api-reference/scripts/javascript-engine-feature-support.html
@@ -122,8 +128,8 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-b
   - URL: tests/integration/profiles/invalid/es5-promise.server.js
   - Verified by: integration-test
   - Verified at: 2026-08-20
-- **Fixtures cover direct, namespace-qualified, and stable same-execution RegExp aliases plus shadows, mutation, dynamic scope, and constructor-versus-literal authority boundaries.**
-  - Verification ID: `rule-evidence-1aa625d5`
+- **Fixtures cover shorthand object methods plus direct, namespace-qualified, and stable same-execution RegExp aliases, shadows, mutation, dynamic scope, and constructor-versus-literal authority boundaries.**
+  - Verification ID: `rule-evidence-034df13d`
   - URL: tests/rules/no-unsupported-syntax.test.ts
   - Verified by: fixture
   - Verified at: 2026-08-24

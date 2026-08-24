@@ -28,6 +28,10 @@ export type EngineFeatureId =
   | "array-from-thisarg"
   | "block-function-hoisting"
   | "function-call-apply-thisarg"
+  | "object-method-construction"
+  | "object-method-syntax"
+  | "async-object-method-syntax"
+  | "generator-object-method-syntax"
   | "at-method"
   | "typed-arrays"
   | "typed-array-factories"
@@ -293,6 +297,32 @@ export const ENGINE_FEATURES: Readonly<Record<EngineFeatureId, EngineFeature>> =
       zurich: "unsupported",
       australia: "supported",
     },
+  ),
+  "object-method-construction": australiaUpdateFeature(
+    "object-method-construction",
+    "Object method construction",
+    {
+      zurich: ["supported", "unsupported"],
+      australia: ["disallowed", "unsupported"],
+    },
+  ),
+  "object-method-syntax": unchanged(
+    "object-method-syntax",
+    "Object literal shorthand methods",
+    "supported",
+    "unsupported",
+  ),
+  "async-object-method-syntax": unchanged(
+    "async-object-method-syntax",
+    "Async object literal methods",
+    "supported",
+    "disallowed",
+  ),
+  "generator-object-method-syntax": unchanged(
+    "generator-object-method-syntax",
+    "Generator object literal methods",
+    "supported",
+    "disallowed",
   ),
   "date-fraction-digits": australiaAllModesUpdateFeature(
     "date-fraction-digits",

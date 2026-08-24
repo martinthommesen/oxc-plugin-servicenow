@@ -31,6 +31,9 @@ const BLOCK_FUNCTION_BEFORE_DECLARATION = `{
   var value = helper();
   function helper() { return 1; }
 }`;
+const OBJECT_METHOD_CONSTRUCTION = `const definitions = { create() {} };
+var value = new definitions.create();`;
+const OBJECT_METHOD_SYNTAX = `var definitions = { create() {} };`;
 const MAP = `var cache = new Map();`;
 const SET = `var seen = new Set();`;
 const SET_UNION = `const values = new Set(left);
@@ -274,6 +277,43 @@ const contracts: readonly ReleaseContract[] = [
     code: BLOCK_FUNCTION_BEFORE_DECLARATION,
     rule: "no-unhoisted-block-function-use",
     settings: { javascriptMode: "es2021" },
+  },
+  {
+    id: "zurich-object-method-construction",
+    filename: "zurich-object-method-construction.server.js",
+    code: OBJECT_METHOD_CONSTRUCTION,
+    rule: "no-object-method-constructor",
+    settings: { release: "zurich", javascriptMode: "es2021" },
+  },
+  {
+    id: "australia-object-method-construction",
+    filename: "australia-object-method-construction.server.js",
+    code: OBJECT_METHOD_CONSTRUCTION,
+    rule: "no-object-method-constructor",
+    settings: { release: "australia", javascriptMode: "es2021" },
+    messageId: "notConstructor",
+  },
+  {
+    id: "omitted-release-object-method-construction",
+    filename: "omitted-object-method-construction.server.js",
+    code: OBJECT_METHOD_CONSTRUCTION,
+    rule: "no-object-method-constructor",
+    settings: { javascriptMode: "es2021" },
+  },
+  {
+    id: "australia-es5-object-method-syntax",
+    filename: "australia-es5-object-method-syntax.server.js",
+    code: OBJECT_METHOD_SYNTAX,
+    rule: "no-unsupported-syntax",
+    settings: { release: "australia", javascriptMode: "es5" },
+    messageId: "objectMethod",
+  },
+  {
+    id: "australia-es2021-object-method-syntax",
+    filename: "australia-es2021-object-method-syntax.server.js",
+    code: OBJECT_METHOD_SYNTAX,
+    rule: "no-unsupported-syntax",
+    settings: { release: "australia", javascriptMode: "es2021" },
   },
   {
     id: "zurich-bigint-asuintn",

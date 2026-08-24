@@ -18,6 +18,8 @@ export type { FileAnalysis } from "./file-analysis.js";
 export type { BindingWriteQuery } from "./binding-writes.js";
 export { findUnhoistedBlockFunctionUses } from "./block-function-hoisting.js";
 export type { UnhoistedBlockFunctionUse } from "./block-function-hoisting.js";
+export { findObjectMethodConstructions } from "./object-method-construction.js";
+export type { ObjectMethodConstruction } from "./object-method-construction.js";
 export { createEmptyArrayBindingQuery } from "./empty-array-bindings.js";
 export type { EmptyArrayBindingQuery } from "./empty-array-bindings.js";
 export type { MutationQuery } from "./mutations.js";
