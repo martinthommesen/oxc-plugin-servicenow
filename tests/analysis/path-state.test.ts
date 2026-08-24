@@ -216,6 +216,47 @@ describe("path-state evaluator", () => {
     assert.equal(result.budgetExceeded, true);
   });
 
+  it("converges point-use value domains after joined values become unbound", () => {
+    const program = parse(`
+      while (condition) {
+        var value;
+        if (chooseLeft) value = source.left;
+        else value = source.right;
+        consume(value);
+      }
+    `).ast as any;
+    let observed = false;
+    let budgetExceeded = false;
+
+    analyzePathBindings<{ value: true }>({
+      program,
+      analysis: analysisFor(program),
+      kinds: [],
+      emptyData: () => ({ value: true }),
+      cloneData: (data) => ({ ...data }),
+      mergeData: () => ({ value: true }),
+      mergeDistinctData: () => ({ value: true }),
+      equalsData: () => true,
+      onCall() {},
+      onValue(node) {
+        return node.type === "MemberExpression" ? { value: true } : undefined;
+      },
+      retainUnboundRecords: false,
+      onRef({ node, rec }) {
+        if (node.type === "Identifier" && node.name === "value" && rec && !rec.invalid) {
+          observed = true;
+        }
+      },
+      onBudgetExceeded() {
+        observed = false;
+        budgetExceeded = true;
+      },
+    });
+
+    assert.equal(observed, true);
+    assert.equal(budgetExceeded, false);
+  });
+
   it("escapes values captured through nested closures", () => {
     const result = run(`
       const gr = new GlideRecord("incident");

@@ -105,6 +105,12 @@ export interface PathAnalysisOptions<T> {
   onRef?: (input: PathRefInput<T>) => void;
   /** Allocate an object when an expression is a proven constructed value. */
   onValue?: (node: ESTree.Node) => T | undefined;
+  /**
+   * Retain records that no surviving binding references after a control-flow
+   * join. Risk domains need these records for exit findings; program-point
+   * alias domains can disable retention to keep loop fixpoints finite.
+   */
+  retainUnboundRecords?: boolean;
   /** Inspect every reachable program completion after the shared traversal. */
   onExit?: (states: readonly PathExitState<T>[]) => void;
   /** Internal deterministic work cap. Exceeding it degrades this pass to unknown. */
@@ -273,6 +279,7 @@ function mergeStates<T>(
   mergeData: (left: T, right: T) => T,
   mergeDistinctData?: (left: T, right: T) => T | undefined,
   alloc?: () => ObjectId,
+  retainUnboundRecords = true,
 ): EnvState<T> {
   const env = new Map<BindingId, ObjectId | undefined>();
   const objects = new Map<ObjectId, SharedRecord<T>>();
@@ -323,6 +330,12 @@ function mergeStates<T>(
     }
     env.set(bindingId, leftId);
   }
+  if (!retainUnboundRecords) {
+    const boundObjectIds = new Set(env.values());
+    for (const objectId of objects.keys()) {
+      if (!boundObjectIds.has(objectId)) objects.delete(objectId);
+    }
+  }
   return { env, objects, completion: "normal", completionLabel: null, abrupt: new Map() };
 }
 
@@ -352,12 +365,21 @@ function mergeMany<T>(
   mergeData: (left: T, right: T) => T,
   mergeDistinctData?: (left: T, right: T) => T | undefined,
   alloc?: () => ObjectId,
+  retainUnboundRecords = true,
 ): EnvState<T> | undefined {
   const reachable = paths.filter((path) => path.completion === "normal");
   if (reachable.length === 0) return undefined;
   let current = reachable[0]!;
   for (let i = 1; i < reachable.length; i++) {
-    current = mergeStates(current, reachable[i]!, emptyData, mergeData, mergeDistinctData, alloc);
+    current = mergeStates(
+      current,
+      reachable[i]!,
+      emptyData,
+      mergeData,
+      mergeDistinctData,
+      alloc,
+      retainUnboundRecords,
+    );
   }
   return current;
 }
@@ -470,6 +492,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
     onCall,
     onRef,
     onValue,
+    retainUnboundRecords = true,
     onExit,
     maxWork = DEFAULT_MAX_WORK,
     onBudgetExceeded,
@@ -878,7 +901,14 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
     const flattened = paths.flatMap((path) => completionPaths(path, cloneData, budget));
     const normal = flattened.filter((path) => path.completion === "normal");
     const abrupt = flattened.filter((path) => path.completion !== "normal");
-    const merged = mergeMany(normal, emptyData, mergeData, mergeDistinctData, alloc);
+    const merged = mergeMany(
+      normal,
+      emptyData,
+      mergeData,
+      mergeDistinctData,
+      alloc,
+      retainUnboundRecords,
+    );
     state.abrupt.clear();
     if (merged) {
       replaceWith(state, merged);
@@ -1055,7 +1085,15 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
           if (switchCase.test) visit(switchCase.test, directState, false);
           const direct = snapshotState(directState, cloneData, budget);
           const entry = fall
-            ? mergeStates(direct, fall, emptyData, mergeData, mergeDistinctData, alloc)
+            ? mergeStates(
+                direct,
+                fall,
+                emptyData,
+                mergeData,
+                mergeDistinctData,
+                alloc,
+                retainUnboundRecords,
+              )
             : direct;
           for (const consequent of switchCase.consequent) visit(consequent, entry, false);
           if (entry.completion === "break" && !entry.completionLabel) {
@@ -1162,7 +1200,14 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
             if (!infinite) exits.push(snapshotState(path, cloneData, budget));
             backEdges.push(path);
           }
-          const back = mergeMany(backEdges, emptyData, mergeData, mergeDistinctData, alloc);
+          const back = mergeMany(
+            backEdges,
+            emptyData,
+            mergeData,
+            mergeDistinctData,
+            alloc,
+            retainUnboundRecords,
+          );
           if (!back) {
             converged = true;
             break;
@@ -1174,6 +1219,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
             mergeData,
             mergeDistinctData,
             alloc,
+            retainUnboundRecords,
           );
           if (statesEqual(header, nextHeader, equalsData)) {
             converged = true;
