@@ -54,6 +54,10 @@ export function analyzeGlideElementAliases(
       const cursorId = identifyDirect(node);
       return cursorId === null ? undefined : { cursorId };
     },
+    // This pass only answers exact program-point alias queries. Once a join
+    // has no binding for an abstract value, retaining its record cannot
+    // improve a later answer and can prevent loop fixpoints from converging.
+    retainUnboundRecords: false,
     onRef({ node, rec }) {
       observe(node, rec && !rec.invalid ? rec.data.cursorId : null);
     },
