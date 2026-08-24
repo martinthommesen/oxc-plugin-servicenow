@@ -26,6 +26,56 @@ describe(RULE, () => {
     assertValid(`var md5 = "${ID}";`, RULE);
   });
 
+  it("resolves hash owners structurally across nested sibling expressions", () => {
+    assertValid(`var expectedMd5 = choose({ encoding: "hex" }, "${ID}");`, RULE);
+    assertValid(`hashes.md5 = choose({ encoding: "hex" }, "${ID}");`, RULE);
+  });
+
+  it("uses the nearest value owner", () => {
+    assertInvalid(`var md5 = { sys_id: "${ID}" };`, RULE, {
+      messageId: "hardcoded",
+    });
+    assertInvalid(`hashes.md5 = { sys_id: "${ID}" };`, RULE, {
+      messageId: "hardcoded",
+    });
+  });
+
+  it("does not inherit a hash owner across an execution boundary", () => {
+    assertInvalid(
+      `var md5 = function () {
+  return "${ID}";
+};`,
+      RULE,
+      { messageId: "hardcoded" },
+    );
+    assertInvalid(
+      `var md5 = class {
+  value() {
+    return "${ID}";
+  }
+};`,
+      RULE,
+      { messageId: "hardcoded" },
+    );
+  });
+
+  it("recognizes direct and member assignment owners", () => {
+    assertValid(`md5 = "${ID}";`, RULE);
+    assertValid(`hashes.md5 = "${ID}";`, RULE);
+    assertInvalid(`record.sys_id = "${ID}";`, RULE, { messageId: "hardcoded" });
+  });
+
+  it("can disable hash-name suppression", () => {
+    assertInvalid(
+      `var md5 = "${ID}";`,
+      RULE,
+      { messageId: "hardcoded" },
+      {
+        options: { [RULE]: [{ ignoreHashNames: false }] },
+      },
+    );
+  });
+
   it("flags uppercase sys_ids", () => {
     assertInvalid('var f = "D41D8CD98F00B204E9800998ECF8427E";', RULE, {
       messageId: "hardcoded",

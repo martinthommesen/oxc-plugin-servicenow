@@ -11,7 +11,7 @@ Hardcoded 32-character sys_ids break when an app is installed on another instanc
 - **Authoring:** classic
 - **Surfaces:** Applies to client, server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent.
 - **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
-- **Last verified:** 2026-08-21
+- **Last verified:** 2026-08-24
 - **Implementation:** [`src/rules/no-hardcoded-sysid.ts`](../../src/rules/no-hardcoded-sysid.ts)
 
 ## Applicability
@@ -31,7 +31,7 @@ Hardcoded 32-character sys_ids break when an app is installed on another instanc
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
 | `allowedSysIds` | string[] | `[]` | Additional sys_ids that this rule allows. Settings `allowedSysIds` are also allowed. |
-| `ignoreHashNames` | boolean | `true` | Ignore 32-character hex strings next to names that look like MD5 hashes. |
+| `ignoreHashNames` | boolean | `true` | Ignore 32-character hex values whose nearest variable, property, or assignment owner name looks like an MD5 hash. |
 
 ## Incorrect
 
@@ -53,7 +53,7 @@ current.assignment_group = assignmentGroup;
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-negative: Default MD5-owner suppression can hide a real sys_id stored under an MD5-like name; set `ignoreHashNames: false` when that false-negative tradeoff is unacceptable.
 
 ## Known false positives
 
@@ -61,7 +61,7 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
 
 ## Known false negatives
 
-- None recorded.
+- Default MD5-owner suppression can hide a real sys_id stored under an MD5-like name; set `ignoreHashNames: false` when that false-negative tradeoff is unacceptable.
 
 ## Intentional scope boundaries
 
@@ -84,11 +84,16 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
   - URL: https://www.servicenow.com/docs/r/application-development/servicenow-sdk/fluent-constructs.html
   - Verified by: manual
   - Verified at: 2026-08-20
-- **Literal, uppercase, concatenated, and static-template sys_ids report; exact allow-lists and algorithm-specific hash contexts suppress.**
-  - Verification ID: `rule-evidence-586f6257`
+- **Literal, uppercase, concatenated, and static-template sys_ids report; exact allow-lists and structurally owned algorithm-specific hash contexts suppress.**
+  - Verification ID: `rule-evidence-7930a0f5`
   - URL: tests/rules/no-hardcoded-sysid.test.ts
   - Verified by: fixture
-  - Verified at: 2026-08-21
+  - Verified at: 2026-08-24
+- **Real Oxlint and ESLint valid-profile contracts preserve an outer MD5 owner across nested sibling expressions.**
+  - Verification ID: `rule-evidence-a0628420`
+  - URL: tests/integration/profiles/valid/hash-context.br.js
+  - Verified by: integration-test
+  - Verified at: 2026-08-24
 
 ## See also
 
