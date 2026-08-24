@@ -90,7 +90,9 @@ function bodyHasUseStrictDirective(body: unknown): boolean {
     if (statement.type !== "ExpressionStatement") return false;
     const expression = (statement as ESTree.ExpressionStatement).expression;
     const directive = (statement as { directive?: unknown }).directive;
-    const value = getStringValue(expression);
+    // Only plain string literals form a directive prologue. A template is an
+    // ordinary expression and ends the prologue.
+    const value = expression.type === "TemplateLiteral" ? null : getStringValue(expression);
     if (directive === "use strict" || value === "use strict") return true;
     if (value === null) return false;
   }

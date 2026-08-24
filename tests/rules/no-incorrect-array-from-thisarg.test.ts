@@ -48,6 +48,17 @@ Array.from(source, mapper);`,
     }
   });
 
+  it("does not treat template literals as use-strict directives", () => {
+    for (const code of [
+      "Array.from(source, function (value) { `use strict`; return this.normalize(value); });",
+      'Array.from(source, function (value) { `foo`; "use strict"; return this.normalize(value); });',
+      "`use strict`;\nArray.from(source, function (value) { return this.normalize(value); });",
+      "function run() {\n  `use strict`;\n  return Array.from(source, function (value) { return this.normalize(value); });\n}\nrun();",
+    ]) {
+      assertInvalid(code, RULE, { messageId: "omitted" }, { settings: ZURICH });
+    }
+  });
+
   it("recognizes stable native Array owner identities", () => {
     for (const code of [
       `globalThis.Array.from(source, function (value) { return value; }, null);`,
