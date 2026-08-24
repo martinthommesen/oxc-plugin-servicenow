@@ -7,6 +7,7 @@
 - First-class ACL script support: explicit and filename-derived `acl` surfaces, boundary-safe ESLint and oxfmt globs, and an opt-in `no-gliderecord-query-in-acl` performance review backed by Australia guidance, authoritative `current` handling, and immediate-path analysis that stops at async suspension.
 - Full Australia release support: release-keyed JavaScript-engine capabilities, an exact 102-method scoped/global GlideRecord inventory, pinned official source markers, Australia SDK 4.4 manifest-selection coverage, real Oxlint/ESLint release contracts, and generated compatibility metadata.
 - New `no-object-hasown` rule for Zurich and Compatibility/ES5 scripts. Australia ES2021 correctly permits `Object.hasOwn()`.
+- New `no-unsupported-static-methods` rule models the Australia ES2021 additions `Error.isError()`, `Promise.try()`, and `Promise.withResolvers()` with release-aware, binding-aware, guard-aware diagnostics.
 - `no-typed-arrays` now models Australia BigInt64 array support and detects unsupported constructors, static `from`/`of` factories, and documented `DataView` BigInt getters through proven object aliases.
 
 ### Fixed

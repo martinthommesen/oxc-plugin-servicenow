@@ -20,6 +20,9 @@ interface ReleaseContract {
 const ENGINE = `var values = new BigInt64Array(4);`;
 const ENGINE_FACTORY = `var values = BigInt64Array.from(source);`;
 const HAS_OWN = `var owns = Object.hasOwn(record, "number");`;
+const ERROR_IS_ERROR = `var isPlatformError = Error.isError(value);`;
+const PROMISE_TRY = `var promise = Promise.try(load);`;
+const PROMISE_WITH_RESOLVERS = `var deferred = Promise.withResolvers();`;
 const GUARDED_HAS_OWN = `var owns = Object.hasOwn && Object.hasOwn(record, "number");`;
 const TAINTED_HAS_OWN = `Object.hasOwn(record, "number");
 Object.hasOwn = polyfill;`;
@@ -93,6 +96,66 @@ const contracts: readonly ReleaseContract[] = [
     code: GUARDED_HAS_OWN,
     rule: "no-object-hasown",
     settings: { release: "zurich", javascriptMode: "es2021" },
+  },
+  {
+    id: "zurich-error-iserror",
+    filename: "zurich-error-iserror.server.js",
+    code: ERROR_IS_ERROR,
+    rule: "no-unsupported-static-methods",
+    settings: { release: "zurich", javascriptMode: "es2021" },
+    messageId: "unsupported",
+  },
+  {
+    id: "australia-error-iserror",
+    filename: "australia-error-iserror.server.js",
+    code: ERROR_IS_ERROR,
+    rule: "no-unsupported-static-methods",
+    settings: { release: "australia", javascriptMode: "es2021" },
+  },
+  {
+    id: "omitted-release-error-iserror",
+    filename: "omitted-error-iserror.server.js",
+    code: ERROR_IS_ERROR,
+    rule: "no-unsupported-static-methods",
+    settings: { javascriptMode: "es2021" },
+  },
+  {
+    id: "australia-es5-error-iserror",
+    filename: "australia-es5-error-iserror.server.js",
+    code: ERROR_IS_ERROR,
+    rule: "no-unsupported-static-methods",
+    settings: { release: "australia", javascriptMode: "es5" },
+    messageId: "unsupported",
+  },
+  {
+    id: "zurich-promise-try",
+    filename: "zurich-promise-try.server.js",
+    code: PROMISE_TRY,
+    rule: "no-unsupported-static-methods",
+    settings: { release: "zurich", javascriptMode: "es2021" },
+    messageId: "unsupported",
+  },
+  {
+    id: "australia-promise-try",
+    filename: "australia-promise-try.server.js",
+    code: PROMISE_TRY,
+    rule: "no-unsupported-static-methods",
+    settings: { release: "australia", javascriptMode: "es2021" },
+  },
+  {
+    id: "zurich-promise-withresolvers",
+    filename: "zurich-promise-withresolvers.server.js",
+    code: PROMISE_WITH_RESOLVERS,
+    rule: "no-unsupported-static-methods",
+    settings: { release: "zurich", javascriptMode: "es2021" },
+    messageId: "unsupported",
+  },
+  {
+    id: "australia-promise-withresolvers",
+    filename: "australia-promise-withresolvers.server.js",
+    code: PROMISE_WITH_RESOLVERS,
+    rule: "no-unsupported-static-methods",
+    settings: { release: "australia", javascriptMode: "es2021" },
   },
   {
     id: "zurich-tainted-object-hasown",

@@ -71,6 +71,25 @@ export function isUnsupportedGlobalInvocationProtected(
   context: Context,
   finding: PlatformConstructorCallFinding | PlatformStaticMethodCallFinding,
 ): boolean {
+  return unsupportedGlobalInvocationIsProtected(context, finding, false);
+}
+
+/**
+ * Return whether a static-method call is protected when its owner exists in
+ * the configured engine but the selected method may not.
+ */
+export function isUnsupportedStaticMethodInvocationProtected(
+  context: Context,
+  finding: PlatformStaticMethodCallFinding,
+): boolean {
+  return unsupportedGlobalInvocationIsProtected(context, finding, true);
+}
+
+function unsupportedGlobalInvocationIsProtected(
+  context: Context,
+  finding: PlatformConstructorCallFinding | PlatformStaticMethodCallFinding,
+  platformRootIsSupported: boolean,
+): boolean {
   const { aliasOrigin, name, node: invocation } = finding;
   const method = "method" in finding ? finding.method : undefined;
   const { analysis, context: script, file } = beginRuleFile(context);
@@ -113,6 +132,8 @@ export function isUnsupportedGlobalInvocationProtected(
   const namespace = platformGlobalNamespaceAccess(invocation.callee, analysis.bindings);
   if (namespace && !globalThisIsSafeAt(namespace)) return false;
 
+  const rootIsGuaranteed = platformRootIsSupported && !file.mutations.isGlobalAuthorityLost(name);
+
   if (aliasOrigin?.qualified) {
     const originNamespace =
       platformGlobalNamespaceAccess(aliasOrigin.node, analysis.bindings) ??
@@ -122,6 +143,7 @@ export function isUnsupportedGlobalInvocationProtected(
     if (!originNamespace || !globalThisIsSafeAt(originNamespace)) return false;
   } else if (
     aliasOrigin &&
+    !rootIsGuaranteed &&
     !isAvailabilityGuarded(context, aliasOrigin.node, analysis, isConstructorAccess, {
       allowDirectAccessGuard: false,
       guardCacheKey: `unsupported-constructor:origin:${name}`,
@@ -157,20 +179,23 @@ export function isUnsupportedGlobalInvocationProtected(
       return Boolean(callee?.optional && platformGlobalNamespaceAccess(callee, analysis.bindings));
     },
   } satisfies AvailabilityGuardOptions;
-  const rootIsProtected = isInvocationAvailabilityGuarded(
-    context,
-    invocation,
-    analysis,
-    isConstructorAccess,
-    rootGuardOptions,
-  );
+  const rootIsProtected =
+    rootIsGuaranteed ||
+    isInvocationAvailabilityGuarded(
+      context,
+      invocation,
+      analysis,
+      isConstructorAccess,
+      rootGuardOptions,
+    );
   if (!method || !rootIsProtected) return rootIsProtected;
 
   const isStaticMethodAccess = (candidate: unknown): boolean => {
     const value = staticMethodNode(candidate);
     return Boolean(
       value &&
-      isAvailabilityGuarded(context, value, analysis, isConstructorAccess, rootGuardOptions),
+      (rootIsGuaranteed ||
+        isAvailabilityGuarded(context, value, analysis, isConstructorAccess, rootGuardOptions)),
     );
   };
   const optionalMethodInvocationIsSafe = (candidate: ESTree.CallExpression): boolean => {
@@ -178,9 +203,9 @@ export function isUnsupportedGlobalInvocationProtected(
     return Boolean(
       candidate.optional &&
       callee?.type === "MemberExpression" &&
-      callee.optional &&
       staticMethodNode(callee) &&
-      platformGlobalNamespaceAccess(callee, analysis.bindings),
+      (rootIsGuaranteed ||
+        (callee.optional && platformGlobalNamespaceAccess(callee, analysis.bindings))),
     );
   };
 
@@ -191,7 +216,8 @@ export function isUnsupportedGlobalInvocationProtected(
     isPropertyExistenceTest: (property, object) =>
       property === method &&
       isConstructorAccess(object) &&
-      isAvailabilityGuarded(context, object, analysis, isConstructorAccess, rootGuardOptions),
+      (rootIsGuaranteed ||
+        isAvailabilityGuarded(context, object, analysis, isConstructorAccess, rootGuardOptions)),
     isOptionalInvocation: (candidate) =>
       candidate.type === "CallExpression" && optionalMethodInvocationIsSafe(candidate),
   });

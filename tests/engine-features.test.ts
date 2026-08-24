@@ -10,6 +10,11 @@ import { SUPPORTED_SERVICENOW_RELEASES } from "../src/settings/index.js";
 
 describe("ServiceNow engine feature matrix", () => {
   it("has complete evidence and mode cells for every reviewed release", () => {
+    const releaseUpdateFeatures = new Set([
+      "error-iserror",
+      "promise-try",
+      "promise-withresolvers",
+    ]);
     assert.deepEqual(SUPPORTED_SERVICENOW_RELEASES, ["zurich", "australia"]);
     assert.deepEqual(Object.keys(ENGINE_FEATURE_RELEASES), SUPPORTED_SERVICENOW_RELEASES);
     for (const spec of Object.values(ENGINE_FEATURES)) {
@@ -17,10 +22,13 @@ describe("ServiceNow engine feature matrix", () => {
       for (const cell of Object.values(spec.releases)) {
         assert.match(cell.evidence, /^https:\/\/www\.servicenow\.com\/docs\//);
         assert.deepEqual(Object.keys(cell.support).sort(), ["compatibility", "es2021", "es5"]);
+        const documentedBy = releaseUpdateFeatures.has(spec.id)
+          ? "official-release-update"
+          : "official-table";
         assert.deepEqual(cell.supportBasis, {
           compatibility: "es5-compatibility-policy",
-          es5: "official-table",
-          es2021: "official-table",
+          es5: documentedBy,
+          es2021: documentedBy,
         });
       }
     }
@@ -38,6 +46,26 @@ describe("ServiceNow engine feature matrix", () => {
       assert.equal(featureSupport(id, "es2021", "australia"), "supported");
       assert.equal(featureSupport(id, "es2021"), "unknown");
       assert.equal(featureSupport(id, "es5"), "unsupported");
+    }
+    assert.equal(featureSupport("error-iserror", "es5"), "unsupported");
+    for (const id of ["error-iserror", "promise-try", "promise-withresolvers"] as const) {
+      assert.equal(featureSupport(id, "es2021", "zurich"), "unsupported");
+      assert.equal(featureSupport(id, "es2021", "australia"), "supported");
+      assert.equal(featureSupport(id, "es2021"), "unknown");
+    }
+    for (const id of ["promise-try", "promise-withresolvers"] as const) {
+      assert.equal(featureSupport(id, "es5"), "disallowed");
+    }
+  });
+
+  it("attributes Australia-added static methods to the official engine update", () => {
+    for (const id of ["error-iserror", "promise-try", "promise-withresolvers"] as const) {
+      for (const release of SUPPORTED_SERVICENOW_RELEASES) {
+        const cell = ENGINE_FEATURES[id].releases[release];
+        assert.match(cell.evidence, /updates-javascript-engine\.html$/);
+        assert.equal(cell.supportBasis.es2021, "official-release-update");
+        assert.equal(cell.supportBasis.es5, "official-release-update");
+      }
     }
   });
 

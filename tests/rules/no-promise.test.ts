@@ -19,6 +19,12 @@ describe(RULE, () => {
     assertInvalid(`Promise.resolve(1);`, RULE, { messageId: "staticMethod" }, { settings: ES5 });
   });
 
+  it("continues to own Australia-added Promise methods in classic modes", () => {
+    for (const code of [`Promise.try(load);`, `Promise.withResolvers();`]) {
+      assertInvalid(code, RULE, { messageId: "staticMethod" }, { settings: ES5 });
+    }
+  });
+
   it("reports stable constructor and static-method owner aliases", () => {
     assertInvalid(
       `const P = Promise;
