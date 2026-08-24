@@ -8,6 +8,28 @@ export interface DestructuredConstMember {
   readonly source: ESTree.Node;
 }
 
+function executionBoundaryForScope(
+  bindings: FileBindings,
+  scopeId: number,
+): ReturnType<FileBindings["tree"]["scopeById"]> {
+  let scope = bindings.tree.scopeById(scopeId);
+  while (
+    scope &&
+    scope.kind !== "module" &&
+    scope.kind !== "function" &&
+    scope.kind !== "static-block"
+  ) {
+    scope = scope.parent;
+  }
+  return scope;
+}
+
+function definitelyPrecedes(left: unknown, right: ESTree.Node): boolean {
+  const leftEnd = isNode(left) ? (left as { end?: number }).end : undefined;
+  const rightStart = (right as { start?: number }).start;
+  return typeof leftEnd === "number" && typeof rightStart === "number" && leftEnd <= rightStart;
+}
+
 /** Follow immutable identifier aliases to their terminal initializer. */
 export function resolveConstValue(
   node: unknown,
@@ -31,6 +53,68 @@ export function resolveConstValue(
   const next = new Set(seen);
   next.add(binding.id);
   return resolveConstValue(declaration.init, bindings, next);
+}
+
+/**
+ * Follow a const alias only when its initializer is guaranteed to have run
+ * before this use in the same execution boundary. This is the temporal form
+ * for conclusions such as parameter-default selection; callers that merely
+ * need a file-wide possible value should continue to use `resolveConstValue`.
+ */
+export function resolveDominatingConstValue(
+  node: unknown,
+  bindings: FileBindings,
+  seen: ReadonlySet<number> = new Set(),
+): ESTree.Node | null {
+  const value = unwrapExpression(node);
+  if (!isNode(value)) return null;
+  if (value.type === "SequenceExpression") {
+    const last = value.expressions.at(-1);
+    return last ? resolveDominatingConstValue(last, bindings, seen) : null;
+  }
+  if (value.type !== "Identifier") return value;
+  const binding = bindings.resolve(getName(value) ?? "", value);
+  if (binding?.kind !== "const" || binding.node.type !== "VariableDeclarator") return value;
+  const declaration = binding.node as ESTree.VariableDeclarator;
+  if (
+    declaration.id.type !== "Identifier" ||
+    getName(declaration.id) !== getName(value) ||
+    !declaration.init ||
+    seen.has(binding.id) ||
+    !definitelyPrecedes(declaration.init, value)
+  ) {
+    return value;
+  }
+  const useScope = bindings.tree.scopeForNode(value);
+  if (
+    !useScope ||
+    executionBoundaryForScope(bindings, binding.scopeId) !==
+      executionBoundaryForScope(bindings, useScope.id)
+  ) {
+    return value;
+  }
+  const next = new Set(seen);
+  next.add(binding.id);
+  return resolveDominatingConstValue(declaration.init, bindings, next);
+}
+
+/** Whether this expression definitely evaluates to `undefined` if it completes. */
+export function isDefinitelyUndefinedValue(node: unknown, bindings: FileBindings): boolean {
+  const value = resolveDominatingConstValue(node, bindings);
+  if (!value) return false;
+  if (value.type === "UnaryExpression" && value.operator === "void") return true;
+  return (
+    value.type === "Identifier" && value.name === "undefined" && bindings.isPlatformGlobal(value)
+  );
+}
+
+/** Whether this expression definitely evaluates to null or undefined if it completes. */
+export function isDefinitelyNullishValue(node: unknown, bindings: FileBindings): boolean {
+  const value = resolveDominatingConstValue(node, bindings);
+  return (
+    (value?.type === "Literal" && (value as { value?: unknown }).value == null) ||
+    isDefinitelyUndefinedValue(node, bindings)
+  );
 }
 
 /**
