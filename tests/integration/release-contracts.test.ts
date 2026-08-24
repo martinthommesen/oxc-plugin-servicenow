@@ -27,6 +27,10 @@ const PROMISE_WITH_RESOLVERS = `var deferred = Promise.withResolvers();`;
 const BIGINT_AS_UINT_N = `var unsigned = BigInt.asUintN(64, -1n);`;
 const ARRAY_FROM_PRIMITIVE_THIS = `var values = Array.from(source, function (value) { return value; }, null);`;
 const ARRAY_FROM_OMITTED_THIS = `var values = Array.from(source, function (value) { return this.normalize(value); });`;
+const BLOCK_FUNCTION_BEFORE_DECLARATION = `{
+  var value = helper();
+  function helper() { return 1; }
+}`;
 const MAP = `var cache = new Map();`;
 const SET = `var seen = new Set();`;
 const SET_UNION = `const values = new Set(left);
@@ -232,6 +236,43 @@ const contracts: readonly ReleaseContract[] = [
     filename: "omitted-array-from-omitted-this.server.js",
     code: ARRAY_FROM_OMITTED_THIS,
     rule: "no-incorrect-array-from-thisarg",
+    settings: { javascriptMode: "es2021" },
+  },
+  {
+    id: "zurich-es5-block-function-hoisting",
+    filename: "zurich-es5-block-function-hoisting.server.js",
+    code: BLOCK_FUNCTION_BEFORE_DECLARATION,
+    rule: "no-unhoisted-block-function-use",
+    settings: { release: "zurich", javascriptMode: "es5" },
+    messageId: "unhoisted",
+  },
+  {
+    id: "australia-es5-block-function-hoisting",
+    filename: "australia-es5-block-function-hoisting.server.js",
+    code: BLOCK_FUNCTION_BEFORE_DECLARATION,
+    rule: "no-unhoisted-block-function-use",
+    settings: { release: "australia", javascriptMode: "es5" },
+  },
+  {
+    id: "zurich-es2021-block-function-hoisting",
+    filename: "zurich-es2021-block-function-hoisting.server.js",
+    code: BLOCK_FUNCTION_BEFORE_DECLARATION,
+    rule: "no-unhoisted-block-function-use",
+    settings: { release: "zurich", javascriptMode: "es2021" },
+    messageId: "unhoisted",
+  },
+  {
+    id: "australia-es2021-block-function-hoisting",
+    filename: "australia-es2021-block-function-hoisting.server.js",
+    code: BLOCK_FUNCTION_BEFORE_DECLARATION,
+    rule: "no-unhoisted-block-function-use",
+    settings: { release: "australia", javascriptMode: "es2021" },
+  },
+  {
+    id: "omitted-release-block-function-hoisting",
+    filename: "omitted-release-block-function-hoisting.server.js",
+    code: BLOCK_FUNCTION_BEFORE_DECLARATION,
+    rule: "no-unhoisted-block-function-use",
     settings: { javascriptMode: "es2021" },
   },
   {

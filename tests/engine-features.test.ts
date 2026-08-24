@@ -13,6 +13,7 @@ describe("ServiceNow engine feature matrix", () => {
     const releaseUpdateFeatures = new Set([
       "array-from-thisarg",
       "bigint-narrowing",
+      "block-function-hoisting",
       "date-fraction-digits",
       "error-iserror",
       "function-call-apply-thisarg",
@@ -21,7 +22,10 @@ describe("ServiceNow engine feature matrix", () => {
       "set-methods",
       "typed-array-factories",
     ]);
-    const allModesReleaseUpdateFeatures = new Set(["date-fraction-digits"]);
+    const allModesReleaseUpdateFeatures = new Set([
+      "block-function-hoisting",
+      "date-fraction-digits",
+    ]);
     assert.deepEqual(SUPPORTED_SERVICENOW_RELEASES, ["zurich", "australia"]);
     assert.deepEqual(Object.keys(ENGINE_FEATURE_RELEASES), SUPPORTED_SERVICENOW_RELEASES);
     for (const spec of Object.values(ENGINE_FEATURES)) {
@@ -79,10 +83,12 @@ describe("ServiceNow engine feature matrix", () => {
     assert.equal(featureSupport("function-call-apply-thisarg", "es5"), "unsupported");
     assert.equal(featureSupport("bigint-narrowing", "es5"), "unsupported");
     assert.equal(featureSupport("typed-array-factories", "es5"), "disallowed");
-    for (const mode of ["compatibility", "es5", "es2021"] as const) {
-      assert.equal(featureSupport("date-fraction-digits", mode, "zurich"), "unsupported");
-      assert.equal(featureSupport("date-fraction-digits", mode, "australia"), "supported");
-      assert.equal(featureSupport("date-fraction-digits", mode), "unknown");
+    for (const id of ["block-function-hoisting", "date-fraction-digits"] as const) {
+      for (const mode of ["compatibility", "es5", "es2021"] as const) {
+        assert.equal(featureSupport(id, mode, "zurich"), "unsupported");
+        assert.equal(featureSupport(id, mode, "australia"), "supported");
+        assert.equal(featureSupport(id, mode), "unknown");
+      }
     }
   });
 
@@ -90,6 +96,7 @@ describe("ServiceNow engine feature matrix", () => {
     for (const id of [
       "array-from-thisarg",
       "bigint-narrowing",
+      "block-function-hoisting",
       "error-iserror",
       "function-call-apply-thisarg",
       "date-fraction-digits",
@@ -105,12 +112,14 @@ describe("ServiceNow engine feature matrix", () => {
         assert.equal(cell.supportBasis.es5, "official-release-update");
       }
     }
-    for (const release of SUPPORTED_SERVICENOW_RELEASES) {
-      assert.deepEqual(ENGINE_FEATURES["date-fraction-digits"].releases[release].supportBasis, {
-        compatibility: "official-release-update",
-        es5: "official-release-update",
-        es2021: "official-release-update",
-      });
+    for (const id of ["block-function-hoisting", "date-fraction-digits"] as const) {
+      for (const release of SUPPORTED_SERVICENOW_RELEASES) {
+        assert.deepEqual(ENGINE_FEATURES[id].releases[release].supportBasis, {
+          compatibility: "official-release-update",
+          es5: "official-release-update",
+          es2021: "official-release-update",
+        });
+      }
     }
   });
 
