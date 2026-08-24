@@ -155,6 +155,12 @@ export function findObjectMethodConstructions(
         if (!isValueReference(node, ancestors)) return;
         const name = (node as { readonly name: string }).name;
         const binding = bindings.resolve(name, node, ancestors);
+        if (
+          binding?.node.type === "VariableDeclarator" &&
+          (binding.node as ESTree.VariableDeclarator).id === node
+        ) {
+          return;
+        }
         const record = binding ? recordByBinding.get(binding.id) : undefined;
         if (record && !record.allowedReferences.has(node)) record.safe = false;
       },
