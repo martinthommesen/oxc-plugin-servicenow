@@ -640,6 +640,13 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
         if (!record || record.invalid || record.escaped) {
           const data = onValue(expr);
           if (data === undefined) return undefined;
+          // Allocation sites are reused to keep loop fixpoints finite, but a
+          // binding can still point at the site's value from an earlier
+          // evaluation. Detach those stale aliases before publishing facts
+          // for the newly evaluated host value.
+          for (const [bindingId, objectId] of state.env) {
+            if (objectId === existing) state.env.set(bindingId, undefined);
+          }
           const refreshed: SharedRecord<T> = {
             id: existing,
             escaped: false,

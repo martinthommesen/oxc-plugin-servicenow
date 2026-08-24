@@ -168,7 +168,7 @@ function visitMissingParameterDefaults(
         ((value.type === "UnaryExpression" && value.operator === "void") ||
           (value.type === "Identifier" &&
             value.name === "undefined" &&
-            state.analysis.bindings.isPlatformGlobal(value))));
+            state.analysis.bindings.resolve(value.name, value) === null)));
     if (definitelyUndefined) visit(parameter.right, cursorDepth, state);
   }
 }

@@ -31,6 +31,7 @@ export interface RuleDocMetadata {
   evidence: readonly RuleEvidenceRecord[];
   overlaps: readonly string[];
   lifecycleAssumptions?: string;
+  limitationPreamble?: string;
 }
 
 export const ALL_SCOPES = ["global", "scoped", "unknown"] as const;
@@ -300,6 +301,7 @@ export function meta(
     evidence,
     overlaps: extra.overlaps,
     lifecycleAssumptions: extra.lifecycleAssumptions,
+    limitationPreamble: extra.limitationPreamble,
   };
 }
 

@@ -55,7 +55,7 @@ stale.deleteMultiple();
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-negative: A possible platform constructor, prototype, or relevant instance-method mutation suppresses matching diagnostics throughout the file. lifecycle: Window methods must resolve to the same GlideRecord object identity as deleteMultiple.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-negative: A possible platform constructor namespace reassignment, prototype or relevant instance-method mutation, or dynamic-scope uncertainty suppresses matching diagnostics throughout the file. lifecycle: Window methods must resolve to the same GlideRecord object identity as deleteMultiple.
 
 ## Known false positives
 
@@ -63,7 +63,7 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-n
 
 ## Known false negatives
 
-- A possible platform constructor, prototype, or relevant instance-method mutation suppresses matching diagnostics throughout the file.
+- A possible platform constructor namespace reassignment, prototype or relevant instance-method mutation, or dynamic-scope uncertainty suppresses matching diagnostics throughout the file.
 
 ## Intentional scope boundaries
 
@@ -90,8 +90,8 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-n
   - URL: tests/integration/profiles/invalid/windowed-delete.br.js
   - Verified by: integration-test
   - Verified at: 2026-08-20
-- **Constructor, prototype, instance-method, and dynamic-scope mutations are covered by shared platform-authority fixtures.**
-  - Verification ID: `rule-evidence-9e1139ed`
+- **Constructor namespace, prototype, instance-method, and dynamic-scope mutations are covered by shared platform-authority fixtures.**
+  - Verification ID: `rule-evidence-b7d88284`
   - URL: tests/rules/platform-method-authority.test.ts
   - Verified by: fixture
   - Verified at: 2026-08-24

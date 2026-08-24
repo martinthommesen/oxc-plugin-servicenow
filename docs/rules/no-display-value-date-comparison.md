@@ -58,7 +58,7 @@ if (start.getNumericValue() > end.getNumericValue()) {
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-negative: Display values copied into locals are not tracked before comparison. false-negative: A possible platform constructor, prototype, or relevant instance-method mutation suppresses matching diagnostics throughout the file.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-negative: Display values copied into locals are not tracked before comparison. false-negative: A possible platform constructor namespace reassignment, prototype or relevant instance-method mutation, or dynamic-scope uncertainty suppresses matching diagnostics throughout the file.
 
 ## Known false positives
 
@@ -67,7 +67,7 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-n
 ## Known false negatives
 
 - Display values copied into locals are not tracked before comparison.
-- A possible platform constructor, prototype, or relevant instance-method mutation suppresses matching diagnostics throughout the file.
+- A possible platform constructor namespace reassignment, prototype or relevant instance-method mutation, or dynamic-scope uncertainty suppresses matching diagnostics throughout the file.
 
 ## Intentional scope boundaries
 
@@ -94,8 +94,8 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-n
   - URL: src/catalog.ts
   - Verified by: fixture
   - Verified at: 2026-08-20
-- **Constructor, prototype, instance-method, and dynamic-scope mutations are covered by shared platform-authority fixtures.**
-  - Verification ID: `rule-evidence-c34212f8`
+- **Constructor namespace, prototype, instance-method, and dynamic-scope mutations are covered by shared platform-authority fixtures.**
+  - Verification ID: `rule-evidence-825ff6f9`
   - URL: tests/rules/platform-method-authority.test.ts
   - Verified by: fixture
   - Verified at: 2026-08-24

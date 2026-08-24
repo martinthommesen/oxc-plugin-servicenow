@@ -60,7 +60,7 @@ while (incident.next()) {
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-negative: A possible platform constructor, prototype, or relevant instance-method mutation suppresses matching diagnostics throughout the file. lifecycle: Modifiers after a definite executor are findings only when a consumer uses the still-open cursor. A possible-only executor clears positive lifecycle facts.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-negative: A possible platform constructor namespace reassignment, prototype or relevant instance-method mutation, or dynamic-scope uncertainty suppresses matching diagnostics throughout the file. lifecycle: Modifiers after a definite executor are findings only when a consumer uses the still-open cursor. A possible-only executor clears positive lifecycle facts.
 
 ## Known false positives
 
@@ -68,7 +68,7 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-n
 
 ## Known false negatives
 
-- A possible platform constructor, prototype, or relevant instance-method mutation suppresses matching diagnostics throughout the file.
+- A possible platform constructor namespace reassignment, prototype or relevant instance-method mutation, or dynamic-scope uncertainty suppresses matching diagnostics throughout the file.
 
 ## Intentional scope boundaries
 
@@ -95,8 +95,8 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-n
   - URL: tests/integration/profiles/invalid/late-modifier.br.js
   - Verified by: integration-test
   - Verified at: 2026-08-20
-- **Constructor, prototype, instance-method, and dynamic-scope mutations are covered by shared platform-authority fixtures.**
-  - Verification ID: `rule-evidence-5392d918`
+- **Constructor namespace, prototype, instance-method, and dynamic-scope mutations are covered by shared platform-authority fixtures.**
+  - Verification ID: `rule-evidence-5e57a999`
   - URL: tests/rules/platform-method-authority.test.ts
   - Verified by: fixture
   - Verified at: 2026-08-24

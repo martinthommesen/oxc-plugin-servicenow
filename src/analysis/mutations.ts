@@ -237,7 +237,7 @@ function buildIndex(
       if (root) recordGlobalPathInto([root, "*"], facts);
     }
     const object = provenance.ofExpression(value);
-    const terminal = resolveConstValue(value, bindings) ?? value;
+    const terminal = stableAliasValue(value) ?? value;
     const terminalName = terminal.type === "Identifier" ? getName(terminal) : null;
     const terminalBinding = terminalName ? bindings.resolve(terminalName, terminal) : null;
     const identityIsStableAllocation = terminal.type === "NewExpression";
@@ -569,6 +569,10 @@ function buildIndex(
       const call = node as ESTree.CallExpression;
       const builtin = calledBuiltin(call);
       if (!builtin) {
+        // In modes without globalThis, resolving a qualified callee throws
+        // before arguments are evaluated. Those arguments therefore cannot
+        // escape or mutate a platform namespace.
+        if (platformGlobalNamespaceAccess(call.callee, bindings) && !globalThisCanExist) return;
         const direct = staticBuiltin(call.callee);
         // Object/Reflect intrinsics are modeled below. In particular, the
         // reviewed instance engines reject Reflect mutation helpers, so their

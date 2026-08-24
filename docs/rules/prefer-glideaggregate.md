@@ -57,7 +57,7 @@ var count = ga.next() ? parseInt(ga.getAggregate("COUNT"), 10) : 0;
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-negative: A possible platform constructor, prototype, or relevant instance-method mutation suppresses matching diagnostics throughout the file.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-negative: A possible platform constructor namespace reassignment, prototype or relevant instance-method mutation, or dynamic-scope uncertainty suppresses matching diagnostics throughout the file.
 
 ## Known false positives
 
@@ -65,7 +65,7 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-n
 
 ## Known false negatives
 
-- A possible platform constructor, prototype, or relevant instance-method mutation suppresses matching diagnostics throughout the file.
+- A possible platform constructor namespace reassignment, prototype or relevant instance-method mutation, or dynamic-scope uncertainty suppresses matching diagnostics throughout the file.
 
 ## Intentional scope boundaries
 
@@ -102,8 +102,8 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-n
   - URL: tests/rules/prefer-glideaggregate.test.ts
   - Verified by: fixture
   - Verified at: 2026-08-20
-- **Constructor, prototype, instance-method, and dynamic-scope mutations are covered by shared platform-authority fixtures.**
-  - Verification ID: `rule-evidence-aa2fe31c`
+- **Constructor namespace, prototype, instance-method, and dynamic-scope mutations are covered by shared platform-authority fixtures.**
+  - Verification ID: `rule-evidence-485e1a9d`
   - URL: tests/rules/platform-method-authority.test.ts
   - Verified by: fixture
   - Verified at: 2026-08-24

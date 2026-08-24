@@ -50,6 +50,13 @@ export const noSystemQueryBypass = defineRule({
           ) {
             return;
           }
+          if (
+            ![...analysis.glide.systemBypass].some((candidate) =>
+              hasAuthoritativeGlideRecordMethod(file, object, candidate),
+            )
+          ) {
+            return;
+          }
           context.report({ node, messageId: "possibleBypass" });
         }
       },

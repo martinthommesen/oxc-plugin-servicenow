@@ -94,7 +94,7 @@ const PLATFORM_METHOD_AUTHORITY_FIXTURE = "tests/rules/platform-method-authority
 function platformMethodAuthorityEvidence() {
   return metadata.evidenceRecord(
     PLATFORM_METHOD_AUTHORITY_FIXTURE,
-    "Constructor, prototype, instance-method, and dynamic-scope mutations are covered by shared platform-authority fixtures.",
+    "Constructor namespace, prototype, instance-method, and dynamic-scope mutations are covered by shared platform-authority fixtures.",
     "fixture",
     "2026-08-24",
   );
@@ -103,7 +103,7 @@ function platformMethodAuthorityEvidence() {
 function platformMethodMutationLimitation(
   caseId: string,
   code: string,
-  description = "A possible platform constructor, prototype, or relevant instance-method mutation suppresses matching diagnostics throughout the file.",
+  description = "A possible platform constructor namespace reassignment, prototype or relevant instance-method mutation, or dynamic-scope uncertainty suppresses matching diagnostics throughout the file.",
 ): RuleLimitationCase {
   return {
     caseId,
@@ -154,6 +154,7 @@ export interface RuleCatalogEntry {
   scopeBoundaries: readonly string[];
   overlaps: readonly string[];
   lifecycleAssumptions?: string;
+  limitationPreamble?: string;
   fixKind: "none" | "safe-fix" | "suggestion";
   optionDescriptor: RuleOptionsDescriptor<object> | undefined;
   options: readonly RuleOptionDoc[];
@@ -186,10 +187,11 @@ const UNKNOWN_SILENT = "Unknown, escaped, or ambiguous bindings stay silent inst
 function formatLimitations(
   cases: readonly RuleLimitationCase[],
   lifecycleAssumptions?: string,
+  preamble = UNKNOWN_SILENT,
 ): string {
   const parts = cases.map((item) => `${item.kind}: ${item.description}`);
   if (lifecycleAssumptions) parts.push(`lifecycle: ${lifecycleAssumptions}`);
-  return parts.length === 0 ? UNKNOWN_SILENT : `${UNKNOWN_SILENT} ${parts.join(" ")}`;
+  return parts.length === 0 ? preamble : `${preamble} ${parts.join(" ")}`;
 }
 
 function withCatalogRecommendation(
@@ -245,7 +247,11 @@ function entry<N extends string>(
     ...rest,
     evidence,
     applicability,
-    limitations: formatLimitations(rest.limitationCases, rest.lifecycleAssumptions),
+    limitations: formatLimitations(
+      rest.limitationCases,
+      rest.lifecycleAssumptions,
+      rest.limitationPreamble,
+    ),
     falsePositives: rest.limitationCases
       .filter((item) => item.kind === "false-positive")
       .map((item) => item.description),
@@ -2883,6 +2889,8 @@ record.query = localQuery;`,
       ],
       {
         overlaps: [],
+        limitationPreamble:
+          "Unproven, invalid, or ambiguous GlideRecord bindings stay silent. Proven escaped GlideRecord identities remain reviewable because this opt-in security rule favors surfacing potential ACL bypasses.",
       },
     ),
     placements: [{ profile: "security", severity: "warn" }] as const,

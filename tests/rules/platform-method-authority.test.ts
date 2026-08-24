@@ -201,6 +201,27 @@ gr.addSystemQuery = localQuery;`,
       SERVER,
     );
   });
+
+  it("keeps computed security review tied to authoritative bypass candidates", () => {
+    assertInvalid(
+      `var gr = new GlideRecord("incident");
+gr.addSystemQuery = localQuery;
+gr[method];`,
+      "no-system-query-bypass",
+      { messageId: "possibleBypass" },
+      SERVER,
+    );
+    assertValid(
+      `var gr = new GlideRecord("incident");
+gr.addSystemEncodedQuery = localQuery;
+gr.addSystemQuery = localQuery;
+gr.addSystemOrderBy = localQuery;
+gr.addSystemOrderByDesc = localQuery;
+gr[method];`,
+      "no-system-query-bypass",
+      SERVER,
+    );
+  });
 });
 
 describe("GlideAggregate method authority", () => {

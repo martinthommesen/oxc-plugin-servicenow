@@ -206,6 +206,19 @@ while (rec.next()) {
   it("invalidates uncertain or converted GlideElement aliases", () => {
     assertValid(
       `var rec = new GlideRecord("incident");
+var values = [];
+var stale;
+rec.query();
+while (rec.next()) {
+  var fresh = rec.number;
+  if (capture) stale = fresh;
+  values.push(stale);
+}`,
+      "no-glideelement-in-collection",
+      SERVER,
+    );
+    assertValid(
+      `var rec = new GlideRecord("incident");
 var other = new GlideRecord("task");
 var values = [];
 rec.query();

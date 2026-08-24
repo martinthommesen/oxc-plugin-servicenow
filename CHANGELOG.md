@@ -33,6 +33,7 @@
 - Client API rules now share platform-method authority checks: GlideAjax and `g_form.getReference()` diagnostics stay silent after constructor, prototype, instance-method, namespace, or dynamic-scope mutation, while immutable callback aliases are classified structurally.
 - GlideRecord, GlideRecordSecure, GlideAggregate, and GlideDateTime analyses now apply the same authority model across cursor lifecycle, bulk safety, aggregation, counting, N+1, GlideElement, and security-review diagnostics; domain-specific uncertainty remains path- and epoch-aware, and fresh host values are re-established on later loop evaluations.
 - Canonical full-script Business Rule wrappers preserve `current.update()` authority across their required synchronous `current` argument while remaining silent after a pre-call escape, parameter reassignment, receiver-method replacement, or GlideRecord prototype mutation.
+- Allocation-site refreshes detach stale aliases, instance-method authority remains scoped to stable receiver identities, and computed security review requires at least one still-authoritative bypass candidate.
 - Cursor-loop analysis evaluates defaults selected by explicit `undefined`, and GlideElement retention is checked on the first `while` iteration even when the body exits immediately.
 - Release validation now rejects tags that do not point to the exact current protected `main` tip.
 - GlideRecord lifecycle analysis now recognizes the documented `_query()`, `_next()`, and global-only `queryNoDomain()` APIs without guessing when application scope is unknown.

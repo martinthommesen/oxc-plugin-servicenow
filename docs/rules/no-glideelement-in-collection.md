@@ -72,7 +72,7 @@ while (incident.next()) {
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-boundary: Separately declared helpers and deferred callbacks stay silent because their invocation timing and value flow are not proven by the cursor traversal. false-negative: A possible platform constructor, prototype, or relevant instance-method mutation suppresses matching diagnostics throughout the file.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-boundary: Separately declared helpers and deferred callbacks stay silent because their invocation timing and value flow are not proven by the cursor traversal. false-negative: A possible platform constructor namespace reassignment, prototype or relevant instance-method mutation, or dynamic-scope uncertainty suppresses matching diagnostics throughout the file.
 
 ## Known false positives
 
@@ -80,7 +80,7 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-b
 
 ## Known false negatives
 
-- A possible platform constructor, prototype, or relevant instance-method mutation suppresses matching diagnostics throughout the file.
+- A possible platform constructor namespace reassignment, prototype or relevant instance-method mutation, or dynamic-scope uncertainty suppresses matching diagnostics throughout the file.
 
 ## Intentional scope boundaries
 
@@ -112,8 +112,8 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-b
   - URL: tests/rules/layer3-consumers.test.ts
   - Verified by: fixture
   - Verified at: 2026-08-22
-- **Constructor, prototype, instance-method, and dynamic-scope mutations are covered by shared platform-authority fixtures.**
-  - Verification ID: `rule-evidence-defb48d1`
+- **Constructor namespace, prototype, instance-method, and dynamic-scope mutations are covered by shared platform-authority fixtures.**
+  - Verification ID: `rule-evidence-b5231bb8`
   - URL: tests/rules/platform-method-authority.test.ts
   - Verified by: fixture
   - Verified at: 2026-08-24
