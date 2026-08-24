@@ -49,6 +49,15 @@ describe("no-gs-now", () => {
     assertInvalid(`prepare(gs.now);\ngs.now();`, "no-gs-now", { messageId: "server" });
   });
 
+  it("keeps gs authority across nullish Object.assign sources", () => {
+    assertInvalid(
+      `const absent = null;\nObject.assign(gs, absent, undefined);\ngs.now();`,
+      "no-gs-now",
+      { messageId: "server" },
+      { settings: { javascriptMode: "es2021" } },
+    );
+  });
+
   it("keeps a stable gs object alias after the global binding changes", () => {
     assertInvalid(`var service = gs;\ngs = localGs;\nservice.now();`, "no-gs-now", {
       messageId: "server",
