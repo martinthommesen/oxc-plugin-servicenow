@@ -151,6 +151,17 @@ new GR("incident");`,
       RULE,
       { filename: "form.client.js", settings: { scope: "scoped" } },
     );
+    assertInvalid(
+      `var GR = GlideRecord;
+eval?.("GR = LocalRecord");
+new GR("incident");`,
+      RULE,
+      { messageId: "glideRecord" },
+      {
+        filename: "form.client.js",
+        settings: { javascriptMode: "es2021", scope: "scoped" },
+      },
+    );
   });
 
   it("stays silent when the platform constructor can be replaced", () => {

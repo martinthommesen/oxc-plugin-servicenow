@@ -16,6 +16,7 @@ import {
 } from "./globals.js";
 import {
   isDefinitelyNonCallable,
+  isDefinitelyNullishValue,
   resolveConstValue,
   resolveDestructuredConstMember,
   staticPropertyName,
@@ -464,6 +465,9 @@ function buildIndex(
   };
 
   const writtenObjectProperties = (node: unknown): readonly string[] | null => {
+    // Object.assign ignores null and undefined sources. Treating them as an
+    // unknown object would erase otherwise authoritative platform methods.
+    if (isDefinitelyNullishValue(node, bindings)) return [];
     const object = stableAliasValue(node);
     if (!object || object.type !== "ObjectExpression") return null;
     const properties = new Set<string>();

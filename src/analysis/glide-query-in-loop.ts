@@ -1,6 +1,6 @@
 import type { ESTree } from "@oxlint/plugins";
 import { getName, isNode, unwrapExpression } from "../utils/ast.js";
-import { resolveConstValue, staticPropertyName } from "./members.js";
+import { isDefinitelyUndefinedValue, staticPropertyName } from "./members.js";
 import type { ProvenanceQuery } from "./provenance.js";
 import { visitChildren } from "./path-state.js";
 import { definitelySkipsDoWhileTest, truthyPathRequiresCursorNext } from "./cursor-condition.js";
@@ -126,16 +126,8 @@ function visitMissingParameterDefaults(
     const parameter = unwrapExpression(fn.params[index]);
     if (!isNode(parameter) || parameter.type !== "AssignmentPattern") continue;
     const argument = call.arguments[index];
-    const value = argument
-      ? (resolveConstValue(argument, state.analysis.bindings) ?? unwrapExpression(argument))
-      : null;
     const definitelyUndefined =
-      !argument ||
-      (isNode(value) &&
-        ((value.type === "UnaryExpression" && value.operator === "void") ||
-          (value.type === "Identifier" &&
-            value.name === "undefined" &&
-            state.analysis.bindings.resolve(value.name, value) === null)));
+      !argument || isDefinitelyUndefinedValue(argument, state.analysis.bindings);
     if (definitelyUndefined) visit(parameter.right, cursorDepth, state);
   }
 }
