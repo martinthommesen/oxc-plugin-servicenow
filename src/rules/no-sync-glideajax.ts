@@ -31,7 +31,10 @@ export const noSyncGlideajax = defineRule({
         const object = member.object;
         const proven = analysis.ofExpression(object);
         if (proven?.kind === "GlideAjax" && !proven.invalid && !proven.escaped) {
-          if (!hasAuthoritativeConstructedMethod(file, object, "GlideAjax", "getXMLWait")) return;
+          if (
+            !hasAuthoritativeConstructedMethod(file, object, "GlideAjax", "getXMLWait", "browser")
+          )
+            return;
           context.report({ node, messageId: "wait" });
         }
       },

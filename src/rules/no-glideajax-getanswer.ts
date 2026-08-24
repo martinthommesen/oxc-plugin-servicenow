@@ -32,7 +32,8 @@ export const noGlideajaxGetanswer = defineRule({
         const object = (call.callee as ESTree.MemberExpression).object;
         const proven = analysis.ofExpression(object);
         if (proven?.kind !== "GlideAjax" || proven.invalid || proven.escaped) return;
-        if (!hasAuthoritativeConstructedMethod(file, object, "GlideAjax", "getAnswer")) return;
+        if (!hasAuthoritativeConstructedMethod(file, object, "GlideAjax", "getAnswer", "browser"))
+          return;
         context.report({ node, messageId: "getAnswer" });
       },
     };

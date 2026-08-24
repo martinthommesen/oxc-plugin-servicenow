@@ -40,6 +40,18 @@ gr.next();`,
     }
   });
 
+  it("keeps authority after nullish Object.assign sources", () => {
+    assertInvalid(
+      `const absent = null;
+Object.assign(GlideRecord.prototype, absent, undefined);
+var gr = new GlideRecord("incident");
+gr.next();`,
+      "require-query-before-next",
+      { messageId: "missingQuery" },
+      SERVER,
+    );
+  });
+
   it("keeps authority mutations scoped to the affected object identity", () => {
     assertInvalid(
       `var customized = new GlideRecord("incident");

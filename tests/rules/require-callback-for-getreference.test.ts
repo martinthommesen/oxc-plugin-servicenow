@@ -120,6 +120,19 @@ g_form.getReference("caller_id", callback);`,
       RULE,
       CLIENT,
     );
+    assertValid(
+      `class Callback {}
+Callback = function () {};
+g_form.getReference("caller_id", Callback);`,
+      RULE,
+      CLIENT,
+    );
+    assertValid(
+      `g_form.getReference("caller_id", callback);
+const callback = 42;`,
+      RULE,
+      CLIENT,
+    );
   });
 
   it("flags statically non-callable callbacks", () => {
@@ -175,10 +188,32 @@ g_form = localForm;
 readReference();`,
       `Object.defineProperty(GlideForm.prototype, "getReference", { value: localReference });
 g_form.getReference("caller_id");`,
+      `GlideForm.prototype = localPrototype;
+g_form.getReference("caller_id");`,
+      `const { prototype: formPrototype } = GlideForm;
+formPrototype.getReference = localReference;
+g_form.getReference("caller_id");`,
       `eval("g_form.getReference = localReference");
 g_form.getReference("caller_id");`,
     ]) {
       assertValid(code, RULE, CLIENT);
+    }
+  });
+
+  it("uses browser mutation semantics for client API authority", () => {
+    const options = {
+      filename: "incident.client.js",
+      settings: { javascriptMode: "es5" as const },
+    };
+    for (const code of [
+      `Reflect.set(g_form, "getReference", localReference);
+g_form.getReference("caller_id");`,
+      `Object.assign(g_form, { getReference: localReference });
+g_form.getReference("caller_id");`,
+      `Reflect.apply(Object.defineProperty, Object, [g_form, "getReference", { value: localReference }]);
+g_form.getReference("caller_id");`,
+    ]) {
+      assertValid(code, RULE, options);
     }
   });
 

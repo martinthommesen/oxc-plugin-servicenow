@@ -585,6 +585,17 @@ while (incident.next()) {
       RULE,
       SERVER,
     );
+    assertValid(
+      `var incident = new GlideRecord("incident");
+var caller = new GlideRecord("sys_user");
+incident.query();
+while (incident.next()) {
+  (function (value = caller.query()) {})(missing);
+}
+const missing = undefined;`,
+      RULE,
+      SERVER,
+    );
   });
 
   it("does not revisit a do-while body after an unconditional exit", () => {

@@ -90,7 +90,9 @@ export function findGlideAjaxParamIssues(
     onCall({ call, rec, receiver, objectName, property }) {
       if (!rec || !receiver || !objectName || !property) return;
       if (property !== "addParam" && !TERMINAL.has(property)) return;
-      if (!hasAuthoritativeConstructedMethod(authority, receiver, "GlideAjax", property)) {
+      if (
+        !hasAuthoritativeConstructedMethod(authority, receiver, "GlideAjax", property, "browser")
+      ) {
         // An unproven addParam implementation may or may not register the
         // method name. Preserve uncertainty so a later real request stays
         // silent instead of being reported as definitely unconfigured.

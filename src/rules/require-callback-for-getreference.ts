@@ -2,8 +2,10 @@ import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import {
   hasAuthoritativeGlobalObjectMethod,
-  resolveConstValue,
+  isDefinitelyNullishValue,
+  resolveDominatingConstValue,
   staticPropertyName,
+  type BindingWriteQuery,
   type ProvenanceQuery,
 } from "../analysis/internal.js";
 import { isClientCapableContext } from "../context/index.js";
@@ -13,26 +15,15 @@ import { beginRuleFile } from "./helpers.js";
 
 function isNullishCallback(node: unknown, analysis: ProvenanceQuery): boolean {
   if (!node) return true;
-  const value = resolveConstValue(node, analysis.bindings);
-  if (!value) return false;
-  if (value.type === "Identifier" && getName(value) === "undefined") {
-    return analysis.isPlatformGlobal(value);
-  }
-  if (value.type === "Literal") {
-    const literal = (value as { value?: unknown }).value;
-    return literal === null || literal === undefined;
-  }
-  if (value.type === "UnaryExpression") {
-    return (value as ESTree.UnaryExpression).operator === "void";
-  }
-  return false;
+  return isDefinitelyNullishValue(node, analysis.bindings);
 }
 
 function callbackKind(
   node: unknown,
   analysis: ProvenanceQuery,
+  bindingWrites: BindingWriteQuery,
 ): "callable" | "invalid" | "unknown" {
-  const value = resolveConstValue(node, analysis.bindings);
+  const value = resolveDominatingConstValue(node, analysis.bindings);
   if (!isNode(value)) return "unknown";
   if (value.type === "FunctionExpression" || value.type === "ArrowFunctionExpression")
     return "callable";
@@ -41,8 +32,12 @@ function callbackKind(
     if (!name) return "unknown";
     const binding = analysis.bindings.resolve(name, value);
     if (!binding) return "unknown";
-    if (binding.kind === "function") return "callable";
-    if (binding.kind === "class") return "invalid";
+    if (binding.kind === "function") {
+      return bindingWrites.isWritten(binding.id) ? "unknown" : "callable";
+    }
+    if (binding.kind === "class") {
+      return bindingWrites.isWritten(binding.id) ? "unknown" : "invalid";
+    }
     return "unknown";
   }
   if (
@@ -89,6 +84,7 @@ export const requireCallbackForGetreference = defineRule({
         if (
           !hasAuthoritativeGlobalObjectMethod(file, object, "g_form", "getReference", {
             prototypeConstructor: "GlideForm",
+            runtime: "browser",
           })
         ) {
           return;
@@ -98,7 +94,7 @@ export const requireCallbackForGetreference = defineRule({
         if (call.arguments.some((argument) => argument.type === "SpreadElement")) return;
         const callback = call.arguments[1];
         if (call.arguments.length >= 2 && !isNullishCallback(callback, analysis)) {
-          if (callbackKind(callback, analysis) === "invalid") {
+          if (callbackKind(callback, analysis, file.bindingWrites) === "invalid") {
             context.report({ node, messageId: "invalidCallback" });
           }
           return;
