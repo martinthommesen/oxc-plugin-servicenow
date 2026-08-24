@@ -647,11 +647,11 @@ convert();`,
         caseId: "incorrect-array-from-dynamic-primitive",
         kind: "false-negative",
         description:
-          "Primitive this arguments produced by calls, substitutions, or compound expressions stay silent; the rule proves only nullish values, primitive literals, and no-substitution templates through dominating const aliases.",
+          "Primitive this arguments produced by calls, substitutions, or non-nullish compound expressions stay silent; the rule proves nullish expressions (including void), primitive literals, and no-substitution templates through dominating const aliases.",
         name: "dynamically produced primitive thisArg",
         filename: "arrays.server.js",
         settings: { javascriptMode: "es2021", release: "zurich" },
-        code: `Array.from(source, mapper, Symbol("scope"));`,
+        code: `Array.from(source, function (value) { return value; }, Symbol("scope"));`,
       },
       {
         caseId: "incorrect-array-from-visible-replacement",
@@ -682,7 +682,7 @@ Array.from(source, mapper, null);`,
     fixable: false,
     hasSuggestions: false,
     description:
-      "Zurich throws when Array.from receives an explicit primitive mapper thisArg and gives a non-strict mapper the wrong this when that argument is omitted. Australia corrects both ES2021 behaviors. The rule reports only stable native calls with a syntax-proven callable mapper.",
+      "Zurich throws when Array.from receives an explicit primitive mapper thisArg—even for an empty source, because conversion precedes iteration—and gives a non-strict mapper the wrong this when that argument is omitted. Australia corrects both ES2021 behaviors. The rule reports only stable native calls with a syntax-proven callable mapper.",
     bad: [
       {
         name: "explicit null mapper thisArg in Zurich",

@@ -18,6 +18,8 @@ describe(RULE, () => {
       "Array.from(source, function (value) { return value; }, `scope`);",
       `const thisArg = null; Array.from(source, function (value) { return value; }, thisArg);`,
       `const thisArg = "scope"; Array.from(source, function (value) { return value; }, thisArg);`,
+      `Array.from([], function (value) { return value; }, null);`,
+      `Array.from("", function (value) { return value; }, null);`,
     ]) {
       assertInvalid(code, RULE, { messageId: "primitive" }, { settings: ZURICH });
     }

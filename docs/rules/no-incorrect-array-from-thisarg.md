@@ -1,6 +1,6 @@
 # servicenow/no-incorrect-array-from-thisarg
 
-Zurich throws when Array.from receives an explicit primitive mapper thisArg and gives a non-strict mapper the wrong this when that argument is omitted. Australia corrects both ES2021 behaviors. The rule reports only stable native calls with a syntax-proven callable mapper.
+Zurich throws when Array.from receives an explicit primitive mapper thisArg—even for an empty source, because conversion precedes iteration—and gives a non-strict mapper the wrong this when that argument is omitted. Australia corrects both ES2021 behaviors. The rule reports only stable native calls with a syntax-proven callable mapper.
 
 - **Family:** engine
 - **Preset:** es2021
@@ -64,7 +64,7 @@ var values = Array.from(source, function (value) {
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-negative: Member expressions, parameters, mutable variables, and callable aliases crossing an execution boundary stay silent because the rule cannot prove the mapper's function semantics. scope-boundary: The omitted-third-argument diagnostic requires a syntax-proven non-strict ordinary mapper that reads its own this; strict functions, arrows, and mappers without such a read stay silent. false-negative: Spread arguments and calls with a definitely nullish source stay silent because argument positions or whether execution reaches mapper-this handling cannot be proven. false-negative: Primitive this arguments produced by calls, substitutions, or compound expressions stay silent; the rule proves only nullish values, primitive literals, and no-substitution templates through dominating const aliases. scope-boundary: A possible Array owner or Array.from replacement suppresses diagnostics throughout the file; direct aliases of Array.from also stay silent because native method identity is not proven. scope-boundary: Calls stay silent when settings.servicenow.release is omitted because Zurich and Australia have different native behavior.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-negative: Member expressions, parameters, mutable variables, and callable aliases crossing an execution boundary stay silent because the rule cannot prove the mapper's function semantics. scope-boundary: The omitted-third-argument diagnostic requires a syntax-proven non-strict ordinary mapper that reads its own this; strict functions, arrows, and mappers without such a read stay silent. false-negative: Spread arguments and calls with a definitely nullish source stay silent because argument positions or whether execution reaches mapper-this handling cannot be proven. false-negative: Primitive this arguments produced by calls, substitutions, or non-nullish compound expressions stay silent; the rule proves nullish expressions (including void), primitive literals, and no-substitution templates through dominating const aliases. scope-boundary: A possible Array owner or Array.from replacement suppresses diagnostics throughout the file; direct aliases of Array.from also stay silent because native method identity is not proven. scope-boundary: Calls stay silent when settings.servicenow.release is omitted because Zurich and Australia have different native behavior.
 
 ## Known false positives
 
@@ -74,7 +74,7 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-n
 
 - Member expressions, parameters, mutable variables, and callable aliases crossing an execution boundary stay silent because the rule cannot prove the mapper's function semantics.
 - Spread arguments and calls with a definitely nullish source stay silent because argument positions or whether execution reaches mapper-this handling cannot be proven.
-- Primitive this arguments produced by calls, substitutions, or compound expressions stay silent; the rule proves only nullish values, primitive literals, and no-substitution templates through dominating const aliases.
+- Primitive this arguments produced by calls, substitutions, or non-nullish compound expressions stay silent; the rule proves nullish expressions (including void), primitive literals, and no-substitution templates through dominating const aliases.
 
 ## Intentional scope boundaries
 
