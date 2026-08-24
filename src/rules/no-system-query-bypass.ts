@@ -1,6 +1,10 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
-import { isComputedUnknown, staticPropertyName } from "../analysis/internal.js";
+import {
+  hasAuthoritativeGlideRecordMethod,
+  isComputedUnknown,
+  staticPropertyName,
+} from "../analysis/internal.js";
 import { isServerInstanceContext } from "../context/index.js";
 import { ruleDocsUrl } from "../constants.js";
 import { beginRuleFile } from "./helpers.js";
@@ -27,7 +31,7 @@ export const noSystemQueryBypass = defineRule({
         if (!isServerInstanceContext(script)) return false;
       },
       MemberExpression(node) {
-        const { analysis } = beginRuleFile(context);
+        const { analysis, file } = beginRuleFile(context);
         const member = node as ESTree.MemberExpression;
         const method = staticPropertyName(member);
         const possible = isComputedUnknown(member);
@@ -36,8 +40,16 @@ export const noSystemQueryBypass = defineRule({
         const proven = analysis.ofExpression(object);
         if (!proven || proven.kind !== "GlideRecord" || proven.invalid) return;
         if (method && analysis.glide.systemBypass.has(method)) {
+          if (!hasAuthoritativeGlideRecordMethod(file, object, method)) return;
           context.report({ node, messageId: "bypass", data: { method } });
         } else {
+          if (
+            file.bindingWrites.hasDynamicScope() ||
+            file.mutations.isGlobalAuthorityLost("GlideRecord") ||
+            file.mutations.isGlobalAuthorityLost("GlideRecordSecure")
+          ) {
+            return;
+          }
           context.report({ node, messageId: "possibleBypass" });
         }
       },

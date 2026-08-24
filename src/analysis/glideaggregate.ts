@@ -1,6 +1,10 @@
 import type { ESTree } from "@oxlint/plugins";
 import { getStringValue, nodeStart } from "../utils/ast.js";
 import { analyzePathBindings } from "./path-state.js";
+import {
+  hasAuthoritativeConstructedMethod,
+  type PlatformMethodAuthorityFacts,
+} from "./platform-method-authority.js";
 import type { ProvenanceQuery } from "./provenance.js";
 
 export interface AggregateFinding {
@@ -17,6 +21,7 @@ interface AggregateAlternative {
   pending: Set<string>;
   committedDynamic: boolean;
   pendingDynamic: boolean;
+  uncertain: boolean;
 }
 
 interface AggData {
@@ -42,6 +47,7 @@ function cloneAlternative(value: AggregateAlternative): AggregateAlternative {
     pending: cloneSet(value.pending),
     committedDynamic: value.committedDynamic,
     pendingDynamic: value.pendingDynamic,
+    uncertain: value.uncertain,
   };
 }
 
@@ -52,6 +58,7 @@ function alternativeKey(value: AggregateAlternative): string {
     pending: [...value.pending].sort(),
     committedDynamic: value.committedDynamic,
     pendingDynamic: value.pendingDynamic,
+    uncertain: value.uncertain,
   });
 }
 
@@ -73,6 +80,7 @@ function mergeAlternatives(left: AggData, right: AggData): AggData {
 export function findGlideAggregateIssues(
   program: ESTree.Node,
   analysis: ProvenanceQuery,
+  authority: PlatformMethodAuthorityFacts,
 ): AggregateFinding[] {
   const findings: AggregateFinding[] = [];
   const reported = new Set<string>();
@@ -94,6 +102,7 @@ export function findGlideAggregateIssues(
           pending: new Set(),
           committedDynamic: false,
           pendingDynamic: false,
+          uncertain: false,
         },
       ],
     }),
@@ -104,8 +113,12 @@ export function findGlideAggregateIssues(
         (value, index) => alternativeKey(value) === alternativeKey(right.alternatives[index]!),
       ),
     mergeData: mergeAlternatives,
-    onCall({ call, rec, objectName, property }) {
-      if (!rec || !property) return;
+    onCall({ call, rec, receiver, objectName, property }) {
+      if (!rec || !receiver || !property) return;
+      if (!hasAuthoritativeConstructedMethod(authority, receiver, "GlideAggregate", property)) {
+        for (const value of rec.data.alternatives) value.uncertain = true;
+        return;
+      }
       if (property === "addAggregate") {
         const type = getStringValue(call.arguments[0]);
         const field = call.arguments[1] ? getStringValue(call.arguments[1]) : "";
@@ -118,12 +131,13 @@ export function findGlideAggregateIssues(
       if (property === "query") {
         for (const value of rec.data.alternatives) {
           value.committed = cloneSet(value.pending);
-          value.committedDynamic = value.pendingDynamic;
+          value.committedDynamic = value.pendingDynamic || value.uncertain;
           value.queried = true;
+          value.uncertain = false;
         }
       }
       if (property === "next" || property === "getAggregate") {
-        if (rec.data.alternatives.some((value) => !value.queried)) {
+        if (rec.data.alternatives.some((value) => !value.queried && !value.uncertain)) {
           report({
             node: call,
             name: objectName ?? "aggregate",
@@ -139,7 +153,11 @@ export function findGlideAggregateIssues(
           const key = tupleKey(type, field || null);
           if (
             rec.data.alternatives.some(
-              (value) => value.queried && !value.committedDynamic && !value.committed.has(key),
+              (value) =>
+                value.queried &&
+                !value.uncertain &&
+                !value.committedDynamic &&
+                !value.committed.has(key),
             )
           ) {
             report({

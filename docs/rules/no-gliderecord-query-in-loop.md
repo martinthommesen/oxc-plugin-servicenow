@@ -11,7 +11,7 @@ A query inside a proven record cursor loop is an N+1 pattern. Direct IIFEs and s
 - **Authoring:** classic
 - **Surfaces:** Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. UI Actions require an explicit server surface; mixed client/server UI Actions stay silent because execution regions are not classified. Unknown surfaces stay silent.
 - **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
-- **Last verified:** 2026-08-22
+- **Last verified:** 2026-08-24
 - **Implementation:** [`src/rules/no-gliderecord-query-in-loop.ts`](../../src/rules/no-gliderecord-query-in-loop.ts)
 
 ## Applicability
@@ -72,7 +72,7 @@ while (incident.next()) {
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-negative: Mutable helpers and helpers with multiple direct call sites stay silent because shared provenance is not call-context-sensitive. false-negative: Indirect `.call()`, `.apply()`, `.bind()`, constructor, and deferred callback invocations do not inherit cursor depth. lifecycle: A proven GlideRecord next() / _next() or GlideAggregate next() receiver establishes cursor depth. Direct IIFEs and direct calls to an unmodified local function with one statically visible call site inherit that depth. GlideRecord executors must be definite for the configured scope. GlideAggregate analysis follows its directly documented query() / next() lifecycle; inherited or undocumented executors and cursor aliases stay silent.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-negative: Mutable helpers and helpers with multiple direct call sites stay silent because shared provenance is not call-context-sensitive. false-negative: Indirect `.call()`, `.apply()`, `.bind()`, constructor, and deferred callback invocations do not inherit cursor depth. false-negative: A possible platform constructor, prototype, or relevant instance-method mutation suppresses matching diagnostics throughout the file. lifecycle: A proven GlideRecord next() / _next() or GlideAggregate next() receiver establishes cursor depth. Direct IIFEs and direct calls to an unmodified local function with one statically visible call site inherit that depth. GlideRecord executors must be definite for the configured scope. GlideAggregate analysis follows its directly documented query() / next() lifecycle; inherited or undocumented executors and cursor aliases stay silent.
 
 ## Known false positives
 
@@ -82,6 +82,7 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-n
 
 - Mutable helpers and helpers with multiple direct call sites stay silent because shared provenance is not call-context-sensitive.
 - Indirect `.call()`, `.apply()`, `.bind()`, constructor, and deferred callback invocations do not inherit cursor depth.
+- A possible platform constructor, prototype, or relevant instance-method mutation suppresses matching diagnostics throughout the file.
 
 ## Intentional scope boundaries
 
@@ -123,6 +124,11 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-n
   - URL: tests/rules/phase3.test.ts
   - Verified by: fixture
   - Verified at: 2026-08-22
+- **Constructor, prototype, instance-method, and dynamic-scope mutations are covered by shared platform-authority fixtures.**
+  - Verification ID: `rule-evidence-9501320f`
+  - URL: tests/rules/platform-method-authority.test.ts
+  - Verified by: fixture
+  - Verified at: 2026-08-24
 - **The Australia-scoped GlideRecord API was reviewed for the methods and lifecycle facts used by this rule.**
   - Verification ID: `rule-evidence-0aa93fce`
   - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html

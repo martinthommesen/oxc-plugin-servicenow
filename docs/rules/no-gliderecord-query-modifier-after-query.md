@@ -11,7 +11,7 @@ Filters and result-shaping calls after a documented query executor do not change
 - **Authoring:** classic
 - **Surfaces:** Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. UI Actions require an explicit server surface; mixed client/server UI Actions stay silent because execution regions are not classified. Unknown surfaces stay silent.
 - **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
-- **Last verified:** 2026-08-22
+- **Last verified:** 2026-08-24
 - **Implementation:** [`src/rules/no-gliderecord-query-modifier-after-query.ts`](../../src/rules/no-gliderecord-query-modifier-after-query.ts)
 
 ## Applicability
@@ -60,7 +60,7 @@ while (incident.next()) {
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. lifecycle: Modifiers after a definite executor are findings only when a consumer uses the still-open cursor. A possible-only executor clears positive lifecycle facts.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-negative: A possible platform constructor, prototype, or relevant instance-method mutation suppresses matching diagnostics throughout the file. lifecycle: Modifiers after a definite executor are findings only when a consumer uses the still-open cursor. A possible-only executor clears positive lifecycle facts.
 
 ## Known false positives
 
@@ -68,7 +68,7 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. lifecyc
 
 ## Known false negatives
 
-- None recorded.
+- A possible platform constructor, prototype, or relevant instance-method mutation suppresses matching diagnostics throughout the file.
 
 ## Intentional scope boundaries
 
@@ -95,6 +95,11 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. lifecyc
   - URL: tests/integration/profiles/invalid/late-modifier.br.js
   - Verified by: integration-test
   - Verified at: 2026-08-20
+- **Constructor, prototype, instance-method, and dynamic-scope mutations are covered by shared platform-authority fixtures.**
+  - Verification ID: `rule-evidence-5392d918`
+  - URL: tests/rules/platform-method-authority.test.ts
+  - Verified by: fixture
+  - Verified at: 2026-08-24
 - **The Australia-scoped GlideRecord API was reviewed for the methods and lifecycle facts used by this rule.**
   - Verification ID: `rule-evidence-b3775e07`
   - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html

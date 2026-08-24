@@ -105,7 +105,7 @@ export interface PathAnalysisOptions<T> {
   equalsData: (left: T, right: T) => boolean;
   onCall: (input: PathCallInput<T>) => void;
   onRef?: (input: PathRefInput<T>) => void;
-  /** Allocate an object when an expression is a proven constructed value. */
+  /** Allocate an abstract value; a later evaluation refreshes an invalid or escaped site. */
   onValue?: (node: ESTree.Node) => T | undefined;
   /** Inspect every reachable program completion after the shared traversal. */
   onExit?: (states: readonly PathExitState<T>[]) => void;
@@ -636,7 +636,19 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
     if (onValue) {
       const existing = newExpressionIds.get(expr);
       if (existing !== undefined) {
-        ensure(state, existing);
+        const record = state.objects.get(existing);
+        if (!record || record.invalid || record.escaped) {
+          const data = onValue(expr);
+          if (data === undefined) return undefined;
+          const refreshed: SharedRecord<T> = {
+            id: existing,
+            escaped: false,
+            invalid: false,
+            data,
+          };
+          state.objects.set(existing, refreshed);
+          onRef?.({ node: expr, rec: refreshed, name: getName(expr), bindingId: null });
+        }
         return existing;
       }
       const data = onValue(expr);

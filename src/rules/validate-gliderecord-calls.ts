@@ -2,7 +2,11 @@ import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
 import { getName, isExpressionStatementCall } from "../utils/ast.js";
-import { findMissingQueryBeforeNext, staticPropertyName } from "../analysis/internal.js";
+import {
+  findMissingQueryBeforeNext,
+  hasAuthoritativeGlideRecordMethod,
+  staticPropertyName,
+} from "../analysis/internal.js";
 import { beginRuleFile } from "./helpers.js";
 import { isServerInstanceContext } from "../context/index.js";
 
@@ -40,8 +44,8 @@ export const validateGliderecordCalls = defineRule({
         if (!isServerInstanceContext(script)) return false;
       },
       Program(node) {
-        const { analysis } = beginRuleFile(context);
-        for (const finding of findMissingQueryBeforeNext(node as ESTree.Node, analysis)) {
+        const { analysis, file } = beginRuleFile(context);
+        for (const finding of findMissingQueryBeforeNext(node as ESTree.Node, analysis, file)) {
           context.report({
             node: finding.node,
             messageId: "missingQuery",
@@ -50,7 +54,7 @@ export const validateGliderecordCalls = defineRule({
         }
       },
       CallExpression(node) {
-        const { analysis } = beginRuleFile(context);
+        const { analysis, file } = beginRuleFile(context);
         const call = node as ESTree.CallExpression;
         if (call.callee.type !== "MemberExpression") return;
         const member = call.callee as ESTree.MemberExpression;
@@ -59,6 +63,7 @@ export const validateGliderecordCalls = defineRule({
         if (!object || !method || !UNUSED_RETURN.has(method)) return;
         const proven = analysis.ofExpression(member.object);
         if (!proven || proven.kind !== "GlideRecord" || proven.invalid || proven.escaped) return;
+        if (!hasAuthoritativeGlideRecordMethod(file, member.object, method)) return;
         const ancestors = context.sourceCode.getAncestors(node);
         const parent = ancestors[ancestors.length - 1];
         if (!isExpressionStatementCall(parent)) return;

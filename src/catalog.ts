@@ -89,6 +89,31 @@ export interface RuleApplicability {
 }
 
 const ES5: ServiceNowSettings = { javascriptMode: "es5" };
+const PLATFORM_METHOD_AUTHORITY_FIXTURE = "tests/rules/platform-method-authority.test.ts";
+
+function platformMethodAuthorityEvidence() {
+  return metadata.evidenceRecord(
+    PLATFORM_METHOD_AUTHORITY_FIXTURE,
+    "Constructor, prototype, instance-method, and dynamic-scope mutations are covered by shared platform-authority fixtures.",
+    "fixture",
+    "2026-08-24",
+  );
+}
+
+function platformMethodMutationLimitation(
+  caseId: string,
+  code: string,
+  description = "A possible platform constructor, prototype, or relevant instance-method mutation suppresses matching diagnostics throughout the file.",
+): RuleLimitationCase {
+  return {
+    caseId,
+    kind: "false-negative",
+    description,
+    name: "visible platform-method mutation",
+    filename: "mutated-platform.server.js",
+    code,
+  };
+}
 
 export interface RuleExample {
   name: string;
@@ -477,6 +502,7 @@ Promise.resolve(1);`,
           "fixture",
           "2026-08-20",
         ),
+        platformMethodAuthorityEvidence(),
       ],
       {
         overlaps: ["servicenow/validate-glideaggregate-calls"],
@@ -484,7 +510,14 @@ Promise.resolve(1);`,
     ),
     placements: [{ profile: "strict", severity: "warn" }] as const,
     optionDescriptor: undefined,
-    limitationCases: [],
+    limitationCases: [
+      platformMethodMutationLimitation(
+        "prefer-glideaggregate-file-wide-mutation",
+        `var gr = new GlideRecord("incident");
+gr.getRowCount();
+gr.getRowCount = localCount;`,
+      ),
+    ],
     title: "Prefer GlideAggregate",
     family: "classic",
     preset: "strict",
@@ -743,6 +776,7 @@ gs.now = localNow;`,
           "fixture",
           "2026-08-20",
         ),
+        platformMethodAuthorityEvidence(),
       ],
       {
         overlaps: [
@@ -770,6 +804,12 @@ var alias = record;
 alias.query();
 record.next();`,
       },
+      platformMethodMutationLimitation(
+        "require-query-before-next-file-wide-mutation",
+        `var record = new GlideRecord("incident");
+record.next();
+record.next = localNext;`,
+      ),
     ],
     title: "Require query before next",
     family: "classic",
@@ -810,6 +850,7 @@ record.next();`,
           "fixture",
           "2026-08-20",
         ),
+        platformMethodAuthorityEvidence(),
       ],
       {
         overlaps: ["servicenow/require-query-before-next"],
@@ -817,7 +858,14 @@ record.next();`,
     ),
     placements: [] as const,
     optionDescriptor: undefined,
-    limitationCases: [],
+    limitationCases: [
+      platformMethodMutationLimitation(
+        "validate-gliderecord-file-wide-mutation",
+        `var record = new GlideRecord("incident");
+record.update();
+record.update = localUpdate;`,
+      ),
+    ],
     title: "Validate GlideRecord calls",
     family: "classic",
     preset: false,
@@ -1838,6 +1886,7 @@ new DataView(buffer).getBigInt64(0);`,
           "integration-test",
           "2026-08-20",
         ),
+        platformMethodAuthorityEvidence(),
       ],
       {
         overlaps: ["servicenow/no-unfiltered-gliderecord-bulk-operation"],
@@ -1850,7 +1899,15 @@ new DataView(buffer).getBigInt64(0);`,
       { profile: "business-rule", severity: "error" },
     ] as const,
     optionDescriptor: undefined,
-    limitationCases: [],
+    limitationCases: [
+      platformMethodMutationLimitation(
+        "windowed-delete-file-wide-mutation",
+        `var record = new GlideRecord("incident");
+record.setLimit(10);
+record.deleteMultiple();
+record.deleteMultiple = localDelete;`,
+      ),
+    ],
     title: "No deleteMultiple with windowing",
     family: "classic",
     preset: "recommended",
@@ -2042,6 +2099,7 @@ ajax.getXMLAnswer = localRequest;`,
           "integration-test",
           "2026-08-20",
         ),
+        platformMethodAuthorityEvidence(),
       ],
       {
         overlaps: ["servicenow/require-query-before-next"],
@@ -2054,7 +2112,14 @@ ajax.getXMLAnswer = localRequest;`,
       { profile: "business-rule", severity: "error" },
     ] as const,
     optionDescriptor: undefined,
-    limitationCases: [],
+    limitationCases: [
+      platformMethodMutationLimitation(
+        "validate-glideaggregate-file-wide-mutation",
+        `var aggregate = new GlideAggregate("incident");
+aggregate.next();
+aggregate.next = localNext;`,
+      ),
+    ],
     title: "Validate GlideAggregate calls",
     family: "classic",
     preset: "recommended",
@@ -2278,6 +2343,7 @@ ajax.getAnswer = localAnswer;`,
           "fixture",
           "2026-08-22",
         ),
+        platformMethodAuthorityEvidence(),
       ],
       {
         overlaps: [],
@@ -2301,6 +2367,13 @@ var rec = new GlideRecord("incident");
 rec.query();
 while (rec.next()) retain(rec.number);`,
       },
+      platformMethodMutationLimitation(
+        "no-glideelement-file-wide-mutation",
+        `var rec = new GlideRecord("incident");
+var values = [];
+while (rec.next()) values.push(rec.number);
+rec.next = localNext;`,
+      ),
     ],
     title: "No GlideElement in a collection",
     family: "classic",
@@ -2346,6 +2419,7 @@ while (rec.next()) retain(rec.number);`,
           "integration-test",
           "2026-08-20",
         ),
+        platformMethodAuthorityEvidence(),
       ],
       {
         overlaps: ["servicenow/require-query-before-next"],
@@ -2358,7 +2432,16 @@ while (rec.next()) retain(rec.number);`,
       { profile: "business-rule", severity: "error" },
     ] as const,
     optionDescriptor: undefined,
-    limitationCases: [],
+    limitationCases: [
+      platformMethodMutationLimitation(
+        "query-modifier-file-wide-mutation",
+        `var record = new GlideRecord("incident");
+record.query();
+record.addQuery("active", true);
+record.next();
+record.next = localNext;`,
+      ),
+    ],
     title: "No query modifier after query",
     family: "classic",
     preset: "recommended",
@@ -2470,6 +2553,7 @@ while (rec.next()) retain(rec.number);`,
           "fixture",
           "2026-08-20",
         ),
+        platformMethodAuthorityEvidence(),
       ],
       {
         overlaps: ["servicenow/no-gs-now"],
@@ -2488,6 +2572,12 @@ while (rec.next()) retain(rec.number);`,
 var display = date.getDisplayValue();
 if (display < "2026-01-01") gs.info(display);`,
       },
+      platformMethodMutationLimitation(
+        "display-date-file-wide-mutation",
+        `var date = new GlideDateTime();
+if (date.getDisplayValue() < "2026-01-01") gs.info(date);
+date.getDisplayValue = localDisplay;`,
+      ),
     ],
     title: "No display-value date comparison",
     family: "classic",
@@ -2528,6 +2618,7 @@ if (display < "2026-01-01") gs.info(display);`,
           "integration-test",
           "2026-08-20",
         ),
+        platformMethodAuthorityEvidence(),
       ],
       {
         overlaps: ["servicenow/no-delete-multiple-with-windowing"],
@@ -2537,7 +2628,14 @@ if (display < "2026-01-01") gs.info(display);`,
     ),
     placements: [{ profile: "recommended", severity: "warn" }] as const,
     optionDescriptor: undefined,
-    limitationCases: [],
+    limitationCases: [
+      platformMethodMutationLimitation(
+        "unfiltered-bulk-file-wide-mutation",
+        `var record = new GlideRecord("incident");
+record.deleteMultiple();
+record.deleteMultiple = localDelete;`,
+      ),
+    ],
     title: "No unfiltered GlideRecord bulk operation",
     family: "classic",
     preset: "recommended",
@@ -2595,6 +2693,7 @@ if (display < "2026-01-01") gs.info(display);`,
           "fixture",
           "2026-08-22",
         ),
+        platformMethodAuthorityEvidence(),
       ],
       {
         overlaps: ["servicenow/require-query-before-next"],
@@ -2636,6 +2735,13 @@ var incident = new GlideRecord("incident");
 incident.query();
 while (incident.next()) loadCaller.call(null);`,
       },
+      platformMethodMutationLimitation(
+        "query-in-loop-file-wide-mutation",
+        `var outer = new GlideRecord("incident");
+var inner = new GlideRecord("sys_user");
+while (outer.next()) inner.query();
+inner.query = localQuery;`,
+      ),
     ],
     title: "No GlideRecord query in a cursor loop",
     family: "classic",
@@ -2693,6 +2799,7 @@ while (incident.next()) loadCaller(incident.getValue("caller_id"));`,
           "integration-test",
           "2026-08-20",
         ),
+        platformMethodAuthorityEvidence(),
       ],
       {
         overlaps: ["servicenow/require-query-before-next"],
@@ -2702,7 +2809,15 @@ while (incident.next()) loadCaller(incident.getValue("caller_id"));`,
     ),
     placements: [{ profile: "strict", severity: "warn" }] as const,
     optionDescriptor: undefined,
-    limitationCases: [],
+    limitationCases: [
+      platformMethodMutationLimitation(
+        "setnocount-file-wide-mutation",
+        `var record = new GlideRecord("incident");
+record.chooseWindow(0, 20);
+record.query();
+record.query = localQuery;`,
+      ),
+    ],
     title: "Prefer setNoCount with chooseWindow",
     family: "classic",
     preset: "strict",
@@ -2748,6 +2863,7 @@ while (incident.next()) loadCaller(incident.getValue("caller_id"));`,
           "integration-test",
           "2026-08-21",
         ),
+        platformMethodAuthorityEvidence(),
       ],
       {
         overlaps: [],
@@ -2755,7 +2871,14 @@ while (incident.next()) loadCaller(incident.getValue("caller_id"));`,
     ),
     placements: [{ profile: "security", severity: "warn" }] as const,
     optionDescriptor: undefined,
-    limitationCases: [],
+    limitationCases: [
+      platformMethodMutationLimitation(
+        "system-query-file-wide-mutation",
+        `var record = new GlideRecord("incident");
+record.addSystemQuery("active", true);
+record.addSystemQuery = localQuery;`,
+      ),
+    ],
     title: "Review system query ACL bypass",
     family: "classic",
     preset: false,

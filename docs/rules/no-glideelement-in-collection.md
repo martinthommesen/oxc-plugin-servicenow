@@ -11,7 +11,7 @@ Direct GlideRecord field access and path-proven local aliases are GlideElements 
 - **Authoring:** classic
 - **Surfaces:** Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. UI Actions require an explicit server surface; mixed client/server UI Actions stay silent because execution regions are not classified. Unknown surfaces stay silent.
 - **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
-- **Last verified:** 2026-08-22
+- **Last verified:** 2026-08-24
 - **Implementation:** [`src/rules/no-glideelement-in-collection.ts`](../../src/rules/no-glideelement-in-collection.ts)
 
 ## Applicability
@@ -72,7 +72,7 @@ while (incident.next()) {
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-boundary: Separately declared helpers and deferred callbacks stay silent because their invocation timing and value flow are not proven by the cursor traversal.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-boundary: Separately declared helpers and deferred callbacks stay silent because their invocation timing and value flow are not proven by the cursor traversal. false-negative: A possible platform constructor, prototype, or relevant instance-method mutation suppresses matching diagnostics throughout the file.
 
 ## Known false positives
 
@@ -80,7 +80,7 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-b
 
 ## Known false negatives
 
-- None recorded.
+- A possible platform constructor, prototype, or relevant instance-method mutation suppresses matching diagnostics throughout the file.
 
 ## Intentional scope boundaries
 
@@ -112,6 +112,11 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-b
   - URL: tests/rules/layer3-consumers.test.ts
   - Verified by: fixture
   - Verified at: 2026-08-22
+- **Constructor, prototype, instance-method, and dynamic-scope mutations are covered by shared platform-authority fixtures.**
+  - Verification ID: `rule-evidence-defb48d1`
+  - URL: tests/rules/platform-method-authority.test.ts
+  - Verified by: fixture
+  - Verified at: 2026-08-24
 - **The Australia-scoped GlideRecord API was reviewed for the methods and lifecycle facts used by this rule.**
   - Verification ID: `rule-evidence-ba597f84`
   - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html

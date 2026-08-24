@@ -2,7 +2,7 @@ import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
 import { getName, isNode, isValueReference, nodeStart, walk } from "../utils/ast.js";
-import { staticPropertyName } from "../analysis/internal.js";
+import { hasAuthoritativeGlideRecordMethod, staticPropertyName } from "../analysis/internal.js";
 import { isServerInstanceContext } from "../context/index.js";
 import { beginRuleFile } from "./helpers.js";
 
@@ -27,22 +27,20 @@ export const preferGlideaggregate = defineRule({
         if (!isServerInstanceContext(beginRuleFile(context).context)) return false;
       },
       CallExpression(node) {
-        const { analysis } = beginRuleFile(context);
+        const { analysis, file } = beginRuleFile(context);
         const call = node as ESTree.CallExpression;
         if (call.callee.type !== "MemberExpression") return;
         const member = call.callee as ESTree.MemberExpression;
         const property = staticPropertyName(member);
-        if (!property) return;
+        if (property !== "getRowCount") return;
         const receiver = glideRecordReceiver(analysis, member.object);
         if (!receiver) return;
-
-        if (property === "getRowCount") {
-          context.report({
-            node,
-            messageId: "getRowCount",
-            data: { name: receiver.name },
-          });
-        }
+        if (!hasAuthoritativeGlideRecordMethod(file, member.object, property)) return;
+        context.report({
+          node,
+          messageId: "getRowCount",
+          data: { name: receiver.name },
+        });
       },
       WhileStatement(node) {
         checkLoopBody(node as ESTree.WhileStatement);
@@ -70,7 +68,7 @@ export const preferGlideaggregate = defineRule({
     }
 
     function checkLoopBody(node: ESTree.WhileStatement | ESTree.ForStatement) {
-      const { analysis } = beginRuleFile(context);
+      const { analysis, file } = beginRuleFile(context);
       const test = node.test;
       if (!test || test.type !== "CallExpression") return;
       const callee = (test as ESTree.CallExpression).callee;
@@ -79,6 +77,7 @@ export const preferGlideaggregate = defineRule({
       if (!property || !analysis.glide.cursorAdvancers.has(property)) return;
       const receiver = glideRecordReceiver(analysis, callee.object);
       if (!receiver) return;
+      if (!hasAuthoritativeGlideRecordMethod(file, callee.object, property)) return;
 
       const body = node.body;
       const statements = body.type === "BlockStatement" ? [...body.body] : [body];

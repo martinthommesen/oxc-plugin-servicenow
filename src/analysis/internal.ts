@@ -20,6 +20,7 @@ export type { MutationQuery } from "./mutations.js";
 export {
   hasAuthoritativeConstructedMethod,
   hasAuthoritativeGlobalObjectMethod,
+  hasAuthoritativeGlideRecordMethod,
 } from "./platform-method-authority.js";
 export type { PlatformMethodAuthorityFacts } from "./platform-method-authority.js";
 export type { BindingId, ObjectId, Completion } from "./path-state.js";
