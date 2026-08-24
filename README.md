@@ -276,6 +276,8 @@ Configure once. Invalid keys, types, or conflicting values throw a configuration
 
 Australia support is release-aware rather than a renamed Zurich default:
 
+The generated [Australia JavaScript engine update ledger](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/australia-engine-updates.md) maps every official Rhino update row to an implemented diagnostic, a deliberate metadata-only disposition, or explicit pending research. Pending rows are not counted as supported.
+
 | Engine capability | Zurich ES2021 | Australia ES2021 | ES5 Standards |
 | --- | --- | --- | --- |
 | `Object.hasOwn()` | Not Supported | Supported | Not Supported |
