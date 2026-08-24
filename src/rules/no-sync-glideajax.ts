@@ -1,8 +1,7 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
-import { getName } from "../utils/ast.js";
-import { staticPropertyName } from "../analysis/internal.js";
+import { hasAuthoritativeConstructedMethod, staticPropertyName } from "../analysis/internal.js";
 import { isClientCapableContext } from "../context/index.js";
 import { beginRuleFile } from "./helpers.js";
 
@@ -24,7 +23,7 @@ export const noSyncGlideajax = defineRule({
         if (!isClientCapableContext(beginRuleFile(context).context)) return false;
       },
       CallExpression(node) {
-        const { analysis } = beginRuleFile(context);
+        const { analysis, file } = beginRuleFile(context);
         const call = node as ESTree.CallExpression;
         if (call.callee.type !== "MemberExpression") return;
         const member = call.callee as ESTree.MemberExpression;
@@ -32,13 +31,9 @@ export const noSyncGlideajax = defineRule({
         const object = member.object;
         const proven = analysis.ofExpression(object);
         if (proven?.kind === "GlideAjax" && !proven.invalid && !proven.escaped) {
+          if (!hasAuthoritativeConstructedMethod(file, object, "GlideAjax", "getXMLWait")) return;
           context.report({ node, messageId: "wait" });
-          return;
         }
-        const name = getName(object);
-        if (name === "GlideAjax") return;
-        // Direct `new GlideAjax(...).getXMLWait()` is covered by ofExpression on
-        // the NewExpression object. Unproven receivers are left silent.
       },
     };
   },

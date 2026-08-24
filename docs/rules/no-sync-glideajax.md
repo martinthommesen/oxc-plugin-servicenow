@@ -11,7 +11,7 @@
 - **Authoring:** classic
 - **Surfaces:** Applies to client, ui-action when those surfaces are known. Mixed client/server UI Actions stay silent because execution regions are not classified. Unknown surfaces stay silent.
 - **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
-- **Last verified:** 2026-08-20
+- **Last verified:** 2026-08-24
 - **Implementation:** [`src/rules/no-sync-glideajax.ts`](../../src/rules/no-sync-glideajax.ts)
 
 ## Applicability
@@ -57,7 +57,7 @@ ga.getXMLAnswer(function (answer) {
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-negative: A possible GlideAjax constructor, prototype, or getXMLWait mutation suppresses matching calls throughout the file.
 
 ## Known false positives
 
@@ -65,7 +65,7 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
 
 ## Known false negatives
 
-- None recorded.
+- A possible GlideAjax constructor, prototype, or getXMLWait mutation suppresses matching calls throughout the file.
 
 ## Intentional scope boundaries
 
@@ -92,6 +92,11 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
   - URL: src/catalog.ts
   - Verified by: fixture
   - Verified at: 2026-08-20
+- **Constructor, prototype, instance-method, and dynamic-scope mutations remain silent.**
+  - Verification ID: `rule-evidence-28d7c249`
+  - URL: tests/rules/glide-and-engine.test.ts
+  - Verified by: fixture
+  - Verified at: 2026-08-24
 
 ## See also
 

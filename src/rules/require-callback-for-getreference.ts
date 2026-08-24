@@ -1,23 +1,29 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
-import { staticPropertyName, type ProvenanceQuery } from "../analysis/internal.js";
+import {
+  hasAuthoritativeGlobalObjectMethod,
+  resolveConstValue,
+  staticPropertyName,
+  type ProvenanceQuery,
+} from "../analysis/internal.js";
 import { isClientCapableContext } from "../context/index.js";
 import { ruleDocsUrl } from "../constants.js";
-import { getName, isNode, unwrapExpression } from "../utils/ast.js";
+import { getName, isNode } from "../utils/ast.js";
 import { beginRuleFile } from "./helpers.js";
 
 function isNullishCallback(node: unknown, analysis: ProvenanceQuery): boolean {
   if (!node) return true;
-  if (!isNode(node)) return false;
-  if (node.type === "Identifier" && getName(node) === "undefined") {
-    return analysis.isPlatformGlobal(node);
+  const value = resolveConstValue(node, analysis.bindings);
+  if (!value) return false;
+  if (value.type === "Identifier" && getName(value) === "undefined") {
+    return analysis.isPlatformGlobal(value);
   }
-  if (node.type === "Literal") {
-    const value = (node as { value?: unknown }).value;
-    return value === null || value === undefined;
+  if (value.type === "Literal") {
+    const literal = (value as { value?: unknown }).value;
+    return literal === null || literal === undefined;
   }
-  if (node.type === "UnaryExpression") {
-    return (node as ESTree.UnaryExpression).operator === "void";
+  if (value.type === "UnaryExpression") {
+    return (value as ESTree.UnaryExpression).operator === "void";
   }
   return false;
 }
@@ -26,7 +32,7 @@ function callbackKind(
   node: unknown,
   analysis: ProvenanceQuery,
 ): "callable" | "invalid" | "unknown" {
-  const value = unwrapExpression(node);
+  const value = resolveConstValue(node, analysis.bindings);
   if (!isNode(value)) return "unknown";
   if (value.type === "FunctionExpression" || value.type === "ArrowFunctionExpression")
     return "callable";
@@ -36,15 +42,7 @@ function callbackKind(
     const binding = analysis.bindings.resolve(name, value);
     if (!binding) return "unknown";
     if (binding.kind === "function") return "callable";
-    if (binding.kind === "const" && binding.node.type === "VariableDeclarator") {
-      const init = unwrapExpression((binding.node as ESTree.VariableDeclarator).init);
-      if (
-        isNode(init) &&
-        (init.type === "FunctionExpression" || init.type === "ArrowFunctionExpression")
-      ) {
-        return "callable";
-      }
-    }
+    if (binding.kind === "class") return "invalid";
     return "unknown";
   }
   if (
@@ -81,13 +79,20 @@ export const requireCallbackForGetreference = defineRule({
         if (!isClientCapableContext(script)) return false;
       },
       CallExpression(node) {
-        const { analysis } = beginRuleFile(context);
+        const { analysis, file } = beginRuleFile(context);
         const call = node as ESTree.CallExpression;
         if (call.callee.type !== "MemberExpression") return;
         if (staticPropertyName(call.callee) !== "getReference") return;
         const object = (call.callee as ESTree.MemberExpression).object;
         const proven = analysis.ofExpression(object);
         if (proven?.kind !== "g_form" || proven.invalid || proven.escaped) return;
+        if (
+          !hasAuthoritativeGlobalObjectMethod(file, object, "g_form", "getReference", {
+            prototypeConstructor: "GlideForm",
+          })
+        ) {
+          return;
+        }
         // A spread has unknown runtime arity. It may supply a callback even
         // when no syntactic second argument is present.
         if (call.arguments.some((argument) => argument.type === "SpreadElement")) return;

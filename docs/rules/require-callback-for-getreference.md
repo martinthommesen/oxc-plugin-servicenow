@@ -11,7 +11,7 @@
 - **Authoring:** classic
 - **Surfaces:** Applies to client, ui-action when those surfaces are known. Mixed client/server UI Actions stay silent because execution regions are not classified. Unknown surfaces stay silent.
 - **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
-- **Last verified:** 2026-08-20
+- **Last verified:** 2026-08-24
 - **Implementation:** [`src/rules/require-callback-for-getreference.ts`](../../src/rules/require-callback-for-getreference.ts)
 
 ## Applicability
@@ -57,7 +57,7 @@ function onChange() {
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-boundary: Local objects named g_form are not the platform global.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-boundary: Local objects named g_form are not the platform global. false-negative: A possible g_form, GlideForm prototype, or getReference mutation suppresses matching calls throughout the file because deferred runtime order cannot be inferred from source order.
 
 ## Known false positives
 
@@ -65,7 +65,7 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-b
 
 ## Known false negatives
 
-- None recorded.
+- A possible g_form, GlideForm prototype, or getReference mutation suppresses matching calls throughout the file because deferred runtime order cannot be inferred from source order.
 
 ## Intentional scope boundaries
 
@@ -92,6 +92,11 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-b
   - URL: tests/integration/profiles/invalid/sync-getreference.client.js
   - Verified by: integration-test
   - Verified at: 2026-08-20
+- **Immutable callback aliases and visible method mutations are covered adversarially.**
+  - Verification ID: `rule-evidence-ec5927b5`
+  - URL: tests/rules/require-callback-for-getreference.test.ts
+  - Verified by: fixture
+  - Verified at: 2026-08-24
 
 ## See also
 

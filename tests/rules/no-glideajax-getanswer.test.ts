@@ -106,4 +106,23 @@ ajax["getAnswer"]();`,
       CLIENT,
     );
   });
+
+  it("stays silent when getAnswer no longer has platform identity", () => {
+    for (const code of [
+      `var ajax = new GlideAjax("x_acme.UserLookup");
+ajax.getAnswer();
+ajax.getAnswer = localAnswer;`,
+      `GlideAjax.prototype.getAnswer = localAnswer;
+var ajax = new GlideAjax("x_acme.UserLookup");
+ajax.getAnswer();`,
+      `GlideAjax = LocalGlideAjax;
+var ajax = new GlideAjax("x_acme.UserLookup");
+ajax.getAnswer();`,
+      `eval("GlideAjax.prototype.getAnswer = localAnswer");
+var ajax = new GlideAjax("x_acme.UserLookup");
+ajax.getAnswer();`,
+    ]) {
+      assertValid(code, RULE, CLIENT);
+    }
+  });
 });

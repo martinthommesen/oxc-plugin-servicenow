@@ -30,6 +30,7 @@
 - `no-client-gliderecord` now resolves stable, block-dominating constructor aliases and suppresses diagnostics whenever path-dependent assignments, dynamic scope, namespace escape, or visible platform replacement make constructor identity uncertain.
 - `no-hardcoded-sysid` now resolves hash-context owners from AST ancestry, preserving the correct owner around nested sibling expressions and preventing suppression from leaking into nested function or class bodies.
 - Shared per-file binding-write analysis now drives stable helper and constructor resolution; mutation analysis distinguishes callable replacements from lost platform authority, and `no-br-current-update` / `no-gs-now` stay silent whenever binding replacement, method mutation, namespace escape, or dynamic scope makes platform identity uncertain.
+- Client API rules now share platform-method authority checks: GlideAjax and `g_form.getReference()` diagnostics stay silent after constructor, prototype, instance-method, namespace, or dynamic-scope mutation, while immutable callback aliases are classified structurally.
 - Cursor-loop analysis evaluates defaults selected by explicit `undefined`, and GlideElement retention is checked on the first `while` iteration even when the body exits immediately.
 - Release validation now rejects tags that do not point to the exact current protected `main` tip.
 - GlideRecord lifecycle analysis now recognizes the documented `_query()`, `_next()`, and global-only `queryNoDomain()` APIs without guessing when application scope is unknown.

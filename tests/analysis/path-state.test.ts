@@ -8,6 +8,7 @@ import {
   type PathCallInput,
 } from "../../src/analysis/path-state.js";
 import { findGlideAjaxParamIssues } from "../../src/analysis/glideajax-params.js";
+import type { PlatformMethodAuthorityFacts } from "../../src/analysis/platform-method-authority.js";
 import type { ProvenanceQuery } from "../../src/analysis/provenance.js";
 import { ctorProvenanceKind } from "../../src/analysis/provenance.js";
 import { resolveGlideCapabilities } from "../../src/glide/manifest.js";
@@ -19,6 +20,21 @@ interface Data {
   queryEvents: number;
   budgetExceeded: boolean;
 }
+
+const UNCHANGED_METHODS: PlatformMethodAuthorityFacts = {
+  bindingWrites: {
+    isWritten: () => false,
+    hasDynamicScope: () => false,
+  },
+  mutations: {
+    isGlobalWritten: () => false,
+    isGlobalPathWritten: () => false,
+    isObjectPropertyWritten: () => false,
+    isGlobalAuthorityLost: () => false,
+    isGlobalPathAuthorityLost: () => false,
+    isObjectPropertyAuthorityLost: () => false,
+  },
+};
 
 function analysisFor(program: any): ProvenanceQuery {
   const context = {
@@ -315,7 +331,7 @@ describe("path-state evaluator", () => {
       gj.getXML();
       gj.addParam("foo", 1);
     `).ast as any;
-    const findings = findGlideAjaxParamIssues(program, analysisFor(program));
+    const findings = findGlideAjaxParamIssues(program, analysisFor(program), UNCHANGED_METHODS);
     assert.deepEqual(
       findings.map((finding) => finding.messageId),
       ["missingName", "afterTerminal", "badPrefix"],

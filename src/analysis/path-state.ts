@@ -28,6 +28,8 @@ export interface SharedRecord<T> {
 export interface PathCallInput<T> {
   call: ESTree.CallExpression;
   rec: SharedRecord<T> | undefined;
+  /** Unwrapped member receiver captured before computed keys and arguments run. */
+  receiver: ESTree.Node | null;
   objectName: string | null;
   property: string | null;
 }
@@ -1211,6 +1213,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
         const callee = unwrapExpression(call.callee);
         const property = staticPropertyName(callee);
         let objectName: string | null = null;
+        let receiver: ESTree.Node | null = null;
         let receiverId: ObjectId | undefined;
         if (isNode(callee) && callee.type === "MemberExpression") {
           const member = callee as ESTree.MemberExpression;
@@ -1220,6 +1223,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
           ancestors.push(member);
           visit(member.object, state, false);
           const object = unwrapExpression(member.object);
+          receiver = isNode(object) ? object : null;
           objectName = getName(object);
           receiverId = objectFromExpr(state, object);
           if (member.computed) visit(member.property, state, false);
@@ -1235,7 +1239,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
         // Invocation remains able to throw after all argument effects complete.
         recordPossibleThrow(state);
         const rec = recordOf(state, receiverId);
-        onCall({ call, rec, objectName, property });
+        onCall({ call, rec, receiver, objectName, property });
         if (rec && property === null) {
           // A computed call whose property cannot be resolved may invoke any
           // mutating platform method. Keep the receiver identity out of later
