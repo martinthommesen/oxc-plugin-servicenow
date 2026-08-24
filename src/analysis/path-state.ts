@@ -634,7 +634,22 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
     if (onValue) {
       const existing = newExpressionIds.get(expr);
       if (existing !== undefined) {
-        ensure(state, existing);
+        const record = state.objects.get(existing);
+        if (!record || record.invalid || record.escaped) {
+          const data = onValue(expr);
+          if (data === undefined) return undefined;
+          for (const [bindingId, objectId] of state.env) {
+            if (objectId === existing) state.env.set(bindingId, undefined);
+          }
+          const refreshed: SharedRecord<T> = {
+            id: existing,
+            escaped: false,
+            invalid: false,
+            data,
+          };
+          state.objects.set(existing, refreshed);
+          onRef?.({ node: expr, rec: refreshed, name: getName(expr), bindingId: null });
+        }
         return existing;
       }
       const data = onValue(expr);

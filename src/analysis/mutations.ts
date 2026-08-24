@@ -237,7 +237,7 @@ function buildIndex(
       if (root) recordGlobalPathInto([root, "*"], facts);
     }
     const object = provenance.ofExpression(value);
-    const terminal = resolveConstValue(value, bindings) ?? value;
+    const terminal = stableAliasValue(value) ?? value;
     const terminalName = terminal.type === "Identifier" ? getName(terminal) : null;
     const terminalBinding = terminalName ? bindings.resolve(terminalName, terminal) : null;
     const identityIsStableAllocation = terminal.type === "NewExpression";
@@ -569,6 +569,9 @@ function buildIndex(
       const call = node as ESTree.CallExpression;
       const builtin = calledBuiltin(call);
       if (!builtin) {
+        if (platformGlobalNamespaceAccess(call.callee, bindings) && javascriptMode !== "es2021") {
+          return;
+        }
         const direct = staticBuiltin(call.callee);
         // Object/Reflect intrinsics are modeled below. In particular, the
         // reviewed instance engines reject Reflect mutation helpers, so their

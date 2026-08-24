@@ -58,12 +58,14 @@ export const noBrCurrentUpdate = defineRule({
           canonicalCurrentBindingId !== null &&
           binding?.node === canonicalCurrent &&
           binding.id === canonicalCurrentBindingId &&
-          !file.bindingWrites.isWritten(binding.id);
+          !file.bindingWrites.isWritten(binding.id) &&
+          (!proven || (proven.kind === "current" && !proven.invalid && !proven.escaped));
         if (!directGlobal && !alias && !wrapperParam) return;
         if (file.bindingWrites.hasDynamicScope()) return;
         if (directGlobal && file.mutations.isGlobalAuthorityLost("current")) return;
         if (
-          file.mutations.isGlobalPathAuthorityLost(["current", "update"]) ||
+          (!wrapperParam && file.mutations.isGlobalPathAuthorityLost(["current", "update"])) ||
+          file.mutations.isGlobalPathAuthorityLost(["GlideRecord", "prototype", "update"]) ||
           file.mutations.isObjectPropertyAuthorityLost(member.object, "update")
         ) {
           return;
