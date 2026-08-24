@@ -425,6 +425,9 @@ function buildIndex(
       const call = node as ESTree.CallExpression;
       const builtin = calledBuiltin(call);
       if (!builtin) {
+        if (platformGlobalNamespaceAccess(call.callee, bindings) && javascriptMode !== "es2021") {
+          return;
+        }
         const direct = staticBuiltin(call.callee);
         // Object/Reflect intrinsics are modeled below. In particular, the
         // reviewed instance engines reject Reflect mutation helpers, so their
