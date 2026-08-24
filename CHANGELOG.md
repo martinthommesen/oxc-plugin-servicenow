@@ -11,6 +11,7 @@
 
 ### Fixed
 
+- `no-weak-references` and `no-weak-collections` now resolve stable same-execution constructor aliases while staying silent for dominating availability guards, lexical shadows, dynamic scope, and visible callable polyfills.
 - Private instance fields, methods, and accessors now report the documented ES2021 Not Supported status for both Zurich and Australia; private static members remain Supported.
 - Omitting `settings.servicenow.release` now keeps release-dependent facts unknown instead of silently selecting Zurich.
 - Australia support is fail-closed: every catalog rule requires an explicit, release-keyed review basis before a new release can appear in generated applicability metadata.

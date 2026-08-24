@@ -19,6 +19,12 @@ export interface PlatformConstructorCallOptions {
   readonly mutations: MutationQuery;
   readonly names: readonly string[];
   readonly namespaces?: readonly string[];
+  /**
+   * Platform API diagnostics require original authority. Engine-compatibility
+   * diagnostics only need to know whether a callable polyfill may replace an
+   * otherwise unavailable constructor.
+   */
+  readonly mutationSemantics?: "authority" | "callable";
 }
 
 interface DeclaratorFacts {
@@ -31,6 +37,14 @@ interface CallSite {
   readonly executionBoundary: ESTree.Node;
   readonly node: ESTree.CallExpression | ESTree.NewExpression;
 }
+
+interface ConstructorSyntaxIndex {
+  readonly declarators: WeakMap<ESTree.VariableDeclarator, DeclaratorFacts>;
+  readonly callSites: readonly CallSite[];
+  readonly callBudgetExceeded: boolean;
+}
+
+const syntaxIndexByProgram = new WeakMap<ESTree.Node, ConstructorSyntaxIndex>();
 
 function functionLike(node: ESTree.Node | undefined): boolean {
   return (
@@ -78,23 +92,10 @@ function containsNode(container: ESTree.Node, node: ESTree.Node): boolean {
   );
 }
 
-/**
- * Find calls to platform constructors whose identity is structurally stable.
- *
- * Mutable and path-dependent aliases deliberately stay unknown. This analysis
- * is intended for recommended diagnostics where silence is safer than
- * attributing a local replacement to the ServiceNow API.
- */
-export function findStablePlatformConstructorCalls({
-  program,
-  analysis,
-  bindingWrites,
-  mutations,
-  names,
-  namespaces = [],
-}: PlatformConstructorCallOptions): readonly PlatformConstructorCallFinding[] {
-  const nameSet = new Set(names);
-  const namespaceSet = new Set(namespaces);
+function constructorSyntaxIndex(program: ESTree.Node): ConstructorSyntaxIndex {
+  const existing = syntaxIndexByProgram.get(program);
+  if (existing) return existing;
+
   const declarators = new WeakMap<ESTree.VariableDeclarator, DeclaratorFacts>();
   const callSites: CallSite[] = [];
   const ancestors: ESTree.Node[] = [];
@@ -124,18 +125,51 @@ export function findStablePlatformConstructorCalls({
         recordCallSite(node as ESTree.NewExpression);
       },
       CallExpression(node) {
-        const call = node as ESTree.CallExpression;
-        recordCallSite(call);
+        recordCallSite(node as ESTree.CallExpression);
       },
     },
     ancestors,
   );
 
+  const created = { declarators, callSites, callBudgetExceeded };
+  syntaxIndexByProgram.set(program, created);
+  return created;
+}
+
+/**
+ * Find calls to platform constructors whose identity is structurally stable.
+ *
+ * Mutable and path-dependent aliases deliberately stay unknown. This analysis
+ * is intended for recommended diagnostics where silence is safer than
+ * attributing a local replacement to the ServiceNow API.
+ */
+export function findStablePlatformConstructorCalls({
+  program,
+  analysis,
+  bindingWrites,
+  mutations,
+  names,
+  namespaces = [],
+  mutationSemantics = "authority",
+}: PlatformConstructorCallOptions): readonly PlatformConstructorCallFinding[] {
+  const nameSet = new Set(names);
+  const namespaceSet = new Set(namespaces);
+  const { declarators, callSites, callBudgetExceeded } = constructorSyntaxIndex(program);
+
   if (bindingWrites.hasDynamicScope() || callBudgetExceeded) return [];
 
-  const constructorIdentityIsStable = (name: string): boolean =>
-    !mutations.isGlobalAuthorityLost(name) &&
-    namespaces.every((namespace) => !mutations.isGlobalPathAuthorityLost([namespace, name]));
+  const constructorIdentityIsStable = (name: string): boolean => {
+    const globalChanged =
+      mutationSemantics === "authority"
+        ? mutations.isGlobalAuthorityLost(name)
+        : mutations.isGlobalWritten(name);
+    const pathChanged = namespaces.some((namespace) =>
+      mutationSemantics === "authority"
+        ? mutations.isGlobalPathAuthorityLost([namespace, name])
+        : mutations.isGlobalPathWritten([namespace, name]),
+    );
+    return !globalChanged && !pathChanged;
+  };
 
   const directNamespace = (node: unknown): string | null => {
     const value = unwrapExpression(node);
@@ -181,7 +215,9 @@ export function findStablePlatformConstructorCalls({
         namespace &&
         nameSet.has(name) &&
         constructorIdentityIsStable(name) &&
-        !mutations.isGlobalPathAuthorityLost([namespace, name])
+        !(mutationSemantics === "authority"
+          ? mutations.isGlobalPathAuthorityLost([namespace, name])
+          : mutations.isGlobalPathWritten([namespace, name]))
         ? name
         : null;
     }
