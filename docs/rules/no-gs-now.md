@@ -23,7 +23,7 @@
 | Minimum surface confidence | filename-inferred |
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
-| ServiceNow releases | zurich |
+| ServiceNow releases | zurich, australia |
 | Fluent SDK range | n/a |
 
 ## Options
@@ -82,12 +82,12 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-b
 ## Evidence
 
 - **gs.now() and gs.nowDateTime() return display strings, not GlideDateTime objects.**
-  - Verification ID: `rule-evidence-f4c2d565`
+  - Verification ID: `rule-evidence-b0fb0fe2`
   - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideDateTimeAPI.html
   - Verified by: manual
   - Verified at: 2026-08-20
 - **Host fixtures report gs.now on Business Rule files.**
-  - Verification ID: `rule-evidence-2bea52fc`
+  - Verification ID: `rule-evidence-af5507fd`
   - URL: tests/integration/fixtures/bad-business-rule.br.js
   - Verified by: integration-test
   - Verified at: 2026-08-20

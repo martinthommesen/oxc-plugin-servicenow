@@ -77,7 +77,7 @@ export function assertInvalid(
   assert.equal(
     messages.length,
     count,
-    `Expected exactly ${count} diagnostic(s), got ${messages.length}:\n${messages.map((m) => `  - ${m.messageId ?? "?"} ${m.message}`).join("\n")}`,
+    `Expected exactly ${count} diagnostic(s), got ${messages.length}:\n${messages.map((m) => `  - ${m.messageId ?? "?"} ${m.message}`).join("\n")}\nSource:\n${code}`,
   );
   if (expected.messageId) {
     assert.ok(

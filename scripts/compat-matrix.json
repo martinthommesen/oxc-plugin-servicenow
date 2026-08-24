@@ -64,6 +64,7 @@
     "4.11.0"
   ],
   "javascriptModes": ["compatibility", "es5", "es2021", "unknown"],
+  "serviceNowReleases": ["zurich", "australia"],
   "extensions": [".js", ".ts", ".tsx", ".now.ts", ".now.tsx"],
   "configurationModes": ["oxlint-json", "eslint-flat", "oxfmt-json"],
   "localSmokeCell": "node24-host",

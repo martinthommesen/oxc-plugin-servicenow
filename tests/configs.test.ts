@@ -5,7 +5,14 @@ import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { recommendedOxfmtConfig } from "../src/oxfmt/index.js";
 import { ruleCatalog } from "../src/catalog.js";
-import { recommendedRules, securityRules, strictRules } from "../src/configs/maps.js";
+import {
+  classicEs5Rules,
+  es2021Rules,
+  policyRules,
+  recommendedRules,
+  securityRules,
+  strictRules,
+} from "../src/configs/maps.js";
 
 const presets110 = JSON.parse(
   readFileSync(new URL("fixtures/presets-1.1.0.json", import.meta.url), "utf8"),
@@ -39,6 +46,7 @@ describe("configs", () => {
     assert.equal(recommendedRules["servicenow/no-system-query-bypass"], undefined);
     assert.equal(recommendedRules["servicenow/no-hardcoded-table-names"], undefined);
     assert.equal(recommendedRules["servicenow/validate-gliderecord-calls"], undefined);
+    assert.equal(recommendedRules["servicenow/no-packages-calls"], undefined);
   });
 
   it("strict adds optional rules", () => {
@@ -49,6 +57,17 @@ describe("configs", () => {
     assert.equal(strictRules["servicenow/no-display-value-date-comparison"], "warn");
     assert.equal(strictRules["servicenow/no-gliderecord-query-in-loop"], "warn");
     assert.equal(strictRules["servicenow/no-system-query-bypass"], undefined);
+    assert.equal(strictRules["servicenow/no-packages-calls"], undefined);
+    assert.equal(policyRules["servicenow/no-packages-calls"], "warn");
+  });
+
+  it("enables release-aware engine rules in both mode profiles", () => {
+    for (const rules of [classicEs5Rules, es2021Rules]) {
+      assert.equal(rules["servicenow/no-object-hasown"], "error");
+      assert.equal(rules["servicenow/no-typed-arrays"], "error");
+      assert.equal(rules["servicenow/no-unsupported-syntax"], "error");
+    }
+    assert.equal(recommendedRules["servicenow/no-object-hasown"], undefined);
   });
 
   it("security is opt-in and warn-only", () => {

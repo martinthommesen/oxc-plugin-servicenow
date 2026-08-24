@@ -89,6 +89,14 @@ describe("packed package consumer", () => {
       assert.ok(pkg.exports["./analysis"]);
       assert.ok(pkg.exports["./oxfmt"]);
       assert.ok(pkg.exports["./oxfmt.recommended.json"]);
+      const installedReadme = readFileSync(path.join(installed, "README.md"), "utf8");
+      assert.ok(installedReadme.includes(`/blob/v${pkg.version}/docs/rules/`));
+      assert.equal(installedReadme.includes("/blob/main/docs/rules/"), false);
+      assert.doesNotMatch(
+        installedReadme,
+        /\]\((?:docs\/|examples\/|CONTRIBUTING\.md)/,
+        "published README links must not target files omitted from the package",
+      );
 
       const imports = JSON.parse(
         execFileSync(
@@ -150,6 +158,7 @@ console.log(JSON.stringify({
   configs,
   type RuleConfigMap,
   type RuleName,
+  type ServiceNowRelease,
   type ServiceNowSettings,
 } from "oxc-plugin-servicenow";
 import {
@@ -161,7 +170,8 @@ import {
 } from "oxc-plugin-servicenow/analysis";
 import { recommendedOxfmtConfig } from "oxc-plugin-servicenow/oxfmt";
 
-const settings: ServiceNowSettings = { javascriptMode: "es2021" };
+const release: ServiceNowRelease = "australia";
+const settings: ServiceNowSettings = { javascriptMode: "es2021", release };
 const ruleName: RuleName = "no-hardcoded-sysid";
 const rules: RuleConfigMap = { [ruleName]: "error" };
 const analyze: typeof analyzeProvenance = analyzeProvenance;

@@ -34,6 +34,14 @@ describe(RULE, () => {
       RULE,
       { messageId: "iterateCount" },
     );
+    assertInvalid(
+      `var gr = new GlideRecord("incident");
+gr._query();
+var n = 0;
+while (gr["_next"]()) { n++; }`,
+      RULE,
+      { messageId: "iterateCount" },
+    );
   });
 
   it("does not treat if (gr.next()) as iterate-to-count", () => {

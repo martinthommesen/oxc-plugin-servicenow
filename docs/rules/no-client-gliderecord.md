@@ -1,6 +1,6 @@
 # servicenow/no-client-gliderecord
 
-Client-side GlideRecord is slow, often blocked, and a security smell. Use GlideAjax, Scripted REST, or `g_form.getReference()`.
+Client GlideRecord is unsupported in scoped applications. Query on the server with GlideAjax or Scripted REST.
 
 - **Family:** classic
 - **Preset:** recommended
@@ -11,7 +11,7 @@ Client-side GlideRecord is slow, often blocked, and a security smell. Use GlideA
 - **Authoring:** classic
 - **Surfaces:** Applies to client, ui-action when those surfaces are known. Unknown surfaces stay silent.
 - **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
-- **Last verified:** 2026-08-21
+- **Last verified:** 2026-08-22
 - **Implementation:** [`src/rules/no-client-gliderecord.ts`](../../src/rules/no-client-gliderecord.ts)
 
 ## Applicability
@@ -22,8 +22,8 @@ Client-side GlideRecord is slow, often blocked, and a security smell. Use GlideA
 | Surfaces | Applies to client, ui-action when those surfaces are known. Unknown surfaces stay silent. |
 | Minimum surface confidence | filename-inferred |
 | JavaScript modes | n/a |
-| Application scopes | global, scoped, unknown |
-| ServiceNow releases | zurich |
+| Application scopes | scoped |
+| ServiceNow releases | zurich, australia |
 | Fluent SDK range | n/a |
 
 ## Options
@@ -60,7 +60,7 @@ function onChange() {
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-boundary: Mixed client/server UI Actions stay silent because the rule cannot classify execution regions.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-boundary: Mixed client/server UI Actions stay silent because the rule cannot classify execution regions. scope-boundary: Global and unknown application scope stay silent because ServiceNow documents the client API in global applications and only marks scoped applications unsupported.
 
 ## Known false positives
 
@@ -73,6 +73,7 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-b
 ## Intentional scope boundaries
 
 - Mixed client/server UI Actions stay silent because the rule cannot classify execution regions.
+- Global and unknown application scope stay silent because ServiceNow documents the client API in global applications and only marks scoped applications unsupported.
 
 ## Overlaps
 
@@ -85,18 +86,23 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-b
 
 ## Evidence
 
-- **GlideRecord is a server API and is not a client-side record cursor.**
-  - Verification ID: `rule-evidence-44ec3259`
-  - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html
+- **The Australia client GlideRecord API is unsupported in scoped applications.**
+  - Verification ID: `rule-evidence-063e6d0e`
+  - URL: https://www.servicenow.com/docs/r/api-reference/c_GlideRecordClientSideAPI.html
   - Verified by: manual
-  - Verified at: 2026-08-20
+  - Verified at: 2026-08-22
+- **ServiceNow no longer recommends client GlideRecord or getReference for performance because they retrieve all fields.**
+  - Verification ID: `rule-evidence-efff6b3b`
+  - URL: https://www.servicenow.com/docs/r/api-reference/scripts/client-script-best-practices.html
+  - Verified by: manual
+  - Verified at: 2026-08-22
 - **Recommended Oxlint and ESLint flag GlideRecord in client files.**
-  - Verification ID: `rule-evidence-4c9bda8a`
+  - Verification ID: `rule-evidence-a0a91c4c`
   - URL: tests/integration/profiles/invalid/client-gliderecord.client.js
   - Verified by: integration-test
   - Verified at: 2026-08-20
 - **Oxlint and ESLint flag direct, global namespace, computed, aliased, and destructured constructors.**
-  - Verification ID: `rule-evidence-8948b555`
+  - Verification ID: `rule-evidence-781ecc67`
   - URL: tests/integration/context-contracts.test.ts
   - Verified by: integration-test
   - Verified at: 2026-08-21

@@ -23,7 +23,7 @@ GlideAjax requires a non-empty `addParam("sysparm_name", method)` before `getXML
 | Minimum surface confidence | filename-inferred |
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
-| ServiceNow releases | zurich |
+| ServiceNow releases | zurich, australia |
 | Fluent SDK range | n/a |
 
 ## Options
@@ -82,12 +82,12 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. lifecyc
 ## Evidence
 
 - **GlideAjax requires a non-empty sysparm_name before getXML, getXMLAnswer, or getXMLWait.**
-  - Verification ID: `rule-evidence-6bbe917f`
+  - Verification ID: `rule-evidence-49915d92`
   - URL: https://www.servicenow.com/docs/r/api-reference/scripts/p_AJAX.html
   - Verified by: manual
   - Verified at: 2026-08-20
 - **Empty or missing sysparm_name values report on the client host fixtures.**
-  - Verification ID: `rule-evidence-2360ef01`
+  - Verification ID: `rule-evidence-02bfea04`
   - URL: tests/integration/profiles/invalid/glideajax-empty-sysparm.client.js
   - Verified by: integration-test
   - Verified at: 2026-08-20

@@ -11,7 +11,7 @@
 - **Authoring:** classic
 - **Surfaces:** Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent.
 - **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
-- **Last verified:** 2026-08-20
+- **Last verified:** 2026-08-22
 - **Implementation:** [`src/rules/no-unfiltered-gliderecord-bulk-operation.ts`](../../src/rules/no-unfiltered-gliderecord-bulk-operation.ts)
 
 ## Applicability
@@ -23,7 +23,7 @@
 | Minimum surface confidence | filename-inferred |
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
-| ServiceNow releases | zurich |
+| ServiceNow releases | zurich, australia |
 | Fluent SDK range | n/a |
 
 ## Options
@@ -80,15 +80,25 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. lifecyc
 ## Evidence
 
 - **updateMultiple and deleteMultiple apply to every row that matches the query filters.**
-  - Verification ID: `rule-evidence-a8a3795f`
-  - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html
+  - Verification ID: `rule-evidence-586ee5cf`
+  - URL: https://www.servicenow.com/docs/r/zurich/api-reference/server-api-reference/c_GlideRecordScopedAPI.html
   - Verified by: manual
   - Verified at: 2026-08-20
 - **Empty or missing addQuery arguments do not count as filters.**
-  - Verification ID: `rule-evidence-aa5ef846`
+  - Verification ID: `rule-evidence-5ae56c50`
   - URL: tests/integration/profiles/invalid/empty-addquery-bulk.br.js
   - Verified by: integration-test
   - Verified at: 2026-08-20
+- **The Australia scoped GlideRecord API was reviewed for the methods and lifecycle facts used by this rule.**
+  - Verification ID: `rule-evidence-ef15d2fd`
+  - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html
+  - Verified by: manual
+  - Verified at: 2026-08-22
+- **The Australia global GlideRecord API was reviewed for the methods and lifecycle facts used by this rule.**
+  - Verification ID: `rule-evidence-5ccc072e`
+  - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordAPI.html
+  - Verified by: manual
+  - Verified at: 2026-08-22
 
 ## See also
 

@@ -1,6 +1,6 @@
 # Client and Catalog Client Scripts
 
-Do not use client GlideRecord. Use GlideAjax with `sysparm_name` and an async callback.
+Client GlideRecord is unsupported in scoped applications. Use GlideAjax with `sysparm_name` and an async callback, or a Scripted REST API.
 
 ## Commands
 
@@ -14,6 +14,7 @@ Do not use client GlideRecord. Use GlideAjax with `sysparm_name` and an async ca
 ```json
 {
   "servicenow": {
+    "scope": "scoped",
     "surfaces": [
       "client"
     ]

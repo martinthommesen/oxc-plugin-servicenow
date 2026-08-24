@@ -23,7 +23,7 @@
 | Minimum surface confidence | filename-inferred |
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
-| ServiceNow releases | zurich |
+| ServiceNow releases | zurich, australia |
 | Fluent SDK range | n/a |
 
 ## Options
@@ -83,12 +83,12 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
 ## Evidence
 
 - **getXMLWait is a synchronous browser request.**
-  - Verification ID: `rule-evidence-cb70312b`
+  - Verification ID: `rule-evidence-c6177bcc`
   - URL: https://www.servicenow.com/docs/r/api-reference/c_GlideAjaxAPI.html
   - Verified by: manual
   - Verified at: 2026-08-20
 - **Catalog examples cover getXMLWait versus getXMLAnswer.**
-  - Verification ID: `rule-evidence-49c24e2d`
+  - Verification ID: `rule-evidence-2de6efe6`
   - URL: src/catalog.ts
   - Verified by: fixture
   - Verified at: 2026-08-20

@@ -25,6 +25,21 @@ describe("fluentSdkVersion registry", () => {
     );
   });
 
+  it("keeps the Australia release independent from the selected Fluent SDK manifest", () => {
+    const businessRule = `import { BusinessRule } from "@servicenow/sdk/core";\nBusinessRule({ table: "incident", name: "Update" });`;
+    for (const fluentSdkVersion of ["4.4.0", "4.4.1", "4.11.0"]) {
+      assert.doesNotThrow(() =>
+        validateServiceNowSettings({ release: "australia", fluentSdkVersion }),
+      );
+      assertInvalid(
+        businessRule,
+        "require-fluent-id",
+        { messageId: "missing" },
+        { ...NOW, settings: { release: "australia", fluentSdkVersion } },
+      );
+    }
+  });
+
   it("keeps the published Table signature across 3.0.0 and 4.1.0", () => {
     const table = `import { Table } from "@servicenow/sdk/core";\nexport const incident = Table({ name: "x_acme_incident" });`;
     assertValid(table, "require-fluent-id", { ...NOW, settings: { fluentSdkVersion: "3.0.0" } });

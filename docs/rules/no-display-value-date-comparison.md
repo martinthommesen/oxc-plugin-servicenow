@@ -23,7 +23,7 @@ Do not relationally compare `GlideDateTime.getDisplayValue()` strings. Use `getN
 | Minimum surface confidence | filename-inferred |
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
-| ServiceNow releases | zurich |
+| ServiceNow releases | zurich, australia |
 | Fluent SDK range | n/a |
 
 ## Options
@@ -84,12 +84,12 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-n
 ## Evidence
 
 - **GlideDateTime.getDisplayValue() follows the session format and is not a chronological sort key.**
-  - Verification ID: `rule-evidence-795f4584`
+  - Verification ID: `rule-evidence-16c3e6e5`
   - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideDateTimeAPI.html
   - Verified by: manual
   - Verified at: 2026-08-20
 - **Catalog examples cover display-value comparison versus getNumericValue.**
-  - Verification ID: `rule-evidence-b37fd159`
+  - Verification ID: `rule-evidence-54d15346`
   - URL: src/catalog.ts
   - Verified by: fixture
   - Verified at: 2026-08-20

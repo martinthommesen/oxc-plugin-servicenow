@@ -8,8 +8,9 @@ import {
   walk,
 } from "../utils/ast.js";
 import type { FileBindings, LexicalBinding, ScopeNode } from "./bindings.js";
+import { resolvePlatformGlobalName } from "./globals.js";
 import { isFunctionLike } from "./bindings.js";
-import { staticPropertyName } from "./members.js";
+import { resolveConstValue, staticPropertyName } from "./members.js";
 import type { ProvenanceKind, ProvenanceQuery } from "./provenance.js";
 
 export type BindingId = number;
@@ -394,8 +395,9 @@ function ctorKind(
 ): ProvenanceKind | null {
   const expr = unwrapExpression(node);
   if (!isNode(expr) || expr.type !== "NewExpression") return null;
-  const callee = (expr as ESTree.NewExpression).callee;
-  const name = getName(callee);
+  const callee = resolveConstValue((expr as ESTree.NewExpression).callee, analysis.bindings);
+  if (!callee) return null;
+  const name = resolvePlatformGlobalName(callee, analysis.bindings);
   if (!name) return null;
   const map: Record<string, ProvenanceKind> = {
     GlideRecord: "GlideRecord",
@@ -403,6 +405,7 @@ function ctorKind(
     GlideAggregate: "GlideAggregate",
     GlideAjax: "GlideAjax",
     GlideDateTime: "GlideDateTime",
+    DataView: "DataView",
   };
   const kind = map[name];
   if (!kind || !kinds.includes(kind)) return null;
@@ -957,6 +960,15 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
         }
         break;
       }
+      case "UpdateExpression": {
+        const update = node as ESTree.UpdateExpression;
+        visit(update.argument, state, false);
+        // Both prefix and postfix update coerce the old value and write a
+        // number back to the binding. The expression result is never the
+        // tracked object identity.
+        invalidatePattern(state, update.argument);
+        break;
+      }
       case "IfStatement": {
         const stmt = node as ESTree.IfStatement;
         visit(stmt.test, state, false);
@@ -1196,18 +1208,24 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
       case "CallExpression": {
         const call = node as ESTree.CallExpression;
         recordPossibleThrow(state);
-        // Capture the evaluated receiver before arguments can reassign its
-        // binding. Nested argument calls still mutate the same object record.
-        visit(call.callee, state, false);
         const callee = unwrapExpression(call.callee);
         const property = staticPropertyName(callee);
         let objectName: string | null = null;
-        let rec: SharedRecord<T> | undefined;
+        let receiverId: ObjectId | undefined;
         if (isNode(callee) && callee.type === "MemberExpression") {
-          const object = unwrapExpression((callee as ESTree.MemberExpression).object);
+          const member = callee as ESTree.MemberExpression;
+          // JavaScript captures the member receiver before evaluating a
+          // computed property or any arguments. Preserve that identity even
+          // when those later expressions reassign its binding.
+          ancestors.push(member);
+          visit(member.object, state, false);
+          const object = unwrapExpression(member.object);
           objectName = getName(object);
-          const objectId = objectFromExpr(state, object);
-          rec = recordOf(state, objectId);
+          receiverId = objectFromExpr(state, object);
+          if (member.computed) visit(member.property, state, false);
+          ancestors.pop();
+        } else {
+          visit(call.callee, state, false);
         }
         const argumentIds: Array<ObjectId | undefined> = [];
         for (const arg of call.arguments) {
@@ -1216,7 +1234,14 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
         }
         // Invocation remains able to throw after all argument effects complete.
         recordPossibleThrow(state);
+        const rec = recordOf(state, receiverId);
         onCall({ call, rec, objectName, property });
+        if (rec && property === null) {
+          // A computed call whose property cannot be resolved may invoke any
+          // mutating platform method. Keep the receiver identity out of later
+          // must-fact and risk conclusions rather than guessing its effects.
+          rec.escaped = true;
+        }
         const direct = unwrapExpression(call.callee);
         let fn: ESTree.Node | undefined;
         if (isNode(direct) && isFunctionLike(direct)) {

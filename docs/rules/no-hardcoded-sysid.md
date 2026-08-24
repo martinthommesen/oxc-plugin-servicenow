@@ -23,7 +23,7 @@ Hardcoded 32-character sys_ids break when an app is installed on another instanc
 | Minimum surface confidence | filename-inferred |
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
-| ServiceNow releases | zurich |
+| ServiceNow releases | zurich, australia |
 | Fluent SDK range | n/a |
 
 ## Options
@@ -80,12 +80,12 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
 ## Evidence
 
 - **Named Fluent Now.ID keys are the supported portable identity, not raw sys_id literals.**
-  - Verification ID: `rule-evidence-5b7be311`
+  - Verification ID: `rule-evidence-2d6f67d8`
   - URL: https://www.servicenow.com/docs/r/application-development/servicenow-sdk/fluent-constructs.html
   - Verified by: manual
   - Verified at: 2026-08-20
 - **Literal, uppercase, concatenated, and static-template sys_ids report; exact allow-lists and algorithm-specific hash contexts suppress.**
-  - Verification ID: `rule-evidence-5620fb82`
+  - Verification ID: `rule-evidence-586f6257`
   - URL: tests/rules/no-hardcoded-sysid.test.ts
   - Verified by: fixture
   - Verified at: 2026-08-21

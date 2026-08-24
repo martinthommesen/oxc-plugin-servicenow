@@ -4,7 +4,8 @@
   "settings": {
     "servicenow": {
       "authoring": "classic",
-      "surfaces": ["ui-action", "client", "server"]
+      "surfaces": ["ui-action", "client", "server"],
+      "scope": "scoped"
     }
   },
   "rules": { "servicenow/no-client-gliderecord": "error" }

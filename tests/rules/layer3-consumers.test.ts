@@ -117,6 +117,114 @@ while (rec.next()) {
     );
   });
 
+  it("tracks local GlideElement values through aliases and all-path joins", () => {
+    assertInvalid(
+      `var rec = new GlideRecord("incident");
+var values = [];
+rec.query();
+while (rec.next()) {
+  var field = rec.number;
+  var alias = field;
+  prepare(alias);
+  values.push({ field: alias });
+}`,
+      "no-glideelement-in-collection",
+      { messageId: "retained", includes: "alias" },
+      SERVER,
+    );
+    assertInvalid(
+      `var rec = new GlideRecord("incident");
+var values = [];
+rec.query();
+while (rec.next()) {
+  var field;
+  if (useNumber) field = rec.number;
+  else field = rec.short_description;
+  values.push(field);
+}`,
+      "no-glideelement-in-collection",
+      { messageId: "retained", includes: "field" },
+      SERVER,
+    );
+    assertInvalid(
+      `var rec = new GlideRecord("incident");
+var values = [];
+rec.query();
+while (rec.next()) {
+  (function (field) { values.push(field); })(rec.getElement("number"));
+}`,
+      "no-glideelement-in-collection",
+      { messageId: "retained", includes: "field" },
+      SERVER,
+    );
+  });
+
+  it("invalidates uncertain or converted GlideElement aliases", () => {
+    assertValid(
+      `var rec = new GlideRecord("incident");
+var other = new GlideRecord("task");
+var values = [];
+rec.query();
+other.query();
+while (rec.next() && other.next()) {
+  var field;
+  if (useIncident) field = rec.number;
+  else field = other.number;
+  values.push(field);
+}`,
+      "no-glideelement-in-collection",
+      SERVER,
+    );
+    assertValid(
+      `var rec = new GlideRecord("incident");
+var values = [];
+rec.query();
+while (rec.next()) {
+  var field = rec.number;
+  field = field.toString();
+  values.push(field);
+}`,
+      "no-glideelement-in-collection",
+      SERVER,
+    );
+    assertValid(
+      `var rec = new GlideRecord("incident");
+var values = [];
+rec.query();
+while (rec.next()) {
+  var field;
+  if (includeField) field = rec.number;
+  else field = "safe";
+  values.push(field);
+}`,
+      "no-glideelement-in-collection",
+      SERVER,
+    );
+    assertValid(
+      `var rec = new GlideRecord("incident");
+var values = [];
+rec.query();
+while (rec.next()) {
+  var field = rec.number;
+  field++;
+  values.push(field);
+}`,
+      "no-glideelement-in-collection",
+      SERVER,
+    );
+    assertValid(
+      `var rec = new GlideRecord("incident");
+var values = [];
+rec.query();
+while (rec.next()) {
+  var field = rec.number;
+  { let field = "safe"; values.push(field); }
+}`,
+      "no-glideelement-in-collection",
+      SERVER,
+    );
+  });
+
   it("keys prefer-glideaggregate state by ObjectId, not names", () => {
     assertInvalid(
       `var outer = new GlideRecord("incident");

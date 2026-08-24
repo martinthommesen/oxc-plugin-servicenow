@@ -163,8 +163,13 @@ describe("release and context resolution", () => {
     assert.equal(script.sources.surfaces, "explicit");
   });
 
-  it("accepts the documented Zurich release and rejects unknown values", () => {
+  it("accepts every reviewed release and rejects unknown values", () => {
     assert.equal(validateServiceNowSettings({ release: "zurich" }).settings.release, "zurich");
+    assert.equal(
+      validateServiceNowSettings({ release: "australia" }).settings.release,
+      "australia",
+    );
+    assert.equal(validateServiceNowSettings({}).settings.release, undefined);
     assert.throws(() => validateServiceNowSettings({ release: "zurichx" }), /release.*one of/);
   });
 
@@ -173,7 +178,7 @@ describe("release and context resolution", () => {
       `var gr = new GlideRecord("incident");`,
       "no-client-gliderecord",
       { messageId: "glideRecord" },
-      { filename: "incident.now.ts", settings: { scriptType: "client" } },
+      { filename: "incident.now.ts", settings: { scriptType: "client", scope: "scoped" } },
     );
   });
 
@@ -372,7 +377,7 @@ describe("UI Action surfaces", () => {
 var gr = new GlideRecord("incident");`,
       "no-client-gliderecord",
       { messageId: "glideRecord" },
-      { filename: "close.ui-action.js" },
+      { filename: "close.ui-action.js", settings: { scope: "scoped" } },
     );
   });
 
@@ -411,7 +416,10 @@ gr.next();`,
       `var gr = new GlideRecord("incident");`,
       "no-client-gliderecord",
       { messageId: "glideRecord" },
-      { filename: "close.ui-action.js", settings: { surfaces: ["ui-action", "client"] } },
+      {
+        filename: "close.ui-action.js",
+        settings: { surfaces: ["ui-action", "client"], scope: "scoped" },
+      },
     );
   });
 

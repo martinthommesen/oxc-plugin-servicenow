@@ -1,24 +1,21 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
-import { staticPropertyName } from "../analysis/internal.js";
+import { resolveConstValue, staticPropertyName } from "../analysis/internal.js";
 import { beginRuleFile } from "./helpers.js";
 import { shouldDiagnoseFeature } from "../engine/index.js";
-import { isNode, unwrapExpression } from "../utils/ast.js";
+import { isNode } from "../utils/ast.js";
 
 function isBuiltInAtReceiver(
   node: unknown,
   analysis: ReturnType<typeof beginRuleFile>["analysis"],
 ): boolean {
-  const value = unwrapExpression(node);
+  const value = resolveConstValue(node, analysis.bindings);
   if (!isNode(value)) return false;
   if (value.type === "ArrayExpression") return true;
   if (value.type === "Literal" && typeof (value as { value?: unknown }).value === "string")
     return true;
-  if (value.type !== "Identifier") return false;
-  const binding = analysis.bindings.resolve((value as { name: string }).name, value);
-  if (binding?.kind !== "const" || binding.node.type !== "VariableDeclarator") return false;
-  return isBuiltInAtReceiver((binding.node as ESTree.VariableDeclarator).init, analysis);
+  return false;
 }
 
 export const noAtMethod = defineRule({

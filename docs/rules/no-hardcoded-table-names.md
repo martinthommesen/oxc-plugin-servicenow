@@ -23,7 +23,7 @@ Optional organizational policy. String-literal table names in `GlideRecord` / `G
 | Minimum surface confidence | filename-inferred |
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
-| ServiceNow releases | zurich |
+| ServiceNow releases | zurich, australia |
 | Fluent SDK range | n/a |
 
 ## Options
@@ -78,12 +78,12 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
 ## Evidence
 
 - **Table names passed to GlideRecord constructors are string identities that do not rename safely.**
-  - Verification ID: `rule-evidence-15f6f752`
-  - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html
+  - Verification ID: `rule-evidence-cdad38f6`
+  - URL: https://www.servicenow.com/docs/r/zurich/api-reference/server-api-reference/c_GlideRecordScopedAPI.html
   - Verified by: manual
   - Verified at: 2026-08-20
 - **Literal tables report; named constants and allow-lists stay silent.**
-  - Verification ID: `rule-evidence-7894eca6`
+  - Verification ID: `rule-evidence-413d1e54`
   - URL: tests/rules/glide-and-engine.test.ts
   - Verified by: fixture
   - Verified at: 2026-08-20

@@ -20,6 +20,7 @@ import { noGsNow } from "./rules/no-gs-now.js";
 import { noHardcodedSysid } from "./rules/no-hardcoded-sysid.js";
 import { noHardcodedTableNames } from "./rules/no-hardcoded-table-names.js";
 import { noNowIdAsReference } from "./rules/no-now-id-as-reference.js";
+import { noObjectHasown } from "./rules/no-object-hasown.js";
 import { noPackagesCalls } from "./rules/no-packages-calls.js";
 import { noPromise } from "./rules/no-promise.js";
 import { noProxy } from "./rules/no-proxy.js";
@@ -41,7 +42,12 @@ import { requireQueryBeforeNext } from "./rules/require-query-before-next.js";
 import { validateGlideaggregateCalls } from "./rules/validate-glideaggregate-calls.js";
 import { validateGliderecordCalls } from "./rules/validate-gliderecord-calls.js";
 import { PLUGIN_NAME, ruleDocsUrl } from "./constants.js";
-import type { ApplicationScope, JavaScriptMode, ServiceNowSettings } from "./types.js";
+import type {
+  ApplicationScope,
+  JavaScriptMode,
+  ServiceNowRelease,
+  ServiceNowSettings,
+} from "./types.js";
 import {
   fluentNamingConventionOptions,
   noHardcodedSysidOptions,
@@ -78,7 +84,7 @@ export interface RuleApplicability {
   minimumSurfaceConfidence: metadata.SurfaceConfidence;
   javascriptModes: readonly JavaScriptMode[] | "n/a";
   scopes: readonly ApplicationScope[];
-  serviceNowReleases: readonly string[];
+  serviceNowReleases: readonly ServiceNowRelease[];
   fluentSdkRange?: string;
 }
 
@@ -161,27 +167,58 @@ function formatLimitations(
   return parts.length === 0 ? UNKNOWN_SILENT : `${UNKNOWN_SILENT} ${parts.join(" ")}`;
 }
 
+function withCatalogRecommendation(
+  implementation: Rule,
+  placements: readonly RulePlacement[],
+): Rule {
+  return {
+    ...implementation,
+    meta: {
+      ...implementation.meta,
+      docs: {
+        ...implementation.meta?.docs,
+        recommended: placements.some((placement) => placement.profile === "recommended"),
+      },
+    },
+  } as Rule;
+}
+
 function entry<N extends string>(
   name: N,
   implementation: Rule,
   rest: RuleCatalogInput,
 ): RuleCatalogEntry & { name: N } {
+  // Verification IDs identify a rule-to-evidence assertion, not only the
+  // underlying URL and claim. Shared release evidence must therefore remain
+  // independently auditable when several rules cite the same source cell.
+  const evidence = metadata
+    .releaseEvidenceForRule(name, rest.evidence)
+    .map((item) =>
+      metadata.evidenceRecord(
+        item.url,
+        item.claim,
+        item.verifiedBy,
+        item.verifiedAt,
+        `rule:${name}`,
+      ),
+    );
   const applicability: RuleApplicability = {
     authoring: rest.applicability.authoring,
-    surfaces: metadata.formatSurfaces(rest.applicability.surfaces),
+    surfaces: metadata.formatSurfaces(rest.applicability),
     javascriptMode: metadata.formatJavascriptModes(rest.applicability.javascriptModes),
     minimumSurfaceConfidence: rest.applicability.minimumSurfaceConfidence,
     javascriptModes: rest.applicability.javascriptModes,
     scopes: rest.applicability.scopes,
-    serviceNowReleases: rest.applicability.serviceNowReleases,
+    serviceNowReleases: metadata.serviceNowReleasesForRule(name, rest.applicability.authoring),
     fluentSdkRange: rest.applicability.fluentSdkRange,
   };
   return {
     name,
-    implementation,
+    implementation: withCatalogRecommendation(implementation, rest.placements),
     ruleId: `${PLUGIN_NAME}/${name}`,
     docsUrl: ruleDocsUrl(name),
     ...rest,
+    evidence,
     applicability,
     limitations: formatLimitations(rest.limitationCases, rest.lifecycleAssumptions),
     falsePositives: rest.limitationCases
@@ -195,7 +232,7 @@ function entry<N extends string>(
       .map((item) => item.description),
     fixKind: rest.fixable ? "safe-fix" : rest.hasSuggestions ? "suggestion" : "none",
     options: rest.optionDescriptor ? optionDocsFromDescriptor(rest.optionDescriptor) : [],
-    lastVerified: metadata.latestEvidenceDate(rest.evidence),
+    lastVerified: metadata.latestEvidenceDate(evidence),
   };
 }
 
@@ -401,14 +438,26 @@ Promise.resolve(1);`,
       metadata.classic(metadata.SERVER_SURFACES),
       [
         metadata.evidenceRecord(
-          metadata.SN_GR,
-          "GlideAggregate is the documented API for count and group queries.",
+          metadata.SN_GA_AUSTRALIA,
+          "The Australia GlideAggregate API documents database-side COUNT and other aggregate queries.",
           "manual",
-          "2026-08-20",
+          "2026-08-22",
+        ),
+        metadata.evidenceRecord(
+          metadata.SN_GA_GLOBAL_AUSTRALIA,
+          "The Australia global GlideAggregate API provides the same database aggregation surface.",
+          "manual",
+          "2026-08-22",
+        ),
+        metadata.evidenceRecord(
+          metadata.SN_GR_AUSTRALIA,
+          "The Australia GlideRecord API recommends GlideAggregate when only a record count is needed because it does not retrieve matching records.",
+          "manual",
+          "2026-08-22",
         ),
         metadata.evidenceRecord(
           "tests/rules/prefer-glideaggregate.test.ts",
-          "Iterate-to-count loops report; if (gr.next()) stays silent.",
+          "Iterate-to-count loops using next() or _next() report; if (gr.next()) stays silent.",
           "fixture",
           "2026-08-20",
         ),
@@ -445,13 +494,19 @@ Promise.resolve(1);`,
   }),
   entry("no-client-gliderecord", noClientGliderecord, {
     ...metadata.meta(
-      metadata.classic(metadata.CLIENT_SURFACES),
+      metadata.classic(metadata.CLIENT_SURFACES, "n/a", ["scoped"]),
       [
         metadata.evidenceRecord(
-          metadata.SN_GR,
-          "GlideRecord is a server API and is not a client-side record cursor.",
+          metadata.SN_CLIENT_GR,
+          "The Australia client GlideRecord API is unsupported in scoped applications.",
           "manual",
-          "2026-08-20",
+          "2026-08-22",
+        ),
+        metadata.evidenceRecord(
+          metadata.SN_CLIENT_BEST_PRACTICES,
+          "ServiceNow no longer recommends client GlideRecord or getReference for performance because they retrieve all fields.",
+          "manual",
+          "2026-08-22",
         ),
         metadata.evidenceRecord(
           "tests/integration/profiles/invalid/client-gliderecord.client.js",
@@ -486,6 +541,16 @@ Promise.resolve(1);`,
         settings: { authoring: "classic", surfaces: ["ui-action", "client", "server"] },
         code: `var record = new GlideRecord("incident");`,
       },
+      {
+        caseId: "no-client-gliderecord-global-scope",
+        kind: "scope-boundary",
+        description:
+          "Global and unknown application scope stay silent because ServiceNow documents the client API in global applications and only marks scoped applications unsupported.",
+        name: "global client script",
+        filename: "global.client.js",
+        settings: { authoring: "classic", surfaces: ["client"], scope: "global" },
+        code: `var record = new GlideRecord("incident");`,
+      },
     ],
     title: "No client GlideRecord",
     family: "classic",
@@ -494,11 +559,12 @@ Promise.resolve(1);`,
     fixable: false,
     hasSuggestions: false,
     description:
-      "Client-side GlideRecord is slow, often blocked, and a security smell. Use GlideAjax, Scripted REST, or `g_form.getReference()`.",
+      "Client GlideRecord is unsupported in scoped applications. Query on the server with GlideAjax or Scripted REST.",
     bad: [
       {
         name: "client script",
         filename: "incident.client.js",
+        settings: { scope: "scoped" },
         code: `function onChange() {\n  var gr = new GlideRecord("sys_user");\n  gr.addQuery("user_name", g_user.userName);\n  gr.query();\n}`,
       },
     ],
@@ -577,15 +643,21 @@ gs.now();`,
       [
         metadata.evidenceRecord(
           metadata.SN_GR,
-          "next() reads the current cursor row after query() or get() executes the query.",
+          "query(), _query(), and get() execute a query before next() or _next() advances the cursor.",
           "manual",
-          "2026-08-20",
+          "2026-08-22",
         ),
         metadata.evidenceRecord(
-          "tests/integration/profiles/invalid/missing-query.br.js",
-          "Oxlint and ESLint report next() without a preceding query on every path.",
+          metadata.SN_GR_GLOBAL,
+          "queryNoDomain() is documented on the global API and executes a query while ignoring domains.",
+          "manual",
+          "2026-08-22",
+        ),
+        metadata.evidenceRecord(
+          "tests/integration/binding-host-contracts.test.ts",
+          "Oxlint and ESLint enforce _query(), _next(), and scope-sensitive queryNoDomain() lifecycle contracts.",
           "integration-test",
-          "2026-08-20",
+          "2026-08-22",
         ),
         metadata.evidenceRecord(
           "tests/rules/stateful-lifecycle.test.ts",
@@ -600,7 +672,7 @@ gs.now();`,
           "servicenow/validate-glideaggregate-calls",
         ],
         lifecycleAssumptions:
-          "chooseWindow does not execute a query. Aliases share object identity. Abrupt paths do not join into later statements.",
+          "Executors are selected by release and scope. A possible scope-specific executor suppresses a missing-query finding without becoming a definite fact for positive rules. chooseWindow does not execute a query.",
       },
     ),
     placements: [
@@ -628,7 +700,7 @@ record.next();`,
     fixable: false,
     hasSuggestions: false,
     description:
-      "Require a proven GlideRecord binding to call `.query()` or `.get()` before `.next()`. `chooseWindow()` does not execute a query. Ambiguous branches are silent.",
+      "Require a documented, scope-supported GlideRecord query executor before `.next()` or `._next()`. A cursor advance reports when a reachable path lacks even a possible executor for the configured scope; unproven receivers stay silent.",
     bad: [
       {
         name: "next without query",
@@ -675,7 +747,7 @@ record.next();`,
     fixable: false,
     hasSuggestions: false,
     description:
-      "Deprecated alias. Prefer `require-query-before-next`. Still reports missing query-before-next and unused insert/update/get/next returns. `chooseWindow()` does not open a cursor.",
+      "Deprecated alias. Prefer `require-query-before-next`. Still reports missing query-before-cursor-advance and unused insert/update/deleteRecord/get/next/_next returns. `chooseWindow()` does not open a cursor.",
     bad: [
       {
         name: "next without query",
@@ -854,7 +926,7 @@ BusinessRule({ table: "incident" });`,
       [
         metadata.evidenceRecord(
           metadata.SN_FLUENT,
-          "Fluent ignore directives are line- and file-scoped comments recognized by the SDK toolchain.",
+          "The documented Fluent directives are line- or file-scoped comments consumed by the SDK toolchain.",
           "manual",
           "2026-08-20",
         ),
@@ -874,7 +946,20 @@ BusinessRule({ table: "incident" });`,
       { profile: "fluent", severity: "warn" },
     ] as const,
     optionDescriptor: undefined,
-    limitationCases: [],
+    limitationCases: [
+      {
+        caseId: "fluent-directives-no-lint-suppression",
+        kind: "scope-boundary",
+        description:
+          "ServiceNow Fluent directives are SDK controls; they are not Oxlint or ESLint disable comments and do not suppress this plugin's diagnostics.",
+        name: "lint suppression boundary",
+        filename: "incident.now.ts",
+        code: `import { Record } from "@servicenow/sdk/core";
+
+// @fluent-ignore
+Record({ table: "incident", data: {} });`,
+      },
+    ],
     title: "Fluent directives",
     family: "fluent",
     preset: "recommended",
@@ -882,7 +967,7 @@ BusinessRule({ table: "incident" });`,
     fixable: false,
     hasSuggestions: false,
     description:
-      "Validate `@fluent-ignore`, `@fluent-disable-sync`, and `@fluent-disable-sync-for-file` against the selected SDK manifest. Previous-line directives attach to the next statement. Catch typos and reject `@ts-ignore` as a Fluent suppress.",
+      "Validate documented ServiceNow Fluent SDK directive names and placement. SDK directives are not Oxlint or ESLint disable comments.",
     bad: [
       {
         name: "typo + ts-ignore",
@@ -1053,10 +1138,10 @@ BusinessRule({ table: "incident" });`,
           "2026-08-20",
         ),
         metadata.evidenceRecord(
-          "src/catalog.ts",
-          "Catalog examples cover a runtime loop versus declarative metadata.",
+          "tests/rules/fluent.test.ts",
+          "Fixtures cover loops, async functions, function expressions, and arrow-function complexity thresholds.",
           "fixture",
-          "2026-08-20",
+          "2026-08-22",
         ),
       ],
       {
@@ -1144,13 +1229,13 @@ BusinessRule({ table: "incident" });`,
   }),
   entry("no-packages-calls", noPackagesCalls, {
     ...metadata.meta(
-      metadata.classic(metadata.CLASSIC_SURFACES, metadata.ALL_MODES),
+      metadata.classic(metadata.SERVER_SURFACES),
       [
         metadata.evidenceRecord(
-          metadata.SN_JS_FEATURES,
-          "Packages.* Java interop is not a supported ServiceNow JavaScript API.",
+          metadata.SN_PACKAGES_REMOVAL,
+          "The Australia Packages Call Removal Tool says Packages calls to ServiceNow Java classes will be prevented in a future release.",
           "manual",
-          "2026-08-20",
+          "2026-08-22",
         ),
         metadata.evidenceRecord(
           "tests/rules/glide-and-engine.test.ts",
@@ -1163,17 +1248,36 @@ BusinessRule({ table: "incident" });`,
         overlaps: [],
       },
     ),
-    placements: [{ profile: "recommended", severity: "error" }] as const,
+    placements: [{ profile: "policy", severity: "warn" }] as const,
     optionDescriptor: undefined,
-    limitationCases: [],
-    title: "No Packages.*",
+    limitationCases: [
+      {
+        caseId: "packages-non-servicenow-java-class",
+        kind: "false-positive",
+        description:
+          "The syntax-only review also flags Java classes outside the ServiceNow-class removal-tool scope.",
+        name: "non-ServiceNow Java class",
+        filename: "src/server/java-bridge.js",
+        code: `var value = new Packages.java.lang.String("value");`,
+      },
+      {
+        caseId: "packages-mid-server-execution",
+        kind: "false-positive",
+        description:
+          "Static source alone cannot prove that a record executes on a MID Server, which Australia documents as a separate review outcome.",
+        name: "MID Server execution boundary",
+        filename: "src/server/mid-probe.js",
+        code: `var probe = Packages.com.glide.util.NetProbe;`,
+      },
+    ],
+    title: "Review Packages.*",
     family: "classic",
-    preset: "recommended",
-    severity: "error",
+    preset: false,
+    severity: "warn",
     fixable: false,
     hasSuggestions: false,
     description:
-      "The Rhino `Packages.*` Java bridge is unavailable in scoped apps and on the modern engine.",
+      "Optional migration policy. Review Rhino `Packages.*` bridge calls; Australia's removal tool specifically targets ServiceNow Java classes and distinguishes MID Server execution.",
     bad: [
       {
         name: "Packages call",
@@ -1191,7 +1295,7 @@ BusinessRule({ table: "incident" });`,
   }),
   entry("no-weak-references", noWeakReferences, {
     ...metadata.meta(
-      metadata.classic(metadata.CLASSIC_SURFACES, metadata.ALL_MODES),
+      metadata.classic(metadata.CLASSIC_SURFACES, metadata.ALL_INSTANCE_MODES),
       [
         metadata.evidenceRecord(
           metadata.SN_JS_FEATURES,
@@ -1272,21 +1376,151 @@ BusinessRule({ table: "incident" });`,
       { name: "Map", filename: "script-include.js", settings: ES5, code: `var cache = new Map();` },
     ],
   }),
-  entry("no-typed-arrays", noTypedArrays, {
+  entry("no-object-hasown", noObjectHasown, {
     ...metadata.meta(
-      metadata.engine(metadata.ES5_MODES),
+      metadata.engine(metadata.ALL_INSTANCE_MODES),
       [
         metadata.evidenceRecord(
           metadata.SN_JS_FEATURES,
-          "Typed arrays are unsupported in Compatibility and ES5 Standards modes.",
+          "The Zurich table marks Object.hasOwn Not Supported in ES2021 and ES5 Standards.",
           "manual",
-          "2026-08-20",
+          "2026-08-22",
         ),
         metadata.evidenceRecord(
-          "src/catalog.ts",
-          "Catalog examples cover Uint8Array construction.",
+          metadata.SN_JS_FEATURES_AUSTRALIA,
+          "The Australia table marks Object.hasOwn Supported in ES2021 and Not Supported in ES5 Standards.",
+          "manual",
+          "2026-08-22",
+        ),
+        metadata.evidenceRecord(
+          metadata.SN_JS_MODES,
+          "ServiceNow documents Compatibility as a third mode; the plugin explicitly applies ES5 feature cells to it as package policy.",
+          "manual",
+          "2026-08-22",
+        ),
+        metadata.evidenceRecord(
+          "tests/rules/glide-and-engine.test.ts",
+          "Fixtures cover release deltas, immutable aliases, reassignment, computed access, shadowing, mutation, and namespace escape.",
           "fixture",
-          "2026-08-20",
+          "2026-08-22",
+        ),
+      ],
+      {
+        overlaps: [],
+      },
+    ),
+    placements: [
+      { profile: "classic-es5", severity: "error" },
+      { profile: "es2021", severity: "error" },
+    ] as const,
+    optionDescriptor: undefined,
+    limitationCases: [
+      {
+        caseId: "object-hasown-dynamic-property",
+        kind: "scope-boundary",
+        description: "Dynamic property names stay silent because they do not prove a hasOwn call.",
+        name: "dynamic property",
+        filename: "dynamic-object.server.js",
+        settings: { javascriptMode: "es5", release: "australia" },
+        code: `Object[method](record, "number");`,
+      },
+      {
+        caseId: "object-hasown-visible-replacement",
+        kind: "scope-boundary",
+        description:
+          "Any possible direct write to Object or Object.hasOwn in the file conservatively suppresses diagnostics for that file, regardless of source order.",
+        name: "visible Object.hasOwn replacement",
+        filename: "polyfill.server.js",
+        settings: { javascriptMode: "es5", release: "australia" },
+        code: `Object.hasOwn = polyfill;
+Object.hasOwn(record, "number");`,
+      },
+      {
+        caseId: "object-hasown-escaped-namespace",
+        kind: "scope-boundary",
+        description:
+          "Passing Object to an unknown call or constructor suppresses diagnostics because that code can install replacement methods on the namespace object.",
+        name: "escaped Object namespace",
+        filename: "polyfill.server.js",
+        settings: { javascriptMode: "es2021", release: "zurich" },
+        code: `installPolyfills(Object);
+Object.hasOwn(record, "number");`,
+      },
+      {
+        caseId: "object-hasown-availability-guard",
+        kind: "scope-boundary",
+        description:
+          "Calls protected by a proven Object.hasOwn availability guard or optional call stay silent for release-portable code.",
+        name: "availability guard",
+        filename: "portable.server.js",
+        settings: { javascriptMode: "es2021", release: "zurich" },
+        code: `Object.hasOwn && Object.hasOwn(record, "number");`,
+      },
+      {
+        caseId: "object-hasown-mutator-authority",
+        kind: "false-negative",
+        description:
+          "Calls through a reassigned Object mutation helper are treated as unknown; the rule does not try to prove that a custom helper installed the feature.",
+        name: "reassigned mutation helper",
+        filename: "custom-runtime.server.js",
+        settings: { javascriptMode: "es2021", release: "zurich" },
+        code: `Object.defineProperty = undefined;
+Object.defineProperty(Object, "hasOwn", { value: polyfill });
+Object.hasOwn(record, "number");`,
+      },
+    ],
+    title: "No unsupported Object.hasOwn",
+    family: "engine",
+    preset: "classic-es5",
+    severity: "error",
+    fixable: false,
+    hasSuggestions: false,
+    description:
+      "`Object.hasOwn()` is Not Supported in Zurich ES2021 and Australia ES5; Australia ES2021 Supports it. Compatibility follows the ES5 cell by package policy.",
+    bad: [
+      {
+        name: "Object.hasOwn in Zurich ES2021",
+        filename: "script-include.js",
+        settings: { javascriptMode: "es2021", release: "zurich" },
+        code: `var ownsNumber = Object.hasOwn(record, "number");`,
+      },
+    ],
+    good: [
+      {
+        name: "portable hasOwnProperty call",
+        filename: "script-include.js",
+        settings: { javascriptMode: "es5" },
+        code: `var ownsNumber = Object.prototype.hasOwnProperty.call(record, "number");`,
+      },
+    ],
+  }),
+  entry("no-typed-arrays", noTypedArrays, {
+    ...metadata.meta(
+      metadata.engine(metadata.ALL_INSTANCE_MODES),
+      [
+        metadata.evidenceRecord(
+          metadata.SN_JS_FEATURES,
+          "The Zurich table marks general typed-array/DataView constructors Disallowed in ES5 Standards, while BigInt64 arrays and DataView BigInt getters are Not Supported.",
+          "manual",
+          "2026-08-22",
+        ),
+        metadata.evidenceRecord(
+          metadata.SN_JS_FEATURES_AUSTRALIA,
+          "The Australia table marks BigInt64 array constructors Supported in ES2021 and Not Supported in ES5; DataView BigInt getters remain Not Supported.",
+          "manual",
+          "2026-08-22",
+        ),
+        metadata.evidenceRecord(
+          metadata.SN_JS_MODES,
+          "ServiceNow documents Compatibility as a third mode; the plugin explicitly applies ES5 feature cells to it as package policy.",
+          "manual",
+          "2026-08-22",
+        ),
+        metadata.evidenceRecord(
+          "tests/rules/glide-and-engine.test.ts",
+          "Fixtures cover constructors, static from/of factories, aliases, feature guards, DataView BigInt getters, mutation, and namespace escape.",
+          "fixture",
+          "2026-08-22",
         ),
       ],
       {
@@ -1298,7 +1532,53 @@ BusinessRule({ table: "incident" });`,
       { profile: "es2021", severity: "error" },
     ] as const,
     optionDescriptor: undefined,
-    limitationCases: [],
+    limitationCases: [
+      {
+        caseId: "typed-array-dataview-setters-unreviewed",
+        kind: "scope-boundary",
+        description:
+          "DataView BigInt setters stay silent because the reviewed ServiceNow tables establish only the getter methods.",
+        name: "DataView BigInt setter",
+        filename: "script-include.js",
+        settings: { javascriptMode: "es2021", release: "australia" },
+        code: `var view = new DataView(buffer);\nview.setBigInt64(0, value);`,
+      },
+      {
+        caseId: "typed-array-visible-dataview-replacement",
+        kind: "scope-boundary",
+        description:
+          "Any possible direct constructor, prototype, or instance-method write in the file conservatively suppresses affected diagnostics, regardless of source order.",
+        name: "visible DataView method replacement",
+        filename: "polyfill.script-include.js",
+        settings: { javascriptMode: "es2021", release: "australia" },
+        code: `var view = new DataView(buffer);
+view.getBigInt64 = custom;
+view.getBigInt64(0);`,
+      },
+      {
+        caseId: "typed-array-escaped-namespace",
+        kind: "scope-boundary",
+        description:
+          "Passing a typed-array constructor or DataView.prototype to unknown code suppresses affected method diagnostics because that code can install replacements.",
+        name: "escaped DataView prototype",
+        filename: "polyfill.script-include.js",
+        settings: { javascriptMode: "es2021", release: "australia" },
+        code: `installPolyfills(DataView.prototype);
+new DataView(buffer).getBigInt64(0);`,
+      },
+      {
+        caseId: "typed-array-mutator-authority",
+        kind: "false-negative",
+        description:
+          "Calls through a reassigned Object mutation helper are treated as unknown; the rule does not assume the custom helper failed to install a DataView method.",
+        name: "reassigned DataView mutation helper",
+        filename: "custom-runtime.server.js",
+        settings: { javascriptMode: "es2021", release: "australia" },
+        code: `Object.defineProperty = undefined;
+Object.defineProperty(DataView.prototype, "getBigInt64", { value: custom });
+new DataView(buffer).getBigInt64(0);`,
+      },
+    ],
     title: "No TypedArray / DataView",
     family: "engine",
     preset: "classic-es5",
@@ -1306,13 +1586,25 @@ BusinessRule({ table: "incident" });`,
     fixable: false,
     hasSuggestions: false,
     description:
-      "TypedArray and DataView constructors are unsupported in Compatibility and ES5 Standards mode. ES2021 still rejects BigInt64Array / BigUint64Array.",
+      "General TypedArray constructors and their static from/of factories, plus DataView construction, are Disallowed by the ES5 cell, while BigInt64Array and BigUint64Array are Not Supported there. Zurich ES2021 also marks the BigInt arrays Not Supported; Australia ES2021 Supports them. DataView BigInt getters remain Not Supported. Compatibility follows ES5 by package policy.",
     bad: [
       {
         name: "Int8Array",
         filename: "script-include.js",
         settings: ES5,
         code: `var bytes = new Int8Array(16);`,
+      },
+      {
+        name: "DataView BigInt getter",
+        filename: "script-include.js",
+        settings: { javascriptMode: "es2021", release: "australia" },
+        code: `var view = new DataView(buffer);\nvar value = view.getBigInt64(0);`,
+      },
+      {
+        name: "BigInt64Array static factory in Zurich",
+        filename: "script-include.js",
+        settings: { javascriptMode: "es2021", release: "zurich" },
+        code: `var values = BigInt64Array.from(source);`,
       },
     ],
     good: [{ name: "plain array", filename: "script-include.js", code: `var bytes = [0, 1, 2];` }],
@@ -1362,13 +1654,25 @@ BusinessRule({ table: "incident" });`,
   }),
   entry("no-unsupported-syntax", noUnsupportedSyntax, {
     ...metadata.meta(
-      metadata.engine(metadata.ES5_MODES),
+      metadata.engine(metadata.ALL_INSTANCE_MODES),
       [
         metadata.evidenceRecord(
           metadata.SN_JS_FEATURES,
           "Several ES2015+ syntactic forms are unsupported in Compatibility and ES5 Standards modes.",
           "manual",
           "2026-08-20",
+        ),
+        metadata.evidenceRecord(
+          metadata.SN_JS_FEATURES_AUSTRALIA,
+          "The Australia table marks private instance fields, methods, and accessors Not Supported in ES2021.",
+          "manual",
+          "2026-08-22",
+        ),
+        metadata.evidenceRecord(
+          metadata.SN_JS_MODES,
+          "ServiceNow documents Compatibility as a third mode; the plugin explicitly applies ES5 feature cells to it as package policy.",
+          "manual",
+          "2026-08-22",
         ),
         metadata.evidenceRecord(
           "tests/integration/profiles/invalid/es5-promise.server.js",
@@ -1381,7 +1685,10 @@ BusinessRule({ table: "incident" });`,
         overlaps: ["servicenow/no-async-await", "servicenow/no-bigint"],
       },
     ),
-    placements: [{ profile: "classic-es5", severity: "error" }] as const,
+    placements: [
+      { profile: "classic-es5", severity: "error" },
+      { profile: "es2021", severity: "error" },
+    ] as const,
     optionDescriptor: undefined,
     limitationCases: [],
     title: "No unsupported ES-latest syntax",
@@ -1391,7 +1698,7 @@ BusinessRule({ table: "incident" });`,
     fixable: false,
     hasSuggestions: false,
     description:
-      "Optional chaining, nullish coalescing, logical assignment, private instance members, and RegExp lookbehind are unsupported in Compatibility and ES5 Standards mode.",
+      "The ES5 table marks optional chaining, nullish coalescing, logical assignment, private members, and RegExp lookbehind Not Supported. Private instance members remain Not Supported in ES2021; Compatibility follows ES5 by package policy.",
     bad: [
       {
         name: "optional chaining and ??",
@@ -1399,12 +1706,24 @@ BusinessRule({ table: "incident" });`,
         settings: ES5,
         code: `var name = current.caller_id?.name ?? "unknown";`,
       },
+      {
+        name: "private instance member in Australia ES2021",
+        filename: "script-include.js",
+        settings: { javascriptMode: "es2021", release: "australia" },
+        code: `class State { #value = 1; }`,
+      },
     ],
     good: [
       {
         name: "explicit check",
         filename: "script-include.js",
         code: `var name = current.caller_id ? current.caller_id.name : "unknown";`,
+      },
+      {
+        name: "private static member in Australia ES2021",
+        filename: "script-include.js",
+        settings: { javascriptMode: "es2021", release: "australia" },
+        code: `class State { static #value = 1; }`,
       },
     ],
   }),
@@ -1577,10 +1896,16 @@ g_form.getReference("caller_id");`,
       metadata.classic(metadata.SERVER_SURFACES),
       [
         metadata.evidenceRecord(
-          metadata.SN_GR,
-          "getAggregate reads a tuple that addAggregate registered before the open query.",
+          metadata.SN_GA_AUSTRALIA,
+          "The Australia GlideAggregate API documents addAggregate before query and getAggregate on the returned aggregate result.",
           "manual",
-          "2026-08-20",
+          "2026-08-22",
+        ),
+        metadata.evidenceRecord(
+          metadata.SN_GA_GLOBAL_AUSTRALIA,
+          "The Australia global GlideAggregate API documents the corresponding aggregate lifecycle methods.",
+          "manual",
+          "2026-08-22",
         ),
         metadata.evidenceRecord(
           "tests/integration/profiles/invalid/aggregate-type-only-field.br.js",
@@ -1790,15 +2115,21 @@ const value = Now.ID.task;`,
       [
         metadata.evidenceRecord(
           metadata.SN_GR,
-          "A GlideElement from a cursor follows the cursor; collections must store extracted values.",
+          "A GlideElement follows a cursor advanced by next() or _next(); collections must store extracted values.",
           "manual",
-          "2026-08-20",
+          "2026-08-22",
         ),
         metadata.evidenceRecord(
           "tests/integration/profiles/invalid/glideelement-push.br.js",
           "Recommended hosts report pushing a cursor field into an array.",
           "integration-test",
           "2026-08-20",
+        ),
+        metadata.evidenceRecord(
+          "tests/rules/layer3-consumers.test.ts",
+          "Path-sensitive fixtures cover local aliases, reassignment, shadowing, all-path joins, and IIFE parameters.",
+          "fixture",
+          "2026-08-22",
         ),
       ],
       {
@@ -1810,7 +2141,20 @@ const value = Now.ID.task;`,
       { profile: "business-rule", severity: "error" },
     ] as const,
     optionDescriptor: undefined,
-    limitationCases: [],
+    limitationCases: [
+      {
+        caseId: "no-glideelement-deferred-helper",
+        kind: "scope-boundary",
+        description:
+          "Separately declared helpers and deferred callbacks stay silent because their invocation timing and value flow are not proven by the cursor traversal.",
+        name: "separate helper",
+        filename: "incident.br.js",
+        code: `function retain(field) { values.push(field); }
+var rec = new GlideRecord("incident");
+rec.query();
+while (rec.next()) retain(rec.number);`,
+      },
+    ],
     title: "No GlideElement in a collection",
     family: "classic",
     preset: "recommended",
@@ -1818,12 +2162,17 @@ const value = Now.ID.task;`,
     fixable: false,
     hasSuggestions: false,
     description:
-      "Direct GlideRecord field access is a GlideElement tied to the cursor. Do not `push` / `unshift` it inside a `.next()` loop. Evidence: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html",
+      "Direct GlideRecord field access and path-proven local aliases are GlideElements tied to the cursor. Do not `push` / `unshift` them inside a `.next()` or `._next()` loop.",
     bad: [
       {
         name: "push field",
         filename: "incident.br.js",
         code: `var numbers = [];\nvar incident = new GlideRecord("incident");\nincident.query();\nwhile (incident.next()) {\n  numbers.push(incident.number);\n}`,
+      },
+      {
+        name: "push field alias",
+        filename: "incident.br.js",
+        code: `var numbers = [];\nvar incident = new GlideRecord("incident");\nincident.query();\nwhile (incident.next()) {\n  var number = incident.number;\n  numbers.push(number);\n}`,
       },
     ],
     good: [
@@ -1840,9 +2189,9 @@ const value = Now.ID.task;`,
       [
         metadata.evidenceRecord(
           metadata.SN_GR_GLOBAL,
-          "Query modifiers after query() or get() do not change the open cursor.",
+          "Query modifiers after a documented query executor do not change the open cursor.",
           "manual",
-          "2026-08-20",
+          "2026-08-22",
         ),
         metadata.evidenceRecord(
           "tests/integration/profiles/invalid/late-modifier.br.js",
@@ -1854,7 +2203,7 @@ const value = Now.ID.task;`,
       {
         overlaps: ["servicenow/require-query-before-next"],
         lifecycleAssumptions:
-          "Modifiers after query are findings only when a consumer uses the still-open cursor.",
+          "Modifiers after a definite executor are findings only when a consumer uses the still-open cursor. A possible-only executor clears positive lifecycle facts.",
       },
     ),
     placements: [
@@ -1870,7 +2219,7 @@ const value = Now.ID.task;`,
     fixable: false,
     hasSuggestions: false,
     description:
-      "Filters and result-shaping calls after `query()` do not change the open cursor. Report when `next()` consumes that cursor first.",
+      "Filters and result-shaping calls after a documented query executor do not change the open cursor. Report when a consumer uses that cursor before another execution.",
     bad: [
       {
         name: "addQuery after query",
@@ -1894,7 +2243,6 @@ const value = Now.ID.task;`,
         minimumSurfaceConfidence: "explicit-only",
         javascriptModes: "n/a",
         scopes: metadata.ALL_SCOPES,
-        serviceNowReleases: [...metadata.ZURICH],
       },
       [
         metadata.evidenceRecord(
@@ -2072,9 +2420,15 @@ if (display < "2026-01-01") gs.info(display);`,
       [
         metadata.evidenceRecord(
           metadata.SN_GR,
-          "query or get inside a next() loop is an N+1 pattern on the GlideRecord cursor.",
+          "A documented GlideRecord query executor inside a next() or _next() loop is an N+1 pattern.",
           "manual",
-          "2026-08-20",
+          "2026-08-22",
+        ),
+        metadata.evidenceRecord(
+          "https://www.servicenow.com/docs/r/zurich/api-reference/server-api-reference/c_GlideAggregateScopedAPI.html",
+          "GlideAggregate documents query() and next() for aggregate cursor iteration.",
+          "manual",
+          "2026-08-22",
         ),
         metadata.evidenceRecord(
           "tests/integration/profiles/invalid/nested-cursor-query.br.js",
@@ -2088,16 +2442,54 @@ if (display < "2026-01-01") gs.info(display);`,
           "integration-test",
           "2026-08-20",
         ),
+        metadata.evidenceRecord(
+          "tests/rules/phase3.test.ts",
+          "Stable one-call-site local helpers inherit cursor depth; mutable, multiply called, generator, shadowed, and indirect helpers stay silent.",
+          "fixture",
+          "2026-08-22",
+        ),
       ],
       {
         overlaps: ["servicenow/require-query-before-next"],
         lifecycleAssumptions:
-          "Only a proven unescaped GlideRecord or GlideAggregate next() receiver establishes cursor depth.",
+          "A proven GlideRecord next() / _next() or GlideAggregate next() receiver establishes cursor depth. Direct IIFEs and direct calls to an unmodified local function with one statically visible call site inherit that depth. GlideRecord executors must be definite for the configured scope. GlideAggregate analysis follows its directly documented query() / next() lifecycle; inherited or undocumented executors and cursor aliases stay silent.",
       },
     ),
     placements: [{ profile: "strict", severity: "warn" }] as const,
     optionDescriptor: undefined,
-    limitationCases: [],
+    limitationCases: [
+      {
+        caseId: "query-in-loop-multiple-helper-call-sites",
+        kind: "false-negative",
+        description:
+          "Mutable helpers and helpers with multiple direct call sites stay silent because shared provenance is not call-context-sensitive.",
+        name: "multiply called helper",
+        filename: "multiply-called.server.js",
+        code: `function loadCaller() {
+  var caller = new GlideRecord("sys_user");
+  caller.query();
+}
+loadCaller();
+var incident = new GlideRecord("incident");
+incident.query();
+while (incident.next()) loadCaller();`,
+      },
+      {
+        caseId: "query-in-loop-indirect-helper-invocation",
+        kind: "false-negative",
+        description:
+          "Indirect `.call()`, `.apply()`, `.bind()`, constructor, and deferred callback invocations do not inherit cursor depth.",
+        name: "indirect helper invocation",
+        filename: "indirect-helper.server.js",
+        code: `function loadCaller() {
+  var caller = new GlideRecord("sys_user");
+  caller.query();
+}
+var incident = new GlideRecord("incident");
+incident.query();
+while (incident.next()) loadCaller.call(null);`,
+      },
+    ],
     title: "No GlideRecord query in a cursor loop",
     family: "classic",
     preset: "strict",
@@ -2105,12 +2497,23 @@ if (display < "2026-01-01") gs.info(display);`,
     fixable: false,
     hasSuggestions: false,
     description:
-      "A `query()` or `get()` inside a proven GlideRecord / GlideAggregate `.next()` loop is an N+1 pattern. Unrelated iterators with `.next()` do not establish cursor depth.",
+      "A query inside a proven record cursor loop is an N+1 pattern. Direct IIFEs and stable one-call-site local helpers inherit cursor depth. GlideRecord uses release-keyed executors and `.next()` / `._next()`; GlideAggregate uses its directly documented `query()` / `.next()` lifecycle. Unrelated iterators stay silent.",
     bad: [
       {
         name: "nested get",
         filename: "incident.br.js",
         code: `var incident = new GlideRecord("incident");\nincident.query();\nwhile (incident.next()) {\n  var caller = new GlideRecord("sys_user");\n  caller.get(incident.getValue("caller_id"));\n  gs.info(caller.getDisplayValue());\n}`,
+      },
+      {
+        name: "query in a stable helper",
+        filename: "incident.br.js",
+        code: `function loadCaller(id) {
+  var caller = new GlideRecord("sys_user");
+  caller.get(id);
+}
+var incident = new GlideRecord("incident");
+incident.query();
+while (incident.next()) loadCaller(incident.getValue("caller_id"));`,
       },
     ],
     good: [
@@ -2130,6 +2533,12 @@ if (display < "2026-01-01") gs.info(display);`,
           "query() after chooseWindow() runs COUNT(*) unless setNoCount() or setLimit() skips it.",
           "manual",
           "2026-08-20",
+        ),
+        metadata.evidenceRecord(
+          metadata.SN_GR_AUSTRALIA,
+          "Australia retains the documented chooseWindow query count and setNoCount/setLimit behavior.",
+          "manual",
+          "2026-08-22",
         ),
         metadata.evidenceRecord(
           "tests/integration/profiles/invalid/setnocount-second-query.br.js",
@@ -2154,7 +2563,7 @@ if (display < "2026-01-01") gs.info(display);`,
     fixable: false,
     hasSuggestions: false,
     description:
-      "Zurich scoped GlideRecord documents that `query()` after `chooseWindow()` runs `COUNT(*)` unless `setNoCount()` or `setLimit()` skips it. The rule is silent when `getRowCount()` is used, when `chooseWindow` forces a count, or when the binding escapes. Evidence: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html",
+      "The reviewed Zurich and Australia scoped GlideRecord references document that `query()` after `chooseWindow()` runs `COUNT(*)` unless `setNoCount()` or `setLimit()` skips it. The rule is silent when `getRowCount()` is used, when `chooseWindow` forces a count, or when the binding escapes.",
     bad: [
       {
         name: "window without setNoCount",
@@ -2275,7 +2684,7 @@ if (display < "2026-01-01") gs.info(display);`,
   }),
   entry("no-async-iterators", noAsyncIterators, {
     ...metadata.meta(
-      metadata.engine(metadata.ALL_MODES),
+      metadata.engine(metadata.ALL_INSTANCE_MODES),
       [
         metadata.evidenceRecord(
           metadata.SN_JS_FEATURES,

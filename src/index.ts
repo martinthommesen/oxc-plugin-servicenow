@@ -118,5 +118,10 @@ plugin.meta = { name: PLUGIN_NAME, version: PACKAGE_VERSION };
 
 export default plugin;
 export { plugin };
-export type { ReadonlyServiceNowSettings, ServiceNowSettings, RuleConfigMap } from "./types.js";
+export type {
+  ReadonlyServiceNowSettings,
+  RuleConfigMap,
+  ServiceNowRelease,
+  ServiceNowSettings,
+} from "./types.js";
 export type { RuleName } from "./rules/index.js";

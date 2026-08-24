@@ -231,6 +231,41 @@ describe("no-complex-fluent-logic", () => {
     );
   });
 
+  it("flags multi-statement function expressions and arrows at the same threshold", () => {
+    assertInvalid(
+      `export const build = function () {\n  prepare();\n  execute();\n  finish();\n};`,
+      "no-complex-fluent-logic",
+      { messageId: "banned", includes: "multi-statement function expressions" },
+      { filename: NOW },
+    );
+    assertInvalid(
+      `export const build = () => {\n  prepare();\n  execute();\n  finish();\n};`,
+      "no-complex-fluent-logic",
+      { messageId: "banned", includes: "multi-statement arrow functions" },
+      { filename: NOW },
+    );
+  });
+
+  it("allows short synchronous callbacks but rejects both async forms once", () => {
+    assertValid(
+      `export const build = function () {\n  prepare();\n  execute();\n};\nexport const finish = () => {\n  prepare();\n  execute();\n};`,
+      "no-complex-fluent-logic",
+      { filename: NOW },
+    );
+    assertInvalid(
+      `export const build = async function () {\n  prepare();\n  execute();\n  finish();\n};`,
+      "no-complex-fluent-logic",
+      { messageId: "asyncFn", count: 1 },
+      { filename: NOW },
+    );
+    assertInvalid(
+      `export const build = async () => {\n  prepare();\n  execute();\n  finish();\n};`,
+      "no-complex-fluent-logic",
+      { messageId: "asyncFn", count: 1 },
+      { filename: NOW },
+    );
+  });
+
   it("allows declarative records", () => {
     assertValid(
       `import { Record } from "@servicenow/sdk/core";\nRecord({ $id: Now.ID["seed"], table: "incident", data: { short_description: "Seed" } });`,
@@ -252,12 +287,13 @@ describe("fluent-directives", () => {
     );
   });
 
-  it("flags @ts-ignore", () => {
+  it("flags TypeScript compiler directives without calling them Fluent suppressions", () => {
     assertInvalid(
       `// @ts-ignore\nexport const demo = 1;\n`,
       "fluent-directives",
       {
         messageId: "tsIgnore",
+        includes: "TypeScript compiler directive",
       },
       { filename: NOW },
     );
@@ -372,5 +408,15 @@ describe("fluent-directives", () => {
       },
       { messageId: "tsIgnore", line: 1, column: 10, endColumn: 26 },
     );
+    assert.equal(
+      message?.message,
+      "`@ts-expect-error` is a TypeScript compiler directive, not a ServiceNow Fluent SDK directive or an Oxlint/ESLint disable comment.",
+    );
+  });
+
+  it("does not treat a Fluent SDK directive as a lint disable comment", () => {
+    const source = `import { Record } from "@servicenow/sdk/core";\n// @fluent-ignore\nRecord({ table: "incident", data: {} });\n`;
+    assertValid(source, "fluent-directives", { filename: NOW });
+    assertInvalid(source, "require-fluent-id", { messageId: "missing" }, { filename: NOW });
   });
 });

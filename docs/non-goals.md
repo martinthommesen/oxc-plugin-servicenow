@@ -10,7 +10,7 @@ Each decision includes a revisit condition. A rejected idea can return only when
 | --- | --- | --- | --- |
 | Ban every native `Date` | ServiceNow scripts use `Date` for display and interop. A blanket ban is noisy. | [Portability research](research/38-portability-datetime.md) | A versioned engine table proves `Date` is unsafe in a documented mode. |
 | Ban every hardcoded table name | Many scripts name platform tables on purpose. | Opt-in `no-hardcoded-table-names` in `policy` | A project schema or allowlist is part of the supported settings model. |
-| Universally ban client `GlideRecord` without context | The current rule already covers proven client surfaces. Expanding it to unknown files creates false positives. | `no-client-gliderecord` | Client detection has a stronger metadata source than filename and strong globals. |
+| Universally ban client `GlideRecord` without context | Australia documents client GlideRecord in global applications but marks it unsupported in scoped applications. Expanding the rule beyond an explicit scoped client surface creates false positives. | `no-client-gliderecord` | ServiceNow removes or deprecates the global client API, or stronger scope metadata becomes available. |
 | Require `GlideAggregate` for every `getRowCount()` | Counting a filtered set can be correct. | `prefer-glideaggregate` at `strict/warn` | Query cardinality is statically known. |
 | Ban encoded queries | Encoded queries are a documented API. | None | ServiceNow documents the API as unsafe in a specific mode. |
 | Always require `GlideRecordSecure` | Trusted jobs and global scripts often need `GlideRecord`. | `no-system-query-bypass` (#27) | Context identifies privileged versus user-facing scripts reliably. |

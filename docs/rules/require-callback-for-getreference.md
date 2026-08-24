@@ -23,7 +23,7 @@
 | Minimum surface confidence | filename-inferred |
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
-| ServiceNow releases | zurich |
+| ServiceNow releases | zurich, australia |
 | Fluent SDK range | n/a |
 
 ## Options
@@ -83,12 +83,12 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-b
 ## Evidence
 
 - **g_form.getReference without a callback is a synchronous server request.**
-  - Verification ID: `rule-evidence-8728c187`
+  - Verification ID: `rule-evidence-4ebf3172`
   - URL: https://www.servicenow.com/docs/r/api-reference/c_GlideFormAPI.html
   - Verified by: manual
   - Verified at: 2026-08-20
 - **Recommended hosts report the one-argument form.**
-  - Verification ID: `rule-evidence-49fd26e6`
+  - Verification ID: `rule-evidence-491de6a1`
   - URL: tests/integration/profiles/invalid/sync-getreference.client.js
   - Verified by: integration-test
   - Verified at: 2026-08-20

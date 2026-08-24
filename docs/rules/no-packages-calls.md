@@ -1,17 +1,17 @@
 # servicenow/no-packages-calls
 
-The Rhino `Packages.*` Java bridge is unavailable in scoped apps and on the modern engine.
+Optional migration policy. Review Rhino `Packages.*` bridge calls; Australia's removal tool specifically targets ServiceNow Java classes and distinguishes MID Server execution.
 
 - **Family:** classic
-- **Preset:** recommended
-- **Placements:** recommended (error)
-- **Default severity:** error
+- **Preset:** policy
+- **Placements:** policy (warn)
+- **Default severity:** warn
 - **Fix safety:** diagnostic only
 - **Suggestions:** no
 - **Authoring:** classic
-- **Surfaces:** Applies to client, server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent.
-- **JavaScript mode:** Runs when javascriptMode is compatibility, es5, es2021. Unknown mode stays silent.
-- **Last verified:** 2026-08-21
+- **Surfaces:** Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent.
+- **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
+- **Last verified:** 2026-08-22
 - **Implementation:** [`src/rules/no-packages-calls.ts`](../../src/rules/no-packages-calls.ts)
 
 ## Applicability
@@ -19,11 +19,11 @@ The Rhino `Packages.*` Java bridge is unavailable in scoped apps and on the mode
 | Dimension | Value |
 | --- | --- |
 | Authoring | classic |
-| Surfaces | Applies to client, server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent. |
+| Surfaces | Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent. |
 | Minimum surface confidence | filename-inferred |
-| JavaScript modes | compatibility, es5, es2021 |
+| JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
-| ServiceNow releases | zurich |
+| ServiceNow releases | zurich, australia |
 | Fluent SDK range | n/a |
 
 ## Options
@@ -50,11 +50,12 @@ var result = new GlideDateTime();
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-positive: The syntax-only review also flags Java classes outside the ServiceNow-class removal-tool scope. false-positive: Static source alone cannot prove that a record executes on a MID Server, which Australia documents as a separate review outcome.
 
 ## Known false positives
 
-- None recorded.
+- The syntax-only review also flags Java classes outside the ServiceNow-class removal-tool scope.
+- Static source alone cannot prove that a record executes on a MID Server, which Australia documents as a separate review outcome.
 
 ## Known false negatives
 
@@ -75,13 +76,13 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
 
 ## Evidence
 
-- **Packages.* Java interop is not a supported ServiceNow JavaScript API.**
-  - Verification ID: `rule-evidence-0e3b2a8d`
-  - URL: https://www.servicenow.com/docs/r/zurich/api-reference/scripts/javascript-engine-feature-support.html
+- **The Australia Packages Call Removal Tool says Packages calls to ServiceNow Java classes will be prevented in a future release.**
+  - Verification ID: `rule-evidence-3a0c56bc`
+  - URL: https://www.servicenow.com/docs/r/api-reference/scripts/c_PackagesCallRemovalTool.html
   - Verified by: manual
-  - Verified at: 2026-08-20
+  - Verified at: 2026-08-22
 - **Fixtures cover static and dynamic Packages access versus local bindings named Packages.**
-  - Verification ID: `rule-evidence-2126ac25`
+  - Verification ID: `rule-evidence-842a8fbc`
   - URL: tests/rules/glide-and-engine.test.ts
   - Verified by: fixture
   - Verified at: 2026-08-21

@@ -23,7 +23,7 @@ Full-script Business Rules must wrap logic in the standard IIFE so top-level var
 | Minimum surface confidence | explicit-only |
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
-| ServiceNow releases | zurich |
+| ServiceNow releases | zurich, australia |
 | Fluent SDK range | n/a |
 
 ## Options
@@ -84,12 +84,12 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-b
 ## Evidence
 
 - **Full-script Business Rules use the executeRule(current, previous) IIFE so top-level bindings do not leak.**
-  - Verification ID: `rule-evidence-1c40659e`
+  - Verification ID: `rule-evidence-bc701657`
   - URL: https://www.servicenow.com/docs/r/application-development/business-rules-classic/c_BusinessRules.html
   - Verified by: manual
   - Verified at: 2026-08-20
 - **The wrapper rule reports only when businessRuleSourceFormat is full-script.**
-  - Verification ID: `rule-evidence-a86c29c7`
+  - Verification ID: `rule-evidence-29cd4710`
   - URL: tests/integration/profiles/invalid/unwrapped.br.js
   - Verified by: integration-test
   - Verified at: 2026-08-20

@@ -13,12 +13,12 @@ export const noClientGliderecord = defineRule({
     type: "problem",
     docs: {
       description:
-        "Disallow platform GlideRecord in client scripts. Query on the server (GlideAjax, Scripted REST, or `g_form.getReference`).",
+        "Disallow platform GlideRecord in scoped client scripts, where ServiceNow does not support the client API.",
       url: ruleDocsUrl("no-client-gliderecord"),
     },
     messages: {
       glideRecord:
-        "Do not use `GlideRecord` in client scripts — it is slow, poorly supported, and often blocked. Call a Script Include via `GlideAjax`, a Scripted REST API, or use `g_form.getReference()`.",
+        "Client GlideRecord is not supported in scoped applications. Query through a Script Include with `GlideAjax` or a Scripted REST API.",
     },
   },
   createOnce(context) {
@@ -28,7 +28,13 @@ export const noClientGliderecord = defineRule({
       before() {
         aliases.clear();
         const { context: script } = beginRuleFile(context);
-        if (!appliesOnSurface(script, "client") || isMixedUiActionContext(script)) return false;
+        if (
+          script.scope !== "scoped" ||
+          !appliesOnSurface(script, "client") ||
+          isMixedUiActionContext(script)
+        ) {
+          return false;
+        }
       },
       NewExpression(node) {
         report((node as ESTree.NewExpression).callee as ESTree.Node, node);

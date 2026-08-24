@@ -75,7 +75,8 @@ export const preferGlideaggregate = defineRule({
       if (!test || test.type !== "CallExpression") return;
       const callee = (test as ESTree.CallExpression).callee;
       if (callee.type !== "MemberExpression") return;
-      if (staticPropertyName(callee) !== "next") return;
+      const property = staticPropertyName(callee);
+      if (!property || !analysis.glide.cursorAdvancers.has(property)) return;
       const receiver = glideRecordReceiver(analysis, callee.object);
       if (!receiver) return;
 

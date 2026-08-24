@@ -25,8 +25,8 @@
 | Minimum surface confidence | filename-inferred |
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
-| ServiceNow releases | zurich |
-| Fluent SDK range | 3.0.0 \|\| 4.1.0 \|\| 4.8.0 \|\| 4.10.0 \|\| 4.10.1 \|\| 4.11.0 |
+| ServiceNow releases | n/a (Fluent SDK-versioned) |
+| Fluent SDK range | 3.0.0 \|\| 3.0.1 \|\| 3.0.2 \|\| 3.0.3 \|\| 4.0.0 \|\| 4.0.1 \|\| 4.0.2 \|\| 4.1.0 \|\| 4.1.1 \|\| 4.2.0 \|\| 4.3.0 \|\| 4.4.0 \|\| 4.4.1 \|\| 4.5.0 \|\| 4.6.0 \|\| 4.6.1 \|\| 4.7.0 \|\| 4.7.1 \|\| 4.7.2 \|\| 4.8.0 \|\| 4.8.1 \|\| 4.9.0 \|\| 4.9.1 \|\| 4.9.2 \|\| 4.10.0 \|\| 4.10.1 \|\| 4.11.0 |
 
 ## Options
 
@@ -99,12 +99,12 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-b
 ## Evidence
 
 - **Now.ID is a metadata identity, not an in-app record reference.**
-  - Verification ID: `rule-evidence-fe28f44b`
+  - Verification ID: `rule-evidence-8855e302`
   - URL: https://www.servicenow.com/docs/r/application-development/servicenow-sdk/fluent-constructs.html
   - Verified by: manual
   - Verified at: 2026-08-20
 - **Recommended hosts report Now.ID used as a reference field.**
-  - Verification ID: `rule-evidence-4ca8be5d`
+  - Verification ID: `rule-evidence-b2c1d41a`
   - URL: tests/integration/profiles/invalid/now-id-ref.now.ts
   - Verified by: integration-test
   - Verified at: 2026-08-20

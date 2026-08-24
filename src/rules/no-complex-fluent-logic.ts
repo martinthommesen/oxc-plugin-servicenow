@@ -23,7 +23,6 @@ export const noComplexFluentLogic = defineRule({
     docs: {
       description:
         "Keep `.now.ts` files declarative. Move business logic to server modules and load it with `Now.include()` or an import.",
-      recommended: "recommended",
       url: ruleDocsUrl("no-complex-fluent-logic"),
     },
     messages: {
@@ -50,8 +49,20 @@ export const noComplexFluentLogic = defineRule({
       SwitchStatement: banned,
       ThrowStatement: banned,
       FunctionExpression(node) {
-        if ((node as { async?: boolean }).async) {
+        const fn = node as ESTree.Node & {
+          async?: boolean;
+          body: ESTree.BlockStatement;
+        };
+        if (fn.async) {
           context.report({ node, messageId: "asyncFn" });
+          return;
+        }
+        if (fn.body.body.length > 2) {
+          context.report({
+            node,
+            messageId: "banned",
+            data: { kind: "multi-statement function expressions" },
+          });
         }
       },
       ArrowFunctionExpression(node) {

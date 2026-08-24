@@ -11,6 +11,7 @@ describe(RULE, () => {
       { messageId: "glideRecord" },
       {
         filename: "incident.client.js",
+        settings: { scope: "scoped" },
       },
     );
   });
@@ -20,7 +21,7 @@ describe(RULE, () => {
       `g_form.setValue("x", "1");\nvar gr = new GlideRecord("sys_user");`,
       RULE,
       { messageId: "glideRecord" },
-      { filename: "onChange.js" },
+      { filename: "onChange.js", settings: { scope: "scoped" } },
     );
   });
 
@@ -30,7 +31,7 @@ describe(RULE, () => {
 new global["GlideRecordSecure"]("task");`,
       RULE,
       { messageId: "glideRecord", count: 2 },
-      { filename: "form.client.js" },
+      { filename: "form.client.js", settings: { scope: "scoped" } },
     );
   });
 
@@ -42,7 +43,7 @@ new GR("incident");
 new GRS("task");`,
       RULE,
       { messageId: "glideRecord", count: 2 },
-      { filename: "form.client.js" },
+      { filename: "form.client.js", settings: { scope: "scoped" } },
     );
   });
 
@@ -54,6 +55,16 @@ new GR("incident");`,
       RULE,
       { filename: "form.client.js" },
     );
+  });
+
+  it("stays silent for global or unknown application scope", () => {
+    assertValid(`var gr = new GlideRecord("sys_user");`, RULE, {
+      filename: "global.client.js",
+      settings: { scope: "global" },
+    });
+    assertValid(`var gr = new GlideRecord("sys_user");`, RULE, {
+      filename: "unknown.client.js",
+    });
   });
 
   it("allows GlideRecord on the server", () => {

@@ -2,15 +2,25 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { Context, ESTree } from "@oxlint/plugins";
 import { analyzeProvenance, getScriptContext } from "../../src/analysis/index.js";
+import { getAnalysisPassCount, resetAnalysisPassCount } from "../../src/analysis/internal.js";
 import { getName, walk } from "../../src/utils/ast.js";
 import { parse } from "../helpers/rule-tester.js";
 
-function testContext(code: string, filename: string): Context {
+function testContext(
+  code: string,
+  filename: string,
+  hostDefinedNames: readonly string[] = [],
+): Context {
   const parsed = parse(code, filename);
   const sourceCode = {
     ast: parsed.ast,
     text: code,
     getAllComments: () => parsed.comments,
+    getScope: () => ({
+      set: new Map(hostDefinedNames.map((name) => [name, { defs: [{ type: "Variable" }] }])),
+      variables: [],
+      upper: null,
+    }),
   };
   return {
     filename,
@@ -22,6 +32,27 @@ function testContext(code: string, filename: string): Context {
     getFilename: () => filename,
     getSourceCode: () => sourceCode,
   } as unknown as Context;
+}
+
+function lastIdentifier(ast: ESTree.Node, name: string): ESTree.Node {
+  let found: ESTree.Node | undefined;
+  walk(
+    ast,
+    {
+      Identifier(node) {
+        if (getName(node) === name) found = node;
+      },
+    },
+    [],
+  );
+  assert.ok(found);
+  return found;
+}
+
+function parseEstree(code: string, filename: string): ESTree.Node {
+  // The parser and plugin packages publish distinct Program declarations;
+  // this adapter is the test boundary between their runtime-compatible ASTs.
+  return parse(code, filename).ast as unknown as ESTree.Node;
 }
 
 describe("public analysis API", () => {
@@ -69,5 +100,88 @@ describe("public analysis API", () => {
       () => ((provenance as { escaped: boolean }).escaped = !provenance.escaped),
       TypeError,
     );
+  });
+
+  it("keeps rule-specific DataView identity out of the public provenance contract", () => {
+    const code =
+      "var view = new DataView(buffer);\nview.getBigInt64(0);\nvar proto = DataView.prototype;";
+    const context = testContext(code, "data-view.script-include.js");
+    let viewUse: ESTree.Node | undefined;
+    let directMember: ESTree.MemberExpression | undefined;
+    const ancestors: ESTree.Node[] = [];
+    walk(
+      context.sourceCode.ast as ESTree.Node,
+      {
+        Identifier(node) {
+          if (getName(node) === "view") viewUse = node;
+        },
+        MemberExpression(node) {
+          const member = node as ESTree.MemberExpression;
+          if (getName(member.object) === "DataView") directMember = member;
+        },
+      },
+      ancestors,
+    );
+    assert.ok(viewUse);
+    assert.ok(directMember);
+
+    const query = analyzeProvenance(context);
+    assert.equal(query.ofIdentifier(viewUse), null);
+    assert.equal(query.isPlatformMember(directMember, "DataView", "prototype"), true);
+
+    let aliasedMember: ESTree.MemberExpression | undefined;
+    walk(
+      context.sourceCode.ast as ESTree.Node,
+      {
+        MemberExpression(node) {
+          const member = node as ESTree.MemberExpression;
+          if (getName(member.object) === "view") aliasedMember = member;
+        },
+      },
+      [],
+    );
+    assert.ok(aliasedMember);
+    assert.equal(query.isPlatformMember(aliasedMember, "DataView", "getBigInt64"), false);
+  });
+
+  it("analyzes an explicit AST independently from the host source tree", () => {
+    resetAnalysisPassCount();
+    const context = testContext(
+      'var GlideRecord = function () {}; var local = new GlideRecord("incident"); local.next();',
+      "host.script-include.js",
+      ["GlideRecord"],
+    );
+    // A real host scope graph belongs to context.sourceCode.ast. Treating
+    // GlideRecord as local there proves foreign AST nodes do not borrow it.
+
+    const hostUse = lastIdentifier(context.sourceCode.ast as ESTree.Node, "local");
+    assert.equal(analyzeProvenance(context).ofIdentifier(hostUse), null);
+    assert.equal(
+      analyzeProvenance(context, context.sourceCode.ast as ESTree.Node).ofIdentifier(hostUse),
+      null,
+    );
+
+    const globalAst = parseEstree(
+      'var rec = new GlideRecord("incident"); rec.next();',
+      "alternate.script-include.js",
+    );
+    const globalUse = lastIdentifier(globalAst, "rec");
+    assert.equal(
+      analyzeProvenance(context, globalAst).ofIdentifier(globalUse)?.kind,
+      "GlideRecord",
+    );
+
+    const shadowedAst = parseEstree(
+      'function GlideRecord() {} var rec = new GlideRecord("incident"); rec.next();',
+      "shadowed.script-include.js",
+    );
+    const shadowedUse = lastIdentifier(shadowedAst, "rec");
+    assert.equal(analyzeProvenance(context, shadowedAst).ofIdentifier(shadowedUse), null);
+
+    assert.equal(
+      analyzeProvenance(context, globalAst).ofIdentifier(globalUse)?.kind,
+      "GlideRecord",
+    );
+    assert.equal(getAnalysisPassCount(), 3);
   });
 });

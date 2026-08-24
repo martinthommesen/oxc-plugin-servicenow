@@ -25,8 +25,8 @@ Large inline `script` / HTML / CSS payloads belong in their own file and should 
 | Minimum surface confidence | filename-inferred |
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
-| ServiceNow releases | zurich |
-| Fluent SDK range | 3.0.0 \|\| 4.1.0 \|\| 4.8.0 \|\| 4.10.0 \|\| 4.10.1 \|\| 4.11.0 |
+| ServiceNow releases | n/a (Fluent SDK-versioned) |
+| Fluent SDK range | 3.0.0 \|\| 3.0.1 \|\| 3.0.2 \|\| 3.0.3 \|\| 4.0.0 \|\| 4.0.1 \|\| 4.0.2 \|\| 4.1.0 \|\| 4.1.1 \|\| 4.2.0 \|\| 4.3.0 \|\| 4.4.0 \|\| 4.4.1 \|\| 4.5.0 \|\| 4.6.0 \|\| 4.6.1 \|\| 4.7.0 \|\| 4.7.1 \|\| 4.7.2 \|\| 4.8.0 \|\| 4.8.1 \|\| 4.9.0 \|\| 4.9.1 \|\| 4.9.2 \|\| 4.10.0 \|\| 4.10.1 \|\| 4.11.0 |
 
 ## Options
 
@@ -108,12 +108,12 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
 ## Evidence
 
 - **Now.include() loads script and markup files so Fluent metadata stays declarative.**
-  - Verification ID: `rule-evidence-1f16b099`
+  - Verification ID: `rule-evidence-cf5549c7`
   - URL: https://www.servicenow.com/docs/r/application-development/servicenow-sdk/fluent-constructs.html
   - Verified by: manual
   - Verified at: 2026-08-20
 - **Catalog examples cover large inline script versus Now.include.**
-  - Verification ID: `rule-evidence-4548a481`
+  - Verification ID: `rule-evidence-0a765a63`
   - URL: src/catalog.ts
   - Verified by: fixture
   - Verified at: 2026-08-20

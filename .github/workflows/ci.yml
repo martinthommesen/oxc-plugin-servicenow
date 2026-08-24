@@ -112,10 +112,12 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+      - name: TypeScript runner smoke
+        run: node scripts/run-tests.mjs tests/utils/ast.test.ts
       - name: Packed consumer cell
         env:
           SN_COMPAT_CELL: ${{ matrix.cell }}
-        run: npx tsx scripts/compat-consumer.mjs --cell "$SN_COMPAT_CELL"
+        run: node scripts/compat-consumer.mjs --cell "$SN_COMPAT_CELL"
 
   docs:
     runs-on: ubuntu-latest

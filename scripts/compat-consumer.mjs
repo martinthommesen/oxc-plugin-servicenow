@@ -349,7 +349,7 @@ export default [
         JSON.stringify(
           {
             jsPlugins: [{ name: "servicenow", specifier: "oxc-plugin-servicenow" }],
-            settings: { servicenow: { fluentSdkVersion } },
+            settings: { servicenow: { release: "australia", fluentSdkVersion } },
             rules: { "servicenow/require-fluent-id": "error" },
           },
           null,
@@ -429,6 +429,83 @@ export default [
         fail(
           "runtime",
           `${cell.id} ${javascriptMode} mode Promise policy mismatch (${modeCodes.join(", ") || "none"})`,
+        );
+      }
+    }
+    const releaseExpectations = {
+      zurich: { bigint64Arrays: true, objectHasOwn: true },
+      australia: { bigint64Arrays: false, objectHasOwn: false },
+    };
+    writeFileSync(
+      path.join(consumer, "release-engine.server.js"),
+      'new BigInt64Array(1);\nObject.hasOwn(record, "number");\nclass RecordState { #value = 1; }\n',
+    );
+    const releaseCases = [
+      ...(matrix.serviceNowReleases ?? []).map((release) => ({ name: release, release })),
+      { name: "omitted", release: undefined },
+    ];
+    for (const releaseCase of releaseCases) {
+      const expectation =
+        releaseCase.release === undefined
+          ? { bigint64Arrays: false, objectHasOwn: false }
+          : releaseExpectations[releaseCase.release];
+      if (!expectation) {
+        fail("runtime", `missing engine expectations for release ${releaseCase.release}`);
+      }
+      const releaseConfig = path.join(consumer, `.oxlintrc-release-${releaseCase.name}.json`);
+      writeFileSync(
+        releaseConfig,
+        JSON.stringify(
+          {
+            jsPlugins: [{ name: "servicenow", specifier: "oxc-plugin-servicenow" }],
+            settings: {
+              servicenow: {
+                javascriptMode: "es2021",
+                ...(releaseCase.release ? { release: releaseCase.release } : {}),
+              },
+            },
+            rules: {
+              "servicenow/no-typed-arrays": "error",
+              "servicenow/no-object-hasown": "error",
+              "servicenow/no-unsupported-syntax": "error",
+            },
+          },
+          null,
+          2,
+        ),
+      );
+      let releaseOutput = "";
+      try {
+        releaseOutput = execFileSync(
+          path.join(consumer, "node_modules", ".bin", "oxlint"),
+          ["--format", "json", "-c", releaseConfig, "release-engine.server.js"],
+          { cwd: consumer, encoding: "utf8" },
+        );
+      } catch (error) {
+        releaseOutput = error.stdout ?? "";
+      }
+      let releaseReport;
+      try {
+        releaseReport = JSON.parse(releaseOutput);
+      } catch {
+        fail("runtime", `${cell.id} ${releaseCase.name} release output was not JSON`);
+      }
+      const releaseCodes = (releaseReport.diagnostics ?? []).map((diagnostic) =>
+        String(diagnostic.code),
+      );
+      const actual = {
+        bigint64Arrays: releaseCodes.some((code) => code.includes("no-typed-arrays")),
+        objectHasOwn: releaseCodes.some((code) => code.includes("no-object-hasown")),
+        privateInstance: releaseCodes.some((code) => code.includes("no-unsupported-syntax")),
+      };
+      if (
+        actual.bigint64Arrays !== expectation.bigint64Arrays ||
+        actual.objectHasOwn !== expectation.objectHasOwn ||
+        !actual.privateInstance
+      ) {
+        fail(
+          "runtime",
+          `${cell.id} ${releaseCase.name} release policy mismatch (${releaseCodes.join(", ") || "none"})`,
         );
       }
     }

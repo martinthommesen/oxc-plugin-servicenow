@@ -159,11 +159,13 @@ describe("release artifact gates", () => {
     assert.doesNotMatch(workflow, /npm run compat -- --all/);
     assert.match(workflow, /compat-consumer\.mjs --cell .* --tarball/);
     assert.match(workflow, /--sha256 "\$SHA256"/);
+    assert.doesNotMatch(workflow, /npx .*tsx .*compat-consumer/);
     const artifactGate = readFileSync(
       path.join(repoRoot, "scripts/check-release-artifact.mjs"),
       "utf8",
     );
-    assert.match(artifactGate, /require\.resolve\("tsx\/cli"\)/);
+    assert.match(artifactGate, /execFileSync\(process\.execPath, args/);
+    assert.doesNotMatch(artifactGate, /tsx\/cli/);
     assert.doesNotMatch(artifactGate, /execFileSync\("npx", \["tsx"/);
   });
 

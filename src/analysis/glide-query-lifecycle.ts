@@ -38,6 +38,13 @@ export function findQueryModifiersAfterQuery(
         rec.data.pending = false;
         return;
       }
+      if (analysis.glide.possibleExecutors.has(property)) {
+        // A scope-specific executor may have refreshed the cursor. Positive
+        // lifecycle diagnostics require certainty, so discard stale facts.
+        rec.data.opened = false;
+        rec.data.pending = false;
+        return;
+      }
       if (analysis.glide.modifiers.has(property) && rec.data.opened === true) {
         rec.data.pending = true;
       }

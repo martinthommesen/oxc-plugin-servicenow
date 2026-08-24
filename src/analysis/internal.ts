@@ -10,8 +10,16 @@ export {
 export { ctorProvenanceKind, getAncestors } from "./provenance.js";
 export type { Provenance, ProvenanceKind, ProvenanceQuery, QueryState } from "./provenance.js";
 export type { FileAnalysis } from "./file-analysis.js";
+export type { MutationQuery } from "./mutations.js";
 export type { BindingId, ObjectId, Completion } from "./path-state.js";
-export { staticPropertyName, staticCalleeProperty, isComputedUnknown } from "./members.js";
+export {
+  isDefinitelyNonCallable,
+  staticPropertyName,
+  staticCalleeProperty,
+  isComputedUnknown,
+  resolveConstValue,
+  resolveDestructuredConstMember,
+} from "./members.js";
 export { findMissingQueryBeforeNext } from "./query-before-next.js";
 export type { MissingQueryFinding } from "./query-before-next.js";
 export { findWindowedDeleteMultiple } from "./glide-windowing.js";
@@ -32,8 +40,6 @@ export type { NowIdMisuse, DuplicateFluentId, NowIdFact } from "./now-id.js";
 export { collectFluentImports, resolveFluentFactory } from "./fluent-imports.js";
 export type { FluentImportBinding } from "./fluent-imports.js";
 export type { FluentFileFacts } from "./file-analysis.js";
-export { findGlideElementCollections } from "./glide-element-collection.js";
-export type { GlideElementCollectionFinding } from "./glide-element-collection.js";
 export { findQueryModifiersAfterQuery } from "./glide-query-lifecycle.js";
 export type { QueryModifierFinding } from "./glide-query-lifecycle.js";
 export { findUnfilteredBulkOperations } from "./glide-bulk-filter.js";

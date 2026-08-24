@@ -5,6 +5,7 @@ import { describe, it } from "node:test";
 import { parseNpmPackJson } from "../../scripts/parse-npm-pack.mjs";
 import { repoRoot } from "./helpers.js";
 import { checkCompatibilityMatrix } from "../../scripts/check-compat-matrix.mjs";
+import { SUPPORTED_SERVICENOW_RELEASES } from "../../src/settings/index.js";
 
 describe("compatibility matrix", () => {
   it("keeps CI and release consumer cells sourced from the matrix", () => {
@@ -14,6 +15,10 @@ describe("compatibility matrix", () => {
       result.matrix.include.map((cell) => cell.node),
       ["20.19.0", "22.14.0", "24.16.0", "26.7.0", "24.16.0"],
     );
+    const workflow = readFileSync(path.join(repoRoot, ".github/workflows/ci.yml"), "utf8");
+    assert.match(workflow, /node scripts\/run-tests\.mjs tests\/utils\/ast\.test\.ts/);
+    assert.match(workflow, /node scripts\/compat-consumer\.mjs --cell/);
+    assert.doesNotMatch(workflow, /npx .*tsx .*compat-consumer/);
   });
 
   it("matches declared package ranges", () => {
@@ -33,6 +38,7 @@ describe("compatibility matrix", () => {
       typescriptEslint: { minimum: string; current: string };
       typescript: { minimum: string; current: string };
       fluentSdk: string[];
+      serviceNowReleases: string[];
       localSmokeCell: string;
       cells: Array<{
         id: string;
@@ -68,6 +74,7 @@ describe("compatibility matrix", () => {
     assert.ok(matrix.cells.some((cell) => cell.typescript === matrix.typescript.minimum));
     assert.ok(matrix.cells.some((cell) => cell.typescript === matrix.typescript.current));
     assert.equal(matrix.fluentSdk.length, 27);
+    assert.deepEqual(matrix.serviceNowReleases, SUPPORTED_SERVICENOW_RELEASES);
     assert.equal(matrix.localSmokeCell, "node24-host");
     assert.ok(matrix.fluentSdk.includes("4.10.1"));
     assert.ok(
@@ -79,6 +86,7 @@ describe("compatibility matrix", () => {
     assert.ok(docs.includes(matrix.oxlint.minimum));
     assert.ok(docs.includes(matrix.eslint.minimum));
     assert.ok(docs.includes(matrix.oxfmt.highestCompatible));
+    assert.ok(matrix.serviceNowReleases.every((release) => docs.includes(release)));
   });
 
   it("parses legacy npm pack arrays and npm 12 package-keyed output", () => {

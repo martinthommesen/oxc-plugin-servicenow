@@ -23,8 +23,12 @@ function readPackageVersion(): string {
 /** Derived from `package.json` at load time so the export cannot drift. */
 export const PACKAGE_VERSION = readPackageVersion();
 
-export const DOCS_BASE_URL =
-  "https://github.com/martinthommesen/oxc-plugin-servicenow/blob/main/docs/rules";
+export const REPOSITORY_URL = "https://github.com/martinthommesen/oxc-plugin-servicenow";
+
+/** Immutable Git ref created and verified before the corresponding package is published. */
+export const PACKAGE_GIT_REF = `v${PACKAGE_VERSION}`;
+
+export const DOCS_BASE_URL = `${REPOSITORY_URL}/blob/${PACKAGE_GIT_REF}/docs/rules`;
 
 export function ruleDocsUrl(ruleName: string): string {
   return `${DOCS_BASE_URL}/${ruleName}.md`;

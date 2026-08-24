@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { ruleCatalog } from "../src/catalog.js";
+import { AUSTRALIA_RULE_REVIEWS } from "../src/catalog-metadata.js";
 import {
   businessRuleRules,
   classicEs5Rules,
@@ -71,6 +72,24 @@ describe("catalog authority", () => {
       sources.join("\n"),
       /const EXTRA_PLACEMENTS|export const ruleDocMetadata|export const RULE_OPTION_DESCRIPTORS/,
     );
+  });
+
+  it("requires an explicit Australia review on the correct compatibility axis", () => {
+    assert.deepEqual(
+      Object.keys(AUSTRALIA_RULE_REVIEWS).sort(),
+      ruleCatalog.map((entry) => entry.name).sort(),
+    );
+    for (const entry of ruleCatalog) {
+      const review = AUSTRALIA_RULE_REVIEWS[entry.name];
+      assert.ok(review, entry.name);
+      if (entry.family === "fluent") {
+        assert.deepEqual(entry.applicability.serviceNowReleases, []);
+        assert.equal(review.status, "not-applicable");
+      } else {
+        assert.deepEqual(entry.applicability.serviceNowReleases, ["zurich", "australia"]);
+        assert.ok(review.status === "reviewed" || review.status === "invariant");
+      }
+    }
   });
 
   it("executes every structured limitation case", () => {

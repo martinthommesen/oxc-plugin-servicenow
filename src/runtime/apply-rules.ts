@@ -141,6 +141,8 @@ export function applyRules(
   const comments = parsed.comments ?? fallbackComments(source);
   const messages: LintMessage[] = [];
   const ancestors: ESTree.Node[] = [];
+  const ancestorIndex = new WeakMap<object, readonly ESTree.Node[]>();
+  walk(parsed.ast as ESTree.Node, {}, [], new WeakSet(), ancestorIndex);
 
   const sourceCode = {
     text: source,
@@ -153,8 +155,8 @@ export function applyRules(
     getAllComments() {
       return comments;
     },
-    getAncestors(_node?: unknown) {
-      return ancestors.slice(0, -1);
+    getAncestors(node?: unknown) {
+      return isNode(node) ? [...(ancestorIndex.get(node) ?? [])] : ancestors.slice(0, -1);
     },
   };
 

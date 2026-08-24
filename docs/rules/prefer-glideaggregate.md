@@ -11,7 +11,7 @@
 - **Authoring:** classic
 - **Surfaces:** Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent.
 - **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
-- **Last verified:** 2026-08-20
+- **Last verified:** 2026-08-22
 - **Implementation:** [`src/rules/prefer-glideaggregate.ts`](../../src/rules/prefer-glideaggregate.ts)
 
 ## Applicability
@@ -23,7 +23,7 @@
 | Minimum surface confidence | filename-inferred |
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
-| ServiceNow releases | zurich |
+| ServiceNow releases | zurich, australia |
 | Fluent SDK range | n/a |
 
 ## Options
@@ -82,13 +82,23 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
 
 ## Evidence
 
-- **GlideAggregate is the documented API for count and group queries.**
-  - Verification ID: `rule-evidence-df414ab9`
+- **The Australia GlideAggregate API documents database-side COUNT and other aggregate queries.**
+  - Verification ID: `rule-evidence-3b04a8f8`
+  - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideAggregateScopedAPI.html
+  - Verified by: manual
+  - Verified at: 2026-08-22
+- **The Australia global GlideAggregate API provides the same database aggregation surface.**
+  - Verification ID: `rule-evidence-44699dce`
+  - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideAggregateAPI.html
+  - Verified by: manual
+  - Verified at: 2026-08-22
+- **The Australia GlideRecord API recommends GlideAggregate when only a record count is needed because it does not retrieve matching records.**
+  - Verification ID: `rule-evidence-ac7542f1`
   - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html
   - Verified by: manual
-  - Verified at: 2026-08-20
-- **Iterate-to-count loops report; if (gr.next()) stays silent.**
-  - Verification ID: `rule-evidence-66fb1576`
+  - Verified at: 2026-08-22
+- **Iterate-to-count loops using next() or _next() report; if (gr.next()) stays silent.**
+  - Verification ID: `rule-evidence-8e25a98b`
   - URL: tests/rules/prefer-glideaggregate.test.ts
   - Verified by: fixture
   - Verified at: 2026-08-20

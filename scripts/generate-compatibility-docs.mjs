@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const matrix = JSON.parse(await readFile(join(root, "scripts/compat-matrix.json"), "utf8"));
+const packageManifest = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
 
 function replaceMarkedSection(source, name, body) {
   const start = `<!-- generated:${name}:start -->`;
@@ -40,6 +41,7 @@ CI runs every cell under its exact Node runtime. Local \`npm run compat\` uses t
 | typescript-eslint | \`${matrix.typescriptEslint.peer}\` (optional) | ${matrix.typescriptEslint.minimum} | ${matrix.typescriptEslint.current} |
 | TypeScript parser runtime | optional parser dependency | ${matrix.typescript.minimum} | ${matrix.typescript.current} |
 | Fluent SDK knowledge | selected \`fluentSdkVersion\` | ${matrix.fluentSdk.join(", ")} | unspecified selects the current manifest |
+| ServiceNow release knowledge | selected \`release\` | ${matrix.serviceNowReleases.join(", ")} | unspecified uses only facts shared by every listed release |
 | ServiceNow JavaScript | ${matrix.javascriptModes.map((mode) => `\`${mode}\``).join(", ")} | all listed modes | unknown never assumes ES5 |
 
 ## Packed-consumer matrix
@@ -58,7 +60,7 @@ Consumer applications use the same Node floor. There is no separate older consum
 
 ## Documentation URLs
 
-Rule \`docs.url\` values point at \`blob/main/docs/rules\`. Release tags keep those files on \`main\` until a versioned docs path is generated from the published tag.
+Rule \`docs.url\` values point at the immutable \`v${packageManifest.version}\` release tag. The protected release workflow verifies that tag before publishing the corresponding package.
 `;
 
 await writeFile(join(root, "docs/compatibility.md"), page);
@@ -72,7 +74,7 @@ const table = [
   `| oxlint | ${matrix.oxlint.minimum} and ${matrix.oxlint.highestCompatible} (\`${matrix.oxlint.peer}\`) |`,
   `| ESLint | ${matrix.eslint.minimum}, ${matrix.eslint.currentV9}, and ${matrix.eslint.current} (\`${matrix.eslint.peer}\`) |`,
   `| oxfmt | ${matrix.oxfmt.minimum} and ${matrix.oxfmt.highestCompatible} (\`${matrix.oxfmt.peer}\`) |`,
-  `| ServiceNow engine tables | Zurich feature-support document |`,
+  `| ServiceNow engine tables | ${matrix.serviceNowReleases.join(", ")} |`,
   `| Fluent SDK | ${matrix.fluentSdk.join(", ")} |`,
 ].join("\n");
 readme = replaceMarkedSection(readme, "compatibility", table);

@@ -108,7 +108,7 @@ jobs:
           CELL: ${{ matrix.cell }}
           SHA256: ${{ needs.validate.outputs.tarball_sha256 }}
           TARBALL: ${{ needs.validate.outputs.tarball }}
-        run: npx --no-install tsx scripts/compat-consumer.mjs --cell "$CELL" --tarball "./$TARBALL" --sha256 "$SHA256"
+        run: node scripts/compat-consumer.mjs --cell "$CELL" --tarball "./$TARBALL" --sha256 "$SHA256"
 
   publication-state:
     needs: [validate, consumer]

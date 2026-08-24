@@ -7,6 +7,7 @@ export type ProvenanceKind =
   | "GlideAggregate"
   | "GlideAjax"
   | "GlideDateTime"
+  | "DataView"
   | "g_form"
   | "gs"
   | "current";
@@ -36,6 +37,7 @@ const CTOR_TO_KIND: Record<string, ProvenanceKind> = {
   GlideAggregate: "GlideAggregate",
   GlideAjax: "GlideAjax",
   GlideDateTime: "GlideDateTime",
+  DataView: "DataView",
 };
 
 export function ctorProvenanceKind(name: string | null): ProvenanceKind | null {

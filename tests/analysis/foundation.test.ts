@@ -46,8 +46,11 @@ rec.next();`,
     const code = `var gr = new GlideRecord("incident");\ncurrent.update();`;
     const parsed = parse(code, "shared.js");
     assert.equal(
-      applyRules(code, parsed, { filename: "form.client.js", ruleNames: ["no-client-gliderecord"] })
-        .length,
+      applyRules(code, parsed, {
+        filename: "form.client.js",
+        ruleNames: ["no-client-gliderecord"],
+        settings: { scope: "scoped" },
+      }).length,
       1,
     );
     assert.equal(
@@ -446,6 +449,15 @@ assigned.next();`,
       `var rec = new GlideRecord("incident");
 var alias = flag || rec;
 alias.next();`,
+      "require-query-before-next",
+    );
+  });
+
+  it("invalidates a tracked binding after numeric update coercion", () => {
+    assertValid(
+      `var rec = new GlideRecord("incident");
+rec++;
+rec.next();`,
       "require-query-before-next",
     );
   });

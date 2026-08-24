@@ -11,7 +11,7 @@
 - **Authoring:** classic
 - **Surfaces:** Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent.
 - **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
-- **Last verified:** 2026-08-20
+- **Last verified:** 2026-08-22
 - **Implementation:** [`src/rules/no-delete-multiple-with-windowing.ts`](../../src/rules/no-delete-multiple-with-windowing.ts)
 
 ## Applicability
@@ -23,7 +23,7 @@
 | Minimum surface confidence | filename-inferred |
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
-| ServiceNow releases | zurich |
+| ServiceNow releases | zurich, australia |
 | Fluent SDK range | n/a |
 
 ## Options
@@ -81,15 +81,25 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. lifecyc
 ## Evidence
 
 - **setLimit and chooseWindow do not limit deleteMultiple(); the call deletes every matching row.**
-  - Verification ID: `rule-evidence-5fe74792`
-  - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html
+  - Verification ID: `rule-evidence-edfe6e7c`
+  - URL: https://www.servicenow.com/docs/r/zurich/api-reference/server-api-reference/c_GlideRecordScopedAPI.html
   - Verified by: manual
   - Verified at: 2026-08-20
 - **Recommended hosts report windowed deleteMultiple.**
-  - Verification ID: `rule-evidence-49ec0528`
+  - Verification ID: `rule-evidence-c8bf267c`
   - URL: tests/integration/profiles/invalid/windowed-delete.br.js
   - Verified by: integration-test
   - Verified at: 2026-08-20
+- **The Australia scoped GlideRecord API was reviewed for the methods and lifecycle facts used by this rule.**
+  - Verification ID: `rule-evidence-b2a636ff`
+  - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html
+  - Verified by: manual
+  - Verified at: 2026-08-22
+- **The Australia global GlideRecord API was reviewed for the methods and lifecycle facts used by this rule.**
+  - Verification ID: `rule-evidence-8d4d3494`
+  - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordAPI.html
+  - Verified by: manual
+  - Verified at: 2026-08-22
 
 ## See also
 

@@ -325,6 +325,11 @@ export interface FileBindings {
   isPlatformGlobal(node: ESTree.Node, ancestors?: readonly ESTree.Node[]): boolean;
 }
 
+interface FileBindingsOptions {
+  /** Host scope graphs are valid only for nodes from the host SourceCode AST. */
+  scopeSource: "host" | "tree";
+}
+
 interface HostScope {
   type?: string;
   set?: Map<string, { defs: ReadonlyArray<{ type?: string }> }>;
@@ -361,11 +366,16 @@ function hostHasDefinedBinding(
   }
 }
 
-export function createFileBindings(context: Context, ast?: ESTree.Node): FileBindings {
+export function createFileBindings(
+  context: Context,
+  ast?: ESTree.Node,
+  options: FileBindingsOptions = { scopeSource: "host" },
+): FileBindings {
   const program = (ast ?? (context.sourceCode.ast as ESTree.Node | undefined)) as
     | ESTree.Node
     | undefined;
   const tree = program ? buildScopeTree(program) : new ScopeTree();
+  const useHostScope = options.scopeSource === "host";
 
   return {
     tree,
@@ -373,14 +383,14 @@ export function createFileBindings(context: Context, ast?: ESTree.Node): FileBin
       return tree.resolve(name, node, ancestors);
     },
     isLocalName(name, node, ancestors = []) {
-      const host = hostHasDefinedBinding(context, node, name);
+      const host = useHostScope ? hostHasDefinedBinding(context, node, name) : undefined;
       if (host === true) return true;
       return tree.hasLocalBinding(name, node, ancestors);
     },
     isPlatformGlobal(node, ancestors = []) {
       const name = getName(node);
       if (!name) return false;
-      const host = hostHasDefinedBinding(context, node, name);
+      const host = useHostScope ? hostHasDefinedBinding(context, node, name) : undefined;
       if (host === true) return false;
       if (tree.hasLocalBinding(name, node, ancestors)) return false;
       return true;

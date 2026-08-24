@@ -1,6 +1,6 @@
 # servicenow/no-typed-arrays
 
-TypedArray and DataView constructors are unsupported in Compatibility and ES5 Standards mode. ES2021 still rejects BigInt64Array / BigUint64Array.
+General TypedArray constructors and their static from/of factories, plus DataView construction, are Disallowed by the ES5 cell, while BigInt64Array and BigUint64Array are Not Supported there. Zurich ES2021 also marks the BigInt arrays Not Supported; Australia ES2021 Supports them. DataView BigInt getters remain Not Supported. Compatibility follows ES5 by package policy.
 
 - **Family:** engine
 - **Preset:** classic-es5
@@ -9,9 +9,9 @@ TypedArray and DataView constructors are unsupported in Compatibility and ES5 St
 - **Fix safety:** diagnostic only
 - **Suggestions:** no
 - **Authoring:** classic
-- **Surfaces:** Applies to client, server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent.
-- **JavaScript mode:** Runs when javascriptMode is compatibility, es5. Unknown mode stays silent.
-- **Last verified:** 2026-08-20
+- **Surfaces:** Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. UI Actions require an explicit server surface; mixed client/server UI Actions stay silent because execution regions are not classified. An explicit javascriptMode also enables documented engine checks in otherwise unclassified files.
+- **JavaScript mode:** Runs when javascriptMode is compatibility, es5, es2021, unknown. Universal restrictions can run with unknown mode when the file is a known instance script.
+- **Last verified:** 2026-08-22
 - **Implementation:** [`src/rules/no-typed-arrays.ts`](../../src/rules/no-typed-arrays.ts)
 
 ## Applicability
@@ -19,11 +19,11 @@ TypedArray and DataView constructors are unsupported in Compatibility and ES5 St
 | Dimension | Value |
 | --- | --- |
 | Authoring | classic |
-| Surfaces | Applies to client, server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent. |
+| Surfaces | Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. UI Actions require an explicit server surface; mixed client/server UI Actions stay silent because execution regions are not classified. An explicit javascriptMode also enables documented engine checks in otherwise unclassified files. |
 | Minimum surface confidence | filename-inferred |
-| JavaScript modes | compatibility, es5 |
+| JavaScript modes | compatibility, es5, es2021, unknown |
 | Application scopes | global, scoped, unknown |
-| ServiceNow releases | zurich |
+| ServiceNow releases | zurich, australia |
 | Fluent SDK range | n/a |
 
 ## Options
@@ -40,6 +40,19 @@ TypedArray and DataView constructors are unsupported in Compatibility and ES5 St
 var bytes = new Int8Array(16);
 ```
 
+### Incorrect: DataView BigInt getter
+
+```js
+var view = new DataView(buffer);
+var value = view.getBigInt64(0);
+```
+
+### Incorrect: BigInt64Array static factory in Zurich
+
+```js
+var values = BigInt64Array.from(source);
+```
+
 ## Correct
 
 ### Correct: plain array
@@ -50,7 +63,7 @@ var bytes = [0, 1, 2];
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-boundary: DataView BigInt setters stay silent because the reviewed ServiceNow tables establish only the getter methods. scope-boundary: Any possible direct constructor, prototype, or instance-method write in the file conservatively suppresses affected diagnostics, regardless of source order. scope-boundary: Passing a typed-array constructor or DataView.prototype to unknown code suppresses affected method diagnostics because that code can install replacements. false-negative: Calls through a reassigned Object mutation helper are treated as unknown; the rule does not assume the custom helper failed to install a DataView method.
 
 ## Known false positives
 
@@ -58,11 +71,13 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
 
 ## Known false negatives
 
-- None recorded.
+- Calls through a reassigned Object mutation helper are treated as unknown; the rule does not assume the custom helper failed to install a DataView method.
 
 ## Intentional scope boundaries
 
-- None recorded.
+- DataView BigInt setters stay silent because the reviewed ServiceNow tables establish only the getter methods.
+- Any possible direct constructor, prototype, or instance-method write in the file conservatively suppresses affected diagnostics, regardless of source order.
+- Passing a typed-array constructor or DataView.prototype to unknown code suppresses affected method diagnostics because that code can install replacements.
 
 ## Overlaps
 
@@ -75,16 +90,26 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
 
 ## Evidence
 
-- **Typed arrays are unsupported in Compatibility and ES5 Standards modes.**
-  - Verification ID: `rule-evidence-36c58f0f`
+- **The Zurich table marks general typed-array/DataView constructors Disallowed in ES5 Standards, while BigInt64 arrays and DataView BigInt getters are Not Supported.**
+  - Verification ID: `rule-evidence-e13253e3`
   - URL: https://www.servicenow.com/docs/r/zurich/api-reference/scripts/javascript-engine-feature-support.html
   - Verified by: manual
-  - Verified at: 2026-08-20
-- **Catalog examples cover Uint8Array construction.**
-  - Verification ID: `rule-evidence-011c85e0`
-  - URL: src/catalog.ts
+  - Verified at: 2026-08-22
+- **The Australia table marks BigInt64 array constructors Supported in ES2021 and Not Supported in ES5; DataView BigInt getters remain Not Supported.**
+  - Verification ID: `rule-evidence-7da2cbb4`
+  - URL: https://www.servicenow.com/docs/r/api-reference/scripts/javascript-engine-feature-support.html
+  - Verified by: manual
+  - Verified at: 2026-08-22
+- **ServiceNow documents Compatibility as a third mode; the plugin explicitly applies ES5 feature cells to it as package policy.**
+  - Verification ID: `rule-evidence-0d677df1`
+  - URL: https://www.servicenow.com/docs/r/api-reference/scripts/c_JS_modes.html
+  - Verified by: manual
+  - Verified at: 2026-08-22
+- **Fixtures cover constructors, static from/of factories, aliases, feature guards, DataView BigInt getters, mutation, and namespace escape.**
+  - Verification ID: `rule-evidence-ffacc28e`
+  - URL: tests/rules/glide-and-engine.test.ts
   - Verified by: fixture
-  - Verified at: 2026-08-20
+  - Verified at: 2026-08-22
 
 ## See also
 

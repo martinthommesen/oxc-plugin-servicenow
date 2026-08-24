@@ -262,6 +262,28 @@ describe("path-state evaluator", () => {
     assert.deepEqual(result.calls, ["next:unopened"]);
   });
 
+  it("stops trusting receiver state after an unresolved computed call", () => {
+    const result = run(`
+      const gr = new GlideRecord("incident");
+      gr.query();
+      gr[method]();
+      gr.next();
+    `);
+    assert.deepEqual(result.calls, ["next:none"]);
+  });
+
+  it("captures a call receiver before a computed property reassigns its binding", () => {
+    const result = run(`
+      let first = new GlideRecord("incident");
+      const original = first;
+      const second = new GlideRecord("problem");
+      first[(first = second, method)]();
+      original.next();
+      second.next();
+    `);
+    assert.deepEqual(result.calls, ["next:none", "next:unopened"]);
+  });
+
   it("escapes captures when a generator result can execute elsewhere", () => {
     const result = run(`
       const gr = new GlideRecord("incident");
