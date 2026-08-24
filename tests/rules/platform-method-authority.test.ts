@@ -63,6 +63,20 @@ record.next();`,
     );
   });
 
+  it("preserves a definite unopened path beside an uncertain branch", () => {
+    assertInvalid(
+      `var record = new GlideRecord("incident");
+if (condition) {
+  record.prepare = maybeQuery;
+  record.prepare();
+}
+record.next();`,
+      "require-query-before-next",
+      { messageId: "missingQuery" },
+      SERVER,
+    );
+  });
+
   it("keeps windowing and query lifecycle unknown after custom calls", () => {
     assertValid(
       `var gr = new GlideRecord("incident");
@@ -216,6 +230,16 @@ ga.next();`,
       `var ga = new GlideAggregate("incident");
 ga.addAggregate = localAggregate;
 ga.addAggregate("COUNT");
+ga.query();
+ga.getAggregate("SUM", "amount");`,
+      "validate-glideaggregate-calls",
+      SERVER,
+    );
+    assertValid(
+      `var ga = new GlideAggregate("incident");
+ga.prepare = maybeAddAggregate;
+ga.prepare();
+ga.query();
 ga.query();
 ga.getAggregate("SUM", "amount");`,
       "validate-glideaggregate-calls",

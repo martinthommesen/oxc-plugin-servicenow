@@ -116,7 +116,10 @@ export function findGlideAggregateIssues(
     onCall({ call, rec, receiver, objectName, property }) {
       if (!rec || !receiver || !property) return;
       if (!hasAuthoritativeConstructedMethod(authority, receiver, "GlideAggregate", property)) {
-        for (const value of rec.data.alternatives) value.uncertain = true;
+        for (const value of rec.data.alternatives) {
+          value.pendingDynamic = true;
+          value.uncertain = true;
+        }
         return;
       }
       if (property === "addAggregate") {

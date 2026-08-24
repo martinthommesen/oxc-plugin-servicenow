@@ -5,7 +5,7 @@ import {
   hasAuthoritativeGlideRecordMethod,
   type PlatformMethodAuthorityFacts,
 } from "./platform-method-authority.js";
-import type { ProvenanceQuery, QueryState } from "./provenance.js";
+import type { ProvenanceQuery } from "./provenance.js";
 
 export interface MissingQueryFinding {
   node: ESTree.CallExpression;
@@ -14,19 +14,18 @@ export interface MissingQueryFinding {
 }
 
 interface QueryData {
-  queryState: QueryState;
-  /** Unknown custom calls stay silent; ordinary branch disagreement still reports. */
-  uncertain: boolean;
+  /** At least one represented runtime path has not executed a query. */
+  unopened: boolean;
 }
 
 /**
  * Path-sensitive query-before-next for proven GlideRecord object identities.
  *
  * Reports whenever a reachable path to a cursor advance lacks a proven query
- * executor.
- * A merged `unknown` state is unsafe for a must-fact and is therefore reported;
- * escaped or unproven receivers remain silent. `chooseWindow` does not open a cursor.
- * Executors come from the versioned GlideRecord manifest.
+ * executor. Definite unopened alternatives survive joins with uncertain
+ * alternatives, while a custom call on every represented path stays silent.
+ * Escaped or unproven receivers remain silent. `chooseWindow` does not open a
+ * cursor. Executors come from the versioned GlideRecord manifest.
  */
 export function findMissingQueryBeforeNext(
   program: ESTree.Node,
@@ -39,30 +38,22 @@ export function findMissingQueryBeforeNext(
     program,
     analysis,
     kinds: ["GlideRecord"],
-    emptyData: () => ({ queryState: "unopened", uncertain: false }),
+    emptyData: () => ({ unopened: true }),
     cloneData: (data) => ({ ...data }),
-    equalsData: (left, right) =>
-      left.queryState === right.queryState && left.uncertain === right.uncertain,
+    equalsData: (left, right) => left.unopened === right.unopened,
     mergeData: (left, right) => ({
-      queryState: left.queryState === right.queryState ? left.queryState : "unknown",
-      uncertain: left.uncertain || right.uncertain,
+      unopened: left.unopened || right.unopened,
     }),
     onCall({ call, rec, receiver, objectName, property }) {
       if (!rec || !receiver || !property) return;
       if (!hasAuthoritativeGlideRecordMethod(authority, receiver, property)) {
-        rec.data.queryState = "unknown";
-        rec.data.uncertain = true;
+        rec.data.unopened = false;
         return;
       }
       if (analysis.glide.possibleExecutors.has(property)) {
-        rec.data.queryState = "opened";
-        rec.data.uncertain = false;
+        rec.data.unopened = false;
       }
-      if (
-        analysis.glide.cursorAdvancers.has(property) &&
-        (rec.data.queryState === "unopened" ||
-          (rec.data.queryState === "unknown" && !rec.data.uncertain))
-      ) {
+      if (analysis.glide.cursorAdvancers.has(property) && rec.data.unopened) {
         const key = nodeStart(call);
         if (!reported.has(key)) {
           reported.add(key);
