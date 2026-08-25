@@ -231,6 +231,34 @@ load();`,
     );
   });
 
+  it("treats for-await iteration as an asynchronous suspension", () => {
+    assertInvalid(
+      `async function load() {
+  var before = new GlideRecord("sys_user");
+  before.query();
+  for await (var row of rows) {
+    current.query();
+  }
+  current.query();
+}
+load();`,
+      RULE,
+      { messageId: "query", count: 1, includes: "before" },
+      ACL,
+    );
+    assertInvalid(
+      `async function load() {
+  for await (var row of (current.query(), rows)) {
+    current.query();
+  }
+}
+load();`,
+      RULE,
+      { messageId: "query", count: 1, includes: "current" },
+      ACL,
+    );
+  });
+
   it("keeps suspended calls out of the immediate path and resumes the caller", () => {
     assertValid(
       `async function load() {
@@ -319,6 +347,19 @@ current.query();`,
 current.query();`,
       `function check(current) { current.query(); }
 check(localRecord);`,
+    ]) {
+      assertValid(code, RULE, ACL);
+    }
+  });
+
+  it("preserves escaped current uncertainty across unrelated joins", () => {
+    for (const code of [
+      `current[method]();
+if (condition) gs.info("branch");
+current.query();`,
+      `prepare(current);
+if (condition) gs.info("branch");
+current.query();`,
     ]) {
       assertValid(code, RULE, ACL);
     }

@@ -46,6 +46,7 @@ type AbruptCompletion = Exclude<InternalCompletion, "normal">;
 const DEFAULT_MAX_WORK = 50_000;
 const MAX_PATH_DEPTH = 128;
 const BUDGET_EXCEEDED = Symbol("path-analysis-budget-exceeded");
+const EMPTY_OBJECT_IDS: ReadonlySet<ObjectId> = new Set();
 let budgetExceededCount = 0;
 
 export function getPathBudgetExceededCount(): number {
@@ -290,6 +291,7 @@ function mergeStates<T>(
   mergeDistinctData?: (left: T, right: T) => T | undefined,
   alloc?: () => ObjectId,
   retainUnboundRecords = true,
+  retainedObjectIds: ReadonlySet<ObjectId> = EMPTY_OBJECT_IDS,
 ): EnvState<T> {
   const env = new Map<BindingId, ObjectId | undefined>();
   const objects = new Map<ObjectId, SharedRecord<T>>();
@@ -343,7 +345,9 @@ function mergeStates<T>(
   if (!retainUnboundRecords) {
     const boundObjectIds = new Set(env.values());
     for (const objectId of objects.keys()) {
-      if (!boundObjectIds.has(objectId)) objects.delete(objectId);
+      if (!boundObjectIds.has(objectId) && !retainedObjectIds.has(objectId)) {
+        objects.delete(objectId);
+      }
     }
   }
   return { env, objects, completion: "normal", completionLabel: null, abrupt: new Map() };
@@ -376,6 +380,7 @@ function mergeMany<T>(
   mergeDistinctData?: (left: T, right: T) => T | undefined,
   alloc?: () => ObjectId,
   retainUnboundRecords = true,
+  retainedObjectIds: ReadonlySet<ObjectId> = EMPTY_OBJECT_IDS,
 ): EnvState<T> | undefined {
   const reachable = paths.filter((path) => path.completion === "normal");
   if (reachable.length === 0) return undefined;
@@ -389,6 +394,7 @@ function mergeMany<T>(
       mergeDistinctData,
       alloc,
       retainUnboundRecords,
+      retainedObjectIds,
     );
   }
   return current;
@@ -522,6 +528,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
   const ancestors: ESTree.Node[] = [];
   const newExpressionIds = new WeakMap<ESTree.Node, ObjectId>();
   const platformObjects = new Map<string, ObjectId>();
+  const retainedPlatformObjectIds = new Set<ObjectId>();
   const functionDefs = new Map<BindingId, ESTree.Node>();
   const declaredFunctions = new Map<BindingId, ESTree.Node>();
   const directlyCalledFunctions = new WeakSet<ESTree.Node>();
@@ -618,6 +625,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
         if (objectId === undefined) {
           objectId = alloc();
           platformObjects.set(name, objectId);
+          retainedPlatformObjectIds.add(objectId);
         }
         ensure(state, objectId);
         return objectId;
@@ -929,6 +937,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
       mergeDistinctData,
       alloc,
       retainUnboundRecords,
+      retainedPlatformObjectIds,
     );
     state.abrupt.clear();
     if (merged) {
@@ -1123,6 +1132,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
                 mergeDistinctData,
                 alloc,
                 retainUnboundRecords,
+                retainedPlatformObjectIds,
               )
             : direct;
           for (const consequent of switchCase.consequent) visit(consequent, entry, false);
@@ -1156,6 +1166,15 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
         if (node.type === "ForInStatement" || node.type === "ForOfStatement") {
           const iterable = node as ESTree.ForInStatement | ESTree.ForOfStatement;
           if (iterable.right) visit(iterable.right, state, false);
+          if (
+            node.type === "ForOfStatement" &&
+            (node as ESTree.ForOfStatement).await &&
+            stopAtAwait &&
+            state.completion === "normal"
+          ) {
+            setCompletion(state, "suspend");
+            break;
+          }
         }
 
         const beforeTest = snapshotState(state, cloneData, budget);
@@ -1237,6 +1256,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
             mergeDistinctData,
             alloc,
             retainUnboundRecords,
+            retainedPlatformObjectIds,
           );
           if (!back) {
             converged = true;
@@ -1250,6 +1270,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
             mergeDistinctData,
             alloc,
             retainUnboundRecords,
+            retainedPlatformObjectIds,
           );
           if (statesEqual(header, nextHeader, equalsData)) {
             converged = true;
