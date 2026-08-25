@@ -96,6 +96,22 @@ service.now();`,
     );
     assertValid(
       `(function executeRule(current, previous) {
+  globalThis.current.update = localUpdate;
+  current.update();
+})(current, previous);`,
+      "no-br-current-update",
+      FULL_SCRIPT,
+    );
+    assertValid(
+      `(function executeRule(current, previous) {
+  prepare(globalThis.current);
+  current.update();
+})(current, previous);`,
+      "no-br-current-update",
+      FULL_SCRIPT,
+    );
+    assertValid(
+      `(function executeRule(current, previous) {
   GlideRecord.prototype.update = localUpdate;
   current.update();
 })(current, previous);`,

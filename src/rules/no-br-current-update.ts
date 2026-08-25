@@ -22,12 +22,14 @@ export const noBrCurrentUpdate = defineRule({
   },
   createOnce(context) {
     let canonicalCurrent: ESTree.Node | null = null;
+    let canonicalCurrentArgument: ESTree.Node | null = null;
     let canonicalCurrentBindingId: number | null = null;
     return {
       before() {
         const { context: script } = beginRuleFile(context);
         if (!appliesOnSurface(script, "business-rule")) return false;
         canonicalCurrent = null;
+        canonicalCurrentArgument = null;
         canonicalCurrentBindingId = null;
       },
       Program(node) {
@@ -35,6 +37,7 @@ export const noBrCurrentUpdate = defineRule({
         if (script.businessRuleSourceFormat !== "full-script") return;
         const wrapper = canonicalBusinessRuleWrapper(node as ESTree.Program, analysis.bindings);
         canonicalCurrent = wrapper?.currentParam ?? null;
+        canonicalCurrentArgument = (wrapper?.call.arguments[0] as ESTree.Node | undefined) ?? null;
         canonicalCurrentBindingId = canonicalCurrent
           ? (analysis.bindings.resolve("current", canonicalCurrent)?.id ?? null)
           : null;
@@ -63,13 +66,11 @@ export const noBrCurrentUpdate = defineRule({
         if (!directGlobal && !alias && !wrapperParam) return;
         if (file.bindingWrites.hasDynamicScope()) return;
         if (directGlobal && file.mutations.isGlobalAuthorityLost("current")) return;
-        // Calling the canonical synchronous wrapper necessarily passes the
-        // global current object as an argument. The generic mutation index
-        // records that handoff as a possible namespace escape, but the
-        // structural wrapper and temporal provenance above prove this exact
-        // parameter use. Actual receiver/prototype mutation remains fatal.
         if (
-          (!wrapperParam && file.mutations.isGlobalPathAuthorityLost(["current", "update"])) ||
+          file.mutations.isGlobalPathAuthorityLost(
+            ["current", "update"],
+            wrapperParam ? (canonicalCurrentArgument ?? undefined) : undefined,
+          ) ||
           file.mutations.isGlobalPathAuthorityLost(["GlideRecord", "prototype", "update"]) ||
           file.mutations.isObjectPropertyAuthorityLost(member.object, "update")
         ) {
