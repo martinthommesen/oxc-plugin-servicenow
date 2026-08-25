@@ -391,7 +391,7 @@ function buildIndex(
   };
 
   const definitelyCannotInstallCallable = (node: unknown): boolean => {
-    const value = resolveConstValue(node, bindings);
+    const value = stableAliasValue(node);
     if (!value) return false;
     if (value.type === "Literal") return true;
     if (value.type === "UnaryExpression" && value.operator === "void") return true;
@@ -400,7 +400,7 @@ function buildIndex(
   };
 
   const descriptorMayInstallCallable = (node: unknown): boolean => {
-    const descriptor = resolveConstValue(node, bindings);
+    const descriptor = stableAliasValue(node);
     if (!descriptor || descriptor.type !== "ObjectExpression") return true;
     let getterMayInstall = false;
     let hasGetter = false;
@@ -431,7 +431,7 @@ function buildIndex(
     node: unknown,
     descriptors: boolean,
   ): readonly string[] | null => {
-    const object = resolveConstValue(node, bindings);
+    const object = stableAliasValue(node);
     if (object && definitelyCannotInstallCallable(object)) return [];
     if (!object || object.type !== "ObjectExpression") return null;
     const properties = new Map<string, boolean>();
@@ -465,8 +465,8 @@ function buildIndex(
   const writtenObjectProperties = (node: unknown): readonly string[] | null => {
     // Object.assign ignores null and undefined sources. Treating them as an
     // unknown object would erase otherwise authoritative platform methods.
-    if (isDefinitelyNullishValue(node, bindings)) return [];
     const object = stableAliasValue(node);
+    if (object && isDefinitelyNullishValue(object, bindings)) return [];
     if (!object || object.type !== "ObjectExpression") return null;
     const properties = new Set<string>();
     for (const item of object.properties) {
