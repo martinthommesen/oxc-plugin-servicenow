@@ -212,9 +212,27 @@ g_form.getReference("caller_id");`,
 g_form.getReference("caller_id");`,
       `Reflect.apply(Object.defineProperty, Object, [g_form, "getReference", { value: localReference }]);
 g_form.getReference("caller_id");`,
+      `Reflect.apply(prepare, g_form, []);
+g_form.getReference("caller_id");`,
+      `Reflect.apply(prepare, null, [g_form]);
+g_form.getReference("caller_id");`,
+      `Reflect.construct(Preparation, [g_form]);
+g_form.getReference("caller_id");`,
+      `Reflect.deleteProperty(g_form, "getReference");
+g_form.getReference("caller_id");`,
     ]) {
       assertValid(code, RULE, options);
     }
+  });
+
+  it("tracks defaulted destructured prototype aliases as possible platform owners", () => {
+    assertValid(
+      `const { prototype: formPrototype = GlideForm.prototype } = GlideForm;
+formPrototype.getReference = localReference;
+g_form.getReference("caller_id");`,
+      RULE,
+      CLIENT,
+    );
   });
 
   it("ignores a shadowed g_form", () => {

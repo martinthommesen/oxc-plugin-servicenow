@@ -122,6 +122,10 @@ ajax.getAnswer();`,
 ajaxPrototype.getAnswer = localAnswer;
 var ajax = new GlideAjax("x_acme.UserLookup");
 ajax.getAnswer();`,
+      `const { prototype: ajaxPrototype = GlideAjax.prototype } = GlideAjax;
+ajaxPrototype.getAnswer = localAnswer;
+var ajax = new GlideAjax("x_acme.UserLookup");
+ajax.getAnswer();`,
       `GlideAjax = LocalGlideAjax;
 var ajax = new GlideAjax("x_acme.UserLookup");
 ajax.getAnswer();`,

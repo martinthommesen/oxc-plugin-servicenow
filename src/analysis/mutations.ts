@@ -207,7 +207,10 @@ function buildIndex(
     const directSeen = new Set(seen);
     directSeen.add(direct);
     const selected = resolveDestructuredConstMember(direct, bindings);
-    if (selected?.fallback === null) {
+    if (selected) {
+      // A defaulted destructuring binding may still denote the selected
+      // platform property. Mutation facts are may-facts, so retain that path
+      // even when the fallback could be chosen at runtime.
       const base = authorityGlobalPath(selected.source, directSeen);
       return base ? [...base, selected.property] : null;
     }
@@ -593,6 +596,13 @@ function buildIndex(
           return;
         }
         const direct = staticBuiltin(call.callee);
+        if (direct?.owner === "Reflect" && direct.method === "apply" && browserRuntime) {
+          // An unresolved target can mutate both its `this` value and values
+          // supplied through the arguments list.
+          recordEscapedNamespaces(call.arguments[1]);
+          recordEscapedNamespaces(call.arguments[2]);
+          return;
+        }
         // Object/Reflect intrinsics are modeled below. In particular, the
         // reviewed instance engines reject Reflect mutation helpers, so their
         // arguments must not create fictional writes.
@@ -623,12 +633,26 @@ function buildIndex(
             method === "assign" ||
             method === "setPrototypeOf")) ||
         (ownerName === "Reflect" &&
-          (method === "defineProperty" || method === "set" || method === "setPrototypeOf"));
-      if (!mutatesProperties) return;
+          (method === "defineProperty" ||
+            method === "deleteProperty" ||
+            method === "set" ||
+            method === "setPrototypeOf"));
+      if (!mutatesProperties) {
+        if (ownerName === "Reflect" && method === "construct") {
+          if (effectiveArguments === null) {
+            for (const argument of call.arguments) recordEscapedNamespaces(argument);
+          } else {
+            recordEscapedNamespaces(effectiveArguments[1]);
+          }
+        }
+        return;
+      }
       if (effectiveArguments === null) {
-        globals.add("*");
-        globalPaths.add(pathKey(["*"]));
-        objectPropertyWildcards.add("*");
+        if (method !== "deleteProperty") {
+          globals.add("*");
+          globalPaths.add(pathKey(["*"]));
+          objectPropertyWildcards.add("*");
+        }
         authority.globals.add("*");
         authority.globalPaths.add(pathKey(["*"]));
         authority.objectPropertyWildcards.add("*");
@@ -648,6 +672,10 @@ function buildIndex(
         if (!definitelyCannotInstallCallable(effectiveArguments[2])) {
           recordProperty(target, property);
         }
+        return;
+      }
+      if (ownerName === "Reflect" && method === "deleteProperty") {
+        recordProperty(target, getStaticStringValue(effectiveArguments[1]), authority);
         return;
       }
       if (method === "defineProperties") {
