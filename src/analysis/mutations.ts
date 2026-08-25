@@ -3,6 +3,8 @@ import {
   getName,
   getStaticStringValue,
   isNode,
+  nodeEnd,
+  nodeStart,
   propertyKeyName,
   unwrapExpression,
   walk,
@@ -146,45 +148,58 @@ function buildIndex(
     recordAuthorityGlobalPath(path);
   };
 
-  const stableAliasValue = (
-    node: unknown,
-    seen: ReadonlySet<number> = new Set(),
-  ): ESTree.Node | null => {
-    const value = unwrapExpression(node);
-    if (!isNode(value)) return null;
-    if (value.type === "SequenceExpression") {
-      return stableAliasValue(value.expressions.at(-1), seen);
+  const aliasValue = (node: unknown, temporal: boolean): ESTree.Node | null => {
+    let value = unwrapExpression(node);
+    const seen = new Set<number>();
+    while (isNode(value)) {
+      if (value.type === "SequenceExpression") {
+        value = unwrapExpression(value.expressions.at(-1));
+        continue;
+      }
+      if (value.type !== "Identifier") return value;
+      const binding = bindings.resolve(value.name, value);
+      const wasWritten = binding
+        ? temporal
+          ? bindingWrites.isWrittenBeforeInBoundary(binding.id, value)
+          : bindingWrites.isWritten(binding.id)
+        : false;
+      if (
+        !binding ||
+        seen.has(binding.id) ||
+        wasWritten ||
+        (binding.kind !== "const" && bindingWrites.hasDynamicScope()) ||
+        binding.declarations.length !== 1 ||
+        binding.node.type !== "VariableDeclarator"
+      ) {
+        return value;
+      }
+      const declaration = binding.node as ESTree.VariableDeclarator;
+      const initializerEnd = declaration.init ? nodeEnd(declaration.init as ESTree.Node) : -1;
+      const useStart = nodeStart(value);
+      if (
+        declaration.id.type !== "Identifier" ||
+        declaration.id.name !== binding.name ||
+        !declaration.init ||
+        initializerEnd < 0 ||
+        useStart < 0 ||
+        initializerEnd > useStart
+      ) {
+        return value;
+      }
+      seen.add(binding.id);
+      value = unwrapExpression(declaration.init);
     }
-    if (value.type !== "Identifier") return value;
-    const binding = bindings.resolve(value.name, value);
-    if (
-      !binding ||
-      seen.has(binding.id) ||
-      bindingWrites.isWritten(binding.id) ||
-      (binding.kind !== "const" && bindingWrites.hasDynamicScope()) ||
-      binding.declarations.length !== 1 ||
-      binding.node.type !== "VariableDeclarator"
-    ) {
-      return value;
-    }
-    const declaration = binding.node as ESTree.VariableDeclarator;
-    if (
-      declaration.id.type !== "Identifier" ||
-      declaration.id.name !== binding.name ||
-      !declaration.init
-    ) {
-      return value;
-    }
-    const next = new Set(seen);
-    next.add(binding.id);
-    return stableAliasValue(declaration.init, next);
+    return null;
   };
+
+  const stableAliasValue = (node: unknown): ESTree.Node | null => aliasValue(node, false);
+  const authorityAliasValue = (node: unknown): ESTree.Node | null => aliasValue(node, true);
 
   const authorityGlobalPath = (
     node: unknown,
     seen: ReadonlySet<ESTree.Node> = new Set(),
   ): readonly string[] | null => {
-    const value = stableAliasValue(node);
+    const value = authorityAliasValue(node);
     if (!value || seen.has(value)) return null;
     const next = new Set(seen);
     next.add(value);

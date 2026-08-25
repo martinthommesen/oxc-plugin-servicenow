@@ -261,6 +261,15 @@ export const BINDING_MATRIX_CASES: readonly BindingMatrixCase[] = [
     'var ajax = new GlideAjax("Example");\najax.addParam("sysparm_name", "load");\najax.getXML(callback);',
     "matrix.client.js",
   ),
+  {
+    ...silent(
+      "client-namespace-escape-before-reassign",
+      "no-client-gliderecord",
+      'var ns = global;\nprepare(ns);\nns = localNamespace;\nnew GlideRecord("incident");',
+      "matrix.client.js",
+    ),
+    settings: { scope: "scoped" } as const,
+  },
   report(
     "element-retained-in-array",
     "no-glideelement-in-collection",

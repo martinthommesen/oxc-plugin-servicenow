@@ -182,58 +182,57 @@ export function findStablePlatformConstructorCalls({
     return null;
   };
 
-  const resolveConstructor = (
-    node: unknown,
-    useBoundary: ESTree.Node,
-    seen: ReadonlySet<number> = new Set(),
-  ): string | null => {
-    const value = unwrapExpression(node);
-    if (!isNode(value)) return null;
+  const resolveConstructor = (node: unknown, useBoundary: ESTree.Node): string | null => {
+    let current = node;
+    const seen = new Set<number>();
+    while (true) {
+      const value = unwrapExpression(current);
+      if (!isNode(value)) return null;
 
-    if (value.type === "MemberExpression") {
-      const name = staticPropertyName(value);
-      const namespace = directNamespace(value.object);
-      return name &&
-        namespace &&
-        nameSet.has(name) &&
-        constructorIdentityIsStable(name) &&
-        !mutations.isGlobalPathAuthorityLost([namespace, name])
-        ? name
-        : null;
-    }
+      if (value.type === "MemberExpression") {
+        const name = staticPropertyName(value);
+        const namespace = directNamespace(value.object);
+        return name &&
+          namespace &&
+          nameSet.has(name) &&
+          constructorIdentityIsStable(name) &&
+          !mutations.isGlobalPathAuthorityLost([namespace, name])
+          ? name
+          : null;
+      }
 
-    if (value.type !== "Identifier") return null;
-    if (nameSet.has(value.name) && analysis.bindings.isPlatformGlobal(value)) {
-      return constructorIdentityIsStable(value.name) ? value.name : null;
-    }
+      if (value.type !== "Identifier") return null;
+      if (nameSet.has(value.name) && analysis.bindings.isPlatformGlobal(value)) {
+        return constructorIdentityIsStable(value.name) ? value.name : null;
+      }
 
-    const binding = analysis.bindings.resolve(value.name, value);
-    if (
-      !binding ||
-      seen.has(binding.id) ||
-      written.has(binding.id) ||
-      binding.declarations.length !== 1 ||
-      binding.node.type !== "VariableDeclarator"
-    ) {
-      return null;
-    }
-    const declaration = binding.node as ESTree.VariableDeclarator;
-    const facts = declarators.get(declaration);
-    if (
-      !facts?.isDirectStatement ||
-      facts.executionBoundary !== useBoundary ||
-      !declaration.init ||
-      !definitelyPrecedes(declaration.init, value)
-    ) {
-      return null;
-    }
+      const binding = analysis.bindings.resolve(value.name, value);
+      if (
+        !binding ||
+        seen.has(binding.id) ||
+        written.has(binding.id) ||
+        binding.declarations.length !== 1 ||
+        binding.node.type !== "VariableDeclarator"
+      ) {
+        return null;
+      }
+      const declaration = binding.node as ESTree.VariableDeclarator;
+      const facts = declarators.get(declaration);
+      if (
+        !facts?.isDirectStatement ||
+        facts.executionBoundary !== useBoundary ||
+        !declaration.init ||
+        !definitelyPrecedes(declaration.init, value)
+      ) {
+        return null;
+      }
 
-    const selected = destructuredName(declaration, binding.id);
-    if (selected) return constructorIdentityIsStable(selected) ? selected : null;
-    if (declaration.id.type !== "Identifier" || declaration.id.name !== binding.name) return null;
-    const next = new Set(seen);
-    next.add(binding.id);
-    return resolveConstructor(declaration.init, facts.executionBoundary, next);
+      const selected = destructuredName(declaration, binding.id);
+      if (selected) return constructorIdentityIsStable(selected) ? selected : null;
+      if (declaration.id.type !== "Identifier" || declaration.id.name !== binding.name) return null;
+      seen.add(binding.id);
+      current = declaration.init;
+    }
   };
 
   const findings: PlatformConstructorCallFinding[] = [];
