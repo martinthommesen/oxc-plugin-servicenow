@@ -9,7 +9,7 @@
 - **Fix safety:** diagnostic only
 - **Suggestions:** no
 - **Authoring:** classic
-- **Surfaces:** Applies to client, ui-action when those surfaces are known. Unknown surfaces stay silent.
+- **Surfaces:** Applies to client, ui-action when those surfaces are known. Mixed client/server UI Actions stay silent because execution regions are not classified. Unknown surfaces stay silent.
 - **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
 - **Last verified:** 2026-08-20
 - **Implementation:** [`src/rules/no-glideajax-getanswer.ts`](../../src/rules/no-glideajax-getanswer.ts)
@@ -19,11 +19,11 @@
 | Dimension | Value |
 | --- | --- |
 | Authoring | classic |
-| Surfaces | Applies to client, ui-action when those surfaces are known. Unknown surfaces stay silent. |
+| Surfaces | Applies to client, ui-action when those surfaces are known. Mixed client/server UI Actions stay silent because execution regions are not classified. Unknown surfaces stay silent. |
 | Minimum surface confidence | filename-inferred |
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
-| ServiceNow releases | zurich |
+| ServiceNow releases | zurich, australia |
 | Fluent SDK range | n/a |
 
 ## Options
@@ -83,12 +83,12 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
 ## Evidence
 
 - **getAnswer belongs to the synchronous getXMLWait pattern.**
-  - Verification ID: `rule-evidence-34ac8749`
+  - Verification ID: `rule-evidence-29a12bef`
   - URL: https://www.servicenow.com/docs/r/api-reference/c_GlideAjaxAPI.html
   - Verified by: manual
   - Verified at: 2026-08-20
 - **Recommended hosts report getAnswer on proven GlideAjax objects.**
-  - Verification ID: `rule-evidence-b262bad0`
+  - Verification ID: `rule-evidence-2082b02e`
   - URL: tests/integration/profiles/invalid/glideajax-getanswer.client.js
   - Verified by: integration-test
   - Verified at: 2026-08-20

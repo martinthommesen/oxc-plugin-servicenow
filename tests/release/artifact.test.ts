@@ -15,7 +15,7 @@ import {
   tarballIntegrity,
 } from "../../scripts/check-release-artifact.mjs";
 import { inspectPublishInput } from "../../scripts/publish-release-package.mjs";
-import { repoRoot } from "../integration/helpers.js";
+import { repoRoot, TSX_CLI_EXECUTION_PATTERN } from "../integration/helpers.js";
 
 const pkg = JSON.parse(readFileSync(path.join(repoRoot, "package.json"), "utf8")) as {
   name: string;
@@ -159,11 +159,13 @@ describe("release artifact gates", () => {
     assert.doesNotMatch(workflow, /npm run compat -- --all/);
     assert.match(workflow, /compat-consumer\.mjs --cell .* --tarball/);
     assert.match(workflow, /--sha256 "\$SHA256"/);
+    assert.doesNotMatch(workflow, TSX_CLI_EXECUTION_PATTERN);
     const artifactGate = readFileSync(
       path.join(repoRoot, "scripts/check-release-artifact.mjs"),
       "utf8",
     );
-    assert.match(artifactGate, /require\.resolve\("tsx\/cli"\)/);
+    assert.match(artifactGate, /execFileSync\(process\.execPath, args/);
+    assert.doesNotMatch(artifactGate, /tsx\/cli/);
     assert.doesNotMatch(artifactGate, /execFileSync\("npx", \["tsx"/);
   });
 

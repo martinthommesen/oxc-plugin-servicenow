@@ -22,6 +22,15 @@ describe("ESLint flat profile context contracts", () => {
   });
 
   it("limits the client profile to client filenames and settings", () => {
+    const scopedClient = {
+      ...configs.flat.client,
+      settings: {
+        servicenow: {
+          ...configs.flat.client.settings.servicenow,
+          scope: "scoped",
+        },
+      },
+    };
     for (const filename of [
       "x.client.js",
       "x.cs.cjs",
@@ -31,16 +40,18 @@ describe("ESLint flat profile context contracts", () => {
       "src/client/x.js",
     ]) {
       assert.ok(
-        ids(configs.flat.client, 'var gr = new GlideRecord("incident");', filename).includes(
+        ids(scopedClient, 'var gr = new GlideRecord("incident");', filename).includes(
           "servicenow/no-client-gliderecord",
         ),
         filename,
       );
     }
     assert.deepEqual(
-      ids(configs.flat.client, 'var gr = new GlideRecord("incident");', "x.server.js"),
+      ids(configs.flat.client, 'var gr = new GlideRecord("incident");', "x.client.js"),
       [],
+      "the generic client profile must not guess application scope",
     );
+    assert.deepEqual(ids(scopedClient, 'var gr = new GlideRecord("incident");', "x.server.js"), []);
   });
 
   it("limits the Business Rule profile to Business Rule files", () => {

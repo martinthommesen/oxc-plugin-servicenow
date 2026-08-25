@@ -1,6 +1,6 @@
 # servicenow/no-gliderecord-query-modifier-after-query
 
-Filters and result-shaping calls after `query()` do not change the open cursor. Report when `next()` consumes that cursor first.
+Filters and result-shaping calls after a documented query executor do not change the open cursor. Report when a consumer uses that cursor before another execution.
 
 - **Family:** classic
 - **Preset:** recommended
@@ -9,9 +9,9 @@ Filters and result-shaping calls after `query()` do not change the open cursor. 
 - **Fix safety:** diagnostic only
 - **Suggestions:** no
 - **Authoring:** classic
-- **Surfaces:** Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent.
+- **Surfaces:** Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. UI Actions require an explicit server surface; mixed client/server UI Actions stay silent because execution regions are not classified. Unknown surfaces stay silent.
 - **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
-- **Last verified:** 2026-08-20
+- **Last verified:** 2026-08-22
 - **Implementation:** [`src/rules/no-gliderecord-query-modifier-after-query.ts`](../../src/rules/no-gliderecord-query-modifier-after-query.ts)
 
 ## Applicability
@@ -19,11 +19,11 @@ Filters and result-shaping calls after `query()` do not change the open cursor. 
 | Dimension | Value |
 | --- | --- |
 | Authoring | classic |
-| Surfaces | Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent. |
+| Surfaces | Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. UI Actions require an explicit server surface; mixed client/server UI Actions stay silent because execution regions are not classified. Unknown surfaces stay silent. |
 | Minimum surface confidence | filename-inferred |
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
-| ServiceNow releases | zurich |
+| ServiceNow releases | zurich, australia |
 | Fluent SDK range | n/a |
 
 ## Options
@@ -60,7 +60,7 @@ while (incident.next()) {
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. lifecycle: Modifiers after query are findings only when a consumer uses the still-open cursor.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. lifecycle: Modifiers after a definite executor are findings only when a consumer uses the still-open cursor. A possible-only executor clears positive lifecycle facts.
 
 ## Known false positives
 
@@ -81,20 +81,30 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. lifecyc
 ## Fix safety
 
 - Classification: diagnostic only
-- Lifecycle assumptions: Modifiers after query are findings only when a consumer uses the still-open cursor.
+- Lifecycle assumptions: Modifiers after a definite executor are findings only when a consumer uses the still-open cursor. A possible-only executor clears positive lifecycle facts.
 
 ## Evidence
 
-- **Query modifiers after query() or get() do not change the open cursor.**
-  - Verification ID: `rule-evidence-f9164c6e`
-  - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordAPI.html
+- **Query modifiers after a documented query executor do not change the open cursor.**
+  - Verification ID: `rule-evidence-6fd6aef0`
+  - URL: https://www.servicenow.com/docs/r/zurich/api-reference/server-api-reference/c_GlideRecordAPI.html
   - Verified by: manual
-  - Verified at: 2026-08-20
+  - Verified at: 2026-08-22
 - **Recommended hosts report addQuery after query before next.**
-  - Verification ID: `rule-evidence-e0ffb02c`
+  - Verification ID: `rule-evidence-7a7e2bef`
   - URL: tests/integration/profiles/invalid/late-modifier.br.js
   - Verified by: integration-test
   - Verified at: 2026-08-20
+- **The Australia-scoped GlideRecord API was reviewed for the methods and lifecycle facts used by this rule.**
+  - Verification ID: `rule-evidence-b3775e07`
+  - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html
+  - Verified by: manual
+  - Verified at: 2026-08-22
+- **The Australia-global GlideRecord API was reviewed for the methods and lifecycle facts used by this rule.**
+  - Verification ID: `rule-evidence-b3c456ac`
+  - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordAPI.html
+  - Verified by: manual
+  - Verified at: 2026-08-22
 
 ## See also
 

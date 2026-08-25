@@ -9,9 +9,9 @@ WeakMap and WeakSet are disallowed in Compatibility and ES5 Standards mode. ES20
 - **Fix safety:** diagnostic only
 - **Suggestions:** no
 - **Authoring:** classic
-- **Surfaces:** Applies to client, server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent.
+- **Surfaces:** Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. UI Actions require an explicit server surface; mixed client/server UI Actions stay silent because execution regions are not classified. An explicit javascriptMode also enables documented engine checks in otherwise unclassified files.
 - **JavaScript mode:** Runs when javascriptMode is compatibility, es5. Unknown mode stays silent.
-- **Last verified:** 2026-08-20
+- **Last verified:** 2026-08-22
 - **Implementation:** [`src/rules/no-weak-collections.ts`](../../src/rules/no-weak-collections.ts)
 
 ## Applicability
@@ -19,11 +19,11 @@ WeakMap and WeakSet are disallowed in Compatibility and ES5 Standards mode. ES20
 | Dimension | Value |
 | --- | --- |
 | Authoring | classic |
-| Surfaces | Applies to client, server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent. |
+| Surfaces | Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. UI Actions require an explicit server surface; mixed client/server UI Actions stay silent because execution regions are not classified. An explicit javascriptMode also enables documented engine checks in otherwise unclassified files. |
 | Minimum surface confidence | filename-inferred |
 | JavaScript modes | compatibility, es5 |
 | Application scopes | global, scoped, unknown |
-| ServiceNow releases | zurich |
+| ServiceNow releases | zurich, australia |
 | Fluent SDK range | n/a |
 
 ## Options
@@ -76,15 +76,20 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
 ## Evidence
 
 - **WeakMap and WeakSet are unsupported in Compatibility and ES5 Standards modes.**
-  - Verification ID: `rule-evidence-14b4968c`
+  - Verification ID: `rule-evidence-387ab368`
   - URL: https://www.servicenow.com/docs/r/zurich/api-reference/scripts/javascript-engine-feature-support.html
   - Verified by: manual
   - Verified at: 2026-08-20
 - **Catalog examples cover WeakMap construction in ES5 mode.**
-  - Verification ID: `rule-evidence-86f37e88`
+  - Verification ID: `rule-evidence-5abefdec`
   - URL: src/catalog.ts
   - Verified by: fixture
   - Verified at: 2026-08-20
+- **The Australia JavaScript engine feature table was reviewed for this rule's modeled capability cells.**
+  - Verification ID: `rule-evidence-dcd2c521`
+  - URL: https://www.servicenow.com/docs/r/api-reference/scripts/javascript-engine-feature-support.html
+  - Verified by: manual
+  - Verified at: 2026-08-22
 
 ## See also
 

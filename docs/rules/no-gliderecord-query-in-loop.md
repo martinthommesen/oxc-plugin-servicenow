@@ -1,6 +1,6 @@
 # servicenow/no-gliderecord-query-in-loop
 
-A `query()` or `get()` inside a proven GlideRecord / GlideAggregate `.next()` loop is an N+1 pattern. Unrelated iterators with `.next()` do not establish cursor depth.
+A query inside a proven record cursor loop is an N+1 pattern. Direct IIFEs and stable one-call-site local helpers inherit cursor depth. GlideRecord uses release-keyed executors and `.next()` / `._next()`; GlideAggregate uses its directly documented `query()` / `.next()` lifecycle. Unrelated iterators stay silent.
 
 - **Family:** classic
 - **Preset:** strict
@@ -9,9 +9,9 @@ A `query()` or `get()` inside a proven GlideRecord / GlideAggregate `.next()` lo
 - **Fix safety:** diagnostic only
 - **Suggestions:** no
 - **Authoring:** classic
-- **Surfaces:** Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent.
+- **Surfaces:** Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. UI Actions require an explicit server surface; mixed client/server UI Actions stay silent because execution regions are not classified. Unknown surfaces stay silent.
 - **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
-- **Last verified:** 2026-08-20
+- **Last verified:** 2026-08-22
 - **Implementation:** [`src/rules/no-gliderecord-query-in-loop.ts`](../../src/rules/no-gliderecord-query-in-loop.ts)
 
 ## Applicability
@@ -19,11 +19,11 @@ A `query()` or `get()` inside a proven GlideRecord / GlideAggregate `.next()` lo
 | Dimension | Value |
 | --- | --- |
 | Authoring | classic |
-| Surfaces | Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent. |
+| Surfaces | Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. UI Actions require an explicit server surface; mixed client/server UI Actions stay silent because execution regions are not classified. Unknown surfaces stay silent. |
 | Minimum surface confidence | filename-inferred |
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
-| ServiceNow releases | zurich |
+| ServiceNow releases | zurich, australia |
 | Fluent SDK range | n/a |
 
 ## Options
@@ -46,6 +46,18 @@ while (incident.next()) {
 }
 ```
 
+### Incorrect: query in a stable helper
+
+```js
+function loadCaller(id) {
+  var caller = new GlideRecord("sys_user");
+  caller.get(id);
+}
+var incident = new GlideRecord("incident");
+incident.query();
+while (incident.next()) loadCaller(incident.getValue("caller_id"));
+```
+
 ## Correct
 
 ### Correct: display value
@@ -60,7 +72,7 @@ while (incident.next()) {
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. lifecycle: Only a proven unescaped GlideRecord or GlideAggregate next() receiver establishes cursor depth.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-negative: Mutable helpers and helpers with multiple direct call sites stay silent because shared provenance is not call-context-sensitive. false-negative: Indirect `.call()`, `.apply()`, `.bind()`, constructor, and deferred callback invocations do not inherit cursor depth. lifecycle: A proven GlideRecord next() / _next() or GlideAggregate next() receiver establishes cursor depth. Direct IIFEs and direct calls to an unmodified local function with one statically visible call site inherit that depth. GlideRecord executors must be definite for the configured scope. GlideAggregate analysis follows its directly documented query() / next() lifecycle; inherited or undocumented executors and cursor aliases stay silent.
 
 ## Known false positives
 
@@ -68,7 +80,8 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. lifecyc
 
 ## Known false negatives
 
-- None recorded.
+- Mutable helpers and helpers with multiple direct call sites stay silent because shared provenance is not call-context-sensitive.
+- Indirect `.call()`, `.apply()`, `.bind()`, constructor, and deferred callback invocations do not inherit cursor depth.
 
 ## Intentional scope boundaries
 
@@ -81,25 +94,55 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. lifecyc
 ## Fix safety
 
 - Classification: diagnostic only
-- Lifecycle assumptions: Only a proven unescaped GlideRecord or GlideAggregate next() receiver establishes cursor depth.
+- Lifecycle assumptions: A proven GlideRecord next() / _next() or GlideAggregate next() receiver establishes cursor depth. Direct IIFEs and direct calls to an unmodified local function with one statically visible call site inherit that depth. GlideRecord executors must be definite for the configured scope. GlideAggregate analysis follows its directly documented query() / next() lifecycle; inherited or undocumented executors and cursor aliases stay silent.
 
 ## Evidence
 
-- **query or get inside a next() loop is an N+1 pattern on the GlideRecord cursor.**
-  - Verification ID: `rule-evidence-93626115`
-  - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html
+- **A documented GlideRecord query executor inside a next() or _next() loop is an N+1 pattern.**
+  - Verification ID: `rule-evidence-7780d508`
+  - URL: https://www.servicenow.com/docs/r/zurich/api-reference/server-api-reference/c_GlideRecordScopedAPI.html
   - Verified by: manual
-  - Verified at: 2026-08-20
+  - Verified at: 2026-08-22
+- **GlideAggregate documents query() and next() for aggregate cursor iteration.**
+  - Verification ID: `rule-evidence-14a281ed`
+  - URL: https://www.servicenow.com/docs/r/zurich/api-reference/server-api-reference/c_GlideAggregateScopedAPI.html
+  - Verified by: manual
+  - Verified at: 2026-08-22
 - **Strict hosts report a nested query inside a proven cursor loop.**
-  - Verification ID: `rule-evidence-d3e2997d`
+  - Verification ID: `rule-evidence-7856011f`
   - URL: tests/integration/profiles/invalid/nested-cursor-query.br.js
   - Verified by: integration-test
   - Verified at: 2026-08-20
 - **Custom iterators with next() do not establish cursor depth.**
-  - Verification ID: `rule-evidence-57475c2d`
+  - Verification ID: `rule-evidence-8f290b53`
   - URL: tests/integration/profiles/valid/custom-iterator-loop.br.js
   - Verified by: integration-test
   - Verified at: 2026-08-20
+- **Stable one-call-site local helpers inherit cursor depth; mutable, multiply called, generator, shadowed, and indirect helpers stay silent.**
+  - Verification ID: `rule-evidence-81ea46a1`
+  - URL: tests/rules/phase3.test.ts
+  - Verified by: fixture
+  - Verified at: 2026-08-22
+- **The Australia-scoped GlideRecord API was reviewed for the methods and lifecycle facts used by this rule.**
+  - Verification ID: `rule-evidence-0aa93fce`
+  - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html
+  - Verified by: manual
+  - Verified at: 2026-08-22
+- **The Australia-global GlideRecord API was reviewed for the methods and lifecycle facts used by this rule.**
+  - Verification ID: `rule-evidence-2bc8eb5d`
+  - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordAPI.html
+  - Verified by: manual
+  - Verified at: 2026-08-22
+- **The Australia-scoped GlideAggregate API was reviewed for the methods and lifecycle facts used by this rule.**
+  - Verification ID: `rule-evidence-6b04aafc`
+  - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideAggregateScopedAPI.html
+  - Verified by: manual
+  - Verified at: 2026-08-22
+- **The Australia-global GlideAggregate API was reviewed for the methods and lifecycle facts used by this rule.**
+  - Verification ID: `rule-evidence-b2643a55`
+  - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideAggregateAPI.html
+  - Verified by: manual
+  - Verified at: 2026-08-22
 
 ## See also
 

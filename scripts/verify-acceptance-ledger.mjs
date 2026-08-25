@@ -469,7 +469,7 @@ export async function main(argv = process.argv.slice(2)) {
     },
     commands: [
       "node scripts/run-tests.mjs --report-json artifacts/pr51-test-results.json",
-      "tsx scripts/verify-acceptance-ledger.mjs",
+      "node scripts/verify-acceptance-ledger.mjs",
     ],
     testResults,
     summary,

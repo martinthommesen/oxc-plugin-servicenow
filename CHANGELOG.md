@@ -2,9 +2,36 @@
 
 ## Unreleased
 
+### Added
+
+- Full Australia release support: release-keyed JavaScript-engine capabilities, an exact 102-method scoped/global GlideRecord inventory, pinned official source markers, Australia SDK 4.4 manifest-selection coverage, real Oxlint/ESLint release contracts, and generated compatibility metadata.
+- New `no-object-hasown` rule for Zurich and Compatibility/ES5 scripts. Australia ES2021 correctly permits `Object.hasOwn()`.
+- `no-typed-arrays` now models Australia BigInt64 array support and detects unsupported constructors, static `from`/`of` factories, and documented `DataView` BigInt getters through proven object aliases.
+
 ### Fixed
 
+- Private instance fields, methods, and accessors now report the documented ES2021 Not Supported status for both Zurich and Australia; private static members remain Supported.
+- Omitting `settings.servicenow.release` now keeps release-dependent facts unknown instead of silently selecting Zurich.
+- Australia support is fail-closed: every catalog rule requires an explicit, release-keyed review basis before a new release can appear in generated applicability metadata.
+- Engine feature rules recognize safe availability guards and proven global aliases while conservatively suppressing diagnostics after relevant global, constructor, prototype, or instance mutations.
+- `no-client-gliderecord` now reports only in scoped client applications, matching the documented global/scoped API split, and stays silent for mixed client/server UI Actions.
+- `no-packages-calls` is now an opt-in server-side migration policy instead of a recommended correctness error because the Australia removal tool is narrower than every `Packages.*` call and records executing on a MID Server need separate review.
+- GlideElement collection analysis now treats all documented Australia GlideRecord methods as methods rather than possible fields, while query lifecycle rules continue to model only methods with proven roles.
+- Catalog verification IDs are now scoped to the rule-to-evidence assertion, so shared Australia source cells remain independently auditable without duplicate ledger identities.
+- Published README and rule `docs.url` links now target the immutable `v<package version>` repository tag instead of omitted tarball paths or mutable `main`; the documentation gate rejects new relative package links.
+- `fluent-directives` now describes ServiceNow SDK controls without falsely implying that `@fluent-ignore` suppresses Oxlint or ESLint diagnostics; real-host fixtures lock in that boundary.
+- Every rule's host-facing `meta.docs.recommended` flag now derives from catalog placements instead of stale per-file declarations.
+- `no-complex-fluent-logic` now applies its documented multi-statement threshold equally to ordinary function expressions and arrow functions.
+- Fluent SDK manifest auditing now accepts only exact `registry.npmjs.org` artifact URLs, rejects redirects, caps metadata and compressed-tarball response bytes, and times out stalled fetches before pinned-integrity and decompression checks.
+- `no-glideelement-in-collection` now follows path-proven local field aliases through reassignment, shadowing, all-path branch joins, nested literals, escapes, and immediately invoked function parameters; numeric update coercion also invalidates shared object aliases.
+- The public `analyzeProvenance(context, ast)` overload once again analyzes the supplied AST, partitions its cache by tree identity, and never applies the host parser's scope graph to foreign nodes.
+- Engine compatibility diagnostics now stay silent when a relevant namespace object escapes to an unknown helper that could install replacement methods, while passing the method value itself does not taint its owner.
+- Unknown JavaScript mode now conservatively records possible `globalThis` mutations, and cyclic destructured platform-global aliases terminate safely instead of overflowing the analysis stack.
+- `no-gliderecord-query-in-loop` now carries proven cursor depth through direct calls to stable one-call-site local helpers, while mutable, multiply called, generator, shadowed, dynamically scoped, and indirect helpers remain conservatively silent.
+- Stable helper calls now evaluate parameter defaults for explicit, provably `undefined` arguments and stop expanding immutable aliases before dynamic-scope resolution can become ambiguous.
 - Release validation now rejects tags that do not point to the exact current protected `main` tip.
+- GlideRecord lifecycle analysis now recognizes the documented `_query()`, `_next()`, and global-only `queryNoDomain()` APIs without guessing when application scope is unknown.
+- ESLint no longer suppresses same-offset query lifecycle diagnostics in later files through retained `createOnce` state.
 
 ## 2.0.0 — 2026-08-22
 

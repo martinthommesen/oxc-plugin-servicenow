@@ -88,7 +88,6 @@ export const noHardcodedSysid = defineRule({
     docs: {
       description:
         "Disallow hardcoded ServiceNow sys_ids. Store them in system properties, constants, or Fluent `Now.ID`.",
-      recommended: "recommended",
       url: ruleDocsUrl("no-hardcoded-sysid"),
     },
     schema: schemaFromDescriptor(noHardcodedSysidOptions),

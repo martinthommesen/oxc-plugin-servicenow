@@ -4,7 +4,7 @@ Decision date: 2026-08-19.
 
 ## `prefer-setnocount-with-choosewindow` — implement
 
-Zurich scoped GlideRecord documents that `query()` after `chooseWindow()` runs `COUNT(*)`. `setNoCount()` skips that count. `setLimit()` also skips it.
+The reviewed Zurich and Australia scoped GlideRecord references document that `query()` after `chooseWindow()` runs `COUNT(*)`. `setNoCount()` skips that count. `setLimit()` also skips it.
 
 Evidence: [Scoped GlideRecord.chooseWindow and setNoCount](https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html)
 

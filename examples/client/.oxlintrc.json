@@ -10,7 +10,8 @@
     "servicenow": {
       "surfaces": [
         "client"
-      ]
+      ],
+      "scope": "scoped"
     }
   },
   "rules": {

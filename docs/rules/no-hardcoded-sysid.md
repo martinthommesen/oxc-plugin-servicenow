@@ -9,7 +9,7 @@ Hardcoded 32-character sys_ids break when an app is installed on another instanc
 - **Fix safety:** diagnostic only
 - **Suggestions:** no
 - **Authoring:** classic
-- **Surfaces:** Applies to client, server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent.
+- **Surfaces:** Applies to client, server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. UI Actions require an explicit server surface; mixed client/server UI Actions stay silent because execution regions are not classified. Unknown surfaces stay silent.
 - **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
 - **Last verified:** 2026-08-21
 - **Implementation:** [`src/rules/no-hardcoded-sysid.ts`](../../src/rules/no-hardcoded-sysid.ts)
@@ -19,11 +19,11 @@ Hardcoded 32-character sys_ids break when an app is installed on another instanc
 | Dimension | Value |
 | --- | --- |
 | Authoring | classic |
-| Surfaces | Applies to client, server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent. |
+| Surfaces | Applies to client, server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. UI Actions require an explicit server surface; mixed client/server UI Actions stay silent because execution regions are not classified. Unknown surfaces stay silent. |
 | Minimum surface confidence | filename-inferred |
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
-| ServiceNow releases | zurich |
+| ServiceNow releases | zurich, australia |
 | Fluent SDK range | n/a |
 
 ## Options
@@ -80,12 +80,12 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
 ## Evidence
 
 - **Named Fluent Now.ID keys are the supported portable identity, not raw sys_id literals.**
-  - Verification ID: `rule-evidence-5b7be311`
+  - Verification ID: `rule-evidence-2d6f67d8`
   - URL: https://www.servicenow.com/docs/r/application-development/servicenow-sdk/fluent-constructs.html
   - Verified by: manual
   - Verified at: 2026-08-20
 - **Literal, uppercase, concatenated, and static-template sys_ids report; exact allow-lists and algorithm-specific hash contexts suppress.**
-  - Verification ID: `rule-evidence-5620fb82`
+  - Verification ID: `rule-evidence-586f6257`
   - URL: tests/rules/no-hardcoded-sysid.test.ts
   - Verified by: fixture
   - Verified at: 2026-08-21

@@ -195,6 +195,26 @@ describe("profile fixtures", () => {
     );
   });
 
+  it("does not treat Fluent SDK directives as lint-disable comments in either host", () => {
+    const filename = "fluent-ignore-does-not-disable-lint.now.ts";
+    const file = path.join(invalidDir, filename);
+    const oxlintRules = pluginRulesFor(runOxlint(recommendedConfig, [file]));
+    assert.ok(
+      oxlintRules.includes("servicenow/require-fluent-id"),
+      `Oxlint SDK ignore directive: ${oxlintRules.join(", ") || "(none)"}`,
+    );
+    assert.ok(!oxlintRules.includes("servicenow/fluent-directives"));
+
+    const eslintRules = eslintRecommended(readFileSync(file, "utf8"), filename)
+      .map((message) => message.ruleId)
+      .filter((id): id is string => Boolean(id));
+    assert.ok(
+      eslintRules.includes("servicenow/require-fluent-id"),
+      `ESLint SDK ignore directive: ${eslintRules.join(", ") || "(none)"}`,
+    );
+    assert.ok(!eslintRules.includes("servicenow/fluent-directives"));
+  });
+
   it("client rules do not leak onto a server UI Action", () => {
     const rules = pluginRulesFor(
       runOxlint(recommendedConfig, [path.join(validDir, "close.ui-action.js")]),

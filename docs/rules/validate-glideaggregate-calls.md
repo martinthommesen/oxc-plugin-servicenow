@@ -9,9 +9,9 @@ A proven GlideAggregate must call `query()` before `next()` or `getAggregate()`.
 - **Fix safety:** diagnostic only
 - **Suggestions:** no
 - **Authoring:** classic
-- **Surfaces:** Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent.
+- **Surfaces:** Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. UI Actions require an explicit server surface; mixed client/server UI Actions stay silent because execution regions are not classified. Unknown surfaces stay silent.
 - **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
-- **Last verified:** 2026-08-20
+- **Last verified:** 2026-08-22
 - **Implementation:** [`src/rules/validate-glideaggregate-calls.ts`](../../src/rules/validate-glideaggregate-calls.ts)
 
 ## Applicability
@@ -19,11 +19,11 @@ A proven GlideAggregate must call `query()` before `next()` or `getAggregate()`.
 | Dimension | Value |
 | --- | --- |
 | Authoring | classic |
-| Surfaces | Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent. |
+| Surfaces | Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. UI Actions require an explicit server surface; mixed client/server UI Actions stay silent because execution regions are not classified. Unknown surfaces stay silent. |
 | Minimum surface confidence | filename-inferred |
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
-| ServiceNow releases | zurich |
+| ServiceNow releases | zurich, australia |
 | Fluent SDK range | n/a |
 
 ## Options
@@ -84,13 +84,18 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. lifecyc
 
 ## Evidence
 
-- **getAggregate reads a tuple that addAggregate registered before the open query.**
-  - Verification ID: `rule-evidence-2fafa11a`
-  - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html
+- **The Australia GlideAggregate API documents addAggregate before query and getAggregate on the returned aggregate result.**
+  - Verification ID: `rule-evidence-64dc5caa`
+  - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideAggregateScopedAPI.html
   - Verified by: manual
-  - Verified at: 2026-08-20
+  - Verified at: 2026-08-22
+- **The Australia global GlideAggregate API documents the corresponding aggregate lifecycle methods.**
+  - Verification ID: `rule-evidence-bdbab258`
+  - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideAggregateAPI.html
+  - Verified by: manual
+  - Verified at: 2026-08-22
 - **Type-only COUNT does not satisfy a field-specific getAggregate.**
-  - Verification ID: `rule-evidence-00591c39`
+  - Verification ID: `rule-evidence-653ed72c`
   - URL: tests/integration/profiles/invalid/aggregate-type-only-field.br.js
   - Verified by: integration-test
   - Verified at: 2026-08-20

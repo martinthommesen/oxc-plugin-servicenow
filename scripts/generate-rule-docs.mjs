@@ -6,6 +6,9 @@ import { pathToFileURL } from "node:url";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 const { ruleCatalog } = await import(pathToFileURL(join(root, "src/catalog.ts")).href);
+const { PACKAGE_GIT_REF, REPOSITORY_URL } = await import(
+  pathToFileURL(join(root, "src/constants.ts")).href
+);
 const presets110 = JSON.parse(
   await readFile(join(root, "tests/fixtures/presets-1.1.0.json"), "utf8"),
 );
@@ -43,7 +46,7 @@ function fenceLang(filename) {
 }
 
 function tableRow(rule, includeFix) {
-  const link = `[\`${rule.name}\`](docs/rules/${rule.name}.md)`;
+  const link = `[\`${rule.name}\`](${rule.docsUrl})`;
   const preset = presetLabel(rule);
   const fix = rule.fixable ? "fix" : rule.hasSuggestions ? "suggest" : "";
   const catchText = markdownTableCell(summary(rule));
@@ -112,6 +115,27 @@ function migrationTable() {
   ].join("\n");
 }
 
+function repositoryLinks() {
+  const blob = `${REPOSITORY_URL}/blob/${PACKAGE_GIT_REF}`;
+  const tree = `${REPOSITORY_URL}/tree/${PACKAGE_GIT_REF}`;
+  return [
+    `[repository-examples]: ${blob}/examples/README.md`,
+    ...[
+      "classic-compatibility",
+      "classic-es5",
+      "es2021",
+      "client",
+      "business-rule",
+      "ui-action",
+      "fluent",
+      "mixed",
+    ].map((name) => `[repository-example-${name}]: ${tree}/examples/${name}`),
+    `[repository-contributing]: ${blob}/CONTRIBUTING.md`,
+    `[repository-rule-authoring]: ${blob}/docs/rule-authoring.md`,
+    `[repository-non-goals]: ${blob}/docs/non-goals.md`,
+  ].join("\n");
+}
+
 async function writeRuleDocs() {
   const keep = new Set();
   for (const rule of ruleCatalog) {
@@ -157,6 +181,10 @@ async function writeRuleDocs() {
         ? "n/a"
         : rule.applicability.javascriptModes.join(", ");
     const sdkRange = rule.applicability.fluentSdkRange ?? "n/a";
+    const serviceNowReleaseRange =
+      rule.family === "fluent"
+        ? "n/a (Fluent SDK-versioned)"
+        : rule.applicability.serviceNowReleases.join(", ");
     const lifecycle = rule.lifecycleAssumptions ?? "No extra lifecycle assumptions.";
     const placements = rule.placements
       .map((placement) => `${placement.profile} (${placement.severity})`)
@@ -199,7 +227,7 @@ ${rule.description}
 | Minimum surface confidence | ${markdownTableCell(rule.applicability.minimumSurfaceConfidence)} |
 | JavaScript modes | ${markdownTableCell(modes)} |
 | Application scopes | ${markdownTableCell(rule.applicability.scopes.join(", "))} |
-| ServiceNow releases | ${markdownTableCell(rule.applicability.serviceNowReleases.join(", "))} |
+| ServiceNow releases | ${markdownTableCell(serviceNowReleaseRange)} |
 | Fluent SDK range | ${markdownTableCell(sdkRange)} |
 
 ## Options
@@ -283,6 +311,7 @@ async function writeReadmeTables() {
   readme = replaceMarkedSection(readme, "engine-rules", engine);
   readme = replaceMarkedSection(readme, "fluent-rules", fluent);
   readme = replaceMarkedSection(readme, "migration-1.1-to-2.0", migrationTable());
+  readme = replaceMarkedSection(readme, "repository-links", repositoryLinks());
   await writeFile(readmePath, readme);
   console.log("updated README rule tables");
 }

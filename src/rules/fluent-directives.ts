@@ -161,7 +161,7 @@ export const fluentDirectives = defineRule({
     type: "suggestion",
     docs: {
       description:
-        "Validate ServiceNow Fluent directives (`@fluent-ignore`, `@fluent-disable-sync`, `@fluent-disable-sync-for-file`) and catch typos. Previous-line directives attach to the next statement.",
+        "Validate documented ServiceNow Fluent SDK directive names and placement. SDK directives are not Oxlint or ESLint disable comments.",
       url: ruleDocsUrl("fluent-directives"),
     },
     schema: [],
@@ -169,11 +169,11 @@ export const fluentDirectives = defineRule({
       unknown: "Unknown Fluent directive `@{{name}}`. Supported directives: {{supported}}.",
       typo: "Unknown Fluent directive `@{{name}}`. Did you mean `@{{suggestion}}`?",
       dangling:
-        "`@{{name}}` has no following statement to suppress. Place it on the line immediately above the diagnostic.",
+        "`@{{name}}` has no following statement for the Fluent SDK to act on. Place it immediately above its target statement.",
       misplaced:
-        "`@{{name}}` is not attached to the immediately following statement. Place it on the previous line of that statement.",
+        "`@{{name}}` is not attached to its target statement. Place it on the line immediately before that statement.",
       tsIgnore:
-        "`@ts-ignore` does not suppress Fluent diagnostics. Use `@fluent-ignore` on the previous line.",
+        "`@{{name}}` is a TypeScript compiler directive, not a ServiceNow Fluent SDK directive or an Oxlint/ESLint disable comment.",
       firstLine:
         "`@fluent-disable-sync-for-file` applies to the whole file and must be on the first non-empty line after an optional BOM.",
     },
@@ -200,6 +200,7 @@ export const fluentDirectives = defineRule({
             context.report({
               loc: occurrenceAt(comment, text, tsMatch.index, tsMatch[0].length).loc,
               messageId: "tsIgnore",
+              data: { name: tsMatch[0].slice(1) },
             });
           }
 

@@ -16,6 +16,7 @@ CI runs every cell under its exact Node runtime. Local `npm run compat` uses the
 | typescript-eslint | `>=8.0.0 <9` (optional) | 8.0.0 | 8.67.0 |
 | TypeScript parser runtime | optional parser dependency | 5.5.4 | 6.0.3 |
 | Fluent SDK knowledge | selected `fluentSdkVersion` | 3.0.0, 3.0.1, 3.0.2, 3.0.3, 4.0.0, 4.0.1, 4.0.2, 4.1.0, 4.1.1, 4.2.0, 4.3.0, 4.4.0, 4.4.1, 4.5.0, 4.6.0, 4.6.1, 4.7.0, 4.7.1, 4.7.2, 4.8.0, 4.8.1, 4.9.0, 4.9.1, 4.9.2, 4.10.0, 4.10.1, 4.11.0 | unspecified selects the current manifest |
+| ServiceNow release knowledge | selected `release` | zurich, australia | unspecified uses only facts shared by every listed release |
 | ServiceNow JavaScript | `compatibility`, `es5`, `es2021`, `unknown` | all listed modes | unknown never assumes ES5 |
 
 ## Packed-consumer matrix
@@ -38,4 +39,4 @@ Consumer applications use the same Node floor. There is no separate older consum
 
 ## Documentation URLs
 
-Rule `docs.url` values point at `blob/main/docs/rules`. Release tags keep those files on `main` until a versioned docs path is generated from the published tag.
+Rule `docs.url` values point at the immutable `v2.0.0` release tag. The protected release workflow verifies that tag before publishing the corresponding package.

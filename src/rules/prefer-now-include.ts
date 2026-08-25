@@ -24,7 +24,6 @@ export const preferNowInclude = defineRule({
     docs: {
       description:
         "Prefer `Now.include()` (or an imported server module) for large Fluent script / markup fields.",
-      recommended: "recommended",
       url: ruleDocsUrl("prefer-now-include"),
     },
     schema: schemaFromDescriptor(preferNowIncludeOptions),

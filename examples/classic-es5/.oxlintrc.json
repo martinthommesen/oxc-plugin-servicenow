@@ -21,6 +21,7 @@
     "servicenow/no-at-method": "error",
     "servicenow/no-weak-references": "error",
     "servicenow/no-weak-collections": "error",
+    "servicenow/no-object-hasown": "error",
     "servicenow/no-typed-arrays": "error",
     "servicenow/no-proxy": "error",
     "servicenow/no-unsupported-syntax": "error",

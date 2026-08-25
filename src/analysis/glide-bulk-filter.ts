@@ -104,7 +104,7 @@ export function findUnfilteredBulkOperations(
         }
         return;
       }
-      if (!analysis.glide.knownMethods.has(property) && rec.data.filtered !== true) {
+      if (!analysis.glide.modeledMethods.has(property) && rec.data.filtered !== true) {
         rec.data.filtered = "unknown";
         rec.data.uncertain = true;
       }

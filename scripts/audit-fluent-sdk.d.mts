@@ -1,4 +1,10 @@
 export function verifyIntegrity(bytes: Buffer, integrity: string, label: string): void;
+export function canonicalRegistryTarballUrl(value: string, name: string, version: string): string;
+export function readResponseBytes(
+  response: Response,
+  label: string,
+  maxBytes: number,
+): Promise<Buffer>;
 export function tarFiles(tgz: Buffer, label: string, maxOutputLength?: number): Map<string, Buffer>;
 export function exportTarget(value: unknown): string | null;
 export function parseModule(filename: string, source: string): unknown;

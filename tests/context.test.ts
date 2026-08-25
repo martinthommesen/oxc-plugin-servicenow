@@ -5,6 +5,7 @@ import { parse } from "./helpers/rule-tester.js";
 import { applyRules } from "../src/runtime/apply-rules.js";
 import { resolveScriptContext } from "../src/context/resolve.js";
 import { validateServiceNowSettings, ServiceNowSettingsError } from "../src/settings/index.js";
+import { SUPPORTED_SERVICENOW_RELEASES } from "../src/settings/releases.js";
 import { classifyFile } from "../src/utils/filenames.js";
 import { assertInvalid, assertValid, ES2021, lint } from "./helpers/rule-tester.js";
 
@@ -163,8 +164,11 @@ describe("release and context resolution", () => {
     assert.equal(script.sources.surfaces, "explicit");
   });
 
-  it("accepts the documented Zurich release and rejects unknown values", () => {
-    assert.equal(validateServiceNowSettings({ release: "zurich" }).settings.release, "zurich");
+  it("accepts every reviewed release and rejects unknown values", () => {
+    for (const release of SUPPORTED_SERVICENOW_RELEASES) {
+      assert.equal(validateServiceNowSettings({ release }).settings.release, release);
+    }
+    assert.equal(validateServiceNowSettings({}).settings.release, undefined);
     assert.throws(() => validateServiceNowSettings({ release: "zurichx" }), /release.*one of/);
   });
 
@@ -173,7 +177,7 @@ describe("release and context resolution", () => {
       `var gr = new GlideRecord("incident");`,
       "no-client-gliderecord",
       { messageId: "glideRecord" },
-      { filename: "incident.now.ts", settings: { scriptType: "client" } },
+      { filename: "incident.now.ts", settings: { scriptType: "client", scope: "scoped" } },
     );
   });
 
@@ -372,7 +376,7 @@ describe("UI Action surfaces", () => {
 var gr = new GlideRecord("incident");`,
       "no-client-gliderecord",
       { messageId: "glideRecord" },
-      { filename: "close.ui-action.js" },
+      { filename: "close.ui-action.js", settings: { scope: "scoped" } },
     );
   });
 
@@ -411,7 +415,10 @@ gr.next();`,
       `var gr = new GlideRecord("incident");`,
       "no-client-gliderecord",
       { messageId: "glideRecord" },
-      { filename: "close.ui-action.js", settings: { surfaces: ["ui-action", "client"] } },
+      {
+        filename: "close.ui-action.js",
+        settings: { surfaces: ["ui-action", "client"], scope: "scoped" },
+      },
     );
   });
 

@@ -6,6 +6,7 @@ import type { ProvenanceQuery, QueryState } from "./provenance.js";
 export interface MissingQueryFinding {
   node: ESTree.CallExpression;
   name: string;
+  method: string;
 }
 
 interface QueryData {
@@ -15,7 +16,8 @@ interface QueryData {
 /**
  * Path-sensitive query-before-next for proven GlideRecord object identities.
  *
- * Reports whenever a reachable path to `next()` lacks a proven query/get.
+ * Reports whenever a reachable path to a cursor advance lacks a proven query
+ * executor.
  * A merged `unknown` state is unsafe for a must-fact and is therefore reported;
  * escaped or unproven receivers remain silent. `chooseWindow` does not open a cursor.
  * Executors come from the versioned GlideRecord manifest.
@@ -38,7 +40,7 @@ export function findMissingQueryBeforeNext(
     }),
     onCall({ call, rec, objectName, property }) {
       if (!rec || !property) return;
-      if (analysis.glide.executors.has(property)) {
+      if (analysis.glide.possibleExecutors.has(property)) {
         rec.data.queryState = "opened";
       }
       if (
@@ -48,7 +50,7 @@ export function findMissingQueryBeforeNext(
         const key = nodeStart(call);
         if (!reported.has(key)) {
           reported.add(key);
-          findings.push({ node: call, name: objectName ?? "record" });
+          findings.push({ node: call, name: objectName ?? "record", method: property });
         }
       }
     },

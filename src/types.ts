@@ -6,7 +6,7 @@ import type { ServiceNowRelease } from "./settings/releases.js";
  *
  * Unknown means the plugin does not know the mode and must not assume ES5.
  *
- * @see https://www.servicenow.com/docs/r/xanadu/api-reference/scripts/c_JS_modes.html
+ * @see https://www.servicenow.com/docs/r/api-reference/scripts/c_JS_modes.html
  */
 export type JavaScriptMode = "compatibility" | "es5" | "es2021" | "unknown";
 
@@ -122,7 +122,7 @@ export interface ServiceNowSettings {
   scope?: ApplicationScope;
   /** Application scope prefix, for example `x_acme`. Used by naming rules. */
   scopePrefix?: string;
-  /** ServiceNow release identifier used for versioned knowledge, for example `zurich`. */
+  /** ServiceNow release identifier used for versioned knowledge, for example `australia`. */
   release?: ServiceNowRelease;
   /** How Business Rule source is stored when that is known. */
   businessRuleSourceFormat?: BusinessRuleSourceFormat;

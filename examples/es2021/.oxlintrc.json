@@ -9,6 +9,7 @@
   "settings": {
     "servicenow": {
       "javascriptMode": "es2021",
+      "release": "australia",
       "surfaces": [
         "server"
       ]
@@ -16,7 +17,9 @@
   },
   "rules": {
     "servicenow/no-weak-references": "error",
+    "servicenow/no-object-hasown": "error",
     "servicenow/no-typed-arrays": "error",
+    "servicenow/no-unsupported-syntax": "error",
     "servicenow/no-async-iterators": "error"
   }
 }

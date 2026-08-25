@@ -24,7 +24,7 @@ npm run validate
 
 That command checks workflow action pins and the compatibility matrix; runs lint, format, project and fixture typechecking, build, tests, and Fluent-manifest verification; then checks evidence, acceptance, generated-documentation consistency, benchmarks, and the release artifact with a packed consumer.
 
-`npm test` runs the serial TypeScript suite through `scripts/run-tests.mjs`, then runs `npm run fluent:check`. The test runner lists every `*.test.ts` file and passes the list to `tsx --test`. Do not use a quoted `tests/**/*.test.ts` glob. Node 20 treats that path as one missing file.
+`npm test` runs the serial TypeScript suite through `scripts/run-tests.mjs`, then runs `npm run fluent:check`. The test runner lists every `*.test.ts` file and passes the list to Node's test runner with the project-local `tsx` loader. Do not use a quoted `tests/**/*.test.ts` glob. Node 20 treats that path as one missing file.
 
 ## Add a rule
 
@@ -45,7 +45,7 @@ Read [Non-goals and rejected rule ideas](docs/non-goals.md) before you propose a
 - Recognize platform APIs with binding and provenance helpers. Do not match `gs`, `Promise`, or `GlideRecord` by name alone.
 - When provenance, mode, or surface is unknown, suppress the diagnostic.
 - Message text should say what is wrong and what to do instead.
-- Do not invent Fluent APIs. Update the version-pinned declaration fixture with `npm run manifest:update`.
+- Do not invent Fluent APIs. Update the version-pinned declaration fixture with `npm run manifest:update`. The auditor accepts only exact npm-registry artifact URLs and enforces response, decompression, declaration, and graph-work limits before updating reviewed evidence; do not weaken those bounds to accommodate an unexplained upstream artifact.
 
 ## Autofixes
 

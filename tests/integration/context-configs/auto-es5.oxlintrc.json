@@ -1,7 +1,7 @@
 {
   "$schema": "../../../node_modules/oxlint/configuration_schema.json",
   "jsPlugins": [{ "name": "servicenow", "specifier": "../../.." }],
-  "settings": { "servicenow": { "javascriptMode": "es5" } },
+  "settings": { "servicenow": { "javascriptMode": "es5", "scope": "scoped" } },
   "rules": {
     "servicenow/no-client-gliderecord": "error",
     "servicenow/no-gs-now": "error",

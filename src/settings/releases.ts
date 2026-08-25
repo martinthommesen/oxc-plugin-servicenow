@@ -3,7 +3,7 @@
  * capability metadata. Keep this list deliberately finite: accepting an
  * arbitrary string would make a typo silently select the current knowledge.
  */
-export const SUPPORTED_SERVICENOW_RELEASES = ["zurich"] as const;
+export const SUPPORTED_SERVICENOW_RELEASES = ["zurich", "australia"] as const;
 
 export type ServiceNowRelease = (typeof SUPPORTED_SERVICENOW_RELEASES)[number];
 

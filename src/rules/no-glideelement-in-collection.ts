@@ -2,6 +2,10 @@ import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { getName, isNode, unwrapExpression } from "../utils/ast.js";
 import { staticPropertyName } from "../analysis/internal.js";
+import {
+  analyzeGlideElementAliases,
+  type GlideElementAliasFacts,
+} from "../analysis/glideelement-aliases.js";
 import { isFunctionLikeNode, visitChildren } from "../analysis/path-state.js";
 import {
   definitelySkipsDoWhileTest,
@@ -48,13 +52,18 @@ function objectIdOfCursor(
   return proven.objectId;
 }
 
-function isCursorNextCall(
+function isCursorAdvanceCall(
   node: unknown,
   analysis: ReturnType<typeof beginRuleFile>["analysis"],
 ): number | null {
   if (!isNode(node) || node.type !== "CallExpression") return null;
   const call = node as ESTree.CallExpression;
-  if (staticPropertyName(call.callee) !== "next" || call.callee.type !== "MemberExpression")
+  const property = staticPropertyName(call.callee);
+  if (
+    !property ||
+    !analysis.glide.cursorAdvancers.has(property) ||
+    call.callee.type !== "MemberExpression"
+  )
     return null;
   return objectIdOfCursor(analysis, call.callee.object);
 }
@@ -63,11 +72,10 @@ function cursorIdsRequiredForBody(
   node: unknown,
   analysis: ReturnType<typeof beginRuleFile>["analysis"],
 ): ReadonlySet<number> {
-  return truthyPathRequiredCursorIds(node, (candidate) => isCursorNextCall(candidate, analysis));
+  return truthyPathRequiredCursorIds(node, (candidate) => isCursorAdvanceCall(candidate, analysis));
 }
-function isGlideElement(
+function directGlideElementCursorId(
   node: unknown,
-  cursorIds: ReadonlySet<number>,
   analysis: ReturnType<typeof beginRuleFile>["analysis"],
 ): number | null {
   const expr = unwrapExpression(node);
@@ -81,13 +89,24 @@ function isGlideElement(
       return null;
     }
     const id = objectIdOfCursor(analysis, call.callee.object);
-    return id !== null && cursorIds.has(id) ? id : null;
+    return id;
   }
   if (expr.type !== "MemberExpression") return null;
   const member = expr as ESTree.MemberExpression;
   const property = staticPropertyName(member);
   if (!property || analysis.glide.knownMethods.has(property)) return null;
-  const id = objectIdOfCursor(analysis, member.object);
+  return objectIdOfCursor(analysis, member.object);
+}
+
+function glideElementCursorId(
+  node: unknown,
+  cursorIds: ReadonlySet<number>,
+  analysis: ReturnType<typeof beginRuleFile>["analysis"],
+  aliases: GlideElementAliasFacts,
+): number | null {
+  const expr = unwrapExpression(node);
+  if (!isNode(expr) || isExtracted(expr, analysis)) return null;
+  const id = directGlideElementCursorId(expr, analysis) ?? aliases.cursorIdAt(expr);
   return id !== null && cursorIds.has(id) ? id : null;
 }
 
@@ -96,10 +115,15 @@ function findRetainedElements(
   analysis: ReturnType<typeof beginRuleFile>["analysis"],
 ): Array<{ node: ESTree.Node; name: string }> {
   const findings: Array<{ node: ESTree.Node; name: string }> = [];
+  const aliases = analyzeGlideElementAliases(program, analysis, (node) =>
+    directGlideElementCursorId(node, analysis),
+  );
 
   function retainedName(node: ESTree.Node): string {
     const expr = unwrapExpression(node);
     if (!isNode(expr)) return "record";
+    const alias = getName(expr);
+    if (alias) return alias;
     if (expr.type === "MemberExpression") {
       const member = expr as ESTree.MemberExpression;
       const receiver = getName(member.object) ?? "record";
@@ -120,7 +144,7 @@ function findRetainedElements(
   function retainedInValue(node: unknown, cursorIds: ReadonlySet<number>): ESTree.Node[] {
     const expr = unwrapExpression(node);
     if (!isNode(expr) || isExtracted(expr, analysis)) return [];
-    if (isGlideElement(expr, cursorIds, analysis) !== null) return [expr];
+    if (glideElementCursorId(expr, cursorIds, analysis, aliases) !== null) return [expr];
     if (
       expr.type === "CallExpression" &&
       getName((expr as ESTree.CallExpression).callee) === "String"

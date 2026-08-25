@@ -10,7 +10,7 @@ export const noGliderecordQueryInLoop = defineRule({
     type: "suggestion",
     docs: {
       description:
-        "Warn when a proven GlideRecord / GlideAggregate `query()` or `get()` runs inside an outer proven `.next()` cursor loop. Unrelated iterators do not establish cursor depth.",
+        "Warn when a proven GlideRecord or GlideAggregate executes a query inside an outer proven record cursor loop, including direct IIFEs and stable local helper calls. GlideRecord recognizes `.next()` and `._next()`; GlideAggregate recognizes `.next()`.",
       url: ruleDocsUrl("no-gliderecord-query-in-loop"),
     },
     messages: {

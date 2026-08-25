@@ -1,7 +1,7 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
-import { isInstanceScript } from "../context/index.js";
+import { isMixedUiActionContext, isServerInstanceContext } from "../context/index.js";
 import { getName } from "../utils/ast.js";
 import { beginRuleFile } from "./helpers.js";
 
@@ -10,12 +10,12 @@ export const noPackagesCalls = defineRule({
     type: "problem",
     docs: {
       description:
-        "Disallow the Rhino `Packages.*` bridge when `Packages` is the unresolved platform global.",
+        "Review unresolved Rhino `Packages.*` bridge use before ServiceNow's planned restrictions.",
       url: ruleDocsUrl("no-packages-calls"),
     },
     messages: {
       packages:
-        "Do not use the `Packages.*` Java bridge. It is unavailable in scoped applications and will break under the modern JavaScript engine. Use Glide / scoped APIs instead.",
+        "Review this `Packages.*` bridge use. ServiceNow documents planned prevention for calls to ServiceNow Java classes beginning with the Australia release. Review other Java and MID Server calls against the execution context.",
     },
   },
   createOnce(context) {
@@ -24,7 +24,9 @@ export const noPackagesCalls = defineRule({
     return {
       before() {
         const file = beginRuleFile(context);
-        if (!isInstanceScript(file.context)) return false;
+        if (!isServerInstanceContext(file.context) || isMixedUiActionContext(file.context)) {
+          return false;
+        }
         analysis = file.analysis;
         script = file.context;
       },

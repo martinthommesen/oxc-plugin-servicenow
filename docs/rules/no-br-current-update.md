@@ -23,7 +23,7 @@
 | Minimum surface confidence | filename-inferred |
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
-| ServiceNow releases | zurich |
+| ServiceNow releases | zurich, australia |
 | Fluent SDK range | n/a |
 
 ## Options
@@ -78,12 +78,12 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
 ## Evidence
 
 - **Business Rules should not call current.update() because the engine already writes the row.**
-  - Verification ID: `rule-evidence-7c1b865e`
+  - Verification ID: `rule-evidence-d36b7abe`
   - URL: https://www.servicenow.com/docs/r/application-development/business-rules-classic/c_BusinessRules.html
   - Verified by: manual
   - Verified at: 2026-08-20
 - **Host fixtures report current.update on Business Rule files.**
-  - Verification ID: `rule-evidence-de8886ac`
+  - Verification ID: `rule-evidence-0d912f8c`
   - URL: tests/integration/fixtures/bad-business-rule.br.js
   - Verified by: integration-test
   - Verified at: 2026-08-20

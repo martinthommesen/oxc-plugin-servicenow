@@ -26,7 +26,7 @@ export const noUnsupportedSyntax = defineRule({
     type: "problem",
     docs: {
       description:
-        "Disallow JavaScript syntax that the configured ServiceNow mode does not support. Features are versioned from the Zurich engine tables.",
+        "Disallow JavaScript syntax that the configured ServiceNow release and mode do not support.",
       url: ruleDocsUrl("no-unsupported-syntax"),
     },
     messages: {

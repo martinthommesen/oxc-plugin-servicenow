@@ -10,12 +10,12 @@ export const noGliderecordQueryModifierAfterQuery = defineRule({
     type: "problem",
     docs: {
       description:
-        "Query modifiers after `query()` / `get()` do not change the open cursor. Report when `next()` or another consumer runs before a second query. Evidence: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordAPI.html",
+        "Query modifiers after a documented query executor do not change the open cursor. Report when a cursor consumer runs before another query execution.",
       url: ruleDocsUrl("no-gliderecord-query-modifier-after-query"),
     },
     messages: {
       lateModifier:
-        "`{{name}}.{{method}}()` consumes a cursor after a query modifier. Call `query()` again, or move the modifier before the first query.",
+        "`{{name}}.{{method}}()` consumes a cursor after a query modifier. Execute the query again, or move the modifier before the first query.",
     },
   },
   createOnce(context) {

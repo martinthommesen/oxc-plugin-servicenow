@@ -352,6 +352,7 @@ export function walk(
   visitors: Record<string, ((node: ESTree.Node) => void) | undefined>,
   ancestors: ESTree.Node[] = [],
   seen: WeakSet<object> = new WeakSet(),
+  ancestorIndex?: WeakMap<object, readonly ESTree.Node[]>,
 ): void {
   if (!isNode(node)) return;
   const stack: Array<{ node: ESTree.Node; exit: boolean }> = [
@@ -366,6 +367,7 @@ export function walk(
     }
     if (seen.has(frame.node)) continue;
     seen.add(frame.node);
+    ancestorIndex?.set(frame.node, ancestors.slice());
     ancestors.push(frame.node);
     visitors[frame.node.type]?.(frame.node);
     stack.push({ node: frame.node, exit: true });

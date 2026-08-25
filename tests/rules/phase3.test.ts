@@ -105,6 +105,48 @@ while (rec.next()) {
     );
   });
 
+  it("tracks the documented _next cursor alias", () => {
+    assertInvalid(
+      `var numbers = [];
+var incident = new GlideRecord("incident");
+incident._query();
+while (incident["_next"]()) {
+  numbers.push(incident.number);
+}`,
+      RULE,
+      { messageId: "retained" },
+      SERVER,
+    );
+  });
+
+  it("does not mistake documented method properties for GlideElement fields", () => {
+    assertValid(
+      `var methods = [];
+var incident = new GlideRecord("incident");
+incident.query();
+while (incident.next()) {
+  methods.push(incident._query);
+  methods.push(incident.queryNoDomain);
+}`,
+      RULE,
+      { ...SERVER, settings: { scope: "unknown", release: "zurich" } },
+    );
+    assertValid(
+      `var methods = [];
+var incident = new GlideRecord("incident");
+incident.query();
+while (incident.next()) {
+  methods.push(incident.getTableName);
+  methods.push(incident.isValidField);
+  methods.push(incident.getEncodedQuery);
+  methods.push(incident.isNewRecord);
+  methods.push(incident.canRead);
+}`,
+      RULE,
+      { ...SERVER, settings: { scope: "scoped", release: "australia" } },
+    );
+  });
+
   it("requires cursor success for && in either operand but not fallback ||/?? paths", () => {
     const andLeft = `var numbers = [];
 var incident = new GlideRecord("incident");
@@ -322,6 +364,80 @@ incident.addQuery("active", true);
 incident.next();`,
       RULE,
       { messageId: "lateModifier" },
+      SERVER,
+    );
+  });
+
+  it("tracks _query and _next as documented lifecycle aliases", () => {
+    assertInvalid(
+      `var incident = new GlideRecord("incident");
+incident._query();
+incident.addQuery("active", true);
+incident._next();`,
+      RULE,
+      { messageId: "lateModifier" },
+      { ...SERVER, settings: { scope: "scoped", release: "zurich" } },
+    );
+    assertValid(
+      `var incident = new GlideRecord("incident");
+incident.query();
+incident.addQuery("active", true);
+incident["_query"]();
+incident._next();`,
+      RULE,
+      { ...SERVER, settings: { scope: "scoped", release: "zurich" } },
+    );
+  });
+
+  it("uses queryNoDomain only when its global availability is definite", () => {
+    const stale = `var incident = new GlideRecord("incident");
+incident.queryNoDomain();
+incident.addQuery("active", true);
+incident.next();`;
+    assertInvalid(
+      stale,
+      RULE,
+      { messageId: "lateModifier" },
+      { ...SERVER, settings: { scope: "global", release: "zurich" } },
+    );
+    assertValid(stale, RULE, {
+      ...SERVER,
+      settings: { scope: "unknown", release: "zurich" },
+    });
+    assertValid(
+      `var incident = new GlideRecord("incident");
+incident.query();
+incident.addQuery("active", true);
+incident.queryNoDomain();
+incident.next();`,
+      RULE,
+      { ...SERVER, settings: { scope: "unknown", release: "zurich" } },
+    );
+  });
+
+  it("stays silent when a computed call may refresh the cursor", () => {
+    assertValid(
+      `var incident = new GlideRecord("incident");
+incident.query();
+incident.addQuery("active", true);
+var method = "_query";
+incident[method]();
+incident.next();`,
+      RULE,
+      SERVER,
+    );
+    // Member-object evaluation captures `first` before the computed key
+    // reassigns it, so the call can refresh the original cursor.
+    assertValid(
+      `var first = new GlideRecord("incident");
+first.query();
+first.addQuery("active", true);
+var original = first;
+var second = new GlideRecord("problem");
+var method = "_query";
+first[(first = second, method)]();
+original.next();`,
+      RULE,
       SERVER,
     );
   });
@@ -684,13 +800,20 @@ task.deleteMultiple();`,
     }
   });
 
-  it("stays silent for an undocumented filter-like method", () => {
+  it("keeps unmodeled Australia methods conservative before a bulk operation", () => {
     assertValid(
       `var task = new GlideRecord("task");
 task.addInactiveQuery();
 task.deleteMultiple();`,
       RULE,
-      SERVER,
+      { ...SERVER, settings: { scope: "global", release: "australia" } },
+    );
+    assertValid(
+      `var task = new GlideRecord("task");
+task.getTableName();
+task.deleteMultiple();`,
+      RULE,
+      { ...SERVER, settings: { scope: "scoped", release: "australia" } },
     );
   });
 
@@ -762,6 +885,66 @@ while (incident.next()) {
     );
   });
 
+  it("keeps cursor depth through one stable local helper call site", () => {
+    assertInvalid(
+      `function lookupCaller(id) {
+  var caller = new GlideRecord("sys_user");
+  caller.get(id);
+}
+var incident = new GlideRecord("incident");
+incident.query();
+while (incident.next()) {
+  lookupCaller(incident.getValue("caller_id"));
+}`,
+      RULE,
+      { messageId: "nestedQuery" },
+      SERVER,
+    );
+    assertInvalid(
+      `const lookup = () => {
+  const caller = new GlideRecord("sys_user");
+  caller.query();
+};
+const run = lookup;
+var incident = new GlideRecord("incident");
+incident.query();
+while (incident.next()) run();`,
+      RULE,
+      { messageId: "nestedQuery" },
+      SERVER,
+    );
+    assertInvalid(
+      `function evalShadow() {}
+function lookupCaller() {
+  var caller = new GlideRecord("sys_user");
+  caller.query();
+}
+evalShadow("");
+var incident = new GlideRecord("incident");
+incident.query();
+while (incident.next()) lookupCaller();`,
+      RULE,
+      { messageId: "nestedQuery" },
+      SERVER,
+    );
+  });
+
+  it("propagates cursor depth through a stable local helper chain", () => {
+    assertInvalid(
+      `function lookupCaller() {
+  var caller = new GlideRecord("sys_user");
+  caller.query();
+}
+function loadReference() { lookupCaller(); }
+var incident = new GlideRecord("incident");
+incident.query();
+while (incident.next()) loadReference();`,
+      RULE,
+      { messageId: "nestedQuery" },
+      SERVER,
+    );
+  });
+
   it("recognizes a boolean cursor test", () => {
     assertInvalid(
       `var incident = new GlideRecord("incident");
@@ -794,12 +977,97 @@ while (incident.next()) { gs.info(incident.number); }`,
     );
   });
 
-  it("stays silent for helper calls", () => {
+  it("stays silent for unresolved, mutable, multiply called, or deferred helpers", () => {
     assertValid(
       `var incident = new GlideRecord("incident");
 incident.query();
 while (incident.next()) {
   lookupCaller(incident.getValue("caller_id"));
+}`,
+      RULE,
+      SERVER,
+    );
+    assertValid(
+      `function lookupCaller() {
+  var caller = new GlideRecord("sys_user");
+  caller.query();
+}
+lookupCaller = replacement;
+var incident = new GlideRecord("incident");
+incident.query();
+while (incident.next()) lookupCaller();`,
+      RULE,
+      SERVER,
+    );
+    assertValid(
+      `const lookupCaller = () => {
+  var caller = new GlideRecord("sys_user");
+  caller.query();
+};
+eval("lookupCaller = replacement");
+var incident = new GlideRecord("incident");
+incident.query();
+while (incident.next()) lookupCaller();`,
+      RULE,
+      SERVER,
+    );
+    assertValid(
+      `function runQuery(record) { record.query(); }
+var caller = new GlideRecord("sys_user");
+runQuery(caller);
+var incident = new GlideRecord("incident");
+incident.query();
+while (incident.next()) runQuery(customRecord);`,
+      RULE,
+      SERVER,
+    );
+    assertValid(
+      `function* lookupCaller() {
+  var caller = new GlideRecord("sys_user");
+  caller.query();
+}
+var incident = new GlideRecord("incident");
+incident.query();
+while (incident.next()) lookupCaller();`,
+      RULE,
+      SERVER,
+    );
+    assertValid(
+      `function lookupCaller() {
+  var caller = new GlideRecord("sys_user");
+  caller.query();
+}
+var incident = new GlideRecord("incident");
+incident.query();
+while (incident.next()) {
+  const lookupCaller = () => {};
+  lookupCaller();
+}`,
+      RULE,
+      SERVER,
+    );
+    assertValid(
+      `function lookupCaller() {
+  var caller = new GlideRecord("sys_user");
+  caller.query();
+}
+eval("lookupCaller = replacement");
+var incident = new GlideRecord("incident");
+incident.query();
+while (incident.next()) lookupCaller();`,
+      RULE,
+      SERVER,
+    );
+    assertValid(
+      `function lookupCaller() {
+  var caller = new GlideRecord("sys_user");
+  caller.query();
+}
+var incident = new GlideRecord("incident");
+incident.query();
+while (incident.next()) {
+  scheduleLater(lookupCaller);
+  lookupCaller.call(null);
 }`,
       RULE,
       SERVER,
@@ -819,7 +1087,7 @@ while (incident.next()) {
     );
   });
 
-  it("flags query, get, and GlideAggregate inside the cursor loop", () => {
+  it("flags GlideRecord query/get and GlideAggregate query inside the cursor loop", () => {
     assertInvalid(
       `var incident = new GlideRecord("incident");
 incident.query();

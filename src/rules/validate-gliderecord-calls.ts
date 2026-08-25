@@ -1,12 +1,12 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
-import { getName, isExpressionStatementCall, nodeStart } from "../utils/ast.js";
+import { getName, isExpressionStatementCall } from "../utils/ast.js";
 import { findMissingQueryBeforeNext, staticPropertyName } from "../analysis/internal.js";
 import { beginRuleFile } from "./helpers.js";
 import { isServerInstanceContext } from "../context/index.js";
 
-const UNUSED_RETURN = new Set(["insert", "update", "deleteRecord", "get", "next"]);
+const UNUSED_RETURN = new Set(["insert", "update", "deleteRecord", "get", "next", "_next"]);
 
 /**
  * @deprecated Split into `require-query-before-next` plus narrower rules.
@@ -23,18 +23,17 @@ export const validateGliderecordCalls = defineRule({
     },
     docs: {
       description:
-        "Deprecated. Prefer `require-query-before-next`. Still reports missing query-before-next and unused insert/update/get/next returns on proven GlideRecord bindings.",
+        "Deprecated. Prefer `require-query-before-next`. Still reports missing query-before-cursor-advance and unused insert/update/deleteRecord/get/next/_next returns on proven GlideRecord bindings.",
       url: ruleDocsUrl("validate-gliderecord-calls"),
     },
     messages: {
       unusedReturn:
-        "The return value of `{{name}}.{{method}}()` is ignored. Check `insert`, `update`, `deleteRecord`, `get`, and `next`. Bulk methods such as `updateMultiple` and `deleteMultiple` are not flagged.",
+        "The return value of `{{name}}.{{method}}()` is ignored. Check `insert`, `update`, `deleteRecord`, `get`, `next`, and `_next`. Bulk methods such as `updateMultiple` and `deleteMultiple` are not flagged.",
       missingQuery:
-        "`{{name}}.next()` is called without a preceding `.query()` or `.get()` on every path. Call `.query()` or `.get()` on every path before `.next()`; `chooseWindow()` only configures a later query.",
+        "`{{name}}.{{method}}()` is called without a preceding documented query executor on every path. Execute the query on every path before advancing the cursor; `chooseWindow()` only configures a later query.",
     },
   },
   createOnce(context) {
-    const reportedMissingQuery = new Set<number>();
     return {
       before() {
         const { context: script } = beginRuleFile(context);
@@ -43,13 +42,10 @@ export const validateGliderecordCalls = defineRule({
       Program(node) {
         const { analysis } = beginRuleFile(context);
         for (const finding of findMissingQueryBeforeNext(node as ESTree.Node, analysis)) {
-          const start = nodeStart(finding.node);
-          if (reportedMissingQuery.has(start)) continue;
-          reportedMissingQuery.add(start);
           context.report({
             node: finding.node,
             messageId: "missingQuery",
-            data: { name: finding.name },
+            data: { name: finding.name, method: finding.method },
           });
         }
       },

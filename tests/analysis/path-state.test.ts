@@ -216,6 +216,57 @@ describe("path-state evaluator", () => {
     assert.equal(result.budgetExceeded, true);
   });
 
+  it("converges point-use value domains after joined values become unbound", () => {
+    const program = parse(`
+      while (condition) {
+        var value;
+        if (chooseLeft) value = source.left;
+        else value = source.right;
+        consume(value);
+      }
+    `).ast as any;
+    let observed: "left" | "right" | "joined" | undefined;
+    let budgetExceeded = false;
+
+    type JoinedValue = { value: "left" | "right" | "joined" };
+    const mergeValue = (left: JoinedValue, right: JoinedValue): JoinedValue => ({
+      value: left.value === right.value ? left.value : "joined",
+    });
+
+    analyzePathBindings<JoinedValue>({
+      program,
+      analysis: analysisFor(program),
+      kinds: [],
+      emptyData: () => ({ value: "joined" }),
+      cloneData: (data) => ({ ...data }),
+      mergeData: mergeValue,
+      mergeDistinctData: mergeValue,
+      equalsData: (left, right) => left.value === right.value,
+      onCall() {},
+      onValue(node) {
+        if (node.type !== "MemberExpression" || node.property.type !== "Identifier") {
+          return undefined;
+        }
+        if (node.property.name === "left") return { value: "left" };
+        if (node.property.name === "right") return { value: "right" };
+        return undefined;
+      },
+      retainUnboundRecords: false,
+      onRef({ node, rec }) {
+        if (node.type === "Identifier" && node.name === "value" && rec && !rec.invalid) {
+          observed = rec.data.value;
+        }
+      },
+      onBudgetExceeded() {
+        observed = undefined;
+        budgetExceeded = true;
+      },
+    });
+
+    assert.equal(observed, "joined");
+    assert.equal(budgetExceeded, false);
+  });
+
   it("escapes values captured through nested closures", () => {
     const result = run(`
       const gr = new GlideRecord("incident");
@@ -260,6 +311,28 @@ describe("path-state evaluator", () => {
       gr.next();
     `);
     assert.deepEqual(result.calls, ["next:unopened"]);
+  });
+
+  it("stops trusting receiver state after an unresolved computed call", () => {
+    const result = run(`
+      const gr = new GlideRecord("incident");
+      gr.query();
+      gr[method]();
+      gr.next();
+    `);
+    assert.deepEqual(result.calls, ["next:none"]);
+  });
+
+  it("captures a call receiver before a computed property reassigns its binding", () => {
+    const result = run(`
+      let first = new GlideRecord("incident");
+      const original = first;
+      const second = new GlideRecord("problem");
+      first[(first = second, method)]();
+      original.next();
+      second.next();
+    `);
+    assert.deepEqual(result.calls, ["next:none", "next:unopened"]);
   });
 
   it("escapes captures when a generator result can execute elsewhere", () => {

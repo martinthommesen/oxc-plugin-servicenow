@@ -9,7 +9,7 @@
 - **Fix safety:** diagnostic only
 - **Suggestions:** no
 - **Authoring:** classic
-- **Surfaces:** Applies to client, server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent.
+- **Surfaces:** Applies to client, server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. UI Actions require an explicit server surface; mixed client/server UI Actions stay silent because execution regions are not classified. Unknown surfaces stay silent.
 - **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
 - **Last verified:** 2026-08-20
 - **Implementation:** [`src/rules/no-gs-now.ts`](../../src/rules/no-gs-now.ts)
@@ -19,11 +19,11 @@
 | Dimension | Value |
 | --- | --- |
 | Authoring | classic |
-| Surfaces | Applies to client, server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent. |
+| Surfaces | Applies to client, server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. UI Actions require an explicit server surface; mixed client/server UI Actions stay silent because execution regions are not classified. Unknown surfaces stay silent. |
 | Minimum surface confidence | filename-inferred |
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
-| ServiceNow releases | zurich |
+| ServiceNow releases | zurich, australia |
 | Fluent SDK range | n/a |
 
 ## Options
@@ -82,12 +82,12 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-b
 ## Evidence
 
 - **gs.now() and gs.nowDateTime() return display strings, not GlideDateTime objects.**
-  - Verification ID: `rule-evidence-f4c2d565`
+  - Verification ID: `rule-evidence-b0fb0fe2`
   - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideDateTimeAPI.html
   - Verified by: manual
   - Verified at: 2026-08-20
 - **Host fixtures report gs.now on Business Rule files.**
-  - Verification ID: `rule-evidence-2bea52fc`
+  - Verification ID: `rule-evidence-af5507fd`
   - URL: tests/integration/fixtures/bad-business-rule.br.js
   - Verified by: integration-test
   - Verified at: 2026-08-20
