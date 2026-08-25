@@ -671,6 +671,12 @@ install(second); install(first); first.getBigInt64(0); second.getBigInt64(0);`,
       `install(DataView.prototype); new DataView(buffer).getBigInt64(0);`,
       `install({ target: DataView.prototype }); new DataView(buffer).getBigInt64(0);`,
       `const target = DataView.prototype; install(target); new DataView(buffer).getBigInt64(0);`,
+      `var prototype = DataView.prototype;
+prototype.getBigInt64 = custom;
+new DataView(buffer).getBigInt64(0);`,
+      `let prototype = DataView.prototype;
+prototype.getBigInt64 = custom;
+new DataView(buffer).getBigInt64(0);`,
     ]) {
       assertValid(code, "no-typed-arrays", { settings });
     }

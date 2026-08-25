@@ -228,13 +228,11 @@ function buildIndex(
     if (property === "__proto__") return;
     const value = unwrapExpression(target);
     if (!isNode(value)) return;
-    const path =
-      facts === authority ? authorityGlobalPath(value) : staticGlobalPath(value, bindings);
+    const path = authorityGlobalPath(value) ?? staticGlobalPath(value, bindings);
     if (path) {
       recordGlobalPathInto([...path, property ?? "*"], facts);
     } else {
-      const root =
-        facts === authority ? authorityGlobalRoot(value) : staticGlobalRoot(value, bindings);
+      const root = authorityGlobalRoot(value) ?? staticGlobalRoot(value, bindings);
       if (root) recordGlobalPathInto([root, "*"], facts);
     }
     const object = provenance.ofExpression(value);
