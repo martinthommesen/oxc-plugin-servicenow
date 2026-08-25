@@ -126,6 +126,11 @@ ajax.getAnswer();`,
 ajaxPrototype.getAnswer = localAnswer;
 var ajax = new GlideAjax("x_acme.UserLookup");
 ajax.getAnswer();`,
+      `const localAjax = {};
+const { prototype: ajaxPrototype = GlideAjax.prototype } = localAjax;
+ajaxPrototype.getAnswer = localAnswer;
+var ajax = new GlideAjax("x_acme.UserLookup");
+ajax.getAnswer();`,
       `GlideAjax = LocalGlideAjax;
 var ajax = new GlideAjax("x_acme.UserLookup");
 ajax.getAnswer();`,

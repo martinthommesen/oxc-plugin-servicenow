@@ -70,6 +70,7 @@ interface BuiltinCall extends BuiltinReference {
 }
 
 const MAX_NAMESPACE_ESCAPE_DEPTH = 32;
+const MAX_REFLECT_APPLY_DEPTH = 16;
 
 function pathKey(path: readonly string[]): string {
   return JSON.stringify(path);
@@ -209,10 +210,16 @@ function buildIndex(
     const selected = resolveDestructuredConstMember(direct, bindings);
     if (selected) {
       // A defaulted destructuring binding may still denote the selected
-      // platform property. Mutation facts are may-facts, so retain that path
-      // even when the fallback could be chosen at runtime.
-      const base = authorityGlobalPath(selected.source, directSeen);
-      return base ? [...base, selected.property] : null;
+      // platform property or its fallback. Mutation facts are may-facts, so
+      // retain either platform path. Distinct paths collapse to a terminal
+      // wildcard rather than selecting one possible runtime owner.
+      const selectedBase = authorityGlobalPath(selected.source, directSeen);
+      const selectedPath = selectedBase ? [...selectedBase, selected.property] : null;
+      const fallbackPath =
+        selected.fallback === null ? null : authorityGlobalPath(selected.fallback, directSeen);
+      if (!selectedPath) return fallbackPath;
+      if (!fallbackPath) return selectedPath;
+      return pathKey(selectedPath) === pathKey(fallbackPath) ? selectedPath : ["*"];
     }
     const value = stableAliasValue(direct);
     if (!value || seen.has(value)) return null;
@@ -352,7 +359,7 @@ function buildIndex(
   };
 
   const arrayArguments = (node: unknown): readonly unknown[] | null => {
-    const value = resolveConstValue(node, bindings);
+    const value = stableAliasValue(node);
     if (value?.type !== "ArrayExpression") return null;
     return value.elements.some((element) => element?.type === "SpreadElement")
       ? null
@@ -375,40 +382,54 @@ function buildIndex(
     return wrapped ? { ...wrapped, arguments: directArguments(value.arguments.slice(1)) } : null;
   };
 
+  const normalizeReflectApply = (initial: BuiltinCall): BuiltinCall | null => {
+    let current = initial;
+    for (let depth = 0; depth < MAX_REFLECT_APPLY_DEPTH; depth += 1) {
+      if (current.owner !== "Reflect" || current.method !== "apply") return current;
+      // ServiceNow instance engines reject Reflect.apply. Browser-executed
+      // client scripts can invoke it, including recursively through itself.
+      if (!browserRuntime || current.arguments === null) return null;
+      const target = staticBuiltin(current.arguments[0]);
+      if (!target) return null;
+      current = { ...target, arguments: arrayArguments(current.arguments[2]) };
+    }
+    return null;
+  };
+
   const calledBuiltin = (call: ESTree.CallExpression): BuiltinCall | null => {
     const direct = staticBuiltin(call.callee);
-    if (direct?.owner === "Reflect" && direct.method === "apply") {
-      // ServiceNow documents Reflect.apply as disallowed in every reviewed
-      // instance mode, so it cannot establish a replacement on the stock
-      // runtime even when its target is a supported Object mutator.
-      if (!browserRuntime) return null;
-      const target = staticBuiltin(call.arguments[0]);
-      return target ? { ...target, arguments: arrayArguments(call.arguments[2]) } : null;
+    if (direct) {
+      return normalizeReflectApply({ ...direct, arguments: directArguments(call.arguments) });
     }
-    if (direct) return { ...direct, arguments: directArguments(call.arguments) };
 
     const callee = resolveConstValue(call.callee, bindings);
     if (callee?.type === "MemberExpression") {
       const helper = staticPropertyName(callee);
       const wrapped = staticBuiltin(callee.object);
       if (wrapped && helper === "call") {
-        return { ...wrapped, arguments: directArguments(call.arguments.slice(1)) };
+        return normalizeReflectApply({
+          ...wrapped,
+          arguments: directArguments(call.arguments.slice(1)),
+        });
       }
       if (wrapped && helper === "apply") {
-        return { ...wrapped, arguments: arrayArguments(call.arguments[1]) };
+        return normalizeReflectApply({
+          ...wrapped,
+          arguments: arrayArguments(call.arguments[1]),
+        });
       }
     }
 
     const bound = boundBuiltin(call.callee);
     if (!bound) return null;
     const invocationArguments = directArguments(call.arguments);
-    return {
+    return normalizeReflectApply({
       ...bound,
       arguments:
         bound.arguments === null || invocationArguments === null
           ? null
           : [...bound.arguments, ...invocationArguments],
-    };
+    });
   };
 
   const definitelyCannotInstallCallable = (node: unknown): boolean => {
@@ -597,10 +618,10 @@ function buildIndex(
         }
         const direct = staticBuiltin(call.callee);
         if (direct?.owner === "Reflect" && direct.method === "apply" && browserRuntime) {
-          // An unresolved target can mutate both its `this` value and values
-          // supplied through the arguments list.
-          recordEscapedNamespaces(call.arguments[1]);
-          recordEscapedNamespaces(call.arguments[2]);
+          // An unresolved or spread invocation can expose its target, `this`,
+          // and argument list. Walk every syntactic argument so nested arrays
+          // and spread aliases cannot hide a client platform object.
+          for (const argument of call.arguments) recordEscapedNamespaces(argument);
           return;
         }
         // Object/Reflect intrinsics are modeled below. In particular, the
