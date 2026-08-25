@@ -67,6 +67,32 @@ service.now();`,
       "no-br-current-update",
       FULL_SCRIPT,
     );
+    assertInvalid(
+      `(function executeRule(current, previous) {
+  var record = current;
+  record.update();
+})(current, previous);`,
+      "no-br-current-update",
+      { messageId: "update" },
+      FULL_SCRIPT,
+    );
+    assertValid(
+      `(function executeRule(current, previous) {
+  var record = current;
+  record.update();
+})(localCurrent, previous);`,
+      "no-br-current-update",
+      FULL_SCRIPT,
+    );
+    assertValid(
+      `(function executeRule(current, previous) {
+  var record = current;
+  prepare(record);
+  record.update();
+})(current, previous);`,
+      "no-br-current-update",
+      FULL_SCRIPT,
+    );
   });
 
   it("forgets a reassigned canonical current wrapper parameter", () => {
