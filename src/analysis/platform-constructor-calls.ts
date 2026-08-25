@@ -150,8 +150,8 @@ export function findStablePlatformConstructorCalls({
   if (hasDynamicScope || callBudgetExceeded) return [];
 
   const constructorIdentityIsStable = (name: string): boolean =>
-    !mutations.isGlobalWritten(name) &&
-    namespaces.every((namespace) => !mutations.isGlobalPathWritten([namespace, name]));
+    !mutations.isGlobalAuthorityLost(name) &&
+    namespaces.every((namespace) => !mutations.isGlobalPathAuthorityLost([namespace, name]));
 
   const directNamespace = (node: unknown): string | null => {
     const value = unwrapExpression(node);
@@ -159,7 +159,7 @@ export function findStablePlatformConstructorCalls({
       return null;
     }
     if (!analysis.bindings.isPlatformGlobal(value)) return null;
-    return mutations.isGlobalWritten(value.name) ? null : value.name;
+    return mutations.isGlobalAuthorityLost(value.name) ? null : value.name;
   };
 
   const destructuredName = (
@@ -197,7 +197,7 @@ export function findStablePlatformConstructorCalls({
         namespace &&
         nameSet.has(name) &&
         constructorIdentityIsStable(name) &&
-        !mutations.isGlobalPathWritten([namespace, name])
+        !mutations.isGlobalPathAuthorityLost([namespace, name])
         ? name
         : null;
     }

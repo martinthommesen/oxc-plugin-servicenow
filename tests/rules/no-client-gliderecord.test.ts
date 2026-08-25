@@ -168,6 +168,36 @@ new GlideRecord("incident");`,
       RULE,
       options,
     );
+    assertValid(
+      `GlideRecord = null;
+new GlideRecord("incident");`,
+      RULE,
+      options,
+    );
+    assertValid(
+      `global.GlideRecord = undefined;
+new global.GlideRecord("incident");`,
+      RULE,
+      options,
+    );
+    assertValid(
+      `delete global.GlideRecord;
+new global.GlideRecord("incident");`,
+      RULE,
+      options,
+    );
+    assertValid(
+      `Object.defineProperty(global, "GlideRecord", { value: null });
+new GlideRecord("incident");`,
+      RULE,
+      options,
+    );
+    assertValid(
+      `Object.assign(global, { GlideRecord: null });
+new GlideRecord("incident");`,
+      RULE,
+      options,
+    );
   });
 
   it("treats escaping the namespace, but not its constructor value, as a possible mutation", () => {

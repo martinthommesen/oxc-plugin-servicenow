@@ -26,6 +26,10 @@ export interface MutationQuery {
   isGlobalWritten(name: string): boolean;
   isGlobalPathWritten(path: readonly string[]): boolean;
   isObjectPropertyWritten(object: unknown, property: string): boolean;
+  /** True when any write or escape makes the platform global's identity uncertain. */
+  isGlobalAuthorityLost(name: string): boolean;
+  /** True when any write or escape makes the platform path's identity uncertain. */
+  isGlobalPathAuthorityLost(path: readonly string[]): boolean;
 }
 
 interface MutationIndex {
@@ -33,6 +37,8 @@ interface MutationIndex {
   globalPaths: ReadonlySet<string>;
   objectProperties: ReadonlySet<string>;
   objectPropertyWildcards: ReadonlySet<string>;
+  authorityGlobals: ReadonlySet<string>;
+  authorityGlobalPaths: ReadonlySet<string>;
 }
 
 interface BuiltinReference {
@@ -97,22 +103,58 @@ function buildIndex(
   const globalPaths = new Set<string>();
   const objectProperties = new Set<string>();
   const objectPropertyWildcards = new Set<string>();
-  if (!program) return { globals, globalPaths, objectProperties, objectPropertyWildcards };
+  const authorityGlobals = new Set<string>();
+  const authorityGlobalPaths = new Set<string>();
+  const result = (): MutationIndex => ({
+    globals,
+    globalPaths,
+    objectProperties,
+    objectPropertyWildcards,
+    authorityGlobals,
+    authorityGlobalPaths,
+  });
+  if (!program) return result();
   const modernGlobalsMayExist = javascriptMode !== "compatibility" && javascriptMode !== "es5";
 
-  const recordGlobalPath = (path: readonly string[]): void => {
-    globalPaths.add(pathKey(path));
+  const recordGlobalPathInto = (
+    path: readonly string[],
+    targetGlobals: Set<string>,
+    targetPaths: Set<string>,
+  ): void => {
+    targetPaths.add(pathKey(path));
     if (!GLOBAL_OBJECT_NAMES.has(path[0] ?? "")) return;
     if (path[0] === "globalThis" && !modernGlobalsMayExist) return;
     const normalized = path.slice(1);
     if (normalized.length === 0 || normalized.includes("*")) {
-      globals.add("*");
-      globalPaths.add(pathKey(["*"]));
+      targetGlobals.add("*");
+      targetPaths.add(pathKey(["*"]));
     } else if (normalized.length === 1) {
-      globals.add(normalized[0]!);
+      targetGlobals.add(normalized[0]!);
     } else {
-      globalPaths.add(pathKey(normalized));
+      targetPaths.add(pathKey(normalized));
     }
+  };
+
+  const recordAuthorityGlobalPath = (path: readonly string[]): void => {
+    recordGlobalPathInto(path, authorityGlobals, authorityGlobalPaths);
+  };
+
+  const recordGlobalPath = (path: readonly string[]): void => {
+    recordGlobalPathInto(path, globals, globalPaths);
+    recordAuthorityGlobalPath(path);
+  };
+
+  const recordAuthorityProperty = (target: unknown, property: string | null): void => {
+    if (property === "__proto__") return;
+    const value = unwrapExpression(target);
+    if (!isNode(value)) return;
+    const path = staticGlobalPath(value, bindings);
+    if (path) {
+      recordAuthorityGlobalPath([...path, property ?? "*"]);
+      return;
+    }
+    const root = staticGlobalRoot(value, bindings);
+    if (root) recordAuthorityGlobalPath([root, "*"]);
   };
 
   const recordProperty = (target: unknown, property: string | null): void => {
@@ -148,11 +190,15 @@ function buildIndex(
       if (property === null) {
         globals.add("*");
         globalPaths.add(pathKey(["*"]));
+        authorityGlobals.add("*");
+        authorityGlobalPaths.add(pathKey(["*"]));
       } else {
         // The parameter could receive a namespace object (for example Object,
         // DataView.prototype, or globalThis) at any call site.
         globals.add(property);
         globalPaths.add(pathKey(["*", property]));
+        authorityGlobals.add(property);
+        authorityGlobalPaths.add(pathKey(["*", property]));
       }
     }
     if (object?.objectId !== undefined && identityIsStableAllocation) {
@@ -195,6 +241,38 @@ function buildIndex(
       for (const property of value.properties) {
         if (property.type === "RestElement") recordTarget(property.argument);
         else recordTarget(property.value);
+      }
+    }
+  };
+
+  const recordAuthorityTarget = (target: unknown): void => {
+    const value = unwrapExpression(target);
+    if (!isNode(value)) return;
+    if (value.type === "Identifier") {
+      const name = getName(value);
+      if (name && bindings.isPlatformGlobal(value)) authorityGlobals.add(name);
+      return;
+    }
+    if (value.type === "MemberExpression") {
+      recordAuthorityProperty(value.object, staticPropertyName(value));
+      return;
+    }
+    if (value.type === "AssignmentPattern") {
+      recordAuthorityTarget(value.left);
+      return;
+    }
+    if (value.type === "RestElement") {
+      recordAuthorityTarget(value.argument);
+      return;
+    }
+    if (value.type === "ArrayPattern") {
+      for (const element of value.elements) recordAuthorityTarget(element);
+      return;
+    }
+    if (value.type === "ObjectPattern") {
+      for (const property of value.properties) {
+        if (property.type === "RestElement") recordAuthorityTarget(property.argument);
+        else recordAuthorityTarget(property.value);
       }
     }
   };
@@ -352,6 +430,30 @@ function buildIndex(
     for (const property of properties) recordProperty(target, property);
   };
 
+  const writtenObjectProperties = (node: unknown): readonly string[] | null => {
+    const object = resolveConstValue(node, bindings);
+    if (!object || object.type !== "ObjectExpression") return null;
+    const properties = new Set<string>();
+    for (const item of object.properties) {
+      if (item.type === "SpreadElement") return null;
+      const name = propertyKeyName(item as ESTree.ObjectProperty);
+      if (!name) return null;
+      properties.add(name);
+    }
+    return [...properties];
+  };
+
+  const recordKnownAuthorityProperties = (
+    target: unknown,
+    properties: readonly string[] | null,
+  ): void => {
+    if (properties === null) {
+      recordAuthorityProperty(target, null);
+      return;
+    }
+    for (const property of properties) recordAuthorityProperty(target, property);
+  };
+
   const escapedNamespaceValues = new WeakSet<ESTree.Node>();
   const recordEscapedNamespaces = (node: unknown, depth = 0): void => {
     if (depth > MAX_NAMESPACE_ESCAPE_DEPTH) return;
@@ -405,17 +507,28 @@ function buildIndex(
   walk(program, {
     AssignmentExpression(node) {
       const assignment = node as ESTree.AssignmentExpression;
+      recordAuthorityTarget(assignment.left);
       if (assignment.operator === "=" && definitelyCannotInstallCallable(assignment.right)) return;
       recordTarget(assignment.left);
     },
     UpdateExpression(node) {
-      recordTarget((node as ESTree.UpdateExpression).argument);
+      const target = (node as ESTree.UpdateExpression).argument;
+      recordAuthorityTarget(target);
+      recordTarget(target);
+    },
+    UnaryExpression(node) {
+      const expression = node as ESTree.UnaryExpression;
+      if (expression.operator === "delete") recordAuthorityTarget(expression.argument);
     },
     ForInStatement(node) {
-      recordTarget((node as ESTree.ForInStatement).left);
+      const target = (node as ESTree.ForInStatement).left;
+      recordAuthorityTarget(target);
+      recordTarget(target);
     },
     ForOfStatement(node) {
-      recordTarget((node as ESTree.ForOfStatement).left);
+      const target = (node as ESTree.ForOfStatement).left;
+      recordAuthorityTarget(target);
+      recordTarget(target);
     },
     NewExpression(node) {
       for (const argument of (node as ESTree.NewExpression).arguments) {
@@ -463,31 +576,37 @@ function buildIndex(
         globals.add("*");
         globalPaths.add(pathKey(["*"]));
         objectPropertyWildcards.add("*");
+        authorityGlobals.add("*");
+        authorityGlobalPaths.add(pathKey(["*"]));
         return;
       }
       const target = effectiveArguments[0];
       if (!target) return;
       if (method === "defineProperty") {
+        recordAuthorityProperty(target, getStaticStringValue(effectiveArguments[1]));
         if (!descriptorMayInstallCallable(effectiveArguments[2])) return;
         recordProperty(target, getStaticStringValue(effectiveArguments[1]));
         return;
       }
       if (method === "defineProperties") {
+        recordKnownAuthorityProperties(target, writtenObjectProperties(effectiveArguments[1]));
         recordKnownProperties(target, installableObjectProperties(effectiveArguments[1], true));
         return;
       }
       if (method === "assign") {
         for (const source of effectiveArguments.slice(1)) {
+          recordKnownAuthorityProperties(target, writtenObjectProperties(source));
           recordKnownProperties(target, installableObjectProperties(source, false));
         }
         return;
       }
       if (method === "setPrototypeOf") {
+        recordAuthorityProperty(target, null);
         recordKnownProperties(target, installableObjectProperties(effectiveArguments[1], false));
       }
     },
   });
-  return { globals, globalPaths, objectProperties, objectPropertyWildcards };
+  return result();
 }
 
 export function createMutationQuery(
@@ -515,6 +634,15 @@ export function createMutationQuery(
         (objectId !== undefined &&
           (getIndex().objectProperties.has(objectPropertyKey(objectId, property)) ||
             getIndex().objectProperties.has(objectPropertyKey(objectId, "*"))))
+      );
+    },
+    isGlobalAuthorityLost(name: string) {
+      return getIndex().authorityGlobals.has(name) || getIndex().authorityGlobals.has("*");
+    },
+    isGlobalPathAuthorityLost(path: readonly string[]) {
+      return (
+        getIndex().authorityGlobalPaths.has(pathKey(["*"])) ||
+        pathWasWritten(getIndex().authorityGlobalPaths, path)
       );
     },
   });
