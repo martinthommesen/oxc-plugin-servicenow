@@ -8,6 +8,7 @@ import {
   walk,
 } from "../utils/ast.js";
 import type { FileBindings } from "./bindings.js";
+import { createBindingWriteQuery, type BindingWriteQuery } from "./binding-writes.js";
 import {
   GLOBAL_OBJECT_NAMES,
   platformGlobalNamespaceAccess,
@@ -96,6 +97,7 @@ function staticGlobalRoot(node: unknown, bindings: FileBindings): string | null 
 function buildIndex(
   program: ESTree.Node | undefined,
   bindings: FileBindings,
+  bindingWrites: BindingWriteQuery,
   provenance: ProvenanceQuery,
   javascriptMode: JavaScriptMode,
 ): MutationIndex {
@@ -144,16 +146,72 @@ function buildIndex(
     recordAuthorityGlobalPath(path);
   };
 
+  const stableAliasValue = (
+    node: unknown,
+    seen: ReadonlySet<number> = new Set(),
+  ): ESTree.Node | null => {
+    const value = unwrapExpression(node);
+    if (!isNode(value)) return null;
+    if (value.type === "SequenceExpression") {
+      return stableAliasValue(value.expressions.at(-1), seen);
+    }
+    if (value.type !== "Identifier") return value;
+    const binding = bindings.resolve(value.name, value);
+    if (
+      !binding ||
+      seen.has(binding.id) ||
+      bindingWrites.isWritten(binding.id) ||
+      (binding.kind !== "const" && bindingWrites.hasDynamicScope()) ||
+      binding.declarations.length !== 1 ||
+      binding.node.type !== "VariableDeclarator"
+    ) {
+      return value;
+    }
+    const declaration = binding.node as ESTree.VariableDeclarator;
+    if (
+      declaration.id.type !== "Identifier" ||
+      declaration.id.name !== binding.name ||
+      !declaration.init
+    ) {
+      return value;
+    }
+    const next = new Set(seen);
+    next.add(binding.id);
+    return stableAliasValue(declaration.init, next);
+  };
+
+  const authorityGlobalPath = (
+    node: unknown,
+    seen: ReadonlySet<ESTree.Node> = new Set(),
+  ): readonly string[] | null => {
+    const value = stableAliasValue(node);
+    if (!value || seen.has(value)) return null;
+    const next = new Set(seen);
+    next.add(value);
+    if (value.type === "Identifier") {
+      const name = resolvePlatformGlobalName(value, bindings);
+      return name ? [name] : null;
+    }
+    if (value.type !== "MemberExpression") return null;
+    const property = staticPropertyName(value);
+    if (!property) return null;
+    const base = authorityGlobalPath(value.object, next);
+    return base ? [...base, property] : null;
+  };
+
+  const authorityGlobalRoot = (node: unknown): string | null =>
+    authorityGlobalPath(node)?.[0] ?? null;
+
   const recordAuthorityProperty = (target: unknown, property: string | null): void => {
     if (property === "__proto__") return;
     const value = unwrapExpression(target);
     if (!isNode(value)) return;
-    const path = staticGlobalPath(value, bindings);
+    const path = authorityGlobalPath(value) ?? staticGlobalPath(value, bindings);
     if (path) {
       recordAuthorityGlobalPath([...path, property ?? "*"]);
       return;
     }
-    const root = staticGlobalRoot(value, bindings);
+    const root = authorityGlobalRoot(value) ?? staticGlobalRoot(value, bindings);
     if (root) recordAuthorityGlobalPath([root, "*"]);
   };
 
@@ -172,7 +230,7 @@ function buildIndex(
       if (root) recordGlobalPath([root, "*"]);
     }
     const object = provenance.ofExpression(value);
-    const terminal = resolveConstValue(value, bindings) ?? value;
+    const terminal = stableAliasValue(value) ?? value;
     const terminalName = terminal.type === "Identifier" ? getName(terminal) : null;
     const terminalBinding = terminalName ? bindings.resolve(terminalName, terminal) : null;
     const identityIsStableAllocation = terminal.type === "NewExpression";
@@ -305,7 +363,7 @@ function buildIndex(
   };
 
   const arrayArguments = (node: unknown): readonly unknown[] | null => {
-    const value = resolveConstValue(node, bindings);
+    const value = stableAliasValue(node);
     if (value?.type !== "ArrayExpression") return null;
     return value.elements.some((element) => element?.type === "SpreadElement")
       ? null
@@ -461,7 +519,7 @@ function buildIndex(
     if (!value || escapedNamespaceValues.has(value)) return;
     escapedNamespaceValues.add(value);
 
-    const path = staticGlobalPath(value, bindings);
+    const path = authorityGlobalPath(value) ?? staticGlobalPath(value, bindings);
     if (path) {
       // Passing an object by value cannot replace its owning binding, but an
       // unknown callee can install or replace any property on that object.
@@ -615,8 +673,10 @@ export function createMutationQuery(
   provenance: ProvenanceQuery,
   javascriptMode: JavaScriptMode,
 ): MutationQuery {
+  const bindingWrites = createBindingWriteQuery(program, bindings);
   let index: MutationIndex | undefined;
-  const getIndex = () => (index ??= buildIndex(program, bindings, provenance, javascriptMode));
+  const getIndex = () =>
+    (index ??= buildIndex(program, bindings, bindingWrites, provenance, javascriptMode));
   return Object.freeze({
     isGlobalWritten(name: string) {
       return getIndex().globals.has(name) || getIndex().globals.has("*");
