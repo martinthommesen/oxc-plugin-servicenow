@@ -23,6 +23,9 @@ const HAS_OWN = `var owns = Object.hasOwn(record, "number");`;
 const ERROR_IS_ERROR = `var isPlatformError = Error.isError(value);`;
 const PROMISE_TRY = `var promise = Promise.try(load);`;
 const PROMISE_WITH_RESOLVERS = `var deferred = Promise.withResolvers();`;
+const SET_UNION = `const values = new Set(left);
+const alias = values;
+var merged = alias["union"](right);`;
 const GUARDED_HAS_OWN = `var owns = Object.hasOwn && Object.hasOwn(record, "number");`;
 const TAINTED_HAS_OWN = `Object.hasOwn(record, "number");
 Object.hasOwn = polyfill;`;
@@ -156,6 +159,28 @@ const contracts: readonly ReleaseContract[] = [
     code: PROMISE_WITH_RESOLVERS,
     rule: "no-unsupported-static-methods",
     settings: { release: "australia", javascriptMode: "es2021" },
+  },
+  {
+    id: "zurich-set-union",
+    filename: "zurich-set-union.server.js",
+    code: SET_UNION,
+    rule: "no-unsupported-set-methods",
+    settings: { release: "zurich", javascriptMode: "es2021" },
+    messageId: "unsupported",
+  },
+  {
+    id: "australia-set-union",
+    filename: "australia-set-union.server.js",
+    code: SET_UNION,
+    rule: "no-unsupported-set-methods",
+    settings: { release: "australia", javascriptMode: "es2021" },
+  },
+  {
+    id: "omitted-release-set-union",
+    filename: "omitted-set-union.server.js",
+    code: SET_UNION,
+    rule: "no-unsupported-set-methods",
+    settings: { javascriptMode: "es2021" },
   },
   {
     id: "zurich-tainted-object-hasown",

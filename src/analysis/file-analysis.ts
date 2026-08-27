@@ -76,13 +76,14 @@ const ALL_KINDS: readonly ProvenanceKind[] = [
   "GlideAjax",
   "GlideDateTime",
   "DataView",
+  "Set",
 ];
 
 const PLATFORM_ALIAS_KINDS = new Set<ProvenanceKind>(["g_form", "gs", "current"]);
 
 const bySource = new WeakMap<object, Map<string, FileAnalysis>>();
 const bySourceAndAst = new WeakMap<object, WeakMap<ESTree.Node, Map<string, FileAnalysis>>>();
-const ANALYSIS_RESOLVER_VERSION = 4;
+const ANALYSIS_RESOLVER_VERSION = 5;
 let analysisPasses = 0;
 
 export function getAnalysisPassCount(): number {

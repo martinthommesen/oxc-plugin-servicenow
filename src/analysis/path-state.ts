@@ -444,6 +444,7 @@ function ctorKind(
     GlideAjax: "GlideAjax",
     GlideDateTime: "GlideDateTime",
     DataView: "DataView",
+    Set: "Set",
   };
   const kind = map[name];
   if (!kind || !kinds.includes(kind)) return null;

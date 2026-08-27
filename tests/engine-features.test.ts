@@ -14,6 +14,7 @@ describe("ServiceNow engine feature matrix", () => {
       "error-iserror",
       "promise-try",
       "promise-withresolvers",
+      "set-methods",
     ]);
     assert.deepEqual(SUPPORTED_SERVICENOW_RELEASES, ["zurich", "australia"]);
     assert.deepEqual(Object.keys(ENGINE_FEATURE_RELEASES), SUPPORTED_SERVICENOW_RELEASES);
@@ -48,7 +49,12 @@ describe("ServiceNow engine feature matrix", () => {
       assert.equal(featureSupport(id, "es5"), "unsupported");
     }
     assert.equal(featureSupport("error-iserror", "es5"), "unsupported");
-    for (const id of ["error-iserror", "promise-try", "promise-withresolvers"] as const) {
+    for (const id of [
+      "error-iserror",
+      "promise-try",
+      "promise-withresolvers",
+      "set-methods",
+    ] as const) {
       assert.equal(featureSupport(id, "es2021", "zurich"), "unsupported");
       assert.equal(featureSupport(id, "es2021", "australia"), "supported");
       assert.equal(featureSupport(id, "es2021"), "unknown");
@@ -56,10 +62,16 @@ describe("ServiceNow engine feature matrix", () => {
     for (const id of ["promise-try", "promise-withresolvers"] as const) {
       assert.equal(featureSupport(id, "es5"), "disallowed");
     }
+    assert.equal(featureSupport("set-methods", "es5"), "unsupported");
   });
 
-  it("attributes Australia-added static methods to the official engine update", () => {
-    for (const id of ["error-iserror", "promise-try", "promise-withresolvers"] as const) {
+  it("attributes Australia-added methods to the official engine update", () => {
+    for (const id of [
+      "error-iserror",
+      "promise-try",
+      "promise-withresolvers",
+      "set-methods",
+    ] as const) {
       for (const release of SUPPORTED_SERVICENOW_RELEASES) {
         const cell = ENGINE_FEATURES[id].releases[release];
         assert.match(cell.evidence, /updates-javascript-engine\.html$/);

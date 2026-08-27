@@ -8,6 +8,7 @@
 - Full Australia release support: release-keyed JavaScript-engine capabilities, an exact 102-method scoped/global GlideRecord inventory, pinned official source markers, Australia SDK 4.4 manifest-selection coverage, real Oxlint/ESLint release contracts, and generated compatibility metadata.
 - New `no-object-hasown` rule for Zurich and Compatibility/ES5 scripts. Australia ES2021 correctly permits `Object.hasOwn()`.
 - New `no-unsupported-static-methods` rule models the Australia ES2021 additions `Error.isError()`, `Promise.try()`, and `Promise.withResolvers()` with release-aware, binding-aware, guard-aware diagnostics.
+- New `no-unsupported-set-methods` rule covers all seven Set composition methods added in Australia ES2021, using path-sensitive receiver identity, platform-method authority, polyfill suppression, and receiver-specific availability guards.
 - `no-typed-arrays` now models Australia BigInt64 array support and detects unsupported constructors, static `from`/`of` factories, and documented `DataView` BigInt getters through proven object aliases.
 
 ### Fixed
