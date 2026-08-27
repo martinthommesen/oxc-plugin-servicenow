@@ -26,6 +26,7 @@ export type EngineFeatureId =
   | "bigint"
   | "bigint-narrowing"
   | "array-from-thisarg"
+  | "function-call-apply-thisarg"
   | "at-method"
   | "typed-arrays"
   | "typed-array-factories"
@@ -271,6 +272,14 @@ export const ENGINE_FEATURES: Readonly<Record<EngineFeatureId, EngineFeature>> =
   "array-from-thisarg": australiaUpdateFeature(
     "array-from-thisarg",
     "Spec-correct Array.from mapper thisArg",
+    {
+      zurich: ["unsupported", "unsupported"],
+      australia: ["supported", "unsupported"],
+    },
+  ),
+  "function-call-apply-thisarg": australiaUpdateFeature(
+    "function-call-apply-thisarg",
+    "Spec-correct Function.prototype.call/apply thisArg",
     {
       zurich: ["unsupported", "unsupported"],
       australia: ["supported", "unsupported"],
