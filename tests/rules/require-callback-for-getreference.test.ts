@@ -212,8 +212,35 @@ g_form.getReference("caller_id");`,
 g_form.getReference("caller_id");`,
       `Reflect.apply(Object.defineProperty, Object, [g_form, "getReference", { value: localReference }]);
 g_form.getReference("caller_id");`,
+      `Reflect.apply(Reflect.apply, Reflect, [Object.defineProperty, Object, [g_form, "getReference", { value: localReference }]]);
+g_form.getReference("caller_id");`,
+      `const args = [Object.defineProperty, Object, [g_form, "getReference", { value: localReference }]];
+Reflect.apply(...args);
+g_form.getReference("caller_id");`,
+      `Reflect.apply(prepare, g_form, []);
+g_form.getReference("caller_id");`,
+      `Reflect.apply(prepare, null, [g_form]);
+g_form.getReference("caller_id");`,
+      `Reflect.construct(Preparation, [g_form]);
+g_form.getReference("caller_id");`,
+      `Reflect.deleteProperty(g_form, "getReference");
+g_form.getReference("caller_id");`,
     ]) {
       assertValid(code, RULE, options);
+    }
+  });
+
+  it("tracks defaulted destructured prototype aliases as possible platform owners", () => {
+    for (const code of [
+      `const { prototype: formPrototype = GlideForm.prototype } = GlideForm;
+formPrototype.getReference = localReference;
+g_form.getReference("caller_id");`,
+      `const localForm = {};
+const { prototype: formPrototype = GlideForm.prototype } = localForm;
+formPrototype.getReference = localReference;
+g_form.getReference("caller_id");`,
+    ]) {
+      assertValid(code, RULE, CLIENT);
     }
   });
 
