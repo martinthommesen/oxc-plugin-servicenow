@@ -24,6 +24,7 @@ interface Data {
 const UNCHANGED_METHODS: PlatformMethodAuthorityFacts = {
   bindingWrites: {
     isWritten: () => false,
+    isWrittenBeforeInBoundary: () => false,
     hasDynamicScope: () => false,
   },
   mutations: {

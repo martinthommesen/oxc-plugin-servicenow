@@ -278,6 +278,13 @@ const contracts: readonly ReleaseContract[] = [
     settings: { release: "australia", javascriptMode: "compatibility" },
   },
   {
+    id: "omitted-release-short-date-parse",
+    filename: "omitted-date-parse.server.js",
+    code: SHORT_DATE_PARSE,
+    rule: "no-unsupported-date-fraction",
+    settings: { javascriptMode: "compatibility" },
+  },
+  {
     id: "zurich-tainted-object-hasown",
     filename: "zurich-tainted-object-hasown.server.js",
     code: TAINTED_HAS_OWN,
