@@ -1,6 +1,6 @@
 # Release process
 
-This document defines the release process for `2.0.0` and later. The current work remains under `Unreleased`. No stable `2.0.0` release has been performed.
+This document defines the release process for `2.0.0` and later. npm published the stable `2.0.0` package on 2026-08-27. New work remains under `Unreleased` until its release is ready.
 
 ## Merge readiness and release readiness
 
@@ -24,7 +24,7 @@ Release readiness also requires approved external actions:
 
 Keep `main` unchanged until the release workflow's initial tip check passes. The check runs immediately after checkout and before dependency installation. If the tip changed first, cut a new version after review; protected release tags are immutable and must not be moved.
 
-These steps are live-pending. Do not describe a green local check as live release proof.
+Treat each incomplete step as `Live-pending`. Do not describe a green local check as live release proof.
 
 ## Release identity
 
@@ -103,7 +103,21 @@ Registry retries are bounded. They use structured npm status codes and retry onl
 
 Provenance verification requires the expected package, version, tarball digest, repository, workflow, commit, tag, GitHub Actions builder, release environment, and OIDC subject. Registry integrity and provenance are separate checks.
 
+Fulcio encodes GitHub workflow certificate extensions as DER UTF8String values. The verifier decodes these values before comparison. The expected OIDC subject includes the immutable GitHub owner and repository IDs.
+
 GitHub release retries compare the exact tag, target commit, title, draft state, prerelease state, changelog-derived notes, asset name, and asset bytes. The helper never overwrites a conflicting asset.
+
+## Recover a missing GitHub release
+
+Use `Recover GitHub release` only when npm publication succeeded but a later verification or GitHub release step failed. Do not republish the version. Do not delete or move its protected tag.
+
+1. Fix the failed verifier through the normal pull request process.
+2. Run `Recover GitHub release` from `main`.
+3. Enter the exact published version.
+4. Review the verification job.
+5. Verify the GitHub release notes and tarball asset.
+
+The recovery workflow fetches the immutable tag and registry package. It verifies the registry bytes, installed exports, declarations, provenance, workflow identity, commit, and tag. It then reuses the normal GitHub release helper and permission boundary. It cannot publish to npm or create a tag.
 
 ## Governance status
 

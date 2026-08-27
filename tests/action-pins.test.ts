@@ -157,7 +157,7 @@ describe("workflow action pins", () => {
   it("loads the production pin catalog without collapsing duplicate keys", () => {
     const source = readFileSync(new URL("../scripts/action-pins.json", import.meta.url), "utf8");
     assert.equal(parseActionPinCatalog(source).length, 5);
-    assert.deepEqual(checkActionPins(), { workflows: 4, actions: 5 });
+    assert.deepEqual(checkActionPins(), { workflows: 5, actions: 5 });
     assert.throws(
       () =>
         parseActionPinCatalog(

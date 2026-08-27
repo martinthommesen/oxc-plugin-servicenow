@@ -55,6 +55,9 @@ const ciWorkflow = parse(
 const governanceWorkflow = parse(
   readFileSync(path.join(repoRoot, ".github/workflows/governance-audit.yml"), "utf8"),
 ) as any;
+const recoveryWorkflow = parse(
+  readFileSync(path.join(repoRoot, ".github/workflows/recover-release.yml"), "utf8"),
+) as any;
 const desiredFixture = JSON.parse(
   readFileSync(path.join(repoRoot, "tests/fixtures/release-governance/desired.json"), "utf8"),
 );
@@ -72,7 +75,7 @@ function clone<T>(value: T): T {
 describe("release automation gates", () => {
   it("enforces one full-SHA action pin set across workflows", () => {
     const result = checkActionPins();
-    assert.equal(result.workflows, 4);
+    assert.equal(result.workflows, 5);
     assert.equal(result.actions, 5);
   });
 
@@ -366,6 +369,10 @@ describe("release automation gates", () => {
     const weakenedEnvironment = clone(authoritativeDesiredFixture);
     weakenedEnvironment.environment.name = "preview";
     assert.notDeepEqual(validateDesiredGovernance(weakenedEnvironment), []);
+    const mismatchedSubject = clone(authoritativeDesiredFixture);
+    mismatchedSubject.npmTrustedPublisher.oidcSubject =
+      "repo:other@267603464/repository@1339120262:environment:release";
+    assert.notDeepEqual(validateDesiredGovernance(mismatchedSubject), []);
     assert.equal(
       compareGovernance(authoritativeDesiredFixture, authoritativeDesiredFixture).ok,
       true,
@@ -592,7 +599,7 @@ describe("release automation gates", () => {
     assert.deepEqual(jobs.publish.permissions, { "id-token": "write" });
     const allJobs = Object.values(jobs) as any[];
     assert.equal(allJobs.filter((job) => job.permissions?.["id-token"] === "write").length, 1);
-    for (const candidate of [workflow, ciWorkflow]) {
+    for (const candidate of [workflow, ciWorkflow, recoveryWorkflow]) {
       for (const job of Object.values(candidate.jobs) as any[]) {
         for (const step of job.steps ?? []) {
           if (step.run) assert.doesNotMatch(step.run, /\$\{\{/);
@@ -629,6 +636,30 @@ describe("release automation gates", () => {
       readFileSync(path.join(repoRoot, "scripts/create-github-release.mjs"), "utf8"),
       /GH_BIN/,
     );
+  });
+
+  it("recovers only an already-published release after read-only verification", () => {
+    assert.ok(Object.hasOwn(recoveryWorkflow.on, "workflow_dispatch"));
+    assert.deepEqual(recoveryWorkflow.concurrency, {
+      group: "recover-github-release-${{ inputs.version }}",
+      "cancel-in-progress": false,
+    });
+    assert.deepEqual(recoveryWorkflow.permissions, { contents: "read" });
+    assert.deepEqual(recoveryWorkflow.jobs.verify.permissions, { contents: "read" });
+    assert.equal(recoveryWorkflow.jobs.recover.environment, undefined);
+    assert.deepEqual(recoveryWorkflow.jobs.recover.permissions, { contents: "write" });
+    assert.equal(
+      recoveryWorkflow.jobs.recover.steps[0].with.ref,
+      "${{ needs.verify.outputs.commit }}",
+    );
+    const run = Object.values(recoveryWorkflow.jobs)
+      .flatMap((job: any) => job.steps ?? [])
+      .filter((step: any) => step.run)
+      .map((step: any) => step.run)
+      .join("\n");
+    assert.match(run, /verify-published-package\.mjs/);
+    assert.match(run, /create-github-release\.mjs/);
+    assert.doesNotMatch(run, /npm publish|create-release-tag\.mjs/);
   });
 
   it("retries only typed transient failures within attempts and deadline", async () => {
@@ -833,7 +864,8 @@ async function signedProvenanceFixture() {
     environment: "release",
     ref: "refs/tags/v2.0.0-rc.1",
     commit: "a".repeat(40),
-    oidcSubject: "repo:martinthommesen/oxc-plugin-servicenow:environment:release",
+    oidcSubject:
+      "repo:martinthommesen@267603464/oxc-plugin-servicenow@1339120262:environment:release",
   };
   const workflowIdentity = `${expected.repository}/${expected.workflow}@${expected.ref}`;
   const oidValues: Record<string, string> = {
@@ -854,7 +886,6 @@ async function signedProvenanceFixture() {
     extensions: Object.entries(oidValues).map(([oid, value]) => ({
       oid,
       value,
-      legacy: oid !== "1.3.6.1.4.1.57264.1.8",
     })),
   });
   const digestHex = Buffer.from(expected.integrity.slice("sha512-".length), "base64").toString(
@@ -956,10 +987,6 @@ async function signedProvenanceFixture() {
     const policy = {
       subjectAlternativeName: options.certificateIdentityURI,
       extensions: { issuer: options.certificateIssuer },
-      oids: Object.entries(options.certificateOIDs).map(([oid, value]) => ({
-        oid: { id: oid.split(".").map(Number) },
-        value: Buffer.from(value as string),
-      })),
     };
     return verifier.verify(entity as unknown as Parameters<typeof verifier.verify>[0], policy);
   };
@@ -1060,7 +1087,7 @@ describe("exact Sigstore provenance", () => {
         expected.environment = "other";
       },
       (_response, expected) => {
-        expected.oidcSubject = "repo:other/repo:environment:release";
+        expected.oidcSubject = "repo:other@1/repo@2:environment:release";
       },
       (_response, expected) => {
         expected.repository = "https://github.com/other/repo";

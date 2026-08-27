@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Fixed
+
+- Release verification now decodes Fulcio DER UTF8String certificate fields and checks GitHub's immutable owner and repository IDs.
+- A recovery workflow can create a missing GitHub release after npm publication succeeds.
+
 ## 2.0.0 — 2026-08-27
 
 The 2.0.0 release includes the validated settings, context, rule, and release-governance changes documented below.
