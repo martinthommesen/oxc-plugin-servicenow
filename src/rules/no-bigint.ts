@@ -1,9 +1,12 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
-import { getName } from "../utils/ast.js";
+import { findStablePlatformConstructorCalls } from "../analysis/internal.js";
 import { beginRuleFile } from "./helpers.js";
 import { shouldDiagnoseFeature } from "../engine/index.js";
+import { isUnsupportedGlobalInvocationProtected } from "./unsupported-constructor-rule.js";
+
+const NAMES = ["BigInt"] as const;
 
 export const noBigint = defineRule({
   meta: {
@@ -35,19 +38,21 @@ export const noBigint = defineRule({
           });
         }
       },
-      CallExpression(node) {
-        reportCtor((node as ESTree.CallExpression).callee as ESTree.Node, node);
-      },
-      NewExpression(node) {
-        reportCtor((node as ESTree.NewExpression).callee as ESTree.Node, node);
+      Program(node) {
+        const { analysis, file } = beginRuleFile(context);
+        for (const finding of findStablePlatformConstructorCalls({
+          program: node as ESTree.Node,
+          analysis,
+          bindingWrites: file.bindingWrites,
+          mutations: file.mutations,
+          names: NAMES,
+          namespaces: ["globalThis"],
+          mutationSemantics: "callable",
+        })) {
+          if (isUnsupportedGlobalInvocationProtected(context, finding)) continue;
+          context.report({ node: finding.node, messageId: "ctor" });
+        }
       },
     };
-
-    function reportCtor(callee: ESTree.Node, node: ESTree.Node) {
-      const { analysis } = beginRuleFile(context);
-      if (getName(callee) !== "BigInt") return;
-      if (!analysis.isPlatformGlobal(callee)) return;
-      context.report({ node, messageId: "ctor" });
-    }
   },
 });

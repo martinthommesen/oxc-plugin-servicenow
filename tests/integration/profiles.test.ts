@@ -126,6 +126,22 @@ describe("profile fixtures", () => {
     assert.deepEqual(eslintClassicEs5(readFileSync(file, "utf8"), filename), []);
   });
 
+  it("classic-es5 Oxlint and ESLint resolve stable BigInt aliases", () => {
+    const filename = "es5-bigint-alias.server.js";
+    const file = path.join(invalidDir, filename);
+    assert.ok(pluginRulesFor(runOxlint(classicEs5Config, [file])).includes("servicenow/no-bigint"));
+    assert.ok(
+      eslintClassicEs5(readFileSync(file, "utf8"), filename).includes("servicenow/no-bigint"),
+    );
+  });
+
+  it("classic-es5 Oxlint and ESLint accept an explicit BigInt polyfill", () => {
+    const filename = "es5-polyfilled-bigint.server.js";
+    const file = path.join(validDir, filename);
+    assert.deepEqual(pluginRulesFor(runOxlint(classicEs5Config, [file])), []);
+    assert.deepEqual(eslintClassicEs5(readFileSync(file, "utf8"), filename), []);
+  });
+
   it("recommended flags GlideRecord in a client fixture", () => {
     const rules = pluginRulesFor(
       runOxlint(recommendedConfig, [path.join(invalidDir, "client-gliderecord.client.js")]),
