@@ -262,6 +262,18 @@ export const BINDING_MATRIX_CASES: readonly BindingMatrixCase[] = [
     "matrix.client.js",
   ),
   {
+    ...report(
+      "client-direct-gliderecord",
+      "no-client-gliderecord",
+      'new GlideRecord("incident");',
+      'new GlideRecord("incident")',
+      "glideRecord",
+      "Client GlideRecord is not supported in scoped applications. Query through a Script Include with `GlideAjax` or a Scripted REST API.",
+      "matrix.client.js",
+    ),
+    settings: { scope: "scoped" } as const,
+  },
+  {
     ...silent(
       "client-namespace-escape-before-reassign",
       "no-client-gliderecord",
