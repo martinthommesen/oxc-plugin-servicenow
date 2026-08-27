@@ -87,6 +87,23 @@ create(value);`,
         { settings: ES5 },
       );
     }
+    assertInvalid(
+      `const root = globalThis;
+if (typeof globalThis !== "undefined" && "WeakMap" in root) {
+  new WeakMap();
+}`,
+      "no-weak-collections",
+      { messageId: "weak" },
+      { settings: ES5 },
+    );
+    assertValid(
+      `if (typeof globalThis !== "undefined") {
+  const root = globalThis;
+  if ("WeakMap" in root) new WeakMap();
+}`,
+      "no-weak-collections",
+      { settings: ES5 },
+    );
   });
 
   it("requires a bare alias origin to be guarded before capture", () => {
@@ -225,6 +242,9 @@ const ref = new globalThis.WeakRef(value);`,
     for (const descriptor of [
       `{ value: LocalWeakRef, set: LocalSetter }`,
       `{ get: LocalGetter, writable: true }`,
+      `{ set value(next) {} }`,
+      `{ set get(next) {} }`,
+      `{ value: null, set value(next) {} }`,
     ]) {
       assertInvalid(
         `try {
