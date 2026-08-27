@@ -57,11 +57,13 @@ interface MutationIndex {
   globalPaths: ReadonlySet<string>;
   objectProperties: ReadonlySet<string>;
   objectPropertyWildcards: ReadonlySet<string>;
+  allocationProperties: ReadonlyMap<ESTree.Node, ReadonlySet<string>>;
   authorityGlobals: ReadonlySet<string>;
   authorityGlobalPaths: ReadonlySet<string>;
   authorityGlobalPathSources: ReadonlyMap<string, ReadonlySet<ESTree.Node | null>>;
   authorityObjectProperties: ReadonlySet<string>;
   authorityObjectPropertyWildcards: ReadonlySet<string>;
+  authorityAllocationProperties: ReadonlyMap<ESTree.Node, ReadonlySet<string>>;
 }
 
 interface MutableMutationFacts {
@@ -69,6 +71,7 @@ interface MutableMutationFacts {
   readonly globalPaths: Set<string>;
   readonly objectProperties: Set<string>;
   readonly objectPropertyWildcards: Set<string>;
+  readonly allocationProperties: Map<ESTree.Node, Set<string>>;
 }
 
 const MAX_NAMESPACE_ESCAPE_DEPTH = 32;
@@ -104,7 +107,76 @@ function emptyMutationFacts(): MutableMutationFacts {
     globalPaths: new Set(),
     objectProperties: new Set(),
     objectPropertyWildcards: new Set(),
+    allocationProperties: new Map(),
   };
+}
+
+function aliasValue(
+  node: unknown,
+  bindings: FileBindings,
+  bindingWrites: BindingWriteQuery,
+  temporal: boolean,
+): ESTree.Node | null {
+  let value = unwrapExpression(node);
+  const seen = new Set<number>();
+  while (isNode(value)) {
+    if (value.type === "SequenceExpression") {
+      value = unwrapExpression(value.expressions.at(-1));
+      continue;
+    }
+    if (value.type !== "Identifier") return value;
+    const binding = bindings.resolve(value.name, value);
+    const wasWritten = binding
+      ? temporal
+        ? bindingWrites.isWrittenBeforeInBoundary(binding.id, value)
+        : bindingWrites.isWritten(binding.id)
+      : false;
+    if (
+      !binding ||
+      seen.has(binding.id) ||
+      wasWritten ||
+      (binding.kind !== "const" && bindingWrites.hasDynamicScope()) ||
+      binding.declarations.length !== 1 ||
+      binding.node.type !== "VariableDeclarator"
+    ) {
+      return value;
+    }
+    const declaration = binding.node as ESTree.VariableDeclarator;
+    const initializerEnd = declaration.init ? nodeEnd(declaration.init as ESTree.Node) : -1;
+    const useStart = nodeStart(value);
+    if (
+      declaration.id.type !== "Identifier" ||
+      declaration.id.name !== binding.name ||
+      !declaration.init ||
+      initializerEnd < 0 ||
+      useStart < 0 ||
+      initializerEnd > useStart
+    ) {
+      return value;
+    }
+    seen.add(binding.id);
+    value = unwrapExpression(declaration.init);
+  }
+  return null;
+}
+
+function allocationValue(
+  node: unknown,
+  bindings: FileBindings,
+  bindingWrites: BindingWriteQuery,
+  temporal: boolean,
+): ESTree.ArrayExpression | ESTree.ObjectExpression | null {
+  const value = aliasValue(node, bindings, bindingWrites, temporal);
+  return value?.type === "ArrayExpression" || value?.type === "ObjectExpression" ? value : null;
+}
+
+function allocationPropertyWasWritten(
+  properties: ReadonlyMap<ESTree.Node, ReadonlySet<string>>,
+  allocation: ESTree.Node | null,
+  property: string,
+): boolean {
+  const written = allocation ? properties.get(allocation) : undefined;
+  return Boolean(written?.has(property) || written?.has("*"));
 }
 
 function staticGlobalPath(node: unknown, bindings: FileBindings): readonly string[] | null {
@@ -147,11 +219,13 @@ function buildIndex(
     globalPaths,
     objectProperties,
     objectPropertyWildcards,
+    allocationProperties: callable.allocationProperties,
     authorityGlobals: authority.globals,
     authorityGlobalPaths: authority.globalPaths,
     authorityGlobalPathSources,
     authorityObjectProperties: authority.objectProperties,
     authorityObjectPropertyWildcards: authority.objectPropertyWildcards,
+    authorityAllocationProperties: authority.allocationProperties,
   });
   if (!program) return result();
 
@@ -185,52 +259,10 @@ function buildIndex(
     }
   };
 
-  const aliasValue = (node: unknown, temporal: boolean): ESTree.Node | null => {
-    let value = unwrapExpression(node);
-    const seen = new Set<number>();
-    while (isNode(value)) {
-      if (value.type === "SequenceExpression") {
-        value = unwrapExpression(value.expressions.at(-1));
-        continue;
-      }
-      if (value.type !== "Identifier") return value;
-      const binding = bindings.resolve(value.name, value);
-      const wasWritten = binding
-        ? temporal
-          ? bindingWrites.isWrittenBeforeInBoundary(binding.id, value)
-          : bindingWrites.isWritten(binding.id)
-        : false;
-      if (
-        !binding ||
-        seen.has(binding.id) ||
-        wasWritten ||
-        (binding.kind !== "const" && bindingWrites.hasDynamicScope()) ||
-        binding.declarations.length !== 1 ||
-        binding.node.type !== "VariableDeclarator"
-      ) {
-        return value;
-      }
-      const declaration = binding.node as ESTree.VariableDeclarator;
-      const initializerEnd = declaration.init ? nodeEnd(declaration.init as ESTree.Node) : -1;
-      const useStart = nodeStart(value);
-      if (
-        declaration.id.type !== "Identifier" ||
-        declaration.id.name !== binding.name ||
-        !declaration.init ||
-        initializerEnd < 0 ||
-        useStart < 0 ||
-        initializerEnd > useStart
-      ) {
-        return value;
-      }
-      seen.add(binding.id);
-      value = unwrapExpression(declaration.init);
-    }
-    return null;
-  };
-
-  const stableAliasValue = (node: unknown): ESTree.Node | null => aliasValue(node, false);
-  const authorityAliasValue = (node: unknown): ESTree.Node | null => aliasValue(node, true);
+  const stableAliasValue = (node: unknown): ESTree.Node | null =>
+    aliasValue(node, bindings, bindingWrites, false);
+  const authorityAliasValue = (node: unknown): ESTree.Node | null =>
+    aliasValue(node, bindings, bindingWrites, true);
 
   const aliasGlobalPath = (
     node: unknown,
@@ -257,7 +289,7 @@ function buildIndex(
       if (!fallbackPath) return selectedPath;
       return pathKey(selectedPath) === pathKey(fallbackPath) ? selectedPath : ["*"];
     }
-    const value = aliasValue(direct, temporal);
+    const value = aliasValue(direct, bindings, bindingWrites, temporal);
     if (!value || seen.has(value)) return null;
     const next = new Set(directSeen);
     next.add(value);
@@ -341,6 +373,11 @@ function buildIndex(
       // object identity retained by the intraprocedural provenance summary.
       facts.objectPropertyWildcards.add(property ?? "*");
     }
+    if (terminal.type === "ArrayExpression" || terminal.type === "ObjectExpression") {
+      const properties = facts.allocationProperties.get(terminal) ?? new Set<string>();
+      properties.add(property ?? "*");
+      facts.allocationProperties.set(terminal, properties);
+    }
   };
 
   const recordTarget = (
@@ -395,11 +432,7 @@ function buildIndex(
       // ServiceNow instance engines reject Reflect.apply. Browser-executed
       // client scripts can invoke it, including recursively through itself.
       if (!browserRuntime || current.arguments === null) return null;
-      const target = resolveBuiltinReference(
-        current.arguments[0],
-        bindings,
-        globalThisCanExist,
-      );
+      const target = resolveBuiltinReference(current.arguments[0], bindings, globalThisCanExist);
       if (!target) return null;
       current = { ...target, arguments: stableArrayArguments(current.arguments[2]) };
     }
@@ -734,9 +767,11 @@ export function createMutationQuery(
     },
     isObjectPropertyWritten(object: unknown, property: string) {
       const objectId = provenance.ofExpression(object)?.objectId;
+      const allocation = allocationValue(object, bindings, bindingWrites, false);
       return (
         getIndex().objectPropertyWildcards.has(property) ||
         getIndex().objectPropertyWildcards.has("*") ||
+        allocationPropertyWasWritten(getIndex().allocationProperties, allocation, property) ||
         (objectId !== undefined &&
           (getIndex().objectProperties.has(objectPropertyKey(objectId, property)) ||
             getIndex().objectProperties.has(objectPropertyKey(objectId, "*"))))
@@ -760,9 +795,15 @@ export function createMutationQuery(
     },
     isObjectPropertyAuthorityLost(object: unknown, property: string) {
       const objectId = provenance.ofExpression(object)?.objectId;
+      const allocation = allocationValue(object, bindings, bindingWrites, true);
       return (
         getIndex().authorityObjectPropertyWildcards.has(property) ||
         getIndex().authorityObjectPropertyWildcards.has("*") ||
+        allocationPropertyWasWritten(
+          getIndex().authorityAllocationProperties,
+          allocation,
+          property,
+        ) ||
         (objectId !== undefined &&
           (getIndex().authorityObjectProperties.has(objectPropertyKey(objectId, property)) ||
             getIndex().authorityObjectProperties.has(objectPropertyKey(objectId, "*"))))
