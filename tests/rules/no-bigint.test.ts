@@ -29,6 +29,22 @@ var n = ToBigInt(10);`,
       { messageId: "ctor" },
       { settings: ES5 },
     );
+    assertInvalid(
+      `for (const ToBigInt = BigInt; ready; ) {
+  ToBigInt(10);
+}`,
+      RULE,
+      { messageId: "ctor" },
+      { settings: ES5 },
+    );
+    assertInvalid(
+      `for (var ToBigInt = BigInt; ready; ) {
+  ToBigInt(10);
+}`,
+      RULE,
+      { messageId: "ctor" },
+      { settings: ES5 },
+    );
   });
 
   it("keeps shadows, mutable aliases, and cross-execution aliases silent", () => {
