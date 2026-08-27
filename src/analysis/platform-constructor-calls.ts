@@ -49,7 +49,7 @@ export interface PlatformStaticMethodCallOptions extends Omit<
 
 interface DeclaratorFacts {
   readonly executionBoundary: ESTree.Node;
-  readonly statementContainer: ESTree.Program | ESTree.BlockStatement | null;
+  readonly statementContainer: ESTree.Program | ESTree.BlockStatement | ESTree.ForStatement | null;
 }
 
 interface CallSite {
@@ -95,11 +95,12 @@ function executionBoundary(ancestors: readonly ESTree.Node[]): ESTree.Node | nul
 
 function directStatementContainer(
   ancestors: readonly ESTree.Node[],
-): ESTree.Program | ESTree.BlockStatement | null {
+): ESTree.Program | ESTree.BlockStatement | ESTree.ForStatement | null {
   const declaration = ancestors.at(-2);
   const container = ancestors.at(-3);
   if (declaration?.type !== "VariableDeclaration" || !container) return null;
-  return container.type === "Program" || container.type === "BlockStatement" ? container : null;
+  if (container.type === "Program" || container.type === "BlockStatement") return container;
+  return container.type === "ForStatement" && container.init === declaration ? container : null;
 }
 
 function definitelyPrecedes(left: unknown, right: ESTree.Node): boolean {
@@ -358,7 +359,12 @@ export function findStablePlatformStaticMethodCalls({
     },
     "authority",
   );
-  if (!resolver) return [];
+  const reflectResolver = stablePlatformGlobalResolver({
+    ...options,
+    names: ["Reflect"],
+    mutationSemantics: "authority",
+  });
+  if (!resolver || !reflectResolver) return [];
 
   const findings: PlatformStaticMethodCallFinding[] = [];
   for (const callSite of resolver.callSites) {
@@ -372,6 +378,16 @@ export function findStablePlatformStaticMethodCalls({
       targets.push({ helper: null, member: direct });
       const helper = staticPropertyName(direct);
       const wrapped = unwrapExpression(direct.object);
+      const reflectApplyTarget = unwrapExpression(callSite.node.arguments[0]);
+      if (
+        helper === "apply" &&
+        reflectResolver.resolve(direct.object, callSite.executionBoundary)?.name === "Reflect" &&
+        reflectResolver.pathIdentityIsStable(["Reflect", "apply"]) &&
+        isNode(reflectApplyTarget) &&
+        reflectApplyTarget.type === "MemberExpression"
+      ) {
+        targets.push({ helper: null, member: reflectApplyTarget });
+      }
       if (
         (helper === "call" || helper === "apply") &&
         isNode(wrapped) &&

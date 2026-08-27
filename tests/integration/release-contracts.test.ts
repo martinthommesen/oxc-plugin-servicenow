@@ -377,6 +377,24 @@ const contracts: readonly ReleaseContract[] = [
     messageId: "privateInstance",
   },
   {
+    id: "es5-promise-static-alias",
+    filename: "es5-promise-alias.server.js",
+    code: `const P = Promise;
+P.resolve(1);`,
+    rule: "no-promise",
+    settings: { javascriptMode: "es5" },
+    messageId: "staticMethod",
+  },
+  {
+    id: "es5-proxy-revocable-alias",
+    filename: "es5-proxy-alias.server.js",
+    code: `const P = Proxy;
+P.revocable(target, handler);`,
+    rule: "no-proxy",
+    settings: { javascriptMode: "es5" },
+    messageId: "revocable",
+  },
+  {
     id: "australia-global-query-no-domain",
     filename: "australia-global-query.server.js",
     code: QUERY_NO_DOMAIN,
