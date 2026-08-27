@@ -89,6 +89,18 @@ describe("profile fixtures", () => {
     assert.ok(rules.includes("servicenow/no-client-gliderecord"));
   });
 
+  it("recommended Oxlint and ESLint resolve stable WeakRef aliases", () => {
+    const filename = "weakref-alias.server.js";
+    const file = path.join(invalidDir, filename);
+    const oxlintRules = pluginRulesFor(runOxlint(recommendedConfig, [file]));
+    assert.ok(oxlintRules.includes("servicenow/no-weak-references"));
+
+    const eslintRules = eslintRecommended(readFileSync(file, "utf8"), filename)
+      .map((message) => message.ruleId)
+      .filter((id): id is string => Boolean(id));
+    assert.ok(eslintRules.includes("servicenow/no-weak-references"));
+  });
+
   it("recommended flags Phase 2 server and client rules", () => {
     const windowed = pluginRulesFor(
       runOxlint(recommendedConfig, [path.join(invalidDir, "windowed-delete.br.js")]),

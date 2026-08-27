@@ -25,6 +25,12 @@ import {
 } from "./members.js";
 import type { ProvenanceQuery } from "./provenance.js";
 import type { JavaScriptMode } from "../types.js";
+import {
+  type BuiltinCall,
+  resolveBuiltinBindCall,
+  resolveBuiltinCall,
+  resolveBuiltinReference,
+} from "./builtin-calls.js";
 
 export interface MutationQuery {
   /** True when a callable replacement may have been installed for the global. */
@@ -63,16 +69,6 @@ interface MutableMutationFacts {
   readonly globalPaths: Set<string>;
   readonly objectProperties: Set<string>;
   readonly objectPropertyWildcards: Set<string>;
-}
-
-interface BuiltinReference {
-  owner: string;
-  method: string;
-}
-
-interface BuiltinCall extends BuiltinReference {
-  /** Null means the invocation is proven but its effective arguments are unknown. */
-  arguments: readonly unknown[] | null;
 }
 
 const MAX_NAMESPACE_ESCAPE_DEPTH = 32;
@@ -384,34 +380,7 @@ function buildIndex(
     }
   };
 
-  const staticBuiltin = (node: unknown): BuiltinReference | null => {
-    const direct = unwrapExpression(node);
-    if (!isNode(direct)) return null;
-    const selected = resolveDestructuredConstMember(direct, bindings);
-    if (selected) {
-      if (selected.fallback !== null && !isDefinitelyNonCallable(selected.fallback, bindings)) {
-        return null;
-      }
-      if (platformGlobalNamespaceAccess(selected.source, bindings) && !globalThisCanExist) {
-        return null;
-      }
-      const owner = resolvePlatformGlobalName(selected.source, bindings);
-      return owner ? { owner, method: selected.property } : null;
-    }
-    const value = resolveConstValue(direct, bindings);
-    if (!value) return null;
-    if (platformGlobalNamespaceAccess(value, bindings) && !globalThisCanExist) {
-      return null;
-    }
-    if (value.type === "MemberExpression") {
-      const method = staticPropertyName(value);
-      const owner = resolvePlatformGlobalName(value.object, bindings);
-      return owner && method ? { owner, method } : null;
-    }
-    return null;
-  };
-
-  const arrayArguments = (node: unknown): readonly unknown[] | null => {
+  const stableArrayArguments = (node: unknown): readonly unknown[] | null => {
     const value = stableAliasValue(node);
     if (value?.type !== "ArrayExpression") return null;
     return value.elements.some((element) => element?.type === "SpreadElement")
@@ -419,107 +388,55 @@ function buildIndex(
       : value.elements;
   };
 
-  const directArguments = (arguments_: readonly unknown[]): readonly unknown[] | null =>
-    arguments_.some((argument) => isNode(argument) && argument.type === "SpreadElement")
-      ? null
-      : arguments_;
-
-  const boundBuiltin = (
-    node: unknown,
-  ): (BuiltinReference & { arguments: readonly unknown[] | null }) | null => {
-    const value = resolveConstValue(node, bindings);
-    if (value?.type !== "CallExpression") return null;
-    const callee = resolveConstValue(value.callee, bindings);
-    if (callee?.type !== "MemberExpression" || staticPropertyName(callee) !== "bind") return null;
-    const wrapped = staticBuiltin(callee.object);
-    return wrapped ? { ...wrapped, arguments: directArguments(value.arguments.slice(1)) } : null;
-  };
-
-  const normalizeReflectApply = (initial: BuiltinCall): BuiltinCall | null => {
+  const normalizeReflectApply = (initial: BuiltinCall | null): BuiltinCall | null => {
     let current = initial;
     for (let depth = 0; depth < MAX_REFLECT_APPLY_DEPTH; depth += 1) {
-      if (current.owner !== "Reflect" || current.method !== "apply") return current;
+      if (!current || current.owner !== "Reflect" || current.method !== "apply") return current;
       // ServiceNow instance engines reject Reflect.apply. Browser-executed
       // client scripts can invoke it, including recursively through itself.
       if (!browserRuntime || current.arguments === null) return null;
-      const target = staticBuiltin(current.arguments[0]);
+      const target = resolveBuiltinReference(current.arguments[0], bindings, globalThisCanExist);
       if (!target) return null;
-      current = { ...target, arguments: arrayArguments(current.arguments[2]) };
+      current = { ...target, arguments: stableArrayArguments(current.arguments[2]) };
     }
     return null;
   };
 
-  const calledBuiltin = (call: ESTree.CallExpression): BuiltinCall | null => {
-    const direct = staticBuiltin(call.callee);
-    if (direct) {
-      return normalizeReflectApply({ ...direct, arguments: directArguments(call.arguments) });
-    }
-
-    const callee = resolveConstValue(call.callee, bindings);
-    if (callee?.type === "MemberExpression") {
-      const helper = staticPropertyName(callee);
-      const wrapped = staticBuiltin(callee.object);
-      if (wrapped && helper === "call") {
-        return normalizeReflectApply({
-          ...wrapped,
-          arguments: directArguments(call.arguments.slice(1)),
-        });
-      }
-      if (wrapped && helper === "apply") {
-        return normalizeReflectApply({
-          ...wrapped,
-          arguments: arrayArguments(call.arguments[1]),
-        });
-      }
-    }
-
-    const bound = boundBuiltin(call.callee);
-    if (!bound) return null;
-    const invocationArguments = directArguments(call.arguments);
-    return normalizeReflectApply({
-      ...bound,
-      arguments:
-        bound.arguments === null || invocationArguments === null
-          ? null
-          : [...bound.arguments, ...invocationArguments],
-    });
-  };
-
-  const definitelyCannotInstallCallable = (node: unknown): boolean => {
-    const value = stableAliasValue(node);
-    if (!value) return false;
-    if (value.type === "Literal") return true;
-    if (value.type === "UnaryExpression" && value.operator === "void") return true;
-    if (value.type !== "Identifier" || getName(value) !== "undefined") return false;
-    return bindings.isPlatformGlobal(value);
-  };
+  const definitelyCannotInstallCallable = (node: unknown): boolean =>
+    isDefinitelyNonCallable(stableAliasValue(node), bindings);
 
   const descriptorMayInstallCallable = (node: unknown): boolean => {
     const descriptor = stableAliasValue(node);
     if (!descriptor || descriptor.type !== "ObjectExpression") return true;
-    let getterMayInstall = false;
-    let hasGetter = false;
-    let hasValue = false;
-    let valueMayInstall = false;
+    const fields = new Map<
+      string,
+      { kind: "accessor"; hasGetter: boolean } | { kind: "data"; mayInstall: boolean }
+    >();
     for (const item of descriptor.properties) {
       if (item.type === "SpreadElement") return true;
       const property = item as ESTree.ObjectProperty;
       const name = propertyKeyName(property);
       if (!name) return true;
-      if (name === "value") {
-        hasValue = true;
-        valueMayInstall = !definitelyCannotInstallCallable(property.value);
-      }
-      if (name === "get") {
-        hasGetter = true;
-        getterMayInstall = !definitelyCannotInstallCallable(property.value);
+      if (property.kind === "get") {
+        fields.set(name, { kind: "accessor", hasGetter: true });
+      } else if (property.kind === "set") {
+        const current = fields.get(name);
+        fields.set(name, {
+          kind: "accessor",
+          hasGetter: current?.kind === "accessor" && current.hasGetter,
+        });
+      } else {
+        fields.set(name, {
+          kind: "data",
+          mayInstall: !definitelyCannotInstallCallable(property.value),
+        });
       }
     }
-    // A descriptor containing both data and accessor fields is invalid and
-    // cannot install a replacement. Duplicate fields use their final value,
-    // which the assignments above deliberately retain.
-    if (hasValue && hasGetter) return false;
-    return hasValue ? valueMayInstall : getterMayInstall;
+    const hasData = fields.has("value") || fields.has("writable");
+    const hasAccessor = fields.has("get") || fields.has("set");
+    if (hasData && hasAccessor) return false;
+    const installed = fields.get(hasData ? "value" : "get");
+    return installed?.kind === "accessor" ? installed.hasGetter : Boolean(installed?.mayInstall);
   };
 
   const installableObjectProperties = (
@@ -527,8 +444,10 @@ function buildIndex(
     descriptors: boolean,
   ): readonly string[] | null => {
     const object = stableAliasValue(node);
-    if (object && definitelyCannotInstallCallable(object)) return [];
-    if (!object || object.type !== "ObjectExpression") return null;
+    if (!object) return null;
+    if (object.type !== "ObjectExpression") {
+      return definitelyCannotInstallCallable(object) ? [] : null;
+    }
     const properties = new Map<string, boolean>();
     for (const item of object.properties) {
       if (item.type === "SpreadElement") return null;
@@ -667,13 +586,21 @@ function buildIndex(
     },
     CallExpression(node) {
       const call = node as ESTree.CallExpression;
-      const builtin = calledBuiltin(call);
+      const builtin = normalizeReflectApply(
+        resolveBuiltinCall(call, bindings, {
+          allowGlobalThis: globalThisCanExist,
+          allowReflectApply: browserRuntime,
+          resolveArrayArguments: stableArrayArguments,
+        }),
+      );
       if (!builtin) {
         // In modes without globalThis, resolving a qualified callee throws
         // before arguments are evaluated. Those arguments therefore cannot
         // escape or mutate a platform namespace.
         if (platformGlobalNamespaceAccess(call.callee, bindings) && !globalThisCanExist) return;
-        const direct = staticBuiltin(call.callee);
+        const bound = resolveBuiltinBindCall(call, bindings, globalThisCanExist);
+        if (bound?.owner === "Object" || bound?.owner === "Reflect") return;
+        const direct = resolveBuiltinReference(call.callee, bindings, globalThisCanExist);
         if (direct?.owner === "Reflect" && direct.method === "apply" && browserRuntime) {
           // An unresolved or spread invocation can expose its target, `this`,
           // and argument list. Walk every syntactic argument so nested arrays

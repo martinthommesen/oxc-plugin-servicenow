@@ -1,6 +1,6 @@
 # servicenow/no-weak-references
 
-WeakRef and FinalizationRegistry are disallowed in every instance JavaScript mode, including ES2021.
+WeakRef and FinalizationRegistry are disallowed in every instance JavaScript mode, including ES2021. Direct calls and stable same-execution aliases report; a bare alias must be captured inside its availability guard, while visibly polyfilled calls stay silent.
 
 - **Family:** engine
 - **Preset:** recommended
@@ -11,7 +11,7 @@ WeakRef and FinalizationRegistry are disallowed in every instance JavaScript mod
 - **Authoring:** classic
 - **Surfaces:** Applies to server, acl, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. UI Actions require an explicit server surface; mixed client/server UI Actions stay silent because execution regions are not classified. An explicit javascriptMode also enables documented engine checks in otherwise unclassified files.
 - **JavaScript mode:** Runs when javascriptMode is compatibility, es5, es2021, unknown. Universal restrictions can run with unknown mode when the file is a known instance script.
-- **Last verified:** 2026-08-22
+- **Last verified:** 2026-08-24
 - **Implementation:** [`src/rules/no-weak-references.ts`](../../src/rules/no-weak-references.ts)
 
 ## Applicability
@@ -50,7 +50,7 @@ var cache = new Map();
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-boundary: A possible callable replacement for WeakRef or FinalizationRegistry suppresses matching diagnostics throughout the file, regardless of source order. scope-boundary: A call protected by a structurally dominating availability guard stays silent for code shared with other runtimes. false-negative: A constructor alias used from another function body stays silent because source order cannot prove that its initializer ran before the function was called.
 
 ## Known false positives
 
@@ -58,11 +58,12 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
 
 ## Known false negatives
 
-- None recorded.
+- A constructor alias used from another function body stays silent because source order cannot prove that its initializer ran before the function was called.
 
 ## Intentional scope boundaries
 
-- None recorded.
+- A possible callable replacement for WeakRef or FinalizationRegistry suppresses matching diagnostics throughout the file, regardless of source order.
+- A call protected by a structurally dominating availability guard stays silent for code shared with other runtimes.
 
 ## Overlaps
 
@@ -80,11 +81,11 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
   - URL: https://www.servicenow.com/docs/r/zurich/api-reference/scripts/javascript-engine-feature-support.html
   - Verified by: manual
   - Verified at: 2026-08-20
-- **Catalog examples cover WeakRef construction.**
-  - Verification ID: `rule-evidence-9f8a9b8b`
-  - URL: src/catalog.ts
+- **Fixtures cover stable aliases, guarded alias capture, built-in guard invalidation, callable polyfills, non-callable replacements, lexical shadows, and dynamic scope.**
+  - Verification ID: `rule-evidence-46d6a600`
+  - URL: tests/rules/unsupported-constructors.test.ts
   - Verified by: fixture
-  - Verified at: 2026-08-20
+  - Verified at: 2026-08-24
 - **The Australia JavaScript engine feature table was reviewed for this rule's modeled capability cells.**
   - Verification ID: `rule-evidence-3c070a1e`
   - URL: https://www.servicenow.com/docs/r/api-reference/scripts/javascript-engine-feature-support.html

@@ -64,4 +64,8 @@ export type { QueryInLoopFinding } from "./glide-query-in-loop.js";
 export { findChooseWindowWithoutNoCount } from "./glide-setnocount.js";
 export type { ChooseWindowCountFinding } from "./glide-setnocount.js";
 export { findStablePlatformConstructorCalls } from "./platform-constructor-calls.js";
-export type { PlatformConstructorCallFinding } from "./platform-constructor-calls.js";
+export type {
+  PlatformConstructorCallFinding,
+  PlatformGlobalAliasOrigin,
+} from "./platform-constructor-calls.js";
+export { builtInCallMayWritePlatformProperty } from "./builtin-property-writes.js";

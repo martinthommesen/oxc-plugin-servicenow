@@ -1471,10 +1471,10 @@ Record({ table: "incident", data: {} });`,
           "2026-08-20",
         ),
         metadata.evidenceRecord(
-          "src/catalog.ts",
-          "Catalog examples cover WeakRef construction.",
+          "tests/rules/unsupported-constructors.test.ts",
+          "Fixtures cover stable aliases, guarded alias capture, built-in guard invalidation, callable polyfills, non-callable replacements, lexical shadows, and dynamic scope.",
           "fixture",
-          "2026-08-20",
+          "2026-08-24",
         ),
       ],
       {
@@ -1487,7 +1487,43 @@ Record({ table: "incident", data: {} });`,
       { profile: "es2021", severity: "error" },
     ] as const,
     optionDescriptor: undefined,
-    limitationCases: [],
+    limitationCases: [
+      {
+        caseId: "weak-reference-visible-polyfill",
+        kind: "scope-boundary",
+        description:
+          "A possible callable replacement for WeakRef or FinalizationRegistry suppresses matching diagnostics throughout the file, regardless of source order.",
+        name: "visible WeakRef polyfill",
+        filename: "polyfill.server.js",
+        settings: { javascriptMode: "es2021", release: "australia" },
+        code: `WeakRef = LocalWeakRef;
+var reference = new WeakRef(value);`,
+      },
+      {
+        caseId: "weak-reference-availability-guard",
+        kind: "scope-boundary",
+        description:
+          "A call protected by a structurally dominating availability guard stays silent for code shared with other runtimes.",
+        name: "availability guard",
+        filename: "portable.server.js",
+        settings: { javascriptMode: "es2021", release: "australia" },
+        code: `if (typeof WeakRef === "function") {
+  new WeakRef(value);
+}`,
+      },
+      {
+        caseId: "weak-reference-cross-execution-alias",
+        kind: "false-negative",
+        description:
+          "A constructor alias used from another function body stays silent because source order cannot prove that its initializer ran before the function was called.",
+        name: "cross-execution alias",
+        filename: "deferred.server.js",
+        settings: { javascriptMode: "es2021", release: "australia" },
+        code: `const Ref = WeakRef;
+function create(value) { return new Ref(value); }
+create(value);`,
+      },
+    ],
     title: "No WeakRef / FinalizationRegistry",
     family: "engine",
     preset: "recommended",
@@ -1495,7 +1531,7 @@ Record({ table: "incident", data: {} });`,
     fixable: false,
     hasSuggestions: false,
     description:
-      "WeakRef and FinalizationRegistry are disallowed in every instance JavaScript mode, including ES2021.",
+      "WeakRef and FinalizationRegistry are disallowed in every instance JavaScript mode, including ES2021. Direct calls and stable same-execution aliases report; a bare alias must be captured inside its availability guard, while visibly polyfilled calls stay silent.",
     bad: [{ name: "WeakRef", filename: "script-include.js", code: `var ref = new WeakRef(obj);` }],
     good: [{ name: "Map", filename: "script-include.js", code: `var cache = new Map();` }],
   }),
@@ -1510,10 +1546,10 @@ Record({ table: "incident", data: {} });`,
           "2026-08-20",
         ),
         metadata.evidenceRecord(
-          "src/catalog.ts",
-          "Catalog examples cover WeakMap construction in ES5 mode.",
+          "tests/rules/unsupported-constructors.test.ts",
+          "Fixtures cover WeakMap aliases, guarded alias capture, availability invalidation, and shared constructor-provenance behavior.",
           "fixture",
-          "2026-08-20",
+          "2026-08-24",
         ),
       ],
       {
@@ -1522,7 +1558,31 @@ Record({ table: "incident", data: {} });`,
     ),
     placements: [{ profile: "classic-es5", severity: "error" }] as const,
     optionDescriptor: undefined,
-    limitationCases: [],
+    limitationCases: [
+      {
+        caseId: "weak-collection-visible-polyfill",
+        kind: "scope-boundary",
+        description:
+          "A possible callable replacement for WeakMap or WeakSet suppresses matching diagnostics throughout the file, regardless of source order.",
+        name: "visible WeakMap polyfill",
+        filename: "polyfill.server.js",
+        settings: ES5,
+        code: `WeakMap = LocalWeakMap;
+var cache = new WeakMap();`,
+      },
+      {
+        caseId: "weak-collection-availability-guard",
+        kind: "scope-boundary",
+        description:
+          "A call protected by a structurally dominating availability guard stays silent for code shared with other runtimes.",
+        name: "availability guard",
+        filename: "portable.server.js",
+        settings: ES5,
+        code: `if (typeof WeakMap === "function") {
+  new WeakMap();
+}`,
+      },
+    ],
     title: "No WeakMap / WeakSet",
     family: "engine",
     preset: "classic-es5",
@@ -1530,7 +1590,7 @@ Record({ table: "incident", data: {} });`,
     fixable: false,
     hasSuggestions: false,
     description:
-      "WeakMap and WeakSet are disallowed in Compatibility and ES5 Standards mode. ES2021 supports them.",
+      "WeakMap and WeakSet are disallowed in Compatibility and ES5 Standards mode. ES2021 supports them. Direct calls and stable same-execution aliases report; bare aliases captured before a later guard still report, while visibly polyfilled calls stay silent.",
     bad: [
       {
         name: "WeakMap",
