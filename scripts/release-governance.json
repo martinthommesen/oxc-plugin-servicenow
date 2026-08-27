@@ -141,6 +141,6 @@
     "workflowFilename": "release.yml",
     "environment": "release",
     "tagRefPattern": "refs/tags/v*",
-    "oidcSubject": "repo:martinthommesen/oxc-plugin-servicenow:environment:release"
+    "oidcSubject": "repo:martinthommesen@267603464/oxc-plugin-servicenow@1339120262:environment:release"
   }
 }

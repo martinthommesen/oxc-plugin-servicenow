@@ -175,7 +175,14 @@ export function validateDesiredGovernance(desired) {
     creation.bypassActors[0]?.mode !== "always"
   )
     errors.push("tag creation ruleset must allow only the controlled actor");
-  if (!/^repo:[^:]+:environment:release$/.test(desired?.npmTrustedPublisher?.oidcSubject ?? ""))
+  const oidcSubject = /^repo:([^/@:]+)@\d+\/([^/@:]+)@\d+:environment:release$/.exec(
+    desired?.npmTrustedPublisher?.oidcSubject ?? "",
+  );
+  if (
+    !oidcSubject ||
+    oidcSubject[1] !== desired?.repository?.owner ||
+    oidcSubject[2] !== desired?.repository?.name
+  )
     errors.push("environment-bound npm OIDC subject is not configured");
   return errors;
 }

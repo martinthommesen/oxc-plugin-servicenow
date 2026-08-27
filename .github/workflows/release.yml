@@ -57,8 +57,9 @@ jobs:
         run: |
           version="$(node -p "require('./package.json').version")"
           oidc_subject="$(node -p "require('./scripts/release-governance.json').npmTrustedPublisher.oidcSubject")"
+          repository_name="${GITHUB_REPOSITORY#*/}"
           test "v${version}" = "$GITHUB_REF_NAME"
-          test "$oidc_subject" = "repo:${GITHUB_REPOSITORY}:environment:release"
+          test "$oidc_subject" = "repo:${GITHUB_REPOSITORY_OWNER}@${GITHUB_REPOSITORY_OWNER_ID}/${repository_name}@${GITHUB_REPOSITORY_ID}:environment:release"
           node scripts/check-release-artifact.mjs --changelog-only
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "oidc_subject=$oidc_subject" >> "$GITHUB_OUTPUT"

@@ -113,6 +113,6 @@
     "workflowFilename": "release.yml",
     "environment": "release",
     "tagRefPattern": "refs/tags/v*",
-    "oidcSubject": "repo:example/plugin:environment:release"
+    "oidcSubject": "repo:example@1/plugin@2:environment:release"
   }
 }
