@@ -172,6 +172,8 @@ export function isValueReference(node: ESTree.Node, ancestors: readonly ESTree.N
   const parent = ancestors.length >= 2 ? ancestors[ancestors.length - 2] : undefined;
   if (!parent) return true;
   switch (parent.type) {
+    case "VariableDeclarator":
+      return (parent as ESTree.VariableDeclarator).id !== node;
     case "MemberExpression": {
       const member = parent as ESTree.MemberExpression;
       return member.property !== node || member.computed === true;

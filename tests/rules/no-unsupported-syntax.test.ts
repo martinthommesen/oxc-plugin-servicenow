@@ -58,3 +58,42 @@ describe(`${RULE} RegExp identity`, () => {
     assertValid(`new RegExp("(?<=a)b");`, RULE);
   });
 });
+
+describe(`${RULE} object method syntax`, () => {
+  it("flags shorthand object methods in classic modes", () => {
+    for (const javascriptMode of ["compatibility", "es5"] as const) {
+      for (const code of [
+        `var definitions = { create() {} };`,
+        `var definitions = { ["create"]() {} };`,
+        `var definitions = { *create() { yield 1; } };`,
+        `var definitions = { async create() {} };`,
+      ]) {
+        assertInvalid(code, RULE, { messageId: "objectMethod" }, { settings: { javascriptMode } });
+      }
+    }
+  });
+
+  it("allows classic object forms and ES2021 shorthand methods", () => {
+    for (const code of [
+      `var definitions = { create: function () {} };`,
+      `var definitions = { get create() { return value; } };`,
+      `var definitions = { set create(value) { stored = value; } };`,
+    ]) {
+      assertValid(code, RULE, { settings: ES5 });
+    }
+    assertValid(`const definitions = { create() {} };`, RULE, { settings: ES2021 });
+    assertValid(`const definitions = { create() {} };`, RULE);
+  });
+
+  it("does not apply server syntax restrictions to client or Fluent files", () => {
+    const code = `const definitions = { create() {} };`;
+    assertValid(code, RULE, {
+      filename: "form.client.js",
+      settings: { javascriptMode: "es5", surfaces: ["client"] },
+    });
+    assertValid(code, RULE, {
+      filename: "metadata.now.ts",
+      settings: { javascriptMode: "es5" },
+    });
+  });
+});

@@ -44,6 +44,8 @@ export const noUnsupportedSyntax = defineRule({
         "Private static class members (`#{{name}}`) are not supported in Compatibility or ES5 Standards mode. Use a public static property or a closure.",
       lookbehind:
         "RegExp lookbehind (`(?<=` / `(?<!`) is not supported in Compatibility or ES5 Standards mode. Rewrite the expression with supported capture groups or string operations.",
+      objectMethod:
+        "Object literal shorthand methods are not available in Compatibility or ES5 Standards mode. Use a function-valued property, or set `javascriptMode` to `es2021`.",
     },
   },
   createOnce(context) {
@@ -54,6 +56,9 @@ export const noUnsupportedSyntax = defineRule({
           "optional-chaining",
           "nullish-coalescing",
           "logical-assignment",
+          "object-method-syntax",
+          "async-object-method-syntax",
+          "generator-object-method-syntax",
           "private-instance-members",
           "private-static-members",
           "lookbehind",
@@ -79,6 +84,19 @@ export const noUnsupportedSyntax = defineRule({
       },
       PropertyDefinition: checkPrivate,
       MethodDefinition: checkPrivate,
+      Property(node) {
+        const property = node as ESTree.ObjectProperty;
+        if (property.kind !== "init" || !property.method) return;
+        const method = property.value as { async?: boolean; generator?: boolean };
+        const feature: EngineFeatureId = method.async
+          ? "async-object-method-syntax"
+          : method.generator
+            ? "generator-object-method-syntax"
+            : "object-method-syntax";
+        if (featureOn(feature)) {
+          context.report({ node, messageId: "objectMethod" });
+        }
+      },
       Literal(node) {
         if (!featureOn("lookbehind")) return;
         const pattern = regexPattern(node);

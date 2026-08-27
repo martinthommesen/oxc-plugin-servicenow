@@ -17,6 +17,7 @@ describe("ServiceNow engine feature matrix", () => {
       "date-fraction-digits",
       "error-iserror",
       "function-call-apply-thisarg",
+      "object-method-construction",
       "promise-try",
       "promise-withresolvers",
       "set-methods",
@@ -83,6 +84,15 @@ describe("ServiceNow engine feature matrix", () => {
     assert.equal(featureSupport("function-call-apply-thisarg", "es5"), "unsupported");
     assert.equal(featureSupport("bigint-narrowing", "es5"), "unsupported");
     assert.equal(featureSupport("typed-array-factories", "es5"), "disallowed");
+    assert.equal(featureSupport("object-method-syntax", "es2021"), "supported");
+    assert.equal(featureSupport("object-method-syntax", "es5"), "unsupported");
+    for (const id of ["async-object-method-syntax", "generator-object-method-syntax"] as const) {
+      assert.equal(featureSupport(id, "es2021"), "supported");
+      assert.equal(featureSupport(id, "es5"), "disallowed");
+    }
+    assert.equal(featureSupport("object-method-construction", "es2021", "zurich"), "supported");
+    assert.equal(featureSupport("object-method-construction", "es2021", "australia"), "disallowed");
+    assert.equal(featureSupport("object-method-construction", "es2021"), "unknown");
     for (const id of ["block-function-hoisting", "date-fraction-digits"] as const) {
       for (const mode of ["compatibility", "es5", "es2021"] as const) {
         assert.equal(featureSupport(id, mode, "zurich"), "unsupported");
@@ -99,6 +109,7 @@ describe("ServiceNow engine feature matrix", () => {
       "block-function-hoisting",
       "error-iserror",
       "function-call-apply-thisarg",
+      "object-method-construction",
       "date-fraction-digits",
       "promise-try",
       "promise-withresolvers",
