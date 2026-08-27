@@ -23,6 +23,7 @@ const HAS_OWN = `var owns = Object.hasOwn(record, "number");`;
 const ERROR_IS_ERROR = `var isPlatformError = Error.isError(value);`;
 const PROMISE_TRY = `var promise = Promise.try(load);`;
 const PROMISE_WITH_RESOLVERS = `var deferred = Promise.withResolvers();`;
+const BIGINT_AS_UINT_N = `var unsigned = BigInt.asUintN(64, -1n);`;
 const MAP = `var cache = new Map();`;
 const SET = `var seen = new Set();`;
 const SET_UNION = `const values = new Set(left);
@@ -163,6 +164,28 @@ const contracts: readonly ReleaseContract[] = [
     code: PROMISE_WITH_RESOLVERS,
     rule: "no-unsupported-static-methods",
     settings: { release: "australia", javascriptMode: "es2021" },
+  },
+  {
+    id: "zurich-bigint-asuintn",
+    filename: "zurich-bigint-asuintn.server.js",
+    code: BIGINT_AS_UINT_N,
+    rule: "no-incorrect-bigint-asuintn",
+    settings: { release: "zurich", javascriptMode: "es2021" },
+    messageId: "incorrect",
+  },
+  {
+    id: "australia-bigint-asuintn",
+    filename: "australia-bigint-asuintn.server.js",
+    code: BIGINT_AS_UINT_N,
+    rule: "no-incorrect-bigint-asuintn",
+    settings: { release: "australia", javascriptMode: "es2021" },
+  },
+  {
+    id: "omitted-release-bigint-asuintn",
+    filename: "omitted-bigint-asuintn.server.js",
+    code: BIGINT_AS_UINT_N,
+    rule: "no-incorrect-bigint-asuintn",
+    settings: { javascriptMode: "es2021" },
   },
   {
     id: "zurich-es5-map",

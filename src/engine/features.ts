@@ -24,6 +24,7 @@ export type EngineFeatureId =
   | "promise"
   | "async-await"
   | "bigint"
+  | "bigint-narrowing"
   | "at-method"
   | "typed-arrays"
   | "bigint64-arrays"
@@ -249,6 +250,14 @@ export const ENGINE_FEATURES: Readonly<Record<EngineFeatureId, EngineFeature>> =
     zurich: ["unsupported", "unsupported"],
     australia: ["supported", "unsupported"],
   }),
+  "bigint-narrowing": australiaUpdateFeature(
+    "bigint-narrowing",
+    "Spec-correct BigInt.asUintN / BigInt.asIntN narrowing",
+    {
+      zurich: ["unsupported", "unsupported"],
+      australia: ["supported", "unsupported"],
+    },
+  ),
   "date-fraction-digits": australiaAllModesUpdateFeature(
     "date-fraction-digits",
     "Variable-length ISO date fractional seconds",

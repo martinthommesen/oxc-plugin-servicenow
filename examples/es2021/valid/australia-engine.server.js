@@ -1,5 +1,6 @@
 const values = new BigInt64Array(4);
 const ownsNumber = Object.hasOwn(current, "number");
 const combined = new Set(["incident"]).union(new Set(["task"]));
+const unsigned = BigInt.asUintN(64, -1n);
 
-gs.info(`${ownsNumber}:${values.length}:${combined.size}`);
+gs.info(`${ownsNumber}:${values.length}:${combined.size}:${unsigned}`);

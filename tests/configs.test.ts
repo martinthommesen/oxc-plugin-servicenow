@@ -78,6 +78,8 @@ describe("configs", () => {
     }
     assert.equal(classicEs5Rules["servicenow/no-unsupported-set-methods"], undefined);
     assert.equal(es2021Rules["servicenow/no-unsupported-set-methods"], "error");
+    assert.equal(classicEs5Rules["servicenow/no-incorrect-bigint-asuintn"], undefined);
+    assert.equal(es2021Rules["servicenow/no-incorrect-bigint-asuintn"], "error");
     assert.equal(classicEs5Rules["servicenow/no-map-set"], "error");
     assert.equal(es2021Rules["servicenow/no-map-set"], undefined);
     assert.equal(recommendedRules["servicenow/no-map-set"], undefined);
