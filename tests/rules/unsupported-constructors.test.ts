@@ -67,6 +67,28 @@ create(value);`,
     });
   });
 
+  it("does not transfer an unsafe qualified guard to a bare constructor", () => {
+    for (const guard of [
+      `globalThis.WeakMap`,
+      `typeof globalThis.WeakMap === "function"`,
+      `"WeakMap" in globalThis`,
+    ]) {
+      assertInvalid(
+        `if (${guard}) {
+  new WeakMap();
+}`,
+        "no-weak-collections",
+        { messageId: "weak" },
+        { settings: ES5 },
+      );
+      assertValid(
+        `typeof globalThis !== "undefined" && ${guard} && new WeakMap();`,
+        "no-weak-collections",
+        { settings: ES5 },
+      );
+    }
+  });
+
   it("requires a bare alias origin to be guarded before capture", () => {
     assertInvalid(
       `const Ref = WeakRef;
@@ -195,6 +217,20 @@ const ref = new WeakRef(value);`,
       assertInvalid(
         `Object.defineProperty(globalThis, "WeakRef", { value: ${replacement} });
 const ref = new globalThis.WeakRef(value);`,
+        "no-weak-references",
+        { messageId: "weak" },
+        AUSTRALIA_ES2021,
+      );
+    }
+    for (const descriptor of [
+      `{ value: LocalWeakRef, set: LocalSetter }`,
+      `{ get: LocalGetter, writable: true }`,
+    ]) {
+      assertInvalid(
+        `try {
+  Object.defineProperty(globalThis, "WeakRef", ${descriptor});
+} catch (error) {}
+new WeakRef(value);`,
         "no-weak-references",
         { messageId: "weak" },
         AUSTRALIA_ES2021,
