@@ -92,6 +92,10 @@ describe("ESLint flat profile context contracts", () => {
       "helper.server.js",
       "accesscontroller.js",
       "sys_security_aclanything.js",
+      "src/client/read.acl.js",
+      "src/br/read.acl.js",
+      "read.client.acl.js",
+      "read.business-rule.acl.js",
     ]) {
       assert.deepEqual(ids(configs.flat.acl, code, filename), [], filename);
     }

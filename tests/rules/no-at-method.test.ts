@@ -20,6 +20,16 @@ describe(`${RULE} polyfill authority`, () => {
     }
   });
 
+  it("scopes own replacements to their literal receiver", () => {
+    assertInvalid(
+      `const custom = [1, 2]; custom.at = localAt; custom.at(-1);
+const native = [1, 2]; native.at(-1);`,
+      RULE,
+      { messageId: "at", count: 1 },
+      { settings: ES5 },
+    );
+  });
+
   it("keeps Array and String authority independent", () => {
     assertInvalid(
       `Array.prototype.at = localAt; [1, 2].at(-1); "text".at(0);`,
