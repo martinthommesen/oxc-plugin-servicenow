@@ -390,6 +390,16 @@ export function nodeStart(node: ESTree.Node): number {
   return compatible.start ?? compatible.range?.[0] ?? compatible.span?.start ?? -1;
 }
 
+/** Stable source end offset across ESTree, ESLint, and Oxlint node adapters. */
+export function nodeEnd(node: ESTree.Node): number {
+  const compatible = node as unknown as {
+    end?: number;
+    range?: readonly number[];
+    span?: { end?: number };
+  };
+  return compatible.end ?? compatible.range?.[1] ?? compatible.span?.end ?? -1;
+}
+
 /** Keys that are not syntactic children. ESLint AST nodes also store `parent`. */
 export const WALK_SKIP_KEYS = new Set([
   "type",
