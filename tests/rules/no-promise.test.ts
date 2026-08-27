@@ -48,6 +48,16 @@ P.resolve(1);`,
     );
   });
 
+  it("reports static method calls through Function helpers", () => {
+    for (const code of [
+      `Promise.resolve.call(Promise, 1);`,
+      `Promise.resolve.apply(Promise, [1]);`,
+      `Promise.resolve.bind(Promise)(1);`,
+    ]) {
+      assertInvalid(code, RULE, { messageId: "staticMethod", count: 1 }, { settings: ES5 });
+    }
+  });
+
   it("keeps mutable and cross-execution aliases silent", () => {
     assertValid(
       `let P = Promise;
@@ -191,6 +201,12 @@ new Promise(function () {});`,
     );
     assertValid(
       `Promise.resolve = localResolve;
+Promise.resolve(1);`,
+      RULE,
+      { settings: ES5 },
+    );
+    assertValid(
+      `Promise = { resolve: localResolve };
 Promise.resolve(1);`,
       RULE,
       { settings: ES5 },

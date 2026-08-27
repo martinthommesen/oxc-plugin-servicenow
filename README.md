@@ -179,7 +179,7 @@ The flat presets set `files` so ESLint 10 opens classic `*.js` / `*.cjs` / `*.mj
 
 `configs.flat.client` selects client-script filenames and supplies the client surface, but deliberately does not guess application scope. Merge `settings.servicenow.scope: "scoped"` when using it for a scoped application; `no-client-gliderecord` stays silent for global or unknown scope because ServiceNow still documents the global client API.
 
-`configs.flat.acl` selects boundary-delimited ACL and access-control export names plus ACL directories, then supplies the ACL surface. Its advisory query rule is also available in strict and security; recommended remains unchanged.
+`configs.flat.acl` selects boundary-delimited ACL and access-control export names plus ACL directories, then derives the ACL surface from that same filename evidence. Contradictory paths such as `src/client/read.acl.js` stay unclassified. Its advisory query rule is also available in strict and security; recommended remains unchanged.
 
 oxlint parses TypeScript itself. ESLint uses its default JS parser, so type annotations (`import type`, `: string`) in `.now.ts` fail to parse when you use only `plugin.configs.flat.recommended`.
 
@@ -219,7 +219,7 @@ The plugin models four independent dimensions. It does not collapse them into on
 | --- | --- | --- |
 | Authoring form | classic / Fluent | Instance script versus SDK metadata |
 | JavaScript mode | Compatibility / ES5 / ES2021 / unknown | Language-feature support |
-| Surface | client / server / Business Rule / UI Action / Script Include / scheduled / fix | Available APIs |
+| Surface | client / server / ACL / Business Rule / UI Action / Script Include / scheduled / fix | Available APIs |
 | Scope | global / scoped / unknown | API availability |
 | Confidence | explicit / filename / inferred / unknown | Whether mode-specific rules may run |
 
