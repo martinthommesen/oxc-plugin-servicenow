@@ -413,7 +413,8 @@ function buildIndex(
     const descriptor = stableAliasValue(node);
     if (!descriptor || descriptor.type !== "ObjectExpression") return true;
     let getterMayInstall = false;
-    let hasGetter = false;
+    let hasAccessor = false;
+    let hasData = false;
     let hasValue = false;
     let valueMayInstall = false;
     for (const item of descriptor.properties) {
@@ -422,18 +423,21 @@ function buildIndex(
       const name = propertyKeyName(property);
       if (!name) return true;
       if (name === "value") {
+        hasData = true;
         hasValue = true;
         valueMayInstall = !definitelyCannotInstallCallable(property.value);
       }
+      if (name === "writable") hasData = true;
       if (name === "get") {
-        hasGetter = true;
+        hasAccessor = true;
         getterMayInstall = !definitelyCannotInstallCallable(property.value);
       }
+      if (name === "set") hasAccessor = true;
     }
     // A descriptor containing both data and accessor fields is invalid and
     // cannot install a replacement. Duplicate fields use their final value,
     // which the assignments above deliberately retain.
-    if (hasValue && hasGetter) return false;
+    if (hasData && hasAccessor) return false;
     return hasValue ? valueMayInstall : getterMayInstall;
   };
 

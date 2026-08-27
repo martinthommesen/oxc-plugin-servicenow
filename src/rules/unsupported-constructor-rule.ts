@@ -70,8 +70,6 @@ function isAvailabilityProtected(
   aliasOrigin: PlatformGlobalAliasOrigin | null,
 ): boolean {
   const { analysis, context: script, file } = beginRuleFile(context);
-  const isConstructorAccess = (candidate: unknown): boolean =>
-    resolvePlatformGlobalName(candidate, analysis.bindings) === name;
   const isCallInvalidation = (call: ESTree.CallExpression): boolean =>
     builtInCallMayWritePlatformProperty(
       call,
@@ -93,6 +91,15 @@ function isAvailabilityProtected(
         guardCacheKey: "unsupported-constructor:global-this",
       },
     );
+  const isConstructorAccess = (candidate: unknown): boolean => {
+    if (resolvePlatformGlobalName(candidate, analysis.bindings) !== name) return false;
+    const candidateNamespace = platformGlobalNamespaceAccess(candidate, analysis.bindings);
+    return candidateNamespace === null || globalThisIsSafeAt(candidateNamespace);
+  };
+  const isConstructorPropertyExistenceTest = (property: string, object: ESTree.Node): boolean =>
+    property === name &&
+    resolvePlatformGlobalName(object, analysis.bindings) === "globalThis" &&
+    globalThisIsSafeAt(object);
   const namespace = platformGlobalNamespaceAccess(invocation.callee, analysis.bindings);
   if (namespace && !globalThisIsSafeAt(namespace)) return false;
 
@@ -109,8 +116,7 @@ function isAvailabilityProtected(
       allowDirectAccessGuard: false,
       guardCacheKey: `unsupported-constructor:origin:${name}`,
       isCallInvalidation,
-      isPropertyExistenceTest: (property, object) =>
-        property === name && resolvePlatformGlobalName(object, analysis.bindings) === "globalThis",
+      isPropertyExistenceTest: isConstructorPropertyExistenceTest,
     })
   ) {
     return false;
@@ -124,8 +130,7 @@ function isAvailabilityProtected(
     allowDirectAccessGuard: hasSafeQualifiedOrigin,
     guardCacheKey: `unsupported-constructor:${name}`,
     isCallInvalidation,
-    isPropertyExistenceTest: (property, object) =>
-      property === name && resolvePlatformGlobalName(object, analysis.bindings) === "globalThis",
+    isPropertyExistenceTest: isConstructorPropertyExistenceTest,
     isOptionalInvocation: (candidate) =>
       candidate.type === "CallExpression" &&
       Boolean(candidate.optional) &&
