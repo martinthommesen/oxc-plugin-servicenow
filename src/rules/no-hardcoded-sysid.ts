@@ -79,8 +79,10 @@ function valueOwnerName(context: Context, node: ESTree.Node): string | null {
       return propertyKeyName(ancestor as ESTree.ObjectProperty);
     }
     if (ancestor.type === "PropertyDefinition") {
-      const key = (ancestor as { key?: unknown }).key;
-      return getName(key) ?? getStringValue(key);
+      const field = ancestor as { computed?: boolean; key?: unknown };
+      return field.computed
+        ? getStringValue(field.key)
+        : (getName(field.key) ?? getStringValue(field.key));
     }
     if (ancestor.type === "VariableDeclarator") {
       return getName((ancestor as ESTree.VariableDeclarator).id);

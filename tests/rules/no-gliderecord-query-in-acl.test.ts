@@ -231,6 +231,34 @@ load();`,
     );
   });
 
+  it("treats for-await iteration as an asynchronous suspension", () => {
+    assertInvalid(
+      `async function load() {
+  var before = new GlideRecord("sys_user");
+  before.query();
+  for await (var row of rows) {
+    current.query();
+  }
+  current.query();
+}
+load();`,
+      RULE,
+      { messageId: "query", count: 1, includes: "before" },
+      ACL,
+    );
+    assertInvalid(
+      `async function load() {
+  for await (var row of (current.query(), rows)) {
+    current.query();
+  }
+}
+load();`,
+      RULE,
+      { messageId: "query", count: 1, includes: "current" },
+      ACL,
+    );
+  });
+
   it("keeps suspended calls out of the immediate path and resumes the caller", () => {
     assertValid(
       `async function load() {
@@ -263,6 +291,38 @@ user.query();`,
       { messageId: "query", count: 1, includes: "user" },
       ACL,
     );
+    for (const assignment of [
+      "user = await later()",
+      "user &&= await later()",
+      "user = condition ? await later() : user",
+      "user &&= condition ? await later() : user",
+      "user = first ? (second ? await later() : user) : user",
+      "user = user && (condition ? await later() : user)",
+    ]) {
+      assertInvalid(
+        `var user = new GlideRecord("sys_user");
+async function replace() {
+  ${assignment};
+}
+replace();
+user.query();`,
+        RULE,
+        { messageId: "query", count: 1, includes: "user" },
+        ACL,
+      );
+    }
+    for (const operator of ["=", "&&="] as const) {
+      assertValid(
+        `var user = new GlideRecord("sys_user");
+async function replace() {
+  user ${operator} condition ? await later() : replacement;
+}
+replace();
+user.query();`,
+        RULE,
+        ACL,
+      );
+    }
     assertInvalid(
       `async function load() { throw failure; }
 load();
@@ -319,6 +379,19 @@ current.query();`,
 current.query();`,
       `function check(current) { current.query(); }
 check(localRecord);`,
+    ]) {
+      assertValid(code, RULE, ACL);
+    }
+  });
+
+  it("preserves escaped current uncertainty across unrelated joins", () => {
+    for (const code of [
+      `current[method]();
+if (condition) gs.info("branch");
+current.query();`,
+      `prepare(current);
+if (condition) gs.info("branch");
+current.query();`,
     ]) {
       assertValid(code, RULE, ACL);
     }

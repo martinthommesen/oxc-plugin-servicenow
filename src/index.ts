@@ -107,7 +107,7 @@ export const configs = {
       { authoring: "classic", surfaces: ["client"] },
       CLIENT_FILE_GLOBS,
     ),
-    acl: flatConfig("acl", aclRules, { authoring: "classic", surfaces: ["acl"] }, ACL_FILE_GLOBS),
+    acl: flatConfig("acl", aclRules, { authoring: "classic", surfaces: "auto" }, ACL_FILE_GLOBS),
     businessRule: flatConfig(
       "business-rule",
       businessRuleRules,
