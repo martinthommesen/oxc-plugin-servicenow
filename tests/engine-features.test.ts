@@ -17,6 +17,7 @@ describe("ServiceNow engine feature matrix", () => {
       "promise-try",
       "promise-withresolvers",
       "set-methods",
+      "typed-array-factories",
     ]);
     const allModesReleaseUpdateFeatures = new Set(["date-fraction-digits"]);
     assert.deepEqual(SUPPORTED_SERVICENOW_RELEASES, ["zurich", "australia"]);
@@ -60,6 +61,7 @@ describe("ServiceNow engine feature matrix", () => {
       "promise-try",
       "promise-withresolvers",
       "set-methods",
+      "typed-array-factories",
     ] as const) {
       assert.equal(featureSupport(id, "es2021", "zurich"), "unsupported");
       assert.equal(featureSupport(id, "es2021", "australia"), "supported");
@@ -70,6 +72,7 @@ describe("ServiceNow engine feature matrix", () => {
     }
     assert.equal(featureSupport("set-methods", "es5"), "unsupported");
     assert.equal(featureSupport("bigint-narrowing", "es5"), "unsupported");
+    assert.equal(featureSupport("typed-array-factories", "es5"), "disallowed");
     for (const mode of ["compatibility", "es5", "es2021"] as const) {
       assert.equal(featureSupport("date-fraction-digits", mode, "zurich"), "unsupported");
       assert.equal(featureSupport("date-fraction-digits", mode, "australia"), "supported");
@@ -85,6 +88,7 @@ describe("ServiceNow engine feature matrix", () => {
       "promise-try",
       "promise-withresolvers",
       "set-methods",
+      "typed-array-factories",
     ] as const) {
       for (const release of SUPPORTED_SERVICENOW_RELEASES) {
         const cell = ENGINE_FEATURES[id].releases[release];

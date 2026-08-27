@@ -1,6 +1,6 @@
 # Australia ES2021 server scripts
 
-Promise, async/await, `Object.hasOwn()`, corrected `BigInt.asUintN()` narrowing, BigInt64 typed arrays, and the seven Set composition methods are Supported. Private instance members and DataView BigInt getters are Not Supported; `for await` is Disallowed.
+Promise, async/await, `Object.hasOwn()`, corrected `BigInt.asUintN()` narrowing, BigInt64 typed arrays, static TypedArray factories, and the seven Set composition methods are Supported. Private instance members and DataView BigInt getters are Not Supported; `for await` is Disallowed.
 
 ## Commands
 

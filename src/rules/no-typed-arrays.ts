@@ -53,7 +53,7 @@ export const noTypedArrays = defineRule({
       bigintCtor:
         "`{{name}}` is not supported by the configured ServiceNow release and JavaScript mode. Use a plain Array.",
       factory:
-        "`{{name}}.{{method}}()` is not supported by the configured ServiceNow release and JavaScript mode. Use a plain Array.",
+        "`{{name}}.{{method}}()` is not supported by the configured ServiceNow release and JavaScript mode. Use a plain Array or a guarded polyfill; static TypedArray factories require Australia ES2021.",
       bigintGetter:
         "`DataView.prototype.{{name}}()` is not supported by the ServiceNow JavaScript engine.",
     },
@@ -63,9 +63,10 @@ export const noTypedArrays = defineRule({
       before() {
         const { context: script } = beginRuleFile(context);
         const es5 = shouldDiagnoseFeature(script, "typed-arrays");
+        const factories = shouldDiagnoseFeature(script, "typed-array-factories");
         const bigint = shouldDiagnoseFeature(script, "bigint64-arrays");
         const bigintGetter = shouldDiagnoseFeature(script, "dataview-bigint-getters");
-        if (!es5 && !bigint && !bigintGetter) return false;
+        if (!es5 && !factories && !bigint && !bigintGetter) return false;
       },
       NewExpression: check,
       CallExpression(node) {
@@ -288,10 +289,12 @@ export const noTypedArrays = defineRule({
       if (!method || !TYPED_ARRAY_FACTORIES.has(method)) return;
       const name = resolvePlatformGlobalName(callee.object, analysis.bindings);
       if (!name || name === "DataView" || !ALL.has(name)) return;
-      const shouldReport = BIGINT_ARRAYS.has(name)
-        ? shouldDiagnoseFeature(script, "bigint64-arrays")
-        : shouldDiagnoseFeature(script, "typed-arrays");
-      if (!shouldReport) return;
+      const factoryUnavailable = shouldDiagnoseFeature(script, "typed-array-factories");
+      const constructorUnavailable = shouldDiagnoseFeature(
+        script,
+        BIGINT_ARRAYS.has(name) ? "bigint64-arrays" : "typed-arrays",
+      );
+      if (!factoryUnavailable && !constructorUnavailable) return;
       if (
         file.mutations.isGlobalWritten(name) ||
         file.mutations.isGlobalPathWritten([name, method])
@@ -301,7 +304,24 @@ export const noTypedArrays = defineRule({
 
       const isConstructorAccess = (candidate: unknown): boolean =>
         resolvePlatformGlobalName(candidate, analysis.bindings) === name;
+      const isFactoryAccess = (candidate: unknown): boolean =>
+        isPlatformStaticMember(candidate, name, method, analysis);
+      const factoryMethodIsProtected = (): boolean =>
+        isInvocationAvailabilityGuarded(context, node, analysis, isFactoryAccess, {
+          allowDirectAccessGuard: isFactoryAccess,
+          guardCacheKey: `no-typed-arrays:factory-method:${name}:${method}`,
+          isPropertyExistenceTest: (property, object) =>
+            property === method && resolvePlatformGlobalName(object, analysis.bindings) === name,
+          isOptionalInvocation: (invocation) =>
+            invocation.type === "CallExpression" &&
+            invocation.optional === true &&
+            isFactoryAccess(invocation.callee),
+        });
+      if (factoryUnavailable && !constructorUnavailable && factoryMethodIsProtected()) {
+        return;
+      }
       if (
+        constructorUnavailable &&
         constructorOriginIsSafe(callee.object, name, "factory-origin") &&
         isInvocationAvailabilityGuarded(context, node, analysis, isConstructorAccess, {
           allowDirectAccessGuard: (candidate) =>

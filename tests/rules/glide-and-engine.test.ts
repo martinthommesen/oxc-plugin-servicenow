@@ -365,7 +365,7 @@ describe("engine extras", () => {
     );
   });
 
-  it("flags typed-array static factories when their constructor feature is unavailable", () => {
+  it("flags typed-array static factories when their constructor is unavailable", () => {
     for (const code of [
       `Int8Array.from(values);`,
       `Uint8Array.of(1, 2);`,
@@ -403,6 +403,46 @@ describe("engine extras", () => {
     assertValid(`const Int8Array = { from: custom }; Int8Array.from(values);`, "no-typed-arrays", {
       settings: { javascriptMode: "es5", release: "australia" },
     });
+  });
+
+  it("models the Australia TypedArray factory delta independently from constructors", () => {
+    const zurich = { javascriptMode: "es2021", release: "zurich" } as const;
+    const australia = { javascriptMode: "es2021", release: "australia" } as const;
+    for (const code of [
+      `Int8Array.from(values);`,
+      `Uint8Array["of"](1, 2);`,
+      `const Bytes = Int8Array; Bytes.from(values);`,
+      `const fromBytes = Int8Array.from; fromBytes(values);`,
+    ]) {
+      assertInvalid(code, "no-typed-arrays", { messageId: "factory" }, { settings: zurich });
+      assertValid(code, "no-typed-arrays", { settings: australia });
+    }
+    assertValid(`Int8Array.from(values);`, "no-typed-arrays", {
+      settings: { javascriptMode: "es2021" },
+    });
+  });
+
+  it("requires a method guard when Zurich already provides the TypedArray constructor", () => {
+    const settings = { javascriptMode: "es2021", release: "zurich" } as const;
+    for (const code of [
+      `typeof Int8Array.from === "function" && Int8Array.from(values);`,
+      `Int8Array.from && Int8Array.from(values);`,
+      `"from" in Int8Array && Int8Array.from(values);`,
+      `Int8Array.from?.(values);`,
+      `if (typeof Int8Array.from !== "function") return; Int8Array.from(values);`,
+      `const fromBytes = Int8Array.from; if (typeof fromBytes === "function") fromBytes(values);`,
+      `Int8Array.from = polyfill; Int8Array.from(values);`,
+      `Object.getPrototypeOf(Int8Array).from = polyfill; Int8Array.from(values);`,
+      `const Int8Array = { from: custom }; Int8Array.from(values);`,
+    ]) {
+      assertValid(code, "no-typed-arrays", { settings });
+    }
+    assertInvalid(
+      `typeof Int8Array !== "undefined" && Int8Array.from(values);`,
+      "no-typed-arrays",
+      { messageId: "factory" },
+      { settings },
+    );
   });
 
   it("models the BigInt typed-array Australia delta conservatively", () => {
@@ -766,6 +806,14 @@ describe("server engine surface gating", () => {
       },
     });
     assertValid(`new BigInt64Array(1);`, "no-typed-arrays", {
+      filename: "form.client.js",
+      settings: {
+        javascriptMode: "es2021",
+        release: "zurich",
+        surfaces: ["client"],
+      },
+    });
+    assertValid(`Int8Array.from(values);`, "no-typed-arrays", {
       filename: "form.client.js",
       settings: {
         javascriptMode: "es2021",

@@ -19,6 +19,7 @@ interface ReleaseContract {
 
 const ENGINE = `var values = new BigInt64Array(4);`;
 const ENGINE_FACTORY = `var values = BigInt64Array.from(source);`;
+const TYPED_ARRAY_FACTORY = `var values = Int8Array.from(source);`;
 const HAS_OWN = `var owns = Object.hasOwn(record, "number");`;
 const ERROR_IS_ERROR = `var isPlatformError = Error.isError(value);`;
 const PROMISE_TRY = `var promise = Promise.try(load);`;
@@ -75,6 +76,28 @@ const contracts: readonly ReleaseContract[] = [
     code: ENGINE_FACTORY,
     rule: "no-typed-arrays",
     settings: { release: "australia", javascriptMode: "es2021" },
+  },
+  {
+    id: "zurich-typed-array-factory",
+    filename: "zurich-typed-array-factory.server.js",
+    code: TYPED_ARRAY_FACTORY,
+    rule: "no-typed-arrays",
+    settings: { release: "zurich", javascriptMode: "es2021" },
+    messageId: "factory",
+  },
+  {
+    id: "australia-typed-array-factory",
+    filename: "australia-typed-array-factory.server.js",
+    code: TYPED_ARRAY_FACTORY,
+    rule: "no-typed-arrays",
+    settings: { release: "australia", javascriptMode: "es2021" },
+  },
+  {
+    id: "omitted-release-typed-array-factory",
+    filename: "omitted-typed-array-factory.server.js",
+    code: TYPED_ARRAY_FACTORY,
+    rule: "no-typed-arrays",
+    settings: { javascriptMode: "es2021" },
   },
   {
     id: "omitted-release-bigint64",
