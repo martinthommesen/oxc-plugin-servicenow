@@ -30,6 +30,7 @@
 - `no-gliderecord-query-in-loop` now carries proven cursor depth through direct calls to stable one-call-site local helpers, while mutable, multiply called, generator, shadowed, dynamically scoped, and indirect helpers remain conservatively silent.
 - `no-client-gliderecord` now resolves only stable, dominating constructor aliases and suppresses diagnostics after path-dependent assignments, dynamic scope, namespace escape, or visible platform replacement.
 - Stable helper calls now evaluate parameter defaults for explicit, provably `undefined` arguments and stop expanding immutable aliases before dynamic-scope resolution can become ambiguous.
+- `no-hardcoded-sysid` now resolves hash-context owners from AST ancestry, preserving the correct owner around nested sibling expressions and preventing suppression from leaking into nested function or class bodies.
 - Release validation now rejects tags that do not point to the exact current protected `main` tip.
 - GlideRecord lifecycle analysis now recognizes the documented `_query()`, `_next()`, and global-only `queryNoDomain()` APIs without guessing when application scope is unknown.
 - ESLint no longer suppresses same-offset query lifecycle diagnostics in later files through retained `createOnce` state.

@@ -249,9 +249,15 @@ export const ruleCatalog = [
         ),
         metadata.evidenceRecord(
           "tests/rules/no-hardcoded-sysid.test.ts",
-          "Literal, uppercase, concatenated, and static-template sys_ids report; exact allow-lists and algorithm-specific hash contexts suppress.",
+          "Literal, uppercase, concatenated, and static-template sys_ids report; exact allow-lists and structurally owned algorithm-specific hash contexts suppress.",
           "fixture",
-          "2026-08-21",
+          "2026-08-24",
+        ),
+        metadata.evidenceRecord(
+          "tests/integration/profiles/valid/hash-context.br.js",
+          "Real Oxlint and ESLint valid-profile contracts preserve an outer MD5 owner across nested sibling expressions.",
+          "integration-test",
+          "2026-08-24",
         ),
       ],
       {
@@ -260,7 +266,17 @@ export const ruleCatalog = [
     ),
     placements: [{ profile: "recommended", severity: "error" }] as const,
     optionDescriptor: noHardcodedSysidOptions,
-    limitationCases: [],
+    limitationCases: [
+      {
+        caseId: "no-hardcoded-sysid-md5-owner",
+        kind: "false-negative",
+        description:
+          "Default MD5-owner suppression can hide a real sys_id stored under an MD5-like name; set `ignoreHashNames: false` when that false-negative tradeoff is unacceptable.",
+        name: "MD5-like owner",
+        filename: "incident.br.js",
+        code: `var expectedMd5 = "97c04b3b1b12100043ab85e5bd0713e2";`,
+      },
+    ],
     title: "No hardcoded sys_id",
     family: "classic",
     preset: "recommended",
