@@ -12,6 +12,7 @@ import {
 import {
   builtInCallMayWritePlatformProperty,
   findStablePlatformConstructorCalls,
+  resolveConstValue,
   type PlatformGlobalAliasOrigin,
 } from "../analysis/internal.js";
 import type { EngineFeatureId } from "../engine/index.js";
@@ -96,10 +97,15 @@ function isAvailabilityProtected(
     const candidateNamespace = platformGlobalNamespaceAccess(candidate, analysis.bindings);
     return candidateNamespace === null || globalThisIsSafeAt(candidateNamespace);
   };
-  const isConstructorPropertyExistenceTest = (property: string, object: ESTree.Node): boolean =>
-    property === name &&
-    resolvePlatformGlobalName(object, analysis.bindings) === "globalThis" &&
-    globalThisIsSafeAt(object);
+  const isConstructorPropertyExistenceTest = (property: string, object: ESTree.Node): boolean => {
+    const origin = resolveConstValue(object, analysis.bindings);
+    return (
+      property === name &&
+      origin !== null &&
+      directPlatformGlobalName(origin, analysis.bindings) === "globalThis" &&
+      globalThisIsSafeAt(origin)
+    );
+  };
   const namespace = platformGlobalNamespaceAccess(invocation.callee, analysis.bindings);
   if (namespace && !globalThisIsSafeAt(namespace)) return false;
 

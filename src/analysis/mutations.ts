@@ -412,33 +412,35 @@ function buildIndex(
   const descriptorMayInstallCallable = (node: unknown): boolean => {
     const descriptor = stableAliasValue(node);
     if (!descriptor || descriptor.type !== "ObjectExpression") return true;
-    let getterMayInstall = false;
-    let hasAccessor = false;
-    let hasData = false;
-    let hasValue = false;
-    let valueMayInstall = false;
+    const fields = new Map<
+      string,
+      { kind: "accessor"; hasGetter: boolean } | { kind: "data"; mayInstall: boolean }
+    >();
     for (const item of descriptor.properties) {
       if (item.type === "SpreadElement") return true;
       const property = item as ESTree.ObjectProperty;
       const name = propertyKeyName(property);
       if (!name) return true;
-      if (name === "value") {
-        hasData = true;
-        hasValue = true;
-        valueMayInstall = !definitelyCannotInstallCallable(property.value);
+      if (property.kind === "get") {
+        fields.set(name, { kind: "accessor", hasGetter: true });
+      } else if (property.kind === "set") {
+        const current = fields.get(name);
+        fields.set(name, {
+          kind: "accessor",
+          hasGetter: current?.kind === "accessor" && current.hasGetter,
+        });
+      } else {
+        fields.set(name, {
+          kind: "data",
+          mayInstall: !definitelyCannotInstallCallable(property.value),
+        });
       }
-      if (name === "writable") hasData = true;
-      if (name === "get") {
-        hasAccessor = true;
-        getterMayInstall = !definitelyCannotInstallCallable(property.value);
-      }
-      if (name === "set") hasAccessor = true;
     }
-    // A descriptor containing both data and accessor fields is invalid and
-    // cannot install a replacement. Duplicate fields use their final value,
-    // which the assignments above deliberately retain.
+    const hasData = fields.has("value") || fields.has("writable");
+    const hasAccessor = fields.has("get") || fields.has("set");
     if (hasData && hasAccessor) return false;
-    return hasValue ? valueMayInstall : getterMayInstall;
+    const installed = fields.get(hasData ? "value" : "get");
+    return installed?.kind === "accessor" ? installed.hasGetter : Boolean(installed?.mayInstall);
   };
 
   const installableObjectProperties = (
