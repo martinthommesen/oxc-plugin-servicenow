@@ -148,6 +148,7 @@ export const AUSTRALIA_RULE_REVIEWS = Object.freeze({
   "no-bigint": { status: "reviewed", basis: ["engine-matrix"] },
   "no-incorrect-array-from-thisarg": { status: "reviewed", basis: ["engine-updates"] },
   "no-incorrect-bigint-asuintn": { status: "reviewed", basis: ["engine-updates"] },
+  "no-unhoisted-block-function-use": { status: "reviewed", basis: ["engine-updates"] },
   "no-at-method": { status: "reviewed", basis: ["engine-matrix"] },
   "no-map-set": { status: "reviewed", basis: ["engine-matrix"] },
   "no-weak-references": { status: "reviewed", basis: ["engine-matrix"] },

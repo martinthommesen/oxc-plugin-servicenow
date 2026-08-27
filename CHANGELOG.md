@@ -14,6 +14,7 @@
 - New `no-incorrect-bigint-asuintn` rule identifies literal `BigInt.asUintN()` calls whose negative-result bug is fixed by Australia, while suppressing dynamic operands and non-native implementations.
 - New `no-incorrect-array-from-thisarg` rule detects stable native `Array.from()` mapper calls whose primitive or omitted `thisArg` behavior is corrected by Australia, while proving callable identity, strictness, and relevant `this` usage before reporting.
 - Australia engine metadata now records the `Function.prototype.call()` / `.apply()` nullish-`thisArg` correction without emitting an unsafe diagnostic for behavior that depended on Rhino's legacy interpreted-versus-compiled execution path.
+- New `no-unhoisted-block-function-use` rule detects binding-proven reads before nested block function declarations in pre-Australia releases across all instance JavaScript modes, while excluding deferred bodies, mutation, dynamic scope, and the upstream fix's unsupported switch boundary.
 - `no-typed-arrays` now models Australia BigInt64 array support and the separate Australia addition of static `TypedArray.from()` / `.of()` factories, while retaining constructor, alias, method-guard, polyfill, and documented `DataView` BigInt-getter coverage.
 
 ### Fixed

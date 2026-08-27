@@ -17,6 +17,7 @@
   },
   "rules": {
     "servicenow/no-incorrect-array-from-thisarg": "error",
+    "servicenow/no-unhoisted-block-function-use": "error",
     "servicenow/no-incorrect-bigint-asuintn": "error",
     "servicenow/no-weak-references": "error",
     "servicenow/no-object-hasown": "error",

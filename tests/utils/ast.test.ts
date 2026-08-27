@@ -80,4 +80,9 @@ describe("AST value references", () => {
     assert.deepEqual(parentReferences(source, "ExportSpecifier", "value"), [false]);
     assert.deepEqual(parentReferences(source, "ExportSpecifier", "published"), [false]);
   });
+
+  it("does not treat identifiers in TypeScript type queries as value reads", () => {
+    const source = "const value = 1; type Value = typeof value;";
+    assert.deepEqual(parentReferences(source, "TSTypeQuery", "value"), [false]);
+  });
 });

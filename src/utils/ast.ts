@@ -99,10 +99,76 @@ export function unwrapExpression(node: unknown): unknown {
   return current;
 }
 
+const TYPE_ONLY_ANCESTORS = new Set([
+  "JSDocNonNullableType",
+  "JSDocNullableType",
+  "JSDocUnknownType",
+  "TSAnyKeyword",
+  "TSArrayType",
+  "TSBigIntKeyword",
+  "TSBooleanKeyword",
+  "TSCallSignatureDeclaration",
+  "TSClassImplements",
+  "TSConditionalType",
+  "TSConstructSignatureDeclaration",
+  "TSConstructorType",
+  "TSDeclareFunction",
+  "TSExpressionWithTypeArguments",
+  "TSFunctionType",
+  "TSImportType",
+  "TSIndexSignature",
+  "TSIndexedAccessType",
+  "TSInferType",
+  "TSInterfaceDeclaration",
+  "TSInterfaceHeritage",
+  "TSIntersectionType",
+  "TSIntrinsicKeyword",
+  "TSLiteralType",
+  "TSMappedType",
+  "TSMethodSignature",
+  "TSNamedTupleMember",
+  "TSNeverKeyword",
+  "TSNullKeyword",
+  "TSNumberKeyword",
+  "TSObjectKeyword",
+  "TSOptionalType",
+  "TSParenthesizedType",
+  "TSPropertySignature",
+  "TSQualifiedName",
+  "TSRestType",
+  "TSStringKeyword",
+  "TSSymbolKeyword",
+  "TSTemplateLiteralType",
+  "TSThisType",
+  "TSTupleType",
+  "TSTypeAliasDeclaration",
+  "TSTypeAnnotation",
+  "TSTypeLiteral",
+  "TSTypeOperator",
+  "TSTypeParameter",
+  "TSTypeParameterDeclaration",
+  "TSTypeParameterInstantiation",
+  "TSTypePredicate",
+  "TSTypeQuery",
+  "TSTypeReference",
+  "TSUndefinedKeyword",
+  "TSUnionType",
+  "TSUnknownKeyword",
+  "TSVoidKeyword",
+]);
+
+function hasTypeOnlyAncestor(ancestors: readonly ESTree.Node[]): boolean {
+  for (let index = ancestors.length - 2; index >= 0; index -= 1) {
+    if (TYPE_ONLY_ANCESTORS.has(ancestors[index]!.type)) return true;
+  }
+  return false;
+}
+
 /**
  * True when an Identifier is a value read, not a declaration, label, or static key.
  */
 export function isValueReference(node: ESTree.Node, ancestors: readonly ESTree.Node[]): boolean {
+  if (hasTypeOnlyAncestor(ancestors)) return false;
   const parent = ancestors.length >= 2 ? ancestors[ancestors.length - 2] : undefined;
   if (!parent) return true;
   switch (parent.type) {

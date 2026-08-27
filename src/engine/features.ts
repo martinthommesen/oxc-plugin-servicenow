@@ -26,6 +26,7 @@ export type EngineFeatureId =
   | "bigint"
   | "bigint-narrowing"
   | "array-from-thisarg"
+  | "block-function-hoisting"
   | "function-call-apply-thisarg"
   | "at-method"
   | "typed-arrays"
@@ -283,6 +284,14 @@ export const ENGINE_FEATURES: Readonly<Record<EngineFeatureId, EngineFeature>> =
     {
       zurich: ["unsupported", "unsupported"],
       australia: ["supported", "unsupported"],
+    },
+  ),
+  "block-function-hoisting": australiaAllModesUpdateFeature(
+    "block-function-hoisting",
+    "Nested block function hoisting",
+    {
+      zurich: "unsupported",
+      australia: "supported",
     },
   ),
   "date-fraction-digits": australiaAllModesUpdateFeature(

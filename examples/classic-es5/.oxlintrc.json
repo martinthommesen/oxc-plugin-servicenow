@@ -18,6 +18,7 @@
     "servicenow/no-promise": "error",
     "servicenow/no-async-await": "error",
     "servicenow/no-bigint": "error",
+    "servicenow/no-unhoisted-block-function-use": "error",
     "servicenow/no-at-method": "error",
     "servicenow/no-weak-references": "error",
     "servicenow/no-map-set": "error",
