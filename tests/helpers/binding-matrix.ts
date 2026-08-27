@@ -261,6 +261,27 @@ export const BINDING_MATRIX_CASES: readonly BindingMatrixCase[] = [
     'var ajax = new GlideAjax("Example");\najax.addParam("sysparm_name", "load");\najax.getXML(callback);',
     "matrix.client.js",
   ),
+  {
+    ...report(
+      "client-direct-gliderecord",
+      "no-client-gliderecord",
+      'new GlideRecord("incident");',
+      'new GlideRecord("incident")',
+      "glideRecord",
+      "Client GlideRecord is not supported in scoped applications. Query through a Script Include with `GlideAjax` or a Scripted REST API.",
+      "matrix.client.js",
+    ),
+    settings: { scope: "scoped" } as const,
+  },
+  {
+    ...silent(
+      "client-namespace-escape-before-reassign",
+      "no-client-gliderecord",
+      'var ns = global;\nprepare(ns);\nns = localNamespace;\nnew GlideRecord("incident");',
+      "matrix.client.js",
+    ),
+    settings: { scope: "scoped" } as const,
+  },
   report(
     "element-retained-in-array",
     "no-glideelement-in-collection",
