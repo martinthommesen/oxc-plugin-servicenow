@@ -721,6 +721,49 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
     return undefined;
   };
 
+  const normalValueFromExpr = (state: EnvState<T>, node: unknown): ESTree.Node | null => {
+    const expr = unwrapExpression(node);
+    if (!isNode(expr)) return null;
+    if (!stopAtAwait) return expr;
+    if (expr.type === "AwaitExpression") return null;
+    if (expr.type === "SequenceExpression") {
+      const expressions = (expr as ESTree.SequenceExpression).expressions;
+      for (const item of expressions.slice(0, -1)) {
+        if (normalValueFromExpr(state, item) === null) return null;
+      }
+      return normalValueFromExpr(state, expressions[expressions.length - 1]);
+    }
+    if (expr.type === "ConditionalExpression") {
+      const conditional = expr as ESTree.ConditionalExpression;
+      const consequent = normalValueFromExpr(state, conditional.consequent);
+      const alternate = normalValueFromExpr(state, conditional.alternate);
+      if (consequent === null) return alternate;
+      if (alternate === null) return consequent;
+      const consequentId = objectFromExpr(state, consequent);
+      const alternateId = objectFromExpr(state, alternate);
+      if (consequentId !== undefined && consequentId === alternateId) return consequent;
+      return expr;
+    }
+    if (expr.type === "LogicalExpression") {
+      const logical = expr as ESTree.LogicalExpression;
+      const left = normalValueFromExpr(state, logical.left);
+      if (left === null) return null;
+      const right = normalValueFromExpr(state, logical.right);
+      if (right === null) return left;
+      const leftId = objectFromExpr(state, left);
+      const rightId = objectFromExpr(state, right);
+      return leftId !== undefined && leftId === rightId ? left : expr;
+    }
+    if (expr.type === "AssignmentExpression") {
+      const assignment = expr as ESTree.AssignmentExpression;
+      const right = normalValueFromExpr(state, assignment.right);
+      if (right === null)
+        return ["&&=", "||=", "??="].includes(assignment.operator) ? assignment.left : null;
+      return assignment.operator === "=" ? right : expr;
+    }
+    return expr;
+  };
+
   const markEscape = (state: EnvState<T>, node: unknown): void => {
     const expr = unwrapExpression(node);
     if (!isNode(expr)) return;
@@ -1024,13 +1067,27 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
           visit(assign.left, state, false);
         }
         if (state.completion !== "normal") break;
-        if (logicalAssignment) {
-          const afterLeft = snapshotState(state, cloneData, budget);
-          visit(assign.right, state, false);
-          joinInto(state, [afterLeft, snapshotState(state, cloneData, budget)]);
-        } else {
-          visit(assign.right, state, false);
+        const afterLeft = logicalAssignment ? snapshotState(state, cloneData, budget) : null;
+        visit(assign.right, state, false);
+        if (stopAtAwait) {
+          const paths = completionPaths(state, cloneData, budget);
+          for (const path of paths) {
+            if (path.completion !== "normal") continue;
+            if (assign.operator === "=" || logicalAssignment) {
+              if (assign.operator === "=") {
+                visitPatternExpressions(path, assign.left);
+                if (path.completion !== "normal") continue;
+              }
+              const value = normalValueFromExpr(path, assign.right);
+              if (value !== null) assignFrom(path, assign.left, value);
+            } else {
+              invalidatePattern(path, assign.left);
+            }
+          }
+          joinInto(state, afterLeft ? [afterLeft, ...paths] : paths);
+          break;
         }
+        if (afterLeft) joinInto(state, [afterLeft, snapshotState(state, cloneData, budget)]);
         if (assign.operator === "=") {
           visitPatternExpressions(state, assign.left);
           assignFrom(state, assign.left, assign.right);

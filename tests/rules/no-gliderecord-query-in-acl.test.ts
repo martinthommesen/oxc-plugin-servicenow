@@ -291,6 +291,38 @@ user.query();`,
       { messageId: "query", count: 1, includes: "user" },
       ACL,
     );
+    for (const assignment of [
+      "user = await later()",
+      "user &&= await later()",
+      "user = condition ? await later() : user",
+      "user &&= condition ? await later() : user",
+      "user = first ? (second ? await later() : user) : user",
+      "user = user && (condition ? await later() : user)",
+    ]) {
+      assertInvalid(
+        `var user = new GlideRecord("sys_user");
+async function replace() {
+  ${assignment};
+}
+replace();
+user.query();`,
+        RULE,
+        { messageId: "query", count: 1, includes: "user" },
+        ACL,
+      );
+    }
+    for (const operator of ["=", "&&="] as const) {
+      assertValid(
+        `var user = new GlideRecord("sys_user");
+async function replace() {
+  user ${operator} condition ? await later() : replacement;
+}
+replace();
+user.query();`,
+        RULE,
+        ACL,
+      );
+    }
     assertInvalid(
       `async function load() { throw failure; }
 load();
