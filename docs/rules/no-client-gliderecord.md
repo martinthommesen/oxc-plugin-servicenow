@@ -60,7 +60,7 @@ function onChange() {
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-boundary: Mixed client/server UI Actions stay silent because the rule cannot classify execution regions. scope-boundary: Global and unknown application scope stay silent because ServiceNow documents the client API in global applications and only marks scoped applications unsupported. false-negative: Aliases assigned outside their declaration stay silent even when every visible branch selects a platform constructor; proving that identity requires path-sensitive constructor-value analysis. false-negative: Aliases used from another function body stay silent because source order alone cannot prove that the initializer ran before the function was called.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-boundary: Mixed client/server UI Actions stay silent because the rule cannot classify execution regions. scope-boundary: Global and unknown application scope stay silent because ServiceNow documents the client API in global applications and only marks scoped applications unsupported. false-negative: Aliases assigned outside their declaration stay silent even when every visible branch selects a platform constructor; proving that identity requires path-sensitive constructor-value analysis. false-negative: Aliases used from another function body stay silent because source order alone cannot prove that the initializer ran before the function was called. false-negative: A possible platform-constructor or namespace replacement suppresses matching calls throughout the file, including calls that appear before the replacement; source order alone does not establish runtime order across function bodies.
 
 ## Known false positives
 
@@ -70,6 +70,7 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-b
 
 - Aliases assigned outside their declaration stay silent even when every visible branch selects a platform constructor; proving that identity requires path-sensitive constructor-value analysis.
 - Aliases used from another function body stay silent because source order alone cannot prove that the initializer ran before the function was called.
+- A possible platform-constructor or namespace replacement suppresses matching calls throughout the file, including calls that appear before the replacement; source order alone does not establish runtime order across function bodies.
 
 ## Intentional scope boundaries
 

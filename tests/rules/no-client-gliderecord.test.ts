@@ -52,6 +52,18 @@ function onLoad() {
     );
   });
 
+  it("flags a stable constructor alias declared inside its use block", () => {
+    assertInvalid(
+      `if (condition) {
+  const GR = GlideRecord;
+  new GR("incident");
+}`,
+      RULE,
+      { messageId: "glideRecord" },
+      { filename: "form.client.js", settings: { scope: "scoped" } },
+    );
+  });
+
   it("forgets a reassigned constructor alias", () => {
     assertValid(
       `var GR = GlideRecord;
@@ -139,6 +151,16 @@ new GR("incident");`,
       RULE,
       { filename: "form.client.js", settings: { scope: "scoped" } },
     );
+    assertValid(
+      `var GR = GlideRecord;
+eval?.("GR = LocalRecord");
+new GR("incident");`,
+      RULE,
+      {
+        filename: "form.client.js",
+        settings: { javascriptMode: "es2021", scope: "scoped" },
+      },
+    );
   });
 
   it("stays silent when the platform constructor can be replaced", () => {
@@ -198,6 +220,12 @@ new GlideRecord("incident");`,
       RULE,
       options,
     );
+    assertValid(
+      `new GlideRecord("incident");
+GlideRecord = LocalRecord;`,
+      RULE,
+      options,
+    );
   });
 
   it("treats escaping the namespace, but not its constructor value, as a possible mutation", () => {
@@ -211,6 +239,21 @@ new global.GlideRecord("task");`,
     assertInvalid(
       `prepare(global.GlideRecord);
 new global.GlideRecord("incident");`,
+      RULE,
+      { messageId: "glideRecord" },
+      { filename: "form.client.js", settings: { scope: "scoped" } },
+    );
+    assertValid(
+      `var platform = global;
+prepare(platform);
+new GlideRecord("incident");`,
+      RULE,
+      { filename: "form.client.js", settings: { scope: "scoped" } },
+    );
+    assertInvalid(
+      `prepare(platform);
+var platform = global;
+new GlideRecord("incident");`,
       RULE,
       { messageId: "glideRecord" },
       { filename: "form.client.js", settings: { scope: "scoped" } },
@@ -324,7 +367,7 @@ new GR("incident");`,
       filename: "unknown.client.js",
     });
     assertValid(`var gr = new GlideRecord("sys_user");`, RULE, {
-      filename: "unknown.client.js",
+      filename: "explicit-unknown.client.js",
       settings: { scope: "unknown" },
     });
   });

@@ -10,6 +10,7 @@ import {
   type ImmediateFunction,
   type StableInvocationQuery,
 } from "./stable-invocations.js";
+import type { BindingWriteQuery } from "./binding-writes.js";
 
 export interface QueryInLoopFinding {
   node: ESTree.CallExpression;
@@ -77,12 +78,13 @@ function containsCursorAdvance(node: unknown, analysis: ProvenanceQuery): boolea
 export function findQueriesInCursorLoops(
   program: ESTree.Node,
   analysis: ProvenanceQuery,
+  bindingWrites: BindingWriteQuery,
 ): QueryInLoopFinding[] {
   const findings: QueryInLoopFinding[] = [];
   const state: CursorVisitState = {
     analysis,
     findings,
-    invocations: analyzeStableInvocations(program, analysis.bindings),
+    invocations: analyzeStableInvocations(program, analysis.bindings, bindingWrites),
     activeFunctions: new Set(),
     visitedFunctionModes: new WeakMap(),
   };

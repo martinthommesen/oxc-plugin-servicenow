@@ -76,13 +76,12 @@ export const noTypedArrays = defineRule({
     };
 
     function constructorOriginIsSafe(
-      candidate: unknown,
+      callee: unknown,
       name: string,
-      originCacheKey: string,
-      analysis: ReturnType<typeof beginRuleFile>["analysis"],
-      script: ReturnType<typeof beginRuleFile>["context"],
+      cacheKeyPrefix: string,
     ): boolean {
-      const namespaceAccess = platformGlobalNamespaceAccess(candidate, analysis.bindings);
+      const { analysis, context: script } = beginRuleFile(context);
+      const namespaceAccess = platformGlobalNamespaceAccess(callee, analysis.bindings);
       const namespaceIsSafe =
         namespaceAccess === null ||
         isFeatureAllowed("global-this", script.javascriptMode, script.settings.release) ||
@@ -96,7 +95,7 @@ export const noTypedArrays = defineRule({
             guardCacheKey: "global-this",
           },
         );
-      const origin = resolveConstValue(candidate, analysis.bindings);
+      const origin = resolveConstValue(callee, analysis.bindings);
       const bareOriginIsSafe =
         origin?.type !== "Identifier" ||
         directPlatformGlobalName(origin, analysis.bindings) !== name ||
@@ -107,7 +106,7 @@ export const noTypedArrays = defineRule({
           (node) => directPlatformGlobalName(node, analysis.bindings) === name,
           {
             allowDirectAccessGuard: false,
-            guardCacheKey: originCacheKey,
+            guardCacheKey: `no-typed-arrays:${cacheKeyPrefix}:${name}`,
           },
         );
       return namespaceIsSafe && bareOriginIsSafe;
@@ -118,13 +117,6 @@ export const noTypedArrays = defineRule({
       const name = resolvePlatformGlobalName(node.callee, analysis.bindings);
       if (!name || !ALL.has(name)) return;
       if (file.mutations.isGlobalWritten(name)) return;
-      const originIsSafe = constructorOriginIsSafe(
-        node.callee,
-        name,
-        `no-typed-arrays:origin:${name}`,
-        analysis,
-        script,
-      );
       const isCtorGuardAccess = (candidate: unknown): boolean => {
         if (directPlatformGlobalName(candidate, analysis.bindings) === name) return true;
         const terminal = resolveConstValue(candidate, analysis.bindings);
@@ -140,7 +132,7 @@ export const noTypedArrays = defineRule({
         );
       };
       if (
-        originIsSafe &&
+        constructorOriginIsSafe(node.callee, name, "origin") &&
         isInvocationAvailabilityGuarded(context, node, analysis, isCtorGuardAccess, {
           allowDirectAccessGuard: hasSafeQualifiedOrigin,
           guardCacheKey: `no-typed-arrays:constructor:${name}`,
@@ -307,17 +299,10 @@ export const noTypedArrays = defineRule({
         return;
       }
 
-      const originIsSafe = constructorOriginIsSafe(
-        callee.object,
-        name,
-        `no-typed-arrays:factory-origin:${name}`,
-        analysis,
-        script,
-      );
       const isConstructorAccess = (candidate: unknown): boolean =>
         resolvePlatformGlobalName(candidate, analysis.bindings) === name;
       if (
-        originIsSafe &&
+        constructorOriginIsSafe(callee.object, name, "factory-origin") &&
         isInvocationAvailabilityGuarded(context, node, analysis, isConstructorAccess, {
           allowDirectAccessGuard: (candidate) =>
             platformGlobalNamespaceAccess(candidate, analysis.bindings) !== null,

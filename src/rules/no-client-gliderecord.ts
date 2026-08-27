@@ -37,6 +37,7 @@ export const noClientGliderecord = defineRule({
         for (const finding of findStablePlatformConstructorCalls({
           program: node as ESTree.Node,
           analysis,
+          bindingWrites: file.bindingWrites,
           mutations: file.mutations,
           names: CTORS,
           namespaces: ["global"],

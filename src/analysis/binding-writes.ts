@@ -18,7 +18,7 @@ export interface BindingWriteQuery {
   isWritten(bindingId: number): boolean;
   /** True when a lexical write completes earlier in the same execution boundary. */
   isWrittenBeforeInBoundary(bindingId: number, use: ESTree.Node): boolean;
-  /** True when direct global eval or with can invalidate lexical resolution. */
+  /** True when global eval or with can invalidate file-visible bindings. */
   hasDynamicScope(): boolean;
 }
 
@@ -82,7 +82,6 @@ function buildIndex(program: ESTree.Node | undefined, bindings: FileBindings): B
         const call = node as ESTree.CallExpression;
         const callee = unwrapExpression(call.callee);
         if (
-          !call.optional &&
           isNode(callee) &&
           callee.type === "Identifier" &&
           callee.name === "eval" &&
@@ -97,7 +96,7 @@ function buildIndex(program: ESTree.Node | undefined, bindings: FileBindings): B
   return { dynamicScope, written, writes };
 }
 
-/** Create a lazy, immutable binding-write view for one file. */
+/** Create a lazy, immutable binding-write view shared by every rule for one file. */
 export function createBindingWriteQuery(
   program: ESTree.Node | undefined,
   bindings: FileBindings,

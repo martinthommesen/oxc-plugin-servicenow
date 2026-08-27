@@ -26,7 +26,7 @@ export const noGsNow = defineRule({
   createOnce(context) {
     return {
       CallExpression(node) {
-        const { analysis, context: script } = beginRuleFile(context);
+        const { analysis, context: script, file } = beginRuleFile(context);
         const client = appliesOnSurface(script, "client", "filename");
         const server = isServerInstanceContext(script, "filename");
         if (!client && !server) return;
@@ -43,6 +43,14 @@ export const noGsNow = defineRule({
         const isNow = property === "now";
         const isNowDateTime = property === "nowDateTime";
         if (!isNow && !isNowDateTime) return;
+        if (file.bindingWrites.hasDynamicScope()) return;
+        if (directGlobal && file.mutations.isGlobalAuthorityLost("gs")) return;
+        if (
+          file.mutations.isGlobalPathAuthorityLost(["gs", property]) ||
+          file.mutations.isObjectPropertyAuthorityLost(member.object, property)
+        ) {
+          return;
+        }
         const messageId = isNowDateTime ? "nowDateTime" : client ? "client" : "server";
         context.report({ node, messageId });
       },

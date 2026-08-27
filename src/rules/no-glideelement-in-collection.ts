@@ -192,7 +192,9 @@ function findRetainedElements(
         ...cursorIdsRequiredForBody(statement.test, analysis),
       ]);
       visit(statement.test, cursorIds);
-      if (!definitelySkipsDoWhileTest(statement.body)) visit(statement.body, nextIds);
+      // A while body is entered only after its test succeeds, even when that
+      // first iteration exits unconditionally.
+      visit(statement.body, nextIds);
       return;
     }
     if (node.type === "DoWhileStatement") {
@@ -203,7 +205,7 @@ function findRetainedElements(
       ]);
       visit(statement.body, cursorIds);
       visit(statement.test, cursorIds);
-      visit(statement.body, nextIds);
+      if (!definitelySkipsDoWhileTest(statement.body)) visit(statement.body, nextIds);
       return;
     }
     if (node.type === "ForStatement") {

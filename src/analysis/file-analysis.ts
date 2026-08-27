@@ -38,6 +38,7 @@ import {
   type NowIdFact,
 } from "./now-id.js";
 import { createMutationQuery, type MutationQuery } from "./mutations.js";
+import { createBindingWriteQuery, type BindingWriteQuery } from "./binding-writes.js";
 
 export interface FluentFileFacts {
   manifest: FluentSdkManifest;
@@ -48,6 +49,8 @@ export interface FluentFileFacts {
 
 export interface FileAnalysis {
   bindings: FileBindings;
+  /** Lazily indexed lexical writes and dynamic-scope hazards shared by rule analyses. */
+  bindingWrites: BindingWriteQuery;
   script: ServiceNowScriptContext;
   provenance: ProvenanceQuery;
   /** Lazily indexed possible writes used to suppress diagnostics when API identity is uncertain. */
@@ -135,6 +138,7 @@ function buildFileAnalysis(context: Context, tree: AnalysisTree): FileAnalysis {
   const bindings = createFileBindings(context, program, {
     scopeSource: tree.kind === "host" ? "host" : "tree",
   });
+  const bindingWrites = createBindingWriteQuery(program, bindings);
   const script = resolveScriptContext(context, {
     program,
     inferClient: program ? () => inferClientFromAst(program, bindings) : undefined,
@@ -230,12 +234,19 @@ function buildFileAnalysis(context: Context, tree: AnalysisTree): FileAnalysis {
   }
 
   const provenance = makeQuery(bindings, provenanceAtNode, identifierAtNode, glide);
-  const mutations = createMutationQuery(program, bindings, provenance, script.javascriptMode);
+  const mutations = createMutationQuery(
+    program,
+    bindings,
+    bindingWrites,
+    provenance,
+    script.javascriptMode,
+  );
   const manifest = resolveFluentManifest(settings.fluentSdkVersion);
   const imports = program ? collectFluentImports(program, bindings) : new Map();
 
   return {
     bindings,
+    bindingWrites,
     script,
     provenance,
     mutations,

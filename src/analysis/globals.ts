@@ -72,9 +72,7 @@ function findPlatformGlobalNamespaceAccess(
 ): ESTree.Node | null {
   if (depth > MAX_PLATFORM_GLOBAL_ALIAS_DEPTH) return null;
   const selected = resolveDestructuredConstMember(node, bindings);
-  if (selected) {
-    return findPlatformGlobalNamespaceAccess(selected.source, bindings, depth + 1);
-  }
+  if (selected) return findPlatformGlobalNamespaceAccess(selected.source, bindings, depth + 1);
   const value = resolveConstValue(node, bindings);
   if (!value || value.type !== "MemberExpression") return null;
   const object = resolveConstValue(value.object, bindings);

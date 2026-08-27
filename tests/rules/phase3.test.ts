@@ -184,6 +184,49 @@ while (a.next() && b.next()) values.push(a.number);`,
     );
   });
 
+  it("checks the first cursor iteration even when the body exits", () => {
+    assertInvalid(
+      `var values = [];
+var gr = new GlideRecord("incident");
+gr.query();
+while (gr.next()) {
+  values.push(gr.number);
+  break;
+}`,
+      RULE,
+      { messageId: "retained" },
+      SERVER,
+    );
+    assertInvalid(
+      `function firstValue() {
+  var values = [];
+  var gr = new GlideRecord("incident");
+  gr.query();
+  while (gr.next()) {
+    values.push(gr.number);
+    return values;
+  }
+}`,
+      RULE,
+      { messageId: "retained" },
+      SERVER,
+    );
+  });
+
+  it("does not invent a second do-while iteration after an unconditional exit", () => {
+    assertValid(
+      `var values = [];
+var gr = new GlideRecord("incident");
+gr.query();
+do {
+  values.push(gr.number);
+  break;
+} while (gr.next());`,
+      RULE,
+      SERVER,
+    );
+  });
+
   it("finds retained fields inside nested literals", () => {
     assertInvalid(
       `var values = [];

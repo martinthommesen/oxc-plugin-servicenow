@@ -68,6 +68,14 @@ service.now();`,
       FULL_SCRIPT,
     );
   });
+
+  it("forgets a reassigned canonical current wrapper parameter", () => {
+    assertValid(
+      `(function executeRule(current, previous) {\n  current = getOtherRecord();\n  current.update();\n})(current, previous);`,
+      "no-br-current-update",
+      FULL_SCRIPT,
+    );
+  });
 });
 
 describe("Layer 3 identity-based stateful consumers", () => {

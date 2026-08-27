@@ -10,7 +10,7 @@ import {
   walk,
 } from "../utils/ast.js";
 import type { FileBindings } from "./bindings.js";
-import { createBindingWriteQuery, type BindingWriteQuery } from "./binding-writes.js";
+import type { BindingWriteQuery } from "./binding-writes.js";
 import {
   GLOBAL_OBJECT_NAMES,
   platformGlobalNamespaceAccess,
@@ -18,6 +18,7 @@ import {
 } from "./globals.js";
 import {
   isDefinitelyNonCallable,
+  isDefinitelyNullishValue,
   resolveConstValue,
   resolveDestructuredConstMember,
   staticPropertyName,
@@ -26,13 +27,18 @@ import type { ProvenanceQuery } from "./provenance.js";
 import type { JavaScriptMode } from "../types.js";
 
 export interface MutationQuery {
+  /** True when a callable replacement may have been installed for the global. */
   isGlobalWritten(name: string): boolean;
+  /** True when a callable replacement may have been installed for the path. */
   isGlobalPathWritten(path: readonly string[]): boolean;
+  /** True when a callable replacement may have been installed on the object. */
   isObjectPropertyWritten(object: unknown, property: string): boolean;
   /** True when any write or escape makes the platform global's identity uncertain. */
   isGlobalAuthorityLost(name: string): boolean;
   /** True when any write or escape makes the platform path's identity uncertain. */
   isGlobalPathAuthorityLost(path: readonly string[]): boolean;
+  /** True when any write or escape makes the object's platform method identity uncertain. */
+  isObjectPropertyAuthorityLost(object: unknown, property: string): boolean;
 }
 
 interface MutationIndex {
@@ -42,6 +48,15 @@ interface MutationIndex {
   objectPropertyWildcards: ReadonlySet<string>;
   authorityGlobals: ReadonlySet<string>;
   authorityGlobalPaths: ReadonlySet<string>;
+  authorityObjectProperties: ReadonlySet<string>;
+  authorityObjectPropertyWildcards: ReadonlySet<string>;
+}
+
+interface MutableMutationFacts {
+  readonly globals: Set<string>;
+  readonly globalPaths: Set<string>;
+  readonly objectProperties: Set<string>;
+  readonly objectPropertyWildcards: Set<string>;
 }
 
 interface BuiltinReference {
@@ -71,6 +86,15 @@ function pathWasWritten(paths: ReadonlySet<string>, path: readonly string[]): bo
     if (paths.has(pathKey([...path.slice(0, length), "*"]))) return true;
   }
   return false;
+}
+
+function emptyMutationFacts(): MutableMutationFacts {
+  return {
+    globals: new Set(),
+    globalPaths: new Set(),
+    objectProperties: new Set(),
+    objectPropertyWildcards: new Set(),
+  };
 }
 
 function staticGlobalPath(node: unknown, bindings: FileBindings): readonly string[] | null {
@@ -103,49 +127,35 @@ function buildIndex(
   provenance: ProvenanceQuery,
   javascriptMode: JavaScriptMode,
 ): MutationIndex {
-  const globals = new Set<string>();
-  const globalPaths = new Set<string>();
-  const objectProperties = new Set<string>();
-  const objectPropertyWildcards = new Set<string>();
-  const authorityGlobals = new Set<string>();
-  const authorityGlobalPaths = new Set<string>();
+  const callable = emptyMutationFacts();
+  const authority = emptyMutationFacts();
+  const { globalPaths, globals, objectProperties, objectPropertyWildcards } = callable;
   const result = (): MutationIndex => ({
     globals,
     globalPaths,
     objectProperties,
     objectPropertyWildcards,
-    authorityGlobals,
-    authorityGlobalPaths,
+    authorityGlobals: authority.globals,
+    authorityGlobalPaths: authority.globalPaths,
+    authorityObjectProperties: authority.objectProperties,
+    authorityObjectPropertyWildcards: authority.objectPropertyWildcards,
   });
   if (!program) return result();
-  const modernGlobalsMayExist = javascriptMode !== "compatibility" && javascriptMode !== "es5";
 
-  const recordGlobalPathInto = (
-    path: readonly string[],
-    targetGlobals: Set<string>,
-    targetPaths: Set<string>,
-  ): void => {
-    targetPaths.add(pathKey(path));
+  const globalThisCanExist = javascriptMode !== "es5" && javascriptMode !== "compatibility";
+  const recordGlobalPathInto = (path: readonly string[], facts: MutableMutationFacts): void => {
+    facts.globalPaths.add(pathKey(path));
     if (!GLOBAL_OBJECT_NAMES.has(path[0] ?? "")) return;
-    if (path[0] === "globalThis" && !modernGlobalsMayExist) return;
+    if (path[0] === "globalThis" && !globalThisCanExist) return;
     const normalized = path.slice(1);
     if (normalized.length === 0 || normalized.includes("*")) {
-      targetGlobals.add("*");
-      targetPaths.add(pathKey(["*"]));
+      facts.globals.add("*");
+      facts.globalPaths.add(pathKey(["*"]));
     } else if (normalized.length === 1) {
-      targetGlobals.add(normalized[0]!);
+      facts.globals.add(normalized[0]!);
     } else {
-      targetPaths.add(pathKey(normalized));
+      facts.globalPaths.add(pathKey(normalized));
     }
-  };
-
-  const recordAuthorityGlobalPath = (path: readonly string[]): void => {
-    recordGlobalPathInto(path, authorityGlobals, authorityGlobalPaths);
-  };
-
-  const recordGlobalPath = (path: readonly string[]): void => {
-    recordGlobalPathInto(path, globals, globalPaths);
-    recordAuthorityGlobalPath(path);
   };
 
   const aliasValue = (node: unknown, temporal: boolean): ESTree.Node | null => {
@@ -195,11 +205,12 @@ function buildIndex(
   const stableAliasValue = (node: unknown): ESTree.Node | null => aliasValue(node, false);
   const authorityAliasValue = (node: unknown): ESTree.Node | null => aliasValue(node, true);
 
-  const authorityGlobalPath = (
+  const aliasGlobalPath = (
     node: unknown,
+    temporal: boolean,
     seen: ReadonlySet<ESTree.Node> = new Set(),
   ): readonly string[] | null => {
-    const value = authorityAliasValue(node);
+    const value = aliasValue(node, temporal);
     if (!value || seen.has(value)) return null;
     const next = new Set(seen);
     next.add(value);
@@ -210,47 +221,50 @@ function buildIndex(
     if (value.type !== "MemberExpression") return null;
     const property = staticPropertyName(value);
     if (!property) return null;
-    const base = authorityGlobalPath(value.object, next);
+    const base = aliasGlobalPath(value.object, temporal, next);
     return base ? [...base, property] : null;
   };
 
+  const stableGlobalPath = (node: unknown): readonly string[] | null =>
+    aliasGlobalPath(node, false);
+  const authorityGlobalPath = (node: unknown): readonly string[] | null =>
+    aliasGlobalPath(node, true);
+  const stableGlobalRoot = (node: unknown): string | null => stableGlobalPath(node)?.[0] ?? null;
   const authorityGlobalRoot = (node: unknown): string | null =>
     authorityGlobalPath(node)?.[0] ?? null;
 
-  const recordAuthorityProperty = (target: unknown, property: string | null): void => {
-    if (property === "__proto__") return;
-    const value = unwrapExpression(target);
-    if (!isNode(value)) return;
-    const path = authorityGlobalPath(value) ?? staticGlobalPath(value, bindings);
-    if (path) {
-      recordAuthorityGlobalPath([...path, property ?? "*"]);
-      return;
-    }
-    const root = authorityGlobalRoot(value) ?? staticGlobalRoot(value, bindings);
-    if (root) recordAuthorityGlobalPath([root, "*"]);
-  };
-
-  const recordProperty = (target: unknown, property: string | null): void => {
+  const recordProperty = (
+    target: unknown,
+    property: string | null,
+    facts: MutableMutationFacts = callable,
+  ): void => {
     // ServiceNow documents Object.prototype.__proto__ accessors as disallowed
     // in every supported instance mode. Such an assignment cannot establish a
     // usable replacement on the stock runtime.
     if (property === "__proto__") return;
     const value = unwrapExpression(target);
     if (!isNode(value)) return;
-    const path = staticGlobalPath(value, bindings);
+    const aliasPath = facts === authority ? authorityGlobalPath(value) : stableGlobalPath(value);
+    const path = aliasPath ?? staticGlobalPath(value, bindings);
     if (path) {
-      recordGlobalPath([...path, property ?? "*"]);
+      recordGlobalPathInto([...path, property ?? "*"], facts);
     } else {
-      const root = staticGlobalRoot(value, bindings);
-      if (root) recordGlobalPath([root, "*"]);
+      const aliasRoot = facts === authority ? authorityGlobalRoot(value) : stableGlobalRoot(value);
+      const root = aliasRoot ?? staticGlobalRoot(value, bindings);
+      if (root) recordGlobalPathInto([root, "*"], facts);
     }
     const object = provenance.ofExpression(value);
-    const terminal = stableAliasValue(value) ?? value;
+    const terminal =
+      (facts === authority ? authorityAliasValue(value) : stableAliasValue(value)) ?? value;
     const terminalName = terminal.type === "Identifier" ? getName(terminal) : null;
     const terminalBinding = terminalName ? bindings.resolve(terminalName, terminal) : null;
+    const terminalWasWrittenBeforeUse =
+      terminalBinding !== null &&
+      bindingWrites.isWrittenBeforeInBoundary(terminalBinding.id, terminal);
     const identityIsStableAllocation = terminal.type === "NewExpression";
     const identityMayAliasNamespace =
       path === null &&
+      !terminalWasWrittenBeforeUse &&
       ((terminal.type === "Identifier" &&
         (terminalBinding?.kind === "param" ||
           terminalBinding?.kind === "let" ||
@@ -261,91 +275,55 @@ function buildIndex(
         terminal.type === "LogicalExpression");
     if (identityMayAliasNamespace) {
       if (property === null) {
-        globals.add("*");
-        globalPaths.add(pathKey(["*"]));
-        authorityGlobals.add("*");
-        authorityGlobalPaths.add(pathKey(["*"]));
+        facts.globals.add("*");
+        facts.globalPaths.add(pathKey(["*"]));
       } else {
         // The parameter could receive a namespace object (for example Object,
         // DataView.prototype, or globalThis) at any call site.
-        globals.add(property);
-        globalPaths.add(pathKey(["*", property]));
-        authorityGlobals.add(property);
-        authorityGlobalPaths.add(pathKey(["*", property]));
+        facts.globals.add(property);
+        facts.globalPaths.add(pathKey(["*", property]));
       }
     }
     if (object?.objectId !== undefined && identityIsStableAllocation) {
-      objectProperties.add(objectPropertyKey(object.objectId, property ?? "*"));
+      facts.objectProperties.add(objectPropertyKey(object.objectId, property ?? "*"));
     } else if (object?.objectId !== undefined) {
       // A parameter or otherwise unresolved target can denote different
       // runtime objects at different call sites. Treat the affected property
       // as a may-write for every queried object rather than selecting the one
       // object identity retained by the intraprocedural provenance summary.
-      objectPropertyWildcards.add(property ?? "*");
+      facts.objectPropertyWildcards.add(property ?? "*");
     }
   };
 
-  const recordTarget = (target: unknown): void => {
+  const recordTarget = (target: unknown, facts: MutableMutationFacts = callable): void => {
     const value = unwrapExpression(target);
     if (!isNode(value)) return;
     if (value.type === "Identifier") {
       const name = getName(value);
-      if (name && bindings.isPlatformGlobal(value)) globals.add(name);
+      if (name && bindings.isPlatformGlobal(value)) facts.globals.add(name);
       return;
     }
     if (value.type === "MemberExpression") {
       const property = staticPropertyName(value);
-      recordProperty(value.object, property);
+      recordProperty(value.object, property, facts);
       return;
     }
     if (value.type === "AssignmentPattern") {
-      recordTarget(value.left);
+      recordTarget(value.left, facts);
       return;
     }
     if (value.type === "RestElement") {
-      recordTarget(value.argument);
+      recordTarget(value.argument, facts);
       return;
     }
     if (value.type === "ArrayPattern") {
-      for (const element of value.elements) recordTarget(element);
+      for (const element of value.elements) recordTarget(element, facts);
       return;
     }
     if (value.type === "ObjectPattern") {
       for (const property of value.properties) {
-        if (property.type === "RestElement") recordTarget(property.argument);
-        else recordTarget(property.value);
-      }
-    }
-  };
-
-  const recordAuthorityTarget = (target: unknown): void => {
-    const value = unwrapExpression(target);
-    if (!isNode(value)) return;
-    if (value.type === "Identifier") {
-      const name = getName(value);
-      if (name && bindings.isPlatformGlobal(value)) authorityGlobals.add(name);
-      return;
-    }
-    if (value.type === "MemberExpression") {
-      recordAuthorityProperty(value.object, staticPropertyName(value));
-      return;
-    }
-    if (value.type === "AssignmentPattern") {
-      recordAuthorityTarget(value.left);
-      return;
-    }
-    if (value.type === "RestElement") {
-      recordAuthorityTarget(value.argument);
-      return;
-    }
-    if (value.type === "ArrayPattern") {
-      for (const element of value.elements) recordAuthorityTarget(element);
-      return;
-    }
-    if (value.type === "ObjectPattern") {
-      for (const property of value.properties) {
-        if (property.type === "RestElement") recordAuthorityTarget(property.argument);
-        else recordAuthorityTarget(property.value);
+        if (property.type === "RestElement") recordTarget(property.argument, facts);
+        else recordTarget(property.value, facts);
       }
     }
   };
@@ -358,7 +336,7 @@ function buildIndex(
       if (selected.fallback !== null && !isDefinitelyNonCallable(selected.fallback, bindings)) {
         return null;
       }
-      if (platformGlobalNamespaceAccess(selected.source, bindings) && !modernGlobalsMayExist) {
+      if (platformGlobalNamespaceAccess(selected.source, bindings) && !globalThisCanExist) {
         return null;
       }
       const owner = resolvePlatformGlobalName(selected.source, bindings);
@@ -366,7 +344,7 @@ function buildIndex(
     }
     const value = resolveConstValue(direct, bindings);
     if (!value) return null;
-    if (platformGlobalNamespaceAccess(value, bindings) && !modernGlobalsMayExist) {
+    if (platformGlobalNamespaceAccess(value, bindings) && !globalThisCanExist) {
       return null;
     }
     if (value.type === "MemberExpression") {
@@ -378,7 +356,7 @@ function buildIndex(
   };
 
   const arrayArguments = (node: unknown): readonly unknown[] | null => {
-    const value = stableAliasValue(node);
+    const value = resolveConstValue(node, bindings);
     if (value?.type !== "ArrayExpression") return null;
     return value.elements.some((element) => element?.type === "SpreadElement")
       ? null
@@ -436,7 +414,7 @@ function buildIndex(
   };
 
   const definitelyCannotInstallCallable = (node: unknown): boolean => {
-    const value = resolveConstValue(node, bindings);
+    const value = stableAliasValue(node);
     if (!value) return false;
     if (value.type === "Literal") return true;
     if (value.type === "UnaryExpression" && value.operator === "void") return true;
@@ -445,7 +423,7 @@ function buildIndex(
   };
 
   const descriptorMayInstallCallable = (node: unknown): boolean => {
-    const descriptor = resolveConstValue(node, bindings);
+    const descriptor = stableAliasValue(node);
     if (!descriptor || descriptor.type !== "ObjectExpression") return true;
     let getterMayInstall = false;
     let hasGetter = false;
@@ -476,7 +454,7 @@ function buildIndex(
     node: unknown,
     descriptors: boolean,
   ): readonly string[] | null => {
-    const object = resolveConstValue(node, bindings);
+    const object = stableAliasValue(node);
     if (object && definitelyCannotInstallCallable(object)) return [];
     if (!object || object.type !== "ObjectExpression") return null;
     const properties = new Map<string, boolean>();
@@ -495,16 +473,23 @@ function buildIndex(
     return [...properties].filter(([, mayInstall]) => mayInstall).map(([name]) => name);
   };
 
-  const recordKnownProperties = (target: unknown, properties: readonly string[] | null): void => {
+  const recordKnownProperties = (
+    target: unknown,
+    properties: readonly string[] | null,
+    facts: MutableMutationFacts = callable,
+  ): void => {
     if (properties === null) {
-      recordProperty(target, null);
+      recordProperty(target, null, facts);
       return;
     }
-    for (const property of properties) recordProperty(target, property);
+    for (const property of properties) recordProperty(target, property, facts);
   };
 
   const writtenObjectProperties = (node: unknown): readonly string[] | null => {
-    const object = resolveConstValue(node, bindings);
+    // Object.assign ignores null and undefined sources. Treating them as an
+    // unknown object would erase otherwise authoritative platform methods.
+    const object = stableAliasValue(node);
+    if (object && isDefinitelyNullishValue(object, bindings)) return [];
     if (!object || object.type !== "ObjectExpression") return null;
     const properties = new Set<string>();
     for (const item of object.properties) {
@@ -516,21 +501,10 @@ function buildIndex(
     return [...properties];
   };
 
-  const recordKnownAuthorityProperties = (
-    target: unknown,
-    properties: readonly string[] | null,
-  ): void => {
-    if (properties === null) {
-      recordAuthorityProperty(target, null);
-      return;
-    }
-    for (const property of properties) recordAuthorityProperty(target, property);
-  };
-
   const escapedNamespaceValues = new WeakSet<ESTree.Node>();
   const recordEscapedNamespaces = (node: unknown, depth = 0): void => {
     if (depth > MAX_NAMESPACE_ESCAPE_DEPTH) return;
-    const value = resolveConstValue(node, bindings);
+    const value = authorityAliasValue(node);
     if (!value || escapedNamespaceValues.has(value)) return;
     escapedNamespaceValues.add(value);
 
@@ -538,7 +512,8 @@ function buildIndex(
     if (path) {
       // Passing an object by value cannot replace its owning binding, but an
       // unknown callee can install or replace any property on that object.
-      recordGlobalPath([...path, "*"]);
+      recordGlobalPathInto([...path, "*"], callable);
+      recordGlobalPathInto([...path, "*"], authority);
       return;
     }
 
@@ -580,27 +555,27 @@ function buildIndex(
   walk(program, {
     AssignmentExpression(node) {
       const assignment = node as ESTree.AssignmentExpression;
-      recordAuthorityTarget(assignment.left);
+      recordTarget(assignment.left, authority);
       if (assignment.operator === "=" && definitelyCannotInstallCallable(assignment.right)) return;
       recordTarget(assignment.left);
     },
     UpdateExpression(node) {
       const target = (node as ESTree.UpdateExpression).argument;
-      recordAuthorityTarget(target);
+      recordTarget(target, authority);
       recordTarget(target);
     },
     UnaryExpression(node) {
       const expression = node as ESTree.UnaryExpression;
-      if (expression.operator === "delete") recordAuthorityTarget(expression.argument);
+      if (expression.operator === "delete") recordTarget(expression.argument, authority);
     },
     ForInStatement(node) {
       const target = (node as ESTree.ForInStatement).left;
-      recordAuthorityTarget(target);
+      recordTarget(target, authority);
       recordTarget(target);
     },
     ForOfStatement(node) {
       const target = (node as ESTree.ForOfStatement).left;
-      recordAuthorityTarget(target);
+      recordTarget(target, authority);
       recordTarget(target);
     },
     NewExpression(node) {
@@ -612,7 +587,7 @@ function buildIndex(
       const call = node as ESTree.CallExpression;
       const builtin = calledBuiltin(call);
       if (!builtin) {
-        if (platformGlobalNamespaceAccess(call.callee, bindings) && !modernGlobalsMayExist) {
+        if (platformGlobalNamespaceAccess(call.callee, bindings) && !globalThisCanExist) {
           return;
         }
         const direct = staticBuiltin(call.callee);
@@ -634,7 +609,7 @@ function buildIndex(
       if (
         ownerName === "Object" &&
         (method === "assign" || method === "setPrototypeOf") &&
-        !modernGlobalsMayExist
+        !globalThisCanExist
       ) {
         return;
       }
@@ -649,32 +624,33 @@ function buildIndex(
         globals.add("*");
         globalPaths.add(pathKey(["*"]));
         objectPropertyWildcards.add("*");
-        authorityGlobals.add("*");
-        authorityGlobalPaths.add(pathKey(["*"]));
+        authority.globals.add("*");
+        authority.globalPaths.add(pathKey(["*"]));
+        authority.objectPropertyWildcards.add("*");
         return;
       }
       const target = effectiveArguments[0];
       if (!target) return;
       if (method === "defineProperty") {
-        recordAuthorityProperty(target, getStaticStringValue(effectiveArguments[1]));
+        recordProperty(target, getStaticStringValue(effectiveArguments[1]), authority);
         if (!descriptorMayInstallCallable(effectiveArguments[2])) return;
         recordProperty(target, getStaticStringValue(effectiveArguments[1]));
         return;
       }
       if (method === "defineProperties") {
-        recordKnownAuthorityProperties(target, writtenObjectProperties(effectiveArguments[1]));
+        recordKnownProperties(target, writtenObjectProperties(effectiveArguments[1]), authority);
         recordKnownProperties(target, installableObjectProperties(effectiveArguments[1], true));
         return;
       }
       if (method === "assign") {
         for (const source of effectiveArguments.slice(1)) {
-          recordKnownAuthorityProperties(target, writtenObjectProperties(source));
+          recordKnownProperties(target, writtenObjectProperties(source), authority);
           recordKnownProperties(target, installableObjectProperties(source, false));
         }
         return;
       }
       if (method === "setPrototypeOf") {
-        recordAuthorityProperty(target, null);
+        recordProperty(target, null, authority);
         recordKnownProperties(target, installableObjectProperties(effectiveArguments[1], false));
       }
     },
@@ -685,10 +661,10 @@ function buildIndex(
 export function createMutationQuery(
   program: ESTree.Node | undefined,
   bindings: FileBindings,
+  bindingWrites: BindingWriteQuery,
   provenance: ProvenanceQuery,
   javascriptMode: JavaScriptMode,
 ): MutationQuery {
-  const bindingWrites = createBindingWriteQuery(program, bindings);
   let index: MutationIndex | undefined;
   const getIndex = () =>
     (index ??= buildIndex(program, bindings, bindingWrites, provenance, javascriptMode));
@@ -718,6 +694,16 @@ export function createMutationQuery(
       return (
         getIndex().authorityGlobalPaths.has(pathKey(["*"])) ||
         pathWasWritten(getIndex().authorityGlobalPaths, path)
+      );
+    },
+    isObjectPropertyAuthorityLost(object: unknown, property: string) {
+      const objectId = provenance.ofExpression(object)?.objectId;
+      return (
+        getIndex().authorityObjectPropertyWildcards.has(property) ||
+        getIndex().authorityObjectPropertyWildcards.has("*") ||
+        (objectId !== undefined &&
+          (getIndex().authorityObjectProperties.has(objectPropertyKey(objectId, property)) ||
+            getIndex().authorityObjectProperties.has(objectPropertyKey(objectId, "*"))))
       );
     },
   });

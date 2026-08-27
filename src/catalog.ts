@@ -602,6 +602,17 @@ function run() {
   new GR("incident");
 }`,
       },
+      {
+        caseId: "no-client-gliderecord-file-wide-replacement",
+        kind: "false-negative",
+        description:
+          "A possible platform-constructor or namespace replacement suppresses matching calls throughout the file, including calls that appear before the replacement; source order alone does not establish runtime order across function bodies.",
+        name: "later constructor replacement",
+        filename: "replaced.client.js",
+        settings: { authoring: "classic", surfaces: ["client"], scope: "scoped" },
+        code: `new GlideRecord("incident");
+GlideRecord = LocalRecord;`,
+      },
     ],
     title: "No client GlideRecord",
     family: "classic",
@@ -643,6 +654,12 @@ function run() {
           "integration-test",
           "2026-08-20",
         ),
+        metadata.evidenceRecord(
+          "tests/integration/context-contracts.test.ts",
+          "Oxlint and ESLint stay silent when visible writes make the gs global or target method identity unknown.",
+          "integration-test",
+          "2026-08-24",
+        ),
       ],
       {
         overlaps: ["servicenow/no-display-value-date-comparison"],
@@ -662,6 +679,16 @@ function run() {
         filename: "local-gs.server.js",
         code: `var gs = { now: function () { return "local"; } };
 gs.now();`,
+      },
+      {
+        caseId: "no-gs-now-file-wide-mutation",
+        kind: "false-negative",
+        description:
+          "A possible gs or target-method mutation suppresses every matching call in the file, including calls that appear before the mutation.",
+        name: "later gs method mutation",
+        filename: "mutated-gs.server.js",
+        code: `gs.now();
+gs.now = localNow;`,
       },
     ],
     title: "No gs.now()",
@@ -830,6 +857,12 @@ record.next();`,
           "integration-test",
           "2026-08-20",
         ),
+        metadata.evidenceRecord(
+          "tests/integration/context-contracts.test.ts",
+          "Oxlint and ESLint stay silent when visible current binding replacement makes identity uncertain while canonical wrapper calls still report.",
+          "integration-test",
+          "2026-08-24",
+        ),
       ],
       {
         overlaps: [],
@@ -840,7 +873,18 @@ record.next();`,
       { profile: "business-rule", severity: "error" },
     ] as const,
     optionDescriptor: undefined,
-    limitationCases: [],
+    limitationCases: [
+      {
+        caseId: "no-br-current-update-file-wide-reassignment",
+        kind: "false-negative",
+        description:
+          "A possible current reassignment suppresses direct current.update calls throughout the file, including calls that appear before the reassignment.",
+        name: "later current reassignment",
+        filename: "reassigned.br.js",
+        code: `current.update();
+current = getOtherRecord();`,
+      },
+    ],
     title: "No current.update() in Business Rules",
     family: "classic",
     preset: "recommended",
@@ -1621,7 +1665,7 @@ new DataView(buffer).getBigInt64(0);`,
         caseId: "typed-array-mutator-authority",
         kind: "false-negative",
         description:
-          "Calls through a reassigned typed-array/DataView mutation helper are treated as unknown; the rule does not assume the custom helper failed to install a DataView method.",
+          "Calls through a reassigned property-mutation helper are treated as unknown; the rule does not assume the custom helper failed to install a DataView method.",
         name: "reassigned DataView mutation helper",
         filename: "custom-runtime.server.js",
         settings: { javascriptMode: "es2021", release: "australia" },
@@ -2614,7 +2658,7 @@ while (incident.next()) loadCaller(incident.getValue("caller_id"));`,
     fixable: false,
     hasSuggestions: false,
     description:
-      "The reviewed Zurich and Australia scoped GlideRecord references document that `query()` after `chooseWindow()` runs `COUNT(*)` unless `setNoCount()` or `setLimit()` skips it. The rule is silent when `getRowCount()` is used, when `chooseWindow` forces a count, or when the binding escapes.",
+      "The reviewed Zurich and Australia-scoped GlideRecord references document that `query()` after `chooseWindow()` runs `COUNT(*)` unless `setNoCount()` or `setLimit()` skips it. The rule is silent when `getRowCount()` is used, when `chooseWindow` forces a count, or when the binding escapes.",
     bad: [
       {
         name: "window without setNoCount",
