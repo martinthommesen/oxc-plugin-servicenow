@@ -4,6 +4,7 @@ import { describe, it } from "node:test";
 import { ruleCatalog } from "../src/catalog.js";
 import { AUSTRALIA_RULE_REVIEWS } from "../src/catalog-metadata.js";
 import {
+  aclRules,
   businessRuleRules,
   classicEs5Rules,
   clientRules,
@@ -24,6 +25,7 @@ const profileMaps = {
   "classic-es5": classicEs5Rules,
   es2021: es2021Rules,
   client: clientRules,
+  acl: aclRules,
   "business-rule": businessRuleRules,
   fluent: fluentRules,
   policy: policyRules,

@@ -105,6 +105,7 @@ export default defineConfig({
 | `configs.classicEs5Rules` | Compatibility / ES5 engine bans (Promise, async/await, `?.`, WeakMap, …). |
 | `configs.es2021Rules` | Features still unavailable after ES2021, including universal restrictions and release-dependent BigInt typed-array support. |
 | `configs.clientRules` | Client-side API rules. |
+| `configs.aclRules` | ACL-specific review rules. |
 | `configs.businessRuleRules` | Business Rule rules. |
 | `configs.fluentRules` | Fluent `.now.ts` metadata rules. |
 | `configs.strictRules` | Recommended plus warn-level performance and naming guidance. Does not promote heuristics to errors. |
@@ -146,7 +147,7 @@ What the preset does:
 | Files | Style |
 | --- | --- |
 | `**/*.now.ts` | TypeScript / Fluent — single quotes, trailing commas, width 100 |
-| `**/*.{server,client,br,si}.js`, `**/*.ui-action.js`, `src/{server,client}/**` | Classic Studio style — double quotes, no trailing commas, width 120. Includes compound `.client.ui-action.js` and `.server.ui-action.js` suffixes. |
+| `**/*.{server,client,br,si,acl}.js`, `**/*.ui-action.js`, `src/{server,client}/**`, ACL directories | Classic Studio style — double quotes, no trailing commas, width 120. Includes compound `.client.ui-action.js` and `.server.ui-action.js` suffixes. |
 | `**/.now/**`, `keys.ts` | Ignored (SDK sync artefacts) |
 
 Then:
@@ -177,6 +178,8 @@ export default [servicenow.configs.flat.strict];
 The flat presets set `files` so ESLint 10 opens classic `*.js` / `*.cjs` / `*.mjs` and Fluent `*.now.ts` / `*.now.tsx`. ESLint 10's default glob is JS/CJS/MJS only.
 
 `configs.flat.client` selects client-script filenames and supplies the client surface, but deliberately does not guess application scope. Merge `settings.servicenow.scope: "scoped"` when using it for a scoped application; `no-client-gliderecord` stays silent for global or unknown scope because ServiceNow still documents the global client API.
+
+`configs.flat.acl` selects boundary-delimited ACL and access-control export names plus ACL directories, then derives the ACL surface from that same filename evidence. Contradictory paths such as `src/client/read.acl.js` stay unclassified. Its advisory query rule is also available in strict and security; recommended remains unchanged.
 
 oxlint parses TypeScript itself. ESLint uses its default JS parser, so type annotations (`import type`, `: string`) in `.now.ts` fail to parse when you use only `plugin.configs.flat.recommended`.
 
@@ -216,7 +219,7 @@ The plugin models four independent dimensions. It does not collapse them into on
 | --- | --- | --- |
 | Authoring form | classic / Fluent | Instance script versus SDK metadata |
 | JavaScript mode | Compatibility / ES5 / ES2021 / unknown | Language-feature support |
-| Surface | client / server / Business Rule / UI Action / Script Include / scheduled / fix | Available APIs |
+| Surface | client / server / ACL / Business Rule / UI Action / Script Include / scheduled / fix | Available APIs |
 | Scope | global / scoped / unknown | API availability |
 | Confidence | explicit / filename / inferred / unknown | Whether mode-specific rules may run |
 
@@ -260,7 +263,7 @@ Configure once. Invalid keys, types, or conflicting values throw a configuration
 | --- | --- |
 | `javascriptMode` | `compatibility`, `es5`, `es2021`, or `unknown` (default) |
 | `authoring` | `classic`, `fluent`, or `auto` |
-| `surfaces` | `auto` or a non-empty array. Mixed UI Actions must omit deprecated `scriptType` and use values such as `["ui-action","client","server"]`. |
+| `surfaces` | `auto` or a non-empty array. Supports `acl` for Access Control scripts. Mixed UI Actions must omit deprecated `scriptType` and use values such as `["ui-action","client","server"]`. |
 | `scope` | `global`, `scoped`, or `unknown` |
 | `scopePrefix` | Application scope prefix such as `x_acme` |
 | `allowedSysIds` | 32-character lowercase sys_ids that `no-hardcoded-sysid` ignores |
@@ -344,6 +347,7 @@ Per-file `// @sn-es-latest` still maps to `es2021` with inferred confidence. Pre
 | [`require-business-rule-wrapper`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/require-business-rule-wrapper.md) | recommended |  | Full-script Business Rules must wrap logic in the standard IIFE so top-level variables do not leak |
 | [`no-display-value-date-comparison`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-display-value-date-comparison.md) | strict |  | Do not relationally compare `GlideDateTime.getDisplayValue()` strings |
 | [`no-unfiltered-gliderecord-bulk-operation`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-unfiltered-gliderecord-bulk-operation.md) | recommended |  | `updateMultiple()` / `deleteMultiple()` without a proven restricting filter can touch every row |
+| [`no-gliderecord-query-in-acl`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-gliderecord-query-in-acl.md) | strict |  | Review proven GlideRecord, GlideRecordSecure, and GlideAggregate query executions on an ACL's immediate evaluation path |
 | [`no-gliderecord-query-in-loop`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-gliderecord-query-in-loop.md) | strict |  | A query inside a proven record cursor loop is an N+1 pattern |
 | [`prefer-setnocount-with-choosewindow`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/prefer-setnocount-with-choosewindow.md) | strict |  | The reviewed Zurich and Australia-scoped GlideRecord references document that `query()` after `chooseWindow()` runs `COUNT(*)` unless `setNoCount()` or `setLimit()` skips it |
 | [`no-system-query-bypass`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-system-query-bypass.md) | security |  | Opt-in security review for documented ACL-bypass query APIs |
@@ -566,6 +570,7 @@ These are platform limits, not bugs in this package:
 | `servicenow/no-duplicate-fluent-id` | strict | off | error | configs.recommendedRules (error)<br>configs.fluentRules (error) | Review the off-to-error severity change. |
 | `servicenow/no-glideajax-getanswer` | strict | off | error | configs.recommendedRules (error)<br>configs.clientRules (error) | Review the off-to-error severity change. |
 | `servicenow/no-glideelement-in-collection` | strict | off | error | configs.recommendedRules (error)<br>configs.businessRuleRules (error) | Review the off-to-error severity change. |
+| `servicenow/no-gliderecord-query-in-acl` | strict | off | warn | configs.aclRules (warn)<br>configs.securityRules (warn) | Review the off-to-warn severity change. |
 | `servicenow/no-gliderecord-query-in-loop` | strict | off | warn | Enable the rule explicitly | Review the off-to-warn severity change. |
 | `servicenow/no-gliderecord-query-modifier-after-query` | strict | off | error | configs.recommendedRules (error)<br>configs.businessRuleRules (error) | Review the off-to-error severity change. |
 | `servicenow/no-hardcoded-table-names` | strict | warn | off | configs.policyRules (warn) | Select configs.policyRules (warn). |

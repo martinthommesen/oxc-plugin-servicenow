@@ -283,6 +283,25 @@ describe("profile fixtures", () => {
     );
   });
 
+  it("ACL query review is opt-in and works through real Oxlint and ESLint", () => {
+    const file = path.join(invalidDir, "acl-query.acl.js");
+    const code = readFileSync(file, "utf8");
+    const recommended = pluginRulesFor(runOxlint(recommendedConfig, [file]));
+    const strict = pluginRulesFor(runOxlint(strictConfig, [file]));
+    const security = pluginRulesFor(runOxlint(securityConfig, [file]));
+    assert.ok(!recommended.includes("servicenow/no-gliderecord-query-in-acl"));
+    assert.ok(strict.includes("servicenow/no-gliderecord-query-in-acl"));
+    assert.ok(security.includes("servicenow/no-gliderecord-query-in-acl"));
+
+    const linter = new Linter({ configType: "flat" });
+    const eslintIds = linter
+      .verify(code, [configs.flat.acl as unknown as import("eslint").Linter.Config], {
+        filename: "acl-query.acl.js",
+      })
+      .map((message) => message.ruleId);
+    assert.ok(eslintIds.includes("servicenow/no-gliderecord-query-in-acl"));
+  });
+
   it("recommended oxlint flags empty filters, late aggregates, and empty GlideAjax values", () => {
     const emptyQuery = pluginRulesFor(
       runOxlint(recommendedConfig, [path.join(invalidDir, "empty-addquery-bulk.br.js")]),

@@ -48,6 +48,10 @@ describe("settings validation", () => {
     assert.throws(() => validateServiceNowSettings({ surfaces: ["client", "client"] }), /surfaces/);
   });
 
+  it("accepts ACL as an explicit server-side surface", () => {
+    assert.deepEqual(validateServiceNowSettings({ surfaces: ["acl"] }).settings.surfaces, ["acl"]);
+  });
+
   it("rejects empty surfaces", () => {
     assert.throws(
       () => validateServiceNowSettings({ surfaces: [] }),
@@ -224,6 +228,7 @@ describe("classifyFile compatibility", () => {
       ["src/ui-actions/close.js", "ui-action"],
       ["src/fix-scripts/repair.js", "fix-script"],
       ["src/scheduled-scripts/nightly.js", "scheduled-script"],
+      ["src/access-controls/read.js", "acl"],
     ] as const;
     for (const [filename, expected] of cases) {
       const context = {
@@ -240,6 +245,7 @@ describe("classifyFile compatibility", () => {
     for (const [filename, expected] of [
       ["src/server/incident.br.js", "business-rule"],
       ["src/server/helper.si.js", "script-include"],
+      ["src/server/read.acl.js", "acl"],
     ] as const) {
       const context = {
         filename,

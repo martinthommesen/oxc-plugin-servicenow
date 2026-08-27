@@ -20,6 +20,7 @@ export type ScriptAuthoring = "classic" | "fluent";
 export type ScriptSurface =
   | "client"
   | "server"
+  | "acl"
   | "business-rule"
   | "script-include"
   | "ui-action"

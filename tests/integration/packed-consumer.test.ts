@@ -171,7 +171,7 @@ import {
 import { recommendedOxfmtConfig } from "oxc-plugin-servicenow/oxfmt";
 
 const release: ServiceNowRelease = "australia";
-const settings: ServiceNowSettings = { javascriptMode: "es2021", release };
+const settings: ServiceNowSettings = { javascriptMode: "es2021", release, surfaces: ["acl"] };
 const ruleName: RuleName = "no-hardcoded-sysid";
 const rules: RuleConfigMap = { [ruleName]: "error" };
 const analyze: typeof analyzeProvenance = analyzeProvenance;
@@ -179,7 +179,7 @@ const getContext: typeof getScriptContext = getScriptContext;
 let query: AnalysisProvenanceQuery | undefined;
 let provenance: AnalysisProvenance | undefined;
 let context: ServiceNowScriptContext | undefined;
-void [plugin, configs, settings, rules, analyze, getContext, query, provenance, context, recommendedOxfmtConfig];
+void [plugin, configs, configs.flat.acl, settings, rules, analyze, getContext, query, provenance, context, recommendedOxfmtConfig];
 `,
       );
       writeFileSync(

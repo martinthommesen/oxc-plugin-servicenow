@@ -72,6 +72,7 @@ const profileExport = {
   "classic-es5": "configs.classicEs5Rules",
   es2021: "configs.es2021Rules",
   client: "configs.clientRules",
+  acl: "configs.aclRules",
   "business-rule": "configs.businessRuleRules",
   fluent: "configs.fluentRules",
   policy: "configs.policyRules",

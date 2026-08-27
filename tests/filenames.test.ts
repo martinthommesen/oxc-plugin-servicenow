@@ -48,6 +48,26 @@ describe("classifyFile", () => {
     assert.deepEqual(surfacesFromFilename("export/sys_script2.js"), []);
   });
 
+  it("classifies ACL export names and directories without broad security guesses", () => {
+    for (const filename of [
+      "incident.acl.js",
+      "incident.access-control.cjs",
+      "read.access.control.js",
+      "sys_security_acl_read.mjs",
+      "src/access-controls/read.js",
+      "src/access_control/read.cjs",
+      "src/accesscontrol/read.mjs",
+      "src/acl/write.js",
+    ]) {
+      assert.deepEqual(surfacesFromFilename(filename), ["acl"], filename);
+    }
+    for (const filename of ["accesscontroller.js", "sys_security_aclanything.js"]) {
+      assert.deepEqual(surfacesFromFilename(filename), [], filename);
+    }
+    assert.deepEqual(surfacesFromFilename("src/security/helper.js"), []);
+    assert.deepEqual(surfacesFromFilename("src/client/read.acl.js"), []);
+  });
+
   it("rejects conflicting filename surface evidence", () => {
     assert.deepEqual(surfacesFromFilename("src/client/business-rule.js"), []);
     assert.deepEqual(surfacesFromFilename("close.client.ui-action.js"), ["ui-action", "client"]);
@@ -65,5 +85,6 @@ describe("classifyFile", () => {
   it("prefers a specific subtype over a generic server directory", () => {
     assert.deepEqual(surfacesFromFilename("src/server/incident.br.js"), ["business-rule"]);
     assert.deepEqual(surfacesFromFilename("src/server/helper.si.js"), ["script-include"]);
+    assert.deepEqual(surfacesFromFilename("src/server/read.acl.js"), ["acl"]);
   });
 });

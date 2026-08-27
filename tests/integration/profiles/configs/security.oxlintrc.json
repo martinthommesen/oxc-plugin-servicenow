@@ -9,6 +9,7 @@
     }
   },
   "rules": {
-    "servicenow/no-system-query-bypass": "warn"
+    "servicenow/no-system-query-bypass": "warn",
+    "servicenow/no-gliderecord-query-in-acl": "warn"
   }
 }

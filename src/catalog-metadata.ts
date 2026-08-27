@@ -38,6 +38,7 @@ export const ALL_SCOPES = ["global", "scoped", "unknown"] as const;
 export const CLASSIC_SURFACES = [
   "client",
   "server",
+  "acl",
   "business-rule",
   "script-include",
   "ui-action",
@@ -46,6 +47,7 @@ export const CLASSIC_SURFACES = [
 ] as const;
 export const SERVER_SURFACES = [
   "server",
+  "acl",
   "business-rule",
   "script-include",
   "ui-action",
@@ -84,6 +86,12 @@ export const SN_CLIENT_GR =
   "https://www.servicenow.com/docs/r/api-reference/c_GlideRecordClientSideAPI.html";
 export const SN_CLIENT_BEST_PRACTICES =
   "https://www.servicenow.com/docs/r/api-reference/scripts/client-script-best-practices.html";
+export const SN_SECURE_DATA =
+  "https://www.servicenow.com/docs/r/zurich/application-development/building-applications/secure-data.html";
+export const SN_SECURE_DATA_AUSTRALIA =
+  "https://www.servicenow.com/docs/r/application-development/secure-data.html";
+export const SN_ACL_AUSTRALIA =
+  "https://www.servicenow.com/docs/r/platform-security/access-control/t_CreateAnACLRule.html";
 export const SN_PACKAGES_REMOVAL =
   "https://www.servicenow.com/docs/r/api-reference/scripts/c_PackagesCallRemovalTool.html";
 
@@ -171,6 +179,10 @@ export const AUSTRALIA_RULE_REVIEWS = Object.freeze({
   "no-gliderecord-query-in-loop": {
     status: "reviewed",
     basis: ["glide-record", "glide-aggregate"],
+  },
+  "no-gliderecord-query-in-acl": {
+    status: "reviewed",
+    basis: ["direct", "glide-record", "glide-aggregate"],
   },
   "fluent-proper-imports": { status: "not-applicable", axis: "fluent-sdk" },
   "fluent-directives": { status: "not-applicable", axis: "fluent-sdk" },

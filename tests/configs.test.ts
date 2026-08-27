@@ -6,6 +6,7 @@ import { describe, it } from "node:test";
 import { recommendedOxfmtConfig } from "../src/oxfmt/index.js";
 import { ruleCatalog } from "../src/catalog.js";
 import {
+  aclRules,
   classicEs5Rules,
   es2021Rules,
   policyRules,
@@ -22,6 +23,10 @@ const presets110 = JSON.parse(
   recommended: Record<string, string>;
   strict: Record<string, string>;
 };
+
+const shippedOxfmtConfig: unknown = JSON.parse(
+  readFileSync(new URL("../oxfmt.recommended.json", import.meta.url), "utf8"),
+);
 
 describe("configs", () => {
   it("recommended enables the core classic + Fluent rules", () => {
@@ -43,6 +48,7 @@ describe("configs", () => {
     assert.equal(recommendedRules["servicenow/no-unfiltered-gliderecord-bulk-operation"], "warn");
     assert.equal(recommendedRules["servicenow/no-display-value-date-comparison"], undefined);
     assert.equal(recommendedRules["servicenow/no-gliderecord-query-in-loop"], undefined);
+    assert.equal(recommendedRules["servicenow/no-gliderecord-query-in-acl"], undefined);
     assert.equal(recommendedRules["servicenow/no-system-query-bypass"], undefined);
     assert.equal(recommendedRules["servicenow/no-hardcoded-table-names"], undefined);
     assert.equal(recommendedRules["servicenow/validate-gliderecord-calls"], undefined);
@@ -56,6 +62,7 @@ describe("configs", () => {
     assert.equal(strictRules["servicenow/prefer-glideaggregate"], "warn");
     assert.equal(strictRules["servicenow/no-display-value-date-comparison"], "warn");
     assert.equal(strictRules["servicenow/no-gliderecord-query-in-loop"], "warn");
+    assert.equal(strictRules["servicenow/no-gliderecord-query-in-acl"], "warn");
     assert.equal(strictRules["servicenow/no-system-query-bypass"], undefined);
     assert.equal(strictRules["servicenow/no-packages-calls"], undefined);
     assert.equal(policyRules["servicenow/no-packages-calls"], "warn");
@@ -72,6 +79,8 @@ describe("configs", () => {
 
   it("security is opt-in and warn-only", () => {
     assert.equal(securityRules["servicenow/no-system-query-bypass"], "warn");
+    assert.equal(securityRules["servicenow/no-gliderecord-query-in-acl"], "warn");
+    assert.equal(aclRules["servicenow/no-gliderecord-query-in-acl"], "warn");
     assert.equal(recommendedRules["servicenow/no-system-query-bypass"], undefined);
   });
 
@@ -85,12 +94,24 @@ describe("configs", () => {
     );
     assert.ok(
       recommendedOxfmtConfig.overrides.some((item) =>
+        item.files.includes("**/{acl,*[-_.]acl}.{js,cjs,mjs}"),
+      ),
+    );
+    assert.ok(
+      recommendedOxfmtConfig.overrides.some((item) =>
         ["**/*.ui-action.js", "**/*.client.ui-action.js", "**/*.server.ui-action.js"].every(
           (file) => item.files.includes(file),
         ),
       ),
     );
     assert.ok(recommendedOxfmtConfig.ignorePatterns.includes("**/.now/**"));
+  });
+
+  it("keeps the shipped oxfmt JSON synchronized with the TypeScript preset", () => {
+    assert.deepEqual(shippedOxfmtConfig, {
+      $schema: "./node_modules/oxfmt/configuration_schema.json",
+      ...recommendedOxfmtConfig,
+    });
   });
 
   it("pins the immutable 1.1 preset source and documents every map difference", () => {
