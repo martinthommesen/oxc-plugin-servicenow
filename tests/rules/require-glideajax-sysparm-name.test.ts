@@ -153,4 +153,27 @@ ajax.getXMLAnswer(handleAnswer);`,
       CLIENT,
     );
   });
+
+  it("stays silent when GlideAjax method identity is uncertain", () => {
+    for (const code of [
+      `var ajax = new GlideAjax("x_acme.UserLookup");
+ajax.addParam = localAddParam;
+ajax.addParam("sysparm_name", "getManager");
+ajax.getXMLAnswer(handleAnswer);`,
+      `var ajax = new GlideAjax("x_acme.UserLookup");
+ajax.getXMLAnswer(handleAnswer);
+ajax.getXMLAnswer = localRequest;`,
+      `GlideAjax.prototype.getXMLAnswer = localRequest;
+var ajax = new GlideAjax("x_acme.UserLookup");
+ajax.getXMLAnswer(handleAnswer);`,
+      `GlideAjax = LocalGlideAjax;
+var ajax = new GlideAjax("x_acme.UserLookup");
+ajax.getXMLAnswer(handleAnswer);`,
+      `eval("GlideAjax.prototype.getXMLAnswer = localRequest");
+var ajax = new GlideAjax("x_acme.UserLookup");
+ajax.getXMLAnswer(handleAnswer);`,
+    ]) {
+      assertValid(code, RULE, CLIENT);
+    }
+  });
 });

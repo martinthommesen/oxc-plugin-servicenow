@@ -63,6 +63,76 @@ g_form.getReference("caller_id", handleCaller);`,
       RULE,
       CLIENT,
     );
+    assertValid(
+      `function handleCaller(caller) { g_form.setValue("u_manager", caller.manager); }
+const callback = handleCaller;
+const alias = callback;
+g_form.getReference("caller_id", alias);`,
+      RULE,
+      CLIENT,
+    );
+  });
+
+  it("resolves immutable nullish and non-callable callback aliases", () => {
+    assertInvalid(
+      `const callback = undefined;
+g_form.getReference("caller_id", callback);`,
+      RULE,
+      { messageId: "missingCallback" },
+      CLIENT,
+    );
+    assertInvalid(
+      `const callback = null;
+g_form.getReference("caller_id", callback);`,
+      RULE,
+      { messageId: "missingCallback" },
+      CLIENT,
+    );
+    assertInvalid(
+      `const value = 42;
+const callback = value;
+g_form.getReference("caller_id", callback);`,
+      RULE,
+      { messageId: "invalidCallback" },
+      CLIENT,
+    );
+    assertInvalid(
+      `class Callback {}
+g_form.getReference("caller_id", Callback);`,
+      RULE,
+      { messageId: "invalidCallback" },
+      CLIENT,
+    );
+  });
+
+  it("keeps mutable and shadowed callback values unknown", () => {
+    assertValid(
+      `let callback = 42;
+g_form.getReference("caller_id", callback);`,
+      RULE,
+      CLIENT,
+    );
+    assertValid(
+      `function onChange(undefined) {
+  const callback = undefined;
+  g_form.getReference("caller_id", callback);
+}`,
+      RULE,
+      CLIENT,
+    );
+    assertValid(
+      `class Callback {}
+Callback = function () {};
+g_form.getReference("caller_id", Callback);`,
+      RULE,
+      CLIENT,
+    );
+    assertValid(
+      `g_form.getReference("caller_id", callback);
+const callback = 42;`,
+      RULE,
+      CLIENT,
+    );
   });
 
   it("flags statically non-callable callbacks", () => {
@@ -101,6 +171,77 @@ form.getReference("caller_id");`,
       { messageId: "missingCallback" },
       CLIENT,
     );
+  });
+
+  it("stays silent when getReference no longer has platform identity", () => {
+    for (const code of [
+      `g_form.getReference("caller_id");
+g_form.getReference = localReference;`,
+      `var form = g_form;
+form.getReference = localReference;
+form.getReference("caller_id");`,
+      `function readReference() {
+  var form = g_form;
+  form.getReference("caller_id");
+}
+g_form = localForm;
+readReference();`,
+      `Object.defineProperty(GlideForm.prototype, "getReference", { value: localReference });
+g_form.getReference("caller_id");`,
+      `GlideForm.prototype = localPrototype;
+g_form.getReference("caller_id");`,
+      `const { prototype: formPrototype } = GlideForm;
+formPrototype.getReference = localReference;
+g_form.getReference("caller_id");`,
+      `eval("g_form.getReference = localReference");
+g_form.getReference("caller_id");`,
+    ]) {
+      assertValid(code, RULE, CLIENT);
+    }
+  });
+
+  it("uses browser mutation semantics for client API authority", () => {
+    const options = {
+      filename: "incident.client.js",
+      settings: { javascriptMode: "es5" as const },
+    };
+    for (const code of [
+      `Reflect.set(g_form, "getReference", localReference);
+g_form.getReference("caller_id");`,
+      `Object.assign(g_form, { getReference: localReference });
+g_form.getReference("caller_id");`,
+      `Reflect.apply(Object.defineProperty, Object, [g_form, "getReference", { value: localReference }]);
+g_form.getReference("caller_id");`,
+      `Reflect.apply(Reflect.apply, Reflect, [Object.defineProperty, Object, [g_form, "getReference", { value: localReference }]]);
+g_form.getReference("caller_id");`,
+      `const args = [Object.defineProperty, Object, [g_form, "getReference", { value: localReference }]];
+Reflect.apply(...args);
+g_form.getReference("caller_id");`,
+      `Reflect.apply(prepare, g_form, []);
+g_form.getReference("caller_id");`,
+      `Reflect.apply(prepare, null, [g_form]);
+g_form.getReference("caller_id");`,
+      `Reflect.construct(Preparation, [g_form]);
+g_form.getReference("caller_id");`,
+      `Reflect.deleteProperty(g_form, "getReference");
+g_form.getReference("caller_id");`,
+    ]) {
+      assertValid(code, RULE, options);
+    }
+  });
+
+  it("tracks defaulted destructured prototype aliases as possible platform owners", () => {
+    for (const code of [
+      `const { prototype: formPrototype = GlideForm.prototype } = GlideForm;
+formPrototype.getReference = localReference;
+g_form.getReference("caller_id");`,
+      `const localForm = {};
+const { prototype: formPrototype = GlideForm.prototype } = localForm;
+formPrototype.getReference = localReference;
+g_form.getReference("caller_id");`,
+    ]) {
+      assertValid(code, RULE, CLIENT);
+    }
   });
 
   it("ignores a shadowed g_form", () => {

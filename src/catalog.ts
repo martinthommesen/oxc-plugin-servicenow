@@ -1890,6 +1890,12 @@ new DataView(buffer).getBigInt64(0);`,
           "integration-test",
           "2026-08-20",
         ),
+        metadata.evidenceRecord(
+          "tests/rules/require-callback-for-getreference.test.ts",
+          "Immutable callback aliases and visible method mutations are covered adversarially.",
+          "fixture",
+          "2026-08-24",
+        ),
       ],
       {
         overlaps: [],
@@ -1909,6 +1915,16 @@ new DataView(buffer).getBigInt64(0);`,
         filename: "local-gform.client.js",
         code: `var g_form = { getReference: function () {} };
 g_form.getReference("caller_id");`,
+      },
+      {
+        caseId: "require-callback-file-wide-mutation",
+        kind: "false-negative",
+        description:
+          "A possible g_form, GlideForm prototype, or getReference mutation suppresses matching calls throughout the file because deferred runtime order cannot be inferred from source order.",
+        name: "later getReference mutation",
+        filename: "mutated-gform.client.js",
+        code: `g_form.getReference("caller_id");
+g_form.getReference = localReference;`,
       },
     ],
     title: "Require callback for getReference",
@@ -1950,6 +1966,12 @@ g_form.getReference("caller_id");`,
           "integration-test",
           "2026-08-20",
         ),
+        metadata.evidenceRecord(
+          "tests/rules/require-glideajax-sysparm-name.test.ts",
+          "Constructor, prototype, instance-method, and dynamic-scope mutations remain silent.",
+          "fixture",
+          "2026-08-24",
+        ),
       ],
       {
         overlaps: ["servicenow/no-glideajax-getanswer", "servicenow/no-sync-glideajax"],
@@ -1962,7 +1984,19 @@ g_form.getReference("caller_id");`,
       { profile: "client", severity: "error" },
     ] as const,
     optionDescriptor: undefined,
-    limitationCases: [],
+    limitationCases: [
+      {
+        caseId: "require-glideajax-file-wide-mutation",
+        kind: "false-negative",
+        description:
+          "A possible GlideAjax constructor, prototype, addParam, or request-method mutation suppresses affected lifecycle findings throughout the file.",
+        name: "later request-method mutation",
+        filename: "mutated-glideajax.client.js",
+        code: `var ajax = new GlideAjax("Lookup");
+ajax.getXMLAnswer(handleAnswer);
+ajax.getXMLAnswer = localRequest;`,
+      },
+    ],
     title: "Require GlideAjax sysparm_name",
     family: "classic",
     preset: "recommended",
@@ -2120,6 +2154,12 @@ const value = Now.ID.task;`,
           "integration-test",
           "2026-08-20",
         ),
+        metadata.evidenceRecord(
+          "tests/rules/no-glideajax-getanswer.test.ts",
+          "Constructor, prototype, instance-method, and dynamic-scope mutations remain silent.",
+          "fixture",
+          "2026-08-24",
+        ),
       ],
       {
         overlaps: ["servicenow/no-sync-glideajax"],
@@ -2130,7 +2170,19 @@ const value = Now.ID.task;`,
       { profile: "client", severity: "error" },
     ] as const,
     optionDescriptor: undefined,
-    limitationCases: [],
+    limitationCases: [
+      {
+        caseId: "no-glideajax-getanswer-file-wide-mutation",
+        kind: "false-negative",
+        description:
+          "A possible GlideAjax constructor, prototype, or getAnswer mutation suppresses matching calls throughout the file.",
+        name: "later getAnswer mutation",
+        filename: "mutated-glideajax.client.js",
+        code: `var ajax = new GlideAjax("Lookup");
+ajax.getAnswer();
+ajax.getAnswer = localAnswer;`,
+      },
+    ],
     title: "No GlideAjax getAnswer",
     family: "classic",
     preset: "recommended",
@@ -2743,6 +2795,12 @@ while (incident.next()) loadCaller(incident.getValue("caller_id"));`,
           "fixture",
           "2026-08-20",
         ),
+        metadata.evidenceRecord(
+          "tests/rules/glide-and-engine.test.ts",
+          "Constructor, prototype, instance-method, and dynamic-scope mutations remain silent.",
+          "fixture",
+          "2026-08-24",
+        ),
       ],
       {
         overlaps: ["servicenow/no-glideajax-getanswer"],
@@ -2753,7 +2811,19 @@ while (incident.next()) loadCaller(incident.getValue("caller_id"));`,
       { profile: "client", severity: "error" },
     ] as const,
     optionDescriptor: undefined,
-    limitationCases: [],
+    limitationCases: [
+      {
+        caseId: "no-sync-glideajax-file-wide-mutation",
+        kind: "false-negative",
+        description:
+          "A possible GlideAjax constructor, prototype, or getXMLWait mutation suppresses matching calls throughout the file.",
+        name: "later getXMLWait mutation",
+        filename: "mutated-glideajax.client.js",
+        code: `var ajax = new GlideAjax("Lookup");
+ajax.getXMLWait();
+ajax.getXMLWait = localWait;`,
+      },
+    ],
     title: "No synchronous GlideAjax",
     family: "classic",
     preset: "recommended",

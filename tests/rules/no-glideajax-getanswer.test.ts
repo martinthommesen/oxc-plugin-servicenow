@@ -106,4 +106,56 @@ ajax["getAnswer"]();`,
       CLIENT,
     );
   });
+
+  it("stays silent when getAnswer no longer has platform identity", () => {
+    for (const code of [
+      `var ajax = new GlideAjax("x_acme.UserLookup");
+ajax.getAnswer();
+ajax.getAnswer = localAnswer;`,
+      `GlideAjax.prototype.getAnswer = localAnswer;
+var ajax = new GlideAjax("x_acme.UserLookup");
+ajax.getAnswer();`,
+      `GlideAjax.prototype = localPrototype;
+var ajax = new GlideAjax("x_acme.UserLookup");
+ajax.getAnswer();`,
+      `const { prototype: ajaxPrototype } = GlideAjax;
+ajaxPrototype.getAnswer = localAnswer;
+var ajax = new GlideAjax("x_acme.UserLookup");
+ajax.getAnswer();`,
+      `const { prototype: ajaxPrototype = GlideAjax.prototype } = GlideAjax;
+ajaxPrototype.getAnswer = localAnswer;
+var ajax = new GlideAjax("x_acme.UserLookup");
+ajax.getAnswer();`,
+      `const localAjax = {};
+const { prototype: ajaxPrototype = GlideAjax.prototype } = localAjax;
+ajaxPrototype.getAnswer = localAnswer;
+var ajax = new GlideAjax("x_acme.UserLookup");
+ajax.getAnswer();`,
+      `GlideAjax = LocalGlideAjax;
+var ajax = new GlideAjax("x_acme.UserLookup");
+ajax.getAnswer();`,
+      `eval("GlideAjax.prototype.getAnswer = localAnswer");
+var ajax = new GlideAjax("x_acme.UserLookup");
+ajax.getAnswer();`,
+    ]) {
+      assertValid(code, RULE, CLIENT);
+    }
+  });
+
+  it("uses browser mutation semantics for client API authority", () => {
+    const options = {
+      filename: "incident.client.js",
+      settings: { javascriptMode: "es5" as const },
+    };
+    for (const code of [
+      `var ajax = new GlideAjax("x_acme.UserLookup");
+Reflect.set(ajax, "getAnswer", localAnswer);
+ajax.getAnswer();`,
+      `var ajax = new GlideAjax("x_acme.UserLookup");
+Object.assign(ajax, { getAnswer: localAnswer });
+ajax.getAnswer();`,
+    ]) {
+      assertValid(code, RULE, options);
+    }
+  });
 });

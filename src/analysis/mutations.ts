@@ -41,6 +41,8 @@ export interface MutationQuery {
   isObjectPropertyAuthorityLost(object: unknown, property: string): boolean;
 }
 
+export type MutationRuntime = "instance" | "browser";
+
 interface MutationIndex {
   globals: ReadonlySet<string>;
   globalPaths: ReadonlySet<string>;
@@ -70,6 +72,7 @@ interface BuiltinCall extends BuiltinReference {
 }
 
 const MAX_NAMESPACE_ESCAPE_DEPTH = 32;
+const MAX_REFLECT_APPLY_DEPTH = 16;
 
 function pathKey(path: readonly string[]): string {
   return JSON.stringify(path);
@@ -126,6 +129,7 @@ function buildIndex(
   bindingWrites: BindingWriteQuery,
   provenance: ProvenanceQuery,
   javascriptMode: JavaScriptMode,
+  runtime: MutationRuntime,
 ): MutationIndex {
   const callable = emptyMutationFacts();
   const authority = emptyMutationFacts();
@@ -142,7 +146,9 @@ function buildIndex(
   });
   if (!program) return result();
 
-  const globalThisCanExist = javascriptMode !== "es5" && javascriptMode !== "compatibility";
+  const browserRuntime = runtime === "browser";
+  const globalThisCanExist =
+    browserRuntime || (javascriptMode !== "es5" && javascriptMode !== "compatibility");
   const recordGlobalPathInto = (path: readonly string[], facts: MutableMutationFacts): void => {
     facts.globalPaths.add(pathKey(path));
     if (!GLOBAL_OBJECT_NAMES.has(path[0] ?? "")) return;
@@ -210,9 +216,29 @@ function buildIndex(
     temporal: boolean,
     seen: ReadonlySet<ESTree.Node> = new Set(),
   ): readonly string[] | null => {
-    const value = aliasValue(node, temporal);
+    const direct = unwrapExpression(node);
+    if (!isNode(direct) || seen.has(direct)) return null;
+    const directSeen = new Set(seen);
+    directSeen.add(direct);
+    const selected = resolveDestructuredConstMember(direct, bindings);
+    if (selected) {
+      // A defaulted destructuring binding may still denote the selected
+      // platform property or its fallback. Mutation facts are may-facts, so
+      // retain either platform path. Distinct paths collapse to a terminal
+      // wildcard rather than selecting one possible runtime owner.
+      const selectedBase = aliasGlobalPath(selected.source, temporal, directSeen);
+      const selectedPath = selectedBase ? [...selectedBase, selected.property] : null;
+      const fallbackPath =
+        selected.fallback === null
+          ? null
+          : aliasGlobalPath(selected.fallback, temporal, directSeen);
+      if (!selectedPath) return fallbackPath;
+      if (!fallbackPath) return selectedPath;
+      return pathKey(selectedPath) === pathKey(fallbackPath) ? selectedPath : ["*"];
+    }
+    const value = aliasValue(direct, temporal);
     if (!value || seen.has(value)) return null;
-    const next = new Set(seen);
+    const next = new Set(directSeen);
     next.add(value);
     if (value.type === "Identifier") {
       const name = resolvePlatformGlobalName(value, bindings);
@@ -356,7 +382,7 @@ function buildIndex(
   };
 
   const arrayArguments = (node: unknown): readonly unknown[] | null => {
-    const value = resolveConstValue(node, bindings);
+    const value = stableAliasValue(node);
     if (value?.type !== "ArrayExpression") return null;
     return value.elements.some((element) => element?.type === "SpreadElement")
       ? null
@@ -379,38 +405,54 @@ function buildIndex(
     return wrapped ? { ...wrapped, arguments: directArguments(value.arguments.slice(1)) } : null;
   };
 
+  const normalizeReflectApply = (initial: BuiltinCall): BuiltinCall | null => {
+    let current = initial;
+    for (let depth = 0; depth < MAX_REFLECT_APPLY_DEPTH; depth += 1) {
+      if (current.owner !== "Reflect" || current.method !== "apply") return current;
+      // ServiceNow instance engines reject Reflect.apply. Browser-executed
+      // client scripts can invoke it, including recursively through itself.
+      if (!browserRuntime || current.arguments === null) return null;
+      const target = staticBuiltin(current.arguments[0]);
+      if (!target) return null;
+      current = { ...target, arguments: arrayArguments(current.arguments[2]) };
+    }
+    return null;
+  };
+
   const calledBuiltin = (call: ESTree.CallExpression): BuiltinCall | null => {
     const direct = staticBuiltin(call.callee);
-    if (direct?.owner === "Reflect" && direct.method === "apply") {
-      // ServiceNow documents Reflect.apply as disallowed in every reviewed
-      // instance mode, so it cannot establish a replacement on the stock
-      // runtime even when its target is a supported Object mutator.
-      return null;
+    if (direct) {
+      return normalizeReflectApply({ ...direct, arguments: directArguments(call.arguments) });
     }
-    if (direct) return { ...direct, arguments: directArguments(call.arguments) };
 
     const callee = resolveConstValue(call.callee, bindings);
     if (callee?.type === "MemberExpression") {
       const helper = staticPropertyName(callee);
       const wrapped = staticBuiltin(callee.object);
       if (wrapped && helper === "call") {
-        return { ...wrapped, arguments: directArguments(call.arguments.slice(1)) };
+        return normalizeReflectApply({
+          ...wrapped,
+          arguments: directArguments(call.arguments.slice(1)),
+        });
       }
       if (wrapped && helper === "apply") {
-        return { ...wrapped, arguments: arrayArguments(call.arguments[1]) };
+        return normalizeReflectApply({
+          ...wrapped,
+          arguments: arrayArguments(call.arguments[1]),
+        });
       }
     }
 
     const bound = boundBuiltin(call.callee);
     if (!bound) return null;
     const invocationArguments = directArguments(call.arguments);
-    return {
+    return normalizeReflectApply({
       ...bound,
       arguments:
         bound.arguments === null || invocationArguments === null
           ? null
           : [...bound.arguments, ...invocationArguments],
-    };
+    });
   };
 
   const definitelyCannotInstallCallable = (node: unknown): boolean => {
@@ -591,6 +633,13 @@ function buildIndex(
           return;
         }
         const direct = staticBuiltin(call.callee);
+        if (direct?.owner === "Reflect" && direct.method === "apply" && browserRuntime) {
+          // An unresolved or spread invocation can expose its target, `this`,
+          // and argument list. Walk every syntactic argument so nested arrays
+          // and spread aliases cannot hide a client platform object.
+          for (const argument of call.arguments) recordEscapedNamespaces(argument);
+          return;
+        }
         // Object/Reflect intrinsics are modeled below. In particular, the
         // reviewed instance engines reject Reflect mutation helpers, so their
         // arguments must not create fictional writes.
@@ -605,25 +654,42 @@ function buildIndex(
         }
         return;
       }
-      if (ownerName === "Reflect") return;
+      if (ownerName === "Reflect" && !browserRuntime) return;
       if (
         ownerName === "Object" &&
         (method === "assign" || method === "setPrototypeOf") &&
+        !browserRuntime &&
         !globalThisCanExist
       ) {
         return;
       }
       const mutatesProperties =
-        ownerName === "Object" &&
-        (method === "defineProperty" ||
-          method === "defineProperties" ||
-          method === "assign" ||
-          method === "setPrototypeOf");
-      if (!mutatesProperties) return;
+        (ownerName === "Object" &&
+          (method === "defineProperty" ||
+            method === "defineProperties" ||
+            method === "assign" ||
+            method === "setPrototypeOf")) ||
+        (ownerName === "Reflect" &&
+          (method === "defineProperty" ||
+            method === "deleteProperty" ||
+            method === "set" ||
+            method === "setPrototypeOf"));
+      if (!mutatesProperties) {
+        if (ownerName === "Reflect" && method === "construct") {
+          if (effectiveArguments === null) {
+            for (const argument of call.arguments) recordEscapedNamespaces(argument);
+          } else {
+            recordEscapedNamespaces(effectiveArguments[1]);
+          }
+        }
+        return;
+      }
       if (effectiveArguments === null) {
-        globals.add("*");
-        globalPaths.add(pathKey(["*"]));
-        objectPropertyWildcards.add("*");
+        if (method !== "deleteProperty") {
+          globals.add("*");
+          globalPaths.add(pathKey(["*"]));
+          objectPropertyWildcards.add("*");
+        }
         authority.globals.add("*");
         authority.globalPaths.add(pathKey(["*"]));
         authority.objectPropertyWildcards.add("*");
@@ -635,6 +701,18 @@ function buildIndex(
         recordProperty(target, getStaticStringValue(effectiveArguments[1]), authority);
         if (!descriptorMayInstallCallable(effectiveArguments[2])) return;
         recordProperty(target, getStaticStringValue(effectiveArguments[1]));
+        return;
+      }
+      if (ownerName === "Reflect" && method === "set") {
+        const property = getStaticStringValue(effectiveArguments[1]);
+        recordProperty(target, property, authority);
+        if (!definitelyCannotInstallCallable(effectiveArguments[2])) {
+          recordProperty(target, property);
+        }
+        return;
+      }
+      if (ownerName === "Reflect" && method === "deleteProperty") {
+        recordProperty(target, getStaticStringValue(effectiveArguments[1]), authority);
         return;
       }
       if (method === "defineProperties") {
@@ -664,10 +742,11 @@ export function createMutationQuery(
   bindingWrites: BindingWriteQuery,
   provenance: ProvenanceQuery,
   javascriptMode: JavaScriptMode,
+  runtime: MutationRuntime = "instance",
 ): MutationQuery {
   let index: MutationIndex | undefined;
   const getIndex = () =>
-    (index ??= buildIndex(program, bindings, bindingWrites, provenance, javascriptMode));
+    (index ??= buildIndex(program, bindings, bindingWrites, provenance, javascriptMode, runtime));
   return Object.freeze({
     isGlobalWritten(name: string) {
       return getIndex().globals.has(name) || getIndex().globals.has("*");

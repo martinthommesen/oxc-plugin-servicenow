@@ -17,6 +17,11 @@ export type { Provenance, ProvenanceKind, ProvenanceQuery, QueryState } from "./
 export type { FileAnalysis } from "./file-analysis.js";
 export type { BindingWriteQuery } from "./binding-writes.js";
 export type { MutationQuery } from "./mutations.js";
+export {
+  hasAuthoritativeConstructedMethod,
+  hasAuthoritativeGlobalObjectMethod,
+} from "./platform-method-authority.js";
+export type { PlatformMethodAuthorityFacts } from "./platform-method-authority.js";
 export type { BindingId, ObjectId, Completion } from "./path-state.js";
 export {
   isDefinitelyNonCallable,

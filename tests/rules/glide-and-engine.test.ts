@@ -1144,4 +1144,23 @@ describe("no-sync-glideajax", () => {
       { filename: "incident.client.js" },
     );
   });
+
+  it("stays silent when getXMLWait no longer has platform identity", () => {
+    for (const code of [
+      `var ga = new GlideAjax("x_acme.UserUtils");
+ga.getXMLWait();
+ga.getXMLWait = localWait;`,
+      `GlideAjax.prototype.getXMLWait = localWait;
+var ga = new GlideAjax("x_acme.UserUtils");
+ga.getXMLWait();`,
+      `GlideAjax = LocalGlideAjax;
+var ga = new GlideAjax("x_acme.UserUtils");
+ga.getXMLWait();`,
+      `eval("GlideAjax.prototype.getXMLWait = localWait");
+var ga = new GlideAjax("x_acme.UserUtils");
+ga.getXMLWait();`,
+    ]) {
+      assertValid(code, "no-sync-glideajax", { filename: "incident.client.js" });
+    }
+  });
 });
