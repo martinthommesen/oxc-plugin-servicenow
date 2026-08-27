@@ -345,9 +345,15 @@ export const ruleCatalog = [
         ),
         metadata.evidenceRecord(
           "tests/rules/no-promise.test.ts",
-          "Platform Promise identifiers report; local bindings stay silent.",
+          "Fixtures cover stable Promise constructor and static-method owner aliases, guarded alias capture, owner-and-method availability checks, modeled built-in invalidation, visible polyfills, mutation, and dynamic scope.",
           "fixture",
-          "2026-08-20",
+          "2026-08-24",
+        ),
+        metadata.evidenceRecord(
+          "tests/integration/profiles.test.ts",
+          "Real Oxlint and ESLint classic-es5 profiles report a stable Promise alias and accept an explicit callable polyfill.",
+          "integration-test",
+          "2026-08-24",
         ),
       ],
       {
@@ -368,6 +374,52 @@ export const ruleCatalog = [
 Promise.resolve = function (value) { return value; };
 Promise.resolve(1);`,
       },
+      {
+        caseId: "no-promise-visible-polyfill",
+        kind: "scope-boundary",
+        description:
+          "A possible callable replacement for Promise or a used static method suppresses matching diagnostics throughout the file, regardless of source order.",
+        name: "visible Promise polyfill",
+        filename: "polyfill.server.js",
+        settings: ES5,
+        code: `Promise = LocalPromise;
+var ready = Promise.resolve(1);`,
+      },
+      {
+        caseId: "no-promise-availability-guard",
+        kind: "scope-boundary",
+        description:
+          "A constructor call protected by a structurally dominating owner guard stays silent; static calls require both the Promise owner and selected method to be guarded.",
+        name: "availability guard",
+        filename: "portable.server.js",
+        settings: ES5,
+        code: `if (typeof Promise === "function") {
+  new Promise(function () {});
+}`,
+      },
+      {
+        caseId: "no-promise-cross-execution-alias",
+        kind: "false-negative",
+        description:
+          "A Promise alias used from another function body stays silent because source order cannot prove that its initializer ran before the function was called.",
+        name: "cross-execution alias",
+        filename: "deferred.server.js",
+        settings: ES5,
+        code: `const P = Promise;
+function create() { return new P(function () {}); }
+create();`,
+      },
+      {
+        caseId: "no-promise-static-method-alias",
+        kind: "false-negative",
+        description:
+          "Direct aliases of individual Promise static methods stay silent; the shared resolver proves stable aliases of the Promise owner instead.",
+        name: "static method alias",
+        filename: "method-alias.server.js",
+        settings: ES5,
+        code: `const resolve = Promise.resolve;
+resolve(1);`,
+      },
     ],
     title: "No Promise",
     family: "engine",
@@ -376,7 +428,7 @@ Promise.resolve(1);`,
     fixable: false,
     hasSuggestions: false,
     description:
-      "Compatibility and ES5 Standards modes do not implement Promises. The rule is silent when JavaScript mode is unknown or ES2021. Local `Promise` bindings are ignored.",
+      "Compatibility and ES5 Standards modes do not implement Promises. Direct calls plus stable same-execution constructor and static-method owner aliases report; bare aliases must be captured under an owner guard, while fully guarded, visibly polyfilled, unknown-mode, and local `Promise` uses stay silent.",
     bad: [
       {
         name: "constructor",
@@ -1847,10 +1899,16 @@ new DataView(buffer).getBigInt64(0);`,
           "2026-08-20",
         ),
         metadata.evidenceRecord(
-          "src/catalog.ts",
-          "Catalog examples cover new Proxy versus a local binding.",
+          "tests/rules/no-proxy.test.ts",
+          "Fixtures cover stable Proxy constructor and revocable-owner aliases, guarded alias capture, owner-and-method availability checks, modeled built-in invalidation, visible polyfills, mutation, and dynamic scope.",
           "fixture",
-          "2026-08-20",
+          "2026-08-24",
+        ),
+        metadata.evidenceRecord(
+          "tests/integration/profiles.test.ts",
+          "Real Oxlint and ESLint classic-es5 profiles report a stable Proxy alias and accept an explicit callable polyfill.",
+          "integration-test",
+          "2026-08-24",
         ),
       ],
       {
@@ -1859,14 +1917,62 @@ new DataView(buffer).getBigInt64(0);`,
     ),
     placements: [{ profile: "classic-es5", severity: "error" }] as const,
     optionDescriptor: undefined,
-    limitationCases: [],
+    limitationCases: [
+      {
+        caseId: "no-proxy-visible-polyfill",
+        kind: "scope-boundary",
+        description:
+          "A possible callable replacement for Proxy or Proxy.revocable suppresses matching diagnostics throughout the file, regardless of source order.",
+        name: "visible Proxy polyfill",
+        filename: "polyfill.server.js",
+        settings: ES5,
+        code: `Proxy = LocalProxy;
+var wrapped = new Proxy(target, handler);`,
+      },
+      {
+        caseId: "no-proxy-availability-guard",
+        kind: "scope-boundary",
+        description:
+          "A constructor call protected by a structurally dominating owner guard stays silent; revocable calls require both the Proxy owner and method to be guarded.",
+        name: "availability guard",
+        filename: "portable.server.js",
+        settings: ES5,
+        code: `if (typeof Proxy === "function") {
+  new Proxy(target, handler);
+}`,
+      },
+      {
+        caseId: "no-proxy-cross-execution-alias",
+        kind: "false-negative",
+        description:
+          "A Proxy alias used from another function body stays silent because source order cannot prove that its initializer ran before the function was called.",
+        name: "cross-execution alias",
+        filename: "deferred.server.js",
+        settings: ES5,
+        code: `const P = Proxy;
+function wrap() { return new P(target, handler); }
+wrap();`,
+      },
+      {
+        caseId: "no-proxy-static-method-alias",
+        kind: "false-negative",
+        description:
+          "Direct aliases of Proxy.revocable stay silent; the shared resolver proves stable aliases of the Proxy owner instead.",
+        name: "revocable method alias",
+        filename: "method-alias.server.js",
+        settings: ES5,
+        code: `const revocable = Proxy.revocable;
+revocable(target, handler);`,
+      },
+    ],
     title: "No Proxy",
     family: "engine",
     preset: "classic-es5",
     severity: "error",
     fixable: false,
     hasSuggestions: false,
-    description: "`Proxy` is unsupported in Compatibility and ES5 Standards mode.",
+    description:
+      "`Proxy` is unsupported in Compatibility and ES5 Standards mode. Direct calls plus stable same-execution constructor and `revocable` owner aliases report; bare aliases must be captured under an owner guard, while fully guarded or visibly polyfilled calls stay silent.",
     bad: [
       {
         name: "new Proxy",

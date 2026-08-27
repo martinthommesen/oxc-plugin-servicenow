@@ -1,12 +1,16 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { PROMISE_STATIC_METHODS, ruleDocsUrl } from "../constants.js";
-import { getName } from "../utils/ast.js";
-import { staticPropertyName } from "../analysis/internal.js";
+import {
+  findStablePlatformConstructorCalls,
+  findStablePlatformStaticMethodCalls,
+} from "../analysis/internal.js";
 import { beginRuleFile } from "./helpers.js";
 import { shouldDiagnoseFeature } from "../engine/index.js";
+import { isUnsupportedGlobalInvocationProtected } from "./unsupported-constructor-rule.js";
 
-const STATIC = new Set<string>(PROMISE_STATIC_METHODS);
+const NAMES = ["Promise"] as const;
+const STATIC = { Promise: PROMISE_STATIC_METHODS } as const;
 
 export const noPromise = defineRule({
   meta: {
@@ -29,23 +33,48 @@ export const noPromise = defineRule({
         const { context: script } = beginRuleFile(context);
         if (!shouldDiagnoseFeature(script, "promise")) return false;
       },
-      NewExpression(node) {
-        const { analysis } = beginRuleFile(context);
-        const callee = (node as ESTree.NewExpression).callee as ESTree.Node;
-        if (getName(callee) !== "Promise") return;
-        if (!analysis.isPlatformGlobal(callee)) return;
-        context.report({ node, messageId: "construct" });
-      },
-      CallExpression(node) {
-        const { analysis } = beginRuleFile(context);
-        const callee = (node as ESTree.CallExpression).callee;
-        if (callee.type !== "MemberExpression") return;
-        const member = callee as ESTree.MemberExpression;
-        if (getName(member.object) !== "Promise") return;
-        if (!analysis.isPlatformGlobal(member.object as ESTree.Node)) return;
-        const method = staticPropertyName(member);
-        if (!method || !STATIC.has(method)) return;
-        context.report({ node, messageId: "staticMethod", data: { method } });
+      Program(node) {
+        const { analysis, file } = beginRuleFile(context);
+        const constructors = findStablePlatformConstructorCalls({
+          program: node as ESTree.Node,
+          analysis,
+          bindingWrites: file.bindingWrites,
+          mutations: file.mutations,
+          names: NAMES,
+          namespaces: ["globalThis"],
+          mutationSemantics: "callable",
+        })
+          .filter(
+            (finding): finding is typeof finding & { node: ESTree.NewExpression } =>
+              finding.node.type === "NewExpression",
+          )
+          .map((finding) => ({ ...finding, kind: "construct" as const }));
+        const staticMethods = findStablePlatformStaticMethodCalls({
+          program: node as ESTree.Node,
+          analysis,
+          bindingWrites: file.bindingWrites,
+          mutations: file.mutations,
+          methods: STATIC,
+          namespaces: ["globalThis"],
+          mutationSemantics: "callable",
+        }).map((finding) => ({ ...finding, kind: "staticMethod" as const }));
+        const findings = [...constructors, ...staticMethods].sort(
+          (left, right) => (left.node.start ?? 0) - (right.node.start ?? 0),
+        );
+        for (const finding of findings) {
+          if (isUnsupportedGlobalInvocationProtected(context, finding)) {
+            continue;
+          }
+          if (finding.kind === "construct") {
+            context.report({ node: finding.node, messageId: "construct" });
+          } else {
+            context.report({
+              node: finding.node,
+              messageId: "staticMethod",
+              data: { method: finding.method },
+            });
+          }
+        }
       },
     };
   },

@@ -1,10 +1,16 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
-import { getName } from "../utils/ast.js";
-import { staticPropertyName } from "../analysis/internal.js";
+import {
+  findStablePlatformConstructorCalls,
+  findStablePlatformStaticMethodCalls,
+} from "../analysis/internal.js";
 import { beginRuleFile } from "./helpers.js";
 import { shouldDiagnoseFeature } from "../engine/index.js";
+import { isUnsupportedGlobalInvocationProtected } from "./unsupported-constructor-rule.js";
+
+const NAMES = ["Proxy"] as const;
+const STATIC = { Proxy: ["revocable"] } as const;
 
 export const noProxy = defineRule({
   meta: {
@@ -27,22 +33,40 @@ export const noProxy = defineRule({
         const { context: script } = beginRuleFile(context);
         if (!shouldDiagnoseFeature(script, "proxy")) return false;
       },
-      NewExpression(node) {
-        const { analysis } = beginRuleFile(context);
-        const callee = (node as ESTree.NewExpression).callee as ESTree.Node;
-        if (getName(callee) !== "Proxy") return;
-        if (!analysis.isPlatformGlobal(callee)) return;
-        context.report({ node, messageId: "construct" });
-      },
-      CallExpression(node) {
-        const { analysis } = beginRuleFile(context);
-        const callee = (node as ESTree.CallExpression).callee;
-        if (callee.type !== "MemberExpression") return;
-        const member = callee as ESTree.MemberExpression;
-        if (getName(member.object) !== "Proxy") return;
-        if (!analysis.isPlatformGlobal(member.object as ESTree.Node)) return;
-        if (staticPropertyName(member) !== "revocable") return;
-        context.report({ node, messageId: "revocable" });
+      Program(node) {
+        const { analysis, file } = beginRuleFile(context);
+        const constructors = findStablePlatformConstructorCalls({
+          program: node as ESTree.Node,
+          analysis,
+          bindingWrites: file.bindingWrites,
+          mutations: file.mutations,
+          names: NAMES,
+          namespaces: ["globalThis"],
+          mutationSemantics: "callable",
+        })
+          .filter(
+            (finding): finding is typeof finding & { node: ESTree.NewExpression } =>
+              finding.node.type === "NewExpression",
+          )
+          .map((finding) => ({ ...finding, kind: "construct" as const }));
+        const revocable = findStablePlatformStaticMethodCalls({
+          program: node as ESTree.Node,
+          analysis,
+          bindingWrites: file.bindingWrites,
+          mutations: file.mutations,
+          methods: STATIC,
+          namespaces: ["globalThis"],
+          mutationSemantics: "callable",
+        }).map((finding) => ({ ...finding, kind: "revocable" as const }));
+        const findings = [...constructors, ...revocable].sort(
+          (left, right) => (left.node.start ?? 0) - (right.node.start ?? 0),
+        );
+        for (const finding of findings) {
+          if (isUnsupportedGlobalInvocationProtected(context, finding)) {
+            continue;
+          }
+          context.report({ node: finding.node, messageId: finding.kind });
+        }
       },
     };
   },

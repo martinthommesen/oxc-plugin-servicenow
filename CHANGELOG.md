@@ -11,6 +11,7 @@
 
 ### Fixed
 
+- `no-promise` and `no-proxy` now resolve stable same-execution constructor and static-method owner aliases, require safe bare-alias capture, honor dominating availability guards, invalidate guards after modeled built-in writes, and avoid attributing visible callable polyfills or dynamic-scope replacements to ServiceNow.
 - `no-weak-references` and `no-weak-collections` now resolve stable same-execution constructor aliases, require bare aliases to be captured inside an availability guard, invalidate guards after modeled built-in writes, and distinguish callable polyfills from object, array, and other non-callable replacements.
 - Private instance fields, methods, and accessors now report the documented ES2021 Not Supported status for both Zurich and Australia; private static members remain Supported.
 - Omitting `settings.servicenow.release` now keeps release-dependent facts unknown instead of silently selecting Zurich.

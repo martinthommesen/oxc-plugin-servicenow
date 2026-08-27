@@ -32,6 +32,15 @@ function eslintRecommended(code: string, filename: string) {
   );
 }
 
+function eslintClassicEs5(code: string, filename: string): string[] {
+  return new Linter({ configType: "flat" })
+    .verify(code, [configs.flat.classicEs5 as unknown as import("eslint").Linter.Config], {
+      filename,
+    })
+    .map((message) => message.ruleId)
+    .filter((id): id is string => Boolean(id));
+}
+
 describe("profile fixtures", () => {
   it("recommended oxlint is silent on every valid profile fixture", () => {
     const report = runOxlint(recommendedConfig, [validDir]);
@@ -80,6 +89,41 @@ describe("profile fixtures", () => {
       runOxlint(classicEs5Config, [path.join(invalidDir, "es5-promise.server.js")]),
     );
     assert.ok(rules.includes("servicenow/no-promise"));
+  });
+
+  it("classic-es5 Oxlint and ESLint resolve stable Promise aliases", () => {
+    const filename = "es5-promise-alias.server.js";
+    const file = path.join(invalidDir, filename);
+    const oxlintRules = pluginRulesFor(runOxlint(classicEs5Config, [file]));
+    assert.ok(oxlintRules.includes("servicenow/no-promise"));
+
+    const eslintRules = eslintClassicEs5(readFileSync(file, "utf8"), filename);
+    assert.ok(eslintRules.includes("servicenow/no-promise"));
+  });
+
+  it("classic-es5 Oxlint and ESLint accept an explicit Promise polyfill", () => {
+    const filename = "es5-polyfilled-promise.server.js";
+    const file = path.join(validDir, filename);
+    assert.deepEqual(pluginRulesFor(runOxlint(classicEs5Config, [file])), []);
+
+    assert.deepEqual(eslintClassicEs5(readFileSync(file, "utf8"), filename), []);
+  });
+
+  it("classic-es5 Oxlint and ESLint resolve stable Proxy aliases", () => {
+    const filename = "es5-proxy-alias.server.js";
+    const file = path.join(invalidDir, filename);
+    const oxlintRules = pluginRulesFor(runOxlint(classicEs5Config, [file]));
+    assert.ok(oxlintRules.includes("servicenow/no-proxy"));
+    assert.ok(
+      eslintClassicEs5(readFileSync(file, "utf8"), filename).includes("servicenow/no-proxy"),
+    );
+  });
+
+  it("classic-es5 Oxlint and ESLint accept an explicit Proxy polyfill", () => {
+    const filename = "es5-polyfilled-proxy.server.js";
+    const file = path.join(validDir, filename);
+    assert.deepEqual(pluginRulesFor(runOxlint(classicEs5Config, [file])), []);
+    assert.deepEqual(eslintClassicEs5(readFileSync(file, "utf8"), filename), []);
   });
 
   it("recommended flags GlideRecord in a client fixture", () => {
