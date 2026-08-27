@@ -600,7 +600,7 @@ function buildIndex(
         // escape or mutate a platform namespace.
         if (platformGlobalNamespaceAccess(call.callee, bindings) && !globalThisCanExist) return;
         const bound = resolveBuiltinBindCall(call, bindings, globalThisCanExist);
-        if (bound?.owner === "Object" || bound?.owner === "Reflect") return;
+        if (bound) return;
         const direct = resolveBuiltinReference(call.callee, bindings, globalThisCanExist);
         if (direct?.owner === "Reflect" && direct.method === "apply" && browserRuntime) {
           // An unresolved or spread invocation can expose its target, `this`,
