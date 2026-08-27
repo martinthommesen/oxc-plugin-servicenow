@@ -358,7 +358,12 @@ export function findStablePlatformStaticMethodCalls({
     },
     "authority",
   );
-  if (!resolver) return [];
+  const reflectResolver = stablePlatformGlobalResolver({
+    ...options,
+    names: ["Reflect"],
+    mutationSemantics: "authority",
+  });
+  if (!resolver || !reflectResolver) return [];
 
   const findings: PlatformStaticMethodCallFinding[] = [];
   for (const callSite of resolver.callSites) {
@@ -372,6 +377,16 @@ export function findStablePlatformStaticMethodCalls({
       targets.push({ helper: null, member: direct });
       const helper = staticPropertyName(direct);
       const wrapped = unwrapExpression(direct.object);
+      const reflectApplyTarget = unwrapExpression(callSite.node.arguments[0]);
+      if (
+        helper === "apply" &&
+        reflectResolver.resolve(direct.object, callSite.executionBoundary)?.name === "Reflect" &&
+        reflectResolver.pathIdentityIsStable(["Reflect", "apply"]) &&
+        isNode(reflectApplyTarget) &&
+        reflectApplyTarget.type === "MemberExpression"
+      ) {
+        targets.push({ helper: null, member: reflectApplyTarget });
+      }
       if (
         (helper === "call" || helper === "apply") &&
         isNode(wrapped) &&
