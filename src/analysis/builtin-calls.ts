@@ -23,6 +23,7 @@ export interface BuiltinCall extends BuiltinReference {
 export interface BuiltinCallOptions {
   readonly allowGlobalThis: boolean;
   readonly allowReflectApply: boolean;
+  readonly resolveArrayArguments?: (node: unknown) => readonly unknown[] | null;
 }
 
 export function resolveBuiltinReference(
@@ -89,11 +90,13 @@ export function resolveBuiltinCall(
   bindings: FileBindings,
   options: BuiltinCallOptions,
 ): BuiltinCall | null {
+  const resolveArrayArguments =
+    options.resolveArrayArguments ?? ((node: unknown) => arrayArguments(node, bindings));
   const direct = resolveBuiltinReference(call.callee, bindings, options.allowGlobalThis);
   if (direct?.owner === "Reflect" && direct.method === "apply") {
     if (!options.allowReflectApply) return null;
     const target = resolveBuiltinReference(call.arguments[0], bindings, options.allowGlobalThis);
-    return target ? { ...target, arguments: arrayArguments(call.arguments[2], bindings) } : null;
+    return target ? { ...target, arguments: resolveArrayArguments(call.arguments[2]) } : null;
   }
   if (direct) return { ...direct, arguments: directArguments(call.arguments) };
 
@@ -105,7 +108,7 @@ export function resolveBuiltinCall(
       return { ...wrapped, arguments: directArguments(call.arguments.slice(1)) };
     }
     if (wrapped && helper === "apply") {
-      return { ...wrapped, arguments: arrayArguments(call.arguments[1], bindings) };
+      return { ...wrapped, arguments: resolveArrayArguments(call.arguments[1]) };
     }
   }
 

@@ -863,6 +863,17 @@ describe("no-object-hasown", () => {
     }
   });
 
+  it("keeps unrelated apply mutations precise for a stable ES5 array alias", () => {
+    assertInvalid(
+      `var args = [Object, "keys", { value: custom }];
+Object.defineProperty.apply(Object, args);
+Object.hasOwn(record, "number");`,
+      "no-object-hasown",
+      { messageId: "unsupported" },
+      { settings: { javascriptMode: "es5", release: "australia" } },
+    );
+  });
+
   it("recognizes static computed access and proven aliases", () => {
     assertInvalid(
       `const BuiltinObject = Object; BuiltinObject["hasOwn"](record, "number");`,
