@@ -53,8 +53,26 @@ P.resolve(1);`,
       `Promise.resolve.call(Promise, 1);`,
       `Promise.resolve.apply(Promise, [1]);`,
       `Promise.resolve.bind(Promise)(1);`,
+      `Reflect.apply(Promise.resolve, Promise, [1]);`,
     ]) {
       assertInvalid(code, RULE, { messageId: "staticMethod", count: 1 }, { settings: ES5 });
+    }
+    for (const code of [
+      `Reflect = localReflect; Reflect.apply(Promise.resolve, Promise, [1]);`,
+      `Reflect.apply = localApply; Reflect.apply(Promise.resolve, Promise, [1]);`,
+    ]) {
+      assertValid(code, RULE, { settings: ES5 });
+    }
+  });
+
+  it("treats bound built-in arguments as namespace escapes", () => {
+    for (const argument of ["Promise", "...[Promise]"]) {
+      assertValid(
+        `Proxy.revocable.bind(Proxy, ${argument});
+Promise.resolve(1);`,
+        RULE,
+        { settings: ES5 },
+      );
     }
   });
 
