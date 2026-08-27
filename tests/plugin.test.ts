@@ -139,14 +139,14 @@ describe("plugin export", () => {
     assert.ok(configs.flat.client.files.includes("**/*.client.ui-action.js"));
   });
 
-  it("the ACL flat config selects ACL export names and supplies the ACL surface", () => {
+  it("the ACL flat config selects ACL names and preserves filename conflict checks", () => {
     assert.ok(configs.flat.acl.files.includes("**/{acl,*[-_.]acl}.{js,cjs,mjs}"));
     assert.ok(
       configs.flat.acl.files.includes(
         "**/{access.control,access.controls,*[-_.]access.control,*[-_.]access.controls}.{js,cjs,mjs}",
       ),
     );
-    assert.deepEqual(configs.flat.acl.settings.servicenow.surfaces, ["acl"]);
+    assert.equal(configs.flat.acl.settings.servicenow.surfaces, "auto");
   });
 
   it("catalog fixable and hasSuggestions match rule meta and real output", () => {

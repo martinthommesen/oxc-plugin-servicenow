@@ -161,6 +161,20 @@ gr.query();`,
     );
   });
 
+  it("reports when a static filter clears branch-local uncertainty", () => {
+    assertInvalid(
+      `var gr = new GlideRecord("incident");
+if (condition) {
+  gr.addEncodedQuery(encoded);
+  gr.addQuery("active", true);
+}
+gr.deleteMultiple();`,
+      "no-unfiltered-gliderecord-bulk-operation",
+      { messageId: "unfiltered" },
+      SERVER,
+    );
+  });
+
   it("suppresses N+1 and counting guidance for replaced methods", () => {
     assertValid(
       `var outer = new GlideRecord("incident");
