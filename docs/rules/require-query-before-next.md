@@ -11,7 +11,7 @@ Require a documented, scope-supported GlideRecord query executor before `.next()
 - **Authoring:** classic
 - **Surfaces:** Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. UI Actions require an explicit server surface; mixed client/server UI Actions stay silent because execution regions are not classified. Unknown surfaces stay silent.
 - **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
-- **Last verified:** 2026-08-22
+- **Last verified:** 2026-08-24
 - **Implementation:** [`src/rules/require-query-before-next.ts`](../../src/rules/require-query-before-next.ts)
 
 ## Applicability
@@ -57,7 +57,7 @@ while (gr.next()) {
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-boundary: A query through a proven alias opens the same record cursor. lifecycle: Executors are selected by release and scope. A possible scope-specific executor suppresses a missing-query finding without becoming a definite fact for positive rules. chooseWindow does not execute a query.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-boundary: A query through a proven alias opens the same record cursor. false-negative: A possible platform constructor namespace reassignment, prototype or relevant instance-method mutation, or dynamic-scope uncertainty suppresses matching diagnostics throughout the file. lifecycle: Executors are selected by release and scope. A possible scope-specific executor suppresses a missing-query finding without becoming a definite fact for positive rules. chooseWindow does not execute a query.
 
 ## Known false positives
 
@@ -65,7 +65,7 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-b
 
 ## Known false negatives
 
-- None recorded.
+- A possible platform constructor namespace reassignment, prototype or relevant instance-method mutation, or dynamic-scope uncertainty suppresses matching diagnostics throughout the file.
 
 ## Intentional scope boundaries
 
@@ -103,6 +103,11 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-b
   - URL: tests/rules/stateful-lifecycle.test.ts
   - Verified by: fixture
   - Verified at: 2026-08-20
+- **Constructor namespace, prototype, instance-method, and dynamic-scope mutations are covered by shared platform-authority fixtures.**
+  - Verification ID: `rule-evidence-9ec7891e`
+  - URL: tests/rules/platform-method-authority.test.ts
+  - Verified by: fixture
+  - Verified at: 2026-08-24
 - **The Australia-scoped GlideRecord API was reviewed for the methods and lifecycle facts used by this rule.**
   - Verification ID: `rule-evidence-ca1b2e7a`
   - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html

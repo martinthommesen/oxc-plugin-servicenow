@@ -1,7 +1,11 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { getName, isNode, unwrapExpression } from "../utils/ast.js";
-import { staticPropertyName } from "../analysis/internal.js";
+import {
+  hasAuthoritativeGlideRecordMethod,
+  staticPropertyName,
+  type PlatformMethodAuthorityFacts,
+} from "../analysis/internal.js";
 import {
   analyzeGlideElementAliases,
   type GlideElementAliasFacts,
@@ -55,6 +59,7 @@ function objectIdOfCursor(
 function isCursorAdvanceCall(
   node: unknown,
   analysis: ReturnType<typeof beginRuleFile>["analysis"],
+  authority: PlatformMethodAuthorityFacts,
 ): number | null {
   if (!isNode(node) || node.type !== "CallExpression") return null;
   const call = node as ESTree.CallExpression;
@@ -65,18 +70,23 @@ function isCursorAdvanceCall(
     call.callee.type !== "MemberExpression"
   )
     return null;
+  if (!hasAuthoritativeGlideRecordMethod(authority, call.callee.object, property)) return null;
   return objectIdOfCursor(analysis, call.callee.object);
 }
 
 function cursorIdsRequiredForBody(
   node: unknown,
   analysis: ReturnType<typeof beginRuleFile>["analysis"],
+  authority: PlatformMethodAuthorityFacts,
 ): ReadonlySet<number> {
-  return truthyPathRequiredCursorIds(node, (candidate) => isCursorAdvanceCall(candidate, analysis));
+  return truthyPathRequiredCursorIds(node, (candidate) =>
+    isCursorAdvanceCall(candidate, analysis, authority),
+  );
 }
 function directGlideElementCursorId(
   node: unknown,
   analysis: ReturnType<typeof beginRuleFile>["analysis"],
+  authority: PlatformMethodAuthorityFacts,
 ): number | null {
   const expr = unwrapExpression(node);
   if (!isNode(expr) || isExtracted(expr, analysis)) return null;
@@ -88,6 +98,8 @@ function directGlideElementCursorId(
     ) {
       return null;
     }
+    if (!hasAuthoritativeGlideRecordMethod(authority, call.callee.object, "getElement"))
+      return null;
     const id = objectIdOfCursor(analysis, call.callee.object);
     return id;
   }
@@ -103,20 +115,22 @@ function glideElementCursorId(
   cursorIds: ReadonlySet<number>,
   analysis: ReturnType<typeof beginRuleFile>["analysis"],
   aliases: GlideElementAliasFacts,
+  authority: PlatformMethodAuthorityFacts,
 ): number | null {
   const expr = unwrapExpression(node);
   if (!isNode(expr) || isExtracted(expr, analysis)) return null;
-  const id = directGlideElementCursorId(expr, analysis) ?? aliases.cursorIdAt(expr);
+  const id = directGlideElementCursorId(expr, analysis, authority) ?? aliases.cursorIdAt(expr);
   return id !== null && cursorIds.has(id) ? id : null;
 }
 
 function findRetainedElements(
   program: ESTree.Node,
   analysis: ReturnType<typeof beginRuleFile>["analysis"],
+  authority: PlatformMethodAuthorityFacts,
 ): Array<{ node: ESTree.Node; name: string }> {
   const findings: Array<{ node: ESTree.Node; name: string }> = [];
   const aliases = analyzeGlideElementAliases(program, analysis, (node) =>
-    directGlideElementCursorId(node, analysis),
+    directGlideElementCursorId(node, analysis, authority),
   );
 
   function retainedName(node: ESTree.Node): string {
@@ -144,7 +158,7 @@ function findRetainedElements(
   function retainedInValue(node: unknown, cursorIds: ReadonlySet<number>): ESTree.Node[] {
     const expr = unwrapExpression(node);
     if (!isNode(expr) || isExtracted(expr, analysis)) return [];
-    if (glideElementCursorId(expr, cursorIds, analysis, aliases) !== null) return [expr];
+    if (glideElementCursorId(expr, cursorIds, analysis, aliases, authority) !== null) return [expr];
     if (
       expr.type === "CallExpression" &&
       getName((expr as ESTree.CallExpression).callee) === "String"
@@ -189,7 +203,7 @@ function findRetainedElements(
       const statement = node as ESTree.WhileStatement;
       const nextIds = new Set([
         ...cursorIds,
-        ...cursorIdsRequiredForBody(statement.test, analysis),
+        ...cursorIdsRequiredForBody(statement.test, analysis, authority),
       ]);
       visit(statement.test, cursorIds);
       // A while body is entered only after its test succeeds, even when that
@@ -201,7 +215,7 @@ function findRetainedElements(
       const statement = node as ESTree.DoWhileStatement;
       const nextIds = new Set([
         ...cursorIds,
-        ...cursorIdsRequiredForBody(statement.test, analysis),
+        ...cursorIdsRequiredForBody(statement.test, analysis, authority),
       ]);
       visit(statement.body, cursorIds);
       visit(statement.test, cursorIds);
@@ -212,10 +226,11 @@ function findRetainedElements(
       const statement = node as ESTree.ForStatement;
       const nextIds = new Set(cursorIds);
       if (statement.test) {
-        for (const id of cursorIdsRequiredForBody(statement.test, analysis)) nextIds.add(id);
+        for (const id of cursorIdsRequiredForBody(statement.test, analysis, authority))
+          nextIds.add(id);
       }
       const updateIds = statement.update
-        ? cursorIdsRequiredForBody(statement.update, analysis)
+        ? cursorIdsRequiredForBody(statement.update, analysis, authority)
         : new Set<number>();
       if (statement.init) visit(statement.init, cursorIds);
       if (statement.test) visit(statement.test, cursorIds);
@@ -272,8 +287,8 @@ export const noGlideelementInCollection = defineRule({
         if (!isServerInstanceContext(script)) return false;
       },
       Program(node) {
-        const { analysis } = beginRuleFile(context);
-        for (const finding of findRetainedElements(node as ESTree.Node, analysis)) {
+        const { analysis, file } = beginRuleFile(context);
+        for (const finding of findRetainedElements(node as ESTree.Node, analysis, file)) {
           context.report({
             node: finding.node,
             messageId: "retained",

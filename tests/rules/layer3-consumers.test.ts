@@ -67,12 +67,90 @@ service.now();`,
       "no-br-current-update",
       FULL_SCRIPT,
     );
+    assertInvalid(
+      `(function executeRule(current, previous) {
+  var record = current;
+  record.update();
+})(current, previous);`,
+      "no-br-current-update",
+      { messageId: "update" },
+      FULL_SCRIPT,
+    );
+    assertValid(
+      `(function executeRule(current, previous) {
+  var record = current;
+  record.update();
+})(localCurrent, previous);`,
+      "no-br-current-update",
+      FULL_SCRIPT,
+    );
+    assertValid(
+      `(function executeRule(current, previous) {
+  var record = current;
+  prepare(record);
+  record.update();
+})(current, previous);`,
+      "no-br-current-update",
+      FULL_SCRIPT,
+    );
   });
 
   it("forgets a reassigned canonical current wrapper parameter", () => {
     assertValid(
       `(function executeRule(current, previous) {\n  current = getOtherRecord();\n  current.update();\n})(current, previous);`,
       "no-br-current-update",
+      FULL_SCRIPT,
+    );
+  });
+
+  it("keeps canonical current authority temporal and method-specific", () => {
+    assertValid(
+      `(function executeRule(current, previous) {
+  prepare(current);
+  current.update();
+})(current, previous);`,
+      "no-br-current-update",
+      FULL_SCRIPT,
+    );
+    assertValid(
+      `(function executeRule(current, previous) {
+  current.update = localUpdate;
+  current.update();
+})(current, previous);`,
+      "no-br-current-update",
+      FULL_SCRIPT,
+    );
+    assertValid(
+      `(function executeRule(current, previous) {
+  globalThis.current.update = localUpdate;
+  current.update();
+})(current, previous);`,
+      "no-br-current-update",
+      FULL_SCRIPT,
+    );
+    assertValid(
+      `(function executeRule(current, previous) {
+  prepare(globalThis.current);
+  current.update();
+})(current, previous);`,
+      "no-br-current-update",
+      FULL_SCRIPT,
+    );
+    assertValid(
+      `(function executeRule(current, previous) {
+  GlideRecord.prototype.update = localUpdate;
+  current.update();
+})(current, previous);`,
+      "no-br-current-update",
+      FULL_SCRIPT,
+    );
+    assertInvalid(
+      `(function executeRule(current, previous) {
+  current.update();
+  prepare(current);
+})(current, previous);`,
+      "no-br-current-update",
+      { messageId: "update" },
       FULL_SCRIPT,
     );
   });

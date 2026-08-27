@@ -22,21 +22,29 @@ export const noBrCurrentUpdate = defineRule({
   },
   createOnce(context) {
     let canonicalCurrent: ESTree.Node | null = null;
+    let canonicalCurrentArgument: ESTree.Node | null = null;
     let canonicalCurrentBindingId: number | null = null;
+    let canonicalCurrentObjectId: number | null = null;
     return {
       before() {
         const { context: script } = beginRuleFile(context);
         if (!appliesOnSurface(script, "business-rule")) return false;
         canonicalCurrent = null;
+        canonicalCurrentArgument = null;
         canonicalCurrentBindingId = null;
+        canonicalCurrentObjectId = null;
       },
       Program(node) {
         const { analysis, context: script } = beginRuleFile(context);
         if (script.businessRuleSourceFormat !== "full-script") return;
         const wrapper = canonicalBusinessRuleWrapper(node as ESTree.Program, analysis.bindings);
         canonicalCurrent = wrapper?.currentParam ?? null;
+        canonicalCurrentArgument = (wrapper?.call.arguments[0] as ESTree.Node | undefined) ?? null;
         canonicalCurrentBindingId = canonicalCurrent
           ? (analysis.bindings.resolve("current", canonicalCurrent)?.id ?? null)
+          : null;
+        canonicalCurrentObjectId = canonicalCurrentArgument
+          ? (analysis.ofExpression(canonicalCurrentArgument)?.objectId ?? null)
           : null;
       },
       CallExpression(node) {
@@ -60,11 +68,18 @@ export const noBrCurrentUpdate = defineRule({
           binding.id === canonicalCurrentBindingId &&
           !file.bindingWrites.isWritten(binding.id) &&
           (!proven || (proven.kind === "current" && !proven.invalid && !proven.escaped));
+        const wrapperAlias =
+          alias &&
+          canonicalCurrentObjectId !== null &&
+          proven.objectId === canonicalCurrentObjectId;
         if (!directGlobal && !alias && !wrapperParam) return;
         if (file.bindingWrites.hasDynamicScope()) return;
         if (directGlobal && file.mutations.isGlobalAuthorityLost("current")) return;
         if (
-          (!wrapperParam && file.mutations.isGlobalPathAuthorityLost(["current", "update"])) ||
+          file.mutations.isGlobalPathAuthorityLost(
+            ["current", "update"],
+            wrapperParam || wrapperAlias ? (canonicalCurrentArgument ?? undefined) : undefined,
+          ) ||
           file.mutations.isGlobalPathAuthorityLost(["GlideRecord", "prototype", "update"]) ||
           file.mutations.isObjectPropertyAuthorityLost(member.object, "update")
         ) {

@@ -52,7 +52,7 @@ current.work_notes = "Moved to In Progress";
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-negative: A possible current reassignment suppresses direct current.update calls throughout the file, including calls that appear before the reassignment.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-negative: A possible current reassignment suppresses direct current.update calls throughout the file, including calls that appear before the reassignment. false-negative: A possible current.update or GlideRecord.prototype.update mutation suppresses matching calls throughout the file.
 
 ## Known false positives
 
@@ -61,6 +61,7 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-n
 ## Known false negatives
 
 - A possible current reassignment suppresses direct current.update calls throughout the file, including calls that appear before the reassignment.
+- A possible current.update or GlideRecord.prototype.update mutation suppresses matching calls throughout the file.
 
 ## Intentional scope boundaries
 
@@ -91,6 +92,11 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-n
   - Verification ID: `rule-evidence-83d892a6`
   - URL: tests/integration/context-contracts.test.ts
   - Verified by: integration-test
+  - Verified at: 2026-08-24
+- **Canonical wrapper fixtures distinguish the required synchronous current argument from pre-call escape, receiver replacement, and GlideRecord prototype mutation.**
+  - Verification ID: `rule-evidence-ccf8150a`
+  - URL: tests/rules/layer3-consumers.test.ts
+  - Verified by: fixture
   - Verified at: 2026-08-24
 
 ## See also

@@ -11,7 +11,7 @@ A proven GlideAggregate must call `query()` before `next()` or `getAggregate()`.
 - **Authoring:** classic
 - **Surfaces:** Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. UI Actions require an explicit server surface; mixed client/server UI Actions stay silent because execution regions are not classified. Unknown surfaces stay silent.
 - **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
-- **Last verified:** 2026-08-22
+- **Last verified:** 2026-08-24
 - **Implementation:** [`src/rules/validate-glideaggregate-calls.ts`](../../src/rules/validate-glideaggregate-calls.ts)
 
 ## Applicability
@@ -59,7 +59,7 @@ if (count.next()) {
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. lifecycle: Must-tuples intersect on join. addAggregate after query() does not validate the already-open result.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-negative: A possible platform constructor namespace reassignment, prototype or relevant instance-method mutation, or dynamic-scope uncertainty suppresses matching diagnostics throughout the file. lifecycle: Must-tuples intersect on join. addAggregate after query() does not validate the already-open result.
 
 ## Known false positives
 
@@ -67,7 +67,7 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. lifecyc
 
 ## Known false negatives
 
-- None recorded.
+- A possible platform constructor namespace reassignment, prototype or relevant instance-method mutation, or dynamic-scope uncertainty suppresses matching diagnostics throughout the file.
 
 ## Intentional scope boundaries
 
@@ -99,6 +99,11 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. lifecyc
   - URL: tests/integration/profiles/invalid/aggregate-type-only-field.br.js
   - Verified by: integration-test
   - Verified at: 2026-08-20
+- **Constructor namespace, prototype, instance-method, and dynamic-scope mutations are covered by shared platform-authority fixtures.**
+  - Verification ID: `rule-evidence-84bbded5`
+  - URL: tests/rules/platform-method-authority.test.ts
+  - Verified by: fixture
+  - Verified at: 2026-08-24
 
 ## See also
 

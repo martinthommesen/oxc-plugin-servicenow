@@ -105,7 +105,7 @@ export interface PathAnalysisOptions<T> {
   equalsData: (left: T, right: T) => boolean;
   onCall: (input: PathCallInput<T>) => void;
   onRef?: (input: PathRefInput<T>) => void;
-  /** Allocate an object when an expression is a proven constructed value. */
+  /** Allocate an abstract value; a later evaluation refreshes an invalid or escaped site. */
   onValue?: (node: ESTree.Node) => T | undefined;
   /**
    * Retain records that no surviving binding references after a control-flow
@@ -668,6 +668,10 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
         if (!record || record.invalid || record.escaped) {
           const data = onValue(expr);
           if (data === undefined) return undefined;
+          // Allocation sites are reused to keep loop fixpoints finite, but a
+          // binding can still point at the site's value from an earlier
+          // evaluation. Detach those stale aliases before publishing facts
+          // for the newly evaluated host value.
           for (const [bindingId, objectId] of state.env) {
             if (objectId === existing) state.env.set(bindingId, undefined);
           }

@@ -11,7 +11,7 @@
 - **Authoring:** classic
 - **Surfaces:** Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. UI Actions require an explicit server surface; mixed client/server UI Actions stay silent because execution regions are not classified. Unknown surfaces stay silent.
 - **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
-- **Last verified:** 2026-08-22
+- **Last verified:** 2026-08-24
 - **Implementation:** [`src/rules/prefer-glideaggregate.ts`](../../src/rules/prefer-glideaggregate.ts)
 
 ## Applicability
@@ -57,7 +57,7 @@ var count = ga.next() ? parseInt(ga.getAggregate("COUNT"), 10) : 0;
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-negative: A possible platform constructor namespace reassignment, prototype or relevant instance-method mutation, or dynamic-scope uncertainty suppresses matching diagnostics throughout the file.
 
 ## Known false positives
 
@@ -65,7 +65,7 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
 
 ## Known false negatives
 
-- None recorded.
+- A possible platform constructor namespace reassignment, prototype or relevant instance-method mutation, or dynamic-scope uncertainty suppresses matching diagnostics throughout the file.
 
 ## Intentional scope boundaries
 
@@ -102,6 +102,11 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
   - URL: tests/rules/prefer-glideaggregate.test.ts
   - Verified by: fixture
   - Verified at: 2026-08-20
+- **Constructor namespace, prototype, instance-method, and dynamic-scope mutations are covered by shared platform-authority fixtures.**
+  - Verification ID: `rule-evidence-485e1a9d`
+  - URL: tests/rules/platform-method-authority.test.ts
+  - Verified by: fixture
+  - Verified at: 2026-08-24
 
 ## See also
 

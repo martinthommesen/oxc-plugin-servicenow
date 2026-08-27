@@ -10,7 +10,11 @@ import {
   type ImmediateFunction,
   type StableInvocationQuery,
 } from "./stable-invocations.js";
-import type { BindingWriteQuery } from "./binding-writes.js";
+import {
+  hasAuthoritativeConstructedMethod,
+  hasAuthoritativeGlideRecordMethod,
+  type PlatformMethodAuthorityFacts,
+} from "./platform-method-authority.js";
 
 export interface QueryInLoopFinding {
   node: ESTree.CallExpression;
@@ -22,6 +26,7 @@ type CursorKind = "GlideRecord" | "GlideAggregate";
 
 interface CursorVisitState {
   readonly analysis: ProvenanceQuery;
+  readonly authority: PlatformMethodAuthorityFacts;
   readonly findings: QueryInLoopFinding[];
   readonly invocations: StableInvocationQuery;
   readonly activeFunctions: Set<ImmediateFunction>;
@@ -48,29 +53,56 @@ function isQueryExecutor(kind: CursorKind, property: string, analysis: Provenanc
   return kind === "GlideRecord" ? analysis.glide.executors.has(property) : property === "query";
 }
 
-function isCursorAdvanceCall(node: unknown, analysis: ProvenanceQuery): boolean {
+function hasCursorMethodAuthority(
+  kind: CursorKind,
+  receiver: unknown,
+  property: string,
+  authority: PlatformMethodAuthorityFacts,
+): boolean {
+  return kind === "GlideRecord"
+    ? hasAuthoritativeGlideRecordMethod(authority, receiver, property)
+    : hasAuthoritativeConstructedMethod(authority, receiver, "GlideAggregate", property);
+}
+
+function isCursorAdvanceCall(
+  node: unknown,
+  analysis: ProvenanceQuery,
+  authority: PlatformMethodAuthorityFacts,
+): boolean {
   if (!isNode(node) || node.type !== "CallExpression") return false;
   const call = node as ESTree.CallExpression;
   const property = staticPropertyName(call.callee);
   if (!property) return false;
   if (call.callee.type !== "MemberExpression") return false;
-  const kind = provenCursorKind(analysis, (call.callee as ESTree.MemberExpression).object);
+  const receiver = (call.callee as ESTree.MemberExpression).object;
+  const kind = provenCursorKind(analysis, receiver);
   if (!kind) return false;
+  if (!hasCursorMethodAuthority(kind, receiver, property, authority)) return false;
   return kind === "GlideRecord"
     ? analysis.glide.cursorAdvancers.has(property)
     : property === "next";
 }
 
-function loopBodyRequiresCursor(test: unknown, analysis: ProvenanceQuery): boolean {
-  return truthyPathRequiresCursorNext(test, (node) => isCursorAdvanceCall(node, analysis));
+function loopBodyRequiresCursor(
+  test: unknown,
+  analysis: ProvenanceQuery,
+  authority: PlatformMethodAuthorityFacts,
+): boolean {
+  return truthyPathRequiresCursorNext(test, (node) =>
+    isCursorAdvanceCall(node, analysis, authority),
+  );
 }
 
-function containsCursorAdvance(node: unknown, analysis: ProvenanceQuery): boolean {
+function containsCursorAdvance(
+  node: unknown,
+  analysis: ProvenanceQuery,
+  authority: PlatformMethodAuthorityFacts,
+): boolean {
   if (!isNode(node) || isFunctionNode(node)) return false;
-  if (isCursorAdvanceCall(node, analysis)) return true;
+  if (isCursorAdvanceCall(node, analysis, authority)) return true;
   let found = false;
   visitChildren(node, (child) => {
-    if (!found && containsCursorAdvance(child, analysis)) found = true;
+    if (!found && containsCursorAdvance(child, analysis, authority)) found = true;
   });
   return found;
 }
@@ -78,13 +110,14 @@ function containsCursorAdvance(node: unknown, analysis: ProvenanceQuery): boolea
 export function findQueriesInCursorLoops(
   program: ESTree.Node,
   analysis: ProvenanceQuery,
-  bindingWrites: BindingWriteQuery,
+  authority: PlatformMethodAuthorityFacts,
 ): QueryInLoopFinding[] {
   const findings: QueryInLoopFinding[] = [];
   const state: CursorVisitState = {
     analysis,
+    authority,
     findings,
-    invocations: analyzeStableInvocations(program, analysis.bindings, bindingWrites),
+    invocations: analyzeStableInvocations(program, analysis.bindings, authority.bindingWrites),
     activeFunctions: new Set(),
     visitedFunctionModes: new WeakMap(),
   };
@@ -154,7 +187,7 @@ function visit(node: unknown, cursorDepth: number, state: CursorVisitState): voi
 
   if (node.type === "WhileStatement") {
     const stmt = node as ESTree.WhileStatement;
-    const nextDepth = loopBodyRequiresCursor(stmt.test, state.analysis)
+    const nextDepth = loopBodyRequiresCursor(stmt.test, state.analysis, state.authority)
       ? cursorDepth + 1
       : cursorDepth;
     visitCondition(stmt.test, cursorDepth, state);
@@ -169,7 +202,7 @@ function visit(node: unknown, cursorDepth: number, state: CursorVisitState): voi
     visit(stmt.body, cursorDepth, state);
     visitCondition(stmt.test, cursorDepth, state);
     if (
-      loopBodyRequiresCursor(stmt.test, state.analysis) &&
+      loopBodyRequiresCursor(stmt.test, state.analysis, state.authority) &&
       !definitelySkipsDoWhileTest(stmt.body)
     ) {
       visit(stmt.body, cursorDepth + 1, state);
@@ -180,14 +213,14 @@ function visit(node: unknown, cursorDepth: number, state: CursorVisitState): voi
   if (node.type === "ForStatement") {
     const stmt = node as ESTree.ForStatement;
     const nextDepth =
-      stmt.test && loopBodyRequiresCursor(stmt.test, state.analysis)
+      stmt.test && loopBodyRequiresCursor(stmt.test, state.analysis, state.authority)
         ? cursorDepth + 1
         : cursorDepth;
     if (stmt.init) visit(stmt.init, cursorDepth, state);
     if (stmt.test) visitCondition(stmt.test, cursorDepth, state);
     visit(stmt.body, nextDepth, state);
     if (stmt.update) visit(stmt.update, nextDepth, state);
-    if (stmt.update && containsCursorAdvance(stmt.update, state.analysis)) {
+    if (stmt.update && containsCursorAdvance(stmt.update, state.analysis, state.authority)) {
       visit(stmt.body, nextDepth + 1, state);
     }
     return;
@@ -199,7 +232,11 @@ function visit(node: unknown, cursorDepth: number, state: CursorVisitState): voi
     if (property && call.callee.type === "MemberExpression") {
       const object = (call.callee as ESTree.MemberExpression).object;
       const kind = provenCursorKind(state.analysis, object);
-      if (kind && isQueryExecutor(kind, property, state.analysis)) {
+      if (
+        kind &&
+        isQueryExecutor(kind, property, state.analysis) &&
+        hasCursorMethodAuthority(kind, object, property, state.authority)
+      ) {
         state.findings.push({ node: call, name: getName(object) ?? "record", method: property });
       }
     }
@@ -215,7 +252,8 @@ function visitCondition(node: unknown, cursorDepth: number, state: CursorVisitSt
     const logical = expr as ESTree.LogicalExpression;
     visitCondition(logical.left, cursorDepth, state);
     const rightDepth =
-      logical.operator === "&&" && loopBodyRequiresCursor(logical.left, state.analysis)
+      logical.operator === "&&" &&
+      loopBodyRequiresCursor(logical.left, state.analysis, state.authority)
         ? cursorDepth + 1
         : cursorDepth;
     visitCondition(logical.right, rightDepth, state);
@@ -225,7 +263,7 @@ function visitCondition(node: unknown, cursorDepth: number, state: CursorVisitSt
     let depth = cursorDepth;
     for (const value of (expr as ESTree.SequenceExpression).expressions) {
       visit(value, depth, state);
-      if (isCursorAdvanceCall(value, state.analysis)) depth += 1;
+      if (isCursorAdvanceCall(value, state.analysis, state.authority)) depth += 1;
     }
     return;
   }

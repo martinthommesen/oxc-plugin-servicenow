@@ -11,7 +11,7 @@ The reviewed Zurich and Australia-scoped GlideRecord references document that `q
 - **Authoring:** classic
 - **Surfaces:** Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. UI Actions require an explicit server surface; mixed client/server UI Actions stay silent because execution regions are not classified. Unknown surfaces stay silent.
 - **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
-- **Last verified:** 2026-08-22
+- **Last verified:** 2026-08-24
 - **Implementation:** [`src/rules/prefer-setnocount-with-choosewindow.ts`](../../src/rules/prefer-setnocount-with-choosewindow.ts)
 
 ## Applicability
@@ -61,7 +61,7 @@ while (rec.next()) {
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. lifecycle: Window and setNoCount state are scoped to one query epoch and one object identity.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-negative: A possible platform constructor namespace reassignment, prototype or relevant instance-method mutation, or dynamic-scope uncertainty suppresses matching diagnostics throughout the file. lifecycle: Window and setNoCount state are scoped to one query epoch and one object identity.
 
 ## Known false positives
 
@@ -69,7 +69,7 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. lifecyc
 
 ## Known false negatives
 
-- None recorded.
+- A possible platform constructor namespace reassignment, prototype or relevant instance-method mutation, or dynamic-scope uncertainty suppresses matching diagnostics throughout the file.
 
 ## Intentional scope boundaries
 
@@ -101,6 +101,11 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. lifecyc
   - URL: tests/integration/profiles/invalid/setnocount-second-query.br.js
   - Verified by: integration-test
   - Verified at: 2026-08-20
+- **Constructor namespace, prototype, instance-method, and dynamic-scope mutations are covered by shared platform-authority fixtures.**
+  - Verification ID: `rule-evidence-42cf68fe`
+  - URL: tests/rules/platform-method-authority.test.ts
+  - Verified by: fixture
+  - Verified at: 2026-08-24
 - **The Australia-global GlideRecord API was reviewed for the methods and lifecycle facts used by this rule.**
   - Verification ID: `rule-evidence-ea766c39`
   - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordAPI.html

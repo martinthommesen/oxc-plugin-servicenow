@@ -12,6 +12,8 @@ interface GlobalObjectMethodOptions {
   readonly runtime?: "instance" | "browser";
 }
 
+const GLIDE_RECORD_CONSTRUCTORS = ["GlideRecord", "GlideRecordSecure"] as const;
+
 function hasReceiverMethodAuthority(
   facts: PlatformMethodAuthorityFacts,
   mutations: MutationQuery,
@@ -74,5 +76,21 @@ export function hasAuthoritativeConstructedMethod(
     !mutations.isGlobalAuthorityLost(constructorName) &&
     !mutations.isGlobalPathAuthorityLost([constructorName, "prototype"]) &&
     !mutations.isGlobalPathAuthorityLost([constructorName, "prototype", property])
+  );
+}
+
+/**
+ * GlideRecord and GlideRecordSecure intentionally share one provenance kind.
+ * Until that public abstraction distinguishes constructors, require both
+ * constructor/prototype paths to remain authoritative and prefer silence when
+ * either may have changed.
+ */
+export function hasAuthoritativeGlideRecordMethod(
+  facts: PlatformMethodAuthorityFacts,
+  receiver: unknown,
+  property: string,
+): boolean {
+  return GLIDE_RECORD_CONSTRUCTORS.every((constructorName) =>
+    hasAuthoritativeConstructedMethod(facts, receiver, constructorName, property),
   );
 }
