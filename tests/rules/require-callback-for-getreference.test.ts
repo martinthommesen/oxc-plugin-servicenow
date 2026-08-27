@@ -230,6 +230,20 @@ g_form.getReference("caller_id");`,
     }
   });
 
+  it("keeps unrelated Reflect.apply mutations precise for a stable let array", () => {
+    assertInvalid(
+      `let args = [g_form, "setValue", { value: custom }];
+Reflect.apply(Object.defineProperty, Object, args);
+g_form.getReference("caller_id");`,
+      RULE,
+      { messageId: "missingCallback" },
+      {
+        filename: "incident.client.js",
+        settings: { javascriptMode: "es2021" },
+      },
+    );
+  });
+
   it("tracks defaulted destructured prototype aliases as possible platform owners", () => {
     for (const code of [
       `const { prototype: formPrototype = GlideForm.prototype } = GlideForm;
