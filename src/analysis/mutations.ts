@@ -590,6 +590,7 @@ function buildIndex(
         resolveBuiltinCall(call, bindings, {
           allowGlobalThis: globalThisCanExist,
           allowReflectApply: browserRuntime,
+          resolveArrayArguments: stableArrayArguments,
         }),
       );
       if (!builtin) {
