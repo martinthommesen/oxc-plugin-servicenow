@@ -99,8 +99,6 @@ function unsupportedGlobalInvocationIsProtected(
   const { aliasOrigin, name, node: invocation } = finding;
   const method = "method" in finding ? finding.method : undefined;
   const { analysis, context: script, file } = beginRuleFile(context);
-  const isConstructorAccess = (candidate: unknown): boolean =>
-    resolvePlatformGlobalName(candidate, analysis.bindings) === name;
   const isRootCallInvalidation = (call: ESTree.CallExpression): boolean =>
     builtInCallMayWritePlatformProperty(
       call,
@@ -135,6 +133,20 @@ function unsupportedGlobalInvocationIsProtected(
         guardCacheKey: "unsupported-constructor:global-this",
       },
     );
+  const isConstructorAccess = (candidate: unknown): boolean => {
+    if (resolvePlatformGlobalName(candidate, analysis.bindings) !== name) return false;
+    const candidateNamespace = platformGlobalNamespaceAccess(candidate, analysis.bindings);
+    return candidateNamespace === null || globalThisIsSafeAt(candidateNamespace);
+  };
+  const isConstructorPropertyExistenceTest = (property: string, object: ESTree.Node): boolean => {
+    const origin = resolveConstValue(object, analysis.bindings);
+    return (
+      property === name &&
+      origin !== null &&
+      directPlatformGlobalName(origin, analysis.bindings) === "globalThis" &&
+      globalThisIsSafeAt(origin)
+    );
+  };
   const namespace = platformGlobalNamespaceAccess(invocation.callee, analysis.bindings);
   if (namespace && !globalThisIsSafeAt(namespace)) return false;
 
@@ -154,8 +166,7 @@ function unsupportedGlobalInvocationIsProtected(
       allowDirectAccessGuard: false,
       guardCacheKey: `unsupported-constructor:origin:${name}`,
       isCallInvalidation: isRootCallInvalidation,
-      isPropertyExistenceTest: (property, object) =>
-        property === name && resolvePlatformGlobalName(object, analysis.bindings) === "globalThis",
+      isPropertyExistenceTest: isConstructorPropertyExistenceTest,
     })
   ) {
     return false;
@@ -176,8 +187,7 @@ function unsupportedGlobalInvocationIsProtected(
     allowDirectAccessGuard: hasSafeQualifiedOrigin,
     guardCacheKey: `unsupported-global:root:${name}`,
     isCallInvalidation: isRootCallInvalidation,
-    isPropertyExistenceTest: (property, object) =>
-      property === name && resolvePlatformGlobalName(object, analysis.bindings) === "globalThis",
+    isPropertyExistenceTest: isConstructorPropertyExistenceTest,
     isOptionalInvocation: (candidate) => {
       if (candidate.type !== "CallExpression" || !candidate.optional) return false;
       if (method === undefined) return hasSafeQualifiedOrigin(candidate.callee);
