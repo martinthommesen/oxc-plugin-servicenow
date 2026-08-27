@@ -91,6 +91,17 @@ describe("profile fixtures", () => {
     assert.ok(rules.includes("servicenow/no-promise"));
   });
 
+  it("classic-es5 assigns Promise.try to no-promise without duplicate diagnostics", () => {
+    const filename = "es5-promise-try.server.js";
+    const file = path.join(invalidDir, filename);
+    const oxlintRules = pluginRulesFor(runOxlint(classicEs5Config, [file]));
+    assert.deepEqual(oxlintRules, ["servicenow/no-promise"]);
+
+    assert.deepEqual(eslintClassicEs5(readFileSync(file, "utf8"), filename), [
+      "servicenow/no-promise",
+    ]);
+  });
+
   it("classic-es5 Oxlint and ESLint resolve stable Promise aliases", () => {
     const filename = "es5-promise-alias.server.js";
     const file = path.join(invalidDir, filename);

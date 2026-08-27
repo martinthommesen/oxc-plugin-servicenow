@@ -135,7 +135,13 @@ if (
 ) {
   fail("catalog release-review registry keys do not match supported ServiceNow releases");
 }
-const allowedReviewBases = new Set(["direct", "engine-matrix", "glide-record", "glide-aggregate"]);
+const allowedReviewBases = new Set([
+  "direct",
+  "engine-matrix",
+  "engine-updates",
+  "glide-record",
+  "glide-aggregate",
+]);
 for (const release of SUPPORTED_SERVICENOW_RELEASES) {
   const releaseReview = CATALOG_RELEASE_REVIEWS[release];
   if (!releaseReview) continue;

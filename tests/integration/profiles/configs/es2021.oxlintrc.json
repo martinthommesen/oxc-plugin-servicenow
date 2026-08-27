@@ -12,6 +12,7 @@
   "rules": {
     "servicenow/no-async-iterators": "error",
     "servicenow/no-weak-references": "error",
+    "servicenow/no-unsupported-static-methods": "error",
     "servicenow/no-typed-arrays": "error"
   }
 }

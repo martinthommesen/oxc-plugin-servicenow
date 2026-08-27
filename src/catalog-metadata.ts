@@ -72,6 +72,8 @@ export const SN_JS_MODES =
   "https://www.servicenow.com/docs/r/api-reference/scripts/c_JS_modes.html";
 export const SN_JS_FEATURES = ENGINE_FEATURE_EVIDENCE.zurich.url;
 export const SN_JS_FEATURES_AUSTRALIA = ENGINE_FEATURE_EVIDENCE.australia.url;
+export const SN_JS_ENGINE_UPDATES_AUSTRALIA =
+  "https://www.servicenow.com/docs/r/api-reference/scripts/updates-javascript-engine.html";
 export const SN_FLUENT = "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html";
 export const SN_FLUENT_CONSTRUCTS =
   "https://www.servicenow.com/docs/r/application-development/servicenow-sdk/fluent-constructs.html";
@@ -95,7 +97,12 @@ export const SN_ACL_AUSTRALIA =
 export const SN_PACKAGES_REMOVAL =
   "https://www.servicenow.com/docs/r/api-reference/scripts/c_PackagesCallRemovalTool.html";
 
-export type ReleaseReviewBasis = "direct" | "engine-matrix" | "glide-record" | "glide-aggregate";
+export type ReleaseReviewBasis =
+  | "direct"
+  | "engine-matrix"
+  | "engine-updates"
+  | "glide-record"
+  | "glide-aggregate";
 
 export interface ReleaseBasisEvidence {
   readonly url: string;
@@ -143,6 +150,7 @@ export const AUSTRALIA_RULE_REVIEWS = Object.freeze({
   "no-weak-references": { status: "reviewed", basis: ["engine-matrix"] },
   "no-weak-collections": { status: "reviewed", basis: ["engine-matrix"] },
   "no-object-hasown": { status: "reviewed", basis: ["engine-matrix"] },
+  "no-unsupported-static-methods": { status: "reviewed", basis: ["engine-updates"] },
   "no-typed-arrays": { status: "reviewed", basis: ["engine-matrix"] },
   "no-proxy": { status: "reviewed", basis: ["engine-matrix"] },
   "no-unsupported-syntax": { status: "reviewed", basis: ["engine-matrix"] },
@@ -207,6 +215,13 @@ export const CATALOG_RELEASE_REVIEWS = Object.freeze({
           url: SN_JS_FEATURES_AUSTRALIA,
           claim:
             "The Australia JavaScript engine feature table was reviewed for this rule's modeled capability cells.",
+        }),
+      ]),
+      "engine-updates": Object.freeze([
+        Object.freeze({
+          url: SN_JS_ENGINE_UPDATES_AUSTRALIA,
+          claim:
+            "The Australia JavaScript engine update ledger was reviewed for release-added built-ins and their applicable JavaScript modes.",
         }),
       ]),
       "glide-record": Object.freeze([

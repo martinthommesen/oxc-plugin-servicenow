@@ -27,6 +27,9 @@ export type EngineFeatureId =
   | "bigint64-arrays"
   | "dataview-bigint-getters"
   | "object-hasown"
+  | "error-iserror"
+  | "promise-try"
+  | "promise-withresolvers"
   | "global-this"
   | "function-tostring-method-source"
   | "proxy"
@@ -48,7 +51,10 @@ export interface EngineFeatureRelease {
   readonly evidence: string;
   readonly support: Readonly<Record<InstanceJavaScriptMode, FeatureSupport>>;
   readonly supportBasis: Readonly<
-    Record<InstanceJavaScriptMode, "official-table" | "es5-compatibility-policy">
+    Record<
+      InstanceJavaScriptMode,
+      "official-table" | "official-release-update" | "es5-compatibility-policy"
+    >
   >;
 }
 
@@ -62,6 +68,8 @@ const ZURICH =
   "https://www.servicenow.com/docs/r/zurich/api-reference/scripts/javascript-engine-feature-support.html";
 const AUSTRALIA =
   "https://www.servicenow.com/docs/r/api-reference/scripts/javascript-engine-feature-support.html";
+const AUSTRALIA_ENGINE_UPDATES =
+  "https://www.servicenow.com/docs/r/api-reference/scripts/updates-javascript-engine.html";
 
 export interface EngineReleaseEvidenceSnapshot {
   readonly url: string;
@@ -96,14 +104,37 @@ function releaseFeature(
   evidence: string,
   es2021: FeatureSupport,
   es5: FeatureSupport,
+  documentedBy: "official-table" | "official-release-update" = "official-table",
 ): EngineFeatureRelease {
   return Object.freeze({
     evidence,
     support: Object.freeze({ compatibility: es5, es5, es2021 }),
     supportBasis: Object.freeze({
       compatibility: "es5-compatibility-policy",
-      es5: "official-table",
-      es2021: "official-table",
+      es5: documentedBy,
+      es2021: documentedBy,
+    }),
+  });
+}
+
+function australiaUpdateFeature(
+  id: EngineFeatureId,
+  title: string,
+  input: {
+    readonly zurich: readonly [es2021: FeatureSupport, es5: FeatureSupport];
+    readonly australia: readonly [es2021: FeatureSupport, es5: FeatureSupport];
+  },
+): EngineFeature {
+  return Object.freeze({
+    id,
+    title,
+    releases: Object.freeze({
+      zurich: releaseFeature(AUSTRALIA_ENGINE_UPDATES, ...input.zurich, "official-release-update"),
+      australia: releaseFeature(
+        AUSTRALIA_ENGINE_UPDATES,
+        ...input.australia,
+        "official-release-update",
+      ),
     }),
   });
 }
@@ -158,6 +189,22 @@ export const ENGINE_FEATURES: Readonly<Record<EngineFeatureId, EngineFeature>> =
     zurich: ["unsupported", "unsupported"],
     australia: ["supported", "unsupported"],
   }),
+  "error-iserror": australiaUpdateFeature("error-iserror", "Error.isError", {
+    zurich: ["unsupported", "unsupported"],
+    australia: ["supported", "unsupported"],
+  }),
+  "promise-try": australiaUpdateFeature("promise-try", "Promise.try", {
+    zurich: ["unsupported", "disallowed"],
+    australia: ["supported", "disallowed"],
+  }),
+  "promise-withresolvers": australiaUpdateFeature(
+    "promise-withresolvers",
+    "Promise.withResolvers",
+    {
+      zurich: ["unsupported", "disallowed"],
+      australia: ["supported", "disallowed"],
+    },
+  ),
   "global-this": unchanged("global-this", "globalThis", "supported", "disallowed"),
   "function-tostring-method-source": feature(
     "function-tostring-method-source",
