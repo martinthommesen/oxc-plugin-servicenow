@@ -3,6 +3,8 @@ import {
   getName,
   getStaticStringValue,
   isNode,
+  nodeEnd,
+  nodeStart,
   propertyKeyName,
   unwrapExpression,
   walk,
@@ -74,6 +76,7 @@ interface BuiltinCall extends BuiltinReference {
 }
 
 const MAX_NAMESPACE_ESCAPE_DEPTH = 32;
+const MAX_REFLECT_APPLY_DEPTH = 16;
 
 function pathKey(path: readonly string[]): string {
   return JSON.stringify(path);
@@ -186,45 +189,56 @@ function buildIndex(
     }
   };
 
-  const recordGlobalPath = (path: readonly string[]): void => {
-    recordGlobalPathInto(path, callable);
+  const aliasValue = (node: unknown, temporal: boolean): ESTree.Node | null => {
+    let value = unwrapExpression(node);
+    const seen = new Set<number>();
+    while (isNode(value)) {
+      if (value.type === "SequenceExpression") {
+        value = unwrapExpression(value.expressions.at(-1));
+        continue;
+      }
+      if (value.type !== "Identifier") return value;
+      const binding = bindings.resolve(value.name, value);
+      const wasWritten = binding
+        ? temporal
+          ? bindingWrites.isWrittenBeforeInBoundary(binding.id, value)
+          : bindingWrites.isWritten(binding.id)
+        : false;
+      if (
+        !binding ||
+        seen.has(binding.id) ||
+        wasWritten ||
+        (binding.kind !== "const" && bindingWrites.hasDynamicScope()) ||
+        binding.declarations.length !== 1 ||
+        binding.node.type !== "VariableDeclarator"
+      ) {
+        return value;
+      }
+      const declaration = binding.node as ESTree.VariableDeclarator;
+      const initializerEnd = declaration.init ? nodeEnd(declaration.init as ESTree.Node) : -1;
+      const useStart = nodeStart(value);
+      if (
+        declaration.id.type !== "Identifier" ||
+        declaration.id.name !== binding.name ||
+        !declaration.init ||
+        initializerEnd < 0 ||
+        useStart < 0 ||
+        initializerEnd > useStart
+      ) {
+        return value;
+      }
+      seen.add(binding.id);
+      value = unwrapExpression(declaration.init);
+    }
+    return null;
   };
 
-  const stableAliasValue = (
-    node: unknown,
-    seen: ReadonlySet<number> = new Set(),
-  ): ESTree.Node | null => {
-    const value = unwrapExpression(node);
-    if (!isNode(value)) return null;
-    if (value.type === "SequenceExpression") {
-      return stableAliasValue(value.expressions.at(-1), seen);
-    }
-    if (value.type !== "Identifier") return value;
-    const binding = bindings.resolve(value.name, value);
-    if (
-      !binding ||
-      seen.has(binding.id) ||
-      bindingWrites.isWritten(binding.id) ||
-      binding.declarations.length !== 1 ||
-      binding.node.type !== "VariableDeclarator"
-    ) {
-      return value;
-    }
-    const declaration = binding.node as ESTree.VariableDeclarator;
-    if (
-      declaration.id.type !== "Identifier" ||
-      declaration.id.name !== binding.name ||
-      !declaration.init
-    ) {
-      return value;
-    }
-    const next = new Set(seen);
-    next.add(binding.id);
-    return stableAliasValue(declaration.init, next);
-  };
+  const stableAliasValue = (node: unknown): ESTree.Node | null => aliasValue(node, false);
+  const authorityAliasValue = (node: unknown): ESTree.Node | null => aliasValue(node, true);
 
-  const authorityGlobalPath = (
+  const aliasGlobalPath = (
     node: unknown,
+    temporal: boolean,
     seen: ReadonlySet<ESTree.Node> = new Set(),
   ): readonly string[] | null => {
     const direct = unwrapExpression(node);
@@ -232,11 +246,22 @@ function buildIndex(
     const directSeen = new Set(seen);
     directSeen.add(direct);
     const selected = resolveDestructuredConstMember(direct, bindings);
-    if (selected?.fallback === null) {
-      const base = authorityGlobalPath(selected.source, directSeen);
-      return base ? [...base, selected.property] : null;
+    if (selected) {
+      // A defaulted destructuring binding may still denote the selected
+      // platform property or its fallback. Mutation facts are may-facts, so
+      // retain either platform path. Distinct paths collapse to a terminal
+      // wildcard rather than selecting one possible runtime owner.
+      const selectedBase = aliasGlobalPath(selected.source, temporal, directSeen);
+      const selectedPath = selectedBase ? [...selectedBase, selected.property] : null;
+      const fallbackPath =
+        selected.fallback === null
+          ? null
+          : aliasGlobalPath(selected.fallback, temporal, directSeen);
+      if (!selectedPath) return fallbackPath;
+      if (!fallbackPath) return selectedPath;
+      return pathKey(selectedPath) === pathKey(fallbackPath) ? selectedPath : ["*"];
     }
-    const value = stableAliasValue(direct);
+    const value = aliasValue(direct, temporal);
     if (!value || seen.has(value)) return null;
     const next = new Set(directSeen);
     next.add(value);
@@ -247,14 +272,17 @@ function buildIndex(
     if (value.type !== "MemberExpression") return null;
     const property = staticPropertyName(value);
     if (!property) return null;
-    const base = authorityGlobalPath(value.object, next);
+    const base = aliasGlobalPath(value.object, temporal, next);
     return base ? [...base, property] : null;
   };
 
-  const authorityGlobalRoot = (node: unknown): string | null => {
-    const path = authorityGlobalPath(node);
-    return path?.[0] ?? null;
-  };
+  const stableGlobalPath = (node: unknown): readonly string[] | null =>
+    aliasGlobalPath(node, false);
+  const authorityGlobalPath = (node: unknown): readonly string[] | null =>
+    aliasGlobalPath(node, true);
+  const stableGlobalRoot = (node: unknown): string | null => stableGlobalPath(node)?.[0] ?? null;
+  const authorityGlobalRoot = (node: unknown): string | null =>
+    authorityGlobalPath(node)?.[0] ?? null;
 
   const recordProperty = (
     target: unknown,
@@ -268,22 +296,27 @@ function buildIndex(
     if (property === "__proto__") return;
     const value = unwrapExpression(target);
     if (!isNode(value)) return;
-    const path =
-      facts === authority ? authorityGlobalPath(value) : staticGlobalPath(value, bindings);
+    const aliasPath = facts === authority ? authorityGlobalPath(value) : stableGlobalPath(value);
+    const path = aliasPath ?? staticGlobalPath(value, bindings);
     if (path) {
       recordGlobalPathInto([...path, property ?? "*"], facts, source);
     } else {
-      const root =
-        facts === authority ? authorityGlobalRoot(value) : staticGlobalRoot(value, bindings);
+      const aliasRoot = facts === authority ? authorityGlobalRoot(value) : stableGlobalRoot(value);
+      const root = aliasRoot ?? staticGlobalRoot(value, bindings);
       if (root) recordGlobalPathInto([root, "*"], facts, source);
     }
     const object = provenance.ofExpression(value);
-    const terminal = stableAliasValue(value) ?? value;
+    const terminal =
+      (facts === authority ? authorityAliasValue(value) : stableAliasValue(value)) ?? value;
     const terminalName = terminal.type === "Identifier" ? getName(terminal) : null;
     const terminalBinding = terminalName ? bindings.resolve(terminalName, terminal) : null;
+    const terminalWasWrittenBeforeUse =
+      terminalBinding !== null &&
+      bindingWrites.isWrittenBeforeInBoundary(terminalBinding.id, terminal);
     const identityIsStableAllocation = terminal.type === "NewExpression";
     const identityMayAliasNamespace =
       path === null &&
+      !terminalWasWrittenBeforeUse &&
       ((terminal.type === "Identifier" &&
         (terminalBinding?.kind === "param" ||
           terminalBinding?.kind === "let" ||
@@ -379,7 +412,7 @@ function buildIndex(
   };
 
   const arrayArguments = (node: unknown): readonly unknown[] | null => {
-    const value = resolveConstValue(node, bindings);
+    const value = stableAliasValue(node);
     if (value?.type !== "ArrayExpression") return null;
     return value.elements.some((element) => element?.type === "SpreadElement")
       ? null
@@ -402,44 +435,58 @@ function buildIndex(
     return wrapped ? { ...wrapped, arguments: directArguments(value.arguments.slice(1)) } : null;
   };
 
+  const normalizeReflectApply = (initial: BuiltinCall): BuiltinCall | null => {
+    let current = initial;
+    for (let depth = 0; depth < MAX_REFLECT_APPLY_DEPTH; depth += 1) {
+      if (current.owner !== "Reflect" || current.method !== "apply") return current;
+      // ServiceNow instance engines reject Reflect.apply. Browser-executed
+      // client scripts can invoke it, including recursively through itself.
+      if (!browserRuntime || current.arguments === null) return null;
+      const target = staticBuiltin(current.arguments[0]);
+      if (!target) return null;
+      current = { ...target, arguments: arrayArguments(current.arguments[2]) };
+    }
+    return null;
+  };
+
   const calledBuiltin = (call: ESTree.CallExpression): BuiltinCall | null => {
     const direct = staticBuiltin(call.callee);
-    if (direct?.owner === "Reflect" && direct.method === "apply") {
-      // ServiceNow documents Reflect.apply as disallowed in every reviewed
-      // instance mode, so it cannot establish a replacement on the stock
-      // runtime even when its target is a supported Object mutator.
-      if (!browserRuntime) return null;
-      const target = staticBuiltin(call.arguments[0]);
-      return target ? { ...target, arguments: arrayArguments(call.arguments[2]) } : null;
+    if (direct) {
+      return normalizeReflectApply({ ...direct, arguments: directArguments(call.arguments) });
     }
-    if (direct) return { ...direct, arguments: directArguments(call.arguments) };
 
     const callee = resolveConstValue(call.callee, bindings);
     if (callee?.type === "MemberExpression") {
       const helper = staticPropertyName(callee);
       const wrapped = staticBuiltin(callee.object);
       if (wrapped && helper === "call") {
-        return { ...wrapped, arguments: directArguments(call.arguments.slice(1)) };
+        return normalizeReflectApply({
+          ...wrapped,
+          arguments: directArguments(call.arguments.slice(1)),
+        });
       }
       if (wrapped && helper === "apply") {
-        return { ...wrapped, arguments: arrayArguments(call.arguments[1]) };
+        return normalizeReflectApply({
+          ...wrapped,
+          arguments: arrayArguments(call.arguments[1]),
+        });
       }
     }
 
     const bound = boundBuiltin(call.callee);
     if (!bound) return null;
     const invocationArguments = directArguments(call.arguments);
-    return {
+    return normalizeReflectApply({
       ...bound,
       arguments:
         bound.arguments === null || invocationArguments === null
           ? null
           : [...bound.arguments, ...invocationArguments],
-    };
+    });
   };
 
   const definitelyCannotInstallCallable = (node: unknown): boolean => {
-    const value = resolveConstValue(node, bindings);
+    const value = stableAliasValue(node);
     if (!value) return false;
     if (value.type === "Literal") return true;
     if (value.type === "UnaryExpression" && value.operator === "void") return true;
@@ -448,7 +495,7 @@ function buildIndex(
   };
 
   const descriptorMayInstallCallable = (node: unknown): boolean => {
-    const descriptor = resolveConstValue(node, bindings);
+    const descriptor = stableAliasValue(node);
     if (!descriptor || descriptor.type !== "ObjectExpression") return true;
     let getterMayInstall = false;
     let hasGetter = false;
@@ -479,7 +526,7 @@ function buildIndex(
     node: unknown,
     descriptors: boolean,
   ): readonly string[] | null => {
-    const object = resolveConstValue(node, bindings);
+    const object = stableAliasValue(node);
     if (object && definitelyCannotInstallCallable(object)) return [];
     if (!object || object.type !== "ObjectExpression") return null;
     const properties = new Map<string, boolean>();
@@ -514,8 +561,8 @@ function buildIndex(
   const writtenObjectProperties = (node: unknown): readonly string[] | null => {
     // Object.assign ignores null and undefined sources. Treating them as an
     // unknown object would erase otherwise authoritative platform methods.
-    if (isDefinitelyNullishValue(node, bindings)) return [];
     const object = stableAliasValue(node);
+    if (object && isDefinitelyNullishValue(object, bindings)) return [];
     if (!object || object.type !== "ObjectExpression") return null;
     const properties = new Set<string>();
     for (const item of object.properties) {
@@ -534,26 +581,19 @@ function buildIndex(
     source: ESTree.Node | null = isNode(node) ? node : null,
   ): void => {
     if (depth > MAX_NAMESPACE_ESCAPE_DEPTH) return;
-    const value = stableAliasValue(node);
+    const value = authorityAliasValue(node);
     if (!value) return;
     const seenSources = escapedNamespaceValues.get(value) ?? new Set<ESTree.Node | null>();
     if (seenSources.has(source)) return;
     seenSources.add(source);
     escapedNamespaceValues.set(value, seenSources);
 
-    const path = staticGlobalPath(value, bindings);
+    const path = authorityGlobalPath(value) ?? staticGlobalPath(value, bindings);
     if (path) {
       // Passing an object by value cannot replace its owning binding, but an
       // unknown callee can install or replace any property on that object.
-      recordGlobalPath([...path, "*"]);
+      recordGlobalPathInto([...path, "*"], callable);
       recordGlobalPathInto([...path, "*"], authority, source ?? undefined);
-      return;
-    }
-
-    const authorityPath = authorityGlobalPath(value);
-    if (authorityPath) {
-      recordGlobalPath(authorityPath.length > 0 ? [...authorityPath, "*"] : ["*"]);
-      recordGlobalPathInto([...authorityPath, "*"], authority, source ?? undefined);
       return;
     }
 
@@ -634,6 +674,13 @@ function buildIndex(
         // escape or mutate a platform namespace.
         if (platformGlobalNamespaceAccess(call.callee, bindings) && !globalThisCanExist) return;
         const direct = staticBuiltin(call.callee);
+        if (direct?.owner === "Reflect" && direct.method === "apply" && browserRuntime) {
+          // An unresolved or spread invocation can expose its target, `this`,
+          // and argument list. Walk every syntactic argument so nested arrays
+          // and spread aliases cannot hide a client platform object.
+          for (const argument of call.arguments) recordEscapedNamespaces(argument);
+          return;
+        }
         // Object/Reflect intrinsics are modeled below. In particular, the
         // reviewed instance engines reject Reflect mutation helpers, so their
         // arguments must not create fictional writes.
@@ -664,12 +711,26 @@ function buildIndex(
             method === "assign" ||
             method === "setPrototypeOf")) ||
         (ownerName === "Reflect" &&
-          (method === "defineProperty" || method === "set" || method === "setPrototypeOf"));
-      if (!mutatesProperties) return;
+          (method === "defineProperty" ||
+            method === "deleteProperty" ||
+            method === "set" ||
+            method === "setPrototypeOf"));
+      if (!mutatesProperties) {
+        if (ownerName === "Reflect" && method === "construct") {
+          if (effectiveArguments === null) {
+            for (const argument of call.arguments) recordEscapedNamespaces(argument);
+          } else {
+            recordEscapedNamespaces(effectiveArguments[1]);
+          }
+        }
+        return;
+      }
       if (effectiveArguments === null) {
-        globals.add("*");
-        globalPaths.add(pathKey(["*"]));
-        objectPropertyWildcards.add("*");
+        if (method !== "deleteProperty") {
+          globals.add("*");
+          globalPaths.add(pathKey(["*"]));
+          objectPropertyWildcards.add("*");
+        }
         authority.globals.add("*");
         recordGlobalPathInto(["*"], authority, call);
         authority.objectPropertyWildcards.add("*");
@@ -689,6 +750,10 @@ function buildIndex(
         if (!definitelyCannotInstallCallable(effectiveArguments[2])) {
           recordProperty(target, property);
         }
+        return;
+      }
+      if (ownerName === "Reflect" && method === "deleteProperty") {
+        recordProperty(target, getStaticStringValue(effectiveArguments[1]), authority);
         return;
       }
       if (method === "defineProperties") {

@@ -36,23 +36,25 @@ export function resolveConstValue(
   bindings: FileBindings,
   seen: ReadonlySet<number> = new Set(),
 ): ESTree.Node | null {
-  const value = unwrapExpression(node);
-  if (!isNode(value)) return null;
-  if (value.type === "SequenceExpression") {
-    const last = value.expressions.at(-1);
-    return last ? resolveConstValue(last, bindings, seen) : null;
+  let value = unwrapExpression(node);
+  const visited = new Set(seen);
+  while (isNode(value)) {
+    if (value.type === "SequenceExpression") {
+      value = unwrapExpression(value.expressions.at(-1));
+      continue;
+    }
+    if (value.type !== "Identifier") return value;
+    const binding = bindings.resolve(getName(value) ?? "", value);
+    if (binding?.kind !== "const" || binding.node.type !== "VariableDeclarator") return value;
+    const declaration = binding.node as ESTree.VariableDeclarator;
+    if (declaration.id.type !== "Identifier" || getName(declaration.id) !== getName(value)) {
+      return value;
+    }
+    if (visited.has(binding.id)) return null;
+    visited.add(binding.id);
+    value = unwrapExpression(declaration.init);
   }
-  if (value.type !== "Identifier") return value;
-  const binding = bindings.resolve(getName(value) ?? "", value);
-  if (binding?.kind !== "const" || binding.node.type !== "VariableDeclarator") return value;
-  const declaration = binding.node as ESTree.VariableDeclarator;
-  if (declaration.id.type !== "Identifier" || getName(declaration.id) !== getName(value)) {
-    return value;
-  }
-  if (seen.has(binding.id)) return null;
-  const next = new Set(seen);
-  next.add(binding.id);
-  return resolveConstValue(declaration.init, bindings, next);
+  return null;
 }
 
 /**
@@ -66,36 +68,38 @@ export function resolveDominatingConstValue(
   bindings: FileBindings,
   seen: ReadonlySet<number> = new Set(),
 ): ESTree.Node | null {
-  const value = unwrapExpression(node);
-  if (!isNode(value)) return null;
-  if (value.type === "SequenceExpression") {
-    const last = value.expressions.at(-1);
-    return last ? resolveDominatingConstValue(last, bindings, seen) : null;
+  let value = unwrapExpression(node);
+  const visited = new Set(seen);
+  while (isNode(value)) {
+    if (value.type === "SequenceExpression") {
+      value = unwrapExpression(value.expressions.at(-1));
+      continue;
+    }
+    if (value.type !== "Identifier") return value;
+    const binding = bindings.resolve(getName(value) ?? "", value);
+    if (binding?.kind !== "const" || binding.node.type !== "VariableDeclarator") return value;
+    const declaration = binding.node as ESTree.VariableDeclarator;
+    if (
+      declaration.id.type !== "Identifier" ||
+      getName(declaration.id) !== getName(value) ||
+      !declaration.init ||
+      visited.has(binding.id) ||
+      !definitelyPrecedes(declaration.init, value)
+    ) {
+      return value;
+    }
+    const useScope = bindings.tree.scopeForNode(value);
+    if (
+      !useScope ||
+      executionBoundaryForScope(bindings, binding.scopeId) !==
+        executionBoundaryForScope(bindings, useScope.id)
+    ) {
+      return value;
+    }
+    visited.add(binding.id);
+    value = unwrapExpression(declaration.init);
   }
-  if (value.type !== "Identifier") return value;
-  const binding = bindings.resolve(getName(value) ?? "", value);
-  if (binding?.kind !== "const" || binding.node.type !== "VariableDeclarator") return value;
-  const declaration = binding.node as ESTree.VariableDeclarator;
-  if (
-    declaration.id.type !== "Identifier" ||
-    getName(declaration.id) !== getName(value) ||
-    !declaration.init ||
-    seen.has(binding.id) ||
-    !definitelyPrecedes(declaration.init, value)
-  ) {
-    return value;
-  }
-  const useScope = bindings.tree.scopeForNode(value);
-  if (
-    !useScope ||
-    executionBoundaryForScope(bindings, binding.scopeId) !==
-      executionBoundaryForScope(bindings, useScope.id)
-  ) {
-    return value;
-  }
-  const next = new Set(seen);
-  next.add(binding.id);
-  return resolveDominatingConstValue(declaration.init, bindings, next);
+  return null;
 }
 
 /** Whether this expression definitely evaluates to `undefined` if it completes. */

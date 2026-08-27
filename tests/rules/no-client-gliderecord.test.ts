@@ -151,12 +151,11 @@ new GR("incident");`,
       RULE,
       { filename: "form.client.js", settings: { scope: "scoped" } },
     );
-    assertInvalid(
+    assertValid(
       `var GR = GlideRecord;
 eval?.("GR = LocalRecord");
 new GR("incident");`,
       RULE,
-      { messageId: "glideRecord" },
       {
         filename: "form.client.js",
         settings: { javascriptMode: "es2021", scope: "scoped" },
@@ -216,6 +215,12 @@ new GlideRecord("incident");`,
       options,
     );
     assertValid(
+      `Object.assign(global, { GlideRecord: null });
+new GlideRecord("incident");`,
+      RULE,
+      options,
+    );
+    assertValid(
       `new GlideRecord("incident");
 GlideRecord = LocalRecord;`,
       RULE,
@@ -244,6 +249,95 @@ prepare(platform);
 new GlideRecord("incident");`,
       RULE,
       { filename: "form.client.js", settings: { scope: "scoped" } },
+    );
+    assertInvalid(
+      `prepare(platform);
+var platform = global;
+new GlideRecord("incident");`,
+      RULE,
+      { messageId: "glideRecord" },
+      { filename: "form.client.js", settings: { scope: "scoped" } },
+    );
+  });
+
+  it("follows stable mutable namespace aliases for authority loss", () => {
+    const options = { filename: "form.client.js", settings: { scope: "scoped" as const } };
+    for (const code of [
+      `var ns = global;
+ns.GlideRecord = null;
+new GlideRecord("incident");`,
+      `let ns = global;
+delete ns.GlideRecord;
+new GlideRecord("incident");`,
+      `var ns = global;
+Object.defineProperty(ns, "GlideRecord", { value: null });
+new GlideRecord("incident");`,
+      `let ns = global;
+Object.assign(ns, { GlideRecord: undefined });
+new GlideRecord("incident");`,
+      `{
+  let ns = global;
+  ns.GlideRecord = null;
+}
+new GlideRecord("incident");`,
+      `var ns = global;
+prepare(ns);
+new GlideRecord("incident");`,
+    ]) {
+      assertValid(code, RULE, options);
+    }
+  });
+
+  it("retains authority effects that occur before a namespace alias is reassigned", () => {
+    const options = { filename: "form.client.js", settings: { scope: "scoped" as const } };
+    for (const code of [
+      `var ns = global;
+prepare(ns);
+ns = localNamespace;
+new GlideRecord("incident");`,
+      `var ns = global;
+ns.GlideRecord = null;
+ns = localNamespace;
+new GlideRecord("incident");`,
+      `var ns = global;
+ns = (prepare(ns), localNamespace);
+new GlideRecord("incident");`,
+      `var ns = global;
+function replaceLater() { ns = localNamespace; }
+prepare(ns);
+new GlideRecord("incident");`,
+    ]) {
+      assertValid(code, RULE, options);
+    }
+  });
+
+  it("does not follow definitely reassigned namespace aliases", () => {
+    const options = { filename: "form.client.js", settings: { scope: "scoped" as const } };
+    assertInvalid(
+      `let ns = global;
+ns = localNamespace;
+ns.GlideRecord = null;
+new GlideRecord("incident");`,
+      RULE,
+      { messageId: "glideRecord" },
+      options,
+    );
+    assertValid(
+      `var ns = global;
+eval("ns = localNamespace");
+ns.GlideRecord = null;
+new GlideRecord("incident");`,
+      RULE,
+      options,
+    );
+    assertInvalid(
+      `var ns = global;
+ns = localNamespace;
+prepare(ns);
+new GlideRecord("incident");`,
+      RULE,
+      { messageId: "glideRecord" },
+      options,
     );
   });
 

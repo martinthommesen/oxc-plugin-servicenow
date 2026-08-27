@@ -50,12 +50,19 @@ describe("no-gs-now", () => {
   });
 
   it("keeps gs authority across nullish Object.assign sources", () => {
-    assertInvalid(
-      `const absent = null;\nObject.assign(gs, absent, undefined);\ngs.now();`,
-      "no-gs-now",
-      { messageId: "server" },
-      { settings: { javascriptMode: "es2021" } },
-    );
+    for (const declaration of [
+      "const absent = null;",
+      "var absent = null;",
+      "let absent = undefined;",
+      "let absent = void 0;",
+    ]) {
+      assertInvalid(
+        `${declaration}\nObject.assign(gs, absent, undefined);\ngs.now();`,
+        "no-gs-now",
+        { messageId: "server" },
+        { settings: { javascriptMode: "es2021" } },
+      );
+    }
   });
 
   it("keeps a stable gs object alias after the global binding changes", () => {
@@ -671,6 +678,12 @@ install(second); install(first); first.getBigInt64(0); second.getBigInt64(0);`,
       `install(DataView.prototype); new DataView(buffer).getBigInt64(0);`,
       `install({ target: DataView.prototype }); new DataView(buffer).getBigInt64(0);`,
       `const target = DataView.prototype; install(target); new DataView(buffer).getBigInt64(0);`,
+      `var prototype = DataView.prototype;
+prototype.getBigInt64 = custom;
+new DataView(buffer).getBigInt64(0);`,
+      `let prototype = DataView.prototype;
+prototype.getBigInt64 = custom;
+new DataView(buffer).getBigInt64(0);`,
     ]) {
       assertValid(code, "no-typed-arrays", { settings });
     }
@@ -789,6 +802,17 @@ describe("no-object-hasown", () => {
       { messageId: "unsupported" },
       { settings: { javascriptMode: "es5" } },
     );
+  });
+
+  it("keeps callable facts across stable nullish Object.assign sources", () => {
+    for (const declaration of ["var absent = null;", "let absent = undefined;"]) {
+      assertInvalid(
+        `${declaration}\nObject.assign(Object, absent);\nObject.hasOwn(record, "number");`,
+        "no-object-hasown",
+        { messageId: "unsupported" },
+        { settings: { javascriptMode: "es2021", release: "zurich" } },
+      );
+    }
   });
 
   it("recognizes static computed access and proven aliases", () => {
