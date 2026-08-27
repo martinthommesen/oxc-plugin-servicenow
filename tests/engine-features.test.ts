@@ -11,11 +11,13 @@ import { SUPPORTED_SERVICENOW_RELEASES } from "../src/settings/index.js";
 describe("ServiceNow engine feature matrix", () => {
   it("has complete evidence and mode cells for every reviewed release", () => {
     const releaseUpdateFeatures = new Set([
+      "date-fraction-digits",
       "error-iserror",
       "promise-try",
       "promise-withresolvers",
       "set-methods",
     ]);
+    const allModesReleaseUpdateFeatures = new Set(["date-fraction-digits"]);
     assert.deepEqual(SUPPORTED_SERVICENOW_RELEASES, ["zurich", "australia"]);
     assert.deepEqual(Object.keys(ENGINE_FEATURE_RELEASES), SUPPORTED_SERVICENOW_RELEASES);
     for (const spec of Object.values(ENGINE_FEATURES)) {
@@ -27,7 +29,9 @@ describe("ServiceNow engine feature matrix", () => {
           ? "official-release-update"
           : "official-table";
         assert.deepEqual(cell.supportBasis, {
-          compatibility: "es5-compatibility-policy",
+          compatibility: allModesReleaseUpdateFeatures.has(spec.id)
+            ? "official-release-update"
+            : "es5-compatibility-policy",
           es5: documentedBy,
           es2021: documentedBy,
         });
@@ -63,11 +67,17 @@ describe("ServiceNow engine feature matrix", () => {
       assert.equal(featureSupport(id, "es5"), "disallowed");
     }
     assert.equal(featureSupport("set-methods", "es5"), "unsupported");
+    for (const mode of ["compatibility", "es5", "es2021"] as const) {
+      assert.equal(featureSupport("date-fraction-digits", mode, "zurich"), "unsupported");
+      assert.equal(featureSupport("date-fraction-digits", mode, "australia"), "supported");
+      assert.equal(featureSupport("date-fraction-digits", mode), "unknown");
+    }
   });
 
-  it("attributes Australia-added methods to the official engine update", () => {
+  it("attributes Australia-added features to the official engine update", () => {
     for (const id of [
       "error-iserror",
+      "date-fraction-digits",
       "promise-try",
       "promise-withresolvers",
       "set-methods",
@@ -78,6 +88,13 @@ describe("ServiceNow engine feature matrix", () => {
         assert.equal(cell.supportBasis.es2021, "official-release-update");
         assert.equal(cell.supportBasis.es5, "official-release-update");
       }
+    }
+    for (const release of SUPPORTED_SERVICENOW_RELEASES) {
+      assert.deepEqual(ENGINE_FEATURES["date-fraction-digits"].releases[release].supportBasis, {
+        compatibility: "official-release-update",
+        es5: "official-release-update",
+        es2021: "official-release-update",
+      });
     }
   });
 

@@ -71,6 +71,7 @@ describe("configs", () => {
   it("enables release-aware engine rules in both mode profiles", () => {
     for (const rules of [classicEs5Rules, es2021Rules]) {
       assert.equal(rules["servicenow/no-object-hasown"], "error");
+      assert.equal(rules["servicenow/no-unsupported-date-fraction"], "error");
       assert.equal(rules["servicenow/no-unsupported-static-methods"], "error");
       assert.equal(rules["servicenow/no-typed-arrays"], "error");
       assert.equal(rules["servicenow/no-unsupported-syntax"], "error");

@@ -15,6 +15,8 @@ import {
  * The official feature tables publish ES2021 and ES5 Standards columns, not a
  * Compatibility column. The plugin deliberately applies each ES5 cell to
  * Compatibility mode as package policy and records that basis separately.
+ * Release-update entries explicitly documented for all modes are recorded
+ * directly and do not use that inference.
  */
 export type FeatureSupport = "supported" | "unsupported" | "disallowed";
 
@@ -31,6 +33,7 @@ export type EngineFeatureId =
   | "promise-try"
   | "promise-withresolvers"
   | "set-methods"
+  | "date-fraction-digits"
   | "global-this"
   | "function-tostring-method-source"
   | "proxy"
@@ -140,6 +143,40 @@ function australiaUpdateFeature(
   });
 }
 
+/**
+ * Model an Australia update whose applicability is explicitly documented as
+ * all JavaScript modes. Unlike releaseFeature(), this does not infer the
+ * Compatibility cell from ES5 Standards mode.
+ */
+function australiaAllModesUpdateFeature(
+  id: EngineFeatureId,
+  title: string,
+  input: {
+    readonly zurich: FeatureSupport;
+    readonly australia: FeatureSupport;
+  },
+): EngineFeature {
+  const release = (support: FeatureSupport): EngineFeatureRelease =>
+    Object.freeze({
+      evidence: AUSTRALIA_ENGINE_UPDATES,
+      support: Object.freeze({ compatibility: support, es5: support, es2021: support }),
+      supportBasis: Object.freeze({
+        compatibility: "official-release-update",
+        es5: "official-release-update",
+        es2021: "official-release-update",
+      }),
+    });
+
+  return Object.freeze({
+    id,
+    title,
+    releases: Object.freeze({
+      zurich: release(input.zurich),
+      australia: release(input.australia),
+    }),
+  });
+}
+
 function feature(
   id: EngineFeatureId,
   title: string,
@@ -210,6 +247,14 @@ export const ENGINE_FEATURES: Readonly<Record<EngineFeatureId, EngineFeature>> =
     zurich: ["unsupported", "unsupported"],
     australia: ["supported", "unsupported"],
   }),
+  "date-fraction-digits": australiaAllModesUpdateFeature(
+    "date-fraction-digits",
+    "Variable-length ISO date fractional seconds",
+    {
+      zurich: "unsupported",
+      australia: "supported",
+    },
+  ),
   "global-this": unchanged("global-this", "globalThis", "supported", "disallowed"),
   "function-tostring-method-source": feature(
     "function-tostring-method-source",

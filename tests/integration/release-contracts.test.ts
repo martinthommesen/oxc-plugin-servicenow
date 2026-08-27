@@ -26,6 +26,8 @@ const PROMISE_WITH_RESOLVERS = `var deferred = Promise.withResolvers();`;
 const SET_UNION = `const values = new Set(left);
 const alias = values;
 var merged = alias["union"](right);`;
+const SHORT_DATE_FRACTION = `var parsed = new Date("2025-05-07T09:05:20.78Z");`;
+const SHORT_DATE_PARSE = `var parsed = Date.parse("2025-05-07T09:05:20.78Z");`;
 const GUARDED_HAS_OWN = `var owns = Object.hasOwn && Object.hasOwn(record, "number");`;
 const TAINTED_HAS_OWN = `Object.hasOwn(record, "number");
 Object.hasOwn = polyfill;`;
@@ -181,6 +183,50 @@ const contracts: readonly ReleaseContract[] = [
     code: SET_UNION,
     rule: "no-unsupported-set-methods",
     settings: { javascriptMode: "es2021" },
+  },
+  {
+    id: "zurich-short-date-fraction",
+    filename: "zurich-date-fraction.server.js",
+    code: SHORT_DATE_FRACTION,
+    rule: "no-unsupported-date-fraction",
+    settings: { release: "zurich", javascriptMode: "compatibility" },
+    messageId: "unsupported",
+  },
+  {
+    id: "australia-short-date-fraction",
+    filename: "australia-date-fraction.server.js",
+    code: SHORT_DATE_FRACTION,
+    rule: "no-unsupported-date-fraction",
+    settings: { release: "australia", javascriptMode: "compatibility" },
+  },
+  {
+    id: "omitted-release-short-date-fraction",
+    filename: "omitted-date-fraction.server.js",
+    code: SHORT_DATE_FRACTION,
+    rule: "no-unsupported-date-fraction",
+    settings: { javascriptMode: "compatibility" },
+  },
+  {
+    id: "zurich-short-date-parse",
+    filename: "zurich-date-parse.server.js",
+    code: SHORT_DATE_PARSE,
+    rule: "no-unsupported-date-fraction",
+    settings: { release: "zurich", javascriptMode: "compatibility" },
+    messageId: "unsupported",
+  },
+  {
+    id: "australia-short-date-parse",
+    filename: "australia-date-parse.server.js",
+    code: SHORT_DATE_PARSE,
+    rule: "no-unsupported-date-fraction",
+    settings: { release: "australia", javascriptMode: "compatibility" },
+  },
+  {
+    id: "omitted-release-short-date-parse",
+    filename: "omitted-date-parse.server.js",
+    code: SHORT_DATE_PARSE,
+    rule: "no-unsupported-date-fraction",
+    settings: { javascriptMode: "compatibility" },
   },
   {
     id: "zurich-tainted-object-hasown",

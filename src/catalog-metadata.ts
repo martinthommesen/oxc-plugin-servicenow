@@ -150,6 +150,7 @@ export const AUSTRALIA_RULE_REVIEWS = Object.freeze({
   "no-weak-references": { status: "reviewed", basis: ["engine-matrix"] },
   "no-weak-collections": { status: "reviewed", basis: ["engine-matrix"] },
   "no-object-hasown": { status: "reviewed", basis: ["engine-matrix"] },
+  "no-unsupported-date-fraction": { status: "reviewed", basis: ["engine-updates"] },
   "no-unsupported-set-methods": { status: "reviewed", basis: ["engine-updates"] },
   "no-unsupported-static-methods": { status: "reviewed", basis: ["engine-updates"] },
   "no-typed-arrays": { status: "reviewed", basis: ["engine-matrix"] },
