@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 2.0.0 — 2026-08-27
+
+The 2.0.0 release includes the validated settings, context, rule, and release-governance changes documented below.
+
 ### Added
 
 - First-class ACL script support: explicit and filename-derived `acl` surfaces, boundary-safe ESLint and oxfmt globs, and an opt-in `no-gliderecord-query-in-acl` performance review backed by Australian guidance, authoritative `current` handling, and immediate-path analysis that stops at async suspension.
@@ -56,10 +60,6 @@
 - Release validation now rejects tags that do not point to the exact current protected `main` tip.
 - GlideRecord lifecycle analysis now recognizes the documented `_query()`, `_next()`, and global-only `queryNoDomain()` APIs without guessing when application scope is unknown.
 - ESLint no longer suppresses same-offset query lifecycle diagnostics in later files through retained `createOnce` state.
-
-## 2.0.0 — 2026-08-22
-
-The 2.0.0 release includes the validated settings, context, rule, and release-governance changes documented below.
 
 ### Validation
 
