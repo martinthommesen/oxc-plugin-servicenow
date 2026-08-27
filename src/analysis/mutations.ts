@@ -3,6 +3,8 @@ import {
   getName,
   getStaticStringValue,
   isNode,
+  nodeEnd,
+  nodeStart,
   propertyKeyName,
   unwrapExpression,
   walk,
@@ -86,12 +88,6 @@ function pathWasWritten(paths: ReadonlySet<string>, path: readonly string[]): bo
   return false;
 }
 
-function definitelyPrecedes(left: unknown, right: ESTree.Node): boolean {
-  const leftEnd = isNode(left) ? (left as { end?: number }).end : undefined;
-  const rightStart = (right as { start?: number }).start;
-  return typeof leftEnd === "number" && typeof rightStart === "number" && leftEnd <= rightStart;
-}
-
 function emptyMutationFacts(): MutableMutationFacts {
   return {
     globals: new Set(),
@@ -162,63 +158,59 @@ function buildIndex(
     }
   };
 
-  const recordGlobalPath = (path: readonly string[]): void => {
-    recordGlobalPathInto(path, callable);
-  };
-
-  const executionBoundary = (node: ESTree.Node) => {
-    let scope = bindings.tree.scopeForNode(node);
-    while (
-      scope &&
-      scope.kind !== "module" &&
-      scope.kind !== "function" &&
-      scope.kind !== "static-block"
-    ) {
-      scope = scope.parent;
+  const aliasValue = (node: unknown, temporal: boolean): ESTree.Node | null => {
+    let value = unwrapExpression(node);
+    const seen = new Set<number>();
+    while (isNode(value)) {
+      if (value.type === "SequenceExpression") {
+        value = unwrapExpression(value.expressions.at(-1));
+        continue;
+      }
+      if (value.type !== "Identifier") return value;
+      const binding = bindings.resolve(value.name, value);
+      const wasWritten = binding
+        ? temporal
+          ? bindingWrites.isWrittenBeforeInBoundary(binding.id, value)
+          : bindingWrites.isWritten(binding.id)
+        : false;
+      if (
+        !binding ||
+        seen.has(binding.id) ||
+        wasWritten ||
+        (binding.kind !== "const" && bindingWrites.hasDynamicScope()) ||
+        binding.declarations.length !== 1 ||
+        binding.node.type !== "VariableDeclarator"
+      ) {
+        return value;
+      }
+      const declaration = binding.node as ESTree.VariableDeclarator;
+      const initializerEnd = declaration.init ? nodeEnd(declaration.init as ESTree.Node) : -1;
+      const useStart = nodeStart(value);
+      if (
+        declaration.id.type !== "Identifier" ||
+        declaration.id.name !== binding.name ||
+        !declaration.init ||
+        initializerEnd < 0 ||
+        useStart < 0 ||
+        initializerEnd > useStart
+      ) {
+        return value;
+      }
+      seen.add(binding.id);
+      value = unwrapExpression(declaration.init);
     }
-    return scope;
+    return null;
   };
 
-  const stableAliasValue = (
+  const stableAliasValue = (node: unknown): ESTree.Node | null => aliasValue(node, false);
+  const authorityAliasValue = (node: unknown): ESTree.Node | null => aliasValue(node, true);
+
+  const aliasGlobalPath = (
     node: unknown,
-    seen: ReadonlySet<number> = new Set(),
-  ): ESTree.Node | null => {
-    const value = unwrapExpression(node);
-    if (!isNode(value)) return null;
-    if (value.type === "SequenceExpression") {
-      return stableAliasValue(value.expressions.at(-1), seen);
-    }
-    if (value.type !== "Identifier") return value;
-    const binding = bindings.resolve(value.name, value);
-    if (
-      !binding ||
-      seen.has(binding.id) ||
-      bindingWrites.isWritten(binding.id) ||
-      binding.declarations.length !== 1 ||
-      binding.node.type !== "VariableDeclarator"
-    ) {
-      return value;
-    }
-    const declaration = binding.node as ESTree.VariableDeclarator;
-    const sameExecutionBoundary = executionBoundary(declaration) === executionBoundary(value);
-    if (
-      declaration.id.type !== "Identifier" ||
-      declaration.id.name !== binding.name ||
-      !declaration.init ||
-      (sameExecutionBoundary && !definitelyPrecedes(declaration.init, value))
-    ) {
-      return value;
-    }
-    const next = new Set(seen);
-    next.add(binding.id);
-    return stableAliasValue(declaration.init, next);
-  };
-
-  const authorityGlobalPath = (
-    node: unknown,
+    temporal: boolean,
     seen: ReadonlySet<ESTree.Node> = new Set(),
   ): readonly string[] | null => {
-    const value = stableAliasValue(node);
+    const value = aliasValue(node, temporal);
     if (!value || seen.has(value)) return null;
     const next = new Set(seen);
     next.add(value);
@@ -229,14 +221,17 @@ function buildIndex(
     if (value.type !== "MemberExpression") return null;
     const property = staticPropertyName(value);
     if (!property) return null;
-    const base = authorityGlobalPath(value.object, next);
+    const base = aliasGlobalPath(value.object, temporal, next);
     return base ? [...base, property] : null;
   };
 
-  const authorityGlobalRoot = (node: unknown): string | null => {
-    const path = authorityGlobalPath(node);
-    return path?.[0] ?? null;
-  };
+  const stableGlobalPath = (node: unknown): readonly string[] | null =>
+    aliasGlobalPath(node, false);
+  const authorityGlobalPath = (node: unknown): readonly string[] | null =>
+    aliasGlobalPath(node, true);
+  const stableGlobalRoot = (node: unknown): string | null => stableGlobalPath(node)?.[0] ?? null;
+  const authorityGlobalRoot = (node: unknown): string | null =>
+    authorityGlobalPath(node)?.[0] ?? null;
 
   const recordProperty = (
     target: unknown,
@@ -249,20 +244,27 @@ function buildIndex(
     if (property === "__proto__") return;
     const value = unwrapExpression(target);
     if (!isNode(value)) return;
-    const path = authorityGlobalPath(value) ?? staticGlobalPath(value, bindings);
+    const aliasPath = facts === authority ? authorityGlobalPath(value) : stableGlobalPath(value);
+    const path = aliasPath ?? staticGlobalPath(value, bindings);
     if (path) {
       recordGlobalPathInto([...path, property ?? "*"], facts);
     } else {
-      const root = authorityGlobalRoot(value) ?? staticGlobalRoot(value, bindings);
+      const aliasRoot = facts === authority ? authorityGlobalRoot(value) : stableGlobalRoot(value);
+      const root = aliasRoot ?? staticGlobalRoot(value, bindings);
       if (root) recordGlobalPathInto([root, "*"], facts);
     }
     const object = provenance.ofExpression(value);
-    const terminal = stableAliasValue(value) ?? value;
+    const terminal =
+      (facts === authority ? authorityAliasValue(value) : stableAliasValue(value)) ?? value;
     const terminalName = terminal.type === "Identifier" ? getName(terminal) : null;
     const terminalBinding = terminalName ? bindings.resolve(terminalName, terminal) : null;
+    const terminalWasWrittenBeforeUse =
+      terminalBinding !== null &&
+      bindingWrites.isWrittenBeforeInBoundary(terminalBinding.id, terminal);
     const identityIsStableAllocation = terminal.type === "NewExpression";
     const identityMayAliasNamespace =
       path === null &&
+      !terminalWasWrittenBeforeUse &&
       ((terminal.type === "Identifier" &&
         (terminalBinding?.kind === "param" ||
           terminalBinding?.kind === "let" ||
@@ -502,23 +504,16 @@ function buildIndex(
   const escapedNamespaceValues = new WeakSet<ESTree.Node>();
   const recordEscapedNamespaces = (node: unknown, depth = 0): void => {
     if (depth > MAX_NAMESPACE_ESCAPE_DEPTH) return;
-    const value = stableAliasValue(node);
+    const value = authorityAliasValue(node);
     if (!value || escapedNamespaceValues.has(value)) return;
     escapedNamespaceValues.add(value);
 
-    const path = staticGlobalPath(value, bindings);
+    const path = authorityGlobalPath(value) ?? staticGlobalPath(value, bindings);
     if (path) {
       // Passing an object by value cannot replace its owning binding, but an
       // unknown callee can install or replace any property on that object.
-      recordGlobalPath([...path, "*"]);
+      recordGlobalPathInto([...path, "*"], callable);
       recordGlobalPathInto([...path, "*"], authority);
-      return;
-    }
-
-    const authorityPath = authorityGlobalPath(value);
-    if (authorityPath) {
-      recordGlobalPath(authorityPath.length > 0 ? [...authorityPath, "*"] : ["*"]);
-      recordGlobalPathInto([...authorityPath, "*"], authority);
       return;
     }
 
