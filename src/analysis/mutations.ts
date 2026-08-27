@@ -86,6 +86,12 @@ function pathWasWritten(paths: ReadonlySet<string>, path: readonly string[]): bo
   return false;
 }
 
+function definitelyPrecedes(left: unknown, right: ESTree.Node): boolean {
+  const leftEnd = isNode(left) ? (left as { end?: number }).end : undefined;
+  const rightStart = (right as { start?: number }).start;
+  return typeof leftEnd === "number" && typeof rightStart === "number" && leftEnd <= rightStart;
+}
+
 function emptyMutationFacts(): MutableMutationFacts {
   return {
     globals: new Set(),
@@ -160,6 +166,19 @@ function buildIndex(
     recordGlobalPathInto(path, callable);
   };
 
+  const executionBoundary = (node: ESTree.Node) => {
+    let scope = bindings.tree.scopeForNode(node);
+    while (
+      scope &&
+      scope.kind !== "module" &&
+      scope.kind !== "function" &&
+      scope.kind !== "static-block"
+    ) {
+      scope = scope.parent;
+    }
+    return scope;
+  };
+
   const stableAliasValue = (
     node: unknown,
     seen: ReadonlySet<number> = new Set(),
@@ -181,10 +200,12 @@ function buildIndex(
       return value;
     }
     const declaration = binding.node as ESTree.VariableDeclarator;
+    const sameExecutionBoundary = executionBoundary(declaration) === executionBoundary(value);
     if (
       declaration.id.type !== "Identifier" ||
       declaration.id.name !== binding.name ||
-      !declaration.init
+      !declaration.init ||
+      (sameExecutionBoundary && !definitelyPrecedes(declaration.init, value))
     ) {
       return value;
     }

@@ -10,7 +10,7 @@ interface BindingWriteIndex {
 export interface BindingWriteQuery {
   /** True when the lexical binding is assigned or updated outside its declaration. */
   isWritten(bindingId: number): boolean;
-  /** True when direct global eval or with can invalidate lexical resolution. */
+  /** True when global eval or with can invalidate file-visible bindings. */
   hasDynamicScope(): boolean;
 }
 
@@ -48,7 +48,6 @@ function buildIndex(program: ESTree.Node | undefined, bindings: FileBindings): B
         const call = node as ESTree.CallExpression;
         const callee = unwrapExpression(call.callee);
         if (
-          !call.optional &&
           isNode(callee) &&
           callee.type === "Identifier" &&
           callee.name === "eval" &&

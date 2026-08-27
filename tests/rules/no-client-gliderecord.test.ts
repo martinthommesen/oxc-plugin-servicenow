@@ -151,12 +151,11 @@ new GR("incident");`,
       RULE,
       { filename: "form.client.js", settings: { scope: "scoped" } },
     );
-    assertInvalid(
+    assertValid(
       `var GR = GlideRecord;
 eval?.("GR = LocalRecord");
 new GR("incident");`,
       RULE,
-      { messageId: "glideRecord" },
       {
         filename: "form.client.js",
         settings: { javascriptMode: "es2021", scope: "scoped" },
@@ -243,6 +242,14 @@ new global.GlideRecord("incident");`,
 prepare(platform);
 new GlideRecord("incident");`,
       RULE,
+      { filename: "form.client.js", settings: { scope: "scoped" } },
+    );
+    assertInvalid(
+      `prepare(platform);
+var platform = global;
+new GlideRecord("incident");`,
+      RULE,
+      { messageId: "glideRecord" },
       { filename: "form.client.js", settings: { scope: "scoped" } },
     );
   });
