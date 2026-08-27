@@ -65,6 +65,31 @@ describe(RULE, () => {
     assertInvalid(`record.sys_id = "${ID}";`, RULE, { messageId: "hardcoded" });
   });
 
+  it("recognizes parameter-default and class-field owners without guessing dynamic keys", () => {
+    assertValid(`function digest(md5 = "${ID}") { return md5; }`, RULE);
+    assertInvalid(`function lookup(sysId = "${ID}") { return sysId; }`, RULE, {
+      messageId: "hardcoded",
+    });
+    assertValid(`class Digests { md5 = "${ID}"; }`, RULE);
+    assertValid(`class Digests { ["md5"] = "${ID}"; }`, RULE);
+    assertInvalid(
+      `var md5 = "u_target_field";
+class Configuration { [md5] = "${ID}"; }`,
+      RULE,
+      { messageId: "hardcoded" },
+    );
+  });
+
+  it("does not inherit a hash owner into a static block", () => {
+    assertInvalid(
+      `var md5 = class {
+  static { consume("${ID}"); }
+};`,
+      RULE,
+      { messageId: "hardcoded" },
+    );
+  });
+
   it("can disable hash-name suppression", () => {
     assertInvalid(
       `var md5 = "${ID}";`,
@@ -91,6 +116,11 @@ describe(RULE, () => {
       messageId: "hardcoded",
       count: 1,
     });
+  });
+
+  it("applies hash-owner suppression to statically assembled values", () => {
+    assertValid('var md5 = "97c04b3b" + "1b121000" + "43ab85e5" + "bd0713e2";', RULE);
+    assertValid('var md5 = `97c04b3b${"1b12100043ab85e5bd0713e2"}`;', RULE);
   });
 
   it("reports template quasi and interpolation sys_ids independently", () => {

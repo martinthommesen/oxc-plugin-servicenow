@@ -51,6 +51,22 @@ if (alias${index}.next()) {
 `;
 }
 
+function aclAnalysisBlock(index) {
+  return `var aclRec${index} = new GlideRecord("incident");
+var aclAlias${index} = aclRec${index};
+if (flag${index}) {
+  aclAlias${index}.addQuery("active", true);
+} else {
+  gs.info("keep identity");
+}
+try {
+  gs.info(aclAlias${index}.getValue("number"));
+} catch (error${index}) {
+  gs.error(error${index});
+}
+`;
+}
+
 function fluentRecords(count) {
   const records = Array.from(
     { length: count },
@@ -105,6 +121,10 @@ function generateFixtures(directory) {
   writeFileSync(
     join(directory, "classic/branch-heavy.br.js"),
     Array.from({ length: 80 }, (_, index) => branchHeavyBlock(index)).join("\n"),
+  );
+  writeFileSync(
+    join(directory, "classic/large.acl.js"),
+    Array.from({ length: 200 * repeat }, (_, index) => aclAnalysisBlock(index)).join("\n"),
   );
   writeFileSync(join(directory, "classic/nested.br.js"), nestedScopes(12));
   writeFileSync(join(directory, "fluent/large.now.ts"), fluentRecords(80));
@@ -243,7 +263,12 @@ async function main() {
         configs.recommended,
         [join(work, "classic/large.br.js")],
       ],
-      ["classic-large/all", "all", configs.all, [join(work, "classic/large.br.js")]],
+      [
+        "classic-large/all",
+        "all",
+        configs.all,
+        [join(work, "classic/large.br.js"), join(work, "classic/large.acl.js")],
+      ],
       [
         "branch-heavy/recommended",
         "recommended",
