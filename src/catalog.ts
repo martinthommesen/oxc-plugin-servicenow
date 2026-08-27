@@ -516,9 +516,15 @@ Promise.resolve(1);`,
         ),
         metadata.evidenceRecord(
           "tests/integration/context-contracts.test.ts",
-          "Oxlint and ESLint flag direct, global namespace, computed, aliased, and destructured constructors.",
+          "Oxlint and ESLint flag direct, global namespace, computed, stable aliased, and destructured constructors without leaking mutually exclusive alias assignments.",
           "integration-test",
-          "2026-08-21",
+          "2026-08-24",
+        ),
+        metadata.evidenceRecord(
+          "tests/rules/no-client-gliderecord.test.ts",
+          "Adversarial fixtures cover branch order, alias writes and dominance, shadowing, dynamic scope, namespace escape, and visible platform replacement.",
+          "fixture",
+          "2026-08-24",
         ),
       ],
       {
@@ -551,6 +557,35 @@ Promise.resolve(1);`,
         settings: { authoring: "classic", surfaces: ["client"], scope: "global" },
         code: `var record = new GlideRecord("incident");`,
       },
+      {
+        caseId: "no-client-gliderecord-mutable-alias",
+        kind: "false-negative",
+        description:
+          "Aliases assigned outside their declaration stay silent even when every visible branch selects a platform constructor; proving that identity requires path-sensitive constructor-value analysis.",
+        name: "mutable constructor alias",
+        filename: "conditional.client.js",
+        settings: { authoring: "classic", surfaces: ["client"], scope: "scoped" },
+        code: `var GR;
+if (condition) {
+  GR = GlideRecord;
+} else {
+  GR = GlideRecordSecure;
+}
+new GR("incident");`,
+      },
+      {
+        caseId: "no-client-gliderecord-cross-execution-alias",
+        kind: "false-negative",
+        description:
+          "Aliases used from another function body stay silent because source order alone cannot prove that the initializer ran before the function was called.",
+        name: "cross-execution constructor alias",
+        filename: "deferred.client.js",
+        settings: { authoring: "classic", surfaces: ["client"], scope: "scoped" },
+        code: `var GR = GlideRecord;
+function run() {
+  new GR("incident");
+}`,
+      },
     ],
     title: "No client GlideRecord",
     family: "classic",
@@ -559,7 +594,7 @@ Promise.resolve(1);`,
     fixable: false,
     hasSuggestions: false,
     description:
-      "Client GlideRecord is unsupported in scoped applications. Query on the server with GlideAjax or Scripted REST.",
+      "Proven platform GlideRecord calls are unsupported in scoped client applications. Query on the server with GlideAjax or Scripted REST.",
     bad: [
       {
         name: "client script",

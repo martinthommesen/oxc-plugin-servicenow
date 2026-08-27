@@ -1,4 +1,9 @@
-export { buildScopeTree, createFileBindings, collectPatternNames } from "./bindings.js";
+export {
+  buildScopeTree,
+  createFileBindings,
+  collectPatternNames,
+  forEachResolvedPatternBinding,
+} from "./bindings.js";
 export type { FileBindings, LexicalBinding, ScopeTree } from "./bindings.js";
 export {
   analyzeProvenance,
@@ -48,3 +53,5 @@ export { findQueriesInCursorLoops } from "./glide-query-in-loop.js";
 export type { QueryInLoopFinding } from "./glide-query-in-loop.js";
 export { findChooseWindowWithoutNoCount } from "./glide-setnocount.js";
 export type { ChooseWindowCountFinding } from "./glide-setnocount.js";
+export { findStablePlatformConstructorCalls } from "./platform-constructor-calls.js";
+export type { PlatformConstructorCallFinding } from "./platform-constructor-calls.js";

@@ -327,7 +327,7 @@ Per-file `// @sn-es-latest` still maps to `es2021` with inferred confidence. Pre
 | --- | --- | --- | --- |
 | [`no-hardcoded-sysid`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-hardcoded-sysid.md) | recommended |  | Hardcoded 32-character sys_ids break when an app is installed on another instance |
 | [`prefer-glideaggregate`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/prefer-glideaggregate.md) | strict |  | `GlideRecord.getRowCount()` (and iterate-to-count loops) load every matching row |
-| [`no-client-gliderecord`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-client-gliderecord.md) | recommended |  | Client GlideRecord is unsupported in scoped applications |
+| [`no-client-gliderecord`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-client-gliderecord.md) | recommended |  | Proven platform GlideRecord calls are unsupported in scoped client applications |
 | [`no-gs-now`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-gs-now.md) | recommended |  | `gs.now()` and `gs.nowDateTime()` return timezone-sensitive display strings |
 | [`require-query-before-next`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/require-query-before-next.md) | recommended |  | Require a documented, scope-supported GlideRecord query executor before `.next()` or `._next()` |
 | [`validate-gliderecord-calls`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/validate-gliderecord-calls.md) | off |  | Deprecated alias |
