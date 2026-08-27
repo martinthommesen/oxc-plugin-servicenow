@@ -11,6 +11,7 @@
 
 ### Fixed
 
+- `no-at-method` now honors visible Array/String constructor and prototype replacements, dynamic-scope uncertainty, optional invocation, and structurally dominating prototype-availability guards while keeping the two built-in domains independent.
 - `no-unsupported-syntax` now resolves direct, namespace-qualified, and stable same-execution `RegExp` aliases for constructor-string lookbehind checks while staying silent after visible replacement, shadowing, mutation, or dynamic-scope uncertainty; literal diagnostics remain independent.
 - `no-bigint` now resolves stable same-execution call aliases, requires safe alias capture, honors dominating availability guards and visible callable polyfills, and invalidates guards after modeled writes.
 - `no-promise` and `no-proxy` now resolve stable same-execution constructor and static-method owner aliases, require safe bare-alias capture, honor dominating availability guards, invalidate guards after modeled built-in writes, and avoid attributing visible callable polyfills or dynamic-scope replacements to ServiceNow.

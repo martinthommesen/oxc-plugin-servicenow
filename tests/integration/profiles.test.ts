@@ -164,6 +164,13 @@ describe("profile fixtures", () => {
     assert.deepEqual(eslintClassicEs5(readFileSync(file, "utf8"), filename), []);
   });
 
+  it("classic-es5 Oxlint and ESLint accept an explicit Array.at polyfill", () => {
+    const filename = "es5-polyfilled-at.server.js";
+    const file = path.join(validDir, filename);
+    assert.deepEqual(pluginRulesFor(runOxlint(classicEs5Config, [file])), []);
+    assert.deepEqual(eslintClassicEs5(readFileSync(file, "utf8"), filename), []);
+  });
+
   it("recommended flags GlideRecord in a client fixture", () => {
     const rules = pluginRulesFor(
       runOxlint(recommendedConfig, [path.join(invalidDir, "client-gliderecord.client.js")]),
