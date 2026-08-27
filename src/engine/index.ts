@@ -13,3 +13,10 @@ export type {
   EngineReleaseEvidenceSnapshot,
   FeatureSupport,
 } from "./features.js";
+export { AUSTRALIA_ENGINE_UPDATES, AUSTRALIA_ENGINE_UPDATE_EVIDENCE } from "./australia-updates.js";
+export type {
+  AustraliaEngineUpdate,
+  AustraliaEngineUpdateDisposition,
+  AustraliaEngineUpdateMode,
+  AustraliaEngineUpdateType,
+} from "./australia-updates.js";
