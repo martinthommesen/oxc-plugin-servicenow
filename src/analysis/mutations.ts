@@ -395,11 +395,7 @@ function buildIndex(
       // ServiceNow instance engines reject Reflect.apply. Browser-executed
       // client scripts can invoke it, including recursively through itself.
       if (!browserRuntime || current.arguments === null) return null;
-      const target = resolveBuiltinReference(
-        current.arguments[0],
-        bindings,
-        globalThisCanExist,
-      );
+      const target = resolveBuiltinReference(current.arguments[0], bindings, globalThisCanExist);
       if (!target) return null;
       current = { ...target, arguments: stableArrayArguments(current.arguments[2]) };
     }
