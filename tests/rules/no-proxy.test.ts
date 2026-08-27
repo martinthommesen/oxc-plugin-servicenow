@@ -27,6 +27,16 @@ const pair = P.revocable(target, handler);`,
     );
   });
 
+  it("reports revocable calls through Function helpers", () => {
+    for (const code of [
+      `Proxy.revocable.call(Proxy, target, handler);`,
+      `Proxy.revocable.apply(Proxy, [target, handler]);`,
+      `Proxy.revocable.bind(Proxy)(target, handler);`,
+    ]) {
+      assertInvalid(code, RULE, { messageId: "revocable", count: 1 }, { settings: ES5 });
+    }
+  });
+
   it("keeps shadows, mutable aliases, and cross-execution aliases silent", () => {
     assertValid(
       `function Proxy(target) { return target; }
@@ -113,6 +123,12 @@ new Proxy(target, handler);`,
     );
     assertValid(
       `Proxy.revocable = localRevocable;
+Proxy.revocable(target, handler);`,
+      RULE,
+      { settings: ES5 },
+    );
+    assertValid(
+      `Proxy = { revocable: localRevocable };
 Proxy.revocable(target, handler);`,
       RULE,
       { settings: ES5 },

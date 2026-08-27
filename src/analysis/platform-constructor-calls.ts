@@ -177,15 +177,18 @@ function mutationPathChanged(
     : mutations.isGlobalPathWritten(path);
 }
 
-function stablePlatformGlobalResolver({
-  program,
-  analysis,
-  bindingWrites,
-  mutations,
-  names,
-  namespaces = [],
-  mutationSemantics = "authority",
-}: PlatformConstructorCallOptions): StablePlatformGlobalResolver | null {
+function stablePlatformGlobalResolver(
+  {
+    program,
+    analysis,
+    bindingWrites,
+    mutations,
+    names,
+    namespaces = [],
+    mutationSemantics = "authority",
+  }: PlatformConstructorCallOptions,
+  rootMutationSemantics = mutationSemantics,
+): StablePlatformGlobalResolver | null {
   const nameSet = new Set(names);
   const namespaceSet = new Set(namespaces);
   const { declarators, callSites, callBudgetExceeded } = platformCallSyntaxIndex(program);
@@ -200,10 +203,16 @@ function stablePlatformGlobalResolver({
 
   const globalIdentityIsStable = (name: string): boolean => {
     const globalChanged =
-      mutationSemantics === "authority"
+      rootMutationSemantics === "authority"
         ? mutations.isGlobalAuthorityLost(name)
         : mutations.isGlobalWritten(name);
-    return !globalChanged && pathIdentityIsStable([name]);
+    return (
+      !globalChanged &&
+      !mutationPathChanged(mutations, [name], rootMutationSemantics) &&
+      !namespaces.some((namespace) =>
+        mutationPathChanged(mutations, [namespace, name], rootMutationSemantics),
+      )
+    );
   };
 
   const directNamespace = (node: unknown): string | null => {
@@ -342,23 +351,63 @@ export function findStablePlatformStaticMethodCalls({
   const methodSets = new Map(
     Object.entries(methods).map(([name, candidates]) => [name, new Set(candidates)]),
   );
-  const resolver = stablePlatformGlobalResolver({
-    ...options,
-    names: [...methodSets.keys()],
-  });
+  const resolver = stablePlatformGlobalResolver(
+    {
+      ...options,
+      names: [...methodSets.keys()],
+    },
+    "authority",
+  );
   if (!resolver) return [];
 
   const findings: PlatformStaticMethodCallFinding[] = [];
   for (const callSite of resolver.callSites) {
     if (callSite.node.type !== "CallExpression") continue;
-    const callee = unwrapExpression(callSite.callee);
-    if (!isNode(callee) || callee.type !== "MemberExpression") continue;
-    const method = staticPropertyName(callee);
-    if (!method) continue;
-    const resolved = resolver.resolve(callee.object, callSite.executionBoundary);
-    if (!resolved || !methodSets.get(resolved.name)?.has(method)) continue;
-    if (!resolver.pathIdentityIsStable([resolved.name, method])) continue;
-    findings.push({ ...resolved, method, node: callSite.node });
+    const direct = unwrapExpression(callSite.callee);
+    const targets: Array<{
+      readonly helper: "apply" | "bind" | "call" | null;
+      readonly member: ESTree.MemberExpression;
+    }> = [];
+    if (isNode(direct) && direct.type === "MemberExpression") {
+      targets.push({ helper: null, member: direct });
+      const helper = staticPropertyName(direct);
+      const wrapped = unwrapExpression(direct.object);
+      if (
+        (helper === "call" || helper === "apply") &&
+        isNode(wrapped) &&
+        wrapped.type === "MemberExpression"
+      ) {
+        targets.push({ helper, member: wrapped });
+      }
+    } else if (isNode(direct) && direct.type === "CallExpression") {
+      const bindCallee = unwrapExpression(direct.callee);
+      const wrapped =
+        isNode(bindCallee) &&
+        bindCallee.type === "MemberExpression" &&
+        staticPropertyName(bindCallee) === "bind"
+          ? unwrapExpression(bindCallee.object)
+          : null;
+      if (isNode(wrapped) && wrapped.type === "MemberExpression") {
+        targets.push({ helper: "bind", member: wrapped });
+      }
+    }
+
+    for (const { helper, member } of targets) {
+      const method = staticPropertyName(member);
+      if (!method) continue;
+      const resolved = resolver.resolve(member.object, callSite.executionBoundary);
+      if (!resolved || !methodSets.get(resolved.name)?.has(method)) continue;
+      if (!resolver.pathIdentityIsStable([resolved.name, method])) continue;
+      if (
+        helper &&
+        (!resolver.pathIdentityIsStable([resolved.name, method, helper]) ||
+          !resolver.pathIdentityIsStable(["Function", "prototype", helper]))
+      ) {
+        continue;
+      }
+      findings.push({ ...resolved, method, node: callSite.node });
+      break;
+    }
   }
   return findings;
 }
