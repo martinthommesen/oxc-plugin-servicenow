@@ -52,6 +52,17 @@ P.resolve(1);`,
     }
   });
 
+  it("treats bound built-in arguments as namespace escapes", () => {
+    for (const argument of ["Promise", "...[Promise]"]) {
+      assertValid(
+        `Proxy.revocable.bind(Proxy, ${argument});
+Promise.resolve(1);`,
+        RULE,
+        { settings: ES5 },
+      );
+    }
+  });
+
   it("keeps mutable and cross-execution aliases silent", () => {
     assertValid(
       `let P = Promise;

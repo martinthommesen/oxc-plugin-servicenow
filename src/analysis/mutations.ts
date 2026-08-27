@@ -590,6 +590,7 @@ function buildIndex(
         resolveBuiltinCall(call, bindings, {
           allowGlobalThis: globalThisCanExist,
           allowReflectApply: browserRuntime,
+          resolveArrayArguments: stableArrayArguments,
         }),
       );
       if (!builtin) {
@@ -598,7 +599,13 @@ function buildIndex(
         // escape or mutate a platform namespace.
         if (platformGlobalNamespaceAccess(call.callee, bindings) && !globalThisCanExist) return;
         const bound = resolveBuiltinBindCall(call, bindings, globalThisCanExist);
-        if (bound) return;
+        if (bound) {
+          if (bound.owner === "Object" || bound.owner === "Reflect") return;
+          for (const argument of bound.arguments ?? call.arguments.slice(1)) {
+            recordEscapedNamespaces(argument);
+          }
+          return;
+        }
         const direct = resolveBuiltinReference(call.callee, bindings, globalThisCanExist);
         if (direct?.owner === "Reflect" && direct.method === "apply" && browserRuntime) {
           // An unresolved or spread invocation can expose its target, `this`,
