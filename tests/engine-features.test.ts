@@ -123,6 +123,19 @@ describe("ServiceNow engine feature matrix", () => {
     }
   });
 
+  it("models Map and Set as ES2021-only collection types", () => {
+    for (const id of ["map", "set"] as const) {
+      for (const candidateRelease of ["zurich", "australia"] as const) {
+        assert.equal(featureSupport(id, "es2021", candidateRelease), "supported");
+        assert.equal(featureSupport(id, "es5", candidateRelease), "unsupported");
+        assert.equal(featureSupport(id, "compatibility", candidateRelease), "unsupported");
+      }
+      assert.equal(featureSupport(id, "es2021"), "supported");
+      assert.equal(featureSupport(id, "es5"), "unsupported");
+      assert.equal(featureSupport(id, "compatibility"), "unsupported");
+    }
+  });
+
   it("records the method source-text delta without generalizing Function.toString", () => {
     assert.equal(
       featureSupport("function-tostring-method-source", "es2021", "zurich"),

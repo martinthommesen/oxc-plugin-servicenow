@@ -23,6 +23,8 @@ const HAS_OWN = `var owns = Object.hasOwn(record, "number");`;
 const ERROR_IS_ERROR = `var isPlatformError = Error.isError(value);`;
 const PROMISE_TRY = `var promise = Promise.try(load);`;
 const PROMISE_WITH_RESOLVERS = `var deferred = Promise.withResolvers();`;
+const MAP = `var cache = new Map();`;
+const SET = `var seen = new Set();`;
 const SET_UNION = `const values = new Set(left);
 const alias = values;
 var merged = alias["union"](right);`;
@@ -160,6 +162,37 @@ const contracts: readonly ReleaseContract[] = [
     filename: "australia-promise-withresolvers.server.js",
     code: PROMISE_WITH_RESOLVERS,
     rule: "no-unsupported-static-methods",
+    settings: { release: "australia", javascriptMode: "es2021" },
+  },
+  {
+    id: "zurich-es5-map",
+    filename: "zurich-es5-map.server.js",
+    code: MAP,
+    rule: "no-map-set",
+    settings: { release: "zurich", javascriptMode: "es5" },
+    messageId: "unsupported",
+  },
+  {
+    id: "australia-es5-set",
+    filename: "australia-es5-set.server.js",
+    code: SET,
+    rule: "no-map-set",
+    settings: { release: "australia", javascriptMode: "es5" },
+    messageId: "unsupported",
+  },
+  {
+    id: "omitted-release-es5-set",
+    filename: "omitted-es5-set.server.js",
+    code: SET,
+    rule: "no-map-set",
+    settings: { javascriptMode: "es5" },
+    messageId: "unsupported",
+  },
+  {
+    id: "australia-es2021-map",
+    filename: "australia-es2021-map.server.js",
+    code: MAP,
+    rule: "no-map-set",
     settings: { release: "australia", javascriptMode: "es2021" },
   },
   {

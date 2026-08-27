@@ -20,6 +20,7 @@
     "servicenow/no-bigint": "error",
     "servicenow/no-at-method": "error",
     "servicenow/no-weak-references": "error",
+    "servicenow/no-map-set": "error",
     "servicenow/no-weak-collections": "error",
     "servicenow/no-object-hasown": "error",
     "servicenow/no-unsupported-date-fraction": "error",

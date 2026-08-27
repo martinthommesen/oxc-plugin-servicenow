@@ -26,16 +26,18 @@ interface UnsupportedConstructorRuleOptions {
   description: string;
   url: string;
   message: string;
+  messageId?: "unsupported" | "weak";
   features: Readonly<Record<string, EngineFeatureId>>;
 }
 
 export function unsupportedConstructorRule(options: UnsupportedConstructorRuleOptions) {
   const names = Object.keys(options.features);
+  const messageId = options.messageId ?? "weak";
   return defineRule({
     meta: {
       type: "problem",
       docs: { description: options.description, url: options.url },
-      messages: { weak: options.message },
+      messages: { [messageId]: options.message },
     },
     createOnce(context) {
       return {
@@ -59,7 +61,11 @@ export function unsupportedConstructorRule(options: UnsupportedConstructorRuleOp
             if (isUnsupportedGlobalInvocationProtected(context, finding)) {
               continue;
             }
-            context.report({ node: finding.node, messageId: "weak", data: { name: finding.name } });
+            context.report({
+              node: finding.node,
+              messageId,
+              data: { name: finding.name },
+            });
           }
         },
       };

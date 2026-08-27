@@ -43,6 +43,8 @@ export type EngineFeatureId =
   | "private-instance-members"
   | "private-static-members"
   | "lookbehind"
+  | "map"
+  | "set"
   | "weak-map"
   | "weak-set"
   | "weak-ref"
@@ -296,6 +298,8 @@ export const ENGINE_FEATURES: Readonly<Record<EngineFeatureId, EngineFeature>> =
     "unsupported",
   ),
   lookbehind: unchanged("lookbehind", "RegExp lookbehind", "supported", "unsupported"),
+  map: unchanged("map", "Map", "supported", "unsupported"),
+  set: unchanged("set", "Set", "supported", "unsupported"),
   "weak-map": unchanged("weak-map", "WeakMap", "supported", "disallowed"),
   "weak-set": unchanged("weak-set", "WeakSet", "supported", "disallowed"),
   "weak-ref": unchanged("weak-ref", "WeakRef", "disallowed", "disallowed"),

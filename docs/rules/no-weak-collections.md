@@ -42,10 +42,11 @@ var cache = new WeakMap();
 
 ## Correct
 
-### Correct: Map
+### Correct: object keyed by a stable primitive ID
 
 ```js
-var cache = new Map();
+var cacheBySysId = {};
+cacheBySysId[sysId] = value;
 ```
 
 ## Limitations
@@ -67,6 +68,7 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-b
 
 ## Overlaps
 
+- `servicenow/no-map-set`
 - `servicenow/no-weak-references`
 
 ## Fix safety
