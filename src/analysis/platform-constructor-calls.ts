@@ -49,7 +49,7 @@ export interface PlatformStaticMethodCallOptions extends Omit<
 
 interface DeclaratorFacts {
   readonly executionBoundary: ESTree.Node;
-  readonly statementContainer: ESTree.Program | ESTree.BlockStatement | null;
+  readonly statementContainer: ESTree.Program | ESTree.BlockStatement | ESTree.ForStatement | null;
 }
 
 interface CallSite {
@@ -95,11 +95,12 @@ function executionBoundary(ancestors: readonly ESTree.Node[]): ESTree.Node | nul
 
 function directStatementContainer(
   ancestors: readonly ESTree.Node[],
-): ESTree.Program | ESTree.BlockStatement | null {
+): ESTree.Program | ESTree.BlockStatement | ESTree.ForStatement | null {
   const declaration = ancestors.at(-2);
   const container = ancestors.at(-3);
   if (declaration?.type !== "VariableDeclaration" || !container) return null;
-  return container.type === "Program" || container.type === "BlockStatement" ? container : null;
+  if (container.type === "Program" || container.type === "BlockStatement") return container;
+  return container.type === "ForStatement" && container.init === declaration ? container : null;
 }
 
 function definitelyPrecedes(left: unknown, right: ESTree.Node): boolean {
