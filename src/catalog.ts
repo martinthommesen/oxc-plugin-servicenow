@@ -2055,6 +2055,18 @@ revocable(target, handler);`,
           "integration-test",
           "2026-08-20",
         ),
+        metadata.evidenceRecord(
+          "tests/rules/no-unsupported-syntax.test.ts",
+          "Fixtures cover direct, namespace-qualified, and stable same-execution RegExp aliases plus shadows, mutation, dynamic scope, and constructor-versus-literal authority boundaries.",
+          "fixture",
+          "2026-08-24",
+        ),
+        metadata.evidenceRecord(
+          "tests/integration/profiles.test.ts",
+          "Real Oxlint and ESLint classic-ES5 profiles resolve stable RegExp aliases and accept explicit constructor replacements.",
+          "integration-test",
+          "2026-08-24",
+        ),
       ],
       {
         overlaps: ["servicenow/no-async-await", "servicenow/no-bigint"],
@@ -2065,7 +2077,31 @@ revocable(target, handler);`,
       { profile: "es2021", severity: "error" },
     ] as const,
     optionDescriptor: undefined,
-    limitationCases: [],
+    limitationCases: [
+      {
+        caseId: "unsupported-syntax-regexp-authority-loss",
+        kind: "scope-boundary",
+        description:
+          "Any visible RegExp replacement suppresses constructor-string diagnostics throughout the file because the replacement may implement different pattern syntax. RegExp literal diagnostics remain active.",
+        name: "visible RegExp replacement",
+        filename: "polyfill.server.js",
+        settings: ES5,
+        code: `RegExp = LocalRegExp;
+RegExp("(?<=a)b");`,
+      },
+      {
+        caseId: "unsupported-syntax-regexp-cross-execution-alias",
+        kind: "false-negative",
+        description:
+          "A RegExp alias used from another function body stays silent because source order cannot prove that its initializer ran before the function was called.",
+        name: "cross-execution RegExp alias",
+        filename: "deferred.server.js",
+        settings: ES5,
+        code: `const Regex = RegExp;
+function compile() { return Regex("(?<=a)b"); }
+compile();`,
+      },
+    ],
     title: "No unsupported ES-latest syntax",
     family: "engine",
     preset: "classic-es5",
@@ -2073,7 +2109,7 @@ revocable(target, handler);`,
     fixable: false,
     hasSuggestions: false,
     description:
-      "The ES5 table marks optional chaining, nullish coalescing, logical assignment, private members, and RegExp lookbehind Not Supported. Private instance members remain Not Supported in ES2021; Compatibility follows ES5 by package policy.",
+      "The ES5 table marks optional chaining, nullish coalescing, logical assignment, private members, and RegExp lookbehind Not Supported. Constructor-string lookbehind detection follows direct and stable same-execution built-in RegExp identity. Private instance members remain Not Supported in ES2021; Compatibility follows ES5 by package policy.",
     bad: [
       {
         name: "optional chaining and ??",
@@ -2087,6 +2123,13 @@ revocable(target, handler);`,
         settings: { javascriptMode: "es2021", release: "australia" },
         code: `class State { #value = 1; }`,
       },
+      {
+        name: "RegExp alias with lookbehind",
+        filename: "script-include.js",
+        settings: ES5,
+        code: `const Regex = RegExp;
+var matcher = Regex("(?<=a)b");`,
+      },
     ],
     good: [
       {
@@ -2099,6 +2142,13 @@ revocable(target, handler);`,
         filename: "script-include.js",
         settings: { javascriptMode: "es2021", release: "australia" },
         code: `class State { static #value = 1; }`,
+      },
+      {
+        name: "explicit RegExp replacement",
+        filename: "script-include.js",
+        settings: ES5,
+        code: `RegExp = LocalRegExp;
+var matcher = RegExp("(?<=a)b");`,
       },
     ],
   }),

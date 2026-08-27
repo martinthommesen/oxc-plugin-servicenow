@@ -142,6 +142,28 @@ describe("profile fixtures", () => {
     assert.deepEqual(eslintClassicEs5(readFileSync(file, "utf8"), filename), []);
   });
 
+  it("classic-es5 Oxlint and ESLint resolve stable RegExp aliases", () => {
+    const filename = "es5-regexp-alias.server.js";
+    const file = path.join(invalidDir, filename);
+    assert.ok(
+      pluginRulesFor(runOxlint(classicEs5Config, [file])).includes(
+        "servicenow/no-unsupported-syntax",
+      ),
+    );
+    assert.ok(
+      eslintClassicEs5(readFileSync(file, "utf8"), filename).includes(
+        "servicenow/no-unsupported-syntax",
+      ),
+    );
+  });
+
+  it("classic-es5 Oxlint and ESLint accept an explicit RegExp polyfill", () => {
+    const filename = "es5-polyfilled-regexp.server.js";
+    const file = path.join(validDir, filename);
+    assert.deepEqual(pluginRulesFor(runOxlint(classicEs5Config, [file])), []);
+    assert.deepEqual(eslintClassicEs5(readFileSync(file, "utf8"), filename), []);
+  });
+
   it("recommended flags GlideRecord in a client fixture", () => {
     const rules = pluginRulesFor(
       runOxlint(recommendedConfig, [path.join(invalidDir, "client-gliderecord.client.js")]),

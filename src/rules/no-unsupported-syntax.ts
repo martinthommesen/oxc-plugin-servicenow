@@ -1,12 +1,14 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
+import { findStablePlatformConstructorCalls } from "../analysis/internal.js";
 import { getName, getStringValue } from "../utils/ast.js";
 import { beginRuleFile } from "./helpers.js";
 import { shouldDiagnoseFeature, type EngineFeatureId } from "../engine/index.js";
 
 const LOGICAL_ASSIGN = new Set(["||=", "&&=", "??="]);
 const LOOKBEHIND = /\(\?<[=!]/;
+const REGEXP_NAMES = ["RegExp"] as const;
 
 function regexPattern(node: ESTree.Node): string | null {
   const rec = node as {
@@ -84,8 +86,26 @@ export const noUnsupportedSyntax = defineRule({
           context.report({ node, messageId: "lookbehind" });
         }
       },
-      NewExpression: checkRegExpCtor,
-      CallExpression: checkRegExpCtor,
+      Program(node) {
+        if (!featureOn("lookbehind")) return;
+        const { analysis, file } = beginRuleFile(context);
+        for (const finding of findStablePlatformConstructorCalls({
+          program: node as ESTree.Node,
+          analysis,
+          bindingWrites: file.bindingWrites,
+          mutations: file.mutations,
+          names: REGEXP_NAMES,
+          namespaces: ["globalThis"],
+          mutationSemantics: "authority",
+        })) {
+          const first = finding.node.arguments[0];
+          if (!first || first.type === "SpreadElement") continue;
+          const value = getStringValue(first);
+          if (value && LOOKBEHIND.test(value)) {
+            context.report({ node: finding.node, messageId: "lookbehind" });
+          }
+        }
+      },
     };
 
     function featureOn(id: EngineFeatureId): boolean {
@@ -105,20 +125,6 @@ export const noUnsupportedSyntax = defineRule({
       }
       if (featureOn("private-instance-members")) {
         context.report({ node: key, messageId: "privateInstance", data: { name } });
-      }
-    }
-
-    function checkRegExpCtor(node: ESTree.NewExpression | ESTree.CallExpression) {
-      if (!featureOn("lookbehind")) return;
-      const { analysis } = beginRuleFile(context);
-      const callee = node.callee as ESTree.Node;
-      if (getName(callee) !== "RegExp") return;
-      if (!analysis.isPlatformGlobal(callee)) return;
-      const first = node.arguments[0];
-      if (!first || first.type === "SpreadElement") return;
-      const value = getStringValue(first);
-      if (value && LOOKBEHIND.test(value)) {
-        context.report({ node, messageId: "lookbehind" });
       }
     }
   },

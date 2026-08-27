@@ -11,6 +11,7 @@
 
 ### Fixed
 
+- `no-unsupported-syntax` now resolves direct, namespace-qualified, and stable same-execution `RegExp` aliases for constructor-string lookbehind checks while staying silent after visible replacement, shadowing, mutation, or dynamic-scope uncertainty; literal diagnostics remain independent.
 - `no-bigint` now resolves stable same-execution call aliases, requires safe alias capture, honors dominating availability guards and visible callable polyfills, and invalidates guards after modeled writes.
 - `no-promise` and `no-proxy` now resolve stable same-execution constructor and static-method owner aliases, require safe bare-alias capture, honor dominating availability guards, invalidate guards after modeled built-in writes, and avoid attributing visible callable polyfills or dynamic-scope replacements to ServiceNow.
 - `no-weak-references` and `no-weak-collections` now resolve stable same-execution constructor aliases, require bare aliases to be captured inside an availability guard, invalidate guards after modeled built-in writes, and distinguish callable polyfills from object, array, and other non-callable replacements.
