@@ -62,6 +62,29 @@ describe("fluentSdkVersion registry", () => {
     );
   });
 
+  it("applies repeated var declarators in execution order (FINDINGS.md COR-009)", () => {
+    const head =
+      'import { Record } from "@servicenow/sdk/core";\nimport { unrelated } from "other";';
+    const use = 'F({ table: "incident", name: "Alias" });';
+    // The later declarator rebinds away from the factory: no diagnostic.
+    assertValid(`${head}\nvar F = Record;\nvar F = unrelated;\n${use}`, "require-fluent-id", NOW);
+    // The later declarator rebinds to the factory: the call needs an $id.
+    assertInvalid(
+      `${head}\nvar F = unrelated;\nvar F = Record;\n${use}`,
+      "require-fluent-id",
+      { messageId: "missing" },
+      NOW,
+    );
+    // Control: the plain-assignment spelling keeps its behaviour.
+    assertValid(`${head}\nvar F = Record;\nF = unrelated;\n${use}`, "require-fluent-id", NOW);
+    // A repeated declarator inside an if() makes the alias uncertain.
+    assertValid(
+      `${head}\nvar F = unrelated;\nif (flag) { var F = Record; }\n${use}`,
+      "require-fluent-id",
+      NOW,
+    );
+  });
+
   it("models the List ID transition from 3.0.0 to 4.1.0", () => {
     const list = `import { List } from "@servicenow/sdk/core";\nList({ table: "incident", columns: [], view: "Default" });`;
     assertInvalid(

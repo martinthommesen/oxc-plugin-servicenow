@@ -160,6 +160,42 @@ function latestSimpleValue(
           valueOffset = start;
         }
       },
+      VariableDeclarator(node) {
+        // A repeated `var` declarator rebinds like an assignment, so it
+        // joins the same execution-order model. A binding with a single
+        // declarator is fully described by the seed above (FINDINGS.md
+        // COR-009).
+        if (binding.declarations.length < 2) return;
+        const declarator = node as ESTree.VariableDeclarator;
+        if (!isNode(declarator.init)) return;
+        const id = unwrapExpression(declarator.id);
+        if (!isNode(id) || id.type !== "Identifier") return;
+        const resolved = bindings.resolve(getName(id) ?? "", id, ancestors);
+        if (resolved?.id !== binding.id) return;
+        const insideFunction = ancestors
+          .slice(0, -1)
+          .some((ancestor) => FUNCTION_ANCESTORS.has(ancestor.type));
+        if (insideFunction || useInsideFunction) {
+          uncertain = true;
+          return;
+        }
+        const start = nodeStart(node);
+        if (start < 0) {
+          uncertain = true;
+          return;
+        }
+        if (start >= useStart) return;
+        if (
+          ancestors.slice(0, -1).some((ancestor) => CONDITIONAL_WRITE_ANCESTORS.has(ancestor.type))
+        ) {
+          uncertain = true;
+          return;
+        }
+        if (start > valueOffset) {
+          value = declarator.init;
+          valueOffset = start;
+        }
+      },
       UpdateExpression(node) {
         const argument = unwrapExpression((node as ESTree.UpdateExpression).argument);
         if (!isNode(argument) || argument.type !== "Identifier") return;
