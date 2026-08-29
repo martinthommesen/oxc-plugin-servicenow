@@ -1,609 +1,655 @@
 <!-- SUPER-REVIEW-REGISTRY
 {
+  "schema_version": 2,
   "active": {
-    "API-001": "sha256:944dfe86348fe10538e001b2861d183db387b0a49432fc72fec0a379ff09122f",
-    "COR-001": "sha256:71f83ae40ac2400985e871afea448c91ee18a6bc5c31ec2bb582955fa578f125",
-    "COR-002": "sha256:2e631d192c1d9070625195ed5c9669be92f1a9921df35c59e24a2a2bf374a424",
-    "COR-003": "sha256:01c45fb2d0575575fae8303154fb684dbb3cf7e427d921fd03c1e8bf7f907859",
-    "COR-004": "sha256:259b74931cb08b1ee856cdeed05fefd01a81cd150c5f0153b78b678c5d7b5ce1",
-    "COR-005": "sha256:57de50702970fbe72ea97d9fa5148b82a4acba8726f47620918215f34bdaaa97",
-    "COR-006": "sha256:18dde035608308ab4ff5c3c9b806c44f09ddd95c3cef29821af5e66587e80bad",
-    "DOC-001": "sha256:3397b0541e26940c3948532d832a0f46a069ed0bccf37404b1615864cc01fe29",
+    "API-002": "sha256:f2fc86847af3fe11320caea5d5170c8ca98ce49704f51bae4dcea796eb1d49cd",
+    "COR-007": "sha256:ac7984c3e51165d87c20640c4656090b01e0c0f5689830c77437d46042230292",
+    "COR-008": "sha256:d7d1846dc272e86460ae75901bf8fa5769d6b4159e306e61391d2bcdfdf96494",
+    "COR-009": "sha256:65a43237eff605bf0e49a741a3fefd43752f671425751d766d3f393e39ba81e1",
     "DOC-002": "sha256:f3ebfc8ecd9c36e763b4fc2b239dae41b53e2c83f0dea41eadce06f57fc5a0f1",
     "FEAT-001": "sha256:0b46f56e5e64ffdb895f62be9b926a0c28d6593d438dfd5909ef9eacbaba5323",
     "FEAT-002": "sha256:57c683ad46ddff162d35ec6a2c1eb331699ccac70be04754b4238c4f7d867b7a",
     "IMP-001": "sha256:d9ad1b6f545501cdf96c393d0a9ae1b5a2e439f26ca7745880136c3b2ff787ff",
-    "IMP-002": "sha256:94a22540162ef1ada6c1c0f059909b75f3d602965856c91f5969a2e2fbf43dba",
-    "MNT-001": "sha256:fc9656942b74c41af49a37cf1d32bdb4545381c152c2f75978c528126ffdc8a5",
-    "MNT-002": "sha256:23c768ac5d7bacc60a9aca444690ef91a4cc111e175149ed454b7dc395b5f87a",
-    "MNT-003": "sha256:38addad20907e1e0ca812b5bc48ab49784fd82f4b7b8d7ce9719462b47042cf8",
-    "OPS-001": "sha256:21a467edb0f97e927e96bdf2184cd040e4d65b8d30aa424253cdc3a0078c893a",
-    "OPS-002": "sha256:88eb55ec1142b29b861f8b55b6f22f9df223e6722d94a7f6d357f48f0f220aba",
-    "OPS-003": "sha256:8583ba439b5b4e8ac127f64ed16d6365c559d6da36d119ea114e70c6a3c12812",
+    "MNT-004": "sha256:772fd0160e0b1b85a1b594b2bb5370d8027be969f28b13e542d7deb93d86ba5a",
     "OPS-004": "sha256:30a4bc285b71a181fcf2f3f74e44eecdde74edad8eace8a21a6699694683688b",
-    "OPS-005": "sha256:f5db98b860b80262e84417c0633c00af6888f5e8e5c6de384a96f42606adf77e",
-    "OPS-006": "sha256:0dc4f97f631ac13ec92e81e9e16d049b405ddf3393b1a22d8251f05365f90108",
-    "OPS-007": "sha256:6c3909b0aea63b82ec4b9f3bd110ed3438255da51e4dc16ad3ddd7f106dc3acb",
-    "PER-001": "sha256:bc934fdc05ea4891b445d30cf1f1acd0bbf55fcd50ea4cccc66785079a28d8f1",
+    "OPS-008": "sha256:7b2afcce84c544075d7cca01188461d4a05bc744cfc73b76dd01e0702d394b5f",
+    "PER-002": "sha256:7e3f85e5775af0fb15ca98e698cab5e1e581b07633a9f388514db2659a6e1fad",
     "POS-001": "sha256:adc9ac92bda1f1c60bb68ca3b425a6590b86298cb9cab4f1c618c4928946d1a5",
     "POS-002": "sha256:908dc8e6e5e03e194d3dcad7511c33276d2a5f8b18c4ec8efbe5e0bb29dc9717",
     "POS-003": "sha256:3087877db8798eebc67f1589a5d1413e150f8c578e1074bb174a1115fead92bb",
     "POS-004": "sha256:ee1ad71a309725cf40706db3eb903f878c6645f831afa923bfad5fb43d1c945a",
-    "REL-001": "sha256:8198f0748b572deb9f522e796d23aa4a20c1eefbfc1700eae74086d48df79c27",
-    "REL-002": "sha256:32707c2fa46eebff52ad10360fdfc5e240ae9b7688bc6b474b4d1e7c95840b35",
+    "REL-003": "sha256:48a2fec4689fb8e04faadca6ef91b3439431ed90279df9ecfbed72d4438fc3d8",
     "REM-001": "sha256:cbada11de910c4d7910e4cceca4981cf141561c8c904a05328553394437138cf",
-    "TST-001": "sha256:f636dcaa78b7770bc33fc4035e3e5fe9284cf3613c77fa11be1d1a6d1b0882fe",
-    "TST-002": "sha256:177af8ea443f84c9113cbb755cc565be8f1ff3baa80e76028de5b331d6bd639f"
+    "REM-002": "sha256:1f88e19dadf25b800cf35e1bafb8701c40062e4b5d338832d2efd3f24af4456b"
+  },
+  "retired": {
+    "API-001": {
+      "fingerprint": "sha256:944dfe86348fe10538e001b2861d183db387b0a49432fc72fec0a379ff09122f",
+      "status": "resolved",
+      "replacement_ids": []
+    },
+    "COR-001": {
+      "fingerprint": "sha256:71f83ae40ac2400985e871afea448c91ee18a6bc5c31ec2bb582955fa578f125",
+      "status": "resolved",
+      "replacement_ids": []
+    },
+    "COR-002": {
+      "fingerprint": "sha256:2e631d192c1d9070625195ed5c9669be92f1a9921df35c59e24a2a2bf374a424",
+      "status": "resolved",
+      "replacement_ids": ["COR-008"]
+    },
+    "COR-003": {
+      "fingerprint": "sha256:01c45fb2d0575575fae8303154fb684dbb3cf7e427d921fd03c1e8bf7f907859",
+      "status": "resolved",
+      "replacement_ids": []
+    },
+    "COR-004": {
+      "fingerprint": "sha256:259b74931cb08b1ee856cdeed05fefd01a81cd150c5f0153b78b678c5d7b5ce1",
+      "status": "resolved",
+      "replacement_ids": []
+    },
+    "COR-005": {
+      "fingerprint": "sha256:57de50702970fbe72ea97d9fa5148b82a4acba8726f47620918215f34bdaaa97",
+      "status": "resolved",
+      "replacement_ids": []
+    },
+    "COR-006": {
+      "fingerprint": "sha256:18dde035608308ab4ff5c3c9b806c44f09ddd95c3cef29821af5e66587e80bad",
+      "status": "resolved",
+      "replacement_ids": ["COR-009"]
+    },
+    "DOC-001": {
+      "fingerprint": "sha256:3397b0541e26940c3948532d832a0f46a069ed0bccf37404b1615864cc01fe29",
+      "status": "resolved",
+      "replacement_ids": []
+    },
+    "IMP-002": {
+      "fingerprint": "sha256:94a22540162ef1ada6c1c0f059909b75f3d602965856c91f5969a2e2fbf43dba",
+      "status": "resolved",
+      "replacement_ids": []
+    },
+    "MNT-001": {
+      "fingerprint": "sha256:fc9656942b74c41af49a37cf1d32bdb4545381c152c2f75978c528126ffdc8a5",
+      "status": "resolved",
+      "replacement_ids": []
+    },
+    "MNT-002": {
+      "fingerprint": "sha256:23c768ac5d7bacc60a9aca444690ef91a4cc111e175149ed454b7dc395b5f87a",
+      "status": "resolved",
+      "replacement_ids": []
+    },
+    "MNT-003": {
+      "fingerprint": "sha256:38addad20907e1e0ca812b5bc48ab49784fd82f4b7b8d7ce9719462b47042cf8",
+      "status": "resolved",
+      "replacement_ids": []
+    },
+    "OPS-001": {
+      "fingerprint": "sha256:21a467edb0f97e927e96bdf2184cd040e4d65b8d30aa424253cdc3a0078c893a",
+      "status": "resolved",
+      "replacement_ids": []
+    },
+    "OPS-002": {
+      "fingerprint": "sha256:88eb55ec1142b29b861f8b55b6f22f9df223e6722d94a7f6d357f48f0f220aba",
+      "status": "resolved",
+      "replacement_ids": []
+    },
+    "OPS-003": {
+      "fingerprint": "sha256:8583ba439b5b4e8ac127f64ed16d6365c559d6da36d119ea114e70c6a3c12812",
+      "status": "resolved",
+      "replacement_ids": []
+    },
+    "OPS-005": {
+      "fingerprint": "sha256:f5db98b860b80262e84417c0633c00af6888f5e8e5c6de384a96f42606adf77e",
+      "status": "resolved",
+      "replacement_ids": []
+    },
+    "OPS-006": {
+      "fingerprint": "sha256:0dc4f97f631ac13ec92e81e9e16d049b405ddf3393b1a22d8251f05365f90108",
+      "status": "resolved",
+      "replacement_ids": ["MNT-004"]
+    },
+    "OPS-007": {
+      "fingerprint": "sha256:6c3909b0aea63b82ec4b9f3bd110ed3438255da51e4dc16ad3ddd7f106dc3acb",
+      "status": "resolved",
+      "replacement_ids": ["OPS-008"]
+    },
+    "PER-001": {
+      "fingerprint": "sha256:bc934fdc05ea4891b445d30cf1f1acd0bbf55fcd50ea4cccc66785079a28d8f1",
+      "status": "resolved",
+      "replacement_ids": []
+    },
+    "REL-001": {
+      "fingerprint": "sha256:8198f0748b572deb9f522e796d23aa4a20c1eefbfc1700eae74086d48df79c27",
+      "status": "resolved",
+      "replacement_ids": ["REL-003"]
+    },
+    "REL-002": {
+      "fingerprint": "sha256:32707c2fa46eebff52ad10360fdfc5e240ae9b7688bc6b474b4d1e7c95840b35",
+      "status": "resolved",
+      "replacement_ids": []
+    },
+    "TST-001": {
+      "fingerprint": "sha256:f636dcaa78b7770bc33fc4035e3e5fe9284cf3613c77fa11be1d1a6d1b0882fe",
+      "status": "resolved",
+      "replacement_ids": []
+    },
+    "TST-002": {
+      "fingerprint": "sha256:177af8ea443f84c9113cbb755cc565be8f1ff3baa80e76028de5b331d6bd639f",
+      "status": "resolved",
+      "replacement_ids": []
+    }
   },
   "next_sequence": {
-    "API": 2,
-    "COR": 7,
+    "API": 3,
+    "COR": 10,
     "DOC": 3,
     "FEAT": 3,
     "IMP": 3,
-    "MNT": 4,
-    "OPS": 8,
-    "PER": 2,
+    "MNT": 5,
+    "OPS": 9,
+    "PER": 3,
     "POS": 5,
-    "REL": 3,
-    "REM": 2,
+    "REL": 4,
+    "REM": 3,
     "TST": 3
-  },
-  "retired": {},
-  "schema_version": 2
+  }
 }
 -->
 
 # 1. Executive Summary
 
-Canonical root: /mnt/data/oxc-plugin-servicenow-super-review/oxc-plugin-servicenow
-Reviewed branch and revision: pr51-remediation/layer6 at b87972a8336d6cf6209801395cad82f72b827436
-Starting repository state: b87972a8336d6cf6209801395cad82f72b827436; 295 status entries; status sha256:61c24082b99a475c32f151c334b0d4cc4a55bb8811b891136c5ad97fd76c2e15; 450 non-report files; sha256:f4ad2879e8a8bd068d7cd7e27efc52942326ad0da91e7fc6d19696a4bb34203b
-Ending repository state: b87972a8336d6cf6209801395cad82f72b827436; archive worktree retained; updated canonical FINDINGS.md; 450 non-report files; sha256:f4ad2879e8a8bd068d7cd7e27efc52942326ad0da91e7fc6d19696a4bb34203b
-Review time: 2026-08-29T14:00:53+02:00
+Canonical root: /Users/t979259/.local/src/oxc-plugin-servicenow
+Reviewed branch and revision: pr51-remediation/layer6 at 798d286fd38595c7b1703e9133987dc2d9b3efa5
+Starting repository state: 798d286fd38595c7b1703e9133987dc2d9b3efa5; clean worktree; 0 status entries; status sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855; 457 non-report tracked files; tree sha256:e361c791ec6e99eb0061c44e3b8d4e3d639871a1f415f85e5bda85346f5b6725
+Ending repository state: 798d286fd38595c7b1703e9133987dc2d9b3efa5; only the canonical FINDINGS.md modified; 457 non-report tracked files unchanged; tree sha256:e361c791ec6e99eb0061c44e3b8d4e3d639871a1f415f85e5bda85346f5b6725
+Review time: 2026-08-29T17:44:01+02:00
 Review mode: REVIEW ONLY
-Starting FINDINGS.md SHA-256: sha256:99968d2b8ab1ff9015e256f4358df51cb1af7855df0e8a1468ee879962afbaff
+Starting FINDINGS.md SHA-256: sha256:3203cfad13b172c52eba718baea7278548eae12336cde683bf1c5e1293194803
 Existing report revalidated: Yes
-Completion status: Complete
-Material limitations: No dependency installation, live npm publication, credentialed GitHub governance read, or external ServiceNow execution. The review used the complete archive, current repository evidence, safe static analysis, targeted dependency-free reproductions, and available local validation.
+Completion status: Partial
+Material limitations: Live GitHub governance state, npm trusted-publisher state, and the published npm attestation could not be read offline, so the live halves of the previous OPS-002, OPS-005, and OPS-006 remediations are recorded as not currently verifiable rather than confirmed. `@typescript-eslint/typescript-estree` is not a repository dependency, so COR-007 was confirmed against version 7.18.0 read from an unrelated local checkout plus the repository's own non-authoritative rule harness, not against a live ESLint host process. No dependency installation, publication, deployment, or credentialed access was performed.
 
 ## Overall codebase health
 
-The engineering core is strong. The analysis layer (`src/analysis/`), the rule catalog (`src/catalog.ts`), the settings validator (`src/settings/`), and the release-provenance verifier (`scripts/verify-published-package.mjs`) are careful, well-documented, conservative by design, and backed by 790 inventoried tests. Documentation regenerates byte for byte from the catalog. The release workflow pins every action to a full SHA, publishes only through npm trusted-publishing OIDC in a protected environment, and re-verifies the published artifact against the exact inspected tarball.
+The tree is in materially better shape than the previous review found it. All 23 defect, risk, and improvement records that the previous report raised have had their root causes removed at HEAD, each by a dedicated commit that is an ancestor of `798d286`. Every offline quality gate the repository defines passes from a clean isolated checkout: `lint:check`, `format:check`, `typecheck`, `typecheck:fixtures`, `build`, 805/805 hermetic tests, `docs:check` with a byte-identical regeneration diff, `evidence:check`, `manifest:check`, `workflow:check`, `compat:check`, and the benchmark.
 
-The weakness is not in the code; it is in the boundary between the working tree and everything reproducible. Three configuration files that `npm run lint:check`, `npm run format:check`, and `npm run typecheck:fixtures` require were never added to git, so no committed revision of this branch can pass its own gates. A time-pinned test fixture broke roughly eight days ago and now fails `npm test` everywhere. Ten of the fifteen required status checks recorded for the protected `main` branch name jobs that no workflow can produce. And the entire remediation — 13,671 added lines — exists only in one uncommitted working tree.
+The architecture is sound and unusually disciplined for a lint plugin: one catalog drives rules, presets, documentation and example configuration (POS-003); analysis is separated from applicability which is separated from settings validation; unknown evidence suppresses diagnostics rather than assuming a default context (POS-001); and the path-sensitive interpreter degrades under an explicit budget instead of hanging (POS-004).
+
+The remaining risk is concentrated in two places the previous review did not reach. First, the analysis layer assumes host AST nodes carry `start` and `end` offsets, which is false for the `typescript-eslint` parser the README documents for typed Fluent files (COR-007). Second, the cursor-loop rule walkers added by the COR-004 remediation re-traverse `do…while` bodies without a work budget, so nested loops cost exponential time in the default `recommended` preset (PER-002). Both are confirmed by reproduction.
 
 ## Most serious risks
 
-OPS-001 (untracked required configuration) and TST-001 (a permanently failing release-provenance test) each independently break `npm test` and the release `validate` job. OPS-002 (unproducible required status checks) blocks every pull request into `main`. OPS-003 (uncommitted work) means a single `git checkout .` destroys the reviewed state.
+- COR-007: every offset-dependent Fluent fact silently degrades on `@typescript-eslint` ASTs, producing false `require-fluent-id` and false `fluent-directives` diagnostics on the exact configuration the README documents.
+- PER-002: 26 nested `do…while` statements in 600 bytes of ordinary JavaScript take about 30 seconds in one `recommended`-preset rule, with no budget and no degradation path.
+- COR-008: the `no-hardcoded-sysid` digest-name suppression matches a digest word anywhere inside an identifier, so `sharedSysId`, `shardId`, `betaGroupId`, and `shadowRecordId` silently hide real hardcoded sys_ids under the default option value.
 
 ## Most important architectural concern
 
-COR-001. Execution-surface classification — the input to almost every rule's applicability decision — keys off directory names matched anywhere in the absolute filename, including directories above the project root. Diagnostics therefore depend on where a developer cloned the repository.
+COR-007. The repository already owns the correct abstraction — `nodeStart` in `src/utils/ast.ts` reads `start ?? range[0] ?? span.start` — but four analysis and rule modules bypass it and read `node.start` directly. The concern is not any single call site; it is that no boundary, type, or test enforces the portable accessor, so the same class of defect can be reintroduced by any future rule.
 
 ## Most valuable simplification
 
-PER-001. Replacing one `as const` with an explicit interface annotation on `src/fluent/declaration-snapshots.ts` shrinks the published declaration file from 939,040 bytes to 511 bytes and the built `dist` tree from 2.8 MB to 1.9 MB, with no behavioral change and no consumer-visible type loss.
+REM-002: the PR #51 acceptance-ledger apparatus is roughly 18,000 lines of one-off remediation tracking wired into a required CI step and `npm run validate`. Retiring it when the remediation merges removes a permanent maintenance and CI-time cost from a shipped library.
 
 ## Most valuable alternative implementation
 
-IMP-001. The workflow action-pin checker should parse workflow YAML with the `yaml` dependency the repository already uses in `tests/release/layer7.test.ts`, instead of a regular expression that silently ignores any `uses:` reference without an `@`.
+IMP-001, with a changed recommendation. The previous review proposed replacing the `uses:` regular expression in `scripts/check-action-pins.mjs` with the `yaml` dependency. Current evidence contradicts that: the CI `workflow` job deliberately runs `npm run workflow:check` without `npm ci`, so the checker must stay dependency-free. Option A, keep and harden, is now the preferred answer.
 
 ## Most valuable feature addition
 
-No feature addition is currently supported by repository evidence. The rule set, presets, and host integrations already cover the documented scope, and `docs/non-goals.md` records the deliberate exclusions. The nearest supported product work is FEAT-001, a consolidation rather than an addition.
+No feature addition is currently supported by repository evidence. The evidenced portfolio work is retirement and consolidation (REM-001, REM-002) and two deferred decisions with recorded 3.0 triggers (FEAT-001, FEAT-002).
 
 ## Strongest feature-removal or consolidation candidate
 
-REM-001, retiring the deprecated `validate-gliderecord-calls` alias, which is already documented as replaced by `require-query-before-next`, is `off` in every preset, and is the only catalog entry with no placement.
+REM-002, the PR #51 acceptance-ledger apparatus, followed by REM-001, the already-announced 3.0 removal of the `validate-gliderecord-calls` alias.
 
 ## Most important positive pattern to preserve
 
-POS-001. Unknown evidence suppresses diagnostics rather than assuming a default context. This single invariant is what makes a static ServiceNow linter tolerable in practice, and it is enforced consistently across the context resolver, the engine feature table, and the path-sensitive analysis.
+POS-004: the path-sensitive interpreter's deterministic work and depth budget. PER-002 exists precisely because the sibling cursor-loop walkers do not have it, which is direct evidence of the pattern's value and of where to reuse it.
 
 ## Immediate recommended actions
 
-1. `git add` the three untracked configuration files (OPS-001) and commit the working tree to a branch (OPS-003).
-2. Replace the pinned fixture clock in `tests/release/layer7.test.ts` (TST-001).
-3. Reconcile the required status-check identifiers with the job names the workflows actually produce (OPS-002).
-4. Add `fetch-depth: 0` to the CI `test` job or remove the deep-history dependency from `tests/configs.test.ts` (TST-002).
+1. Route every node and comment offset read through `nodeStart` and an equivalent `nodeEnd`, and add one `typescript-eslint`-parsed regression fixture (COR-007).
+2. Memoize the cursor-loop walkers on the pair of node and cursor set, and give them the same deterministic budget the path evaluator already has (PER-002).
+3. Anchor the digest-name heuristic to whole name components (COR-008).
+4. Populate or remove the four never-set fields on the published `AnalysisProvenance` contract (API-002).
 
 ## Main review limitations
 
-No network access, no live GitHub or npm state, and no execution of repository commands that write inside the canonical root. See section 16.
+Live GitHub and npm state could not be read. `npm run validate` could not be run end to end because it installs from the live registry. COR-007 was confirmed through the repository's own non-authoritative harness plus direct inspection of a TSESTree node shape; an ESLint host reproduction remains the strongest available follow-up evidence.
 
 # 2. Repository and System Overview
 
 ## Repository structure
 
-Single npm package, not a monorepo. 390 tracked files: `src/` (105 TypeScript files, 29,495 lines of which 16,023 are one generated module), `tests/` (143 files, 10,126 lines), `scripts/` (37 files, 5,208 lines of ESM), `docs/` (58 Markdown files plus JSON evidence), `examples/` (8 example projects, each with `valid/` and `invalid/` trees), `plans/` (16 planning documents, all untracked), `.github/workflows/` (3 workflows, one untracked).
+Single-package repository, not a monorepo. 458 tracked files: `src/` (108 TypeScript files, about 13,400 hand-written lines plus a 16,025-line generated snapshot), `tests/` (143 files), `scripts/` (27 referenced tooling scripts), `docs/`, `examples/`, `plans/`, `.github/`, and three root planning documents.
 
 ## Languages and frameworks
 
-TypeScript 7 (`strict`, `noUncheckedIndexedAccess`, `verbatimModuleSyntax`, `NodeNext`) for `src/` and `tests/`; plain ESM `.mjs` with hand-written `.d.mts` companions for `scripts/`. Runtime dependency: `@oxlint/plugins` only. Optional peers: `oxlint`, `oxfmt`, `eslint`, `typescript-eslint`. Test runner: `node:test` driven through `tsx` by `scripts/run-tests.mjs`, forced to `--test-concurrency=1`.
+TypeScript 7 compiled by `tsc` to ESM. Node.js `>=20.19.0`. The one runtime dependency is `@oxlint/plugins`. Optional peers are `oxlint` at or above 1.79.0 and below 2, `oxfmt` at or above 0.64.0 and below 1, `eslint` at or above 9 and below 11, and `typescript-eslint` at or above 8 and below 9. Tests run on `node:test` through `tsx`. `oxc-parser` provides the test-harness parser.
 
 ## Applications and services
 
-None. This is a library: an Oxlint JavaScript plugin with an ESLint 9+ compatibility shim, plus an oxfmt configuration preset.
+None. The product is a published npm library, `oxc-plugin-servicenow@2.0.0`, consumed in-process by a linter or formatter. There is no server, worker, scheduler, or long-running process.
 
 ## Deployment model
 
-Publication to the public npm registry from a tag-triggered GitHub Actions workflow through npm trusted-publishing OIDC in a protected `release` environment. No servers, containers, or infrastructure-as-code.
+Publication to the public npm registry through GitHub Actions trusted publishing with Sigstore provenance, gated on a `v*` tag whose commit must equal `origin/main`, an environment named `release` with a reviewer, and a post-publish registry verification job.
 
 ## Data stores
 
-Not applicable: searched `src/`, `scripts/`, and `tests/` for database drivers, ORM usage, connection strings, migration directories, and durable-queue clients; the only persistence is reading source files handed in by the lint host and writing generated documentation and benchmark artifacts to disk.
+None. Persistent state is limited to checked-in JSON: `scripts/action-pins.json`, `scripts/release-governance.json`, `scripts/compat-matrix.json`, `scripts/pr51-acceptance.json`, `docs/performance-baseline.json`, `docs/release-governance-status.json`, and the Fluent manifest fixtures under `tests/fixtures/`.
 
 ## Integrations
 
-Oxlint (`jsPlugins` specifier), ESLint 9/10 flat config, oxfmt configuration, the npm registry (`npm view`, `npm publish`, attestation endpoint), GitHub REST API through `gh` (rulesets, environments, releases), and the Sigstore public-good trust root through the `sigstore` package.
+The npm registry (`npm view`, `npm install`, `npm publish`), the npm attestation endpoint, the public Sigstore trust root, and the GitHub API through the `gh` CLI in `scripts/check-release-governance.mjs` and `scripts/create-github-release.mjs`. All are release-time or audit-time only; the shipped library contacts nothing.
 
 ## Entry points
 
-Public: `.` → `dist/index.js` (plugin object, `configs`, `configs.flat`), `./analysis` → `dist/analysis/index.js` (`analyzeProvenance`, `getScriptContext`), `./oxfmt` → `dist/oxfmt/index.js`, `./oxfmt.recommended.json`, `./package.json`. Internal: `src/analysis/internal.ts` (not exported through the `exports` map). Executable: the 37 scripts under `scripts/`, reachable through `package.json` scripts and the three workflows.
+Package exports `.` (`src/index.ts`), `./analysis` (`src/analysis/index.ts`), `./oxfmt` (`src/oxfmt/index.ts`), `./oxfmt.recommended.json`, and `./package.json`. Rule entry points are the `createOnce` visitors registered from `src/catalog.ts`. Developer entry points are the 25 `package.json` scripts.
 
 ## Trust boundaries
 
-The plugin consumes untrusted source text and an untrusted `settings.servicenow` object from the host configuration; `src/settings/validate.ts` is the validation boundary and rejects unknown keys, wrong types, and cross-field conflicts. The release pipeline's trust boundary is the tag push plus the protected `release` environment; `scripts/verify-published-package.mjs` re-establishes trust after publication by binding the registry artifact to the locally inspected tarball digest and to a Fulcio certificate carrying nine specific GitHub OID extensions.
+Three. Host-supplied `settings.servicenow` is untrusted until `validateServiceNowSettings` returns a deep-frozen result and rejects unknown keys. User source text is untrusted and is only parsed, never evaluated; identifier and comment text reaching lookup tables uses `Map` or null-prototype objects. In the release pipeline the `publish` job holds `id-token: write`, has no repository checkout, and executes only the digest-manifested helper from the `release-publish-input` artifact.
 
 ## Critical workflows
 
-Lint a ServiceNow file (host → `createOnce` → `beginRuleFile` → `getFileAnalysis` → context resolution, binding/scope tree, path-sensitive provenance → per-rule diagnostics); resolve a Fluent SDK manifest for a configured `fluentSdkVersion`; generate documentation from the catalog; validate a release candidate; publish and then re-verify a release.
+Lint a file (host to `getFileAnalysis` to rule visitors to `context.report`); resolve execution context from settings, filename, and AST evidence; resolve a Fluent factory through import and alias provenance; validate and publish a release; verify the published artifact and its provenance; regenerate and diff documentation; capture acceptance evidence.
 
 ## Public contracts
 
-The `exports` map, the plugin object shape, rule identifiers (`servicenow/<rule>`), the nine exported preset objects and nine rule maps, `configs.flat`, `settings.servicenow` keys and their accepted values, rule option schemas, and `oxfmt.recommended.json`.
+The `exports` map and its declaration files; `configs` and the nine preset objects plus their `*Rules` maps and `configs.flat`; `plugin.meta`; the `settings.servicenow` schema including the deprecated `scriptType` and `ecmaLatest` keys; per-rule option schemas; rule identifiers under `servicenow/`; the `AnalysisProvenance` and `AnalysisProvenanceQuery` types; the `engines` and `peerDependencies` ranges.
 
 ## Persisted-data contracts
 
-Not applicable: no runtime persistence. The nearest equivalents are on-disk formats that tooling reads back — `scripts/compat-matrix.json`, `scripts/action-pins.json`, `scripts/release-governance.json`, `scripts/pr51-acceptance.json`, `docs/performance-baseline.json`, and `tests/fixtures/*.json`.
+None owned by the library. Release-side file contracts are the `release-publish-input.json` manifest schema (`schemaVersion: 1`, exactly four files with SHA-256 digests), `package/npm-pack-manifest.json`, `scripts/release-governance.json` (`schemaVersion: 2`), and `scripts/pr51-acceptance.json` (`schemaVersion: 1`).
 
 ## Generated and vendored boundaries
 
-Generated: `src/fluent/declaration-snapshots.ts` (header `Generated by scripts/audit-fluent-sdk.mjs. Do not edit.`), `src/rules/index.ts` (derived from `ruleCatalog` at load time), `docs/rules/*.md`, README rule tables, `docs/compatibility.md`, the recommended `.oxlintrc.json` copies under `tests/integration/profiles/configs/` and `examples/`, `docs/pr-51-acceptance-ledger.md`, and `docs/pr-51-validation-report.md`. Vendored: none; `node_modules/`, `dist/`, `artifacts/`, and `oxc-plugin-servicenow-2.0.0.tgz` are build or install output.
+`src/fluent/declaration-snapshots.ts` (16,025 lines) is generated by `scripts/audit-fluent-sdk.mjs`. `src/version.ts` is generated by `scripts/generate-version.mjs` at `prebuild`. `docs/rules/*.md`, the README rule and compatibility tables, `examples/**/.oxlintrc.json`, and four test configuration fixtures are generated by `scripts/generate-rule-docs.mjs` and `scripts/generate-compatibility-docs.mjs` and enforced byte-identical by `docs:check`. Nothing is vendored into `src/`; `tests/fixtures/preset-1.1.0/` vendors historical preset bytes.
 
 ## Review-relevant worktree state
 
-The worktree diverges from HEAD by 228 modified files, 47 untracked paths, and 3 deletions (+13,671 / −4,465). The untracked set includes first-party source (`src/analysis/internal.ts`, `src/analysis/public.ts`, `src/fluent/declaration-snapshots.ts`, `src/utils/immutable.ts`, `src/rules/unsupported-constructor-rule.ts`), release-critical scripts, a whole workflow, and the three configuration files behind OPS-001. This report describes the working tree, not HEAD; where the two differ materially, the record says so.
+The worktree was clean at `798d286` before this review and no tracked file other than the canonical `FINDINGS.md` was modified. `node_modules/`, `dist/`, and `artifacts/` are present and git-ignored. `origin/main` has diverged from this branch and already carries the shipped 2.0.0 line; reconciling the two histories is outside this review.
 
 # 3. Coverage Ledger
 
 | Area | Review depth | Main contents | Main risks or review focus | Evidence inspected | Reason for reduced coverage |
 | --- | --- | --- | --- | --- | --- |
-| `src/analysis/` | Deeply reviewed | Scope/binding tree, path-sensitive interpreter, provenance, Now.ID facts, per-domain analyzers | Soundness of alias tracking, budget behavior, cache identity | `path-state.ts` (all 1,251 lines), `bindings.ts`, `file-analysis.ts`, `now-id.ts`, `provenance.ts`, `members.ts`, `public.ts`, `internal.ts`; scaling probe over 50–400 scope blocks | Not applicable |
-| `src/context/`, `src/settings/`, `src/engine/` | Deeply reviewed | Context resolution, settings validation and freezing, engine feature table | Trust boundary for host settings; unknown-means-silent invariant | Full read of all 9 files; executed surface-inference probe over 6 filename shapes | Not applicable |
-| `src/rules/` | Reviewed | 41 rule implementations plus 3 infrastructure files | Applicability gating, alias handling, fixer presence | Read `helpers.ts`, `unsupported-constructor-rule.ts` and 16 rules in full; catalog-wide greps for `fix`/`suggest`, `before()`, and placements across all 41 | 25 rules read through their catalog descriptors, generated documentation, and integration fixtures rather than line by line |
-| `src/catalog.ts`, `src/catalog-metadata.ts` | Reviewed | 41 descriptors, applicability metadata, evidence records | Evidence-URL accuracy, preset placement, option wiring | Head of `catalog.ts` (lines 1–200), full `catalog-metadata.ts` head, executed placement census | 2,359-line descriptor body sampled; its correctness is separately enforced by `scripts/check-catalog-docs.mjs` and byte-identical doc regeneration |
-| `src/configs/`, `src/options/`, `src/oxfmt/`, `src/glide/`, `src/fluent/` (hand-written) | Reviewed | Preset maps, option descriptors and schema, oxfmt preset, Glide capability table, Fluent manifest and registry | Public surface size, option parsing, version resolution | Full read of `configs/*`, `options/descriptor.ts`, `oxfmt/index.ts`, `oxfmt/recommended.ts` head, `glide/manifest.ts` head, `fluent/registry.ts`; executed preset-size census | Not applicable |
-| `src/fluent/declaration-snapshots.ts` | Generated | 27 pinned SDK capability snapshots, 16,023 lines | Emission cost, generator correctness | Header, one full snapshot entry, tail, version index; generator `scripts/audit-fluent-sdk.mjs:411`; measured `.d.ts` emission with and without `as const` | Generated data; reviewed at its boundary and generator per review principle 13 |
-| `src/runtime/`, `src/utils/`, `src/index.ts`, `src/types.ts`, `src/constants.ts` | Deeply reviewed | Test harness, AST walker, immutability helpers, sys_id detection, plugin assembly | Dead fixer code, walker correctness, module-load side effects | Full read of all 9 files; executed `ignoreHashNames` probe across 6 variable names | Not applicable |
-| `tests/` | Reviewed | 143 files, 790 inventoried tests | Hermeticity, environmental coupling, brittle fixtures | Executed the whole suite in an isolated copy; read `configs.test.ts`, `release/layer7.test.ts`, `integration/helpers.ts`, `integration/packed-consumer.test.ts`, `integration/examples.test.ts`, `helpers/rule-tester.ts` | Individual rule test bodies sampled; the suite's own pass/fail result was used as evidence |
-| `scripts/` | Reviewed | Release, governance, documentation, benchmark, and audit tooling | Supply-chain correctness, shell-out safety, version ordering | Full read of `publish-release-package.mjs`, `check-trusted-publishing-npm.mjs`, `check-action-pins.mjs`, `run-tests.mjs`, `check-release-governance.mjs`, and the provenance core of `verify-published-package.mjs`; executed version-ordering and governance probes | `check-release-artifact.mjs`, `compat-consumer.mjs`, `benchmark.mjs`, and `verify-acceptance-ledger.mjs` read at their interfaces and git/network touchpoints rather than in full |
-| `.github/` | Deeply reviewed | 3 workflows, dependabot, image assets | Permissions, pinning, checkout depth, artifact trust | Full read of `ci.yml`, `release.yml`, `governance-audit.yml`, `dependabot.yml`; cross-checked pins against `scripts/action-pins.json` | Image assets are binary; reviewed only as packaging surface |
-| `docs/` | Reviewed | 58 Markdown files, performance baseline, governance capture, acceptance ledgers | Overclaiming, staleness, evidence integrity | Read `performance.md`, `pr-51-validation-report.md`, `release-governance-status.json`, `compatibility.md` structure, README headings and rule tables; regenerated all rule docs and diffed | Per-rule pages are generated and were verified by byte-identical regeneration rather than individual reading |
-| `examples/` | Sampled | 8 example projects, valid and invalid trees | Whether examples match shipped presets | Directory census; read `examples/business-rule/.oxlintrc.json`; `tests/integration/examples.test.ts` asserts silence on every valid tree | Content is exercised by the integration suite, which passed |
-| `plans/` | Sampled | 16 remediation planning documents, all untracked | Whether plans contradict shipped behavior | Filename census through `git status` | Internal planning notes, not a product or operational contract |
-| `node_modules/`, `dist/`, `artifacts/`, `package-lock.json`, `oxc-plugin-servicenow-2.0.0.tgz` | Excluded by instruction | Install and build output | Package contents and emitted declaration size | Tarball file listing, `dist` size census, `@sigstore/mock` and `sigstore` sources read to establish TST-001 and to falsify a suspected verifier defect | Build and install artifacts; reviewed at their boundaries per review principle 13 |
+| `src/analysis/` | Deeply reviewed | Scope and binding tree, path-sensitive interpreter, provenance, Now.ID facts, seven per-domain analyzers, public and internal facades | Alias soundness, host-AST portability, budget behaviour, cache identity | Full read of `path-state.ts` (1,336 lines), `bindings.ts`, `file-analysis.ts`, `fluent-imports.ts`, `provenance.ts`, `members.ts`, `public.ts`, `internal.ts`, `query-before-next.ts`, `cursor-condition.ts`, `glide-query-in-loop.ts`, `glide-query-lifecycle.ts`, `glide-bulk-filter.ts`, `glide-windowing.ts`, `glide-setnocount.ts`; nine executed reproductions | Not applicable |
+| `src/context/`, `src/settings/`, `src/engine/`, `src/options/`, `src/utils/` | Deeply reviewed | Context resolution, filename heuristics, settings validation and deep freeze, engine feature gate, option descriptors, AST helpers | Trust boundary for host settings, unknown-means-silent invariant, regex anchoring | Full read of `context/resolve.ts`, `context/filename.ts`, `context/index.ts`, `settings/validate.ts`, `settings/index.ts`, `settings/freeze.ts`, `settings/errors.ts`, `settings/releases.ts`, `options/descriptor.ts`, `options/index.ts`, `utils/ast.ts`, `utils/sysid.ts`, `utils/immutable.ts`; executed digest-name probe over nine identifiers | Not applicable |
+| `src/rules/` | Reviewed | 41 rule implementations plus `helpers.ts`, `index.ts`, and the shared `unsupported-constructor-rule.ts` factory | Applicability gating, offset portability, unbounded traversal, alias handling | Full read of `fluent-directives.ts`, `no-glideelement-in-collection.ts`, `no-hardcoded-sysid.ts`, `require-fluent-id.ts`, `no-duplicate-fluent-id.ts`, `no-gs-now.ts`, `no-packages-calls.ts`, `no-weak-collections.ts`, `unsupported-constructor-rule.ts`, `helpers.ts`, `index.ts`, and the traversal core of `prefer-glideaggregate.ts`; repository-wide greps for raw `.start`/`.end`, `before()` gates, `as unknown as` casts, and recursion helpers across all 41 | 30 rules classified as sampled: read through their catalog descriptors, generated documentation, integration fixtures, and the targeted pattern sweep rather than line by line |
+| `src/catalog.ts`, `src/catalog-metadata.ts`, `src/configs/` | Reviewed | 41 descriptors, applicability metadata, evidence records, nine preset maps | Preset placement, option wiring, evidence-URL release pinning | Head of `catalog.ts`, `constants.ts` in full, executed preset census over all nine exported configs, executed placement lookups for the rules named in PER-002 | The 2,359-line descriptor body was sampled; `scripts/check-catalog-docs.mjs` and byte-identical documentation regeneration independently enforce it, and both were executed and passed |
+| `src/fluent/`, `src/glide/` (hand-written) | Reviewed | Fluent manifest, version registry, evidence-location policy, Glide capability tables | Version resolution, evidence-URL policy, manifest drift | Full read of `fluent/index.ts`, `fluent/evidence.ts`, and the registry surface; executed `manifest:check` across 27 SDK versions | `glide/manifest.ts` and `fluent/registry.ts` bodies read at their exported interfaces; both are data tables guarded by executed checks |
+| `src/fluent/declaration-snapshots.ts` | Generated | 27 pinned SDK capability snapshots, 16,025 lines | Emission cost, generator correctness | Measured built declaration output at 162 bytes; generator `scripts/audit-fluent-sdk.mjs` interface | Generated data reviewed at its boundary and generator, per review principle 13 |
+| `src/runtime/`, `src/index.ts`, `src/types.ts`, `src/version.ts` | Deeply reviewed | Non-authoritative rule harness, plugin assembly, shared types, generated version constant | Harness fidelity, export map correctness, load-time side effects | Full read of all four files | Not applicable |
+| `tests/` | Reviewed | 143 files, 807 inventoried tests including two networked | Hermeticity, host-parser coverage, brittle fixtures | Executed the hermetic suite (805/805) and the acceptance capture (807/807) in an isolated clone; read `helpers/rule-tester.ts`, `helpers/binding-matrix.ts`, `integration/packed-consumer.test.ts`, `catalog-evidence.test.ts` | Individual rule test bodies sampled; the suite result and the targeted probes were used as evidence |
+| `scripts/` | Reviewed | Release, governance, documentation, benchmark, acceptance, and audit tooling | Supply-chain correctness, version ordering, dependency-free CI steps | Full read of `run-tests.mjs`, `generate-version.mjs`, `check-script-paths.mjs`, `check-action-pins.mjs`, `check-trusted-publishing-npm.mjs`, `publish-release-package.mjs`, `verify-published-package.mjs`, and the digest and test-inventory core of `verify-acceptance-ledger.mjs`; executed version-ordering probe; executed every offline script | `check-release-artifact.mjs`, `compat-consumer.mjs`, `benchmark.mjs`, `audit-fluent-sdk.mjs`, and the documentation generators read at their interfaces and at their tarball, git, and network touchpoints rather than in full |
+| `.github/` | Deeply reviewed | Three workflows, dependabot configuration, image assets | Permissions, action pinning, artifact trust, scheduling | Full read of `ci.yml`, `release.yml`, `governance-audit.yml`, `dependabot.yml`; cross-checked every pin against `scripts/action-pins.json`; verified every required check name against producible job names | Image assets are binary and were reviewed only as packaging surface |
+| `docs/`, `README.md`, `CHANGELOG.md`, `CONTRIBUTING.md` | Reviewed | 90 Markdown files, performance baseline, governance capture, acceptance ledgers | Overclaiming, staleness, release-pinned evidence links | Read the README host-configuration sections, `docs/decisions.md`, `docs/non-goals.md`, `docs/compatibility.md`, `docs/pr-51-validation-report.md`, `docs/release.md` structure; regenerated all rule documentation and diffed byte for byte; searched every file for non-Zurich release URLs | Per-rule pages are generated and were verified by byte-identical regeneration rather than individual reading |
+| `examples/` | Sampled | Eight example projects with valid and invalid trees | Whether examples match the shipped presets | Directory census; generated example configuration and diffed byte for byte; `tests/integration/examples.test.ts` asserts silence on every valid tree and it passed | Content is exercised by the integration suite, which passed in the isolated clone |
+| `plans/`, `PR51-REMEDIATION-GOAL.md`, `FINDINGS-REMEDIATION.md` | Sampled | 17 remediation planning documents and two root process documents | Whether the process apparatus contradicts shipped behaviour or outlives its purpose | Full read of `FINDINGS-REMEDIATION.md`; filename census of `plans/`; verified every commit the ledger cites is an ancestor of HEAD | Internal planning notes rather than a product or operational contract; assessed as portfolio burden under REM-002 |
+| `node_modules/`, `dist/`, `artifacts/`, `package-lock.json` | Excluded by instruction | Install and build output | Emitted declaration size, package contents | Built `dist` in an isolated clone and measured declaration sizes; read `package.json` `files` and `exports` | Build and install artifacts, reviewed at their boundaries per review principle 13 |
 
 # 4. Architecture and Data-Flow Map
 
 ```text
-oxlint / ESLint host
-  |  filename, source text, AST, settings.servicenow, rule options
-  v
-src/index.ts  --definePlugin/eslintCompatPlugin-->  rules  (derived from src/catalog.ts)
-  |
-  v
-src/rules/<rule>.ts  --beginRuleFile(context)-->  src/analysis/file-analysis.ts
-                                                    |
-        +-------------------------------------------+-------------------------------------+
-        |                        |                  |                  |                  |
-        v                        v                  v                  v                  v
- settings/validate.ts    context/resolve.ts   analysis/bindings.ts  analysis/path-state.ts  fluent/registry.ts
- (trust boundary,        (+ context/filename) (scope + binding tree) (path-sensitive       (version-pinned
-  deep-frozen result)     surfaces, mode,                             provenance, budgeted) SDK manifest from
-                          authoring, scope                                                  declaration-snapshots)
-        |                        |                  |                  |                  |
-        +------------------------+---------+--------+------------------+------------------+
-                                           v
-                                   FileAnalysis (cached per SourceCode x settings fingerprint)
-                                           |
-                                           v
-                                   context.report(...) diagnostics
+oxlint host                          ESLint 9/10 host
+ (oxc AST: start/end)                 (espree: start/end | typescript-eslint: range only)
+        \                                   /
+         \-------- filename, source, AST, settings.servicenow, options -------/
+                                    |
+                                    v
+                        src/index.ts  (definePlugin + eslintCompatPlugin)
+                                    |  rules derived from src/catalog.ts
+                                    v
+                        src/rules/one-rule.ts   --beginRuleFile(context)-->
+                                    |
+                                    v
+                        src/analysis/file-analysis.ts  (getFileAnalysis)
+                                    |
+   +----------------+---------------+---------------+------------------+
+   v                v               v               v                  v
+settings/validate  context/resolve  analysis/       analysis/          fluent/registry
+(trust boundary,   (+ filename)     bindings.ts     path-state.ts      (version-pinned
+ deep frozen)      surfaces, mode,  scope tree      budgeted abstract   SDK manifest)
+                   authoring, scope                 interpreter
+   +----------------+---------------+---------------+------------------+
+                                    v
+                     FileAnalysis  (WeakMap on SourceCode x settings fingerprint)
+                                    |
+        +---------------------------+---------------------------+
+        v                           v                           v
+ per-domain analyzers        fluent import/alias          Now.ID program-point
+ (query-before-next,          resolver                     facts
+  bulk-filter, windowing,     (source-offset ordered)
+  setnocount, lifecycle,
+  query-in-loop*)
+        \___________________________|___________________________/
+                                    v
+                            context.report(...)
+
+* query-in-loop and no-glideelement-in-collection walk the AST themselves
+  outside the budgeted interpreter (see PER-002).
 ```
 
 ## Component relationships
 
-`src/catalog.ts` is the hub: it owns rule identity, presets, applicability metadata, evidence, examples, and option descriptors. `src/rules/index.ts`, `src/configs/maps.ts`, `docs/rules/*.md`, the README tables, and the shipped `.oxlintrc.json` copies are all derived from it (POS-003).
+`src/catalog.ts` is the hub. It owns rule identity, preset placement, applicability metadata, evidence records, examples, and option descriptors. `src/rules/index.ts`, `src/configs/maps.ts`, `docs/rules/*.md`, the README tables, and the shipped `.oxlintrc.json` copies are all derived from it and regenerate byte for byte (POS-003).
 
 ## Responsibility boundaries
 
-Rules decide *what* to report; `src/analysis/` decides *what is provable*; `src/context/` decides *whether a rule applies*; `src/settings/` decides *what configuration is legal*. Rules never match platform names by string alone — they route through `isPlatformGlobal`, `ofExpression`, or `resolveFactory`.
+Rules decide what to report. `src/analysis/` decides what is provable. `src/context/` decides whether a rule applies at all. `src/settings/` decides what configuration is legal. Rules do not match platform names by string alone; they route through `isPlatformGlobal`, `ofExpression`, or `resolveFactory`.
 
 ## Dependency direction
 
-`rules → analysis → context → settings → types`, with `catalog` depending on `rules` and `options`. `src/analysis/internal.ts` is the internal facade; `src/analysis/public.ts` is the narrowed, frozen public one. No cycles were observed; `src/context/index.ts` re-exports `getScriptContext` from `analysis/file-analysis.ts`, which is the one place the layering is inverted for convenience.
+`rules -> analysis -> context -> settings -> types`, with `catalog` depending on `rules` and `options`. `src/analysis/internal.ts` is the internal facade and `src/analysis/public.ts` the narrowed frozen public one. No cycles were observed. `src/context/index.ts` re-exports `getScriptContext` from `analysis/file-analysis.ts`, which is the one deliberate layering inversion.
 
 ## Data ownership
 
-`FileAnalysis` owns all per-file derived state and is cached in a `WeakMap` keyed on the host `SourceCode` object, bucketed by a JSON key over filename, physical filename, cwd, and the settings structural fingerprint (`src/analysis/file-analysis.ts:280-303`). Rule-local state exists only in `no-client-gliderecord` and `no-hardcoded-sysid`, reset in `before()`.
+`FileAnalysis` owns all per-file derived state. It is cached in a `WeakMap` keyed on the host `SourceCode` object and bucketed by a JSON key over filename, physical filename, cwd, the settings structural fingerprint, the default Fluent SDK version, the Glide release, and a resolver version (`src/analysis/file-analysis.ts:287-308`). Rule-local state exists only where a rule keeps a stack across visitors, and is reset in `before()`.
 
 ## Trust and privilege boundaries
 
-Host-supplied settings are untrusted until `validateServiceNowSettings` returns; unknown keys throw. Source text is untrusted and is only ever parsed, never evaluated. In the release pipeline, the `publish` job holds `id-token: write` and no `contents` access, runs with no repository checkout, and executes only the digest-manifested helper downloaded as `release-publish-input`.
+Host settings are untrusted until `validateServiceNowSettings` returns; unknown keys throw `ServiceNowSettingsError`. Source text is untrusted and only parsed. Identifier and comment text that reaches a lookup table uses `Map` or a null-prototype object (`src/analysis/provenance.ts:35`, `src/constants.ts:59`). In the release pipeline the `publish` job holds only `id-token: write`, performs no checkout, and executes only the digest-manifested helper from `release-publish-input`.
 
 ## Critical request paths
 
-The hot path is `getFileAnalysis` → `buildFileAnalysis`, which runs `createFileBindings` (one full walk), `analyzePathBindings` (path-sensitive interpretation under a 50,000-unit work budget and 128-frame depth cap), then a fixup walk. Every rule after the first reuses the cached result.
+The hot path is `getFileAnalysis` to `buildFileAnalysis`, which runs `createFileBindings` (one full walk), `analyzePathBindings` under a 50,000-unit work budget and 128-frame depth cap, then a fixup walk. Every rule after the first reuses the cached result. Three rules run their own additional traversals outside that budget.
 
 ## Async workflows and actual delivery guarantees
 
-Not applicable within the plugin: `src/` contains no promises, timers, workers, or queues. In the release pipeline, `scripts/verify-published-package.mjs` implements bounded exponential-backoff retry (`retryBounded`, default 180 s deadline, 8 attempts) with an explicit retryable-error predicate, and treats registry 404 as transient to absorb publication lag.
+Not applicable inside the plugin: `src/` contains no promises, timers, workers, or queues. In the release pipeline, `scripts/verify-published-package.mjs` uses bounded exponential-backoff retry with an explicit retryable-error predicate and a 120-second per-operation timeout on every npm child process, import probe, and attestation fetch. Its delivery model is at-least-once with idempotent verification: publication is attempted once and an `EPUBLISHCONFLICT` result is reclassified as verify-existing rather than retried.
 
 ## Persistence and transaction boundaries
 
-Not applicable: no transactional store. The closest boundary is `scripts/check-release-artifact.mjs` producing exactly one tarball plus a digest manifest that the publish job re-verifies file by file before `npm publish`.
+Not applicable: there is no transactional store. The nearest equivalent is `scripts/check-release-artifact.mjs` producing exactly one tarball plus a digest manifest that the publish job re-verifies file by file before `npm publish`.
 
 ## Cache ownership and invalidation
 
-Two caches. `src/settings/index.ts` memoizes validated settings in a `WeakMap` keyed on the raw settings object, guarded by a structural fingerprint so in-place mutation is detected. `src/analysis/file-analysis.ts` caches `FileAnalysis` per `SourceCode`. Neither cache has an eviction policy; both rely on the host releasing the keying object.
+Two caches, both `WeakMap`-based with no eviction policy, relying on the host releasing the keying object. `src/settings/index.ts` memoizes validated settings keyed on the raw settings object and guarded by a structural fingerprint so in-place mutation is detected. `src/analysis/file-analysis.ts` caches `FileAnalysis` per `SourceCode`. An explicitly supplied alternate AST bypasses the cache entirely.
 
 ## External dependencies
 
-Runtime: `@oxlint/plugins`. Release-time: npm CLI, `gh` CLI, the npm registry, the npm attestation endpoint, and the Sigstore trust root.
+Runtime: `@oxlint/plugins` only. Release-time: the npm CLI, the npm registry and its attestation endpoint, the public Sigstore trust root, and the `gh` CLI.
 
 ## Operational control points
 
-`npm run validate` (14 chained gates), the CI workflow's 8 jobs, the release workflow's 6 jobs, the manual `governance-audit.yml`, and the benchmark gate thresholds documented in `docs/performance.md`.
+`npm run validate` (15 chained gates), the CI workflow's ten jobs, the release workflow's six jobs, the manually triggered `governance-audit.yml`, the required-check list in `scripts/release-governance.json`, and the benchmark gate thresholds in `docs/performance.md`.
 
 ## Compatibility boundaries
 
-The `exports` map, `peerDependencies` ranges, `engines.node >= 20.19.0`, the `settings.servicenow` schema including the deprecated `scriptType`/`ecmaLatest` keys, and the compatibility matrix in `scripts/compat-matrix.json` that drives the CI `compat` job.
+The `exports` map, `peerDependencies` ranges, `engines.node` at or above 20.19.0, the `settings.servicenow` schema including the deprecated `scriptType` and `ecmaLatest` keys, rule identifiers, per-rule option schemas, the exported preset names, and the compatibility matrix in `scripts/compat-matrix.json` that drives the CI `compat` job.
 
 # 5. Top Findings
 
 | ID | Title | Record type | Classification or decision | Severity or priority | Confidence | Affected area | Recommended action | Effort |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| OPS-001 | Required lint, format, and fixture type-check configuration is untracked | Defect or risk | Operational gap | Critical | Confirmed | Repository tooling configuration | Add the three files to git | Small |
-| TST-001 | Sigstore fixture clock outlives the mock root certificate | Defect or risk | Confirmed defect | Critical | Confirmed | Release provenance test fixture | Derive the fixture clock from the run clock | Small |
-| OPS-002 | Required status checks name jobs no workflow can produce | Defect or risk | Operational gap | High | High | Branch protection and required status checks | Reconcile check names and assert them in CI | Small |
-| OPS-003 | The remediation exists only as an uncommitted working tree | Defect or risk | Operational gap | High | Confirmed | Change management and source control | Commit and push to a branch | Small |
-| TST-002 | A unit test needs git history the CI checkout does not fetch | Defect or risk | Confirmed defect | High | Confirmed | Preset pinning test | Set `fetch-depth: 0` or vendor the pinned bytes | Small |
-| OPS-004 | Release validation installs unpinned packages from the live registry | Defect or risk | Operational gap | High | Confirmed | Test hermeticity and release validation | Pin transitively and gate the test on an opt-in flag | Medium |
-| COR-001 | Surface heuristics match directory names anywhere in the absolute path | Defect or risk | Confirmed defect | High | Confirmed | Script context resolution | Match directory segments relative to `context.cwd` | Small |
-| OPS-005 | The desired governance policy still holds placeholder principals | Defect or risk | Operational gap | Medium | Confirmed | Release governance policy | Fill in real actor and reviewer identifiers | Small |
-| PER-001 | A const assertion ships a 939 KB declaration file | Defect or risk | Performance risk | Medium | Confirmed | Fluent SDK declaration snapshots | Emit an interface annotation instead of `as const` | Small |
-| REL-001 | Release ordering truncates hyphenated prereleases | Defect or risk | Confirmed defect | Medium | Confirmed | Release version ordering | Split on the first hyphen only for the core version | Small |
-| COR-002 | `ignoreHashNames` only honours the literal name `md5` | Defect or risk | Confirmed defect | Medium | Confirmed | Hardcoded sys_id detection | Test 32-hex for every hash-like name | Small |
-| MNT-001 | An autofix harness is maintained although no rule emits a fix | Defect or risk | Maintainability concern | Low | Confirmed | Rule execution harness | Delete the harness or commit to shipping fixes | Small |
-| DOC-001 | The acceptance ledger digest cannot be reproduced | Defect or risk | Documentation issue | Low | Confirmed | Acceptance evidence ledger | Exclude generated outputs from the digest scope | Small |
-| DOC-002 | Evidence links still cite the Xanadu documentation set | Defect or risk | Documentation issue | Low | Confirmed | Rule evidence references | Repoint the two Xanadu URLs at Zurich | Small |
-| MNT-002 | `sideEffects: false` contradicts a module-load filesystem read | Defect or risk | Maintainability concern | Low | High | Package entry point | Generate the version constant at build time | Small |
-| MNT-003 | Identifier names are looked up in plain object literals | Defect or risk | Maintainability concern | Low | Confirmed | Constructor provenance mapping | Use a `Map` or a null-prototype object | Small |
-| REM-001 | Retire the deprecated `validate-gliderecord-calls` alias | Feature decision | Deprecate | Later | High | Deprecated GlideRecord call rule | Announce removal for 3.0 with the documented replacement | Small |
-
-### Current-review additions
-
-| ID | Title | Record type | Classification | Severity | Confidence | Affected area | Recommended action | Effort |
-|---|---|---|---|---|---|---|---|---|
-| COR-003 | The shared path evaluator produces unsound control-flow joins | Defect or risk | Confirmed defect | High | Confirmed | src analysis path evaluator | Introduce an explicit completion-state algebra with normal, return, throw, break, and continue outcomes; prune statically constant branches; evaluate switch tests in runtime order; and join environment identities as sets or conservative unknowns. | Large |
-| COR-004 | Cursor-based loop checks drop context inside synchronous IIFEs | Defect or risk | Confirmed defect | Medium | Confirmed | cursor-based loop rule walkers | Add a shared immediate-invocation predicate and preserve the parent execution context only for proven synchronous IIFEs. | Small |
-| COR-005 | Receiver display names are used as semantic identities | Defect or risk | Probable defect | Medium | High | receiver-sensitive cursor analysis | Introduce a receiver-key abstraction that prefers scope-resolved bindings, otherwise uses AST node identity within the analysis run, and treats uncertain aliasing conservatively. | Medium |
-| API-001 | analyzeProvenance ignores its alternate AST argument | Defect or risk | Confirmed defect | Medium | Confirmed | public analysis provenance API | Thread the supplied AST through traversal and node-index construction. | Medium |
-| COR-006 | Fluent import aliases are resolved in lexical instead of execution order | Defect or risk | Confirmed defect | High | Confirmed | Fluent import and alias provenance resolver | Move alias tracking onto the shared execution/path model or implement a bounded interprocedural summary for synchronous local calls. | Large |
-| OPS-006 | Post-publish verification requires a removed package-root export | Defect or risk | Confirmed defect | High | Confirmed | npm release post-publish verification | Read version from package. | Small |
-| REL-002 | The release verification deadline does not bound individual operations | Defect or risk | Reliability risk | Medium | Confirmed | release registry and provenance verification | Use AbortController for fetch, child-process timeout and kill handling for npm, pass the remaining budget into each operation, and set timeout-minutes on release jobs. | Medium |
-| OPS-007 | The SDK drift check is not enforced by CI | Defect or risk | Operational gap | Medium | Confirmed | generated ServiceNow SDK evidence lifecycle | Add an offline required workflow step with path filters for the generator and generated data, plus a scheduled job if upstream retrieval is part of the intended contract. | Small |
+| COR-007 | Host AST offsets are read through `start` and `end` instead of the portable accessor | Defect or risk | Confirmed defect | High | Confirmed | Host AST source-offset access | Route every node and comment offset through `nodeStart` and a new `nodeEnd`, and add a `typescript-eslint`-parsed regression fixture | Medium |
+| PER-002 | Cursor-loop walkers re-traverse `do…while` bodies without a budget | Defect or risk | Performance risk | High | Confirmed | Cursor-loop rule walkers | Memoize on the node and cursor-set pair and add the path evaluator's deterministic budget | Small |
+| COR-008 | Digest-name suppression matches a digest word anywhere in an identifier | Defect or risk | Confirmed defect | Medium | Confirmed | Hardcoded sys_id detection | Anchor the heuristic to whole name components | Small |
+| API-002 | Four published provenance fields are never populated | Defect or risk | Confirmed defect | Medium | Confirmed | public analysis provenance API | Populate the fields from the domain analyzers or deprecate and remove them at 3.0 | Medium |
+| OPS-004 | Required validation still installs from the live npm registry | Defect or risk | Operational gap | Medium | Confirmed | Test hermeticity and release validation | Give `acceptance:check` an offline mode and stop running the networked tests inside the required `test` job | Medium |
+| COR-009 | A repeated `var` declarator is invisible to the alias resolver | Defect or risk | Confirmed defect | Low | Confirmed | Fluent import and alias provenance resolver | Treat every declarator of a `var` binding as a write in execution order | Small |
+| REL-003 | Prerelease ordering uses locale collation instead of ASCII order | Defect or risk | Confirmed defect | Low | Confirmed | Release version ordering | Compare prerelease identifiers with plain relational operators | Small |
+| OPS-008 | The governance audit runs only when a maintainer triggers it | Defect or risk | Operational gap | Low | Confirmed | Release governance drift detection | Add the nightly schedule the SDK drift job already uses | Small |
+| MNT-004 | The post-publish verifier requires an argument nothing consumes | Defect or risk | Maintainability concern | Low | Confirmed | npm release post-publish verification | Cross-check the trusted-publisher subject against the certificate identity or drop the argument | Small |
+| DOC-002 | One evidence link still cites the Xanadu documentation set | Defect or risk | Documentation issue | Low | Confirmed | Rule evidence references | Repoint the research-note URL at Zurich and widen the guard to linked research documents | Small |
+| REM-002 | Retire the PR #51 acceptance-ledger apparatus after the remediation merges | Feature decision | Deprecate | Next | High | PR 51 acceptance ledger apparatus | Set a concrete retirement trigger in `docs/decisions.md` and remove the required CI step with it | Medium |
+| IMP-001 | Keep the dependency-free `uses:` matcher and harden it | Improvement or alternative | Improvement | Later | Confirmed | Workflow action pin verification | Keep the regular expression, add block-scalar and empty-owner guards, and keep the YAML-parsed assertions in tests | Small |
 
 # 6. Detailed Findings
 
-## [OPS-001] Required lint, format, and fixture type-check configuration is untracked
+## [COR-007] Host AST offsets are read through `start` and `end` instead of the portable accessor
 
 Record type: Defect or risk
-ID category: OPS
-Primary component: Repository tooling configuration
-Identity statement: Lint, format, and fixture type-check configuration files required by package scripts were never added to version control
-Fingerprint: sha256:21a467edb0f97e927e96bdf2184cd040e4d65b8d30aa424253cdc3a0078c893a
-Status: Active
-
-Classification: Operational gap
-Severity or priority: Critical
-Confidence: Confirmed
-Affected components: `.oxlintrc.json`, `.oxfmtrc.json`, `tsconfig.valid-fixtures.json`, `package.json` scripts `lint:check`/`format:check`/`typecheck:fixtures`/`validate`, `.github/workflows/ci.yml` `test` job, `.github/workflows/release.yml` `validate` job, every contributor cloning the repository
-
-Evidence:
-- `git status --porcelain` lists `?? .oxlintrc.json`, `?? .oxfmtrc.json`, and `?? tsconfig.valid-fixtures.json`.
-- `git check-ignore -v .oxlintrc.json .oxfmtrc.json` exits 1: they are not ignored, merely never added. `git log --oneline -3 -- .oxlintrc.json .oxfmtrc.json` produces no output: they were never tracked.
-- `package.json:69-71`: `format:check` passes `-c .oxfmtrc.json` explicitly; `lint:check` relies on oxlint's automatic discovery of `.oxlintrc.json`; `typecheck:fixtures` passes `-p tsconfig.valid-fixtures.json`.
-- `.github/workflows/ci.yml:24-27` runs `lint:check`, `format:check`, `typecheck`, `typecheck:fixtures` in the `test` job; `.github/workflows/release.yml:40-43` runs the same four in the `validate` job.
-- Reproduced on a clean checkout: `git archive HEAD` extracted into `/tmp/super-review-oxc-sn/head-probe` with `node_modules` symlinked. `npx oxfmt -c .oxfmtrc.json --check src scripts tests` exits 1 with `Failed to load configuration file. Failed to read .../.oxfmtrc.json: File not found`. `npx tsc --noEmit -p tsconfig.valid-fixtures.json` reports `error TS5058: The specified path does not exist`. `npx oxlint --disable-nested-config --deny-warnings --ignore-pattern 'tests/integration/profiles/**' src scripts tests` exits 1 with `no-unused-vars` and `unicorn/prefer-string-starts-ends-with` warnings that the untracked `.oxlintrc.json` `categories`/`ignorePatterns` settings would have suppressed.
-- The same clean checkout passes `tsc -p tsconfig.build.json` and `tsc --noEmit -p tsconfig.json`, so the failure is specific to the three missing files.
-
-Current behavior: The committed history of `pr51-remediation/layer6` does not contain the configuration that three of its own quality gates require. Those gates pass only in the author's working tree.
-
-Expected or preferred behavior: Every file a `package.json` script or CI job needs must be tracked, so a fresh clone reproduces the documented result.
-
-Trigger or scenario: Any clone, CI checkout, fork, contributor onboarding, or release run that starts from committed content rather than the author's disk.
-
-Impact: Three of the eight `test`-job steps and three of the release `validate` steps fail immediately. `npm run validate`, `prepublishOnly`, and therefore any publish attempt from a clean tree also fail. Combined with OPS-002, this is why no revision of this branch has been merged.
-
-Reach: Every consumer of the repository other than the single working tree on the review host: CI, forks, contributors, and the release pipeline.
-
-Root cause: The files were created during the remediation and never staged. `.gitignore` does not exclude them, so nothing warned about the omission, and no gate asserts that the files the scripts reference are tracked.
-
-Why existing tests did not catch it: The suite always runs against the working tree, where the files exist. No test asserts tracked-ness, and `scripts/check-catalog-docs.mjs` only compares generated outputs — its `git status --porcelain` call at line 198 covers `docs/rules`, `README.md`, `docs/compatibility.md`, `examples`, and two config paths, none of which include the three files.
-
-Minimal reproduction: `git archive HEAD` extracted into an empty directory, link or install `node_modules`, then run `npm run format:check`.
-
-Recommended action: `git add .oxlintrc.json .oxfmtrc.json tsconfig.valid-fixtures.json` and commit them with the rest of the working tree, then add a CI assertion that every path referenced by a `package.json` script exists in `git ls-files`.
-
-Alternative approaches:
-1. Add the files only. Smallest change, but the same class of omission recurs.
-2. Add the files and extend `scripts/check-catalog-docs.mjs` (or a new small check) to fail when a script-referenced path is untracked. Slightly more work, prevents recurrence, and reuses the existing `git status` plumbing.
-3. Keep current behavior. Not applicable: the committed branch cannot pass its own gates, so this is not a viable state.
-
-Preferred option: Option 2. Confidence Confirmed for the defect and High for the prevention step; the prerequisite is only that the check runs in a job that has a git checkout, which every current job does. Evidence that would change it: if the project intends these files to be developer-local, then the scripts must stop referencing them, which is a larger change.
-
-Implementation outline: Stage the three files. Add a check that reads `package.json` scripts, extracts the arguments after `-c` and `-p` plus bare configuration filenames, and asserts each is listed by `git ls-files`. Wire it into `npm run workflow:check` (which already runs without `npm ci`) or `docs:check`.
-
-Compatibility and migration: No public contract changes. `.oxlintrc.json` and `.oxfmtrc.json` become repository-visible defaults, which matches how CI already assumes they behave.
-
-Validation: Re-run the clean-checkout reproduction above and confirm `lint:check`, `format:check`, and `typecheck:fixtures` all exit 0. Confirm the new check fails when any of the three files is removed.
-
-Effort: Small: three `git add` calls plus roughly 30 lines of checking script.
-
-Risk of the proposed change: Low: adding tracked files cannot change runtime behavior, and the new check is read-only.
-
-Dependencies: OPS-003 — the files can only be committed as part of committing the working tree.
-
-Open questions: Not applicable: the evidence establishes both the omission and its consequences directly.
-
-## [TST-001] Sigstore provenance fixture pins a clock the mock root certificate does not honour
-
-Record type: Defect or risk
-ID category: TST
-Primary component: Release provenance test fixture
-Identity statement: The Sigstore mock fixture pins a fixed leaf-certificate clock while the mock root certificate is anchored to wall-clock time, so the chain expires as time passes
-Fingerprint: sha256:f636dcaa78b7770bc33fc4035e3e5fe9284cf3613c77fa11be1d1a6d1b0882fe
-Status: Active
-
-Classification: Confirmed defect
-Severity or priority: Critical
-Confidence: Confirmed
-Affected components: `tests/release/layer7.test.ts`, `npm test`, `npm run validate`, `prepublishOnly`, `.github/workflows/ci.yml` `test` job, `.github/workflows/release.yml` `validate` job, `scripts/verify-published-package.mjs` coverage
-
-Evidence:
-- `tests/release/layer7.test.ts:517`: `const fixed = new Date("2026-08-21T12:00:00Z");` then line 520 `const ca = await initializeCA(caKeys, undefined, fixed);`.
-- `node_modules/@sigstore/mock/dist/fulcio/ca.js:106-110`: `issueCertificate` uses the injected clock — `notBefore: now`, `notAfter: new Date(now.getTime() + 10 * MS_PER_MINUTE)`. The leaf is therefore valid only from 2026-08-21T12:00:00Z to 12:10:00Z.
-- `node_modules/@sigstore/mock/dist/util/root-cert.js:31-32`: `createRootCertificate` ignores the clock entirely — `notBefore: new Date()`, `notAfter: new Date(Date.now() + 365 * MS_PER_DAY)`. `initializeCA` (`fulcio/ca.js:70-80`) calls it before constructing `CAImpl`, so the clock is never passed down.
-- Executed in the isolated copy: `npx tsx --test tests/release/layer7.test.ts` → `tests 16, pass 15, fail 1`, with `Error: Sigstore verification failed: Failed to verify certificate chain` and `kind: 'provenance-signature'`.
-- Executed with the single line changed to `const fixed = new Date();` → `tests 16, pass 16, fail 0`. The pinned date is the sole cause.
-- `docs/pr-51-validation-report.md:14,19` records `Captured: 2026-08-21T10:25:25.230Z` with `Passed: 790, Failed: 0`, roughly 1 hour 45 minutes before the leaf certificate's `notAfter`. The evidence was true when captured and became stale shortly afterwards.
-
-Current behavior: Once wall-clock time passes 2026-08-21T12:10:00Z, the leaf certificate's validity window lies entirely before the freshly generated root certificate's `notBefore`, chain building fails, and `verifyProvenanceAttestation` rejects the bundle. `npm test` exits 1.
-
-Expected or preferred behavior: The deterministic local trust-root test should pass at any wall-clock time, because it asserts a property of `scripts/verify-published-package.mjs`, not a property of the calendar.
-
-Trigger or scenario: Any run of `npm test` after 2026-08-21T12:10:00Z on any machine.
-
-Impact: The one test that cryptographically proves the release-provenance verifier works is red. It blocks `npm test`, `npm run validate`, `prepublishOnly`, the CI `test` job, and the release `validate` job — so no release can be cut while it stands. The negative-path sibling test (`rejects signature and every required statement or certificate identity mutation`) still passes, so failures would be caught, but the positive path is unproven.
-
-Reach: Every developer, every CI run, and every release attempt.
-
-Root cause: `@sigstore/mock` threads its `clock` argument only into `CAImpl.issueCertificate`, not into `createRootCertificate`. The fixture assumed a single injected clock governed the whole chain, so it pinned a date that was "now" on the day the test was written.
-
-Why existing tests did not catch it: The test *is* the check; it passed on the authoring day and there is no scheduled or nightly run to surface time-dependent decay. `docs/pr-51-validation-report.md` records a green capture from 2026-08-21T10:25Z, so the stored evidence still asserts 790/790.
-
-Minimal reproduction: `npx tsx --test tests/release/layer7.test.ts` on any date after 2026-08-21T12:10:00Z.
-
-Recommended action: Derive the fixture clock from the run clock: `const fixed = new Date();`. The rest of the fixture already computes `trustMaterial.validFor` and `integratedTime` from `fixed`, so no other line changes.
-
-Alternative approaches:
-1. Use `new Date()` for `fixed`. One-line change, restores determinism relative to the run, keeps the assertion identical. Verified to pass 16/16.
-2. Keep the pinned date and also freeze the root certificate, for example by generating the root through a helper that accepts the clock, or by pinning `Date.now` for the duration of the fixture. Fully deterministic bytes, but requires either patching around `@sigstore/mock` or global clock manipulation inside a test file that also runs real crypto.
-3. Keep current behavior. Not applicable: the test is failing.
-
-Preferred option: Option 1. Confidence Confirmed — measured directly. Option 2 becomes preferable only if the project later needs byte-stable fixture output, for example to snapshot the bundle; there is no such requirement today.
-
-Implementation outline: Change `tests/release/layer7.test.ts:517`. No production code, schema, documentation, or generated artifact is affected. Re-capture `docs/pr-51-validation-report.md` afterwards so the recorded 790/790 corresponds to a passing suite.
-
-Compatibility and migration: Not applicable: test-only change with no public contract.
-
-Validation: `npx tsx --test tests/release/layer7.test.ts` must report 16/16. Then `npm test` end to end. Consider adding a comment at the fixture explaining why the clock must track wall time, so the pin is not reintroduced.
-
-Effort: Small: one line plus a comment.
-
-Risk of the proposed change: Low: the assertion set is unchanged and the negative-path test continues to prove that mutations are rejected.
-
-Dependencies: Not applicable.
-
-Open questions: Not applicable: root cause and fix are both directly measured.
-
-## [OPS-002] Required status-check identifiers name jobs that no workflow can produce
-
-Record type: Defect or risk
-ID category: OPS
-Primary component: Branch protection and required status checks
-Identity statement: Required status-check identifiers are authored by hand and never cross-checked against the job names the workflows can actually produce
-Fingerprint: sha256:88eb55ec1142b29b861f8b55b6f22f9df223e6722d94a7f6d357f48f0f220aba
-Status: Active
-
-Classification: Operational gap
-Severity or priority: High
-Confidence: Medium
-Affected components: `docs/release-governance-status.json`, `scripts/release-governance.json`, `scripts/check-release-governance.mjs`, `.github/workflows/ci.yml`, `scripts/compat-matrix.json`, every pull request targeting `main`
-
-Evidence:
-- `.github/workflows/ci.yml:13-14` declares the `test` job with no `strategy.matrix`, so its only possible check name is `test`.
-- `node scripts/check-compat-matrix.mjs --github-matrix` returns `include` entries with keys `cell` then `node`: `min-hosts/20.19.0`, `node22-host/22.14.0`, `node24-host/24.16.0`, `node26-host/26.7.0`, `eslint9-current/24.16.0`. The producible `compat` check names are therefore `compat (<cell>, <node>)` with exactly those pairs.
-- The complete producible set is `test`, `compat-matrix`, `bench`, `docs`, `manifest`, `artifact`, `workflow`, and those five `compat (...)` names.
-- `docs/release-governance-status.json` `github.mainRuleset.requiredStatusChecks` (ruleset `PR51 main governance`, `enforcement: "active"`, `rules` include `required_status_checks`) lists 15 names. Computed comparison shows 10 are not producible: `test (20.19.0)`, `test (22)`, `test (24)`, `test (26)`, `compat (20.19.0, min-hosts)`, `compat (20, node20-floor)`, `compat (22, node22-lts)`, `compat (24, node24-lts)`, `compat (26, node26-current)`, `compat (current, eslint9-current)`. Cell identifiers `node20-floor`, `node22-lts`, `node24-lts`, and `node26-current` do not exist in `scripts/compat-matrix.json`.
-- `scripts/release-governance.json` `mainRuleset.requiredStatusChecks` is much closer but still contains exactly one unproducible entry: `compat (eslint9-current, 26.7.0)`, whereas the `eslint9-current` cell pins node `24.16.0` (`scripts/compat-matrix.json` cells list).
-- `scripts/check-release-governance.mjs:205-208` compares live and desired required-check lists to each other (`same(...)`), but nothing in the repository compares either list against producible job names.
-
-Current behavior: The protected `main` ruleset requires checks that no workflow run can report. GitHub keeps such checks in an expected-but-never-reported state, so the pull request never becomes mergeable.
-
-Expected or preferred behavior: Every required status check must correspond to a check name that some workflow job in the repository can emit for the pull-request event.
-
-Trigger or scenario: Opening any pull request into `main` while the captured ruleset is active.
-
-Impact: Pull requests to `main` cannot merge. This is consistent with the repository's observed state: 15 `pr51-*` branches, `main` 11 commits behind, and the whole remediation stranded in a working tree (OPS-003).
-
-Reach: Every contributor and every merge into the default branch.
-
-Root cause: Required-check identifiers are maintained as hand-written strings in two places, and the governance checker validates only that the two strings match each other. Job names, in contrast, are derived: the `compat` names depend on `scripts/compat-matrix.json` and on GitHub's matrix-naming rules, so any matrix edit silently invalidates the pinned strings.
-
-Why existing tests did not catch it: `tests/release/layer7.test.ts` parses the workflows with the `yaml` package and asserts pinning and permissions, but no test derives the producible check-name set and compares it with `scripts/release-governance.json`. The governance audit runs only on `workflow_dispatch` and cannot reach the comparison at all (see OPS-005).
-
-Minimal reproduction: Compute the producible set from `node scripts/check-compat-matrix.mjs --github-matrix` plus the job keys in `.github/workflows/ci.yml`, then subtract it from `docs/release-governance-status.json` `github.mainRuleset.requiredStatusChecks`. Ten names remain. Repeating the subtraction against `scripts/release-governance.json` leaves `compat (eslint9-current, 26.7.0)`.
-
-Recommended action: Derive the required-check list. Add a check that builds the producible name set from `.github/workflows/ci.yml` job keys plus `scripts/compat-matrix.json` cells, asserts `scripts/release-governance.json` `mainRuleset.requiredStatusChecks` is a subset of it, and fails otherwise. Then apply the corrected list to the live ruleset.
-
-Alternative approaches:
-1. Fix the one wrong string in `scripts/release-governance.json` and update the live ruleset by hand. Fastest, but the same drift recurs on the next matrix change.
-2. Derive and assert the list in CI as described. Prevents recurrence and reuses `scripts/check-compat-matrix.mjs`, which already computes the matrix, and the `yaml` dependency already present for `tests/release/layer7.test.ts`.
-3. Give the `compat` job an explicit stable `name:` so its check name no longer depends on matrix key order. Removes the fragility at the source, at the cost of less informative check names unless a template is used.
-
-Preferred option: Option 2 combined with Option 3. Confidence High. The prerequisite is that someone with repository administration rights can update the live ruleset; the repository cannot do that itself. Evidence that would change the conclusion: reading the live ruleset and finding it already reconciled, in which case only `scripts/release-governance.json` needs the one-string fix.
-
-Implementation outline: Extend `scripts/check-compat-matrix.mjs` (or add a sibling) to emit the producible check-name set. Add a test in `tests/release/` that parses `.github/workflows/ci.yml` with `yaml`, unions the job keys with the derived `compat` names, and asserts the desired governance list is a subset. Correct `compat (eslint9-current, 26.7.0)` to `compat (eslint9-current, 24.16.0)`. Update the live ruleset and re-capture `docs/release-governance-status.json`.
-
-Compatibility and migration: No package contract changes. Updating branch protection is an administrative action that should be announced, because loosening required checks temporarily reduces enforcement.
-
-Validation: Open a throwaway pull request and confirm every required check reports. Re-run the governance audit and confirm `main required status checks drifted` no longer appears.
-
-Effort: Small: roughly 60 lines of derivation plus one test, and one administrative ruleset edit.
-
-Risk of the proposed change: Medium: the fix requires editing live branch protection, and an incorrect edit could weaken enforcement. Mitigate by changing only the `required_status_checks` parameter and re-capturing the ruleset immediately afterwards.
-
-Dependencies: OPS-005 — the governance audit cannot run end to end until the desired policy is complete.
-
-Open questions: Is the live `main` ruleset still in the state captured on 2026-08-20T09:36:12Z? This matters because the count of broken checks (10 versus 1) depends on it. The current assumption is that the capture is accurate, as the repository presents it as its own evidence, though the file itself is labelled `historical-unverified`. Evidence required: `gh api repos/martinthommesen/oxc-plugin-servicenow/rulesets/21081867`, which needs network access and a token. If the live ruleset already matches `scripts/release-governance.json`, severity drops to Medium and only the single `compat (eslint9-current, 26.7.0)` string is wrong.
-
-## [OPS-003] The remediation exists only as an uncommitted working tree
-
-Record type: Defect or risk
-ID category: OPS
-Primary component: Change management and source control
-Identity statement: The remediation body of work exists only as an uncommitted working tree with no branch, remote, or CI record
-Fingerprint: sha256:8583ba439b5b4e8ac127f64ed16d6365c559d6da36d119ea114e70c6a3c12812
-Status: Active
-
-Classification: Operational gap
-Severity or priority: High
-Confidence: Confirmed
-Affected components: The whole repository; in particular the untracked first-party source, scripts, workflow, and configuration listed below
-
-Evidence:
-- `git status --porcelain | cut -c1-2 | sort | uniq -c` reports 228 ` M`, 47 `??`, and 3 ` D`. `git diff --stat` reports `231 files changed, 13671 insertions(+), 4465 deletions(-)`.
-- Untracked first-party source: `src/analysis/internal.ts`, `src/analysis/public.ts`, `src/fluent/declaration-snapshots.ts` (16,023 lines), `src/fluent/evidence.ts`, `src/utils/immutable.ts`, `src/rules/unsupported-constructor-rule.ts`.
-- Untracked release-critical tooling: `scripts/publish-release-package.mjs`, `scripts/check-release-governance.mjs`, `scripts/verify-acceptance-ledger.mjs`, `scripts/audit-fluent-sdk.mjs`, `scripts/verify-doc-evidence.mjs`, `scripts/test-json-reporter.mjs`, and their `.d.mts` companions.
-- Untracked operational surface: `.github/workflows/governance-audit.yml`, `.github/assets/`, `docs/release-governance-status.json`, and 11 `plans/*.md` documents.
-- Deleted but uncommitted: `docs/release-governance-live.json`, `tests/fixtures/fluent-sdk-boundaries.json`, `tests/utils/ast.test.ts`.
-- `git branch -a -v` shows `main` 11 commits behind with no branch or remote holding this content; `git reflog -15` shows only documentation commits on `pr51-remediation/layer6`.
-- `docs/pr-51-validation-report.md:9,11` states `Tested identity: uncommitted` and `Worktree: uncommitted`, confirming the project is aware the evidence describes an uncommitted state.
-
-Current behavior: The reviewed system exists in exactly one place: this working tree. No branch, tag, remote, or CI run contains it.
-
-Expected or preferred behavior: Work of this size should live on a pushed branch so it is backed up, reviewable, and continuously validated.
-
-Trigger or scenario: Any `git checkout .`, `git restore .`, `git clean -fd`, `git stash` followed by a dropped stash, disk failure, or accidental directory removal.
-
-Impact: Total loss of 13,671 lines of reviewed work, including the generated 27-version SDK snapshot that would need regenerating from npm artifacts. Independently, nothing in the work has ever been validated by CI, so the repository's own quality gates have never seen it.
-
-Reach: The entire project and its maintainer.
-
-Root cause: Merges into `main` are blocked (OPS-002), so the natural pressure to commit and push was removed, and the work accumulated locally instead.
-
-Why existing tests did not catch it: Not applicable: source-control hygiene is outside the test suite's scope. `scripts/verify-acceptance-ledger.mjs:245-252` does detect and record the uncommitted state, and the generated report faithfully prints `Tested identity: uncommitted`, so the condition is reported but not treated as blocking.
-
-Minimal reproduction: `git status --porcelain | wc -l` returns 278 on a branch whose tip is a documentation-only commit.
-
-Recommended action: Commit the working tree to `pr51-remediation/layer6` (or a fresh branch) in coherent commits and push it, before making any further change. Do this before the OPS-002 ruleset work, so the content is safe even if merging remains blocked.
-
-Alternative approaches:
-1. One commit of the whole tree, pushed immediately. Fastest route to durability; poor reviewability.
-2. Several coherent commits grouped by the existing `plans/00N-*.md` layers, then push. Slower, but matches the planning documents already in the tree and produces a reviewable history.
-3. Keep current behavior. Not applicable: a single accidental `git restore` destroys the work.
-
-Preferred option: Option 1 first, then reshape with Option 2 if desired. Durability outranks history aesthetics while the only copy is on one disk. Confidence Confirmed.
-
-Implementation outline: Add the untracked source, scripts, workflow, configuration, and fixtures; record the three deletions; commit; push. Verify `git status --porcelain` is empty afterwards and re-run `npm run validate` from the committed state to expose OPS-001, TST-001, and TST-002 in CI rather than only locally.
-
-Compatibility and migration: Not applicable: no published contract is affected by committing existing content.
-
-Validation: `git status --porcelain` empty; `git archive HEAD` reproduces a tree that builds and passes the gates once OPS-001 and TST-001 are fixed.
-
-Effort: Small: staging and one push.
-
-Risk of the proposed change: Low: committing files cannot change behavior. The residual risk is committing something that should stay local, so review the untracked list once before staging — none of the 47 entries contains credentials or personal data.
-
-Dependencies: Not applicable.
-
-Open questions: Not applicable.
-
-## [TST-002] A unit test resolves git history that the CI checkout does not fetch
-
-Record type: Defect or risk
-ID category: TST
-Primary component: Preset pinning test
-Identity statement: A unit test resolves historical git objects that the continuous-integration checkout depth does not fetch
-Fingerprint: sha256:177af8ea443f84c9113cbb755cc565be8f1ff3baa80e76028de5b331d6bd639f
+ID category: COR
+Primary component: Host AST source-offset access
+Identity statement: Analysis and rule code read host-specific node and comment offset properties instead of the portable offset accessor, so hosts that expose only ranges silently lose every offset-dependent fact
+Fingerprint: sha256:ac7984c3e51165d87c20640c4656090b01e0c0f5689830c77437d46042230292
 Status: Active
 
 Classification: Confirmed defect
 Severity or priority: High
 Confidence: Confirmed
-Affected components: `tests/configs.test.ts`, `tests/fixtures/presets-1.1.0.json`, `.github/workflows/ci.yml` `test` job, `.github/workflows/release.yml` `validate` job
+Affected components: `src/analysis/fluent-imports.ts`, `src/analysis/bindings.ts`, `src/analysis/glide-setnocount.ts`, `src/rules/fluent-directives.ts`; the `fluent-directives`, `require-fluent-id`, `fluent-proper-imports`, and `fluent-naming-convention` rules; every consumer that lints typed Fluent files through ESLint with the `typescript-eslint` parser
 
 Evidence:
-- `tests/configs.test.ts:80,87,95` call `execFileSync` on `git show` with a commit-and-path spec, and on `git show -s --format=%T`, for commit `c987eee23127b7a0fa0d137768d9f5c888875dc2`, taken from `tests/fixtures/presets-1.1.0.json` `source.commit`.
-- `.github/workflows/ci.yml:16-18` checks out with no `fetch-depth`, so the default depth of 1 applies. `.github/workflows/ci.yml:61-64` shows the project knows the pattern: the `bench` job sets `fetch-depth: 0` explicitly because it needs history.
-- `.github/workflows/release.yml:27-30` sets `fetch-depth: 0` for `validate`, so the release path is safe; only CI is exposed.
-- Reproduced: `git clone --depth 1 --no-local file:///…/oxc-plugin-servicenow /tmp/super-review-oxc-sn/shallow`, then `git show c987eee23127b7a0fa0d137768d9f5c888875dc2:package.json` → `fatal: path 'package.json' exists on disk, but not in 'c987eee…'`. The object is absent from the shallow clone.
-- The same test passes in the full local repository: `npx tsx --test tests/configs.test.ts` → `tests 5, pass 5, fail 0`. `git merge-base --is-ancestor c987eee… HEAD` succeeds, so the commit is reachable when history is present.
-- Both `tests/configs.test.ts` and `tests/fixtures/presets-1.1.0.json` are part of the uncommitted work (`M` and `??` respectively), so this defect has not yet reached CI.
+- `src/utils/ast.ts:277-284`: `nodeStart` exists precisely for this problem and reads `start ?? range?.[0] ?? span?.start ?? -1`. Its existence is the repository's own evidence that a supported host does not provide `start`.
+- `src/analysis/fluent-imports.ts:107`, `:109`, `:134`: `latestSimpleValue` reads `(use as { start?: number }).start`, `(binding.node as { start?: number }).start`, and `(node as { start?: number }).start` to order writes against the use site. This is the execution-order comparison the previous COR-006 remediation added.
+- `src/rules/fluent-directives.ts:59`, `:64-68`, `:137-142`, `:155`, `:218`: comment and statement offsets are read directly and are the sole basis for attaching a previous-line directive to the next statement.
+- `src/analysis/bindings.ts:118-127`: `innermostScopeContaining` returns `null` when `start`/`end` are absent, so `scopeForNode` falls back to the module root scope.
+- `src/analysis/glide-setnocount.ts:47`: `alternativeKey` uses `value.result?.node.start ?? null`, so distinct query results collapse to one key when offsets are absent.
+- `README.md:180-207`: the README documents composing the recommended or strict preset with `tseslint.parser` for typed `*.now.ts` and `*.now.tsx` files.
+- Parser shape confirmed directly: `@typescript-eslint/typescript-estree` 7.18.0 produces `Identifier` nodes whose own keys are `type, decorators, name, optional, typeAnnotation, range, loc` and comments whose own keys are `type, value, range, loc`. Neither carries `start` or `end`.
+- Reproduction, same source and same rule, differing only in parser: with the oxc AST the alias case is correctly silent; with the TSESTree AST it reports one `require-fluent-id` `missing` diagnostic. A correctly placed `// @fluent-ignore` is silent under oxc and reported as `dangling` under TSESTree, with the diagnostic location collapsing to line 1 column 0.
 
-Current behavior: The test reads three blobs and a tree hash out of a historical commit. In a depth-1 checkout those objects do not exist and `execFileSync` throws, failing `npm test`.
+Current behavior: On a host whose AST exposes only `range` and `loc`, `latestSimpleValue` computes `useStart` as `Number.POSITIVE_INFINITY` and every candidate write's `start` as `Number.POSITIVE_INFINITY`, so the `start >= useStart` guard skips every assignment and the alias resolves to the declaration initializer regardless of later writes. In `fluent-directives`, `nodeRange` returns `null` for every statement, so every statement container is empty, `containingStatementList` finds nothing, and every previous-line directive is reported as `dangling`. `occurrenceAt` computes `NaN`, so the reported location degrades to line 1 column 0.
 
-Expected or preferred behavior: A unit test that pins the 1.1.0 preset source should verify content, not repository history topology, and should work in any checkout the project supports.
+Expected or preferred behavior: Offset-dependent facts must be computed identically on every supported host, or the analysis must decline to answer. A host that exposes `range` but not `start` is a supported host, so the portable accessor must be used everywhere and an absent offset must produce an unknown answer rather than a wrong one.
 
-Trigger or scenario: The first CI run after this working tree is committed and pushed.
+Trigger or scenario: Any ESLint run in which a `*.now.ts` or `*.now.tsx` file is parsed by `typescript-eslint`, which is the configuration the README documents for typed Fluent files. No unusual source construct is required; the two reproductions use five and four lines of ordinary Fluent code.
 
-Impact: The CI `test` job fails on every pull request and every push to `main`, for a reason unrelated to the code under test. It also makes the test unusable from a source tarball or a fork with truncated history.
+Impact: False positives and false negatives on the Fluent rule family for consumers who follow the documented typed-Fluent setup. `fluent-directives` reports `dangling` for correctly placed suppression comments, which both produces noise and removes the user's ability to suppress. `require-fluent-id` and the other alias-dependent Fluent rules report against a stale alias target. Scope resolution can silently resolve a shadowed name to the module root.
 
-Reach: Every CI run of the `test` job once the work is committed; also anyone reviewing from an exported archive.
+Reach: Every consumer who lints typed Fluent files through ESLint with `typescript-eslint`. The `oxlint` host and the ESLint host with the default `espree` parser are unaffected, because both provide `start` and `end`.
 
-Root cause: The pin's integrity evidence is stored as a git commit reference rather than as content. Verifying it therefore requires the object database, which the checkout does not guarantee.
+Root cause: The codebase has a portable accessor but no boundary that enforces it. `nodeStart` is used in 11 places; four modules bypass it and read `start`/`end` directly, and there is no `nodeEnd` counterpart, so a developer needing an end offset has no portable option and reaches for the raw property. `prefer-glideaggregate.ts:174-177` shows the pattern that is correct but hand-rolled: `.end ?? .range?.[1]`.
 
-Why existing tests did not catch it: The defect is in the test itself and only manifests under a checkout depth the local environment never uses. No CI run has executed this version of the file (OPS-003).
+Why existing tests did not catch it: Every rule test parses with `oxc-parser`, which populates `start` and `end`. The only `typescript-eslint` coverage is `tests/integration/packed-consumer.test.ts:350`, which exercises a directly imported factory called directly. That path returns from `imports.get(binding.id)` before `latestSimpleValue` runs and never involves a directive comment, so it passes regardless of offset availability. It is also one of the two networked tests excluded from the hermetic default suite.
 
-Minimal reproduction: `git clone --depth 1` the repository and run `npx tsx --test tests/configs.test.ts`.
+Minimal reproduction: Parse the following with `@typescript-eslint/typescript-estree` and run the `require-fluent-id` rule against it: `import { Record } from "@servicenow/sdk/core"; import { helper } from "other"; let F = Record; F = helper; F({ table: "incident", name: "Alias" });`. The oxc parse is silent; the TSESTree parse reports `missing`. For the directive case, parse a file containing a `// @fluent-ignore` comment on the line immediately above a `BusinessRule({...})` call and run `fluent-directives`; the TSESTree parse reports `dangling`.
 
-Recommended action: Prefer content over history. Store the two pinned preset sources (`src/configs/recommended.ts` and `src/configs/strict.ts` at 1.1.0) as a fixture and assert `sha256(concat(sources)) === presets110.source.presetSourceSha256` without invoking git. Keep the commit and tree identifiers in the fixture as provenance metadata.
+Recommended action: Add `nodeEnd` beside `nodeStart` in `src/utils/ast.ts`, route all four modules and `fluent-directives` through both, and add a portable comment-offset helper that reads `start ?? range?.[0]`. Where an offset is genuinely unavailable, return an unknown result and suppress rather than guessing.
 
 Alternative approaches:
-1. Add `fetch-depth: 0` to the CI `test` job. One line, matches the `bench` job, but makes every CI checkout clone full history and leaves the test unusable outside a git checkout.
-2. Vendor the pinned bytes into `tests/fixtures/` and drop the git calls. Slightly larger fixture, hermetic, works from a tarball, and still proves the digest the fixture claims.
-3. Skip the test when the pinned object is unreachable. Keeps the strongest assertion where history exists but silently reduces coverage exactly where it is most needed, in CI.
+1. Normalize offsets once. Add a small adapter in `buildFileAnalysis` that materializes `start`/`end` onto a side table keyed by node, so downstream code has one shape. This centralizes the fix but adds a per-node map to the hot path.
+2. Route every read through `nodeStart`/`nodeEnd` at the call sites, and add a lint rule or a type-level ban on reading `.start` from an AST node. Smallest diff, and the ban prevents recurrence.
+3. Keep current behavior. Not applicable: the behavior is wrong on a documented, tested, supported configuration and fails silently.
 
-Preferred option: Option 2. Confidence Confirmed for the failure; High for the fix, since the digest assertion is the substance of the test and it does not need git to hold. If the project specifically wants to prove the bytes came from that commit, combine Option 2 with Option 1 so the git cross-check runs when history is available and the digest check always runs.
+Preferred option: Option 2. It is the smallest change that fixes every confirmed site, it reuses an accessor the repository already trusts, and the added ban closes the recurrence path that Option 1 leaves open. Confidence is Confirmed for the defect and High for the fix shape. The prerequisite is a `typescript-eslint`-parsed fixture in the hermetic suite. Evidence that would change the recommendation is a demonstration that the host normalizes offsets before rules run, which the parser inspection contradicts.
 
-Implementation outline: Add `tests/fixtures/presets-1.1.0-source/{recommended.ts,strict.ts}`; replace the three `execFileSync` calls with reads of those files; keep the `README.md` migration-table assertions unchanged. If the git cross-check is retained, guard it behind a reachability probe and set `fetch-depth: 0` on the `test` job.
+Implementation outline: Add `nodeEnd` and `commentRange` to `src/utils/ast.ts`. Update `src/analysis/fluent-imports.ts:107,109,134`, `src/analysis/bindings.ts:118-127`, `src/analysis/glide-setnocount.ts:47`, and `src/rules/fluent-directives.ts:59,64-68,137-142,155,218`. Give `latestSimpleValue` an explicit uncertain result when any participating offset is unavailable. Add a hermetic test that parses a Fluent fixture with a range-only AST shape and asserts the same diagnostics as the oxc parse. Extend `tests/integration/packed-consumer.test.ts` with an alias case and a directive case so the live host is covered too.
 
-Compatibility and migration: Not applicable: test-only change.
+Compatibility and migration: No public API change. Diagnostics change only on the affected host, and only from wrong to correct. No persisted data, event, or configuration contract is touched. Rollback is a revert of the accessor changes.
 
-Validation: Run the test in a `--depth 1` clone and confirm it passes. Confirm the digest assertion still fails if a fixture byte is altered.
+Validation: Unit level for the accessor. Contract level for the parser-shape invariant: a hermetic test that builds a range-only AST and asserts parity with the offset-bearing AST for `require-fluent-id`, `fluent-proper-imports`, `fluent-naming-convention`, and `fluent-directives`. Integration level in the packed-consumer test for the real ESLint host. Add a repository lint rule or grep gate that fails on a raw `.start` read of an AST node outside `src/utils/ast.ts`.
 
-Effort: Small: two fixture files and about 15 lines of test change.
+Effort: Medium: four analysis modules, one rule, two new helpers, one hermetic parity fixture, and one consumer-test extension.
 
-Risk of the proposed change: Low: the assertion strength is preserved because the digest, not the git lookup, is what pins the content.
+Risk of the proposed change: Low: the accessor already exists and is exercised; the change is mechanical and the parity fixture proves it. Rollback is a single revert.
 
-Dependencies: OPS-003 — the defect only reaches CI once the work is committed.
+Dependencies: None. The parity fixture can be built with a range-only AST shape and does not require adding `typescript-eslint` as a dependency.
 
-Open questions: Not applicable.
+Open questions: Whether `oxlint` guarantees `start` and `end` on every node it passes to a plugin, or whether it may also present ranges. The fix is correct either way, but the answer changes how much of the existing behaviour was ever at risk on the primary host.
 
-## [OPS-004] Release validation installs unpinned packages from the live npm registry
+## [PER-002] Cursor-loop walkers re-traverse `do…while` bodies without a work budget
+
+Record type: Defect or risk
+ID category: PER
+Primary component: Cursor-loop rule walkers
+Identity statement: Cursor-loop walkers re-traverse a do-while body once for each iteration model and have no work budget, so nested loops multiply traversals exponentially
+Fingerprint: sha256:7e3f85e5775af0fb15ca98e698cab5e1e581b07633a9f388514db2659a6e1fad
+Status: Active
+
+Classification: Performance risk
+Severity or priority: High
+Confidence: Confirmed
+Affected components: `src/rules/no-glideelement-in-collection.ts`, `src/analysis/glide-query-in-loop.ts`; the `no-glideelement-in-collection` rule in the `recommended` and `strict` presets and `no-gliderecord-query-in-loop` in `strict`; any consumer linting a file with deeply nested `do…while` statements
+
+Evidence:
+- `src/rules/no-glideelement-in-collection.ts:179-184`: the `DoWhileStatement` branch calls `visit(statement.body, cursorIds)` and then `visit(statement.body, nextIds)`. The second call is unconditional, so every `do…while` body is walked twice regardless of whether any cursor is involved.
+- `src/rules/no-glideelement-in-collection.ts:198-199`: the `ForStatement` branch walks the body a second time when the update clause contributes cursor identities.
+- `src/analysis/glide-query-in-loop.ts:88-92`: the same shape, guarded by `loopBodyRequiresCursor(stmt.test, analysis)`.
+- Neither walker has a work budget, a depth cap, or a memo. `src/analysis/path-state.ts:43-63` shows the deterministic budget the sibling interpreter uses and that this walker lacks (POS-004).
+- Measured, `no-glideelement-in-collection` on plain nested `do…while` statements containing no ServiceNow API at all: depth 20 and 462 bytes took 480 ms; depth 22 and 508 bytes took 1.79 s; depth 24 and 554 bytes took 7.53 s; depth 26 and 600 bytes took 29.96 s. Cost quadruples per two levels, which is the 2^n signature of the double visit.
+- Measured control: the same shape built from `while` loops and from `for` loops stays at 0.1 ms through depth 20, isolating the cause to the `do…while` branch.
+- Measured for the `strict`-only rule: `findQueriesInCursorLoops` on 24 nested cursor `do…while` loops in 1,891 bytes took 14.54 s, while the enclosing `getFileAnalysis` stayed under 1 ms.
+- `no-glideelement-in-collection` is `error` in both `recommended` and `strict`; `no-gliderecord-query-in-loop` is `warn` in `strict` only.
+
+Current behavior: Each nested `do…while` doubles the number of traversals of its body. A 600-byte file with 26 nested `do…while` statements takes about 30 seconds in one rule of the default preset. At depth 30 the same shape would take on the order of eight minutes. There is no budget, so the walker cannot degrade; it simply does not finish.
+
+Expected or preferred behavior: Analysis cost should be bounded by a deterministic budget, and exceeding it should degrade to no diagnostics rather than to unbounded work, matching the invariant the path-sensitive interpreter already upholds.
+
+Trigger or scenario: A single file containing roughly 20 or more nested `do…while` statements. No ServiceNow API, no GlideRecord, and no cursor are required for `no-glideelement-in-collection`; the double visit there is unconditional. Deeply nested generated code, transpiler output, minified-then-beautified sources, and ServiceNow update-set exports are plausible sources.
+
+Impact: The linter appears to hang on a small input. Because `no-glideelement-in-collection` is in `recommended` at `error`, the default configuration is affected. In CI this consumes the job's whole time budget; on a developer machine the editor integration stops responding for that file. This is a resource-exhaustion path reachable from ordinary file content.
+
+Reach: Every consumer using the `recommended` or `strict` preset who lints a file with deep `do…while` nesting. The trigger is rare in hand-written ServiceNow code and more plausible in generated or transformed sources.
+
+Root cause: The walkers model the first iteration and the second-and-later iterations of a `do…while` by walking the body once per model, because the cursor set differs between them. Nothing deduplicates a `(node, cursorSet)` pair that has already been walked, and nothing bounds total work, so the two models compose multiplicatively through nesting.
+
+Why existing tests did not catch it: `tests/perf/benchmark.test.ts` and `scripts/benchmark.mjs` use a `branch-heavy` fixture and a `nested-scopes` fixture, neither of which nests `do…while` statements. The rule's own tests use single loops. The benchmark gate compares against a recorded baseline, so a shape absent from the corpus cannot regress it.
+
+Minimal reproduction: Build a file of `n` nested `do { … } while (cond_i);` statements around a single `var x = 1;` and lint it with `no-glideelement-in-collection`. Timing at `n` of 20, 22, 24, and 26 shows a clean quadrupling per two levels. No ServiceNow construct is needed.
+
+Recommended action: Memoize each walker on the pair of node identity and a canonical cursor-set key, so a body is walked at most once per distinct cursor set, and add the same deterministic work budget and degradation path `analyzePathBindings` already implements.
+
+Alternative approaches:
+1. Memoize on `(node, cursorSetKey)`. Removes the exponential while preserving exact current semantics, because a repeated pair cannot produce a new finding. Adds one map per analysis run.
+2. Walk the body once with the union of the first-iteration and later-iteration cursor sets. Smaller change, but it over-approximates the first iteration and would introduce false positives, so it trades a performance defect for a correctness defect.
+3. Add only a work budget with silent degradation. Bounds the damage but leaves the exponential in place, so a moderately nested file loses diagnostics entirely instead of being analyzed correctly.
+4. Keep current behavior. Not applicable: a 600-byte input consumes 30 seconds in the default preset, and there is no bound at all.
+
+Preferred option: Option 1 combined with Option 3. Memoization removes the exponential without changing semantics, and the budget provides the same last-resort guarantee the path evaluator already gives, so no future traversal shape can reintroduce an unbounded cost. Confidence is Confirmed for the defect and High for the fix. Evidence that would change the recommendation is a demonstration that distinct cursor sets are unbounded in practice, in which case the budget becomes the primary control.
+
+Implementation outline: Add a shared memo helper next to `visitChildren` in `src/analysis/path-state.ts` or a new small module, keyed on the node and a sorted cursor-identity key. Apply it in `src/rules/no-glideelement-in-collection.ts:151-219` and `src/analysis/glide-query-in-loop.ts:64-134`. Thread a `WorkBudget` through both walkers and reuse the `BUDGET_EXCEEDED` degradation path and the `getPathBudgetExceededCount` counter so the existing observability applies. Add a `nested-do-while` fixture to `scripts/benchmark.mjs` and to the benchmark gate corpus.
+
+Compatibility and migration: No public API or contract change. Diagnostics are unchanged for every input that currently completes. Rollback is a revert.
+
+Validation: Unit level: assert that a file with 30 nested `do…while` statements completes under a fixed wall-clock bound for both rules. Performance level: add the nested fixture to the benchmark corpus so the shape is covered by the existing gate. Regression level: keep the existing loop-semantics tests to prove memoization did not change findings.
+
+Effort: Small: one shared helper and two call sites, plus one fixture and one bounded-time test.
+
+Risk of the proposed change: Low: memoization on an identical `(node, cursorSet)` pair cannot change the finding set, and the budget only affects inputs that currently do not terminate in reasonable time.
+
+Dependencies: None.
+
+Open questions: Not applicable: the trigger, the cost curve, the affected presets, and the isolating control experiment are all measured.
+
+## [COR-008] Digest-name suppression matches a digest word anywhere inside an identifier
+
+Record type: Defect or risk
+ID category: COR
+Primary component: Hardcoded sys_id detection
+Identity statement: Digest-name suppression matches a digest word anywhere inside an identifier instead of as a whole name component
+Fingerprint: sha256:d7d1846dc272e86460ae75901bf8fa5769d6b4159e306e61391d2bcdfdf96494
+Status: Active
+
+Classification: Confirmed defect
+Severity or priority: Medium
+Confidence: Confirmed
+Affected components: `src/utils/sysid.ts`, `src/rules/no-hardcoded-sysid.ts`; the `no-hardcoded-sysid` rule in the `recommended`, `strict`, and `security`-adjacent configurations
+
+Evidence:
+- `src/utils/sysid.ts:18-21`: `looksLikeDigestContext` tests `/(md5|sha|hash|checksum|etag|digest)/i` against the binding name with no anchoring or word boundary.
+- `src/rules/no-hardcoded-sysid.ts:34`: the predicate short-circuits the entire report path when `ignoreHashNames` is set.
+- `src/options/descriptors.ts:38-43`: `ignoreHashNames` defaults to `true`, so the suppression is on unless a consumer opts out.
+- Measured, one 32-hex literal assigned to each name, `no-hardcoded-sysid` on a server-classified file: `incidentSysId` reported; `dashboardId` reported; `md5`, `fileHash`, `sharedSysId`, `shardId`, `betaGroupId`, `shadowRecordId`, and `etagValue` all silent.
+- The previous review's COR-002 recorded the opposite failure, that only the literal name `md5` was honoured. Commit `ecbf201` widened the test to a substring match and over-corrected.
+
+Current behavior: Any binding or property name containing the letters `sha`, `md5`, `hash`, `checksum`, `etag`, or `digest` anywhere within it suppresses every 32-hex sys_id under it. `sharedSysId`, `shardId`, `shadowRecordId`, and `betaGroupId` are ordinary ServiceNow identifiers that all match, and all are silently skipped.
+
+Expected or preferred behavior: The suppression should fire only when a digest word is a whole component of the name, so `fileHash`, `md5`, `contentDigest`, and `sha1Value` suppress while `shared`, `shard`, `shadow`, and `beta` do not.
+
+Trigger or scenario: A ServiceNow script assigning a hardcoded 32-character hex sys_id to a binding or object property whose name happens to contain a digest substring. `var sharedSysId = "…";` and `{ betaGroupId: "…" }` are both silently accepted.
+
+Impact: Silent false negatives in the rule whose purpose is to stop instance-specific identifiers from being hardcoded. Because the suppression is on by default and produces no output, a consumer has no signal that the check was skipped.
+
+Reach: Every consumer of `recommended` or `strict` who has not set `ignoreHashNames: false`, for any file where the surrounding name matches. The rule additionally requires `isInstanceScript`, so unclassified files are unaffected either way.
+
+Root cause: The COR-002 remediation replaced an exact-name test with an unanchored substring regular expression. Substring matching over identifiers is the wrong tool because identifiers concatenate words without separators, so `sha` inside `shared` is indistinguishable from `sha` as a word.
+
+Why existing tests did not catch it: The rule's tests assert the positive direction, that digest-named bindings are suppressed, and the negative direction only for names with no digest substring at all. No test asserts that a non-digest name containing a digest substring is still reported, which is exactly the case the widened regular expression broke.
+
+Minimal reproduction: Lint `var sharedSysId = "1234567890abcdef1234567890abcdef";` with `no-hardcoded-sysid` on a file classified as an instance script. Expected: one `hardcoded` diagnostic. Actual: silent. Replacing the name with `incidentSysId` produces the diagnostic, isolating the name as the cause.
+
+Recommended action: Anchor the digest words to whole name components, splitting on case transitions, underscores, hyphens, and digits, and match a component exactly or as a digest word followed by digits, for example `sha1` and `sha256`.
+
+Alternative approaches:
+1. Split the identifier into components and test each against an exact digest-word set, allowing a trailing digit run. Precise, readable, and directly testable in both directions.
+2. Keep a regular expression but anchor it, for example a component boundary before and after the word. Smaller diff but harder to read and easier to get wrong again.
+3. Remove the heuristic and instead suppress only when the value's length differs from 32, which is never, or require an explicit allowlist entry. Removes the false negatives entirely but reintroduces noise for genuine digest constants, which is what COR-002's original suppression existed to prevent.
+4. Keep current behavior. Not applicable: the rule silently fails at its stated purpose for common identifier spellings.
+
+Preferred option: Option 1. It states the intent directly, is cheap, and makes both directions testable. Confidence is Confirmed for the defect and Confirmed for the fix, since the failing names are enumerated. Prerequisite is a two-directional test matrix. Evidence that would change the recommendation is a repository or consumer convention that deliberately relies on substring suppression, of which none was found.
+
+Implementation outline: Rewrite `looksLikeDigestContext` in `src/utils/sysid.ts` to split the name into components and compare each against a frozen digest-word set. Keep the existing 32-hex value test unchanged. Add a test matrix in the rule's test file covering the suppressed names `md5`, `fileHash`, `sha256Digest`, `contentChecksum`, `etag` and the reported names `sharedSysId`, `shardId`, `betaGroupId`, `shadowRecordId`, `dashboardId`.
+
+Compatibility and migration: Behaviour change is a strict increase in diagnostics for consumers whose identifiers accidentally matched. That is the intended correction, but it can surface pre-existing hardcoded sys_ids in a previously quiet codebase, so it belongs in a minor release with a changelog note naming the affected spellings.
+
+Validation: Unit level, in both directions, with the exact identifier list above. No integration or end-to-end test is warranted because the predicate is pure.
+
+Effort: Small: one predicate and one test matrix.
+
+Risk of the proposed change: Low: the change is confined to one pure function, and the new diagnostics it surfaces are true positives by construction.
+
+Dependencies: None.
+
+Open questions: Not applicable: the failing names are enumerated and reproduced, and the option default is read directly from the descriptor.
+
+## [API-002] Four published provenance fields are never populated
+
+Record type: Defect or risk
+ID category: API
+Primary component: public analysis provenance API
+Identity statement: The published provenance record declares cursor lifecycle fields that the shared file analysis never populates
+Fingerprint: sha256:f2fc86847af3fe11320caea5d5170c8ca98ce49704f51bae4dcea796eb1d49cd
+Status: Active
+
+Classification: Confirmed defect
+Severity or priority: Medium
+Confidence: Confirmed
+Affected components: `src/analysis/public.ts`, `src/analysis/provenance.ts`, `src/analysis/file-analysis.ts`; the published `oxc-plugin-servicenow/analysis` entry point and its `AnalysisProvenance` type
+
+Evidence:
+- `src/analysis/public.ts:10-20`: `AnalysisProvenance` declares `queryState`, `windowed`, `sysparmName`, and `aggregates` as part of the frozen public contract.
+- `src/analysis/file-analysis.ts:81-92`: `emptyProvenance` sets `queryState: "unopened"`, `windowed: false`, `sysparmName: false`, and `aggregates: new Set()`.
+- `src/analysis/file-analysis.ts:176-181`: the only call site passes `invalid`, `escaped`, `bindingId`, and `objectId` as extras. No call site anywhere passes any of the four lifecycle fields, so they retain their initial values for every node.
+- The real lifecycle facts are computed by separate passes that never write back into `Provenance`: `src/analysis/query-before-next.ts:33-47`, `src/analysis/glide-windowing.ts:32-39`, `src/analysis/glideajax-params.ts:74-120`, `src/analysis/glide-setnocount.ts:79-121`.
+- Reproduction against the public entry point on `var rec = new GlideRecord("incident"); rec.query(); rec.next();`: `ofIdentifier` at the `rec.next()` site returns `kind=GlideRecord queryState=unopened windowed=false sysparmName=false aggregates=0`, despite the preceding `rec.query()`.
+
+Current behavior: The published provenance query always reports a GlideRecord as unopened, never windowed, never carrying a `sysparm_name`, and with no registered aggregates, whatever the source does. The plugin's own rules are unaffected because they use the separate domain analyzers, so the defect is confined to the public contract.
+
+Expected or preferred behavior: A published field must either carry the fact it names or not exist. An external consumer reading `queryState` should get the same answer the `require-query-before-next` rule acts on, or should not be offered the field.
+
+Trigger or scenario: Any external consumer of the `oxc-plugin-servicenow/analysis` export that branches on `queryState`, `windowed`, `sysparmName`, or `aggregates`. Reading `kind`, `invalid`, `escaped`, `bindingId`, or `objectId` is correct.
+
+Impact: A consumer building a custom rule on the published analysis API silently gets a wrong answer for cursor lifecycle state, and the wrong answer is the permissive one for `windowed`, `sysparmName`, and `aggregates` and the restrictive one for `queryState`. Since the type declares the fields, TypeScript offers no warning.
+
+Reach: External consumers of the `./analysis` subpath export only. No first-party rule and no preset is affected.
+
+Root cause: The `Provenance` shape predates the split into per-domain path analyses. When the lifecycle facts moved into `query-before-next.ts`, `glide-windowing.ts`, `glideajax-params.ts`, and `glide-setnocount.ts`, the fields stayed on the shared record and on the public type, but nothing ever wrote them back.
+
+Why existing tests did not catch it: The public-API tests assert freezing, immutability, and the `kind`, `invalid`, and `escaped` fields. No test asserts a lifecycle field's value after a lifecycle-changing call, so the constant defaults satisfy every existing assertion.
+
+Minimal reproduction: Call `analyzeProvenance(context)` from `src/analysis/index.ts` on `var rec = new GlideRecord("incident"); rec.query(); rec.next();` and read `ofIdentifier` at the third statement's `rec` node. `queryState` is `"unopened"`.
+
+Recommended action: Decide the contract. Either populate the four fields from the domain analyzers during `buildFileAnalysis`, or mark them deprecated in the declaration and the documentation now and remove them at 3.0, aligning with the FEAT-002 deprecation window.
+
+Alternative approaches:
+1. Populate them. Run the four domain analyses during `buildFileAnalysis` and merge their per-object results into the shared record. Makes the contract honest, at the cost of running four extra path analyses for every file whether or not a rule needs them.
+2. Deprecate and remove at 3.0. Mark the four fields `@deprecated` with an explanation, document that lifecycle facts are not part of the public surface, and remove them at the next major, matching the existing deprecation practice in `docs/decisions.md`.
+3. Narrow the contract immediately by making the four fields optional and always absent. Signals the truth in the type system, but is still a breaking change for a consumer that reads them, without the benefit of a deprecation window.
+4. Keep current behavior. Not applicable: the published type states a fact the implementation never computes.
+
+Preferred option: Option 2. Option 1 imposes a fixed cost on every file for a facility no first-party rule uses and no external consumer is known to use, which contradicts the repository's own performance discipline. Deprecation is the pattern the project already applies to `scriptType` and `ecmaLatest`. Confidence is Confirmed for the defect and Medium for the option, because usage cannot be established offline. Evidence that would change the recommendation is a named external consumer that reads the fields, in which case Option 1 becomes preferable.
+
+Implementation outline: Add `@deprecated` annotations to the four fields in `src/analysis/public.ts` and to the mirrored fields in `src/analysis/provenance.ts`. Record the decision and its 3.0 trigger in `docs/decisions.md` alongside FEAT-001 and FEAT-002. Add a test asserting the documented current values so the contract is at least explicit. Note the removal in `CHANGELOG.md`.
+
+Compatibility and migration: The fields remain present and typed through 2.x, so nothing breaks now. Removal at 3.0 is a breaking change to a public type and must appear in the 3.0 migration notes. Consumers needing the facts should be pointed at the rules that compute them.
+
+Validation: Contract level: a test that pins the documented behaviour of each field for a source that would change it if it were computed, so a future implementation change is visible. Type level: the existing declaration test already covers the exported shape.
+
+Effort: Medium: the annotation and tests are small, but the decision and its documentation touch the public API and the 3.0 plan.
+
+Risk of the proposed change: Low: the deprecation itself is inert, and the breaking removal is deferred to 3.0 behind the same gates as the settings compatibility layer.
+
+Dependencies: Coordinates with FEAT-002 and REM-001, which share the 3.0 removal window and the same dependants check.
+
+Open questions: Whether any external consumer imports `oxc-plugin-servicenow/analysis` and reads the four fields. Current assumption is that none does, because the subpath export is new in 2.0.0. Evidence would be npm dependants data, the same gathering step FEAT-002 already requires. If a consumer is found, Option 1 replaces Option 2 and the severity rises.
+
+## [OPS-004] Required validation still installs from the live npm registry
 
 Record type: Defect or risk
 ID category: OPS
@@ -613,489 +659,306 @@ Fingerprint: sha256:30a4bc285b71a181fcf2f3f74e44eecdde74edad8eace8a21a6699694683
 Status: Active
 
 Classification: Operational gap
-Severity or priority: High
+Severity or priority: Medium
 Confidence: Confirmed
-Affected components: `tests/integration/packed-consumer.test.ts`, `scripts/run-tests.mjs`, `npm test`, `npm run validate`, `.github/workflows/release.yml` `validate` job, `tests/integration/examples.test.ts`
+Affected components: `scripts/verify-acceptance-ledger.mjs`, `scripts/run-tests.mjs`, `tests/integration/packed-consumer.test.ts`, the `acceptance:check` script, the CI `test` job, the release `validate` job, and `npm run validate`
 
 Evidence:
-- `tests/integration/packed-consumer.test.ts:75-79`: `execFileSync("npm", ["install", tarball, "oxlint@1.79.0", "eslint@10.8.1", "oxfmt@0.64.0", "typescript@7.0.2"], { cwd: consumer })` into a fresh `mkdtempSync` directory with no lockfile, no `--offline`, and no integrity pinning for transitive dependencies.
-- Observed during the review's own `npm test` run: `npm warn deprecated eslint@9.39.5` and repeated `npm notice run npx` / `npm notice run 'oxlint' -c .oxlintrc.json valid` lines in `/tmp/super-review-oxc-sn/test-run.log`, confirming live resolution and `npx` execution inside the suite.
-- `tests/integration/packed-consumer.test.ts:25` runs `execFileSync("npm", ["run", "build"], { cwd: repoRoot })`, so the suite also writes `dist/` in the repository under test.
-- `tests/integration/packed-consumer.test.ts:298` executes `npx oxlint -c .oxlintrc.json valid` inside the consumer fixture, so freshly resolved binaries are executed, not merely installed.
-- `.github/workflows/release.yml:45` runs `npm test` in the `validate` job, so this network dependency sits inside the release gate.
-- The contrast is stark: the same pipeline pins every GitHub Action to a full SHA (`scripts/action-pins.json`), pins npm to exactly `11.5.1` (`scripts/check-trusted-publishing-npm.mjs:4,21`), and verifies the published artifact against nine certificate OIDs (`scripts/verify-published-package.mjs:270-289`).
-- `tests/integration/examples.test.ts:37-51` writes `.local-test.oxlintrc.json` into `examples/<project>/` and removes it in a `finally` block, so a crashed run leaves stray files inside the repository.
+- `scripts/verify-acceptance-ledger.mjs:274-289`: `runTests` invokes `scripts/run-tests.mjs` with an explicit `tests` root, and its own comment states this deliberately includes the networked packed-consumer test that the hermetic default run excludes.
+- `scripts/run-tests.mjs:60-70`: the `NETWORKED_TESTS` exclusion applies only when no search argument is given, so passing `tests` re-enables it.
+- `.github/workflows/ci.yml:37-38`: the required `test` job runs `npm run acceptance:check`, so the required check installs from the live registry.
+- `.github/workflows/release.yml:49`: the release `validate` job runs the same step.
+- `package.json` `validate`: chains `acceptance:check`, so the aggregate local gate cannot run offline.
+- `tests/integration/packed-consumer.test.ts:78-81` and `:361`: direct versions are pinned (`oxlint@1.79.0`, `eslint@10.8.1`, `oxfmt@0.64.0`, `typescript-eslint@8.46.0`, `typescript@5.8.3`), but the installs have no lockfile, so transitive dependencies resolve fresh on every run.
+- Measured: the hermetic `npm test` inventories 805 tests; `acceptance:check` inventories 807. The difference is exactly the two `it` blocks in `packed-consumer.test.ts`.
+- `FINDINGS-REMEDIATION.md` outstanding action 3 states that the required `test` check no longer covers the packed-consumer path. The `acceptance:check` step in the same job contradicts that claim.
 
-Current behavior: `npm test` reaches the public npm registry, resolves transitive dependency versions at run time, installs them into a temporary directory, and executes the resulting binaries — inside the job that decides whether a release may proceed.
+Current behavior: `npm test` is genuinely hermetic and passes 805 of 805 offline. `npm run acceptance:check`, which the required CI `test` job, the release `validate` job, and `npm run validate` all run, executes the full `tests` tree including the two networked consumer tests. Those tests reach the public npm registry, resolve transitive dependencies without a lockfile, and install into temporary consumer directories.
 
-Expected or preferred behavior: The release gate should be reproducible and should not let registry state at run time change whether a release is approved.
+Expected or preferred behavior: The required validation path should be runnable offline and should not resolve unpinned transitive dependencies. Networked evidence belongs in a job that is explicitly networked, as the separate CI `consumer` job already is.
 
-Trigger or scenario: Every `npm test` run, including offline development, air-gapped CI, a registry outage, a yanked or republished transitive version, and any transitive compromise.
+Trigger or scenario: Any CI run, any release validation, and any local `npm run validate` or `npm run acceptance:check`. Registry unavailability, a transitive dependency publishing a broken version, or an offline developer machine all fail the required check for reasons unrelated to the change under test.
 
-Impact: Three distinct problems. Reproducibility: the same commit can pass or fail depending on the day. Availability: a registry outage blocks releases and local development. Supply chain: the release-decision job installs and executes code chosen at run time, which is the one place the rest of the pipeline works hardest to avoid.
+Impact: The required `test` check is coupled to third-party availability and to whatever transitive versions resolve that day. `npm run validate` cannot be used by a contributor without network access. The remediation ledger's own statement about enforcement coverage is inaccurate, which risks a wrong decision about the required-check list.
 
-Reach: Every developer running the suite and every release attempt.
+Reach: Every CI run, every release, and every contributor running the documented aggregate gate.
 
-Root cause: The packed-consumer test genuinely needs to prove the published tarball installs and imports in a realistic consumer, and the simplest way to build that consumer is a live `npm install`. No lockfile or offline cache was introduced to make it reproducible, and the test was not separated from the fast, hermetic suite.
+Root cause: The OPS-004 remediation split the networked test out of the default suite by filtering it in `run-tests.mjs`, but the acceptance capture deliberately runs the full tree to inventory 807 tests, and the acceptance capture is itself part of required validation. The hermetic boundary was drawn around `npm test` rather than around the required validation path.
 
-Why existing tests did not catch it: Not applicable: this is a property of the test harness itself, and the network has always been available in the environments used so far.
+Why existing tests did not catch it: `tests/acceptance-ledger.test.ts` asserts mapping integrity, not network behaviour. Nothing asserts that any script is offline-capable, and CI always has network access, so the coupling is invisible there.
 
-Minimal reproduction: Run `npm test` with the network disabled; `tests/integration/packed-consumer.test.ts` fails at the `npm install` step.
+Minimal reproduction: Run `npm run acceptance:check` with no network access. The `runTests` step fails when `packed-consumer.test.ts` cannot reach the registry, and the script exits non-zero.
 
-Recommended action: Separate hermetic from networked validation. Move the packed-consumer install behind an explicit opt-in (an environment variable or a dedicated npm script), keep it in CI as its own job, and give the consumer fixture a committed lockfile so the installed tree is reproducible.
+Recommended action: Give `verify-acceptance-ledger.mjs` an offline mode that inventories the hermetic 805 and records the two networked criteria as `Live-pending`, use that mode in the required `test` job and in `npm run validate`, and keep the full 807 capture in the networked `consumer` job or an explicit `acceptance:capture` script.
 
 Alternative approaches:
-1. Commit a lockfile for the consumer fixture and install with `npm ci --ignore-scripts`. Restores reproducibility and blocks lifecycle scripts, but still needs the network.
-2. Pre-populate an offline cache in CI (`npm install --prefer-offline` against a warmed cache, or `npm pack` the peers once and install from local tarballs). Fully offline-capable; more moving parts.
-3. Keep the live install but move the test out of `npm test` into a dedicated `test:consumer` script that CI and the release workflow run as a separate, clearly labelled job. Smallest change, makes the dependency explicit, keeps `npm test` hermetic and fast.
-4. Keep current behavior. Viable only if the project accepts that release approval depends on live registry state; given the pinning rigour elsewhere, that is inconsistent.
+1. Add an offline mode to the acceptance verifier and split the required job accordingly. Restores a genuinely offline required path while keeping the complete capture available where network access is expected.
+2. Move `acceptance:check` out of the required `test` job into the existing `consumer` job. Smaller change, but it removes acceptance verification from the required set entirely, weakening enforcement.
+3. Vendor a lockfile for the consumer installs so transitive resolution is pinned. Addresses the unpinned half but not the offline half, and adds a lockfile to maintain.
+4. Keep current behavior. Viable only if the project accepts that required validation is network-coupled by design. The cost is a permanently flaky required check and an aggregate gate contributors cannot run offline.
 
-Preferred option: Option 3 first, then Option 1. Confidence Confirmed for the dependency; High for the recommendation. The prerequisite is that the release workflow keeps running the consumer job so coverage is not lost. Evidence that would change it: if the project deliberately wants to detect upstream breakage at release time, then Option 1 alone is enough and the coupling to `npm test` should stay.
+Preferred option: Option 1, with Option 3 as a follow-on for the consumer job itself. It preserves both properties the project already values: a complete evidence capture and an offline-capable required path. Confidence is Confirmed for the coupling and High for the fix. Prerequisite is deciding whether the acceptance capture's `complete` flag should ever gate CI, which it currently does not.
 
-Implementation outline: Add a `test:consumer` script pointing `scripts/run-tests.mjs` at `tests/integration/packed-consumer.test.ts`; exclude that file from the default run or gate it on an environment variable; add a `consumer` job to `ci.yml` and a step to the release `validate` job; commit a lockfile for the consumer fixture and switch to `npm ci --ignore-scripts`. Separately, make `tests/integration/examples.test.ts` write its temporary config outside the repository.
+Implementation outline: Add an `--offline` flag to `scripts/verify-acceptance-ledger.mjs` that calls `run-tests.mjs` with no search argument and marks the two consumer-backed criteria `Live-pending`. Point `npm run acceptance:check` and the `validate` chain at the offline mode, and add `acceptance:capture` for the full run. Update `.github/workflows/ci.yml` so the `test` job runs the offline mode and the `consumer` job runs the full capture and uploads the artifact. Correct the enforcement claim in `FINDINGS-REMEDIATION.md`.
 
-Compatibility and migration: No public contract changes. Contributors need to know that `npm test` no longer covers the packed consumer; update `CONTRIBUTING.md`, which currently presents `npm run validate` as one command covering everything.
+Compatibility and migration: No published contract changes. The acceptance artifact gains two `Live-pending` criteria in offline runs, which is already an expressible disposition in the schema. Rollback is a revert of the flag and the workflow edit.
 
-Validation: Run `npm test` with the network disabled and confirm it passes. Run the new consumer job and confirm it still detects a deliberately broken `exports` map.
+Validation: Operational level: run `npm run validate` with network access disabled and confirm it completes. Contract level: assert that the offline capture's criteria count is unchanged and only the two dispositions differ. Keep the existing acceptance mapping tests unchanged.
 
-Effort: Medium: script and workflow changes plus a fixture lockfile.
+Effort: Medium: one script flag, one workflow restructure, and a documentation correction.
 
-Risk of the proposed change: Medium: splitting the suite risks the consumer job being skipped or ignored. Mitigate by making it a required status check (see OPS-002) and by failing the release `validate` job when it is absent.
+Risk of the proposed change: Low: the change narrows what the required job does and moves the networked work to a job that already exists for that purpose.
 
-Dependencies: OPS-002 — a new required check must be added to branch protection to keep enforcement equivalent.
+Dependencies: Interacts with REM-002, which proposes retiring the acceptance apparatus entirely. If REM-002 is accepted on a short timeline, Option 2 becomes the cheaper interim answer.
 
-Open questions: Not applicable: the network dependency and its position in the release gate are both directly evidenced.
+Open questions: Whether the `consumer` job should be added to the required status checks, as `FINDINGS-REMEDIATION.md` recommends. The answer changes with this record: the packed-consumer path is currently covered by the required `test` job through `acceptance:check`, so adding `consumer` to the required list is a clarification rather than a gap closure. If Option 1 is implemented, `consumer` must become required, because the required job would no longer cover it.
 
-## [COR-001] Execution-surface heuristics match directory names anywhere in the absolute path
+## [COR-009] A repeated `var` declarator is invisible to the alias resolver
 
 Record type: Defect or risk
 ID category: COR
-Primary component: Script context resolution
-Identity statement: Execution-surface directory heuristics are applied to the whole absolute path instead of a project-relative path
-Fingerprint: sha256:71f83ae40ac2400985e871afea448c91ee18a6bc5c31ec2bb582955fa578f125
+Primary component: Fluent import and alias provenance resolver
+Identity statement: The alias resolver observes only assignment and update writes, so a repeated var declarator that rebinds the same binding is never applied
+Fingerprint: sha256:65a43237eff605bf0e49a741a3fefd43752f671425751d766d3f393e39ba81e1
 Status: Active
 
 Classification: Confirmed defect
-Severity or priority: High
+Severity or priority: Low
 Confidence: Confirmed
-Affected components: `src/context/filename.ts`, `src/context/resolve.ts`, every rule gated by `appliesOnSurface`, `isClientCapableContext`, or `isServerInstanceContext`
+Affected components: `src/analysis/fluent-imports.ts`; the `require-fluent-id`, `fluent-proper-imports`, and `fluent-naming-convention` rules
 
 Evidence:
-- `src/context/filename.ts:56-59` defines `CLIENT_DIR = /(?:^|\/)client(?:\/|$)/i`, `BR_DIR = /(?:^|\/)br(?:\/|$)/i`, `SI_DIR = /(?:^|\/)script-include(?:\/|$)/i`, `SERVER_DIR = /(?:^|\/)server(?:\/|$)/i`.
-- `src/context/filename.ts:82-91`: `surfacesFromFilename` applies those four patterns to `path`, the full normalized filename, while the file-name patterns are applied only to `basename(path)`.
-- `src/context/resolve.ts:187-196`: `resolveScriptContext` passes `context.filename` unchanged; the host supplies an absolute path and nothing relativizes it against `context.cwd`, even though `cwd` is read elsewhere (`src/analysis/file-analysis.ts:288-297`).
-- Measured with `surfacesFromFilename`: `"src/server/list.js"` → `["server"]`; `"/home/alice/client/proj/src/list.js"` → `["client"]`; `"/opt/br/repo/src/thing.js"` → `["business-rule"]`; `"C:\\Users\\dev\\client\\proj\\src\\list.js"` → `["client"]`; `"/Users/bob/server/app/src/onload.js"` → `[]`; `"/home/alice/client/proj/src/server/list.js"` → `[]`.
-- Measured end to end with the rule harness: `no-client-gliderecord` on `var gr = new GlideRecord("incident"); gr.query();` reports 0 diagnostics at `/srv/app/src/list.js` and 1 diagnostic at `/home/alice/client/app/src/list.js`. Same source, same settings, different clone location.
+- `src/analysis/fluent-imports.ts:108-109`: the starting value comes from `declarationInit(binding)`, which reads `binding.node`.
+- `src/analysis/bindings.ts:74-92`: for a repeated `var`, `declare` appends the later declarator to `declarations` and leaves `node` pointing at the first one, so `declarationInit` always sees the first initializer.
+- `src/analysis/fluent-imports.ts:113-156`: the re-scan walk registers only `AssignmentExpression` and `UpdateExpression`. A second `VariableDeclarator` for the same binding is neither, so it is never observed.
+- Measured, `require-fluent-id` on a `.now.ts` file: `var F = Record; var F = unrelated; F({...})` reports `missing`, a false positive, because the resolver still sees `Record`. The mirror case `var F = unrelated; var F = Record; F({...})` is silent, a false negative. The equivalent written with a plain assignment, `var F = Record; F = unrelated; F({...})`, is correctly silent, isolating the declarator form as the cause.
+- `const` returns early at `src/analysis/fluent-imports.ts:111` and `let` cannot be redeclared, so `var` is the only reachable form.
 
-Current behavior: A parent directory named `client`, `br`, `server`, or `script-include` — anywhere above the project root — assigns an execution surface at `filename` confidence. Two such matches instead collapse to `[]` (`src/context/filename.ts:98`), which silently removes a surface that the file name alone had established.
+Current behavior: When a `var` binding is declared more than once with different initializers, the resolver uses the first initializer regardless of position, so a later redeclaration to an unrelated value is ignored and a later redeclaration to a Fluent factory is missed.
 
-Expected or preferred behavior: Directory-based conventions should be evaluated over the project-relative path, so classification depends on repository layout rather than on where the repository happens to sit on disk.
+Expected or preferred behavior: Every write to the binding, whatever its syntactic form, should participate in the same execution-order comparison the COR-006 remediation established for assignments.
 
-Trigger or scenario: Any absolute filename containing a path segment named `client`, `br`, `server`, or `script-include` above the project root. Common cases: a checkout under `~/client/`, `/srv/server/`, or a workspace folder named after a customer called `client`.
+Trigger or scenario: A `.now.ts` or `.now.tsx` file that declares the same `var` name twice at module level with different initializers, at least one of which is a Fluent factory or a factory alias.
 
-Impact: Two directions, both bad. False positives: client-only rules (`no-client-gliderecord`, `no-sync-glideajax`, `no-glideajax-getanswer`, `require-callback-for-getreference`, `require-glideajax-sysparm-name`) fire on server code. False negatives: the two-surface collapse at line 98 silences correctly detected surfaces, so a genuine `onload` client script under a `/server/` parent gets no client rules at all. Because the trigger is the developer's directory layout, results differ between machines and between local runs and CI, which undermines trust in the linter.
+Impact: A false `require-fluent-id` diagnostic on code that does not call a Fluent factory, and a missed diagnostic on code that does. The false-positive direction is the more damaging, because it flags correct code.
 
-Reach: Any user whose absolute project path contains one of those four segments. The set of affected rules is every rule with a surface gate — the majority of the classic catalog.
+Reach: Fluent files using repeated `var` declarations. `var` is legal in TypeScript but uncommon in `.now.ts` sources, so real-world reach is small.
 
-Root cause: `surfacesFromFilename` deliberately separates basename matching from directory matching but never bounds the directory search to the project. The plugin has `context.cwd` available and uses it in the analysis cache key, so the information needed to bound the search is already present.
+Root cause: The re-scan enumerates write forms explicitly rather than deriving them from the binding's own declaration list, and the seed value is taken from the binding's first declaration rather than from the latest declaration preceding the use.
 
-Why existing tests did not catch it: Every context test uses short relative filenames. `tests/integration/context-fixtures/` uses names such as `known.client.js` and `canonical.br.js`, and `tests/helpers/rule-tester.ts:22-34` defaults to relative paths such as `src/server/test.js`. No test passes an absolute path with a decoy segment above the project root.
+Why existing tests did not catch it: The alias tests added by the COR-006 remediation cover `const` aliases, `let` reassignment, assignments inside functions, and conditional assignments. None declares the same `var` twice, so the missing write form is untested in both directions.
 
-Minimal reproduction: `lint('var gr = new GlideRecord("incident"); gr.query();', "no-client-gliderecord", { filename: "/home/alice/client/app/src/list.js" })` returns one diagnostic; the same call with `/srv/app/src/list.js` returns none.
+Minimal reproduction: Lint `import { Record } from "@servicenow/sdk/core"; import { unrelated } from "other"; var F = Record; var F = unrelated; F({ name: "x_test" });` with `require-fluent-id` on a `probe.now.ts` filename. Expected: silent. Actual: one `missing` diagnostic.
 
-Recommended action: Relativize before matching. Compute the path used for directory heuristics as `path.relative(context.cwd, filename)` when the filename is inside `cwd`, and fall back to the basename-only heuristics otherwise.
-
-Alternative approaches:
-1. Relativize against `context.cwd`. Small, uses information already threaded into the analysis cache key, and preserves every documented convention (`src/client/**`, `br/**`, and so on) for real project layouts. Files outside `cwd` lose directory heuristics, which is the conservative direction.
-2. Anchor the directory patterns to a bounded suffix, for example only the last three path segments. No new inputs required, but the choice of depth is arbitrary and still misfires on a deeply nested decoy.
-3. Require an explicit `surfaces` setting whenever the directory heuristic is the only evidence. Most conservative and most predictable, but it removes a convenience the README documents and would silence rules for existing users.
-4. Keep current behavior. Not applicable: measured false positives and false negatives depend on the clone location.
-
-Preferred option: Option 1. Confidence Confirmed for the defect and High for the fix. Prerequisite: confirm that both hosts populate `context.cwd`; `src/analysis/file-analysis.ts:288` already reads it defensively as optional, so the fallback path must be exercised. Evidence that would change it: if oxlint leaves `cwd` empty in some configuration, Option 2 becomes the safer default.
-
-Implementation outline: Change `surfacesFromFilename` to take an optional base directory, thread `context.cwd` from `resolveScriptContext` through `resolveSurfaces`, and apply the four directory patterns to the relative path only. `CLIENT_FILE_GLOBS` and `BUSINESS_RULE_FILE_GLOBS` in `src/index.ts` are ESLint `files` patterns and are unaffected. Add tests with absolute decoy paths, including a Windows-style path, and a case where the file is outside `cwd`.
-
-Compatibility and migration: Behavior change for existing users whose surfaces were being inferred from a segment above the project root — those users currently get wrong results, so the change corrects rather than breaks them. Users relying on `src/client/**` and `br/**` inside the project are unaffected. Worth a `CHANGELOG.md` entry under `Unreleased` because diagnostics can appear or disappear.
-
-Validation: Extend `tests/context.test.ts` and `tests/integration/context-contracts.test.ts` with absolute-path cases in both directions. Re-run the end-to-end probe and confirm `/home/alice/client/app/src/list.js` and `/srv/app/src/list.js` now agree.
-
-Effort: Small: one signature change, one threading change, and a handful of tests.
-
-Risk of the proposed change: Low: the change only narrows where directory evidence is collected, and unknown surfaces already suppress diagnostics (POS-001).
-
-Dependencies: Not applicable.
-
-Open questions: Not applicable: both the misclassification and its end-to-end effect are measured.
-
-## [OPS-005] The desired release-governance policy still holds placeholder principals
-
-Record type: Defect or risk
-ID category: OPS
-Primary component: Release governance policy
-Identity statement: The desired release-governance policy still contains placeholder principal identifiers, so the governance audit cannot pass
-Fingerprint: sha256:f5db98b860b80262e84417c0633c00af6888f5e8e5c6de384a96f42606adf77e
-Status: Active
-
-Classification: Operational gap
-Severity or priority: Medium
-Confidence: Confirmed
-Affected components: `scripts/release-governance.json`, `scripts/check-release-governance.mjs`, `.github/workflows/governance-audit.yml`, `docs/release-governance-status.json`
-
-Evidence:
-- `scripts/release-governance.json` `principals.controlledTagActor` is `{ "id": 0, "login": "UNCONFIGURED_CONTROLLED_TAG_ACTOR", "type": "Integration" }` and `principals.environmentReviewers` is `[]`.
-- `scripts/check-release-governance.mjs:46-53` requires `positiveId(actor.id)` and a non-empty reviewer array with positive identifiers.
-- Executed `validateDesiredGovernance(scripts/release-governance.json)` directly: returns `["controlled tag actor is not configured with a stable ID and type", "at least one independent reviewer stable ID is required"]`.
-- `.github/workflows/governance-audit.yml` (untracked) runs `node scripts/check-release-governance.mjs` with no `--desired` override, so it uses that file and exits non-zero before any live comparison.
-- `docs/release-governance-status.json` `knownBlockers` records the same two gaps plus `The prior single-reviewer and prevent-self-review topology can deadlock a solo maintainer` and `A protected-tag publication has not verified stable release provenance`, and sets `evidenceStatus: "historical-unverified"`, `liveVerification: "Live-pending"`.
-- The checker itself is sound: run against its own paired fixtures, `node scripts/check-release-governance.mjs --desired tests/fixtures/release-governance/desired.json --fixture tests/fixtures/release-governance/valid.json` returns `{"ok": true, "errors": []}`.
-
-Current behavior: The governance audit cannot succeed against the repository's own policy file, so the "read-only governance audit" step described in `CONTRIBUTING.md` release step 1 cannot be completed.
-
-Expected or preferred behavior: The desired policy should name the real controlled tag actor and at least one independent environment reviewer, so the audit can compare live state against a complete policy.
-
-Trigger or scenario: Running `governance-audit.yml`, or following `CONTRIBUTING.md` release step 1.
-
-Impact: The release process has a documented first step that cannot pass. The two placeholders also encode a real organizational problem the repository already names: `preventSelfReview: true` plus `canAdminsBypass: false` with a single maintainer means nobody can approve the `release` environment deployment.
-
-Reach: The release process and whoever operates it.
-
-Root cause: The policy is a template awaiting real GitHub principal identifiers, and obtaining them requires organizational decisions (who is the tag-creating app, who reviews the release environment) that a solo-maintainer repository has not yet resolved.
-
-Why existing tests did not catch it: `tests/fixtures/release-governance/desired.json` supplies complete synthetic principals (`id: 101`, `id: 202`), so the test suite exercises the checker rather than the repository's own policy. No test asserts that `scripts/release-governance.json` itself validates.
-
-Minimal reproduction: Import `validateDesiredGovernance` from `scripts/check-release-governance.mjs` and call it with the parsed `scripts/release-governance.json`; it returns two errors.
-
-Recommended action: Decide and record the two principals, then add a test that `validateDesiredGovernance(scripts/release-governance.json)` returns no errors so the placeholder state cannot silently persist.
+Recommended action: Seed `latestSimpleValue` from the latest declarator in `binding.declarations` that precedes the use, and treat every declarator with an initializer as a write in the same ordering and uncertainty model the assignment branch already uses.
 
 Alternative approaches:
-1. Create a dedicated GitHub App for controlled tag creation and add a reviewer team, then fill in both identifiers. Strongest separation of duties; requires a second person or an app installation.
-2. Keep a single maintainer, set `preventSelfReview: false`, and document the accepted risk explicitly. Unblocks releases immediately at the cost of the four-eyes property the policy claims; the checker would need its `preventSelfReview !== true` rule relaxed, which weakens a real control.
-3. Keep current behavior and treat the audit as aspirational. Viable only if `CONTRIBUTING.md` stops presenting it as a required release step; otherwise the documentation overstates the control.
+1. Extend the re-scan with a `VariableDeclarator` visitor that resolves its `id` to the binding and applies the same ordering, function-scope, and conditional-write rules as the assignment branch. Reuses the existing model exactly.
+2. Iterate `binding.declarations` directly instead of walking, since the binding already carries every contributing declarator in order. Cheaper than a walk, but it still needs the walk for assignments, so it adds a second code path.
+3. Make any binding with more than one declarator unconditionally uncertain. One line, fully sound, but it discards a resolvable case and would silence legitimate diagnostics on files that redeclare a factory alias harmlessly.
+4. Keep current behavior. Not applicable: the false-positive direction reports a diagnostic against code that does not call a Fluent factory.
 
-Preferred option: Option 1 where a second principal is available, otherwise Option 2 with the risk written down. Confidence Confirmed for the blocker; the choice between options is an organizational decision, not a technical one. Evidence that would change it: knowing whether a second trusted reviewer exists.
+Preferred option: Option 1. It closes the gap inside the model COR-006 already established, so the ordering, nested-function, and conditional-write rules stay in one place. Confidence is Confirmed for the defect and High for the fix. Evidence that would change the recommendation is a measurement showing the extra visitor is material on the hot path, in which case Option 3 is the acceptable conservative fallback.
 
-Implementation outline: Fill `principals.controlledTagActor` and `principals.environmentReviewers` in `scripts/release-governance.json`; apply the matching live configuration; re-capture `docs/release-governance-status.json`; add the self-validation test; clear the resolved entries from `knownBlockers`.
+Implementation outline: Add a `VariableDeclarator` visitor to the walk in `src/analysis/fluent-imports.ts:113-156` that resolves its `id`, compares its offset against `useStart` through the portable accessor from COR-007, and applies the same `insideFunction`, `useInsideFunction`, and conditional-ancestor checks. Change the seed so `value` and `valueOffset` come from the latest preceding declarator rather than `binding.node`. Add both directions to the alias test matrix.
 
-Compatibility and migration: Not applicable: internal policy configuration with no published contract.
+Compatibility and migration: No public contract change. Diagnostics change only for files with repeated `var` declarations, and only from wrong to correct.
 
-Validation: `node scripts/check-release-governance.mjs` returns `ok: true` against live state; the new test passes.
+Validation: Unit level, both directions, using the two reproductions above plus a control that a plain assignment still behaves correctly. Extend the existing alias matrix rather than adding a new file.
 
-Effort: Small: the configuration edit is trivial; the organizational decision is the slow part.
+Effort: Small: one visitor, one seed change, and two test cases.
 
-Risk of the proposed change: Medium: relaxing `preventSelfReview` (Option 2) removes a genuine control and must be a recorded, deliberate decision rather than an incidental edit.
+Risk of the proposed change: Low: the change is additive within a function whose behaviour is already pinned by the COR-006 tests.
 
-Dependencies: OPS-002 — both are required before the governance audit reports a clean result.
+Dependencies: Should land after or with COR-007, because the offset comparison it extends is the one COR-007 makes portable.
 
-Open questions: Is a second trusted principal available to act as environment reviewer? This matters because it decides between Option 1 and Option 2. Current assumption: the repository is solo-maintained, as `knownBlockers` implies. Evidence required: the maintainer's decision. If a second principal exists, Option 1 applies and the control is preserved; if not, Option 2 applies and the report should record the reduced control.
+Open questions: Not applicable: the reachable declaration kinds are enumerated from the code and both failure directions are reproduced.
 
-## [PER-001] A const assertion on the generated SDK snapshot ships a 939 KB declaration file
-
-Record type: Defect or risk
-ID category: PER
-Primary component: Fluent SDK declaration snapshots
-Identity statement: A const assertion on a large generated data module forces TypeScript to emit the whole literal type into the published declaration file
-Fingerprint: sha256:bc934fdc05ea4891b445d30cf1f1acd0bbf55fcd50ea4cccc66785079a28d8f1
-Status: Active
-
-Classification: Performance risk
-Severity or priority: Medium
-Confidence: Confirmed
-Affected components: `src/fluent/declaration-snapshots.ts`, `scripts/audit-fluent-sdk.mjs`, `dist/fluent/declaration-snapshots.d.ts`, the published tarball, every consumer that type-checks against the package
-
-Evidence:
-- `src/fluent/declaration-snapshots.ts` is 16,023 lines covering 27 SDK versions (`3.0.0` … `4.11.0`) and ends with `} as const;`.
-- `scripts/audit-fluent-sdk.mjs:411` generates it: `` `export const FLUENT_DECLARATION_SNAPSHOTS = ${JSON.stringify(runtime, null, 2)} as const;\n` ``.
-- `src/fluent/registry.ts:240-242` immediately discards the literal type: `const DECLARATIONS = FLUENT_DECLARATION_SNAPSHOTS as unknown as Readonly` of a string-keyed `DeclarationSnapshot` record. No code depends on the `as const` types.
-- Measured sizes: `dist/fluent/declaration-snapshots.d.ts` is 939,040 bytes and `dist/fluent/declaration-snapshots.js` 817,868 bytes, out of a 2.8 MB `dist`. The next largest declaration is two orders of magnitude smaller.
-- Measured alternative, in the isolated copy: replacing `as const` with an explicit `FluentDeclarationSnapshots` interface annotation and rebuilding with `tsc -p tsconfig.build.json` produces `dist/fluent/declaration-snapshots.d.ts` at **511 bytes** and a `dist` tree of **1.9 MB**. `tsc` reported no errors, and `npx tsx --test tests/fluent-manifest.test.ts tests/rules/fluent-identity.test.ts tests/fluent-auditor.test.ts` returned `tests 35, pass 35, fail 0`.
-- The published tarball contains 211 files at 285,737 bytes compressed; this one module is the dominant contributor to the unpacked size.
-
-Current behavior: TypeScript infers and emits the complete literal type of a 27-version, roughly 150-capability-per-version object — approximately 28,000 literal type members — into the shipped declaration file, for no consumer benefit.
-
-Expected or preferred behavior: The declaration should describe the data's shape, not enumerate every string literal in it, because the only consumer immediately widens the type away.
-
-Trigger or scenario: Every build, every publish, and every consumer `tsc` run that resolves `oxc-plugin-servicenow` types without `skipLibCheck`.
-
-Impact: A 939 KB declaration file must be read and instantiated by every consuming type-checker and editor language service, and 63 percent of the unpacked package is this one module. There is no measured runtime penalty inside the plugin, because `registry.ts` accesses the object by key, but the type-level and download cost is real and entirely avoidable.
-
-Reach: Every installation of the package and every consumer type-check or editor session.
-
-Root cause: The generator appends `as const` to a large `JSON.stringify` output. `as const` is the right reflex for small literal tables, but at this size it converts a data file into a very large type, and the sole consumer does not use those types.
-
-Why existing tests did not catch it: Not applicable: no test asserts anything about emitted declaration size. `scripts/check-release-artifact.mjs` inspects tarball contents and digests, and `tests/integration/packed-consumer.test.ts` asserts specific files exist, but neither has a size budget.
-
-Minimal reproduction: `stat -f "%z" dist/fluent/declaration-snapshots.d.ts` after `npm run build` returns 939040. Repeat after replacing `as const` with an interface annotation: 511.
-
-Recommended action: Change `scripts/audit-fluent-sdk.mjs:411` to emit an explicit interface annotation instead of `as const`, regenerate the snapshot module, and add a declaration-size budget to `scripts/check-release-artifact.mjs`.
-
-Alternative approaches:
-1. Annotate instead of asserting. Smallest change, measured 939,040 → 511 bytes, no behavioral or type-visible difference. Requires the generator to also emit the interface (or import it from `registry.ts`).
-2. Move the data to a JSON file loaded at runtime. Removes the module from the type graph entirely and lets the loader read only the selected version, but adds a filesystem read and complicates bundling, which MNT-002 already flags as fragile.
-3. Ship only a supported subset of SDK versions. Reduces both the `.js` and `.d.ts` size, but drops a compatibility promise `scripts/compat-matrix.json` currently makes for all 27 versions, so it trades a real capability for size.
-4. Keep current behavior. Viable only if some consumer needs the literal types; `registry.ts:240` proves none does.
-
-Preferred option: Option 1. Confidence Confirmed — the alternative was built and tested. Prerequisite: the emitted interface must match `DeclarationSnapshot` in `src/fluent/registry.ts:227-238` so the existing cast becomes unnecessary and can eventually be removed. Evidence that would change it: a future consumer requiring literal-typed access to snapshot keys, which would favour a narrow generated union of version strings rather than the full literal type.
-
-Implementation outline: Emit the interface (or import it) from `scripts/audit-fluent-sdk.mjs`; annotate the const; run `npm run manifest:update` to regenerate; drop the `as unknown as` cast in `registry.ts` once the annotation makes it redundant; add an assertion to `scripts/check-release-artifact.mjs` that no shipped `.d.ts` exceeds an agreed budget.
-
-Compatibility and migration: The published declaration changes shape from a deep literal type to an interface. Any consumer that read a literal type from `FLUENT_DECLARATION_SNAPSHOTS` would be affected, but the symbol is not reachable through the `exports` map (only `.`, `./analysis`, `./oxfmt`, `./oxfmt.recommended.json`, and `./package.json` are exported), so no supported consumer can depend on it.
-
-Validation: Rebuild and compare declaration sizes; run the Fluent test group; run `npm run manifest:check` and `npm run release:check`.
-
-Effort: Small: a generator string change plus regeneration.
-
-Risk of the proposed change: Low: verified by build and test in an isolated copy, and the affected symbol is not publicly exported.
-
-Dependencies: Not applicable.
-
-Open questions: Not applicable: both states were built and measured.
-
-## [REL-001] Release version ordering truncates hyphenated prerelease identifiers
+## [REL-003] Prerelease ordering uses locale collation instead of ASCII order
 
 Record type: Defect or risk
 ID category: REL
 Primary component: Release version ordering
-Identity statement: Prerelease parsing splits on the first hyphen and discards the remainder of a hyphenated prerelease identifier
-Fingerprint: sha256:8198f0748b572deb9f522e796d23aa4a20c1eefbfc1700eae74086d48df79c27
+Identity statement: Prerelease identifier comparison uses locale collation instead of the ASCII order the version specification requires
+Fingerprint: sha256:48a2fec4689fb8e04faadca6ef91b3439431ed90279df9ecfbed72d4438fc3d8
 Status: Active
 
 Classification: Confirmed defect
-Severity or priority: Medium
+Severity or priority: Low
 Confidence: Confirmed
-Affected components: `scripts/publish-release-package.mjs`, the `publication-state` job in `.github/workflows/release.yml`
+Affected components: `scripts/publish-release-package.mjs`; the `publication-state` job of the release workflow and the `validateRegistryVersionOrder` monotonicity gate
 
 Evidence:
-- `scripts/publish-release-package.mjs:28` accepts prereleases matching `-[0-9A-Za-z.-]+`, which explicitly permits hyphens inside the prerelease.
-- `scripts/publish-release-package.mjs:36` parses with `const [core, prerelease] = version.split("-", 2);`, which keeps only the text up to the second hyphen and discards the rest.
-- Measured: `compareReleaseVersions("2.0.0-rc.2", "2.0.0-rc.1")` returns `1` (correct), but `compareReleaseVersions("2.0.0-rc-2", "2.0.0-rc-1")` returns `0` and `compareReleaseVersions("2.0.0-alpha-2", "2.0.0-alpha-10")` returns `0`.
-- Measured end to end: `validateRegistryVersionOrder({versions:["2.0.0-rc-1"],"dist-tags":{next:"2.0.0-rc-1"}}, "2.0.0-rc-2")` throws `release version 2.0.0-rc-2 is not greater than published 2.0.0-rc-1` with `kind: "version"`.
-- `scripts/publish-release-package.mjs:85-87` turns that comparison into a hard failure in `validateRegistryVersionOrder`, which `runPublicationState` calls before deciding whether a version is absent.
+- `scripts/publish-release-package.mjs:67`: the final tiebreak for two alphanumeric prerelease identifiers is `leftPart.localeCompare(rightPart)`.
+- Semantic Versioning 2.0.0 rule 11.4.3 requires identifiers consisting of letters and hyphens to be compared in ASCII sort order.
+- `scripts/publish-release-package.mjs:88-91`: `validateRegistryVersionOrder` selects the highest published version with this comparator and refuses a candidate that is not strictly greater, so a mis-ordering can block a correct release or admit a lower one.
+- Measured with the shipped comparator: `compareReleaseVersions("1.0.0-B", "1.0.0-a")` returns a positive value, but ASCII order places `B` at 0x42 below `a` at 0x61, so the correct result is negative. `compareReleaseVersions("1.0.0-alpha", "1.0.0-Beta")` returns a negative value where ASCII order requires a positive one.
+- Measured controls that behave correctly: numeric identifiers, mixed numeric and alphanumeric precedence, the shorter-prerelease rule, and the hyphenated identifier `rc-2` that the previous REL-001 remediation fixed.
 
-Current behavior: Two prereleases that differ only after the second hyphen compare equal, so the ordering guard rejects a legitimate successor release.
+Current behavior: Two alphanumeric prerelease identifiers that differ only in letter case, or that differ across a case boundary, are ordered by the runtime's default locale collation rather than by ASCII code points. `localeCompare` with no explicit locale also depends on the ICU data compiled into the running Node build, so the same comparison can differ between a small-ICU and a full-ICU runtime.
 
-Expected or preferred behavior: The prerelease portion is everything after the first hyphen and should be compared dot-segment by dot-segment, per the semantic-versioning precedence rules the rest of `compareReleaseVersions` already implements.
+Expected or preferred behavior: Alphanumeric prerelease identifiers should be compared with plain relational operators on the strings, which yields ASCII order and is deterministic on every runtime.
 
-Trigger or scenario: Publishing any version whose prerelease identifier contains a hyphen, for example `2.1.0-rc-2` after `2.1.0-rc-1`, or `2.1.0-beta-hotfix` after `2.1.0-beta`.
+Trigger or scenario: Publishing a prerelease whose identifier differs from an already-published prerelease only by letter case, for example `2.1.0-Beta.1` after `2.1.0-alpha.1`. Also reachable whenever the registry index contains such a pair, because `validateRegistryVersionOrder` sorts the whole published list.
 
-Impact: The release is blocked with a misleading message claiming the new version is not greater than the published one. The failure direction is safe — it never permits a downgrade or an out-of-order publish — but it stops a valid release and the message points the operator at the wrong problem.
+Impact: A correct release can be refused as not greater than the published maximum, or a lower prerelease can be admitted as higher. Because the comparator also feeds the sort that selects `highest`, one mis-ordered pair can move the computed maximum. The locale dependence additionally makes the gate non-deterministic across runtimes, which is undesirable in a release-safety control.
 
-Reach: Only releases using hyphenated prerelease identifiers. The project's own convention (`2.0.0-rc.1`, seen in `tests/release/layer7.test.ts:523`) uses a dot, so the defect is latent today.
+Reach: Prerelease publications only. The project has shipped no mixed-case prerelease identifier, so no past release was affected, and stable releases are unaffected because they take the earlier return at line 53.
 
-Root cause: The two-argument form of `String.prototype.split` limits the number of returned elements rather than splitting only at the first separator. `"2.0.0-rc-2".split("-", 2)` yields `["2.0.0", "rc"]`, dropping `-2`.
+Root cause: `localeCompare` was used as a general string comparison where the version specification mandates a specific byte-order comparison. The two agree for same-case ASCII and diverge across case.
 
-Why existing tests did not catch it: `tests/release/` exercises `2.0.0-rc.1`-style versions only. No test uses a hyphen inside the prerelease, and no property-based or fuzz test covers the accepted version grammar, so the gap between the accepting regex at line 28 and the parser at line 36 is untested.
+Why existing tests did not catch it: `tests/release/layer7.test.ts` covers numeric identifiers, the hyphenated `rc-2` case that REL-001 introduced, the shorter-prerelease rule, and stable-versus-prerelease precedence. No case pairs two alphanumeric identifiers of differing case, which is the only divergence.
 
-Minimal reproduction: `import { compareReleaseVersions } from "./scripts/publish-release-package.mjs"; compareReleaseVersions("2.0.0-rc-2", "2.0.0-rc-1")` returns `0`.
+Minimal reproduction: `compareReleaseVersions("1.0.0-B", "1.0.0-a")` returns a positive number; the specification requires a negative one. `compareReleaseVersions("1.0.0-alpha", "1.0.0-Beta")` returns a negative number; the specification requires a positive one.
 
-Recommended action: Split only at the first hyphen: take `core` as the text before `indexOf("-")` and `prerelease` as everything after it, then split the prerelease on `.` as the code already does.
+Recommended action: Replace `leftPart.localeCompare(rightPart)` with `leftPart < rightPart ? -1 : 1`, which is exact ASCII order for the identifier character set the format already validates.
 
 Alternative approaches:
-1. Fix the split. Two lines, keeps the existing comparison logic and its numeric/alphanumeric precedence handling intact.
-2. Narrow the accepting regex at line 28 to forbid hyphens in prereleases, so the parser and the grammar agree. Also correct, and arguably simpler to reason about, but it rejects versions that semantic versioning permits and that the registry would accept.
-3. Depend on a semver library. Removes a category of parsing bugs, but adds a runtime dependency to a script deliberately written with zero dependencies so it can run in the publish job from a downloaded artifact.
-4. Keep current behavior. Not applicable: a valid release is blocked with a misleading message.
+1. Compare with relational operators. One line, exactly matches rule 11.4.3, and removes the runtime dependence.
+2. Call `localeCompare` with an explicit `"en"` locale and a `{ sensitivity: "variant" }` option. Removes the runtime dependence but still does not produce ASCII order, so it fixes determinism without fixing correctness.
+3. Adopt a semver dependency for comparison. Correct, but adds a runtime dependency to a release script deliberately kept small, for a function that is nine lines.
+4. Keep current behavior. Viable only while the project never publishes a mixed-case prerelease. That is an undocumented constraint on a safety gate, which is the weaker position.
 
-Preferred option: Option 1, with a test covering hyphenated prereleases. Confidence Confirmed. Option 3 is explicitly not recommended: `.github/workflows/release.yml:157` runs this file from the downloaded `release-publish-input` artifact with no `node_modules`, so it must stay dependency-free.
+Preferred option: Option 1. It is the minimal change, it matches the specification exactly, and it removes an environment dependence from a release control. Confidence is Confirmed for the defect and Confirmed for the fix. Evidence that would change the recommendation is a project convention requiring locale-aware ordering, of which none exists.
 
-Implementation outline: Change `parsedVersion` in `scripts/publish-release-package.mjs`; add cases to the release tests covering `2.0.0-rc-2` versus `2.0.0-rc-1`, `2.0.0-alpha-2` versus `2.0.0-alpha-10`, and the existing dot forms as regression guards.
+Implementation outline: Change `scripts/publish-release-package.mjs:67`. Add cases to `tests/release/layer7.test.ts` covering `1.0.0-B` against `1.0.0-a`, `1.0.0-alpha` against `1.0.0-Beta`, and a sort over a mixed-case list, asserting ASCII order. No workflow or documentation change is required.
 
-Compatibility and migration: Not applicable: internal release tooling; the corrected ordering is strictly more permissive for versions that were previously and wrongly rejected.
+Compatibility and migration: No published contract changes. The comparator is internal to release tooling. Rollback is a revert.
 
-Validation: Unit tests over `compareReleaseVersions` and `validateRegistryVersionOrder` for both hyphen and dot prerelease forms, including the equal case.
+Validation: Unit level in the existing release test file, including a full-list sort so the `highest` selection is covered, not only pairwise comparison.
 
-Effort: Small: two lines plus tests.
+Effort: Small: one expression and three test cases.
 
-Risk of the proposed change: Low: the change only affects versions the current parser mishandles, and the guard's fail-closed direction is preserved.
+Risk of the proposed change: Low: the change is confined to one pure comparator whose other branches are already pinned by tests.
 
-Dependencies: Not applicable.
+Dependencies: None.
 
-Open questions: Not applicable.
+Open questions: Not applicable: the divergence is reproduced against the shipped function and the governing specification rule is explicit.
 
-## [COR-002] Hash-name suppression only honours the literal name `md5`
+## [OPS-008] The governance audit runs only when a maintainer triggers it
 
 Record type: Defect or risk
-ID category: COR
-Primary component: Hardcoded sys_id detection
-Identity statement: Hash-name suppression tests value lengths that the sys_id pattern can never match, so only one variable-name spelling is honoured
-Fingerprint: sha256:2e631d192c1d9070625195ed5c9669be92f1a9921df35c59e24a2a2bf374a424
+ID category: OPS
+Primary component: Release governance drift detection
+Identity statement: The governance audit workflow has only a manual trigger, so release policy drift is detected only when a maintainer runs it by hand
+Fingerprint: sha256:7b2afcce84c544075d7cca01188461d4a05bc744cfc73b76dd01e0702d394b5f
 Status: Active
 
-Classification: Confirmed defect
-Severity or priority: Medium
+Classification: Operational gap
+Severity or priority: Low
 Confidence: Confirmed
-Affected components: `src/utils/sysid.ts`, `src/rules/no-hardcoded-sysid.ts`, the `ignoreHashNames` option, `docs/rules/no-hardcoded-sysid.md`
+Affected components: `.github/workflows/governance-audit.yml`, `scripts/check-release-governance.mjs`, `scripts/release-governance.json`, `docs/release-governance-status.json`
 
 Evidence:
-- `src/utils/sysid.ts:1`: `const SYS_ID = /\b[0-9a-f]{32}\b/gi;` — the word boundaries mean a 32-character match cannot occur inside a longer hexadecimal run.
-- `src/utils/sysid.ts:16`: the `/md5/i` branch tests `/^[0-9a-f]{32}$/i` — this is the only branch whose length can also be matched by `SYS_ID`.
-- `src/utils/sysid.ts:17-21`: the `/sha1/i` branch tests 40 characters, `/sha256/i` tests 64, and `/(hash|checksum|etag|digest)/i` tests 40 or 64. None of those lengths can produce a `findSysIds` match.
-- `src/rules/no-hardcoded-sysid.ts:26-42`: `reportSysIds` returns early only when `looksLikeMd5Context` is true; otherwise it iterates `findSysIds(value)`. When `looksLikeMd5Context` returns true for a 40- or 64-character value, `findSysIds` would have returned an empty array anyway, so those branches cannot change any outcome.
-- Measured with the rule harness on a `var` declaration assigning `"d41d8cd98f00b204e9800998ecf8427e"` in `a.br.js`, varying only the declared name: `md5` → 0 diagnostics (`looksLikeMd5Context` true); `checksum`, `digest`, `etag`, `fileHash`, and `sha1Value` → 1 diagnostic each (`looksLikeMd5Context` false).
-- Measured: `findSysIds("da39a3ee5e6b4b0d3255bfef95601890afd80709")` returns `[]` and `findSysIds("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")` returns `[]`.
+- `.github/workflows/governance-audit.yml:3-4`: the only trigger is `workflow_dispatch`. There is no `schedule`, no `push`, and no `pull_request` trigger.
+- `.github/workflows/ci.yml:11-14`: the CI workflow gained a nightly `cron` in the OPS-007 remediation, and `.github/workflows/ci.yml:189-192` uses it to run the networked `manifest-drift` job. The governance audit did not receive the same treatment.
+- `scripts/release-governance.json:35-55`: the desired policy pins the required status-check list, the environment reviewer identities, the self-review prohibition, the admin-bypass prohibition, and the tag deployment policy. Every one of these is mutable GitHub state that a repository administrator can change without touching the repository.
+- `scripts/release-governance.json:80`: the npm trusted-publisher OIDC subject is likewise mutable external state.
+- The `governance-audit` job name does not appear in the `mainRuleset.requiredStatusChecks` list, so the audit is not a merge gate either.
 
-Current behavior: A 32-character MD5 constant is suppressed only when its variable or property name contains the literal substring `md5`. The same constant named `checksum`, `digest`, `etag`, or `fileHash` is reported as a hardcoded sys_id. Three of the four branches in `looksLikeMd5Context` are unreachable in effect.
+Current behavior: The audit that compares live GitHub governance state against the desired policy runs only when a maintainer opens the Actions tab and dispatches it. Between manual runs, a weakened ruleset, a removed environment reviewer, an enabled admin bypass, or a changed trusted publisher goes undetected.
 
-Expected or preferred behavior: `ignoreHashNames` should suppress a 32-character hexadecimal literal whenever the surrounding name indicates a digest, since that is the false positive the option exists to remove.
+Expected or preferred behavior: A control whose whole purpose is to detect drift in external mutable state should run on a schedule, and its result should be visible without a human remembering to ask.
 
-Trigger or scenario: Any ServiceNow script that stores an MD5 digest in a variable named with a common hash word other than `md5`, with the default `ignoreHashNames: true`.
+Trigger or scenario: Any administrative change to the repository ruleset, the `release` environment, or the npm trusted-publisher configuration, whether accidental or hostile. There is no repository event that would cause the audit to run in response.
 
-Impact: A false positive on `no-hardcoded-sysid`, a `recommended` preset rule, telling the author to replace a checksum with a system property. Because the fix is to rename a variable to contain `md5` — which is not obvious from the message — the practical outcome is a manual suppression comment.
+Impact: The release pipeline's security properties rest on governance that is asserted in a JSON file but enforced by GitHub. If the enforcement is weakened, the provenance chain the release workflow builds becomes less meaningful while every in-repository check continues to pass. Detection latency is unbounded.
 
-Reach: Users who store digests in classic instance scripts. The narrowness of the trigger is why this is Medium rather than High.
+Reach: The release path and its supply-chain guarantees. No consumer-visible behaviour changes until a release is published under weakened governance.
 
-Root cause: The length tests were written against the hash algorithms' natural output sizes rather than against the length the sys_id pattern can actually flag. The predicate is correct as a "does this look like a hash" test but wrong as a "should this 32-hex literal be suppressed" test.
+Root cause: The OPS-007 remediation added a nightly schedule to the CI workflow and attached the SDK drift job to it, but the governance audit lives in its own workflow that was not given a trigger at the same time.
 
-Why existing tests did not catch it: The rule tests cover the `md5` spelling, which works, and there is no test asserting that a 40- or 64-character value ever reaches `reportSysIds`. Because the extra branches only ever agree with the outcome `findSysIds` already produces, no assertion distinguishes them.
+Why existing tests did not catch it: `scripts/check-action-pins.mjs` and `scripts/check-script-paths.mjs` verify pinning and path tracking across all three workflows, and the OPS-002 remediation added a test that required check names are producible. None of these assert that a workflow has a trigger appropriate to its purpose, which is a property no current test expresses.
 
-Minimal reproduction: `lint('var checksum = "d41d8cd98f00b204e9800998ecf8427e";', "no-hardcoded-sysid", { filename: "a.br.js" })` returns one diagnostic.
+Minimal reproduction: Read `.github/workflows/governance-audit.yml`. The `on:` block contains only `workflow_dispatch`, and no other workflow invokes it. Static proof; no execution required.
 
-Recommended action: Make `looksLikeMd5Context` test the 32-character form for every hash-like name, and delete the 40- and 64-character branches that cannot affect an outcome. Update the option description in `src/options/descriptors.ts:41` and the generated documentation accordingly.
+Recommended action: Add the same nightly `schedule` the CI workflow already uses to `governance-audit.yml`, and keep it non-required so a transient GitHub API failure cannot block merges.
 
 Alternative approaches:
-1. Test 32-hex for every hash-like name (`md5`, `hash`, `checksum`, `etag`, `digest`, and optionally `sha`). Smallest change; removes the dead branches; matches the option's intent.
-2. Widen `SYS_ID` to also match inside longer hex runs and keep the length tests. Strictly worse: it would create new false positives on sha1 and sha256 literals, which is what the word boundaries currently prevent.
-3. Drop `ignoreHashNames` and rely on `allowedSysIds`. Fewer moving parts, but it pushes a per-file annoyance onto global configuration and would be a breaking option removal.
-4. Keep current behavior and correct the documentation to say only `md5` is honoured. Honest and very cheap, but leaves an obvious false positive in a `recommended` rule.
+1. Add a `schedule` trigger to `governance-audit.yml`. One block, matches the pattern OPS-007 established for `manifest-drift`, and keeps the audit out of the required set.
+2. Move the audit into the CI workflow as a scheduled job. Consolidates the nightly surface, but mixes a credentialed GitHub API read into a workflow that otherwise needs no token, widening that workflow's trust surface.
+3. Run the audit as a required step in the release `validate` job. Strongest gate, since it blocks a release under weakened governance, but it makes every release depend on a live GitHub API call and on the npm login that `npm trust list` still requires.
+4. Keep current behavior. Viable only if a maintainer runs the audit as part of a documented release checklist. `docs/release.md` should then state that step explicitly, which it does not.
 
-Preferred option: Option 1. Confidence Confirmed for the behavior; High for the fix. Evidence that would change it: if the project judges name-based suppression too loose, Option 3 with a documented migration becomes reasonable, though it is a breaking change to a public option.
+Preferred option: Option 1, with Option 3 as a later hardening once the npm half of the audit no longer needs an interactive login. Confidence is Confirmed for the gap and High for the fix. Prerequisite is none. Evidence that would change the recommendation is a documented manual checklist that already covers the audit, which would reduce this to a documentation issue.
 
-Implementation outline: Rewrite `looksLikeMd5Context` (renaming it to something like `looksLikeDigestContext`) to a single name test plus a 32-hex value test; update `src/options/descriptors.ts` description; run `npm run docs`; add rule tests for `checksum`, `digest`, `etag`, and `fileHash` in both the suppressed and reported directions. While there, consider that `lastBinding` in `src/rules/no-hardcoded-sysid.ts:76-86` is a single value rather than a stack, so a nested declarator or property clears the enclosing name — worth a stack if the name test is being touched anyway.
+Implementation outline: Add a `schedule` entry to `.github/workflows/governance-audit.yml` with a cron offset from the CI nightly so the two do not contend. Keep `workflow_dispatch`. Leave the job out of `requiredStatusChecks`. Note the cadence in `docs/release.md` so an operator knows where drift is reported.
 
-Compatibility and migration: Behavior change: fewer diagnostics under the default `ignoreHashNames: true`. Users who relied on those diagnostics can set `ignoreHashNames: false`. Note it under `Unreleased` in `CHANGELOG.md`.
+Compatibility and migration: No repository contract changes. The only effect is one additional scheduled workflow run per day.
 
-Validation: Rule tests across the six names measured above; `npm run docs:check` to confirm the regenerated option table matches.
+Validation: Operational level: dispatch the workflow once after the change and confirm it still passes, then confirm the scheduled run appears. Add an assertion to the existing workflow tests that every workflow whose purpose is drift detection declares a `schedule` trigger, so the property is expressed rather than remembered.
 
-Effort: Small: roughly 10 lines plus tests and documentation regeneration.
+Effort: Small: a four-line trigger block and one test assertion.
 
-Risk of the proposed change: Low: the change only suppresses diagnostics on values that are already ambiguous, and the opt-out remains available.
+Risk of the proposed change: Low: the workflow is read-only, holds `contents: read`, and is not a required check, so a scheduled failure cannot block work.
 
-Dependencies: Not applicable.
+Dependencies: The npm half of the audit still requires an npm login, so a scheduled run will report the GitHub half only until that is resolved. That limitation already exists for manual runs.
 
-Open questions: Not applicable.
+Open questions: Whether the audit should eventually gate releases. Current assumption is no, because the npm portion cannot run unattended. If npm trusted-publisher state becomes readable with a workflow token, Option 3 becomes viable and the severity of leaving it unscheduled would rise.
 
-## [MNT-001] An autofix harness is maintained although no rule emits a fix
+## [MNT-004] The post-publish verifier requires an argument nothing consumes
 
 Record type: Defect or risk
 ID category: MNT
-Primary component: Rule execution harness
-Identity statement: An autofix application harness is maintained although no catalog rule declares a fix or suggestion
-Fingerprint: sha256:fc9656942b74c41af49a37cf1d32bdb4545381c152c2f75978c528126ffdc8a5
+Primary component: npm release post-publish verification
+Identity statement: The post-publish verifier requires a trusted-publisher subject argument that no verification step consumes
+Fingerprint: sha256:772fd0160e0b1b85a1b594b2bb5370d8027be969f28b13e542d7deb93d86ba5a
 Status: Active
 
 Classification: Maintainability concern
 Severity or priority: Low
 Confidence: Confirmed
-Affected components: `src/runtime/apply-rules.ts`, `src/catalog.ts`, `CONTRIBUTING.md`, `tests/plugin.test.ts`, the published `dist/runtime/apply-rules.js`
+Affected components: `scripts/verify-published-package.mjs`, `.github/workflows/release.yml`, `scripts/release-governance.json`
 
 Evidence:
-- Counted across `src/catalog.ts`: `fixable: true` appears 0 times, `hasSuggestions: true` appears 0 times, and `fixable: false` appears 41 times — one per catalog entry.
-- Grep for `fix(fixer`, `fix: (`, `fix(f)`, and `suggest: [` across `src/rules/*.ts` returns no matches; grep for `fixer` or `.fix` across `src/rules/` and `src/analysis/` returns no matches.
-- `src/runtime/apply-rules.ts:22-69` defines a five-method `fixer` object and `applyFixes`, including an O(n²) overlap-range check that throws `overlapping fix ranges`. Lines 213-228 wrap `diagnostic.fix` and `diagnostic.suggest` in try/catch and rethrow as `fixer failed for <ruleId>`. None of this can run, because no rule supplies `fix` or `suggest`.
-- `src/catalog.ts:196` derives `fixKind: rest.fixable ? "safe-fix" : rest.hasSuggestions ? "suggestion" : "none"`, so the field can only ever be `"none"`.
-- `tests/plugin.test.ts:131-142` asserts that fixable entries produce `fixedSource` and that `hasSuggestions` entries produce suggestions; with zero such entries, both branches are unreachable. `tests/rules/glide-and-engine.test.ts:31-33` and `tests/rules/fluent.test.ts:48` instead assert the absence of fixes.
-- `CONTRIBUTING.md` contains an `## Autofixes` section specifying exact-output, idempotence, and comment-preservation tests for a capability that does not exist.
-- `dist/runtime/apply-rules.js` ships in the tarball although `apply-rules` is not reachable through the `exports` map.
+- `scripts/verify-published-package.mjs:553`: `--oidc-subject` is read into `oidcSubject`.
+- `scripts/verify-published-package.mjs:560-561`: its absence is a hard failure with the message that it is required for environment-bound provenance.
+- `scripts/verify-published-package.mjs:573`: it is placed on the `expected` object.
+- No other line reads it. `certificateIdentity` at `:319-339` derives every certificate expectation from `expected.repository`, `expected.workflow`, `expected.ref`, `expected.commit`, `expected.environment`, and `enrichedOidcSubject(expected)`, which itself uses `repository`, `ownerId`, `repositoryId`, and `environment`. `exactWorkflowStatement` at `:364-392` does not read it either.
+- `.github/workflows/release.yml:57-59`: the validate job reads the value from `scripts/release-governance.json` and asserts `test "$oidc_subject" = "repo:${GITHUB_REPOSITORY}:environment:release"`. Both sides derive from the same workflow context, so the assertion cannot fail for a reason that matters.
+- `scripts/verify-published-package.mjs:306-317`: the comment explains correctly that the plain subject names the npm trusted publisher and never appears in the certificate, which is why it cannot be matched directly.
 
-Current behavior: Roughly 50 lines of fix-application machinery, a derived `fixKind` field, two unreachable test assertions, and a contributor-guide section all describe a capability the plugin does not have.
+Current behavior: The verifier demands an argument, threads it into its expectation object, and never compares it against anything. The workflow computes it from the governance file and passes it. The net effect is that the npm trusted-publisher subject appears to be verified against the published attestation when it is not.
 
-Expected or preferred behavior: Either the plugin ships fixes and the machinery is exercised, or the machinery is removed and the documentation says diagnostics only.
+Expected or preferred behavior: Either the argument should participate in a real check, or it should not be required. A required parameter that has no effect misrepresents the strength of the verification to anyone reading the workflow or the script.
 
-Trigger or scenario: Any contributor reading `CONTRIBUTING.md` or `apply-rules.ts` and concluding that autofix support exists and is tested.
+Trigger or scenario: Every release. The mismatch is invisible because the verifier passes for the right reasons through the other nine certificate OIDs.
 
-Impact: Maintenance and comprehension cost only. There is no runtime or correctness impact, because the code is unreachable. The concrete cost is that a contributor following `CONTRIBUTING.md` would build against an untested path.
+Impact: Misleading contract in the most security-relevant script in the repository. A future maintainer reading `release.yml` would reasonably conclude that the governance file's trusted-publisher subject is cross-checked against the certificate, and could weaken a different control on that assumption. There is no current security regression, because the certificate identity is fully checked by other means.
 
-Reach: Contributors and maintainers; not end users.
+Reach: Maintainers and reviewers of the release pipeline. No consumer-visible effect.
 
-Root cause: The harness was built to keep the option open, and the project subsequently — and defensibly, given `CONTRIBUTING.md`'s own "add a fix only when the rewrite preserves semantics" rule — never found a rewrite that qualified.
+Root cause: The OPS-006 remediation moved the certificate expectations to the DER-encoded, ID-enriched subject form. The plain subject argument that the earlier design used was left in place, along with its required check, but lost its consumer.
 
-Why existing tests did not catch it: Not applicable: the tests deliberately assert that no fixes are produced, which is the current intent. Nothing flags that the supporting machinery is therefore dead.
+Why existing tests did not catch it: `tests/release/layer7.test.ts:627` supplies `oidcSubject` in a fixture, so the argument is exercised, but no test asserts that changing it changes an outcome. A parameter that is only ever passed and never read cannot fail an assertion that does not exist.
 
-Minimal reproduction: Grep `src/rules/` for `fix(` and `suggest:`; both return nothing, while `src/runtime/apply-rules.ts` still contains the full fixer implementation.
+Minimal reproduction: Read `scripts/verify-published-package.mjs` and search for `oidcSubject`. It appears at lines 553, 560, 561, and 573 only. Static proof; no execution required.
 
-Recommended action: Decide explicitly. If no fix is planned within the next release cycle, delete `applyFixes`, the `fixer` object, the `fix`/`suggest` handling in `report`, the `fixKind` derivation, the two unreachable assertions in `tests/plugin.test.ts`, and the `## Autofixes` section, replacing the last with one sentence stating the plugin reports diagnostics only. Otherwise, ship one fix and keep the machinery exercised.
-
-Alternative approaches:
-1. Delete the machinery and the documentation section. Smallest surface, honest documentation, easy to reintroduce from history when a safe fix appears.
-2. Keep it and add one genuinely safe fix. `fluent-directives`' typo diagnostic (`src/rules/fluent-directives.ts:235-240`) is the strongest candidate: replacing a misspelled directive name with its known correction is a comment-text edit with a known-good target from the manifest. This turns dead code into tested code and adds user value.
-3. Keep current behavior. Viable if fixes are imminent, but then `CONTRIBUTING.md` should say the capability is unimplemented so contributors are not misled.
-
-Preferred option: Option 2 if the typo fix is wanted, otherwise Option 1. Confidence Confirmed for the dead code; the choice is a product decision. Evidence that would change it: a roadmap commitment to autofixes.
-
-Implementation outline: For Option 1, remove the listed code and documentation and simplify `LintMessage` by dropping `fixedSource` and `suggestions`. For Option 2, add a `fix` to the `typo` diagnostic that replaces the matched directive name range, plus exact-output, idempotence, and comment-preservation tests as `CONTRIBUTING.md` already requires.
-
-Compatibility and migration: `LintMessage` is internal to the test harness and is not reachable through the `exports` map, so removing fields is not a public break. If Option 2 is taken, the catalog entry gains `fixable: true`, which changes the generated documentation and the README rule table.
-
-Validation: For Option 1, `npm test` and `npm run docs:check` after regeneration. For Option 2, the fix tests plus `npm run docs`.
-
-Effort: Small: deletion or one fix, either way.
-
-Risk of the proposed change: Medium: deletion is low risk, but a wrong autofix edits user source, so Option 2 needs the idempotence and comment-preservation tests `CONTRIBUTING.md` mandates.
-
-Dependencies: Not applicable.
-
-Open questions: Does the roadmap include autofixes? This decides between deleting and exercising the machinery. Current assumption: no, given 41 of 41 entries are `fixable: false` and the project's stated bar for safe rewrites is high. Evidence required: a maintainer decision. Either answer leaves the finding Low severity; only the recommended action changes.
-
-## [DOC-001] The acceptance ledger's worktree digest cannot be reproduced
-
-Record type: Defect or risk
-ID category: DOC
-Primary component: Acceptance evidence ledger
-Identity statement: The recorded worktree digest is computed before the ledger writes tracked files it also hashes, so the digest can never be reproduced
-Fingerprint: sha256:3397b0541e26940c3948532d832a0f46a069ed0bccf37404b1615864cc01fe29
-Status: Active
-
-Classification: Documentation issue
-Severity or priority: Low
-Confidence: Confirmed
-Affected components: `scripts/verify-acceptance-ledger.mjs`, `docs/pr-51-validation-report.md`, `docs/pr-51-acceptance-ledger.md`, `scripts/pr51-acceptance.json`
-
-Evidence:
-- `scripts/verify-acceptance-ledger.mjs:229-253`: `worktreeIdentity()` hashes `git status --porcelain=v1 --untracked-files=all`, then `git diff --binary HEAD -- .`, then the path and full contents of every untracked file.
-- `scripts/verify-acceptance-ledger.mjs:356` calls `worktreeIdentity()`, and lines 217, 341, 343, and 398 then write `scripts/pr51-acceptance.json`, `docs/pr-51-acceptance-ledger.md`, and `docs/pr-51-validation-report.md` — all tracked files inside the digest's own scope.
-- `docs/pr-51-validation-report.md:12` records `Diff digest: f08aa4c1a683a929f31433f645d3c4cbefaed1517cf34c0ab6c3a48f3b7d5d11`.
-- Recomputing the same algorithm against the current worktree yields `83aec3a12d466186a4ae4a6479f3de69d32f727ddab073c86f4c53cc0a9758da`. The recorded value cannot match, because writing the report changes bytes the digest covers.
-
-Current behavior: The report presents a worktree digest as evidence identity, but the act of writing the report invalidates it. No later run can confirm that a given tree produced a given ledger.
-
-Expected or preferred behavior: An evidence identity token should be verifiable: recomputing it on the same tree should reproduce the recorded value.
-
-Trigger or scenario: Every run of `npm run acceptance:check` on a dirty tree, and any later attempt to verify the recorded digest.
-
-Impact: The ledger's strongest-looking integrity claim is not checkable. Everything else in the report — HEAD, test counts, criteria counts, the honest `Tested identity: uncommitted` label — remains meaningful, so the impact is confined to a false sense of verifiability rather than a wrong conclusion.
-
-Reach: Anyone auditing the PR 51 acceptance evidence.
-
-Root cause: The digest's scope (`git diff HEAD -- .` plus all untracked files) includes the ledger's own generated outputs, and the ordering guarantees they differ between capture and verification.
-
-Why existing tests did not catch it: `tests/acceptance-ledger.test.ts` exercises the ledger's mapping and verification logic, not the reproducibility of the identity token. No test recomputes the digest after a run and compares it with the recorded value.
-
-Minimal reproduction: Run the `worktreeIdentity` algorithm against the working tree and compare with `Diff digest` in `docs/pr-51-validation-report.md`; the values differ, and the ledger's own outputs are part of the difference.
-
-Recommended action: Exclude the ledger's generated outputs from the digest scope: hash `git diff HEAD -- .` with pathspec exclusions for `scripts/pr51-acceptance.json`, `docs/pr-51-acceptance-ledger.md`, and `docs/pr-51-validation-report.md`, and skip those paths in the untracked enumeration. Then the digest becomes reproducible.
+Recommended action: Derive the plain subject from `expected` and assert it equals the supplied `--oidc-subject`, so the governance file's declared trusted publisher is bound to the repository and environment the certificate check actually uses. Keep the argument required.
 
 Alternative approaches:
-1. Exclude the generated outputs from the digest scope. Small, makes the token verifiable, and keeps the rest of the identity intact.
-2. Write the digest into a separate file outside the hashed scope, for example `artifacts/`, which is gitignored. Also verifiable, but splits the evidence across two locations.
-3. Only record a digest when the tree is clean, and print `not applicable` otherwise. Already the behavior for clean trees (`diffDigest: clean ? null : …`); extending it would simply drop the claim on dirty trees, which is honest but loses information exactly when it is most useful.
-4. Keep current behavior and document that the digest is a capture-time marker, not a verifiable token. Cheapest, but the field is presented as an identity in a report whose stated purpose is to avoid converting historical runs into current proof.
+1. Cross-check the supplied subject against the plain `repo:owner/name:environment:name` subject form derived from `expected.repository` and `expected.environment`. Restores meaning to the argument, is three lines, and catches a governance file that names a different repository or environment than the release being verified.
+2. Remove the argument and the workflow flag. Honest and smaller, but it discards a cheap consistency check between the governance policy and the verified identity.
+3. Widen the check to compare the governance file's subject against the enriched subject that the certificate carries. Not applicable: the enriched form embeds numeric account and repository identifiers that the governance file deliberately does not record, so the two are not comparable strings.
+4. Keep current behavior. Not applicable: a required argument with no effect in a supply-chain verifier is exactly the kind of decorative control that erodes trust in the real ones.
 
-Preferred option: Option 1. Confidence Confirmed. Evidence that would change it: if the intent is only to detect that the tree changed at all rather than to identify it, Option 4 is adequate and the field should be relabelled.
+Preferred option: Option 1. It costs three lines, it makes the argument mean what its error message claims, and it adds a genuine consistency check between `scripts/release-governance.json` and the identity the certificate is verified against. Confidence is Confirmed for the defect and Confirmed for the fix. Evidence that would change the recommendation is a plan to remove the governance file's `oidcSubject` field, in which case Option 2 applies.
 
-Implementation outline: Add pathspec exclusions to the `git diff` invocation in `scripts/verify-acceptance-ledger.mjs:236-243`, filter the untracked list, then add a test that runs the ledger twice on an unchanged tree and asserts the digest is stable.
+Implementation outline: In `scripts/verify-published-package.mjs`, add a derivation of the plain subject beside `enrichedOidcSubject` and fail with a `provenance-expectation` kind when it does not equal `expected.oidcSubject`. Add a negative test in `tests/release/layer7.test.ts` that passes a mismatched subject and asserts the failure. Leave `.github/workflows/release.yml` unchanged.
 
-Compatibility and migration: The digest value changes, so previously recorded digests will not match new ones. Note that in the report's own text.
+Compatibility and migration: No contract change. The new check can only fail when the governance file and the running repository disagree, which is a condition that should fail.
 
-Validation: Run `npm run acceptance:check` twice with no other change and confirm the digest is identical.
+Validation: Unit level: one positive and one negative case in the existing release test file. No live release is required, because the check is pure string derivation.
 
-Effort: Small
+Effort: Small: one derivation, one comparison, and two test cases.
 
-Risk of the proposed change: Low: the digest is evidence metadata and no gate compares it across runs today.
+Risk of the proposed change: Low: the new failure mode is a genuine misconfiguration, and the release workflow already asserts the same equality in shell, so no currently passing release can start failing.
 
-Dependencies: OPS-003 — the value only becomes meaningful once the tree state is stable enough to record.
+Dependencies: None.
 
-Open questions: Not applicable.
+Open questions: Not applicable: every use of the argument is enumerated by direct search and the certificate expectation set is read in full.
 
-## [DOC-002] Evidence links still cite the Xanadu documentation set
+## [DOC-002] One evidence link still cites the Xanadu documentation set
 
 Record type: Defect or risk
 ID category: DOC
@@ -1107,762 +970,60 @@ Status: Active
 Classification: Documentation issue
 Severity or priority: Low
 Confidence: Confirmed
-Affected components: `src/catalog-metadata.ts`, `src/types.ts`, generated `docs/rules/*.md` pages that cite the JavaScript-modes page
+Affected components: `docs/research/35-business-rule-metadata.md`, `docs/non-goals.md`, `tests/catalog-evidence.test.ts`
 
 Evidence:
-- `src/settings/releases.ts:6`: `export const SUPPORTED_SERVICENOW_RELEASES = ["zurich"] as const;` with the comment that an arbitrary string would let a typo silently select current knowledge.
-- `src/catalog-metadata.ts:59-60`: `SN_JS_MODES = "https://www.servicenow.com/docs/r/xanadu/api-reference/scripts/c_JS_modes.html"`, while `SN_JS_FEATURES` on lines 61-62 correctly uses `/r/zurich/`.
-- `src/types.ts:9`: the `JavaScriptMode` doc comment cites the same `/r/xanadu/` URL.
-- `src/engine/features.ts:48-49` and `src/glide/manifest.ts:11` both anchor on Zurich (`ENGINE_FEATURE_RELEASE = "zurich"`, `GLIDE_API_RELEASE: ServiceNowRelease = "zurich"`), confirming Zurich is the intended reference set.
-- The working-tree diff narrowed every rule page's `ServiceNow releases` row from `xanadu, yokohama, zurich` to `zurich`, so these two URLs are leftovers from that narrowing.
+- `src/settings/releases.ts:6`: `SUPPORTED_SERVICENOW_RELEASES` is `["zurich"]`.
+- `docs/research/35-business-rule-metadata.md:31`: the line reads `Evidence: [Classic Business rules](https://www.servicenow.com/docs/r/xanadu/api-reference/business-rules-classic/c_BusinessRules.html)`, a release-pinned URL naming an unsupported release.
+- `docs/non-goals.md:31` and `:57`: both link to that research note as the supporting evidence for the Business Rule timing non-goal, so the stale citation is reachable from a maintained document.
+- `tests/catalog-evidence.test.ts:20-38`: the guard added by the previous remediation extracts the the release-pinned `/docs/r/` URL form segment and asserts it is supported, but it applies only to catalog evidence records with `verifiedBy === "manual"`. Research notes reached through a file-path evidence entry are checked only for existence and non-emptiness.
+- Repository-wide search: this is the only remaining non-Zurich release-pinned URL outside the guard's own release-name list. `docs/research/36-gliderecord-performance.md:9` and `docs/research/35-business-rule-metadata.md:39` use unversioned `/docs/r/api-reference/` URLs, which carry no release segment and are unaffected.
 
-Current behavior: Two evidence references point at a superseded documentation release while every capability table and rule page claims Zurich.
+Current behavior: The catalog's own evidence URLs are Zurich-pinned and guarded. One release-pinned Xanadu URL remains in a research note that a maintained document cites as evidence, and no check covers it.
 
-Expected or preferred behavior: Evidence URLs should name the release the plugin's knowledge is derived from, because that release is the plugin's stated basis for correctness.
+Expected or preferred behavior: Every release-pinned documentation URL the repository presents as evidence should name a supported release, whether it lives in the catalog or in a document the catalog or documentation links to.
 
-Trigger or scenario: A reader following an evidence link from a generated rule page to verify a claim.
+Trigger or scenario: A reader following the Business Rule timing non-goal to its cited evidence lands on documentation for a release the plugin no longer models. Also triggered on the next release narrowing, when the same class of link goes stale again without a check firing.
 
-Impact: A reviewer verifying the JavaScript-modes claim reads the wrong release's page. The underlying claim about ES5 versus ES2021 modes is unlikely to have changed between releases, so the risk is to the repository's evidence discipline rather than to rule correctness.
+Impact: A reader can act on capability statements from a superseded documentation set. The rule behaviour itself is unaffected, because the plugin's capability tables are driven by the guarded catalog metadata and by `src/glide/manifest.ts`, not by the research note.
 
-Reach: Readers of the generated rule documentation for mode-gated rules.
+Reach: Readers of `docs/non-goals.md` and the linked research note. No consumer-visible behaviour.
 
-Root cause: The release narrowing updated the release lists and the feature-support URL but missed the two mode-page references.
+Root cause: The DOC-002 remediation fixed the catalog evidence URLs and added a guard scoped to catalog evidence records. Documents that the catalog and the documentation cite as second-order evidence were not brought into that scope, so one release-pinned link survived.
 
-Why existing tests did not catch it: `scripts/verify-doc-evidence.mjs` and `tests/catalog-evidence.test.ts` check that evidence records exist, are well-formed, and are referenced, but nothing asserts that an evidence URL containing a release segment uses a supported release.
+Why existing tests did not catch it: `tests/catalog-evidence.test.ts` only inspects URLs that appear in catalog evidence entries. The research note is referenced by file path, and file-path evidence is validated for existence and non-emptiness, not for the release segment of URLs it contains.
 
-Minimal reproduction: `grep -n "/r/xanadu/" src/` returns `src/catalog-metadata.ts:60` and `src/types.ts:9`, while `SUPPORTED_SERVICENOW_RELEASES` is `["zurich"]`.
+Minimal reproduction: Search the repository for `/docs/r/xanadu/`. One match remains, at `docs/research/35-business-rule-metadata.md:31`. Static proof; no execution required.
 
-Recommended action: Repoint both URLs at the Zurich JavaScript-modes page and add an assertion that any evidence URL containing a `/r/` release segment uses a member of `SUPPORTED_SERVICENOW_RELEASES`.
-
-Alternative approaches:
-1. Update the two URLs and add the assertion. Fixes the instance and prevents the class.
-2. Update the two URLs only. Smaller, but the same drift returns at the next release narrowing.
-3. Use release-agnostic URLs where ServiceNow offers them, as `SN_GR` and `SN_FLUENT` already do. Most durable, but it loses the ability to pin evidence to the exact reviewed release, which is the point of the release list.
-
-Preferred option: Option 1. Confidence Confirmed. Option 3 is a reasonable long-term direction for pages that are genuinely versionless, but the mode and feature pages are release-specific and should stay pinned.
-
-Implementation outline: Edit `src/catalog-metadata.ts:60` and `src/types.ts:9`; run `npm run docs`; add the URL-release assertion to `scripts/verify-doc-evidence.mjs` or `tests/catalog-evidence.test.ts`.
-
-Compatibility and migration: Not applicable: documentation references only.
-
-Validation: `npm run docs:check` and `npm run evidence:check`; confirm the new assertion fails when a Xanadu URL is reintroduced.
-
-Effort: Small
-
-Risk of the proposed change: Low
-
-Dependencies: Not applicable.
-
-Open questions: Not applicable.
-
-## [MNT-002] `sideEffects: false` contradicts a filesystem read during module evaluation
-
-Record type: Defect or risk
-ID category: MNT
-Primary component: Package entry point
-Identity statement: The package declares no side effects while the entry module performs a filesystem read during module evaluation
-Fingerprint: sha256:23c768ac5d7bacc60a9aca444690ef91a4cc111e175149ed454b7dc395b5f87a
-Status: Active
-
-Classification: Maintainability concern
-Severity or priority: Low
-Confidence: High
-Affected components: `src/constants.ts`, `dist/constants.js`, `package.json`, any consumer that bundles the plugin
-
-Evidence:
-- `src/constants.ts:14-24`: `readPackageVersion()` calls `readFileSync(fileURLToPath(new URL("../package.json", import.meta.url)))` and `PACKAGE_VERSION` invokes it at module scope.
-- `dist/constants.js` retains the same code, and `src/index.ts:117` consumes it as `plugin.meta = { name: PLUGIN_NAME, version: PACKAGE_VERSION }`, so the read happens on every import of the main entry.
-- `package.json:31` declares `"sideEffects": false`.
-- `package.json` `files` does not list `package.json`, but npm always includes it: the tarball contains `package/package.json` (verified), and `exports` includes `"./package.json"`, so the relative path resolves correctly for a normal Node consumer.
-- `dist/` is flat relative to `src/` (`tsconfig.build.json` sets `rootDir: "src"`, `outDir: "dist"`), so `../package.json` from `dist/constants.js` resolves to the package root as intended.
-
-Current behavior: Importing the plugin performs a synchronous filesystem read and a JSON parse, while the manifest tells bundlers the package graph is free of side effects.
-
-Expected or preferred behavior: Either the module has no load-time side effect, or the manifest does not claim it has none.
-
-Trigger or scenario: Bundling the plugin with a tool that relocates modules, or loading it in an environment without `node:fs` or a resolvable `import.meta.url`. Both hosts the project targets — oxlint and ESLint — load the plugin from `node_modules` as real files, so the normal path works today.
-
-Impact: Potential import-time failure in a bundled or virtualized context, and a manifest field that misstates the module graph. No effect on the supported oxlint and ESLint paths.
-
-Reach: Consumers who bundle the plugin. No such consumer is known, which is why this is Low.
-
-Root cause: The version is derived at runtime so `plugin.meta.version` cannot drift from `package.json` — a good goal reached through the one mechanism that introduces a load-time side effect.
-
-Why existing tests did not catch it: `tests/integration/packed-consumer.test.ts:238-243` imports the installed package from a real `node_modules` tree and asserts `PACKAGE_VERSION`, which is exactly the path that works. No test bundles the package.
-
-Minimal reproduction: Bundle `dist/index.js` with any bundler that emits a single output file, then run it; `new URL("../package.json", import.meta.url)` no longer resolves to the package root.
-
-Recommended action: Generate the version at build time. Have `tsc`'s output consume a small generated `src/version.ts` (written by the same build step that already runs `npm run clean && npm run build`), or inline the version through a prepack step, so the constant is static and the `sideEffects: false` claim becomes true.
+Recommended action: Repoint that URL at the Zurich documentation set, and extend the existing guard to scan the contents of every linked research document for release-pinned URLs, using the same supported-release assertion.
 
 Alternative approaches:
-1. Generate a `src/version.ts` during `prepack` and import it. Keeps the no-drift guarantee, removes the side effect, and adds one small generated file.
-2. Remove `"sideEffects": false`. One line, immediately honest, but gives up a tree-shaking hint for a package that is genuinely mostly side-effect free.
-3. Keep current behavior. Defensible while oxlint and ESLint are the only hosts, but the manifest still misstates the graph.
+1. Fix the URL and widen the guard to linked documents. Closes both the instance and the class, reusing the guard the previous remediation already wrote.
+2. Fix the URL only. One-line change, but the next release narrowing reintroduces the same class of staleness with nothing to catch it.
+3. Add a repository-wide check that no the release-pinned `/docs/r/` URL form URL names an unsupported release, in any Markdown file. Broadest coverage, but it would also flag deliberately historical citations if any are ever added, and none exist today.
+4. Keep current behavior. Not applicable: the file presents the URL under an `Evidence:` label, which is the exact class the previous record covered.
 
-Preferred option: Option 1, or Option 2 if the extra generated file is unwelcome. Confidence High. Evidence that would change it: a measurement showing a real consumer bundles the plugin, which would raise severity, or a decision that bundling is explicitly unsupported, which would make Option 2 sufficient.
+Preferred option: Option 1. It matches the scope the guard already understands, and it keeps deliberately historical citations possible in files that are not presented as current evidence. Confidence is Confirmed for the defect and High for the fix. Evidence that would change the recommendation is a decision that research notes are historical records rather than current evidence, in which case the correct fix is to stop citing them from `docs/non-goals.md`.
 
-Implementation outline: Add a small generator to the `prepack` chain that writes `src/version.ts` from `package.json`; import it in `src/constants.ts`; add the generated file to `.gitignore` or commit it with a generated-file header and a `docs:check`-style drift assertion.
+Implementation outline: Replace the `xanadu` path segment with `zurich` in `docs/research/35-business-rule-metadata.md:31` after confirming the Zurich page exists. Extend `tests/catalog-evidence.test.ts` so that for every catalog evidence entry whose URL is a repository file path, the file's contents are scanned for the release-pinned `/docs/r/` URL form and each release segment is asserted supported. Apply the same scan to documents linked from `docs/non-goals.md`.
 
-Compatibility and migration: `PACKAGE_VERSION` and `plugin.meta.version` keep their values, so no public behavior changes.
+Compatibility and migration: Documentation only. No code, contract, or generated artifact changes.
 
-Validation: `tests/integration/packed-consumer.test.ts` already asserts the version through a real install; confirm it still passes, and add a check that the generated version matches `package.json`.
+Validation: Contract level: the widened guard fails on the current tree before the URL is fixed and passes after, which is a red-before-green proof. Confirm the Zurich URL resolves before committing it; that step needs network access and is therefore a manual pre-merge check.
 
-Effort: Small
+Effort: Small: one URL and one test extension.
 
-Risk of the proposed change: Low: the risk is version drift if the generator is skipped, which the drift assertion covers.
+Risk of the proposed change: Low: documentation and test-only.
 
-Dependencies: Not applicable.
+Dependencies: Confirming the replacement Zurich URL requires network access, which this review did not have.
 
-Open questions: Not applicable.
-
-## [MNT-003] Identifier names from user source are looked up in plain object literals
-
-Record type: Defect or risk
-ID category: MNT
-Primary component: Constructor provenance mapping
-Identity statement: Identifier names taken from user source are looked up in plain object literals, so inherited prototype members are returned instead of no match
-Fingerprint: sha256:38addad20907e1e0ca812b5bc48ab49784fd82f4b7b8d7ce9719462b47042cf8
-Status: Active
-
-Classification: Maintainability concern
-Severity or priority: Low
-Confidence: Confirmed
-Affected components: `src/analysis/provenance.ts`, `src/analysis/path-state.ts`, `src/analysis/file-analysis.ts`
-
-Evidence:
-- `src/analysis/provenance.ts:33-44`: `CTOR_TO_KIND` is a plain object literal and `ctorProvenanceKind` returns `CTOR_TO_KIND[name] ?? null`, where `name` is `getName(callee)` — an arbitrary identifier from the analysed source.
-- `src/analysis/path-state.ts:373-383`: `ctorKind` builds an equivalent plain object literal and reads `map[name]` with the same untrusted name.
-- Measured: `ctorProvenanceKind("constructor")` returns the `Object` constructor function, `ctorProvenanceKind("toString")` and `ctorProvenanceKind("valueOf")` return the corresponding prototype functions, and `ctorProvenanceKind("__proto__")` returns `Object.prototype`. Only `ctorProvenanceKind("GlideRecord")` returns a string.
-- `src/analysis/file-analysis.ts:164-173` stores that value with `kindByObject.set(rec.id, kind)` and `src/analysis/file-analysis.ts:176` passes it to `emptyProvenance(kind, …)`, so a non-string value reaches the provenance record's `kind` field.
-- Measured to be inert today: linting `var x = new constructor("incident"); x.query(); while (x.next()) {}` and `var y = new toString(); y.addQuery("a","b");` with `require-query-before-next`, `no-hardcoded-table-names`, and `no-system-query-bypass` produced zero diagnostics and no exception, because every consumer compares `kind` against a string literal.
-
-Current behavior: A source file declaring `new constructor(...)`, `new toString(...)`, `new valueOf(...)`, or `new __proto__(...)` causes the provenance layer to record a function or object as a `ProvenanceKind` instead of treating the name as unrecognised.
-
-Expected or preferred behavior: A lookup keyed by an arbitrary identifier from user source should match only the entries the table declares, and return no match for everything else.
-
-Trigger or scenario: Any analysed script whose constructor identifier is an `Object.prototype` member name. These are legal JavaScript identifiers, and `constructor` in particular appears in real code.
-
-Impact: None observed. Every current consumer compares `Provenance.kind` against string literals, so a function-valued `kind` fails every comparison and behaves like an unrecognised constructor. The cost is that the type annotation a string-keyed record of provenance kinds is not true at runtime, so a future consumer that switches on `kind`, serialises it, or interpolates it into a message would receive a value the type system says is impossible.
-
-Reach: The provenance layer, which every classic GlideRecord, GlideAggregate, GlideAjax, and GlideDateTime rule depends on.
-
-Root cause: Two lookup tables are plain object literals rather than `Map` instances or null-prototype objects, so property resolution walks `Object.prototype`.
-
-Why existing tests did not catch it: `tests/analysis/foundation.test.ts` and the binding matrix exercise real ServiceNow constructor names and unrelated local names, none of which collide with `Object.prototype` members. Because the wrong value is currently inert, no assertion distinguishes it from a correct `null`.
-
-Minimal reproduction: `ctorProvenanceKind("constructor")` returns `[Function: Object]` rather than `null`.
-
-Recommended action: Replace both object literals with `Map` instances and read them with `.get(name) ?? null`, which cannot resolve through a prototype chain.
-
-Alternative approaches:
-1. Use a `Map` in both places. Idiomatic, cannot be defeated by any key, and matches how the codebase already stores lookup sets such as `PLATFORM_ALIAS_KINDS` and `FLUENT_CORE_API_SET`.
-2. Use `Object.create(null)` for both tables. Also correct and a smaller diff, but leaves an unusual object shape that a later contributor may replace with a literal.
-3. Guard with `Object.prototype.hasOwnProperty.call(map, name)` before reading. Correct, but adds a check at every call site rather than fixing the container.
-4. Keep current behavior. Viable only while every consumer compares `kind` against string literals, which is an invariant nothing enforces.
-
-Preferred option: Option 1. Confidence Confirmed for the behavior; High for the fix. The two tables are small and read on a hot path, and `Map.get` is at least as fast as a prototype-walking property read. Evidence that would change it: none foreseeable; the change has no downside.
-
-Implementation outline: Convert `CTOR_TO_KIND` in `src/analysis/provenance.ts` and the local `map` in `src/analysis/path-state.ts:373` to a string-keyed `Map` of provenance kinds; read with `.get(name) ?? null`. Add a test asserting `ctorProvenanceKind` returns `null` for `constructor`, `toString`, `valueOf`, and `__proto__`. While there, audit `FLUENT_DIRECTIVE_TYPOS` in `src/constants.ts:65-67`, which is also a spread object literal read by a name derived from comment text; it is currently protected only because `src/rules/fluent-directives.ts:210` requires the name to start with `fluent-`.
-
-Compatibility and migration: Not applicable: internal analysis data structures with no published contract.
-
-Validation: The new negative test, plus the existing analysis and rule suites to confirm no behavior change for real constructor names.
-
-Effort: Small: two container changes and one test.
-
-Risk of the proposed change: Low: the lookup semantics for declared keys are identical, and the only behavior difference is that undeclared keys now correctly return no match.
-
-Dependencies: Not applicable.
-
-Open questions: Not applicable.
-
-## [COR-003] The shared path evaluator produces unsound control-flow joins
-
-Record type: Defect or risk
-ID category: COR
-Primary component: src analysis path evaluator
-Identity statement: The shared path evaluator merges branch and completion states without preserving JavaScript control-flow semantics for constants, switch tests, branch-local bindings, and finally completion
-Fingerprint: sha256:01c45fb2d0575575fae8303154fb684dbb3cf7e427d921fd03c1e8bf7f907859
-Status: Active
-
-Classification: Confirmed defect
-Severity or priority: High
-Confidence: Confirmed
-Affected components: Rules that depend on path-sensitive value, completion, and helper-identity analysis
-
-Evidence:
-- `src/analysis/path-state.ts:919-919`: The shared evaluator handles branches through a generic state merge rather than proving constant conditions.
-- `src/analysis/path-state.ts:960-960`: Switch control flow is evaluated in the same state engine and exposes test/effect ordering.
-- `src/analysis/path-state.ts:1095-1095`: Try/finally state handling is centralized here.
-- `src/analysis/path-state.ts:1190-1190`: Finally completion is merged with prior completion state.
-
-Current behavior:
-Constant-true branches can retain the impossible false path. Mixed normal and return paths can lose the return completion before a finally block. Switch test effects are not consistently sequenced before case effects. Branch-assigned helper identities can change the result when sibling branch order is reversed.
-
-Expected or preferred behavior:
-The evaluator must model only reachable branches, preserve every completion kind through finally, evaluate switch discriminant and case tests in JavaScript order, and join branch-local identities without source-order dependence.
-
-Trigger or scenario:
-A rule analyzes code with a constant branch, a try/finally that has both normal and return completion, a switch with side effects in case tests, or a helper assigned in mutually exclusive branches.
-
-Impact:
-The same core engine can create false positives and false negatives across several rules. Because the errors are order-sensitive, users cannot reliably suppress them through equivalent refactoring.
-
-Reach:
-All supported JavaScript and TypeScript script types that use the shared path evaluator.
-
-Root cause:
-The evaluator uses a compact state join that does not represent reachability and abrupt completion as independent dimensions, and it lets lexical traversal order stand in for runtime order.
-
-Why existing tests did not catch it:
-The test suite covers many rule examples but lacks cross-product regression cases for constant reachability, return plus finally, switch test side effects, and branch-order invariance.
-
-Minimal reproduction:
-Run the dependency-free analysis probes with two semantically equivalent programs that differ only in sibling-branch order, plus a constant-true branch and a mixed return/finally case. The diagnostic set changes although runtime behavior does not.
-
-Recommended action:
-Introduce an explicit completion-state algebra with normal, return, throw, break, and continue outcomes; prune statically constant branches; evaluate switch tests in runtime order; and join environment identities as sets or conservative unknowns.
-
-Alternative approaches:
-1. Apply the smallest local correction and add focused regression tests.
-2. Replace the affected ad hoc analysis with one shared semantic primitive when the local fix would preserve duplicated logic.
-3. Keep the current behavior is not viable because it contradicts an existing API, rule, or release contract.
-
-Preferred option:
-Use a bounded incremental redesign of the shared evaluator. Keep rule APIs unchanged, but make reachability and completion explicit and protect the behavior with table-driven state-transition tests.
-
-Implementation outline:
-Update the evaluator state type and branch/join helpers, then migrate each statement handler. Add direct evaluator tests before updating rule fixtures. Re-run every rule that imports the evaluator and regenerate only derived documentation that changes.
-
-Compatibility and migration:
-No public configuration change is required. Diagnostics can change where current results are wrong. Document these as correctness fixes and include before/after fixtures for affected rules.
-
-Validation:
-Add unit tests for each control-flow construct, branch-order permutation tests, and integration tests for representative rules. Confirm that equivalent branch reorderings produce identical diagnostics.
-
-Effort: Large: the state model is shared and requires broad regression coverage
-
-Risk of proposed change: Medium: diagnostic behavior changes across multiple rules, but focused fixtures and staged migration bound the risk
-
-Dependencies:
-A small evaluator test harness that can assert intermediate state and final diagnostics.
-
-Open questions:
-Not applicable: the intended JavaScript control-flow semantics are established by the language and existing rule contracts.
-
-## [COR-004] Cursor-based loop checks drop context inside synchronous IIFEs
-
-Record type: Defect or risk
-ID category: COR
-Primary component: cursor-based loop rule walkers
-Identity statement: Cursor-based loop rule walkers treat every nested function as deferred and do not preserve enclosing loop context for immediately invoked function and arrow expressions
-Fingerprint: sha256:259b74931cb08b1ee856cdeed05fefd01a81cd150c5f0153b78b678c5d7b5ce1
-Status: Active
-
-Classification: Confirmed defect
-Severity or priority: Medium
-Confidence: Confirmed
-Affected components: The two rule families that use local cursor walkers for loop-sensitive checks
-
-Evidence:
-- `src/analysis/glide-element-collection.ts:7-7`: Function expressions are handled as a context boundary in the cursor walker.
-- `src/analysis/glide-element-collection.ts:46-46`: Arrow functions follow the same boundary behavior.
-- `src/analysis/glide-query-in-loop.ts:6-6`: A second rule family uses the same cursor-bound loop-context pattern.
-
-Current behavior:
-Entering any function or arrow expression clears the enclosing loop context, even when the expression is invoked synchronously at the same program point. Deferred callbacks remain excluded, but synchronous IIFEs are excluded as well.
-
-Expected or preferred behavior:
-A synchronous IIFE must inherit the surrounding loop context, while callbacks that can execute later must remain outside that context.
-
-Trigger or scenario:
-A guarded ServiceNow operation occurs inside a function or arrow IIFE that is immediately invoked from within a loop.
-
-Impact:
-The affected rules miss diagnostics in a documented and practically common code shape. Users can bypass the checks by wrapping the same operation in an IIFE.
-
-Reach:
-Classic ServiceNow JavaScript and supported TypeScript inputs analyzed by the affected rules.
-
-Root cause:
-The walkers use syntax nesting as a proxy for execution timing instead of distinguishing immediate invocation from deferred execution.
-
-Why existing tests did not catch it:
-Acceptance coverage states that synchronous IIFEs are supported, but no fixture exercises function-expression and arrow-expression IIFEs inside loops.
-
-Minimal reproduction:
-Place the same reportable operation directly in a loop, in a synchronous function IIFE, in a synchronous arrow IIFE, and in a deferred callback. Only the direct form is currently reported; the callback exclusion is correct.
-
-Recommended action:
-Add a shared immediate-invocation predicate and preserve the parent execution context only for proven synchronous IIFEs.
-
-Alternative approaches:
-1. Apply the smallest local correction and add focused regression tests.
-2. Replace the affected ad hoc analysis with one shared semantic primitive when the local fix would preserve duplicated logic.
-3. Keep the current behavior is not viable because it contradicts an existing API, rule, or release contract.
-
-Preferred option:
-Keep the cursor walkers but centralize IIFE classification so both rules use identical semantics.
-
-Implementation outline:
-Create one tested helper for immediate invocation, update both walkers, and add positive and negative fixtures for direct loops, both IIFE forms, callbacks, and nested mixed cases.
-
-Compatibility and migration:
-This is a diagnostic completeness correction. No configuration migration is needed. It can introduce new correct diagnostics for code that currently escapes analysis.
-
-Validation:
-Run focused rule tests and a cross-rule contract test that asserts the same IIFE boundary behavior.
-
-Effort: Small: one shared predicate and focused fixtures
-
-Risk of proposed change: Low: the change is limited to proven immediate invocations
-
-Dependencies:
-Coordinate the helper location with the shared analysis utilities to avoid another rule-local implementation.
-
-Open questions:
-Not applicable: synchronous IIFE execution timing is statically evident for the supported direct-call shapes.
-
-## [COR-005] Receiver display names are used as semantic identities
-
-Record type: Defect or risk
-ID category: COR
-Primary component: receiver-sensitive cursor analysis
-Identity statement: Receiver-sensitive rule analysis keys semantic state by optional display names rather than stable expression or binding identity
-Fingerprint: sha256:57de50702970fbe72ea97d9fa5148b82a4acba8726f47620918215f34bdaaa97
-Status: Active
-
-Classification: Probable defect
-Severity or priority: Medium
-Confidence: High
-Affected components: Rules that correlate ServiceNow method calls on the same receiver across a control-flow path
-
-Evidence:
-- `src/fluent/declaration-snapshots.ts:7-7`: Receiver tracking is derived from an expression-level receiver value.
-- `src/fluent/declaration-snapshots.ts:7004-7004`: The analysis requests a display name for identity-sensitive tracking.
-
-Current behavior:
-Simple identifiers have useful names, but computed members, chained expressions, call results, and other receivers can have no display name or can share the same rendered name. The correlation then collapses distinct receivers or loses the receiver entirely.
-
-Expected or preferred behavior:
-State must be keyed by resolved binding identity where available and by stable AST identity or a conservative unknown bucket for non-bindings.
-
-Trigger or scenario:
-A tracked method is called on a receiver expression that is not a plain identifier or on two distinct expressions that render to the same display text.
-
-Impact:
-The rules can pair operations from different objects, miss same-object operations, or become sensitive to formatting and expression shape.
-
-Reach:
-Receiver-sensitive diagnostics across classic and Fluent-compatible inputs.
-
-Root cause:
-A presentation helper is serving as an alias-analysis primitive. Display text is not guaranteed to be unique, present, or stable under equivalent syntax.
-
-Why existing tests did not catch it:
-No regression fixture covers receiver expressions without display names or two syntactically similar but semantically distinct receivers.
-
-Minimal reproduction:
-Use equivalent rule inputs with a plain identifier receiver, a computed member receiver, and two call-result receivers. Compare whether the rule correlates the same sequence consistently.
-
-Recommended action:
-Introduce a receiver-key abstraction that prefers scope-resolved bindings, otherwise uses AST node identity within the analysis run, and treats uncertain aliasing conservatively.
-
-Alternative approaches:
-1. Apply the smallest local correction and add focused regression tests.
-2. Replace the affected ad hoc analysis with one shared semantic primitive when the local fix would preserve duplicated logic.
-3. Keep the current behavior is not viable because it contradicts an existing API, rule, or release contract.
-
-Preferred option:
-Replace display-name keys locally without redesigning the public rule API. Share the receiver-key helper between all affected rules.
-
-Implementation outline:
-Inventory every map and set keyed by receiver text, migrate them to the receiver-key type, and add fixtures for identifiers, members, optional chains, calls, and unknown aliases.
-
-Compatibility and migration:
-Diagnostic results can change for complex receiver expressions. Configuration and package exports remain unchanged.
-
-Validation:
-Add unit tests for key construction and integration tests that prove no cross-receiver collision and no formatting dependence.
-
-Effort: Medium: the affected rules and helper contracts must be inventoried
-
-Risk of proposed change: Medium: conservative alias behavior must avoid replacing false positives with false negatives
-
-Dependencies:
-Scope-manager behavior for identifiers and a documented fallback for expressions without a binding.
-
-Open questions:
-Confirm whether all supported parsers provide stable node object identity throughout one rule invocation.
-
-## [API-001] analyzeProvenance ignores its alternate AST argument
-
-Record type: Defect or risk
-ID category: API
-Primary component: public analysis provenance API
-Identity statement: The analyzeProvenance public function accepts an AST parameter but traverses context sourceCode state instead of the supplied AST
-Fingerprint: sha256:944dfe86348fe10538e001b2861d183db387b0a49432fc72fec0a379ff09122f
-Status: Active
-
-Classification: Confirmed defect
-Severity or priority: Medium
-Confidence: Confirmed
-Affected components: Consumers of the public analysis subpath and internal callers that analyze an AST different from context.sourceCode.ast
-
-Evidence:
-- `src/analysis/file-analysis.ts:309-309`: The public analysis function accepts an AST argument.
-- `src/analysis/file-analysis.ts:124-124`: The implementation resolves traversal data through the context sourceCode object.
-
-Current behavior:
-Passing a valid alternate AST has no effect unless the caller also mutates or replaces context.sourceCode. The function result therefore depends on hidden context state rather than its explicit argument.
-
-Expected or preferred behavior:
-The function must analyze the supplied AST, or the AST parameter must be removed through a versioned contract change.
-
-Trigger or scenario:
-A caller invokes analyzeProvenance with an AST that is not the same object installed on context.sourceCode.
-
-Impact:
-The public API can return provenance for the wrong program. This breaks composability for generated, transformed, or test ASTs and makes the type signature misleading.
-
-Reach:
-All external and internal users of the exported analysis API.
-
-Root cause:
-The API was generalized at the signature level without threading the new input through the underlying traversal and scope-resolution helpers.
-
-Why existing tests did not catch it:
-Tests use the context source AST and therefore never distinguish the explicit argument from hidden context state.
-
-Minimal reproduction:
-Construct two minimal ASTs, place one on context.sourceCode, and pass the other to analyzeProvenance. The result follows the context AST. Swapping only context.sourceCode changes the result.
-
-Recommended action:
-Thread the supplied AST through traversal and node-index construction. Validate that scope information belongs to the same AST and return a clear error when it does not.
-
-Alternative approaches:
-1. Apply the smallest local correction and add focused regression tests.
-2. Replace the affected ad hoc analysis with one shared semantic primitive when the local fix would preserve duplicated logic.
-3. Keep the current behavior is not viable because it contradicts an existing API, rule, or release contract.
-
-Preferred option:
-Honor the existing explicit parameter. Removing it would be a breaking API change and would discard a useful analysis capability.
-
-Implementation outline:
-Update the analyzer entry point and helpers that read context.sourceCode.ast implicitly. Add an AST/context consistency check and public contract tests using two distinct trees.
-
-Compatibility and migration:
-The function signature remains unchanged. Callers that accidentally relied on the hidden context AST will observe corrected behavior and should receive a release note.
-
-Validation:
-Add a contract test with two distinct ASTs, a mismatched scope-manager test, and standard same-AST regression coverage.
-
-Effort: Medium: traversal and scope helpers must receive the explicit tree consistently
-
-Risk of proposed change: Medium: internal callers may rely on implicit sourceCode state
-
-Dependencies:
-Define the supported behavior for a supplied AST with no matching scope manager.
-
-Open questions:
-Whether to compute a new scope manager for alternate ASTs or require the caller to provide one.
-
-## [COR-006] Fluent import aliases are resolved in lexical instead of execution order
-
-Record type: Defect or risk
-ID category: COR
-Primary component: Fluent import and alias provenance resolver
-Identity statement: The Fluent alias resolver orders assignment and invalidation effects by source location instead of modeling function calls and runtime execution order
-Fingerprint: sha256:18dde035608308ab4ff5c3c9b806c44f09ddd95c3cef29821af5e66587e80bad
-Status: Active
-
-Classification: Confirmed defect
-Severity or priority: High
-Confidence: Confirmed
-Affected components: Fluent and .now.ts rules that trust imported builder aliases and invalidation state
-
-Evidence:
-- `.github/dependabot.yml:1-1`: The Fluent alias resolver was located through bounded searches for assignments, function declarations, calls, and source ranges.
-
-Current behavior:
-An assignment inside a function declared later can be ignored even when that function is called before the analyzed use. An assignment in an earlier but never called function can invalidate the alias. Reordering declarations without changing execution changes the diagnostic result.
-
-Expected or preferred behavior:
-Alias state must follow reachable execution order. Effects in uncalled functions must not apply, while effects in called synchronous functions must apply at the call site.
-
-Trigger or scenario:
-A Fluent import alias is reassigned inside a local function whose declaration position differs from its call order, or inside a function that is never called.
-
-Impact:
-Rules can trust a stale alias and miss unsafe or unsupported usage, or reject a valid alias because of dead code. The result is both false negatives and false positives.
-
-Reach:
-All Fluent import provenance consumers, including .now.ts analysis and rules that recognize SDK builders by alias.
-
-Root cause:
-The resolver approximates temporal semantics with node ranges. JavaScript function declaration placement is not execution order, and nested function bodies are not executed merely because they appear in the file.
-
-Why existing tests did not catch it:
-Fixtures cover direct reassignment but not called-later declarations, uncalled earlier declarations, or declaration-order permutations.
-
-Minimal reproduction:
-Create two equivalent programs with the same function call and alias assignment but move the function declaration from before to after the use site. The current analysis changes even though runtime behavior is identical.
-
-Recommended action:
-Move alias tracking onto the shared execution/path model or implement a bounded interprocedural summary for synchronous local calls. Do not apply nested-function effects until a reachable call occurs.
-
-Alternative approaches:
-1. Apply the smallest local correction and add focused regression tests.
-2. Replace the affected ad hoc analysis with one shared semantic primitive when the local fix would preserve duplicated logic.
-3. Keep the current behavior is not viable because it contradicts an existing API, rule, or release contract.
-
-Preferred option:
-Reuse a corrected shared path evaluator and add small function-effect summaries for local synchronous calls. This removes the source-order approximation without requiring general whole-program analysis.
-
-Implementation outline:
-Represent alias definitions and invalidations in the same environment as other provenance facts, summarize local function effects, apply them at call sites, and conservatively invalidate on unknown escaping calls.
-
-Compatibility and migration:
-No configuration change is needed. Diagnostics will change in programs whose declaration order currently influences results.
-
-Validation:
-Add permutation tests, uncalled-function tests, direct and indirect local call tests, recursion bounds, and unknown-call conservative behavior.
-
-Effort: Large: correct execution order needs shared evaluator work and bounded call summaries
-
-Risk of proposed change: Medium: interprocedural conservatism must be calibrated to avoid widespread false positives
-
-Dependencies:
-The control-flow state corrections in the shared evaluator should land first.
-
-Open questions:
-Define the supported interprocedural depth and behavior for recursive or mutually recursive local functions.
-
-## [OPS-006] Post-publish verification requires a removed package-root export
-
-Record type: Defect or risk
-ID category: OPS
-Primary component: npm release post-publish verification
-Identity statement: The post-publish registry verifier requires PACKAGE_VERSION from the package root after the major version intentionally removed that export
-Fingerprint: sha256:0dc4f97f631ac13ec92e81e9e16d049b405ddf3393b1a22d8251f05365f90108
-Status: Active
-
-Classification: Confirmed defect
-Severity or priority: High
-Confidence: Confirmed
-Affected components: The release workflow after npm publication, release operators, and consumers waiting for a verified release
-
-Evidence:
-- `CHANGELOG.md:26-26`: The post-publish verification path imports or checks PACKAGE_VERSION from the package root.
-- `README.md:581-581`: A package or release contract references PACKAGE_VERSION.
-- `plans/005-ci-release-packaging-hardening.md:29-29`: A package or release contract references PACKAGE_VERSION.
-- `plans/005-ci-release-packaging-hardening.md:84-84`: A package or release contract references PACKAGE_VERSION.
-- `src/index.ts:1-120`: The package root export surface does not export PACKAGE_VERSION in the current major-version contract.
-
-Current behavior:
-The package can build, pack, publish, and expose its intended version 2 root API, then fail the registry verification step because the verifier imports PACKAGE_VERSION from the root even though that export was deliberately removed.
-
-Expected or preferred behavior:
-Post-publish verification must check the published manifest version and supported public exports without requiring a symbol outside the current contract.
-
-Trigger or scenario:
-Any valid version 2 publication reaches the post-publish verifier.
-
-Impact:
-A successful immutable npm publication can be reported as a failed release. Retrying cannot undo the publish and can create operator confusion, duplicate release work, or inconsistent GitHub release state.
-
-Reach:
-Every production release using the current publish workflow.
-
-Root cause:
-The package API migration and the registry-verification contract evolved independently. The verifier retained a legacy root-export assertion.
-
-Why existing tests did not catch it:
-Pack and export tests validate the intended root surface, but no end-to-end contract test runs the post-publish verifier against a packed version 2 package.
-
-Minimal reproduction:
-Pack the package with scripts disabled, install or inspect the tarball in an isolated directory, and run the verifier against the packed root surface. Manifest version checks pass while the legacy PACKAGE_VERSION import cannot succeed.
-
-Recommended action:
-Read version from package.json or npm registry metadata and verify only supported export-map entries. Add a tarball-based contract test that uses the same verifier logic before publication.
-
-Alternative approaches:
-1. Apply the smallest local correction and add focused regression tests.
-2. Replace the affected ad hoc analysis with one shared semantic primitive when the local fix would preserve duplicated logic.
-3. Keep the current behavior is not viable because it contradicts an existing API, rule, or release contract.
-
-Preferred option:
-Remove the legacy symbol check and make the pre-publish tarball contract test authoritative. Keep registry metadata verification as a post-publish confirmation.
-
-Implementation outline:
-Update the verifier, reuse its checks in a local packed-artifact test, and make the release workflow fail before publish if the package contract is inconsistent.
-
-Compatibility and migration:
-No consumer-visible export should be restored. Restoring PACKAGE_VERSION would reverse an intentional major-version simplification. The verifier change is internal to release operations.
-
-Validation:
-Run the verifier against a local tarball and a controlled registry fixture for version 2. Confirm that manifest version, export map, integrity, and provenance checks still execute.
-
-Effort: Small: remove one stale assertion and add a package-contract fixture
-
-Risk of proposed change: Low: verification becomes aligned with the documented public API
-
-Dependencies:
-A fixture or adapter that lets the same verification code inspect a local packed artifact.
-
-Open questions:
-Not applicable: the current package export contract and release intent are both present in the repository.
-
-## [REL-002] The release verification deadline does not bound individual operations
-
-Record type: Defect or risk
-ID category: REL
-Primary component: release registry and provenance verification
-Identity statement: Release verification bounds retry scheduling but gives npm child processes, fetch requests, and workflow jobs no independent operation timeout
-Fingerprint: sha256:32707c2fa46eebff52ad10360fdfc5e240ae9b7688bc6b474b4d1e7c95840b35
-Status: Active
-
-Classification: Reliability risk
-Severity or priority: Medium
-Confidence: Confirmed
-Affected components: Release jobs, post-publish verification, and operators recovering a stalled publication
-
-Evidence:
-- `scripts/pr51-acceptance.json:12523-12523`: The retry loop has a wall-clock deadline.
-- `scripts/pr51-acceptance.json:12490-12490`: An attestation or registry request uses fetch without a per-operation abort signal.
-- `.github/workflows/ci.yml:1-120`: The workflow has no job-level timeout-minutes guard in the inspected range.
-
-Current behavior:
-The loop stops scheduling retries after its deadline, but a single npm subprocess or network fetch can block beyond that deadline. Workflow jobs also lack a final timeout guard.
-
-Expected or preferred behavior:
-Each network request and child process must have a timeout shorter than the remaining overall budget, and the job must have a bounded final deadline.
-
-Trigger or scenario:
-The npm registry, attestation endpoint, DNS, TLS stack, child process, or CLI hangs without returning an error.
-
-Impact:
-A release can stall indefinitely or until the CI platform maximum, tying up the release lock and obscuring whether an immutable publication completed.
-
-Reach:
-All release verification jobs under dependency or network stalls.
-
-Root cause:
-The implementation treats a retry deadline as an end-to-end timeout, but blocking operations do not observe it.
-
-Why existing tests did not catch it:
-Tests cover retries and elapsed deadlines but do not simulate a fetch or child process that never settles.
-
-Minimal reproduction:
-Replace the fetch adapter with a promise that never resolves or the npm runner with a child that sleeps beyond the total budget. The outer deadline cannot regain control.
-
-Recommended action:
-Use AbortController for fetch, child-process timeout and kill handling for npm, pass the remaining budget into each operation, and set timeout-minutes on release jobs.
-
-Alternative approaches:
-1. Apply the smallest local correction and add focused regression tests.
-2. Replace the affected ad hoc analysis with one shared semantic primitive when the local fix would preserve duplicated logic.
-3. Keep the current behavior is not viable because it contradicts an existing API, rule, or release contract.
-
-Preferred option:
-Keep the current retry model and add hierarchical deadlines. This is smaller and safer than replacing the release verifier.
-
-Implementation outline:
-Create one deadline object, derive per-attempt budgets, abort requests, terminate process groups on timeout, classify timeout errors, and add a workflow-level final guard.
-
-Compatibility and migration:
-No package or consumer contract changes. Timeout messages and job duration become deterministic.
-
-Validation:
-Use fake timers and injectable adapters for never-resolving fetches and children. Confirm cleanup, process termination, bounded elapsed time, and clear failure output.
-
-Effort: Medium: subprocess cleanup and deterministic timeout tests require care
-
-Risk of proposed change: Low: bounded failure replaces an unbounded stall
-
-Dependencies:
-An injectable clock, fetch adapter, and child-process runner for deterministic tests.
-
-Open questions:
-Choose per-operation budgets that leave enough time for final status reconciliation.
-
-## [OPS-007] The SDK drift check is not enforced by CI
-
-Record type: Defect or risk
-ID category: OPS
-Primary component: generated ServiceNow SDK evidence lifecycle
-Identity statement: The repository provides a generated SDK drift checker but no required continuous-integration workflow invokes it
-Fingerprint: sha256:6c3909b0aea63b82ec4b9f3bd110ed3438255da51e4dc16ad3ddd7f106dc3acb
-Status: Active
-
-Classification: Operational gap
-Severity or priority: Medium
-Confidence: Confirmed
-Affected components: Generated SDK snapshots, rule metadata derived from them, maintainers, and release consumers
-
-Evidence:
-- `plans/002-fix-script-classification.md:10-10`: The repository contains a dedicated SDK or generated-surface drift check.
-- `.github/workflows/ci.yml:1-160`: Bounded inspection of workflow steps finds no invocation of the SDK drift check.
-
-Current behavior:
-Maintainers can run a drift check manually, but pull requests and scheduled automation do not establish that generated SDK evidence still matches its source or expected release surface.
-
-Expected or preferred behavior:
-A required offline CI step must run the drift checker whenever its generator, source data, or generated output changes, with a scheduled check when upstream drift can occur without repository changes.
-
-Trigger or scenario:
-Generated SDK evidence changes manually, the generator changes without regeneration, or upstream SDK content moves while no maintainer runs the command.
-
-Impact:
-Stale generated data can silently weaken rule coverage, documentation, and release support claims. Drift can persist until a user reports a missing or incorrect API surface.
-
-Reach:
-All rules and docs that depend on generated SDK evidence, including release-specific support.
-
-Root cause:
-The drift tool was implemented as a developer command but not connected to the repository governance path that decides whether changes can merge or release.
-
-Why existing tests did not catch it:
-Tool-level tests do not prove that CI calls the tool. No workflow contract test asserts the required step.
-
-Minimal reproduction:
-Search every workflow for the drift command or script basename. The checker exists in first-party tooling but has no required workflow invocation.
-
-Recommended action:
-Add an offline required workflow step with path filters for the generator and generated data, plus a scheduled job if upstream retrieval is part of the intended contract.
-
-Alternative approaches:
-1. Apply the smallest local correction and add focused regression tests.
-2. Replace the affected ad hoc analysis with one shared semantic primitive when the local fix would preserve duplicated logic.
-3. Keep the current behavior is not viable because it contradicts an existing API, rule, or release contract.
-
-Preferred option:
-Reuse the existing checker and wire it into CI. Do not add a second generator or a separate validation implementation.
-
-Implementation outline:
-Add a pinned workflow step, keep network disabled for repository-consistency checks, and separate any authorized upstream refresh job from the required offline gate.
-
-Compatibility and migration:
-No runtime or package API change. CI can begin rejecting stale generated changes that previously merged.
-
-Validation:
-Modify a generated fixture without its source and confirm the required job fails; regenerate correctly and confirm it passes.
-
-Effort: Small: one workflow integration and a governance contract test
-
-Risk of proposed change: Low: it enforces an existing repository invariant
-
-Dependencies:
-Identify the authoritative drift command and whether upstream refresh needs separate network authorization.
-
-Open questions:
-Whether upstream SDK refresh should run on a schedule or remain an explicit maintainer action while CI checks only repository-internal parity.
+Open questions: Whether `docs/research/` is intended as a current-evidence corpus or as a historical record. The current assumption is current evidence, because `docs/non-goals.md` cites it as the supporting evidence for a shipped non-goal. If the intent is historical, the correct fix changes from repointing the URL to removing the citation, and the severity drops to informational.
 
 # 7. Better and Different Ways to Implement the System
 
-The analysis layer, catalog, settings validator, context resolver, and provenance verifier were each evaluated for a materially better implementation. For the analysis layer, the catalog, and the provenance verifier, the current approach is already the right one and is recorded as a positive pattern (POS-001, POS-002, POS-003, POS-004) rather than as an improvement. The path-sensitive interpreter was specifically checked for a super-linear scaling problem and none was found: analysing a generated Business Rule with 50, 100, 200, and 400 function-plus-block scopes took 51 ms, 61 ms, 106 ms, and 266 ms, so an eight-fold size increase cost roughly five times the work. Two areas do have evidence-supported improvements.
+Phase 17 considered every major subsystem: the catalog and preset derivation, the settings trust boundary, context resolution, the path-sensitive interpreter, the per-domain analyzers, the Fluent manifest registry, the rule harness, the documentation generators, the release pipeline, and the acceptance apparatus. Only one carries an active improvement record. Six subsystems were judged appropriate as built and are recorded as positive patterns instead (POS-001 through POS-004) or are covered by a defect record whose recommendation is a bounded correction rather than a redesign (COR-007, PER-002, API-002, OPS-004). The acceptance apparatus is a portfolio decision and appears in section 8 as REM-002. No `ALT` record is supported: no evidence was found that a different component, framework, or architecture would materially improve this library, and recommending one would be novelty-chasing.
 
-## [IMP-001] Parse workflow YAML with the existing dependency instead of a regular expression
+## [IMP-001] Keep the dependency-free `uses:` matcher and harden it
 
 Record type: Improvement or alternative
 ID category: IMP
@@ -1872,221 +1033,116 @@ Fingerprint: sha256:d9ad1b6f545501cdf96c393d0a9ae1b5a2e439f26ca7745880136c3b2ff7
 Status: Active
 
 Classification: Improvement
-Severity or priority: Next
-Confidence: High
-Affected components: `scripts/check-action-pins.mjs`, `scripts/action-pins.json`, `.github/workflows/*.yml`, the `workflow` CI job
-
-Evidence:
-- `scripts/check-action-pins.mjs:15` matches `/^\s*-?\s*uses:\s*([^@\s]+)@([^\s#]+)/gm`. A `uses:` value with no `@` — a local composite action (`uses: ./.github/actions/foo`) or a container reference (`uses: docker://image:tag`) — does not match at all and is therefore never checked, never required to be pinned, and never reported as missing from `scripts/action-pins.json`.
-- Line 8 reads only `.github/workflows`, so a composite action defined under `.github/actions/*/action.yml` would carry unpinned `uses:` references that nothing verifies.
-- `yaml@2.9.0` is already a devDependency and is already used for workflow parsing in `tests/release/layer7.test.ts:9`, so the capability exists in the toolchain.
-- The current three workflows contain only `owner/repo@sha` references, so no unpinned reference exists today; this is a gap in the guard, not a live miss.
-
-Current approach: A line-oriented regular expression scans workflow text for a `uses:` value of the form action then at sign then ref, asserts the ref is a 40-character hexadecimal SHA, asserts the action appears in `scripts/action-pins.json` with the same SHA, asserts no two files disagree, and asserts every central pin is used.
-
-Why it appears to exist: The `workflow` CI job runs `npm run workflow:check` with no preceding `npm ci` (`.github/workflows/ci.yml:151-160`), so the script must work with zero dependencies. A regular expression satisfies that constraint directly.
-
-What it does well: The assertions themselves are strong and unusual in a good way: full-SHA pinning, a central review list, cross-file consistency, and detection of unused central pins. The zero-dependency constraint is real and worth preserving.
-
-Actual limitations: Any `uses:` form without `@` is invisible to the check, and composite actions outside `.github/workflows` are not scanned at all. The failure mode is silent: an unpinned local or container action passes.
-
-Essential versus accidental complexity: The pinning policy is essential. Reconstructing YAML structure from a regular expression is accidental; the file format is already parseable.
-
-Triggering context or scale: The improvement becomes necessary the first time someone adds a composite action, a reusable workflow with a local path, or a container step.
-
-### Option A — Keep and harden
-
-Minimal changes: Extend the regular expression to also capture `uses:` values without `@` and fail on them explicitly, and glob `.github/actions/**/action.yml` in addition to `.github/workflows`.
-
-Benefits: Preserves the zero-dependency constraint and the current CI job shape; closes the silent-pass hole.
-
-Costs: The expression grows and stays a partial YAML parser; block scalars and quoted strings remain edge cases.
-
-Risks: A future YAML shape still slips through unnoticed, which is the same failure mode as today.
-
-Expected lifetime: Adequate while the workflows stay small and hand-written.
-
-Correct-use conditions: Preferred if the `workflow` job must keep running without `npm ci`.
-
-### Option B — Incremental redesign
-
-Structural change: Move the check into the test suite, where `yaml` is already a dependency and already parses workflows, and keep a thin regular-expression version for the dependency-free CI job.
-
-Benefits: Structural parsing catches every `uses:` form and every job-level reusable-workflow reference; reuses existing test infrastructure.
-
-Costs: Two implementations of one policy, which can drift.
-
-Migration steps: Add the parsed assertions to `tests/release/layer7.test.ts`; keep `scripts/check-action-pins.mjs` as the fast pre-check.
-
-Compatibility considerations: None; internal tooling only.
-
-Testing requirements: A fixture workflow containing a local `uses:` and a `docker://` `uses:` that must be rejected.
-
-Rollback strategy: Remove the added assertions; the existing check is untouched.
-
-### Option C — Alternative approach
-
-Alternative design: Add `npm ci --ignore-scripts` to the `workflow` job and parse with `yaml` in `scripts/check-action-pins.mjs`, giving one implementation.
-
-Benefits: One implementation, full structural coverage, no drift between two checks.
-
-Costs: The `workflow` job gains an install step, so a broken install now blocks a check that currently runs independently of dependencies.
-
-New risks: The pin check becomes dependent on the dependency tree it partly exists to protect.
-
-Operational consequences: Slightly slower CI; one more place an npm outage matters.
-
-Team-skill implications: None; the parsing pattern already exists in the repository.
-
-Dependency implications: Moves `yaml` from devDependency-used-in-tests to devDependency-used-in-CI-tooling. No new package.
-
-Migration complexity: Low.
-
-### Option D — Clean-slate ideal, when useful
-
-Ideal design: Not applicable: the policy and its assertions are already well designed; only the parsing mechanism is in question, so a clean-slate framing adds nothing.
-
-Incrementally useful parts: Not applicable for the same reason.
-
-Parts not worth pursuing: Not applicable for the same reason.
-
-Rewrite judgment: A rewrite is not justified. The check is 43 lines and its assertions are correct.
-
-Recommendation: Option B. It closes the coverage hole where the parser already exists, keeps the dependency-free fast check for the `workflow` job, and does not couple pin verification to a successful install. Confidence High. Prerequisite: none. Evidence that would change it: if the project decides the `workflow` job may depend on `npm ci`, Option C becomes strictly better because it removes the duplication.
-
-Expected benefit: Eliminates a silent-pass class in supply-chain pinning before the first composite action is added, at the cost of a few assertions in an existing test file.
-
-Implementation outline: Add workflow and `action.yml` parsing assertions to `tests/release/layer7.test.ts` using `yaml`; assert every `uses:` value either matches `owner/repo` optionally with a subpath, followed by an at sign and a 40-character hexadecimal SHA and appears in `scripts/action-pins.json`, or is explicitly allowlisted. Add fixtures for the rejected forms.
-
-Compatibility and migration: Not applicable: internal tooling with no published contract.
-
-Validation: The new assertions must fail on a fixture containing `uses: ./.github/actions/x` and on `uses: docker://alpine:3`, and pass on the current three workflows.
-
-Effort: Small: roughly 40 lines of test plus two fixtures.
-
-Risk of the proposed change: Low: additive assertions over files that are already parsed in that test file.
-
-Dependencies: Not applicable.
-
-Open questions: Not applicable.
-
-## [IMP-002] Replace the exact npm version equality gate with a bounded supported range
-
-Record type: Improvement or alternative
-ID category: IMP
-Primary component: Trusted publishing npm version gate
-Identity statement: The publishing npm version gate is an exact equality check rather than a bounded supported range
-Fingerprint: sha256:94a22540162ef1ada6c1c0f059909b75f3d602965856c91f5969a2e2fbf43dba
-Status: Active
-
-Classification: Improvement
 Severity or priority: Later
-Confidence: Medium
-Affected components: `scripts/check-trusted-publishing-npm.mjs`, `scripts/publish-release-package.mjs`, the `publish` job in `.github/workflows/release.yml`
+Confidence: Confirmed
+Affected components: `scripts/check-action-pins.mjs`, the CI `workflow` job, the release `validate` job, `.github/workflows/*.yml`
 
 Evidence:
-- `scripts/check-trusted-publishing-npm.mjs:4`: `TRUSTED_PUBLISHING_NPM_VERSION = "11.5.1"`; line 21: `if (actual !== expected)` throws `trusted publishing requires npm ${expected}; executable npm reported ${actual}`.
-- `scripts/publish-release-package.mjs:238-241` calls `assertTrustedPublishingNpm(npmVersion.stdout)` immediately before `npm publish`, so a mismatch aborts the publish.
-- `.github/workflows/release.yml:146` pins the `publish` job to `node-version: 24.5.0`, whose bundled npm is the version the gate expects. Every other job in both workflows uses `24.16.0`, so the publish job is deliberately held back to preserve the bundled npm version.
-- The message wording says "requires npm 11.5.1", describing a minimum, while the code enforces equality.
+- `scripts/check-action-pins.mjs:27`: action references are still matched with `/^\s*-?\s*uses:\s*(\S+)/gm` over raw file text.
+- `scripts/check-action-pins.mjs:1-3`: the script imports only `node:fs`, `node:path`, and `node:url`. It has no third-party import.
+- `.github/workflows/ci.yml:177-187`: the `workflow` job runs `npm run workflow:check` with no `npm ci` step, so `node_modules` is absent when the checker runs. Executed confirmation: `node scripts/check-action-pins.mjs` and `node scripts/check-compat-matrix.mjs --github-matrix` both exit 0 from a `git archive` extraction with no `node_modules`.
+- `package.json`: `yaml@2.9.0` is a devDependency, so it is unavailable in that job by construction.
+- `scripts/check-action-pins.mjs:30-33`: the IMP-001 remediation made any reference without an `@` a hard failure, which closed the safety gap the original record was really about.
+- Residual regex-specific weaknesses, both static: a `uses:` string appearing inside a block scalar such as a `run: |` body would be matched as an action reference; and `scripts/check-action-pins.mjs:36` returns early when the owner segment is empty, so a malformed reference beginning with `@` is skipped silently rather than failing.
+- `scripts/check-action-pins.mjs:39`: `action in pins` consults the prototype chain of a plain JSON object. No bypass is reachable, because a prototype member can never equal a 40-character hexadecimal string, but the pattern is the one MNT-003 removed from `src/`.
 
-Current approach: The publish path asserts the npm executable reports exactly `11.5.1`, achieved by pinning the publish job to an older Node release than the rest of the pipeline.
+Current approach: A dependency-free scanner reads each workflow and composite action file as text, extracts every `uses:` reference with a regular expression, requires a full 40-character commit SHA, and cross-checks each action against a central `scripts/action-pins.json` table, also asserting that every central pin is used.
 
-Why it appears to exist: Reproducibility. The project pins actions to SHAs, npm packages to exact versions, and verifies published bytes against a locally inspected tarball. Pinning the publishing tool exactly is consistent with that philosophy, and trusted-publishing OIDC support has a genuine minimum npm version.
+Why it appears to exist: The checker is invoked from a CI job that deliberately skips installation so that workflow hygiene can be verified before, and independently of, dependency resolution. A dependency-free implementation is the direct consequence of that placement.
 
-What it does well: It makes the publish step deterministic and prevents an unexpected npm upgrade from silently changing publish semantics or provenance generation.
+What it does well: It is fast, has no supply-chain surface of its own, runs in the one job that must work without `node_modules`, enforces central pin agreement in both directions, and fails closed on any reference that cannot be SHA-pinned.
 
-Actual limitations: npm security fixes cannot be adopted without a code change and a Node-version change in the same commit, and the publish job is structurally held on an older Node line than the rest of the pipeline. The intent expressed in the message ("requires") and the enforcement (equality) disagree, which will confuse the next maintainer.
+Actual limitations: Text matching cannot distinguish a `uses:` key from the same characters inside a block scalar or a comment, and it cannot see structure such as which job or step owns a reference. Both limitations are currently theoretical: no workflow in the repository contains such a string, and the checker is executed on every CI run and on every release validation.
 
-Essential versus accidental complexity: Requiring a floor for OIDC support is essential. Forbidding every later version is accidental, and it converts routine patching into a coupled change.
+Essential versus accidental complexity: The dependency-free constraint is essential and is imposed by the job design. The regular expression is the accidental part; a hand-written line scanner that tracks block-scalar state would be structurally safer at similar cost.
 
-Triggering context or scale: It becomes a real problem the first time an npm advisory affects `11.5.1`, or when Node 24.5.0 leaves security support.
+Triggering context or scale: The improvement becomes worthwhile if a workflow gains an inline script containing the literal text `uses:`, or if composite actions proliferate enough that step ownership matters for diagnostics.
 
 ### Option A — Keep and harden
 
-Minimal changes: Keep equality, but add a comment stating why exactness is required and a dated review reminder tying the pin to the Node version.
+Minimal changes: Keep the regular expression. Add block-scalar awareness by skipping lines inside a `|` or `>` scalar, treat an empty owner segment as an error rather than a silent skip, and replace the plain-object `pins` lookup with a `Map` or a null-prototype object to match the MNT-003 convention.
 
-Benefits: No behavior change; makes the coupling explicit.
+Benefits: Preserves the dependency-free property the CI job requires, closes both residual weaknesses, and keeps the checker at well under a hundred lines.
 
-Costs: Patching remains a two-file coordinated change.
+Costs: About twenty lines of line-state tracking and three test cases.
 
-Risks: The pin quietly ages until an advisory forces an urgent change during a release.
+Risks: Low. The added state machine is small and is directly testable against fixture workflows.
 
-Expected lifetime: Until the first npm advisory affecting 11.5.1 or the end of Node 24.5.0's support window.
+Expected lifetime: Indefinite for a repository with three workflows and four pinned actions.
 
-Correct-use conditions: Preferred if byte-identical publish behavior across releases is an explicit requirement.
+Correct-use conditions: Correct while `workflow:check` must run without `node_modules`.
 
 ### Option B — Incremental redesign
 
-Structural change: Replace equality with a bounded range — a minimum of `11.5.1` for OIDC support and an exclusive upper bound at the next major — while keeping the exact expected version recorded and printed in the publish output for auditability.
+Structural change: Move `workflow:check` after an `npm ci` step in the CI `workflow` job and parse with the existing `yaml` dependency, walking the job and step structure.
 
-Benefits: npm patch and minor updates are adopted automatically; the publish job can track the same Node version as the rest of the pipeline; the message and the enforcement agree.
+Benefits: Structurally correct extraction, and diagnostics that can name the owning job and step.
 
-Costs: A small semantic-version comparison must be implemented, and `scripts/publish-release-package.mjs` must stay dependency-free because `.github/workflows/release.yml:157` runs it from the downloaded artifact with no `node_modules`. `compareReleaseVersions` in that same file already provides the comparison, subject to REL-001.
+Costs: The `workflow` job gains a full dependency installation, which is the cost the current job design deliberately avoids; the job's runtime grows from seconds to the install time; and the checker acquires a supply-chain dependency in exactly the job that verifies supply-chain hygiene.
 
-Migration steps: Add `minimum` and `below` constants; change the assertion; align `node-version` in the publish job; record the observed version in the published JSON result.
+Migration steps: Add `npm ci` to the job, rewrite extraction against the parsed document, keep the same error messages, and update the workflow tests.
 
-Compatibility considerations: None externally; the gate is internal to the publish job.
+Compatibility considerations: None external. The `scripts/action-pins.json` contract is unchanged.
 
-Testing requirements: Cases for below-minimum, at-minimum, within-range, and at-or-above the upper bound.
+Testing requirements: Reuse the existing YAML-parsed pin assertions in the test suite and add fixtures with block scalars and composite actions.
 
-Rollback strategy: Restore the equality constant.
+Rollback strategy: Revert the job change and the script.
 
 ### Option C — Alternative approach
 
-Alternative design: Drop the version gate and rely on npm itself to fail if trusted publishing is unsupported.
+Alternative design: Delegate pinning entirely to a third-party action-pinning tool or a Dependabot-managed policy, removing the first-party checker.
 
-Benefits: Less code.
+Benefits: Less first-party code to maintain.
 
-Costs: The failure surfaces as an opaque npm error mid-publish rather than as a clear precondition, and the pipeline loses an explicit, auditable statement of its publishing requirements.
+Costs: Adds an external tool to the one job whose purpose is to prove that external tools are pinned, which is circular. It also loses the central `action-pins.json` cross-check, which is the property the repository actually relies on.
 
-New risks: A silent behavior difference between npm versions would not be caught before the publish attempt.
+New risks: A third-party pinning tool becomes a new trust dependency in the supply-chain verification path.
 
-Operational consequences: Harder incident diagnosis during a release.
+Operational consequences: Failures become dependent on an external tool's release cadence and diagnostics.
 
-Team-skill implications: None.
+Team-skill implications: None material.
 
-Dependency implications: None.
+Dependency implications: Adds one external action or package to the most trust-sensitive job.
 
-Migration complexity: Trivial, but the loss of an explicit precondition is a real regression for this project's posture.
+Migration complexity: Low to implement, high to justify.
 
 ### Option D — Clean-slate ideal, when useful
 
-Ideal design: Not applicable: this is a single assertion with a clear purpose; the only design question is equality versus range, already covered by Options A and B.
+Ideal design: A tiny dependency-free YAML subset reader shared by `check-action-pins.mjs` and `check-compat-matrix.mjs`, sufficient for the key-value and sequence shapes these workflows use, with explicit block-scalar handling.
 
-Incrementally useful parts: Not applicable for the same reason.
+Incrementally useful parts: The block-scalar handling, which is exactly what Option A adds.
 
-Parts not worth pursuing: Not applicable for the same reason.
+Parts not worth pursuing: A general YAML implementation. The repository has three workflows and a `yaml` dependency already available everywhere except this one job.
 
-Rewrite judgment: Not justified; the file is 65 lines and its parsing is deliberately strict.
+Rewrite judgment: A rewrite is not justified. The checker is 62 lines, is exercised on every CI run, and its only real weaknesses are two enumerated edge cases.
 
-Recommendation: Option B, deferred until REL-001 is fixed so the shared comparison function is correct. Confidence Medium, because the choice depends on how strictly the project wants publish-tool reproducibility, and equality is a defensible answer. Prerequisite: REL-001. Evidence that would change it: a documented requirement for byte-identical publish behavior across releases, which would make Option A correct.
+Recommendation: Take Option A. The previous review's recommendation to adopt the YAML parser is contradicted by current evidence: the job that runs this checker has no `node_modules` by design, so the parser is not in fact available where it is needed, and moving the job after installation would put a dependency install inside the supply-chain hygiene gate. Confidence is Confirmed, because the dependency-free execution was verified directly. Prerequisites are none. Evidence that would change this is a decision to run `workflow:check` only after installation, which would make Option B the better answer. What must remain untouched is the dependency-free property of `check-action-pins.mjs`, `check-script-paths.mjs`, and `check-compat-matrix.mjs`, and the bidirectional central pin cross-check.
 
-Expected benefit: Removes a coupling between routine npm patching and a code change, and lets the publish job track the same Node version as the rest of the pipeline.
+Expected benefit: Removes two enumerated false-result paths from a supply-chain gate and aligns one lookup with the repository's own untrusted-key convention, without adding any dependency to the job.
 
-Implementation outline: Add `TRUSTED_PUBLISHING_NPM_MINIMUM` and an exclusive upper bound; reuse the fixed `compareReleaseVersions`; keep printing the observed version in the result JSON; align `node-version` in the publish job; extend the release tests.
+Implementation outline: Add a small line-state scanner to `scripts/check-action-pins.mjs` that suppresses matching inside block scalars, change the empty-owner early return at line 36 into an error push, and convert `pins` to a `Map` built from the JSON. Add fixture workflows containing a `run: |` block with a `uses:` line and a malformed `@`-leading reference, and assert both outcomes. Keep the existing YAML-parsed assertions in the test suite as the independent cross-check.
 
-Compatibility and migration: Not applicable: internal release tooling.
+Compatibility and migration: No contract change. `scripts/action-pins.json` keeps its shape.
 
-Validation: Unit tests over the four boundary cases; a dry run of the publish job's precondition step.
+Validation: Unit level against fixture workflow text, plus the existing `workflow:check` execution in CI and in release validation. Confirm the script still runs from a checkout with no `node_modules`.
 
-Effort: Small
+Effort: Small: about twenty lines and three fixtures.
 
-Risk of the proposed change: Medium: it widens what may run the publish step. Mitigate with the exclusive upper bound and by recording the observed version in the published result for audit.
+Risk of the proposed change: Low: the change only narrows what is matched and widens what is rejected.
 
-Dependencies: REL-001.
+Dependencies: None.
 
-Open questions: Is byte-identical publish behavior across releases an explicit requirement? This decides between Options A and B. Current assumption: no — the project verifies published *bytes* against the inspected tarball (POS-002), which already covers the outcome regardless of npm patch level. Evidence required: a maintainer decision. If exactness is required, Option A applies and this record becomes Do not pursue.
+Open questions: Not applicable: the dependency-free constraint and both residual weaknesses were established by direct reading and by executing the script without `node_modules`.
 
 # 8. Feature Portfolio Recommendations
 
 ## 8.1 Add
 
-No feature addition is currently supported by repository evidence. `docs/non-goals.md` records the deliberate exclusions, the 41-rule catalog covers the documented classic, engine, and Fluent scope, and both hosts (oxlint and ESLint 9/10) plus oxfmt already have shipped integrations and integration tests. Inventing an addition here would violate the review's own standard against generic feature checklists.
+No recommendation is currently supported. Phase 2 built the feature inventory from the 41 catalog descriptors, the nine exported presets, the `settings.servicenow` schema, the 25 package scripts, the three workflows, and the eight example projects. No incomplete user journey, unrecoverable failure state, missing security control, repeated manual operator step, or unfinished feature flag was found that would evidence a gap. The plugin's user journey is: configure a preset, optionally declare context, lint, read a rule page. Every step exists, is documented, and is covered by the integration suite.
 
 ## 8.2 Improve
 
-No separate improve-decision record is supported. The two behavior improvements the evidence does support — hash-name suppression and surface classification — are defects with a defined correct behavior and are recorded as COR-002 and COR-001 rather than as feature decisions.
+No recommendation is currently supported beyond the corrections already recorded as defects. The improvements a user would notice — correct Fluent diagnostics on the documented `typescript-eslint` setup (COR-007), a linter that finishes (PER-002), and a sys_id rule that does not silently skip (COR-008) — are corrections to stated behaviour, so they belong in section 6 rather than here.
 
 ## 8.3 Simplify
 
@@ -2101,106 +1157,106 @@ Status: Active
 
 Decision: Simplify
 Priority: Later
-Confidence: Medium
-Feature or capability: Exported preset configurations (`configs.security`, `configs.securityRules`, `configs.policy`, `configs.policyRules`)
-Target actor: Integration consumer configuring oxlint or ESLint
+Confidence: High
+Feature or capability: The `security` and `policy` exported presets and their `securityRules` and `policyRules` maps
+Target actor: Integration consumer configuring the plugin
 
-Problem or opportunity: The package exports nine presets and nine matching rule maps. Measured membership: `recommendedRules` 23, `strictRules` 29, `classicEs5Rules` 10, `businessRuleRules` 7, `clientRules` 6, `fluentRules` 5, `es2021Rules` 3, `policyRules` 2, `securityRules` 1. A one-rule preset is a permanent public contract that carries less information than the single rule identifier it contains.
+Problem or opportunity: Four exported names carry three rules between them. Measured at HEAD: `configs.security` contains one rule, `servicenow/no-system-query-bypass`; `configs.policy` contains two, `servicenow/no-hardcoded-table-names` and `servicenow/no-complex-fluent-logic`. Each exported name is permanent public surface that must be kept, documented, and tested for the life of the major version, and a consumer gains nothing over naming the rules directly.
 
-Repository evidence: `src/configs/maps.ts:47-50` derives `policyRules` and `securityRules` from catalog placements; `src/configs/profiles.ts:47-55` wraps them; `src/index.ts:63-81` exports all nine plus all nine maps, and `src/index.ts:85-113` adds five `flat` variants. The measured membership counts come from enumerating each exported map. `src/catalog.ts` currently places exactly one rule in `security` and two in `policy`.
+Repository evidence: `src/index.ts:63-81` exports all four names. `src/configs/profiles.ts` derives them from catalog placements. Executed preset census at HEAD confirms the counts of one and two. `docs/decisions.md` records the decision to keep them through 2.x with a 3.0 review trigger.
 
-Current workaround: Consumers can already write `{"servicenow/no-system-query-bypass": "warn"}` directly; the preset saves no meaningful effort at this size.
+Current workaround: A consumer can enable the three rules directly in `.oxlintrc.json` or a flat config, which is what the README's rule tables already document.
 
-Consequence of doing nothing: Two exported objects and two exported maps must be kept, documented, and version-compatible forever, for one and two rules respectively. The cost is small but permanent, and it grows if more thin presets are added by the same reasoning.
+Consequence of doing nothing: Four public names persist through 2.x. The cost is documentation and test surface rather than user-visible harm, and the catalog `security` and `policy` placements remain useful regardless of whether the presets are exported.
 
-Proposed behavior: Keep the `policy` and `security` placement categories in the catalog, because they carry real editorial meaning, and document the resulting rule lists in the README, but stop exporting them as separate preset objects and rule maps.
+Proposed behavior: Keep both presets exported for the whole 2.x line. At the 3.0 boundary, remove them if no external consumer imports the four names, and document the three rule identifiers in the README instead. If the `security` or `policy` category grows to roughly five rules first, keep the presets.
 
-Why this is better: It reduces the public surface that must be preserved across majors without losing any capability, and it keeps the catalog's editorial categorisation, which is the part with actual value.
+Why this is better: Reduces permanent public surface without breaking a published contract mid-major, and defers the removal decision to the point where dependants data can be gathered.
 
-Minimal viable scope: Remove four exports (`policy`, `policyRules`, `security`, `securityRules`) in the next major; keep the catalog placements and generate a README table from them.
+Minimal viable scope: No code change now. The decision, its two conditions, and its trigger are already recorded in `docs/decisions.md`.
 
-Non-goals: Removing the categories from the catalog, changing rule severities, or touching the six substantial presets.
+Non-goals: Removing the catalog `security` and `policy` placements. Those drive documentation grouping and stay either way.
 
-User or operator workflow: A consumer who previously spread `configs.securityRules` instead copies one rule identifier from the generated README table, which the documentation generator already knows how to produce.
+User or operator workflow: Unchanged through 2.x. At 3.0, a consumer using `configs.security` would replace it with the named rule.
 
-Required permissions: Not applicable: build-time configuration only.
+Required permissions: Not applicable: the plugin has no permission model.
 
 Data-model changes: Not applicable: no persisted data.
 
-API changes: Removes four named exports from the package root. This is a breaking change and must wait for a major version.
+API changes: Deferred to 3.0. Removing four named exports is a breaking change and is gated behind the 3.0 boundary.
 
-UI changes: Not applicable: no user interface.
+UI changes: Not applicable: the product has no user interface.
 
-Background-processing changes: Not applicable: no background processing.
+Background-processing changes: Not applicable: the plugin runs synchronously inside a lint host.
 
-Security implications: The `security` category is editorial, not enforcing; removing the wrapper does not remove any check. `no-system-query-bypass` remains available and remains documented.
+Security implications: None. `no-system-query-bypass` remains available and remains in its catalog placement whether or not the preset wrapper is exported.
 
-Privacy implications: Not applicable: no personal data.
+Privacy implications: Not applicable: no personal data is processed.
 
-Operational impact: Fewer exports to keep compatible; slightly more documentation to generate.
+Operational impact: Small reduction in documentation and test surface at 3.0.
 
-Compatibility impact: Breaking for any consumer importing those four names. No such consumer is known, but see below.
+Compatibility impact: None until 3.0. At 3.0, four named exports disappear and consumers must name rules directly.
 
-Known consumers: None inside the repository beyond `src/index.ts` and `tests/configs.test.ts`.
+Known consumers: None inside the repository beyond `src/index.ts` and the generated documentation tables.
 
-Possible hidden or external consumers: The package is at 2.0.0 and, given the release blockers recorded here, may not yet be published at that version; a 1.x line did exist (`tests/fixtures/presets-1.1.0.json` pins 1.1.0). Evidence-gathering plan: check npm download and dependents data for the package before removing anything.
+Possible hidden or external consumers: Any published package importing `configs.security`, `configs.policy`, `configs.securityRules`, or `configs.policyRules`. The evidence-gathering plan is the npm dependants check that `docs/decisions.md` already names as the 3.0 gate.
 
-Usage evidence available: Export presence, catalog placements, and the migration tables in README lines 536 and 565.
+Usage evidence available: Reachability and export presence are confirmed. The rule counts are measured.
 
-Usage evidence missing: Whether any external consumer imports the four names. That cannot be established from the repository.
+Usage evidence missing: External import data, which requires npm dependants information not available offline.
 
-Maintenance burden: Low but permanent: four exports, their documentation rows, and their compatibility guarantees.
+Maintenance burden: Four exported names, four documentation entries, and their preset tests.
 
-Overlap with other features: `securityRules` overlaps `strictRules`, which already includes broader coverage. The distinction is editorial rather than functional.
+Overlap with other features: Overlaps with the catalog placement mechanism, which already expresses `security` and `policy` grouping without exporting a preset object.
 
 Alternatives considered:
-1. Keep all nine presets and accept the surface. Zero risk, permanent small cost.
-2. Merge `policy` and `security` into one `review` preset. Halves the thin presets while keeping a preset shape, but invents a new name for three rules.
-3. Do nothing until the catalog grows. Reasonable: if `security` reaches five or six rules, the preset earns its place. This is the argument for Later rather than Now.
+1. Remove now. Rejected: removing named exports mid-major breaks a published contract.
+2. Merge both into `strict`. Rejected: the rules have different applicability and merging would change `strict` semantics.
+3. Keep indefinitely. Viable if either category grows; that is exactly the recorded second condition.
 
-Dependencies: A major version boundary, and the npm-dependents check above.
+Dependencies: Shares its 3.0 window and its dependants check with FEAT-002, REM-001, and API-002.
 
-Implementation touchpoints: `src/configs/maps.ts`, `src/configs/profiles.ts`, `src/index.ts`, `tests/configs.test.ts`, README rule tables, `scripts/generate-rule-docs.mjs`.
+Implementation touchpoints: `src/index.ts`, `src/configs/profiles.ts`, `src/configs/maps.ts`, the README rule tables, `docs/decisions.md`, and the preset tests.
 
-Test strategy: Update `tests/configs.test.ts` export assertions; confirm `npm run docs:check` regenerates cleanly; confirm `tests/integration/packed-consumer.test.ts` export assertions still pass.
+Test strategy: Contract level: the existing preset census tests already pin the exported names and their contents. At 3.0, replace them with assertions that the names are absent and the rules remain reachable.
 
-Migration strategy: Announce in `CHANGELOG.md` one minor ahead of the major; keep the exports with a deprecation note in that minor; remove in the major.
+Migration strategy: Document the three rule identifiers in the README before removal so consumers can migrate ahead of 3.0.
 
-Rollout or deprecation plan: Deprecation note in the next minor, removal in the next major, with the replacement rule list in the README.
+Rollout or deprecation plan: No change during 2.x. Announce in the 3.0 migration notes, with the dependants check as the gate.
 
-Rollback strategy: Re-add the four exports; they are derived from catalog placements, so restoring them is mechanical.
+Rollback strategy: Re-export the four names; they are thin derivations of catalog placements.
 
-Data-retention implications: Not applicable: no stored data.
+Data-retention implications: Not applicable: no data is retained.
 
-Success indicators: Fewer exported names with no reported consumer breakage and no loss of documented coverage.
+Success indicators: The 3.0 decision is taken with dependants evidence rather than by default, and either the presets are removed or the growth condition is documented as met.
 
-Reconsideration or removal criteria: If `security` or `policy` grows beyond roughly five rules, keep the preset instead.
+Reconsideration or removal criteria: Reconsider if the `security` or `policy` category reaches roughly five rules, or if a named external consumer is found.
 
-Final deletion criteria: Not applicable: this is a simplify decision, not a deprecation; the underlying rules and categories are retained.
+Final deletion criteria: Not applicable: this is a simplify decision, not a removal. REM-001 carries the removal template for the one capability actually scheduled for deletion.
 
 Effort: Small
 
-Risks: Breaking an unknown external consumer; mitigated by the deprecation window and the dependents check.
+Risks: Removing a named export at 3.0 without dependants evidence would break unknown consumers, which is precisely the risk the recorded gate exists to manage.
 
-Current workflow: Consumers spread `configs.securityRules` or reference `configs.security` in an oxlint or ESLint configuration.
+Current workflow: A consumer imports `servicenow.configs.security` or `servicenow.configs.policy` and spreads it into their configuration.
 
-Friction or risk: The presets promise curation but deliver one and two rules, which is likely to surprise a consumer who selects `security` expecting meaningful coverage.
+Friction or risk: The names imply a substantial curated bundle; each in fact carries one or two rules, so a consumer may adopt them expecting broader coverage.
 
-Behavior preserved: Every rule remains available, retains its identifier, and keeps its catalog category and documentation.
+Behavior preserved: Every rule remains available and keeps its catalog placement, its documentation page, and its severity in `recommended` and `strict`.
 
-Behavior changed: Four exported names are removed at a major boundary.
+Behavior changed: At 3.0 only, four named exports are removed.
 
-Potential downside: A consumer must list rules explicitly instead of spreading a map.
+Potential downside: Consumers who prefer named bundles lose a convenience and must list three rule identifiers.
 
-Validation required: npm dependents data before removal; export assertions in `tests/configs.test.ts` and `tests/integration/packed-consumer.test.ts` after.
+Validation required: npm dependants data for the four names, and a count of the `security` and `policy` catalog placements at the 3.0 boundary.
 
 ## 8.4 Merge
 
-No merge recommendation is currently supported. The nine presets are derived from a single catalog placement list (`src/configs/maps.ts:4-13`), so they cannot drift apart, and the two host integrations (oxlint `createOnce` and the ESLint `create` shim from `eslintCompatPlugin`) share one rule implementation rather than duplicating logic. The nearest candidate, folding `policy` and `security` together, is covered as an alternative inside FEAT-001.
+No recommendation is currently supported. Phase 18 looked for capabilities with duplicated code paths and behavioural drift. The nearest candidates are the two cursor-loop walkers in `src/rules/no-glideelement-in-collection.ts` and `src/analysis/glide-query-in-loop.ts`, which share a traversal shape; PER-002 already proposes a shared memoized helper for them, which is a defect correction rather than a feature merge. The deprecated `validate-gliderecord-calls` alias overlaps `require-query-before-next`, and that overlap is handled as a removal under REM-001 rather than a merge.
 
 ## 8.5 Replace
 
-No replacement recommendation is currently supported. The three components that would be replacement candidates — the hand-written path-sensitive interpreter, the catalog-driven documentation generator, and the Sigstore-based provenance verifier — are each recorded as positive patterns (POS-004, POS-003, POS-002) with evidence that the current implementation is appropriate.
+No recommendation is currently supported. No feature was found that solves the wrong problem, has a fundamentally unsafe design, or creates repeated workarounds. The subsystems considered for replacement in phase 17 are recorded either as positive patterns or as bounded corrections.
 
 ## 8.6 Deprecate
 
@@ -2216,105 +1272,208 @@ Status: Active
 Decision: Deprecate
 Priority: Later
 Confidence: High
-Feature or capability: The `servicenow/validate-gliderecord-calls` rule
-Target actor: Integration consumer migrating from 1.x
+Feature or capability: The `servicenow/validate-gliderecord-calls` rule alias
+Target actor: Integration consumer migrating from the 1.x rule set
 
-Problem or opportunity: The rule is retained purely as a migration alias. It is the only catalog entry with no placement in any preset, so it can only be enabled by hand, and its documentation already names the replacement.
+Problem or opportunity: The rule is published, documented, and maintained solely as a migration alias. It is in no preset, its replacement is `require-query-before-next`, and every consumer who enables it explicitly is running a path that duplicates a maintained rule with narrower semantics.
 
-Repository evidence: Measured placement census: `validate-gliderecord-calls` is the sole entry among 41 with `placements.length === 0`. `docs/rules/validate-gliderecord-calls.md:6` states `**Preset:** off`. `README.md:316` lists it as `off` with the note `Deprecated alias`. `README.md:462` maps `sn/validate-gliderecord-calls` to `servicenow/require-query-before-next`. `README.md:536` and `README.md:565` document that it was `warn` in 1.x `recommended` and `error` in 1.x `strict`, is now `off`, and should be replaced. `README.md:571` step 4 instructs the replacement directly.
+Repository evidence: `src/rules/validate-gliderecord-calls.ts:11-23` carries a `@deprecated` annotation and a `meta.deprecated` block naming `require-query-before-next` as the replacement. `src/catalog.ts:647` registers it with no preset placement; the executed preset census confirms it appears in none of the nine exported configs. `docs/decisions.md` records the removal decision for 3.0, announced in the changelog, the generated rule page, and README migration step 4.
 
-Current workaround: Consumers migrating from 1.x can keep it enabled explicitly while they move to `require-query-before-next`.
+Current workaround: Consumers still on the 1.x rule name can keep enabling the alias; the migration path to `require-query-before-next` is documented.
 
-Consequence of doing nothing: One rule implementation, one catalog descriptor, one generated documentation page, and four README rows must be maintained indefinitely for a capability the project already says to stop using.
+Consequence of doing nothing: A second GlideRecord cursor rule stays in the catalog, in the generated documentation, and in the test suite indefinitely, and any change to cursor semantics must be reasoned about twice.
 
-Proposed behavior: Announce removal for the next major after 2.0, keeping the rule available and `off` throughout 2.x so 1.x migrations continue to work.
+Proposed behavior: Keep the alias available and off by default for the whole 2.x line, then delete it at 3.0 as already announced.
 
-Why this is better: It closes a migration path on a schedule instead of leaving it open forever, and it removes a rule that duplicates `require-query-before-next` with weaker analysis.
+Why this is better: Removes a duplicate cursor-semantics implementation at the only boundary where a rule identifier may be removed without breaking a published contract, after a full major-version warning period that has already begun.
 
-Minimal viable scope: A `CHANGELOG.md` deprecation note naming the removal version, plus a deprecation line in the generated rule page.
+Minimal viable scope: No code change now. The deprecation notice, the replacement mapping, and the 3.0 trigger already exist.
 
-Non-goals: Removing it during 2.x, or changing `require-query-before-next`.
+Non-goals: Changing `require-query-before-next` semantics as part of the removal.
 
-User or operator workflow: A consumer with the rule explicitly enabled reads the deprecation note, follows README step 4, and switches to `require-query-before-next`.
+User or operator workflow: A consumer with `servicenow/validate-gliderecord-calls` in their configuration replaces it with `servicenow/require-query-before-next`. The host surfaces the deprecation through `meta.deprecated`.
 
-Required permissions: Not applicable: build-time configuration only.
+Required permissions: Not applicable: the plugin has no permission model.
 
-Data-model changes: Not applicable.
+Data-model changes: Not applicable: no persisted data.
 
-API changes: At removal, `servicenow/validate-gliderecord-calls` disappears from `rules` and from the `RuleName` union. Enabling it afterwards produces an unknown-rule error from the host.
+API changes: At 3.0, one rule identifier is removed from the published rule set. A configuration naming it will error in the host as an unknown rule.
 
-UI changes: Not applicable.
+UI changes: Not applicable: the product has no user interface.
 
-Background-processing changes: Not applicable.
+Background-processing changes: Not applicable: the rule runs synchronously inside a lint host.
 
-Security implications: None: the replacement rule covers the same query-before-`next` class with the path-sensitive analysis instead of the older matching.
+Security implications: None. `require-query-before-next` covers the cursor-sequencing behaviour, and the alias is not in any preset, so no default coverage is lost.
 
-Privacy implications: Not applicable.
+Privacy implications: Not applicable: no personal data is processed.
 
-Operational impact: One fewer rule to document, test, and keep in the compatibility matrix.
+Operational impact: One fewer rule to document, test, and reason about in cursor-semantics changes.
 
-Compatibility impact: Breaking at the removal major only. No behavior change during 2.x.
+Compatibility impact: Breaking at 3.0 for any configuration naming the rule. No impact during 2.x.
 
-Known consumers: None inside the repository: no preset places it, and no example or integration fixture enables it.
+Known consumers: None inside the repository. The rule has its own tests and a generated documentation page.
 
-Possible hidden or external consumers: Any 1.x user who copied the old preset into their own configuration. Evidence-gathering plan: state the removal version in `CHANGELOG.md` and in the rule page for the whole 2.x line so the notice is visible in the published documentation.
+Possible hidden or external consumers: Any consumer carrying a 1.x configuration forward. The evidence-gathering plan is the same npm dependants check FEAT-001 and FEAT-002 require, plus the deprecation notice already surfacing in hosts that render `meta.deprecated`.
 
-Usage evidence available: The empty placement list, the `off` documentation, and the four README migration rows.
+Usage evidence available: Reachability, the deprecation metadata, the replacement mapping, and the absence of any preset placement are all confirmed at HEAD.
 
-Usage evidence missing: External enablement counts, which the repository cannot observe.
+Usage evidence missing: External configuration usage, which cannot be established from the repository.
 
-Maintenance burden: One implementation file, one descriptor, one generated page, and its share of the catalog and documentation checks.
+Maintenance burden: One rule implementation, one test file, one generated documentation page, and a second place to reason about cursor semantics.
 
-Overlap with other features: Complete overlap with `require-query-before-next`, which the README names as its replacement.
+Overlap with other features: Substantially overlaps `require-query-before-next`, which is its documented replacement and is in both `recommended` and `strict`.
 
 Alternatives considered:
-1. Announce removal for 3.0 and keep it `off` through 2.x. Predictable, gives migrators the whole major.
-2. Remove it in 2.0 before publication. Cleanest end state, but 2.0 is the migration release, so removing the alias in the same version that introduces the replacement defeats its purpose.
-3. Keep it indefinitely. Lowest risk, permanent cost, and it contradicts the project's own migration guidance.
+1. Remove now. Rejected: removing a rule identifier mid-major breaks configurations that name it.
+2. Keep indefinitely as an alias. Rejected: it duplicates cursor semantics permanently for a migration that has a documented end.
+3. Re-add it to a preset. Rejected: it would then compete with its own replacement in the same configuration.
 
-Dependencies: None.
+Dependencies: Shares its 3.0 window and dependants check with FEAT-001, FEAT-002, and API-002.
 
-Implementation touchpoints: `CHANGELOG.md`, `src/catalog.ts` descriptor text, `docs/rules/validate-gliderecord-calls.md` via `npm run docs`, README migration tables.
+Implementation touchpoints: `src/rules/validate-gliderecord-calls.ts`, `src/catalog.ts:647`, the generated `docs/rules/validate-gliderecord-calls.md`, the README rule table, `CHANGELOG.md`, and the rule's tests.
 
-Test strategy: Existing rule tests remain until removal. At removal, delete the rule tests and assert the identifier is absent from `rules`.
+Test strategy: Contract level at 3.0: assert the rule identifier is absent from `rules` and from every preset, and that `require-query-before-next` still covers the cursor cases the alias covered. Keep the alias's current behavioural tests until removal.
 
-Migration strategy: README step 4 already documents the replacement; the deprecation note points at it.
+Migration strategy: The README migration step and the `meta.deprecated` replacement mapping already give consumers the substitution. No data or configuration conversion is needed beyond renaming the rule.
 
-Rollout or deprecation plan: Note in the 2.0 changelog and rule page; remove in 3.0.
+Rollout or deprecation plan: Announced in the changelog, the generated rule page, and the README. The compatibility window is the whole 2.x line. Removal lands in the 3.0 release with a migration note.
 
-Rollback strategy: Restore the descriptor and implementation from history.
+Rollback strategy: Re-adding the rule is a revert; it has no state and no dependants inside the plugin.
 
-Data-retention implications: Not applicable.
+Data-retention implications: Not applicable: no data is retained.
 
-Success indicators: The rule page and changelog name a removal version, and no new configuration in the repository enables the rule.
+Success indicators: The 3.0 release notes record the removal, and no consumer issue reports a missing rule without a documented substitution.
 
-Reconsideration or removal criteria: If evidence appears that `require-query-before-next` does not cover a case the older rule caught, keep the alias and fix the replacement instead.
+Reconsideration or removal criteria: Reconsider only if `require-query-before-next` is found not to cover a case the alias covers, which the alias's own tests would surface.
 
-Final deletion criteria: The 2.x line has shipped with a visible deprecation notice; the removal is listed in the 3.0 changelog; no first-party configuration, example, or fixture enables the rule; and `require-query-before-next` is confirmed to cover the documented cases.
+Final deletion criteria: The 3.0 boundary is reached; the npm dependants check has been run; the README, changelog, and rule page name the replacement; and `require-query-before-next` has passing tests for every case the alias currently covers.
 
 Effort: Small
 
-Risks: A migrator who never reads the changelog is surprised at 3.0; mitigated by keeping the notice in the generated rule page for the whole 2.x line.
+Risks: A consumer whose configuration names the rule sees a hard host error at 3.0 rather than a warning. That is the standard cost of removing a rule identifier and is why the removal is gated on the major boundary.
 
-Concrete removal evidence: No preset placement among 41 catalog entries; `**Preset:** off` in the generated page; `Deprecated alias` in the README rule table; an explicit 1.x-to-2.0 replacement mapping at README lines 462, 536, 565, and 571.
+Concrete removal evidence: No preset placement in any of the nine exported configs; a `meta.deprecated` block with a `replacedBy` mapping; a documented replacement in the README migration steps; and a recorded 3.0 decision in `docs/decisions.md`.
 
-Security or reliability risk: Retaining it is low risk. The rule is off by default and its replacement is stronger, so the only risk is a consumer relying on weaker analysis.
+Security or reliability risk: Retaining it keeps a second, narrower cursor-semantics implementation that must be kept consistent with `require-query-before-next` whenever cursor handling changes, which is where PER-002 and the COR-004 remediation both landed.
 
-Consequence of removal: A consumer with the identifier still in their configuration gets an unknown-rule error until they apply the documented replacement.
+Consequence of removal: Configurations naming the rule fail at 3.0 until renamed. No default coverage changes, because the rule is in no preset.
 
-Required telemetry or validation before removal: Confirmation that the deprecation notice shipped in a published 2.x version, which depends on the release blockers in section 6.
+Required telemetry or validation before removal: npm dependants data for the package, and confirmation that `require-query-before-next` tests cover every case in the alias's current test file.
 
 Compatibility window: The whole 2.x line.
 
-Deprecation notice strategy: `CHANGELOG.md` under the 2.0 heading, plus a deprecation line in the generated rule page so it appears in published documentation. Owner: the maintainer. Timing: with the 2.0 release.
+Deprecation notice strategy: Already in place through `meta.deprecated`, the changelog, the generated rule page, and README migration step 4. The owner is the package maintainer, and the timing is the 3.0 release.
 
 ## 8.7 Remove
 
-No removal recommendation is currently supported as a feature decision. The one removal candidate found — the unused autofix harness — is dead code rather than a user-facing capability, and is recorded as MNT-001 with its remove-or-exercise options.
+## [REM-002] Retire the PR #51 acceptance-ledger apparatus after the remediation merges
+
+Record type: Feature decision
+ID category: REM
+Primary component: PR 51 acceptance ledger apparatus
+Identity statement: A one-off remediation acceptance ledger is wired into required validation and will outlive the remediation it tracks
+Fingerprint: sha256:1f88e19dadf25b800cf35e1bafb8701c40062e4b5d338832d2efd3f24af4456b
+Status: Active
+
+Decision: Remove
+Priority: Next
+Confidence: High
+Feature or capability: The PR #51 acceptance ledger, its generator, its verifier, its CI step, and its documents
+Target actor: Repository maintainer and contributor
+
+Problem or opportunity: Roughly 18,000 lines of one-off remediation tracking are wired into a required CI step and into `npm run validate`, in a published library whose product surface is 41 lint rules. The apparatus tracks a single pull request's acceptance criteria. Once that pull request merges, it becomes permanent maintenance cost, permanent CI time, and a permanent source of confusion about what the repository's quality gates actually assert.
+
+Repository evidence: `scripts/pr51-acceptance.json` is 15,945 lines; `PR51-REMEDIATION-GOAL.md` is 1,038 lines; `scripts/verify-acceptance-ledger.mjs` is 445 lines; `docs/pr-51-acceptance-ledger.md` is 545 lines; `docs/pr-51-layers.md` is 89 lines; `docs/pr-51-validation-report.md` is 26 lines; `FINDINGS-REMEDIATION.md` is 71 lines; `plans/` holds 17 planning documents; `tests/acceptance-ledger.test.ts` guards the mapping. `.github/workflows/ci.yml:37-38` runs `npm run acceptance:check` in the required `test` job, and `package.json` chains it into `validate`. The executed capture reports 533 criteria with 450 verified, 18 pending, and 30 live-pending, and `complete: false`; nothing consumes the `complete` flag, so the gate reports without enforcing. Most pending criteria are final-report documentation items rather than code obligations.
+
+Current workaround: None is needed; the apparatus works. The issue is its lifetime, not its correctness.
+
+Consequence of doing nothing: Every future contributor runs, and must understand, an acceptance verifier for a pull request they did not work on. The step also carries the live-registry coupling recorded as OPS-004. The repository root keeps three process documents that a consumer browsing the project sees before the README's substance.
+
+Proposed behavior: Set an explicit retirement trigger now, in `docs/decisions.md`, tied to the merge of the PR #51 line into `main`. On that trigger, remove the acceptance script, its JSON mapping, its generated documents, its test, its CI step, and its `package.json` entries, and archive `PR51-REMEDIATION-GOAL.md`, `FINDINGS-REMEDIATION.md`, and `plans/` outside the default branch or under a clearly marked history directory.
+
+Why this is better: Removes a large, single-purpose apparatus from the required path of a library, shortens CI, removes the last networked dependency from the required `test` job together with OPS-004, and leaves the durable quality gates — lint, format, typecheck, tests, docs regeneration, evidence, manifest, workflow, compat, benchmark, release artifact — untouched and still enforced.
+
+Minimal viable scope: Record the trigger and its conditions in `docs/decisions.md` now. Do not delete anything before the remediation merges.
+
+Non-goals: Removing `scripts/verify-doc-evidence.mjs`, `scripts/check-catalog-docs.mjs`, the compatibility matrix, or the benchmark gate. Those are durable product gates, not remediation tracking.
+
+User or operator workflow: A contributor's local `npm run validate` loses one step and gains the ability to run offline. CI loses one required step.
+
+Required permissions: Not applicable: the plugin has no permission model.
+
+Data-model changes: `scripts/pr51-acceptance.json` and its `schemaVersion: 1` contract are removed. Nothing outside the repository reads them.
+
+API changes: Not applicable: no published contract is involved. The apparatus is not in the `files` list and never ships in the tarball.
+
+UI changes: Not applicable: the product has no user interface.
+
+Background-processing changes: Not applicable: the apparatus runs only in CI and locally.
+
+Security implications: Positive. Removing the step removes the live-registry install from the required `test` job, which is the coupling OPS-004 records.
+
+Privacy implications: Not applicable: the ledger records file paths, test names, and digests only.
+
+Operational impact: Shorter required CI, one fewer generated-document pair to keep in sync, and a smaller repository root.
+
+Compatibility impact: None outside the repository. The published tarball is unaffected, because `files` limits it to `dist`, `oxfmt.recommended.json`, `README.md`, `LICENSE`, and `CHANGELOG.md`.
+
+Known consumers: `.github/workflows/ci.yml`, `.github/workflows/release.yml`, `package.json` scripts `acceptance:check` and `validate`, and `tests/acceptance-ledger.test.ts`.
+
+Possible hidden or external consumers: None plausible. The apparatus is not published and its documents describe one pull request. The evidence-gathering plan is a search for external references to `pr51-acceptance` at retirement time.
+
+Usage evidence available: Every consumer is enumerated above by direct reference. The executed capture proves the apparatus runs and reports `complete: false`.
+
+Usage evidence missing: Whether the maintainer intends the ledger to serve as a durable audit record beyond the pull request. That is a product decision, which is why the recommendation is a recorded trigger rather than immediate deletion.
+
+Maintenance burden: About 18,000 lines across seven files and a directory, one required CI step, two generated documents that must be regenerated and committed, and one test.
+
+Overlap with other features: Overlaps `scripts/verify-doc-evidence.mjs`, which performs the durable evidence check the project needs after the remediation, and the ordinary test suite, which is the real proof of behaviour.
+
+Alternatives considered:
+1. Retire on merge, with the trigger recorded now. Keeps the evidence available while it is being reviewed and removes it when it stops being current.
+2. Keep the documents, remove the CI step. Halves the burden and removes the OPS-004 coupling, but leaves 18,000 lines of stale tracking in the tree with nothing keeping it honest.
+3. Keep everything indefinitely as an audit record. Viable if the maintainer wants a permanent record of the remediation, but then the documents should move under a clearly marked history directory and leave the required path.
+4. Delete now. Rejected: the pull request has not merged, and the ledger is the evidence for that review.
+
+Dependencies: The PR #51 line must merge into `main` first. `FINDINGS-REMEDIATION.md` outstanding action 1 records that this branch and `origin/main` have diverged, so the merge is itself an open maintainer decision.
+
+Implementation touchpoints: `scripts/verify-acceptance-ledger.mjs`, `scripts/pr51-acceptance.json`, `scripts/verify-acceptance-ledger.d.mts`, `tests/acceptance-ledger.test.ts`, `docs/pr-51-acceptance-ledger.md`, `docs/pr-51-layers.md`, `docs/pr-51-validation-report.md`, `PR51-REMEDIATION-GOAL.md`, `FINDINGS-REMEDIATION.md`, `plans/`, the `acceptance:check` and `validate` entries in `package.json`, and the `acceptance:check` steps and artifact upload in both workflows.
+
+Test strategy: Contract level: after removal, assert that `npm run validate` still chains every durable gate and that `scripts/check-script-paths.mjs` still reports every referenced path as tracked. The existing `check-script-paths.mjs` gate will catch a dangling script reference automatically.
+
+Migration strategy: Archive the goal document, the remediation ledger, the generated reports, and `plans/` to a tag or a `history/` directory in the same commit that removes them, so the evidence remains retrievable through git.
+
+Rollout or deprecation plan: Record the trigger and conditions in `docs/decisions.md` alongside FEAT-001, FEAT-002, and REM-001. Execute in one commit once the merge condition is met. Announce in the changelog under repository maintenance.
+
+Rollback strategy: A revert restores every file; nothing outside the repository depends on them.
+
+Data-retention implications: The acceptance capture and its digests remain in git history after removal, which satisfies any later audit need.
+
+Success indicators: `npm run validate` runs offline; the required `test` job no longer installs from the registry; the repository root contains no single-pull-request process documents.
+
+Reconsideration or removal criteria: Reconsider if the maintainer decides the ledger is a durable audit artifact, in which case Option 3 applies and the documents move out of the required path instead of being deleted.
+
+Final deletion criteria: The PR #51 line is merged into `main`; the remaining 18 pending and 30 live-pending criteria are either satisfied or explicitly abandoned in `docs/decisions.md`; the archive commit or tag exists; and `workflow:check` and `check-script-paths.mjs` pass with no dangling references.
+
+Effort: Medium: the deletion is mechanical, but the trigger, the archive, and the workflow edits need care, and the merge precondition is outside this repository's control.
+
+Risks: Removing evidence that a reviewer still wants. The recorded trigger and the git archive both mitigate it, and the recommendation deliberately defers deletion rather than performing it.
+
+Concrete removal evidence: The apparatus tracks one named pull request. Its own capture reports `complete: false` with 48 unsatisfied criteria, most of which are final-report documentation items. No published artifact includes it, and every internal consumer is enumerated.
+
+Security or reliability risk: Retaining it keeps a live-registry install inside the required `test` job, which is the OPS-004 coupling, and keeps a required check whose pass condition does not include its own completeness flag.
+
+Consequence of removal: The repository loses a per-criterion mapping from a remediation goal document to tests. The durable proof — the test suite, the evidence checker, the documentation regeneration diff, and the release gates — is unaffected.
+
+Required telemetry or validation before removal: Confirm the merge; confirm no external reference to `pr51-acceptance`; run the full `validate` chain after the removal.
+
+Compatibility window: Not applicable: nothing outside the repository consumes the apparatus, so no window is required beyond the merge precondition.
+
+Deprecation notice strategy: An entry in `docs/decisions.md` naming the trigger and the archive location, plus a changelog line under repository maintenance at removal time. The owner is the package maintainer.
 
 ## 8.8 Keep
 
-The capabilities worth keeping are recorded as positive patterns in section 18 (POS-001 through POS-004), which is the appropriate record type for preservation decisions backed by current evidence.
+No separate feature-decision record is currently supported. Every capability judged worth preserving is recorded with its invariants, protecting tests, and future-refactor constraints as a positive pattern in section 18: the context confidence model (POS-001), release provenance binding (POS-002), the single-source catalog (POS-003), and the budgeted path interpreter (POS-004). Creating parallel `FEAT` keep records would duplicate those bodies without adding evidence.
 
 ## 8.9 Experiment or Investigate
 
@@ -2330,521 +1489,470 @@ Status: Active
 Decision: Investigate
 Priority: Investigate
 Confidence: Requires product validation
-Feature or capability: The deprecated `scriptType` and `ecmaLatest` settings and the `@sn-es-latest` comment pragma
-Target actor: Integration consumer migrating from 1.x
+Feature or capability: The `scriptType` and `ecmaLatest` settings and the `@sn-es-latest` comment pragma
+Target actor: Integration consumer carrying a 1.x configuration forward
 
-Problem or opportunity: Three deprecated inputs remain supported in 2.0 and carry a disproportionate share of the settings validator's complexity. Retiring them at the major boundary would remove that complexity, but only if no supported consumer still depends on them.
+Problem or opportunity: Three deprecated inputs remain supported in 2.0.0 and are the sole reason for most of the cross-field conflict validation in the settings trust boundary. Each carries a deprecation message, but the code that reconciles them with the replacement dimensions is permanent complexity in the one module that must be exactly correct.
 
-Repository evidence: `src/types.ts:100-110` marks `scriptType` and `ecmaLatest` deprecated and says they are kept "for one major-release cycle". `src/settings/validate.ts:188-215` parses them and records deprecation messages. `src/settings/validate.ts:335-382` contains five cross-field conflict checks, and four of the five exist solely to reconcile `scriptType` and `ecmaLatest` with the replacement `authoring`, `surfaces`, and `javascriptMode` settings. `src/context/resolve.ts:73-82` gives `scriptType` precedence over filename evidence with an explanatory comment, and lines 164-171 map the `@sn-es-latest` pragma to `es2021` while recording a deprecation. `src/context/filename.ts:61` defines the pragma pattern.
+Repository evidence: `src/settings/validate.ts:188-215` parses `scriptType` and `ecmaLatest` and pushes a deprecation for each. `src/settings/validate.ts:335-382` contains six cross-field conflict checks; four of them exist only because `scriptType` coexists with `authoring` and `surfaces`, and one exists only because `ecmaLatest` coexists with `javascriptMode`. `src/context/resolve.ts:77-82` and `:159-172` map the legacy inputs onto the current dimensions, and `:165-171` handles the `@sn-es-latest` pragma with its own deprecation record. `src/types.ts` promises support "for one major-release cycle". `docs/decisions.md` records the decision to retire the layer in 3.0 after one full 2.x cycle.
 
-Current workaround: Not applicable: the compatibility layer works as designed; the question is when to retire it.
+Current workaround: Consumers can migrate to `authoring`, `surfaces`, and `javascriptMode` today; the deprecation messages name the replacements.
 
-Consequence of doing nothing: Four conflict branches, one precedence rule, one pragma scan of every file's comments, and three deprecation messages continue to be maintained and tested. None is expensive individually; together they are the most intricate part of an otherwise straightforward validator.
+Consequence of doing nothing: The settings validator keeps five conflict checks and two parse branches that exist only for compatibility, in the module that is the plugin's trust boundary for host-supplied configuration.
 
-Proposed behavior: Establish whether any 1.x consumer still sets these inputs, then either retire them in the next major with a documented migration or record an explicit decision to keep them.
+Proposed behavior: Keep the layer through 2.x with its deprecation messages visible at lint time. Before 3.0, gather dependants evidence. If usage is material, retire only `@sn-es-latest`, which is a repository convention rather than ServiceNow metadata, and keep `scriptType` and `ecmaLatest`. If usage cannot be measured, retire only `@sn-es-latest`. If usage is negligible, retire all three.
 
-Why this is better: Deprecations without a removal date accumulate. The 2.0 documentation already tells users to migrate, so the deciding factor is evidence of remaining use.
+Why this is better: Ties a breaking change to evidence rather than to a calendar, and identifies the one input that can be retired regardless, because it was never platform metadata.
 
-Minimal viable scope: Decide and record. If retiring: remove the two settings and the pragma, delete the four conflict checks, and keep a clear error message pointing at the replacement key.
+Minimal viable scope: The investigation itself. No code change during 2.x.
 
-Non-goals: Removing them inside 2.x, or changing `authoring`, `surfaces`, or `javascriptMode`.
+Non-goals: Changing the replacement dimensions, or removing the deprecation messages before removal.
 
-User or operator workflow: A consumer setting `scriptType: "client"` would instead set `surfaces: ["client"]`; `ecmaLatest: true` becomes `javascriptMode: "es2021"`; `@sn-es-latest` becomes the same setting. All three mappings are already documented in the deprecation messages themselves.
+User or operator workflow: Unchanged during 2.x. At 3.0, an unknown settings key throws with a message naming `surfaces` and `javascriptMode`, which `src/settings/validate.ts:325-328` already does for unknown keys.
 
-Required permissions: Not applicable.
+Required permissions: Not applicable: the plugin has no permission model.
 
-Data-model changes: Not applicable.
+Data-model changes: Not applicable: settings are host configuration, not persisted data.
 
-API changes: Removes two keys from the `ServiceNowSettings` and `ValidatedServiceNowSettings` interfaces and stops honouring one comment pragma. Because unknown keys throw (`src/settings/validate.ts:325-329`), a stale configuration fails loudly rather than silently, which is the right failure mode.
+API changes: At 3.0, removing three accepted inputs is a breaking change to the `settings.servicenow` schema.
 
-UI changes: Not applicable.
+UI changes: Not applicable: the product has no user interface.
 
-Background-processing changes: Not applicable.
+Background-processing changes: Not applicable: settings validation is synchronous.
 
-Security implications: None.
+Security implications: Positive at removal: fewer branches in the trust boundary that validates untrusted host configuration.
 
-Privacy implications: Not applicable.
+Privacy implications: Not applicable: settings contain no personal data.
 
-Operational impact: A simpler validator with fewer interacting branches to test.
+Operational impact: Five conflict checks and two parse branches removed at 3.0, with their tests.
 
-Compatibility impact: Breaking at the removal major. Loud, immediate, and with an actionable message.
+Compatibility impact: None during 2.x. At 3.0, a configuration using any of the three inputs throws rather than warning.
 
-Known consumers: None inside the repository. `tests/integration/context-configs/*.oxlintrc.json` and the example projects use the replacement keys.
+Known consumers: `src/context/resolve.ts` reads all three. The example projects and the integration fixtures use the current dimensions, not the legacy ones.
 
-Possible hidden or external consumers: Any 1.x user who has not migrated. Evidence-gathering plan: npm dependents and download data, plus the fact that the deprecation messages already appear at lint time and are visible to those users.
+Possible hidden or external consumers: Any consumer carrying a 1.x configuration forward. The evidence-gathering plan is npm download and dependants data, plus the deprecation messages already surfacing at lint time.
 
-Usage evidence available: Deprecation plumbing exists and is surfaced through `ServiceNowScriptContext.deprecations`, so users setting these keys already receive a message.
+Usage evidence available: The deprecation path is reachable and tested, and the conflict checks are enumerated.
 
-Usage evidence missing: Whether any external consumer still sets them, which the repository cannot determine.
+Usage evidence missing: External configuration usage. It cannot be established offline and is the reason this record is an investigation rather than a removal.
 
-Maintenance burden: Four cross-field conflict branches, one precedence rule, one per-file comment scan, three deprecation messages, and their tests.
+Maintenance burden: Two parse branches, five cross-field conflict checks, one pragma scan over every comment, and their tests, all inside the settings trust boundary.
 
-Overlap with other features: Complete overlap with `authoring`, `surfaces`, and `javascriptMode`, which is the point of the deprecation.
+Overlap with other features: `scriptType` overlaps `authoring` and `surfaces`; `ecmaLatest` and `@sn-es-latest` overlap `javascriptMode`.
 
 Alternatives considered:
-1. Retire in the next major after 2.0 with a documented migration. Bounded, predictable, removes the complexity on a schedule.
-2. Keep indefinitely for compatibility. Zero migration risk, permanent complexity, and the documented "one major-release cycle" promise quietly lapses.
-3. Retire only `@sn-es-latest`, which is a repository convention rather than ServiceNow metadata and is described as such in its own deprecation message. Smallest step, removes the per-file comment scan, and is the least likely to affect real users.
+1. Investigate before 3.0, then retire per the recorded conditions. Ties a breaking change to evidence.
+2. Retire all three at 3.0 unconditionally. Simpler, but breaks unknown consumers without having looked.
+3. Keep indefinitely. Rejected: `src/types.ts` promises one major-release cycle, and keeping them would make that promise false.
 
-Dependencies:
-2.0 must actually be published before "one major-release cycle" can be said to have elapsed, which depends on the release blockers in section 6.
+Dependencies: Shares its 3.0 window and its dependants check with FEAT-001, REM-001, and API-002.
 
-Implementation touchpoints: `src/types.ts`, `src/settings/validate.ts`, `src/context/resolve.ts`, `src/context/filename.ts`, `tests/context.test.ts`, `tests/settings-freeze.test.ts`, README settings documentation.
+Implementation touchpoints: `src/settings/validate.ts`, `src/context/resolve.ts`, `src/context/filename.ts` for `ES_LATEST_IN_COMMENT`, `src/types.ts`, the settings tests, the README, and `docs/decisions.md`.
 
-Test strategy: Assert the removed keys are rejected as unknown settings with a message naming the replacement; assert the pragma no longer changes the resolved mode.
+Test strategy: At removal: assert each retired key throws with a message naming its replacement, and assert the remaining conflict checks still cover `authoring` against `surfaces`. Keep the current deprecation tests until removal.
 
-Migration strategy: The three mappings are already written in the deprecation messages and can be lifted directly into the migration guide.
+Migration strategy: The deprecation messages already name the replacement for each input. Add a migration table to the 3.0 notes mapping `scriptType` values onto `authoring` and `surfaces` pairs.
 
-Rollout or deprecation plan: Keep the messages through 2.x; announce removal in the 3.0 changelog.
+Rollout or deprecation plan: Messages are already emitted at lint time throughout 2.x. The dependants check happens before the 3.0 branch opens. Removal lands in 3.0 with migration notes.
 
-Rollback strategy: Restore the descriptor fields and conflict checks from history.
+Rollback strategy: Re-adding the parse branches and conflict checks is a revert; they have no state.
 
-Data-retention implications: Not applicable.
+Data-retention implications: Not applicable: no data is retained.
 
-Success indicators: `validateServiceNowSettings` loses four conflict branches with no reported consumer breakage.
+Success indicators: The 3.0 decision cites dependants evidence, and the settings validator's conflict-check count drops for the inputs actually retired.
 
-Reconsideration or removal criteria: If dependents data shows meaningful 1.x usage, keep the layer and record that decision explicitly with a review date.
+Reconsideration or removal criteria: Reconsider if dependants data shows material 1.x configuration usage, in which case only `@sn-es-latest` is retired.
 
-Final deletion criteria:
-2.0 has shipped with the deprecation messages visible; the 3.0 changelog announces removal; no first-party configuration uses the keys; and the replacement mapping is documented in the migration guide.
+Final deletion criteria: The dependants check has been run or has been recorded as unavailable; the 3.0 migration table exists; and the unknown-key error message names the replacement for each removed input.
 
-Effort: Small: removal is small; the investigation is the slow part.
+Effort: Small: the investigation is one dependants query, and the eventual removal and its migration notes are a separate larger change.
 
-Risks: Removing a compatibility path that external users still rely on. Mitigated by the loud unknown-key error and by gathering dependents data first.
+Risks: Breaking an unmeasured population of 1.x configurations. The recorded conditional plan, which retires only the non-platform pragma when usage is unknown, is the mitigation.
 
-Evidence-gathering plan: Check npm download and dependents data for `oxc-plugin-servicenow` 1.x after 2.0 is published; keep the existing deprecation messages, which already reach affected users at lint time; optionally add the replacement key name to each message so the migration is mechanical.
+Evidence-gathering plan: npm download and dependants data for `oxc-plugin-servicenow`, a search of public GitHub configurations for `settings.servicenow.scriptType`, `settings.servicenow.ecmaLatest`, and `@sn-es-latest`, and any issue traffic mentioning the deprecation messages. All three require network access that this review did not have.
 
-Decision threshold: If dependents data shows negligible 1.x usage after one 2.x release cycle, retire all three in 3.0 (Option 1). If usage is material, keep `scriptType` and `ecmaLatest` and retire only `@sn-es-latest` (Option 3), which is a repository convention the project itself does not treat as ServiceNow metadata. If usage cannot be measured at all, default to Option 3.
+Decision threshold: Retire all three if no material usage is found. Retire only `@sn-es-latest` if usage is material or cannot be measured, because it is a repository convention rather than ServiceNow metadata and its removal is defensible without usage data.
 
 # 9. Testing and Validation Gaps
 
 ## Critical workflows lacking tests
 
-- Clean-checkout reproducibility. Nothing asserts that the paths `package.json` scripts reference are tracked, which is why OPS-001 reached the committed branch unnoticed.
-- Required-status-check producibility. Nothing derives the check names the workflows can emit and compares them with `scripts/release-governance.json`, which is the gap behind OPS-002.
-- Self-validation of the repository's own governance policy. `tests/fixtures/release-governance/desired.json` supplies complete synthetic principals, so no test exercises `validateDesiredGovernance` against `scripts/release-governance.json` itself (OPS-005).
+The Fluent rule family is never exercised against a range-only AST, which is the shape the documented `typescript-eslint` composition produces (COR-007). The only `typescript-eslint` coverage, `tests/integration/packed-consumer.test.ts:350`, uses a directly imported factory called directly, which returns before every offset-dependent code path.
 
 ## Incorrect or brittle tests
 
-- TST-001: `tests/release/layer7.test.ts:517` pins a wall-clock date, so the positive provenance assertion decays with time. Measured failing today, measured passing with `new Date()`.
-- TST-002: `tests/configs.test.ts:80,87,95` require git objects that a depth-1 checkout does not contain. Measured failing in a `--depth 1` clone, passing locally.
-- OPS-004: `tests/integration/packed-consumer.test.ts:75-79` resolves and installs transitive dependencies from the live registry inside `npm test`, so the suite's result depends on registry state.
-- `tests/integration/examples.test.ts:37-51` writes `.local-test.oxlintrc.json` inside `examples/<project>/` and removes it in a `finally` block, so a crashed run leaves files in the repository.
-- `tests/integration/packed-consumer.test.ts:25` runs `npm run build` from inside a test, so `npm test` mutates `dist/`.
+No test was found that passes without exercising meaningful behaviour, and no snapshot overuse or over-mocking was found. The 807-test inventory includes two networked tests whose result depends on live registry resolution of unpinned transitive dependencies (OPS-004), which makes the required `test` job's outcome partly dependent on third-party availability.
 
 ## Missing failure-path tests
 
-- COR-001: no test passes an absolute filename containing a decoy `client`, `br`, `server`, or `script-include` segment above the project root. Both directions of the misclassification are unguarded.
-- COR-002: no test asserts that a 32-character digest under a non-`md5` hash name is suppressed, and none asserts that the 40- and 64-character branches of `looksLikeMd5Context` can affect an outcome.
-- REL-001: no test exercises a prerelease identifier containing a hyphen, so the gap between the accepting grammar at `scripts/publish-release-package.mjs:28` and the parser at line 36 is unguarded.
-- IMP-001: no fixture exercises a `uses:` value without `@`, so the action-pin checker's silent-pass path is untested.
+`no-hardcoded-sysid` has no negative test asserting that a non-digest identifier containing a digest substring is still reported, which is the exact case COR-008 broke. The Fluent alias matrix has no case declaring the same `var` twice, which is the case COR-009 breaks. `verify-published-package.mjs` has no test asserting that a mismatched `--oidc-subject` changes an outcome, which is why MNT-004's dead argument went unnoticed.
 
 ## Missing security tests
 
-The provenance-rejection path is well covered: `tests/release/layer7.test.ts` mutates the signature, subject name, subject digest, and workflow repository and asserts each is rejected. The gap is that the corresponding positive path is currently red (TST-001), so the suite proves rejection without proving acceptance.
+Not applicable in the authentication and authorization sense: the plugin has no auth surface. The security-relevant gaps are supply-chain shaped and are covered by OPS-008, whose recommended validation adds an assertion that drift-detection workflows declare a schedule trigger.
 
 ## Missing authorization or tenant-isolation tests
 
-Not applicable: the package has no authentication, authorization, tenancy, or multi-user runtime. The nearest equivalent is the release environment's reviewer topology, which is a GitHub configuration rather than repository code (OPS-005).
+Not applicable: the product is an in-process library with no actors, tenants, or permissions. Verified by searching `src/` for authentication, authorization, session, and tenant constructs; none exist.
 
 ## Missing concurrency and idempotency tests
 
-Not applicable for the plugin: `src/` contains no threads, promises, timers, or shared mutable global state beyond two `WeakMap` caches keyed on host-owned objects. `scripts/run-tests.mjs` forces `--test-concurrency=1` with a comment explaining that release tests build into `dist/`, which is a deliberate and documented serialization. For the release path, `classifyPublishResult` (`scripts/publish-release-package.mjs:105-127`) does distinguish an already-published version from a permanent failure, and `runPublicationState` gates the publish job, so republication idempotence is handled.
+Not applicable inside the plugin: `src/` contains no promises, timers, workers, or shared mutable state beyond two `WeakMap` caches whose invalidation is already tested. The release pipeline's idempotency is covered: `tests/release/layer7.test.ts` exercises the publish-conflict reclassification and the bounded-retry path.
 
 ## Missing migration tests
 
-Not applicable: no data migrations exist. Configuration migration from 1.x is covered by `tests/configs.test.ts`, subject to TST-002.
+Not applicable: there is no schema, database, or persisted-data migration. The nearest analogue, the 1.x settings compatibility layer, is covered by deprecation tests and is tracked under FEAT-002.
 
 ## Missing contract and compatibility tests
 
-The contract surface is well covered by `tests/integration/packed-consumer.test.ts` (export map, declaration files, plugin metadata, tarball contents) and `tests/integration/eslint.test.ts`. One gap: PER-001 shows no shipped-artifact size budget exists, so a 939 KB declaration file can ship unnoticed.
+The host-AST shape is an unstated contract with no test (COR-007). The published `AnalysisProvenance` fields have no test pinning their values, which is why four permanently constant fields survived (API-002). The prerelease comparator has no mixed-case case (REL-003).
 
 ## Missing performance, accessibility, or operational tests
 
-Performance is covered by a real benchmark gate with documented thresholds (`docs/performance.md`), including a large/small scale ratio that would catch quadratic analysis. This review's own scaling probe (51 ms, 61 ms, 106 ms, 266 ms across 50 to 400 scope blocks) is consistent with those thresholds. Accessibility is not applicable: there is no user interface. Operationally, the untested gap is the governance and check-name reconciliation described above.
+The benchmark corpus in `scripts/benchmark.mjs` has `branch-heavy` and `nested-scopes` fixtures but no nested `do…while` fixture, so PER-002's shape cannot regress the gate. Accessibility is not applicable: there is no user interface. Operationally, no test asserts that a workflow's trigger matches its purpose (OPS-008) or that any script is offline-capable (OPS-004).
 
 ## Recommended test additions by priority and smallest adequate test level
 
-1. Unit, for OPS-001: assert every path referenced by a `package.json` script appears in `git ls-files`.
-2. Unit, for TST-001: after fixing the clock, assert the positive provenance path passes; no new test is needed beyond the existing one becoming green.
-3. Unit, for TST-002: assert the 1.1.0 preset digest from committed fixture bytes rather than from git history.
-4. Unit, for OPS-002: derive the producible check-name set and assert `scripts/release-governance.json` is a subset of it.
-5. Unit, for COR-001: `surfacesFromFilename` and one end-to-end `lint()` case for each decoy-path direction.
-6. Unit, for COR-002: the six variable names measured in this review, in both directions.
-7. Unit, for REL-001: `compareReleaseVersions` over hyphenated and dotted prereleases including the equal case.
-8. Unit, for OPS-005: assert `validateDesiredGovernance(scripts/release-governance.json)` returns no errors.
-9. Integration, for PER-001: a shipped-declaration size budget in `scripts/check-release-artifact.mjs`.
+1. COR-007, contract level: a hermetic fixture that builds a range-only AST and asserts diagnostic parity with the offset-bearing AST for `require-fluent-id`, `fluent-proper-imports`, `fluent-naming-convention`, and `fluent-directives`. Add alias and directive cases to the packed-consumer test for live-host coverage.
+2. PER-002, unit and performance level: a bounded-wall-clock test over 30 nested `do…while` statements for both walkers, plus a nested-loop fixture in the benchmark corpus.
+3. COR-008, unit level: a two-directional identifier matrix over `md5`, `fileHash`, `sha256Digest`, `contentChecksum`, `etag`, `sharedSysId`, `shardId`, `betaGroupId`, `shadowRecordId`, and `dashboardId`.
+4. COR-009, unit level: both `var` redeclaration directions plus the plain-assignment control, appended to the existing alias matrix.
+5. API-002, contract level: assertions pinning the four published fields' current values so a future change is visible.
+6. REL-003, unit level: mixed-case pairwise comparisons and a full-list sort.
+7. MNT-004, unit level: one negative case with a mismatched trusted-publisher subject.
+8. OPS-004 and OPS-008, operational level: an offline `npm run validate` run, and an assertion that drift-detection workflows declare a schedule.
 
 ### Current-review regression priorities
 
-- COR-003: The test suite covers many rule examples but lacks cross-product regression cases for constant reachability, return plus finally, switch test side effects, and branch-order invariance.
-- COR-004: Acceptance coverage states that synchronous IIFEs are supported, but no fixture exercises function-expression and arrow-expression IIFEs inside loops.
-- COR-005: No regression fixture covers receiver expressions without display names or two syntactically similar but semantically distinct receivers.
-- API-001: Tests use the context source AST and therefore never distinguish the explicit argument from hidden context state.
-- COR-006: Fixtures cover direct reassignment but not called-later declarations, uncalled earlier declarations, or declaration-order permutations.
-- OPS-006: Pack and export tests validate the intended root surface, but no end-to-end contract test runs the post-publish verifier against a packed version 2 package.
-- REL-002: Tests cover retries and elapsed deadlines but do not simulate a fetch or child process that never settles.
-- OPS-007: Tool-level tests do not prove that CI calls the tool. No workflow contract test asserts the required step.
+COR-007 and PER-002 need their regression tests before their fixes land, because both are silent failures that no existing assertion would catch on reintroduction. COR-008 and COR-009 are red-before-green candidates: the reproductions in their records fail on the current tree.
 
 # 10. Security and Privacy Summary
 
 ## Evidence-based threat model
 
-Two surfaces exist. The first is the lint-time surface: untrusted ServiceNow source text and an untrusted `settings.servicenow` object arrive from the host. The plugin only parses source and never evaluates it; `src/settings/validate.ts` rejects unknown keys, wrong types, malformed sys_ids, malformed table names, malformed scope prefixes, malformed SDK versions, and five classes of cross-field conflict, and deep-freezes the result. No file, network, or process access occurs at lint time apart from the module-load `package.json` read noted in MNT-002. The second is the release surface: a tag push causes a build, a publish through OIDC, and a verification pass. That is where the material risk lives.
+Three assets: the published npm artifact and its provenance chain; the correctness of diagnostics a consumer relies on; and the developer machine or CI runner executing the linter. Three trust boundaries: host-supplied `settings.servicenow`, user source text, and the release pipeline's external state. Plausible actors are a repository administrator weakening governance, a compromised transitive dependency in a consumer install, and untrusted source text reaching analysis. There is no network listener, no credential store, no persisted data, and no multi-tenant surface.
 
 ## Confirmed vulnerabilities and risks by canonical ID
 
-No exploitable vulnerability was identified. The security-relevant findings are supply-chain and process issues: OPS-004 (the release gate installs and executes packages resolved from the live registry at run time), OPS-002 (branch protection requires checks that cannot report, so the enforcement it appears to provide is not actually in force), and OPS-005 (the release environment's reviewer topology is unconfigured, so the four-eyes control the policy describes does not exist).
+No `SEC` record is supported. The security-adjacent findings are PER-002, a resource-exhaustion path reachable from ordinary file content in the default preset; COR-008, a silent false negative in the rule that detects hardcoded instance identifiers; OPS-008, unbounded detection latency for release-governance drift; and OPS-004, a required check coupled to unpinned transitive dependency resolution. None meets the bar for a `SEC` classification: PER-002 costs availability of the linter process only, COR-008 weakens a lint heuristic rather than a control, and OPS-004 and OPS-008 are operational gaps in a pipeline whose primary controls hold.
 
 ## Defense-in-depth gaps
 
-The publish job executes `scripts/publish-release-package.mjs` from the downloaded `release-publish-input` artifact (`.github/workflows/release.yml:157`) without an independent digest check on the helper itself. Within a single workflow run only that run's jobs can produce the artifact, and `inspectPublishInput` does verify every file in the manifest including the helper's own SHA-256 — but that verification is performed by the very file being verified. Pinning the helper's digest as a job-level output from `validate` and comparing before execution would close the loop. This is a hardening opportunity, not a demonstrated weakness.
+The `publish` job executes `scripts/publish-release-package.mjs` from the downloaded `release-publish-input` artifact rather than from a checkout, holding `id-token: write`. The helper verifies its own input manifest digests at `scripts/publish-release-package.mjs:133-189`, and artifact names are immutable within a run, so no bypass was found; the residual is that the executing script's own bytes are not digest-checked before execution. MNT-004 records a required verifier argument that no check consumes, which overstates the verification's strength to a reader.
 
 ## Sensitive-data risks
 
-None identified. No `.env` files, credential files, private keys, or personal data were found in the repository. `scripts/release-governance.json` contains only structural policy and a placeholder principal identifier. `docs/release-governance-status.json` contains GitHub ruleset identifiers and configuration, not secrets. The release workflow uses no `NPM_TOKEN`; `CONTRIBUTING.md` explicitly forbids one, and the publish job holds only `id-token: write`.
+None found. No secret, token, private key, connection string, or personal data appears in tracked files. Release credentials are OIDC-derived at run time; `persist-credentials: false` is set on every checkout; and `registry-verify` runs `npm ci --ignore-scripts`. `scripts/release-governance.json` records numeric GitHub principal identifiers and logins, which are public identifiers rather than secrets.
 
 ## Authentication, authorization, and tenant-isolation risks
 
-Not applicable to the package. For the pipeline: `permissions: contents: read` is set at workflow level in both `ci.yml` and `release.yml`, every job that needs more declares it narrowly (`id-token: write` for publish, `contents: write` only for `github-release`), and every checkout sets `persist-credentials: false`. The one live gap is OPS-005.
+Not applicable: the plugin has no authentication, authorization, or tenancy. Establishing this used repository-wide searches for auth, session, token, tenant, and permission constructs in `src/`, which returned only the release pipeline's OIDC use.
 
 ## Abuse-resistance gaps
 
-The path-sensitive interpreter is the component most exposed to adversarial input, and it is explicitly bounded: a 50,000-unit work budget (`src/analysis/path-state.ts:43`), a 128-frame depth cap (line 44), a 512-frame walker depth cap (`src/utils/ast.ts:4`), a 16-iteration loop fixpoint bound, and a recursion cap in `canonicalNowNamespace`. Exceeding a budget degrades to unknown facts rather than failing or hanging (POS-004). `tests/integration/adversarial.test.ts` exercises this class.
+PER-002 is the one reachable resource-exhaustion path: 600 bytes of nested `do…while` statements consume about 30 seconds in a `recommended` rule with no budget. `src/analysis/path-state.ts` shows the correct mitigation already exists elsewhere (POS-004). No unbounded regular expression was found; the only unanchored pattern is COR-008's, which is a correctness rather than a complexity problem.
 
 ## Supply-chain or build-pipeline security concerns
 
-Strong: every action pinned to a full SHA and centrally reviewed (`scripts/action-pins.json`), npm trusted-publishing OIDC with no long-lived token, publication gated on a protected environment, `--ignore-scripts` on the publish install, and post-publication verification binding the registry artifact to the locally inspected tarball digest and to nine GitHub Fulcio OID extensions (POS-002). Weak: OPS-004's live registry installs inside the release gate, and IMP-001's blind spot for `uses:` values without `@`.
+Actions are pinned to full commit SHAs and cross-checked against a central table in both directions. Publication requires a `v*` tag whose commit equals `origin/main`, an environment with a reviewer, `preventSelfReview`, and no admin bypass. Provenance is verified after publication against nine Fulcio certificate extensions, the DER-encoded workflow identity, and the ID-enriched subject (POS-002). The gaps are OPS-008, drift in the external state all of this rests on, and OPS-004, unpinned transitive resolution inside a required check.
 
 ## Required immediate mitigations
 
-Fix OPS-002 so branch protection actually enforces, and separate the networked consumer test from the hermetic suite (OPS-004). Neither is an active exploit; both restore controls the project believes it already has.
+None are required immediately in the security sense. PER-002 should be treated as the priority availability fix, and OPS-008 as a cheap reduction in drift-detection latency.
 
 ## Disclosure and validation limitations
 
-No live GitHub or npm state was read, so the governance conclusions rest on `docs/release-governance-status.json`, which the repository itself labels `historical-unverified`. No exploit was attempted and none is warranted. One suspected defect was investigated and falsified: `verifyProvenanceAttestation` calls `verifyBundle(bundle, options)` with two arguments, and `sigstore@4.1.1`'s `verify(bundle, dataOrOptions, options)` (`node_modules/sigstore/dist/sigstore.js:73-83`) correctly treats a non-Buffer second argument as options, with `createVerificationPolicy` (`node_modules/sigstore/dist/config.js:59-72`) applying `certificateIdentityURI`, `certificateIssuer`, and `certificateOIDs`. The identity policy is enforced.
+Live GitHub governance state, npm trusted-publisher state, and the published attestation could not be read offline, so the live halves of the previous OPS-002, OPS-005, and OPS-006 remediations are recorded as not currently verifiable. No exploit was executed; PER-002 was measured with a benign timing probe on synthetic input. No scanner was run, so no scanner output is presented as evidence.
 
 # 11. Performance, Reliability, and Operations Summary
 
 ## Confirmed bottlenecks
 
-PER-001 is the only confirmed measured cost: a 939,040-byte declaration file, 63 percent of the unpacked package, with a measured 511-byte alternative. It costs consumer type-checking and download, not plugin runtime.
+PER-002: exponential traversal in the cursor-loop walkers, measured at 480 ms, 1.79 s, 7.53 s, and 29.96 s for depths 20, 22, 24, and 26 in the `recommended` preset, with a `while` and `for` control staying at 0.1 ms.
 
 ## Likely and scale-dependent risks
 
-None confirmed. The suspected risk — that `ScopeTree.innermostScopeContaining` (`src/analysis/bindings.ts:117-138`) performs a linear scan over all scopes whenever `scopeForNode` misses its fast paths — was measured and not reproduced: 50, 100, 200, and 400 scope blocks took 51 ms, 61 ms, 106 ms, and 266 ms, so an eight-fold input increase cost about five times the work. The ancestors fast path evidently dominates. This is recorded as measured-and-cleared rather than as a finding.
+`src/analysis/bindings.ts:117-135`: `innermostScopeContaining` performs a linear scan over every scope in the file, and several call sites in `src/analysis/path-state.ts:536-564` resolve bindings without ancestors, which reaches that scan. `src/analysis/fluent-imports.ts:113-156` walks the whole program per non-`const` alias resolution. Both are quadratic in principle. Neither was reproduced as a problem: the executed benchmark shows 1.5x scaling from small to large classic fixtures and all eleven benchmark cells complete between 40 ms and 177 ms. These are scale-dependent, not confirmed.
 
 ## Reliability and distributed-systems gaps
 
-OPS-004 is the material one: release validation depends on live registry availability. Beyond that, `scripts/verify-published-package.mjs` implements bounded retry with an explicit retryable predicate, a 180-second deadline, exponential backoff capped at 15 seconds, and `Retry-After` support (`parseRetryAfterMs`), and treats registry 404 as transient to absorb publication lag — a correct and deliberate design.
+None inside the plugin, which has no asynchrony. In the release pipeline, the previous REL-002 remediation is confirmed present: `scripts/verify-published-package.mjs:131` sets a 120-second per-operation bound applied to every npm child process, the import probe, and the attestation fetch, and every job in both workflows declares `timeout-minutes`.
 
 ## Recovery, reconciliation, and rollback gaps
 
-The publish path handles republication correctly: `publication-state` gates the publish job on `state == 'absent'`, `classifyPublishResult` maps `EPUBLISHCONFLICT` and the matching `E403` to `verify-existing` rather than failure, and `registry-verify` runs whether the version was newly published or already existed. The gap is that npm publication is not reversible, so the only real rollback is publishing a superseding version — which REL-001 can block for hyphenated prereleases.
+Publication is idempotent by design: an `EPUBLISHCONFLICT` or matching `E403` is reclassified as verify-existing at `scripts/publish-release-package.mjs:121-126`, and the `publication-state` job short-circuits an already-published version. A transport-level ambiguous result exits zero, and `registry-verify` is the reconciliation step that catches a publish that did not actually land. No gap was found.
 
 ## Observability and alerting gaps
 
-There is no scheduled run of any workflow: `ci.yml` triggers on push, pull request, and dispatch; `release.yml` on tags; `governance-audit.yml` on dispatch only. Time-dependent decay therefore has no detector, which is exactly how TST-001 stayed broken for roughly eight days. A nightly `schedule` trigger on the existing `test` job would have caught it the next morning.
+OPS-008: governance drift has no scheduled detection. `getPathBudgetExceededCount` exists in `src/analysis/path-state.ts:48-54` but has no equivalent for the unbudgeted cursor-loop walkers, which is part of PER-002's recommended fix.
 
 ## Operational features that should be added
 
-A scheduled CI run (above), a shipped-artifact size budget (PER-001), and the derived required-check assertion (OPS-002).
+Only the two already recorded: a schedule for the governance audit (OPS-008) and an offline mode for the acceptance verifier (OPS-004). No further operational tooling is supported by evidence; the repository already has dry-run-shaped checks (`--state-only`, `--changelog-only`, `--skip-install`) and a state-inspection job.
 
 ## Cost concerns supported by repository evidence
 
-Only PER-001's package size. There is no infrastructure, no runtime hosting, and no per-request cost.
+CI runs ten jobs on every pull request, including a matrix `compat` job with five cells that each perform a full install and packed-consumer run. REM-002 would remove one required step. No cloud-infrastructure cost exists.
 
 ## Optimizations that should not yet be pursued
 
-Do not optimise the scope-resolution path: it was measured and is not a bottleneck. Do not optimise the path-sensitive interpreter: the benchmark gate in `docs/performance.md` already bounds it with a large/small scale ratio and per-fixture regression thresholds, and no evidence suggests those thresholds are being approached.
+The two quadratic paths above. Neither has a measured impact, the benchmark gate covers the shapes that matter today, and optimizing them without a reproduction would be premature.
 
 ## Measurement or validation still required
 
-`npm run bench` was not executed in the canonical root because it writes `artifacts/`, so this review did not confirm the current tree meets the documented gate. That is recorded as a limitation, not a finding.
-
-### Current-review reliability and operational synthesis
-
-- OPS-006: A successful immutable npm publication can be reported as a failed release. Retrying cannot undo the publish and can create operator confusion, duplicate release work, or inconsistent GitHub release state.
-- REL-002: A release can stall indefinitely or until the CI platform maximum, tying up the release lock and obscuring whether an immutable publication completed.
-- OPS-007: Stale generated data can silently weaken rule coverage, documentation, and release support claims. Drift can persist until a user reports a missing or incorrect API surface.
+A nested-loop benchmark fixture to make PER-002's shape visible to the existing gate, and a scaling probe over scope count and non-`const` alias count if the quadratic paths are ever suspected.
 
 # 12. Dependency, Build, Deployment, and Supply-Chain Summary
 
 ## Material dependency risks
 
-The runtime dependency surface is a single package, `@oxlint/plugins`. Peers are declared with bounded ranges and all four are optional. Development dependencies pin the Sigstore stack (`@sigstore/core` 3.2.1, `@sigstore/mock` 0.12.1, `@sigstore/verify` 3.1.1, `sigstore` 4.1.1), `oxlint` 1.79.0, and `yaml` 2.9.0 exactly. Dependabot groups oxc packages and the dev toolchain and, per `CONTRIBUTING.md`, those updates are not auto-merged. The one dependency-adjacent risk is OPS-004's unpinned transitive resolution inside the test suite.
+One runtime dependency, `@oxlint/plugins`, with a caret range. Peers are bounded on both ends. Development dependencies pin the security-relevant ones exactly: `@sigstore/core`, `@sigstore/mock`, `@sigstore/verify`, `sigstore`, `oxlint`, and `yaml` are all exact. No abandoned, duplicated, or trivially replaceable dependency was found, and no dependency is used for functionality a few lines would cover.
 
 ## Build reproducibility
 
-`tsc` only, with `rootDir: src` and a flat `dist`. No bundler, minifier, or code generation at build time. The generated snapshot module is committed rather than built, which makes the build deterministic but places a 16,023-line generated file in source control — the trade-off behind PER-001.
+`tsc` from a committed `tsconfig.build.json`, with `prebuild` generating `src/version.ts` from `package.json` so no filesystem read occurs at module load. Building the same commit in an isolated clone reproduced a working `dist`, and the previous PER-001 remediation is confirmed: `dist/fluent/declaration-snapshots.d.ts` is 162 bytes and the largest emitted declaration is 5.8 KB.
 
 ## Package and artifact contents
 
-Verified from the 285,737-byte tarball: 211 files, `dist/` (103 JavaScript files plus declarations), `package.json`, `README.md`, `LICENSE`, `CHANGELOG.md`, `oxfmt.recommended.json`. No `src/`, `tests/`, or `.github/` content, and `tests/integration/packed-consumer.test.ts:66-70` asserts those exclusions plus the absence of any `.env`. `dist/runtime/apply-rules.js` ships although it is not reachable through the `exports` map (MNT-001).
+`files` limits the tarball to `dist`, `oxfmt.recommended.json`, `README.md`, `LICENSE`, and `CHANGELOG.md`, so no test, plan, or acceptance artifact ships. `scripts/check-release-artifact.mjs:185-226` validates every `exports` target against the tarball listing, rejects non-relative and traversing targets, and requires declaration targets to end in a declaration extension.
 
 ## CI/CD permissions and trust boundaries
 
-Workflow-level `permissions: contents: read` in both workflows; `persist-credentials: false` on every checkout; `id-token: write` and nothing else on the publish job, which performs no checkout; `contents: write` only on `github-release`. `concurrency: release-${{ github.ref }}` with `cancel-in-progress: false` prevents overlapping releases. The `validate` job verifies that the tag matches `package.json`, that the OIDC subject matches `repo:` followed by the repository slug and `:environment:release`, and that `GITHUB_SHA` equals `origin/main`, so a tag on a non-`main` commit cannot publish.
+Workflow-level `contents: read` with per-job narrowing. The `publish` job holds only `id-token: write` and performs no checkout. `github-release` is the only job with `contents: write`. Every checkout sets `persist-credentials: false`. The residual is recorded under section 10's defense-in-depth note and MNT-004.
 
 ## Container risks
 
-Not applicable: searched for Dockerfiles, compose files, and `container:` or `services:` keys in the workflows; none exist. All jobs run directly on `ubuntu-latest`.
+Not applicable: the repository contains no Dockerfile, container definition, or orchestration manifest. Established by a repository-wide search for container and orchestration files, which returned none; all execution is on GitHub-hosted runners.
 
 ## Deployment and rollback risks
 
-Covered in section 11. The one code-level risk is REL-001 blocking a superseding prerelease.
+Deployment is npm publication. Rollback is publishing a higher version, since npm forbids republishing a version; `validateRegistryVersionOrder` enforces strict monotonicity, subject to REL-003's ordering defect for mixed-case prereleases.
 
 ## Migration and application-release coupling
 
-Not applicable: no database or persisted state, so releases carry no migration coupling.
+Not applicable: there is no data store and therefore no migration coupled to release. The nearest coupling is the settings compatibility layer, tracked under FEAT-002.
 
 ## Provenance, integrity, and signing concerns
 
-This is the project's strongest area and is recorded as POS-002. The active concern is that the test proving the verifier works is red (TST-001), so the capability is currently unattested by the suite.
+Strong and recorded as POS-002. The residual concerns are MNT-004's dead argument and OPS-008's undetected governance drift.
 
 ## Licensing concerns
 
-MIT, declared in `package.json` and shipped as `LICENSE` in the tarball. No vendored third-party source was found in `src/` or `scripts/`, so no additional attribution obligation was identified. A full transitive licence audit was not performed and is recorded as a limitation.
+MIT, with a `LICENSE` file and matching `package.json` field. No vendored third-party source was found in `src/`; `tests/fixtures/preset-1.1.0/` vendors this project's own historical bytes.
 
 ## Recommended changes
 
-OPS-004 (hermetic default suite with a pinned consumer job), IMP-001 (structural workflow parsing), PER-001 (declaration size), and the digest-pinned publish helper described in section 10.
+OPS-008, MNT-004, REL-003, and REM-002 in that order of cost-to-value. No dependency upgrade, replacement, or removal is recommended.
 
 ### Current-review package and release synthesis
 
-- API-001: Thread the supplied AST through traversal and node-index construction. Validate that scope information belongs to the same AST and return a clear error when it does not.
-- OPS-006: Read version from package.json or npm registry metadata and verify only supported export-map entries. Add a tarball-based contract test that uses the same verifier logic before publication.
-- OPS-007: Add an offline required workflow step with path filters for the generator and generated data, plus a scheduled job if upstream retrieval is part of the intended contract.
+The release pipeline is the strongest part of the repository and every previous release-side record is resolved at HEAD. What remains is one dead argument, one comparator deviation, one unscheduled audit, and one required check that reaches the network.
 
 # 13. Documentation and Developer-Experience Summary
 
 ## Stale, missing, or contradictory documentation
 
-- DOC-002: two evidence URLs still cite Xanadu while the supported release list is Zurich-only.
-- MNT-001: `CONTRIBUTING.md` documents an `## Autofixes` contribution procedure for a capability no rule implements.
-- DOC-001: `docs/pr-51-validation-report.md` presents a worktree digest that cannot be reproduced.
-- OPS-005: `CONTRIBUTING.md` release step 1 instructs the maintainer to run a governance audit that cannot pass against the checked-in policy.
-- OPS-004: `CONTRIBUTING.md` presents `npm run validate` as one self-contained command, without noting that it requires network access.
-
-The generated documentation itself is in excellent shape. Regenerating `docs/rules/`, the README tables, and `docs/compatibility.md` in an isolated copy produced a byte-identical result against the working tree, confirming the catalog and its documentation are synchronised (POS-003).
+DOC-002: one release-pinned Xanadu evidence link remains in a research note that `docs/non-goals.md` cites. `FINDINGS-REMEDIATION.md` outstanding action 3 states that the required `test` check no longer covers the packed-consumer path, which OPS-004's evidence contradicts. `src/analysis/path-state.ts:105-115` carries an orphaned documentation comment describing `isSynchronousIife` immediately above the comment for `constantTruthiness`, and that second comment claims `undefined` at global scope is handled when the implementation handles only literals and `!` chains.
 
 ## Onboarding problems
 
-The largest is OPS-001: a new contributor cloning the repository cannot run `npm run validate` successfully, because three required configuration files are missing from git. The failure messages (`Failed to read .../.oxfmtrc.json: File not found`, `error TS5058`) do not suggest the cause.
+The repository root presents `FINDINGS.md`, `FINDINGS-REMEDIATION.md`, and `PR51-REMEDIATION-GOAL.md` before a reader reaches the product, and `plans/` holds 17 further process documents. REM-002 addresses this.
 
 ## Local-development friction
 
-`npm test` takes roughly 64 seconds with `--test-concurrency=1` and requires network access (OPS-004). The serialization is deliberate and documented in `scripts/run-tests.mjs:60-62`, and the script supports narrowing to a subdirectory or file, which mitigates the cost during development.
+`npm run validate` cannot run without network access because it chains `acceptance:check` (OPS-004). Every other gate runs offline, which was verified by executing them all in an isolated clone.
 
 ## Feedback-loop and test-environment friction
 
-Two tests fail for environmental rather than code reasons in common configurations (TST-001 always; TST-002 in any shallow checkout), which erodes trust in a red suite. The absence of a scheduled run means time-dependent decay is only discovered by the next person to run the suite.
+The hermetic suite completes in about 27 seconds for 805 tests, which is good. The two networked tests add package installs and dominate the acceptance capture's runtime.
 
 ## Debugging limitations
 
-`src/runtime/apply-rules.ts:120-133` carries an unusually honest doc comment stating that the harness is not authoritative — it does not use the host `getScope()`, does not enforce the host JSON schema before `createOnce`, emulates traversal, and always records severity as `error` — and directs the reader to prove production behavior with the Oxlint and ESLint host tests. That is a model of a well-documented test double.
+`src/runtime/apply-rules.ts:69-81` documents honestly that the test harness is not authoritative: it does not use the host `getScope`, does not enforce the option schema, and emulates traversal. That honesty is valuable and is also why COR-007 escaped: the harness reproduces oxc's AST shape, so host-shape differences are invisible to it.
 
 ## Tooling improvements
 
-IMP-001 and IMP-002, plus the scheduled CI run described in section 11.
+The recommended additions are all test-shaped and are listed in section 9. No new tooling is warranted.
 
 ## Important invariants requiring documentation
 
-The one that most needs writing down is COR-001's corrected rule: which part of the filename participates in surface inference. The README documents the directory conventions (`src/client/**`, `br/**`) without stating that they are currently matched against the whole absolute path.
+Three currently undocumented invariants: that AST node and comment offsets must be read through the portable accessor (COR-007); that analysis traversals must be bounded by a deterministic budget (PER-002, POS-004); and that scripts run by the `workflow` CI job must have no third-party imports (IMP-001). All three are currently maintained by convention alone. `CONTRIBUTING.md` is the right home for them.
 
 ## Positive documentation or DX patterns worth preserving
 
-POS-003 (catalog-derived documentation that regenerates byte for byte), the `docs/non-goals.md` requirement that every rule proposal explain why it is not a documented non-goal, and the explicit "this harness is not authoritative" comment above.
+Documentation is generated from the catalog and enforced byte-identical by `docs:check`, which was executed and produced an empty diff (POS-003). `docs/decisions.md` records product decisions with explicit review triggers, which is what makes FEAT-001, FEAT-002, and REM-001 trackable rather than forgotten. `docs/non-goals.md` states what the plugin deliberately will not infer.
 
 ### Current-review documentation and developer-experience implications
 
-- COR-003: Document the corrected path-state semantics as an internal invariant.
-- API-001: Clarify the public alternate-AST and scope-manager contract.
-- OPS-006: Make the version 2 package-root export contract authoritative in release documentation.
+Two documentation corrections are cheap and worth doing with their related fixes: correct the enforcement claim in `FINDINGS-REMEDIATION.md` alongside OPS-004, and repair the orphaned and inaccurate comments in `src/analysis/path-state.ts` alongside any change to that file.
 
 # 14. Prioritized Roadmap
 
-Dependencies are written as prose rather than as canonical identifiers, because a roadmap row belongs to exactly one priority group. Section 15 states the identifier-level ordering.
-
 ## Now
 
-
-- COR-003 — The shared path evaluator produces unsound control-flow joins. Goal: Introduce an explicit completion-state algebra with normal, return, throw, break, and continue outcomes; prune statically constant branches; evaluate switch tests in runtime order; and join environment identities as sets or conservative unknowns. Dependencies: A small evaluator test harness that can assert intermediate state and final diagnostics. Expected value: The same core engine can create false positives and false negatives across several rules. Effort: Large. Risk: Medium. Completion: Add unit tests for each control-flow construct, branch-order permutation tests, and integration tests for representative rules.
-- COR-006 — Fluent import aliases are resolved in lexical instead of execution order. Goal: Move alias tracking onto the shared execution/path model or implement a bounded interprocedural summary for synchronous local calls. Dependencies: The control-flow state corrections in the shared evaluator should land first. Expected value: Rules can trust a stale alias and miss unsafe or unsupported usage, or reject a valid alias because of dead code. Effort: Large. Risk: Medium. Completion: Add permutation tests, uncalled-function tests, direct and indirect local call tests, recursion bounds, and unknown-call conservative behavior.
-- OPS-006 — Post-publish verification requires a removed package-root export. Goal: Read version from package. Dependencies: A fixture or adapter that lets the same verification code inspect a local packed artifact. Expected value: A successful immutable npm publication can be reported as a failed release. Effort: Small. Risk: Low. Completion: Run the verifier against a local tarball and a controlled registry fixture for version 2.
 | ID | Goal | Dependencies | Expected value | Effort | Risk | Completion or validation criteria |
 | --- | --- | --- | --- | --- | --- | --- |
-| OPS-003 | Commit and push the working tree so the work is durable | None | Removes total-loss exposure for 13,671 lines held on one disk | Small | Low | `git status --porcelain` empty; branch pushed |
-| OPS-001 | Track the three configuration files the package scripts require | Committing the working tree first | A clean checkout can run its own quality gates | Small | Low | An exported checkout of the tip passes lint, format, and fixture type checks |
-| TST-001 | Make the provenance fixture clock track the run clock | None | Restores `npm test`, the CI test job, and the release validate job | Small | Low | The release test file reports 16 of 16 passing |
-| TST-002 | Assert the pinned preset digest from committed bytes | Committing the working tree first | The CI test job survives a depth-1 checkout | Small | Low | The test passes in a shallow clone |
-| OPS-002 | Reconcile required status checks with producible job names | Governance principals settled; administrator access to branch protection | Unblocks merging into the default branch | Small | Medium | A test proves the subset relation; a pull request reports every required check |
-| OPS-004 | Make the default suite hermetic and pin the consumer install | Required-check list derived and asserted first | Reproducible release gate; offline development | Medium | Medium | `npm test` passes with the network disabled; the consumer job still detects a broken export map |
-| COR-001 | Match surface directory heuristics relative to the working directory | None | Diagnostics stop depending on where the repository was cloned | Small | Low | Absolute decoy-path tests agree with relative-path results |
+| PER-002 | Bound the cursor-loop walkers so the linter always finishes | None | Removes a resource-exhaustion path from the default preset | Small | Low | 30 nested `do…while` statements complete under a fixed wall-clock bound for both rules; a nested-loop fixture is in the benchmark corpus; existing loop findings unchanged |
+| COR-007 | Make every AST offset read portable across supported hosts | None | Correct Fluent diagnostics on the documented `typescript-eslint` setup | Medium | Low | A range-only AST fixture produces diagnostics identical to the offset-bearing AST for the four Fluent rules; the packed-consumer test covers an alias case and a directive case |
+| COR-008 | Stop the digest-name heuristic from hiding real sys_ids | None | Restores true positives in a `recommended` rule | Small | Low | The ten-name matrix passes in both directions |
 
 ## Next
 
-
-- COR-004 — Cursor-based loop checks drop context inside synchronous IIFEs. Goal: Add a shared immediate-invocation predicate and preserve the parent execution context only for proven synchronous IIFEs. Dependencies: Coordinate the helper location with the shared analysis utilities to avoid another rule-local implementation. Expected value: The affected rules miss diagnostics in a documented and practically common code shape. Effort: Small. Risk: Low. Completion: Run focused rule tests and a cross-rule contract test that asserts the same IIFE boundary behavior.
-- COR-005 — Receiver display names are used as semantic identities. Goal: Introduce a receiver-key abstraction that prefers scope-resolved bindings, otherwise uses AST node identity within the analysis run, and treats uncertain aliasing conservatively. Dependencies: Scope-manager behavior for identifiers and a documented fallback for expressions without a binding. Expected value: The rules can pair operations from different objects, miss same-object operations, or become sensitive to formatting and expression shape. Effort: Medium. Risk: Medium. Completion: Add unit tests for key construction and integration tests that prove no cross-receiver collision and no formatting dependence.
-- API-001 — analyzeProvenance ignores its alternate AST argument. Goal: Thread the supplied AST through traversal and node-index construction. Dependencies: Define the supported behavior for a supplied AST with no matching scope manager. Expected value: The public API can return provenance for the wrong program. Effort: Medium. Risk: Medium. Completion: Add a contract test with two distinct ASTs, a mismatched scope-manager test, and standard same-AST regression coverage.
-- REL-002 — The release verification deadline does not bound individual operations. Goal: Use AbortController for fetch, child-process timeout and kill handling for npm, pass the remaining budget into each operation, and set timeout-minutes on release jobs. Dependencies: An injectable clock, fetch adapter, and child-process runner for deterministic tests. Expected value: A release can stall indefinitely or until the CI platform maximum, tying up the release lock and obscuring whether an immutable publication completed. Effort: Medium. Risk: Low. Completion: Use fake timers and injectable adapters for never-resolving fetches and children.
-- OPS-007 — The SDK drift check is not enforced by CI. Goal: Add an offline required workflow step with path filters for the generator and generated data, plus a scheduled job if upstream retrieval is part of the intended contract. Dependencies: Identify the authoritative drift command and whether upstream refresh needs separate network authorization. Expected value: Stale generated data can silently weaken rule coverage, documentation, and release support claims. Effort: Small. Risk: Low. Completion: Modify a generated fixture without its source and confirm the required job fails; regenerate correctly and confirm it passes.
 | ID | Goal | Dependencies | Expected value | Effort | Risk | Completion or validation criteria |
 | --- | --- | --- | --- | --- | --- | --- |
-| OPS-005 | Configure real governance principals or record the accepted risk | A maintainer decision on the reviewer topology | The documented release step 1 becomes executable | Small | Medium | Desired-policy validation returns no errors |
-| COR-002 | Suppress 32-character digests for every hash-like name | None | Removes a false positive in a recommended-preset rule | Small | Low | The six measured variable names behave as documented |
-| REL-001 | Compare hyphenated prerelease identifiers correctly | None | A valid successor prerelease can publish | Small | Low | The hyphenated comparison returns a positive number |
-| PER-001 | Emit an interface annotation instead of a const assertion | None | 939 KB down to 511 B declaration; 2.8 MB down to 1.9 MB build output | Small | Low | A rebuild reproduces the measured sizes; the Fluent tests pass |
-| IMP-001 | Parse workflow YAML structurally in the pin assertions | None | Closes a silent-pass hole in action pinning | Small | Low | Fixtures with local-path and container `uses:` values are rejected |
+| API-002 | Make the published provenance contract honest | The shared npm dependants query required by the 3.0 portfolio decisions | Removes a silently wrong public API answer | Medium | Low | The four fields are annotated deprecated with a 3.0 trigger in `docs/decisions.md`, and a contract test pins their current values |
+| OPS-004 | Make required validation runnable offline | The decision on retiring the acceptance apparatus | Removes third-party availability from a required check | Medium | Low | `npm run validate` completes with no network access; the `consumer` job carries the networked capture and is added to the required checks |
+| COR-009 | Apply every write form in the alias resolver | The portable offset accessor landing first | Removes a false positive and a false negative in Fluent rules | Small | Low | Both `var` redeclaration directions and the assignment control pass in the alias matrix |
+| REM-002 | Set the retirement trigger for the PR #51 apparatus | PR #51 merged to `main` | Removes about 18,000 lines and one required step from a library | Medium | Low | The trigger and archive plan are recorded in `docs/decisions.md`; after execution, `workflow:check` and `check-script-paths.mjs` pass with no dangling references |
+| OPS-008 | Detect governance drift without a human trigger | None | Bounds detection latency for the state the release guarantees rest on | Small | Low | A scheduled run appears and passes; a test asserts drift-detection workflows declare a schedule |
 
 ## Later
 
 | ID | Goal | Dependencies | Expected value | Effort | Risk | Completion or validation criteria |
 | --- | --- | --- | --- | --- | --- | --- |
-| MNT-001 | Delete the autofix harness or ship one safe fix | A maintainer decision on whether fixes are planned | Documentation matches actual capability | Small | Low | No unreachable fix code remains, or a fix ships with idempotence and comment-preservation tests |
-| DOC-001 | Exclude generated outputs from the ledger digest scope | A stable committed tree | The evidence token becomes reproducible | Small | Low | Two consecutive ledger runs produce the same digest |
-| DOC-002 | Repoint the two Xanadu evidence links at Zurich | None | Evidence links match the stated supported release | Small | Low | A new assertion rejects unsupported release segments |
-| MNT-002 | Generate the version constant at build time | None | The no-side-effects declaration becomes accurate | Small | Low | The packed-consumer version assertion still passes |
-| MNT-003 | Use prototype-free lookup tables for constructor names | None | The provenance kind type becomes true at runtime | Small | Low | Prototype member names resolve to no match |
-| REM-001 | Announce removal of the deprecated rule alias for the next major | The 2.0 line published with a visible notice | Closes an open migration path on a schedule | Small | Low | Changelog and generated rule page name the removal version |
-| IMP-002 | Replace the exact npm version gate with a bounded range | Correct prerelease comparison landed first | npm patches without a coupled code change | Small | Medium | Boundary tests pass; the publish job aligns with the pipeline Node version |
-| FEAT-001 | Fold the one-rule and two-rule presets into documented lists | A major version boundary and registry dependents data | Smaller permanent public surface | Small | Medium | Deprecation shipped one minor ahead; exports removed at the major |
+| REL-003 | Order prerelease identifiers by ASCII as the specification requires | None | Removes a runtime-dependent result from a release gate | Small | Low | Mixed-case pairwise cases and a full-list sort assert ASCII order |
+| MNT-004 | Give the trusted-publisher argument a real check | None | Removes a decorative control from the release verifier | Small | Low | A mismatched subject fails with a `provenance-expectation` error |
+| DOC-002 | Remove the last unsupported-release evidence link and widen the guard | Network access to confirm the replacement URL | Keeps cited evidence current by construction | Small | Low | The widened guard fails before the URL change and passes after |
+| REM-001 | Delete the deprecated GlideRecord alias at 3.0 | 3.0 boundary; dependants evidence | Removes a duplicate cursor-semantics implementation | Small | Low | The identifier is absent from `rules` and every preset; `require-query-before-next` covers every case the alias covered |
+| FEAT-001 | Decide the thin presets' fate at 3.0 with evidence | 3.0 boundary; dependants evidence | Reduces permanent public surface, or documents why it stays | Small | Low | The 3.0 notes record the decision and the evidence it rests on |
+| IMP-001 | Harden the dependency-free `uses:` matcher | None | Closes two enumerated false-result paths in a supply-chain gate | Small | Low | Block-scalar and empty-owner fixtures behave correctly; the script still runs with no `node_modules` |
 
 ## Investigate
 
 | ID | Goal | Dependencies | Expected value | Effort | Risk | Completion or validation criteria |
 | --- | --- | --- | --- | --- | --- | --- |
-| FEAT-002 | Decide whether to retire the 1.x settings compatibility layer | The 2.0 line published and registry dependents data available | Four fewer conflict branches, or a recorded decision to keep them | Small | Medium | A recorded decision with a review date, or removal announced for the next major |
+| FEAT-002 | Gather dependants evidence before retiring the 1.x settings layer | Network access to npm and GitHub search | Ties a breaking change to evidence rather than a calendar | Small | Low | The evidence is gathered or recorded as unavailable, and the conditional retirement plan in `docs/decisions.md` is resolved to a concrete 3.0 action |
 
 ## Do Not Pursue
 
-These rows are preservation decisions. No work is proposed and no change should be made. They are listed so a future change cannot silently remove these properties without an explicit decision.
-
 | ID | Goal | Dependencies | Expected value | Effort | Risk | Completion or validation criteria |
 | --- | --- | --- | --- | --- | --- | --- |
-| POS-001 | Preserve the unknown-means-silent context model | None | Keeps the property that makes the linter usable in practice | Small | Low | Its stated invariants remain asserted by the context tests |
-| POS-002 | Preserve exact provenance identity verification | The positive-path provenance test restored to green | Keeps the strongest supply-chain control in the project | Small | Low | The full release test file passes again |
-| POS-003 | Preserve the catalog as the single source of truth | None | Keeps presets and documentation structurally synchronised | Small | Low | Documentation regeneration continues to produce no diff |
-| POS-004 | Preserve the deterministic analysis budget | None | Keeps adversarial and machine-generated input bounded | Small | Low | Budget counters and adversarial tests remain in place |
+| POS-001 | Preserve the unknown-means-silent context model | None | Prevents wrong diagnostics on unclassified files | Not applicable: preservation, no delivery effort | Low | Any change that makes an unknown dimension permissive is rejected in review |
+| POS-002 | Preserve the exact-digest and full-identity provenance binding | None | Keeps the published artifact bound to one build | Not applicable: preservation, no delivery effort | Low | The nine certificate extensions, the DER encoding, and the enriched subject remain asserted |
+| POS-003 | Preserve the single-source catalog and byte-identical regeneration | None | Keeps documentation, presets, and examples from drifting | Not applicable: preservation, no delivery effort | Low | `docs:check` continues to produce an empty diff |
+| POS-004 | Preserve the deterministic path-analysis budget | None | Guarantees termination under adversarial input | Not applicable: preservation, no delivery effort | Low | The work and depth caps and the degradation path remain, and the cursor-loop fix extends them rather than removing them |
+
+The `Do Not Pursue` group holds preservation decisions rather than rejected work: these four rows exist so that a future change cannot quietly remove a property this review confirmed. No recommendation was found whose cost or risk outweighs its value. The two candidate optimizations that would qualify, the quadratic scope scan and the per-alias program walk, are recorded in section 11 as scale-dependent and deliberately not raised to records, because neither has a measured impact.
 
 # 15. Suggested Implementation Sequence
 
-Durability comes first. OPS-003 must precede everything, because until the tree is committed, every other fix is a change to content that exists in one place. It has no dependencies and takes minutes.
+Start with PER-002. It is small, self-contained, has no dependencies, and removes the only unbounded execution path in the default preset. Landing it first also establishes the budget helper that section 13 identifies as an undocumented invariant.
 
-OPS-001 follows immediately, because the three files can only be tracked as part of that commit, and because until they are, no CI run can produce a meaningful signal about any later fix.
+Take COR-007 second, and land its parity fixture before its fix so the failure is demonstrated rather than asserted. It touches four analysis modules plus one rule, so it should not share a change with PER-002 even though both touch traversal code. COR-009 follows COR-007 directly, because the write-ordering it extends is the comparison COR-007 makes portable; sequencing them the other way would require touching `latestSimpleValue` twice.
 
-TST-001 is independent of both and can be done in parallel; it is one line. Doing it before the first push means the first CI run of the committed tree is informative rather than red for a known reason.
+COR-008 is independent of both and can run in parallel. It is a pure predicate with a two-directional test matrix and no compatibility surface, but it increases diagnostics for consumers whose identifiers accidentally matched, so it belongs in a minor release with a changelog note rather than a patch.
 
-TST-002 must land before the first push as well, for the same reason: otherwise the CI `test` job fails in a way that masks whether OPS-001 was fixed correctly.
+OPS-004 and REM-002 should be sequenced together and decided before either is implemented. If REM-002's trigger fires soon, the acceptance verifier disappears and OPS-004's offline mode is wasted work; if the apparatus is kept, the offline mode is required. Whichever is chosen, the `consumer` job must be added to the required status-check list at the same time, because it becomes the only required coverage of the packed-consumer path.
 
-Once those four are done, a green CI run is possible for the first time, and OPS-002 becomes actionable. It depends on OPS-005 only in the sense that both must be settled before the governance audit reports cleanly; the check-name derivation itself can be written first and will simply document the mismatch until the live ruleset is corrected. The ruleset edit is the one step this repository cannot perform itself and needs administrator action, so start the derivation early and schedule the administrative change alongside it.
+OPS-008, MNT-004, REL-003, and IMP-001 are independent, small, and can land in any order or together, since all four touch only release tooling and workflows and none changes plugin behaviour. Grouping them into one maintenance change is safe and does not broaden scope.
 
-COR-001, COR-002, REL-001, and PER-001 are independent behavior fixes with no ordering constraints among themselves and can proceed in parallel once CI is trustworthy. COR-001 changes user-visible diagnostics, so it needs a `CHANGELOG.md` entry and should land early in a release cycle rather than just before a tag. PER-001 changes the published declaration shape and should land before the next publish so the size reduction is in the first release rather than a later one.
+API-002, FEAT-001, FEAT-002, and REM-001 share one prerequisite: dependants evidence for the published package. Gather it once and resolve all four together at the 3.0 planning boundary. None of them may land during 2.x, because each is a breaking change to a published contract, so the sequencing constraint is the major-version boundary rather than any technical dependency.
 
-OPS-004 is the largest piece and should follow OPS-002, because splitting the suite adds a job that must become a required status check to keep enforcement equivalent — and adding a required check is only safe once the required-check list is derived and asserted.
+DOC-002 needs network access to confirm the replacement URL, so it is gated on an environment rather than on other work.
 
-IMP-002 depends on REL-001, because it reuses the same version comparison. REM-001 and FEAT-002 both depend on 2.0 actually being published, so they cannot start until the release blockers above are cleared. FEAT-001 depends on a major boundary and on dependents data, placing it furthest out.
+Observability before risky changes: PER-002's budget counter and the nested-loop benchmark fixture should land with the fix, not after, so the shape is covered by the existing gate before any further traversal change. Test foundations before behaviour changes: the COR-007 parity fixture, the COR-008 matrix, and the COR-009 alias cases are all red-before-green on the current tree and should be written first. Rollback capability is uniform: every recommended change is a revert away, and none touches persisted data, a published contract during 2.x, or a deployment path.
 
-Two sequencing constraints deserve emphasis. First, no observability work is needed before the risky changes here, because every fix is covered by existing tests or by tests specified in section 9 — but adding the scheduled CI run described in section 11 before COR-001 and COR-002 would mean any regression is caught within a day rather than at the next manual run. Second, do not combine OPS-004's suite split with OPS-002's ruleset edit in one change: both alter what enforcement is actually in force, and separating them keeps each independently revertible.
-
-Parallelizable: TST-001 with OPS-003 and OPS-001; COR-001, COR-002, REL-001, PER-001, IMP-001, DOC-002, MNT-001, MNT-002, and DOC-001 with each other. Strictly serial: OPS-003 before OPS-001; REL-001 before IMP-002; OPS-002 before OPS-004; publication before REM-001 and FEAT-002.
+Parallelizable: PER-002, COR-008, and the release-tooling group are mutually independent. Serial: COR-007 then COR-009; OPS-004 after the REM-002 decision; every 3.0 record after the dependants evidence.
 
 # 16. Validation Performed
 
-All commands ran from the canonical root or from copies outside it, as noted. Repository-defined commands were statically inspected before execution as required by the command-safety gate: `scripts/run-tests.mjs` was read in full and confirmed to spawn `tsx --test` over discovered `*.test.ts` files with no lifecycle hooks; `package.json` was confirmed to declare no `preinstall`, `install`, or `postinstall` hooks, only `prepack` and `prepublishOnly`, neither of which was invoked.
+All executable validation ran against an isolated `git clone --no-hardlinks` of `798d286` at `/tmp/sr-oxc2-OR6gMH`, with `node_modules` copied from the working tree. No repository-defined command was executed against the user's working tree. No dependency was installed or upgraded. Every command below was classified under the untrusted-repository command-safety gate before execution, after reading the script body and its transitive helpers.
 
-| Command | Working directory | Safety classification | Exit status | Material output | Files changed |
-| --- | --- | --- | --- | --- | --- |
-| `git status/diff/log/branch/rev-parse/check-ignore/merge-base` | canonical root | Cleared, read-only | 0 | Baseline state: 228 M, 47 ??, 3 D; HEAD b87972a | None |
-| `npm test` | `/tmp/super-review-oxc-sn/repo-copy` | Cleared with constraints: isolated copy, `.git` removed | 1 | 790 tests, 2 failures, 63.65 s | `dist/`, temp consumer dirs in the copy only |
-| `npx tsx --test tests/release/layer7.test.ts` | isolated copy | Cleared with constraints | 1 | 16 tests, 15 pass, 1 fail, `Failed to verify certificate chain` | None |
-| same, with `fixed = new Date()` | isolated copy | Cleared with constraints | 0 | 16 tests, 16 pass | Test file edited in the copy, then restored |
-| `npx tsx --test tests/configs.test.ts` | canonical root | Cleared, read-only (git plumbing only) | 0 | 5 tests, 5 pass | None |
-| `git clone --depth 1 --no-local` then `git show c987eee…:package.json` | `/tmp/super-review-oxc-sn/shallow` | Cleared, read-only clone | non-zero | `fatal: path 'package.json' exists on disk, but not in 'c987eee…'` | None in the canonical root |
-| `git archive HEAD \| tar -x` then `oxfmt`, `oxlint`, `tsc` | `/tmp/super-review-oxc-sn/head-probe` | Cleared with constraints: exported tree, `node_modules` symlinked read-only | 1, 1, TS5058; `tsc -p tsconfig.build.json` 0 | Missing `.oxfmtrc.json`, `.oxlintrc.json`, `tsconfig.valid-fixtures.json` | `dist/` in the probe only |
-| `tsc -p tsconfig.build.json` with and without `as const` | isolated copy | Cleared with constraints | 0 | `.d.ts` 939,040 B versus 511 B; `dist` 2.8 M versus 1.9 M | `dist/` and the snapshot file in the copy, then restored |
-| `npx tsx --test tests/fluent-manifest.test.ts tests/rules/fluent-identity.test.ts tests/fluent-auditor.test.ts` | isolated copy, patched snapshot | Cleared with constraints | 0 | 35 tests, 35 pass | None |
-| `generate-rule-docs.mjs`, `generate-compatibility-docs.mjs`, then `diff -rq` against the canonical root | isolated copy | Cleared with constraints: writes only inside the copy | 0 | No differences in `docs/rules`, `README.md`, `docs/compatibility.md` | Generated files in the copy only |
-| `node scripts/check-compat-matrix.mjs --github-matrix` | canonical root | Cleared, read-only | 0 | 5 matrix cells; producible `compat` check names derived | None |
-| `node scripts/check-release-governance.mjs --desired tests/fixtures/release-governance/desired.json --fixture .../valid.json` | canonical root | Cleared, read-only fixtures, no `gh` call | 0 | `{"ok": true, "errors": []}` | None |
-| `validateDesiredGovernance(scripts/release-governance.json)` | canonical root | Cleared, read-only import | 0 | Two errors: unconfigured tag actor, no reviewer | None |
-| `compareReleaseVersions` / `validateRegistryVersionOrder` probes | isolated copy | Cleared, pure functions | 0 | `2.0.0-rc-2` versus `2.0.0-rc-1` returns 0; ordering guard throws | None |
-| `surfacesFromFilename` and `lint()` probes | isolated copy | Cleared, in-process | 0 | Six path shapes; `no-client-gliderecord` 1 versus 0 diagnostics | Probe file created and deleted |
-| `no-hardcoded-sysid` / `looksLikeMd5Context` / `findSysIds` probes | isolated copy | Cleared, in-process | 0 | `md5` 0 diagnostics; five other names 1 each; 40- and 64-hex return `[]` | Probe file created and deleted |
-| Preset membership and placement census | isolated copy | Cleared, in-process | 0 | 23/29/10/3/6/7/5/2/1 rules; one entry with no placement | Probe file created and deleted |
-| Analysis scaling probe, 50 to 400 scope blocks | isolated copy | Cleared, in-process | 0 | 51, 61, 106, 266 ms | Probe file created and deleted |
-| Worktree diff-digest recomputation | canonical root | Cleared, read-only | 0 | `83aec3a1…` versus recorded `f08aa4c1…` | None |
+| Command | Working directory | Safety classification | Exit status | Material output |
+| --- | --- | --- | --- | --- |
+| `git rev-parse`, `git status --porcelain`, `git log`, `git branch -a`, `git merge-base --is-ancestor`, `git cat-file -e`, `git ls-files`, `git diff --stat` | canonical root | Cleared: read-only version-control queries | 0 | Clean worktree at `798d286`; `b87972a` confirmed an ancestor; all 26 commit identifiers cited by `FINDINGS-REMEDIATION.md` exist and are ancestors of HEAD |
+| `git archive HEAD \| tar -x` and `git clone --no-hardlinks` | canonical root, writing outside the repository | Cleared: read-only export | 0 | Two isolated copies created outside the repository |
+| `tsc --noEmit -p tsconfig.json` and `-p tsconfig.valid-fixtures.json` | isolated copy | Cleared with constraints: inspected, no network, isolated | 0 | No diagnostics |
+| `oxlint --disable-nested-config --deny-warnings ... src scripts tests` | isolated copy | Cleared with constraints | 0 | No diagnostics |
+| `oxfmt -c .oxfmtrc.json --check src scripts tests` | isolated copy | Cleared with constraints | 0 | 201 files correctly formatted |
+| `node scripts/generate-version.mjs` and `tsc -p tsconfig.build.json` | isolated clone | Cleared with constraints: writes `src/version.ts` and `dist/` inside the isolated copy only | 0 | `src/version.ts = 2.0.0`; build succeeded; `dist/fluent/declaration-snapshots.d.ts` measured at 162 bytes |
+| `node scripts/run-tests.mjs` | isolated clone | Cleared with constraints: inspected `run-tests.mjs` and the networked-test exclusion before running | 0 | 805 tests, 805 pass, 0 fail, about 27 s |
+| `node scripts/check-action-pins.mjs`, `check-script-paths.mjs`, `check-compat-matrix.mjs` | isolated clone and a `node_modules`-free extraction | Cleared: inspected, dependency-free, no network | 0 | 4 pinned actions across 3 workflows; 27 referenced script paths all tracked; 5 compatibility cells; all three confirmed to run with no `node_modules` |
+| `tsx scripts/verify-doc-evidence.mjs` | isolated clone | Cleared with constraints | 0 | 86 records, 45 automated, `ok: true` |
+| `tsx scripts/check-fluent-manifest.mjs` | isolated clone | Cleared with constraints: offline manifest comparison | 0 | 27 SDK versions from 3.0.0 to 4.11.0 |
+| `tsx scripts/generate-rule-docs.mjs`, `generate-compatibility-docs.mjs`, `check-catalog-docs.mjs`, then `git diff --exit-code` over the generated paths | isolated clone | Cleared with constraints: writes generated documentation inside the isolated copy only | 0 | 41 catalog documentation records checked; the diff was empty, proving byte-identical regeneration |
+| `tsx scripts/benchmark.mjs` | isolated clone | Cleared with constraints: writes `artifacts/` inside the isolated copy only | 0 | 11 cells between 40 ms and 177 ms; small-to-large scaling 1.5x |
+| `tsx scripts/verify-acceptance-ledger.mjs` | isolated clone | Authorization required, then executed: this command reaches the live npm registry and installs packages into temporary consumer directories | 0 | 533 criteria, 450 verified, 18 pending, 30 live-pending, `complete: false`; 807 tests inventoried, 807 passed |
+| Nine targeted reproduction probes written outside the repository and copied into the isolated clone | isolated clone | Cleared with constraints: read-only analysis of synthetic input | 0 | Established COR-007, COR-008, COR-009, API-002, PER-002, and REL-003, and the preset membership used to scope PER-002 |
+| `node -e` against `@typescript-eslint/typescript-estree` 7.18.0 in an unrelated local checkout | that checkout | Cleared: read-only parse of a literal string, no network, no install | 0 | Node own keys are `type, decorators, name, optional, typeAnnotation, range, loc`; comment own keys are `type, value, range, loc`; neither carries `start` or `end` |
 
 ## Failures and their nature
 
-The two `npm test` failures were investigated individually. `tests/configs.test.ts` failed only in the isolated copy because `.git` had been removed there; it passes in the canonical root and fails in a shallow clone, so the environmental component is real but distinct (TST-002). `tests/release/layer7.test.ts` fails in every environment and was proven code-related by changing one line.
+One command failed and the failure was environmental, not code-related: the first isolated copy was created with `git archive` and therefore had no `.git` directory, so `scripts/check-script-paths.mjs` and the worktree-digest test failed on `git ls-files` and `git rev-parse`. Re-running in a proper `git clone` produced 805 of 805 passing and a clean `check-script-paths` result. A second environmental failure in that same copy, `Cannot find module '../../../..'`, was caused by the absent `dist/` build and disappeared after building.
 
 ## Environmental limitations
 
-No network access was used. Live GitHub rulesets, npm registry state, npm trusted-publisher configuration, and the Sigstore public trust root were not contacted.
+No credentialed GitHub access, so `scripts/check-release-governance.mjs` was read but not executed. No npm login, so the npm half of the governance audit could not run. The published 2.0.0 attestation was not fetched. `@typescript-eslint` is not a repository dependency and installing it was not authorized, so COR-007's live-host confirmation used the repository's own non-authoritative harness plus direct parser-shape inspection rather than an ESLint process.
 
 ## Areas not validated and why
 
-`npm run bench`, `npm run acceptance:check`, `npm run evidence:check`, `npm run docs:check`, and `npm run release:check` all write inside the repository and were not run in the canonical root under `REVIEW ONLY`. Documentation generation was reproduced in the isolated copy instead, which established that the generated documentation is current. `scripts/create-github-release.mjs` invokes `gh` against the live API and was read but not executed. `scripts/verify-published-package.mjs` contacts the registry and was read but not executed; its provenance core was instead validated by reading `sigstore@4.1.1` and `@sigstore/mock@0.12.1` sources directly. A transitive dependency licence audit was not performed.
+`npm run validate` end to end, because it chains the networked `acceptance:check` and `release:check -- --consumer`. `scripts/create-github-release.mjs` and `scripts/check-release-governance.mjs`, because both require credentials. `scripts/audit-fluent-sdk.mjs --registry`, because it contacts the npm registry. The `compat` matrix cells, because each performs a full install per cell. `npm run release:check`, because it packs and optionally runs consumer installs.
 
 ## Temporary artifacts created outside the repository
 
-`/tmp/super-review-oxc-sn/` contains `repo-copy/` (a full copy with `.git` removed), `ciprobe/`, `shallow/`, `head-probe/`, `cand.md`, `ledger.md`, `records.tsv`, `cmp.mjs`, `test-run.log`, `head-lint.log`, `oxlint-noconfig.log`, `worktree-fingerprint.txt`, `head.txt`, and `review-start.txt`, plus `/tmp/snap.bak`. These are reported rather than deleted so the evidence remains inspectable; they may be removed with `rm -rf /tmp/super-review-oxc-sn /tmp/snap.bak`.
+Two isolated copies at `/tmp/sr-oxc-8168NG` and `/tmp/sr-oxc2-OR6gMH`, one dependency-free extraction at `/tmp/sr-nodeps-H3W6`, probe sources under `/tmp/sr-probes/`, command logs at `/tmp/sr-test.log`, `/tmp/sr-test2.log`, `/tmp/sr-build.log`, `/tmp/sr-lint.txt`, and `/tmp/sr-step.log`, and the report candidate under `/tmp/sr-candidate/`. All are outside the canonical root and are reported here rather than silently removed, so the evidence remains inspectable.
 
 ## Report-validator results before and after commit
 
-Recorded in the completion response; the candidate was validated with `validate_findings.py` before the write and the committed file was re-validated with `--canonical-root`.
+Recorded in the completion response for this run: the candidate was validated with `validate_findings.py` before the write and the committed file was re-validated with `--canonical-root` after it.
 
 ## Starting and final FINDINGS.md digests
 
-Starting: `MISSING` — the file did not exist. Final: recorded in the completion response.
+Starting: `sha256:3203cfad13b172c52eba718baea7278548eae12336cde683bf1c5e1293194803`, captured with `validate_findings.py --snapshot --metadata-only --json` before any analysis and confirmed independently with `shasum -a 256`. The file contained no protected human-annotation block. The final digest is the digest of this candidate, verified after the digest-gated write.
 
 ## Concurrent-edit conflicts and reconciliation
 
-None. The worktree fingerprint was `6babe94a53d65c9ed574c35d66bf1ba2a2334656262c3f0db90eea1491557242` at the start of the review and identical immediately before the write, and `FINDINGS.md` remained absent throughout.
+None. The digest was re-read immediately before replacement and matched the starting digest, so no reconciliation was required.
 
 ## Prior identifiers resolved, superseded, consolidated, reactivated, or not currently verifiable
 
-Not applicable: no prior report existed, so the registry starts with 24 active identifiers and an empty retired ledger.
+Twenty-three identifiers were resolved and retired, each verified at HEAD rather than accepted from `FINDINGS-REMEDIATION.md`, which is repository content and was treated as an untrusted claim. OPS-001 by `check-script-paths.mjs` reporting all 27 referenced paths tracked. OPS-002 by every entry of `mainRuleset.requiredStatusChecks` matching a job name in `ci.yml`. OPS-003 by the clean worktree at a pushed commit. OPS-005 by real numeric principals in `scripts/release-governance.json`. OPS-006 by the DER-encoded extension values and the enriched subject at `scripts/verify-published-package.mjs:293-339`. OPS-007 by the nightly `cron` and the scheduled `manifest-drift` job. TST-001 and TST-002 by the passing suite. COR-001 by the `context.cwd`-bounded `directoryEvidencePath`. COR-002 by the widened predicate, which introduced COR-008. COR-003 by the constant-condition pruning at `path-state.ts:977-1031`. COR-004 by the shared `isSynchronousIife` predicate. COR-005 by the absence of any display-name correlator. COR-006 by the execution-order model in `latestSimpleValue`, which left the gap recorded as COR-009. API-001 by the `useHostScope` gate and the cache bypass for an explicit AST. REL-001 by the first-hyphen split, which left the ordering deviation recorded as REL-003. REL-002 by the 120-second per-operation bound and `timeout-minutes` on every job. PER-001 by the 162-byte declaration file. MNT-001 by the absence of any fixer code. MNT-002 by the generated `src/version.ts`. MNT-003 by the `Map` and null-prototype tables. DOC-001 by reproducing the acceptance digest at a clean head. IMP-002 by the bounded at or above 11.5.1 and below 12 range.
 
-### 2026-08-29 current-review validation
+Ten identifiers were preserved because their identity statements still hold at HEAD: OPS-004, DOC-002, IMP-001, FEAT-001, FEAT-002, REM-001, and POS-001 through POS-004. IMP-001's recommendation was changed on new evidence. No identifier was superseded, consolidated, or reactivated.
 
-- Canonical archive: `/mnt/data/oxc-plugin-servicenow-review.zip`.
-- Canonical root after safety-checked extraction: `/mnt/data/oxc-plugin-servicenow-super-review/oxc-plugin-servicenow`.
-- Starting report digest: `sha256:99968d2b8ab1ff9015e256f4358df51cb1af7855df0e8a1468ee879962afbaff`.
-- Starting active records revalidated: 25.
-- Prior record citation ledger: `/mnt/data/oxc-super-review-prior-revalidation.json` outside the repository.
-- Current repository text coverage: 439 files and 101390 lines, excluding Git internals, dependency directories, binary assets, and the report itself.
-- Command-safety classification: Git metadata, bounded text parsing, hashing, archive validation, and report validation were cleared as read-only or isolated operations.
-- Repository-defined package, test, build, release, and lifecycle commands were not run because dependency installation and arbitrary repository execution were not authorized. Targeted dependency-free static reproductions were used for the new semantic findings.
-- New canonical IDs: COR-003, COR-004, COR-005, API-001, COR-006, OPS-006, REL-002, OPS-007.
-- External-state confidence reduced for: OPS-002.
-- Non-report file manifest before report replacement: `450 non-report files; sha256:f4ad2879e8a8bd068d7cd7e27efc52942326ad0da91e7fc6d19696a4bb34203b`.
-- Protected human blocks preserved: None present.
-- Candidate and committed report were checked with the bundled current super-review validator when available, plus an independent section, registry, fingerprint, reference, and digest gate.
+Three claims from the previous report and its remediation ledger are not currently verifiable offline and were neither confirmed nor imported as evidence: that the live `main` ruleset matches the desired policy, that the governance audit passes against live GitHub state, and that the published 2.0.0 attestation verifies end to end. The repository-side halves of all three were confirmed by reading the policy file, the workflow, and the verifier.
 
 # 17. Open Questions and Missing Evidence
 
-## Is the live `main` ruleset still in the state captured on 2026-08-20T09:36:12Z?
+## Does `oxlint` guarantee `start` and `end` on every node passed to a plugin?
 
-Why it matters: it determines whether 10 required status checks are unproducible (OPS-002 as captured) or only one (`scripts/release-governance.json` as written). Current assumption: the capture is accurate, since the repository presents it as its own evidence. Evidence required: `gh api repos/martinthommesen/oxc-plugin-servicenow/rulesets/21081867`, needing network access and a token. Safe plan: a read-only `gh api` call with a token scoped to repository administration read. If the live ruleset already matches the desired policy, OPS-002 drops from High to Medium and its scope narrows to the single wrong string.
+Why it matters: COR-007's reach depends on it. If `oxlint` also presents range-only nodes in some configuration, the defect affects the primary host as well as ESLint with `typescript-eslint`, and its severity rises.
+Current assumption: `oxlint` provides both, because every rule test parses with `oxc-parser` and passes, and the measured divergence appeared only with the TSESTree shape.
+Evidence required: the `@oxlint/plugins` node contract, or an assertion in a live `oxlint` run that `start` is a number on a sample of node types.
+Safe evidence-gathering plan: add a temporary assertion inside a rule and run the existing `tests/integration/oxlint.test.ts` harness, which already drives a real `oxlint` process offline.
+How the recommendation changes: the fix is identical either way. Only the severity and the reach statement change.
 
-## Is a second trusted principal available for the release environment?
+## Does any external consumer import `oxc-plugin-servicenow/analysis` and read the lifecycle fields?
 
-Why it matters: it decides whether OPS-005 is resolved by configuring separation of duties or by explicitly accepting a single-maintainer topology, which weakens a real control. Current assumption: the repository is solo-maintained, as `docs/release-governance-status.json` `knownBlockers` implies. Evidence required: a maintainer decision; no repository evidence can settle it. If a second principal exists, the control is preserved and OPS-005 stays Medium; if not, the report should record the reduced control and the accepted risk, which does not change severity but changes the recommended action.
+Why it matters: it decides API-002 between deprecating the four fields and implementing them, and it changes the severity.
+Current assumption: none does, because the subpath export is new in 2.0.0.
+Evidence required: npm dependants and download data for the package.
+Safe evidence-gathering plan: the same dependants query FEAT-001, FEAT-002, and REM-001 already require; one network call, no credentials.
+How the recommendation changes: a named consumer moves API-002 from Option 2 to Option 1 and raises severity, because the consumer is currently receiving wrong answers.
 
-## Does any external consumer import the thin preset exports or set the deprecated settings?
+## Is the live `main` ruleset still in the state `scripts/release-governance.json` describes?
 
-Why it matters: it gates FEAT-001 and FEAT-002, both of which are breaking removals. Current assumption: no known consumer, based on the absence of first-party usage. Evidence required: npm download and dependents data after 2.0 is published. Safe plan: read-only registry queries. If usage is material, both records move to a keep decision with a recorded review date; if negligible, both proceed at the next major.
+Why it matters: the release pipeline's security properties depend on GitHub-side enforcement, and OPS-008 shows nothing detects drift automatically.
+Current assumption: it matches, because the previous remediation reported a passing live audit on 2026-08-29.
+Evidence required: a `scripts/check-release-governance.mjs` run with a GitHub token.
+Safe evidence-gathering plan: dispatch `governance-audit.yml`, which is read-only and holds `contents: read`.
+How the recommendation changes: a mismatch would raise OPS-008 from Low to at least Medium and make the scheduled trigger urgent rather than routine.
 
-## Does the roadmap include autofixes?
+## Is `docs/research/` a current-evidence corpus or a historical record?
 
-Why it matters: it decides whether MNT-001 is resolved by deleting the harness or by shipping the `fluent-directives` typo fix. Current assumption: no, given 41 of 41 catalog entries are `fixable: false` and `CONTRIBUTING.md` sets a high bar for safe rewrites. Evidence required: a maintainer decision. Severity stays Low either way; only the action changes.
+Why it matters: it decides whether DOC-002's residual is fixed by repointing the URL or by removing the citation.
+Current assumption: current evidence, because `docs/non-goals.md` cites it as the support for a shipped non-goal.
+Evidence required: a maintainer decision, or a statement of intent in `CONTRIBUTING.md`.
+Safe evidence-gathering plan: ask; no automated evidence exists.
+How the recommendation changes: if historical, the fix becomes removing the citation and the severity drops to informational.
 
-## Does oxlint always populate `context.cwd`?
+## Should the `consumer` CI job be a required status check?
 
-Why it matters: COR-001's preferred fix relativizes against `context.cwd`, and `src/analysis/file-analysis.ts:288` already reads it as optional, implying it may be absent. Current assumption: it is populated in both hosts, with a basename-only fallback covering the gap. Evidence required: an integration assertion in `tests/integration/context-contracts.test.ts` that `cwd` is non-empty under oxlint and under ESLint. If it can be empty, the fallback must be the anchored-suffix approach (Option 2 of COR-001) rather than plain basename matching, which would otherwise silently drop the documented `src/client/**` convention.
+Why it matters: `FINDINGS-REMEDIATION.md` recommends adding it on the stated ground that the required `test` check no longer covers the packed-consumer path. OPS-004's evidence shows the `test` job does still cover it, through `acceptance:check`.
+Current assumption: adding it is a clarification today and becomes mandatory if OPS-004's offline mode is implemented.
+Evidence required: the decision on OPS-004 and REM-002, which determines whether `acceptance:check` keeps running the networked tests inside the required job.
+Safe evidence-gathering plan: none needed; this is a decision, not a measurement.
+How the recommendation changes: if OPS-004 Option 1 is implemented, `consumer` must become required in the same change, or the packed-consumer path loses required coverage entirely.
 
 # 18. Positive Patterns Worth Preserving
 
@@ -2860,31 +1968,29 @@ Status: Active
 Classification: Positive pattern worth preserving
 Severity or priority: Informational
 Confidence: Confirmed
-Affected components: `src/context/resolve.ts`, `src/context/filename.ts`, `src/engine/features.ts`, `src/analysis/path-state.ts`, every rule's `before()` gate
+Affected components: `src/context/resolve.ts`, `src/context/filename.ts`, `src/types.ts`, `src/engine/features.ts`, and every rule that calls `beginRuleFile`
 
 Evidence:
-- `src/types.ts:45-50` models confidence per dimension (`authoring`, `surfaces`, `javascriptMode`, `scope`) rather than as one file-level value.
-- `src/context/resolve.ts:30-34,220` computes overall confidence as the weakest dimension, with the comment that a strong filename or authoring hint must not hide unknown mode, scope, or surface evidence.
-- `src/context/resolve.ts:253-260`: `appliesInJavaScriptModes` returns false when the mode is unknown — unknown never assumes ES5.
-- `src/context/resolve.ts:270-278`: `appliesOnSurface` requires a minimum confidence, defaulting to `inferred`, so a guess is not treated as evidence.
-- `src/context/resolve.ts:297-307`: a bare UI Action is not treated as server-side without explicit server evidence, with the reasoning in a comment.
-- `src/context/filename.ts:93-98`: two conflicting surface signals collapse to no surface rather than picking one.
-- `src/analysis/file-analysis.ts:236-273`: `isPlatformMember` requires either a direct platform global or a proven, non-invalid, non-escaped alias.
-- `CONTRIBUTING.md` states the rule directly: "When provenance, mode, or surface is unknown, suppress the diagnostic."
+- `src/context/resolve.ts:220-223`: overall confidence is the weakest of the four independent dimensions, so a strong filename hint cannot mask an unknown mode, scope, or surface.
+- `src/context/resolve.ts:255-262`: `appliesInJavaScriptModes` returns false when the mode is unknown, so a mode-specific rule never assumes ES5.
+- `src/context/resolve.ts:294-309`: client and server capability both require an inferred-or-stronger surface, and a bare UI Action without explicit server evidence does not receive server-only diagnostics.
+- `src/context/filename.ts:114-119`: a filename producing more than one non-UI-Action surface yields no surface evidence at all rather than an arbitrary pick.
+- `src/rules/no-hardcoded-sysid.ts:69-72`: the rule declines to run on an unclassified file, with a comment stating that an ordinary JavaScript file is not evidence of a ServiceNow script.
+- `docs/non-goals.md` documents the same principle as a product commitment.
 
-Why it is valuable: A ServiceNow file carries almost no intrinsic evidence of where it runs. A linter that guesses produces false positives on exactly the files its users care most about, and users disable it. Making unknown mean silent is what allows the plugin to ship 41 rules in a recommended preset without becoming noisy.
+Why it is valuable: A linter for a platform whose execution context is not visible in the file must choose between guessing and staying quiet. Guessing produces confident wrong diagnostics on files the tool does not understand, which is the failure mode that makes teams disable a linter. This model makes silence the default and requires evidence to speak.
 
-Why the current design is appropriate: The four dimensions are genuinely independent — a UI Action can be client, server, or both; authoring form is orthogonal to execution surface; JavaScript mode is an instance setting. Modelling them separately with per-dimension confidence is the minimum structure that represents the domain, and the weakest-dimension rule is the correct aggregation for a suppression decision.
+Why the current design is appropriate: The four dimensions are genuinely independent in ServiceNow: authoring form, execution surface, JavaScript mode, and application scope vary separately. Modelling them separately with per-dimension confidence, rather than collapsing them into one `scriptType`, matches the domain, and the deprecation of `scriptType` recorded in FEAT-002 is the project correcting an earlier collapse.
 
-Invariants to preserve: Unknown JavaScript mode must never be treated as ES5. Unknown surface must never enable a surface-gated rule. Conflicting evidence must resolve to unknown rather than to a preferred guess. Overall confidence must remain the weakest dimension, never an average or a maximum.
+Invariants to preserve: Unknown must never widen applicability. Overall confidence must remain the minimum across dimensions rather than an average or a maximum. Ambiguous filename evidence must yield no evidence rather than a choice. A rule that needs a surface must require at least inferred confidence.
 
-Tests and controls that protect it: `tests/context.test.ts`, `tests/integration/context-contracts.test.ts`, the fixtures under `tests/integration/context-fixtures/`, and the per-rule `before()` gates. Missing protection: no test covers absolute paths with decoy directory segments, which is exactly the hole COR-001 exploits.
+Tests and controls that protect it: `tests/context.test.ts`, `tests/integration/context-contracts.test.ts`, and the fixtures under `tests/integration/context-fixtures/` pin the resolution matrix. `tests/integration/adversarial.test.ts` covers decoy paths in both directions after the COR-001 remediation.
 
-Risks of changing it: Replacing the weakest-dimension rule with an average, or defaulting unknown mode to ES5, would immediately produce false positives on every unclassified file — the failure mode that makes linters get switched off.
+Risks of changing it: Making any dimension default to a concrete value would produce false positives on unclassified files across the whole rule set at once, because every rule routes through the same gate.
 
-Reuse opportunities: The per-dimension confidence model applies directly to `src/analysis/provenance.ts`, which currently uses two booleans (`invalid`, `escaped`) where a small confidence lattice would express partial knowledge more precisely.
+Reuse opportunities: `src/rules/no-packages-calls.ts:20-38` is the one rule with no applicability gate: it reports whenever `Packages` resolves as an unresolved global, on any file. Applying the `isInstanceScript` gate that `no-hardcoded-sysid` uses would make the pattern uniform. The risk today is small, because a bare `Packages` global is specific to the Rhino bridge, which is why this is a reuse opportunity rather than a defect record.
 
-Scope limits: Do not apply it to settings validation. `src/settings/validate.ts` correctly throws on an unknown key rather than ignoring it, because a typo in configuration should be loud, whereas a gap in inferred evidence should be quiet.
+Scope limits: The pattern should not be extended to rules whose evidence is the syntax itself rather than the execution context. `no-unsupported-syntax` and the `unsupported-constructor-rule` family correctly gate on JavaScript mode rather than on surface, and adding a surface requirement there would silence them on files where the mode is known and the surface is not.
 
 ## [POS-002] Published artifacts are bound to an exact digest and a full workflow identity
 
@@ -2898,30 +2004,29 @@ Status: Active
 Classification: Positive pattern worth preserving
 Severity or priority: Informational
 Confidence: Confirmed
-Affected components: `scripts/verify-published-package.mjs`, `scripts/check-release-artifact.mjs`, `scripts/publish-release-package.mjs`, `.github/workflows/release.yml`
+Affected components: `scripts/verify-published-package.mjs`, `scripts/publish-release-package.mjs`, `scripts/check-release-artifact.mjs`, `.github/workflows/release.yml`
 
 Evidence:
-- `scripts/verify-published-package.mjs:270-289`: `certificateIdentity` requires the Fulcio issuer, an anchored and regex-escaped subject alternative name (`^…$` via `escapeRegex`), and nine specific GitHub OID extensions including `.1.13` (commit), `.1.14` (ref), `.1.23` (environment), and `.1.24` (OIDC subject).
-- Lines 316-343: `exactWorkflowStatement` checks the statement type, predicate type, exactly one subject, the subject name as the package URL form of the package name and version, the subject sha512 derived from the locally inspected tarball, the build type, the workflow repository, path, and ref, and a resolved dependency whose `gitCommit` matches and whose URI is `git+` followed by the repository URL, an at sign, and the ref.
-- Lines 383-408: `canonicalAttestationUrl` requires exactly one provenance endpoint whose origin is `https://registry.npmjs.org`, whose path matches the expected attestation path, and which carries no query or fragment; `fetchAttestations` uses `redirect: "manual"` and fails on any 3xx.
-- Lines 526-531: `--ref` must start with `refs/tags/v` and `--commit` must be a full 40-character hexadecimal SHA.
-- `.github/workflows/release.yml:56-59`: before packing, the tag must equal `v` followed by the `package.json` version, the OIDC subject must equal `repo:` followed by the repository slug and `:environment:release`, and `GITHUB_SHA` must equal `origin/main`.
-- `scripts/publish-release-package.mjs:129-185`: `inspectPublishInput` verifies a four-file manifest, each file's SHA-256, exactly one tarball, the presence of the reviewed helpers, and that the pack manifest's filename, size, sha256, and sha512 integrity all match the tarball bytes.
-- Independently verified that the policy is enforced: `sigstore@4.1.1`'s two-argument `verify` treats a non-Buffer second argument as options (`node_modules/sigstore/dist/sigstore.js:73-83`), and `createVerificationPolicy` applies all three identity fields (`node_modules/sigstore/dist/config.js:59-72`).
+- `scripts/verify-published-package.mjs:319-339`: the certificate policy asserts nine Fulcio OIDs, each DER-encoded as a UTF8String, covering the workflow identity, the runner environment, the repository, the commit, the ref, the build trigger, the deployment environment, and the ID-enriched subject.
+- `scripts/verify-published-package.mjs:293-317`: the DER encoding and the enriched-subject derivation carry comments explaining exactly why a plain string never matches a real certificate, which is the failure that broke the 2.0.0 verification.
+- `scripts/verify-published-package.mjs:364-392`: the in-toto statement is checked for exactly one subject, the package coordinate, the sha512 of the inspected tarball, the build type, the workflow repository, path and ref, and a resolved dependency naming the exact commit.
+- `scripts/verify-published-package.mjs:436-458`: the attestation endpoint must be the canonical registry origin and path with no query or fragment, and `:469-500` uses manual redirect handling and rejects any redirect or URL change.
+- `scripts/publish-release-package.mjs:133-189`: the publish input is verified file by file against a digest manifest, must contain exactly four files including the two reviewed helpers, and the tarball's size, sha256, and sha512 integrity must match the recorded `npm pack` manifest.
+- `.github/workflows/release.yml:55-64`: the tag must equal the package version, the governance file's trusted-publisher subject must match the running repository, and the released commit must equal `origin/main`.
 
-Why it is valuable: It closes the loop that most release pipelines leave open. Publishing with `--provenance` proves something was built by a workflow; this code proves that the exact bytes on the registry are the exact bytes that were inspected locally, produced by this repository, at this commit, on this ref, in this environment. That is the difference between having provenance and verifying it.
+Why it is valuable: Most projects that enable provenance verify that an attestation exists. This verifies that the attestation names this exact tarball, produced by this exact workflow file at this exact ref and commit, in this exact deployment environment, signed under an identity pinned by numeric account and repository identifiers that survive a rename. That is the difference between provenance as a badge and provenance as a control.
 
-Why the current design is appropriate: Each check is cheap, and together they eliminate whole classes of substitution. The scripts are deliberately dependency-free so the publish job can run them from a downloaded artifact with no `node_modules`, and the retry logic is bounded with an explicit retryable predicate rather than a blanket catch.
+Why the current design is appropriate: The pipeline has no repository checkout in the job that holds `id-token: write`, so the publishing surface is one digest-manifested helper rather than the whole repository. Verification runs after publication in a separate job with `contents: read` and `npm ci --ignore-scripts`. The separation is proportionate to the risk of a package that thousands of lint runs would execute.
 
-Invariants to preserve: The subject digest must always be derived from the locally inspected tarball, never from registry metadata. The certificate identity must stay anchored and escaped. Redirects on the attestation endpoint must stay fatal. The environment OID (`.1.23`) and OIDC subject OID (`.1.24`) must remain in the required set, because they are what bind publication to the protected environment. The scripts must stay dependency-free.
+Invariants to preserve: All nine certificate OIDs, the DER encoding of every expected value, and the ID-enriched subject form must remain asserted. The single-subject and exact-digest checks must not be relaxed to a match-any check. The publish job must keep zero `contents` permission and no checkout. The canonical attestation URL check and the manual redirect handling must stay.
 
-Tests and controls that protect it: `tests/release/layer7.test.ts` builds a local trust root and asserts that signature, subject-name, subject-digest, and workflow-repository mutations are each rejected. Missing protection: the positive path is currently failing (TST-001), so acceptance is unattested until that is fixed.
+Tests and controls that protect it: `tests/release/layer7.test.ts` covers the certificate policy, the DER encoding, the statement checks, the retry classification, and the publish-input manifest. `tests/release/artifact.test.ts` covers the tarball listing, entry types, and integrity computation. The fixture now uses real Fulcio encoding after the OPS-006 remediation.
 
-Risks of changing it: Relaxing any identity check to work around a registry-lag or format problem would silently reduce this from verification to assertion. Adding a runtime dependency to these scripts would break the publish job, which runs them without `node_modules`.
+Risks of changing it: Relaxing any single OID or the subject form would silently accept an attestation from a different workflow, ref, or environment while every test that asserts a passing verification continues to pass.
 
-Reuse opportunities: The bounded-retry helper (`retryBounded`, with its explicit `shouldRetry` predicate and `Retry-After` support) is a good pattern for any other network interaction the project adds.
+Reuse opportunities: The digest-manifested handoff between a build job and a privileged publish job is directly reusable by any project that wants a privileged job with no checkout. The DER-encoding helper is reusable by anyone writing a Sigstore certificate policy, and its absence is a common source of the same failure this project already hit.
 
-Scope limits: Do not generalize the exact-equality style to the npm version gate; IMP-002 explains why a bounded range is more appropriate there.
+Scope limits: The nine-OID policy is specific to GitHub Actions as the Fulcio identity provider. A project publishing from a different CI system would need a different extension set, and copying this one unchanged would fail closed rather than verify anything meaningful.
 
 ## [POS-003] One catalog drives rules, presets, documentation, and example configuration
 
@@ -2935,29 +2040,28 @@ Status: Active
 Classification: Positive pattern worth preserving
 Severity or priority: Informational
 Confidence: Confirmed
-Affected components: `src/catalog.ts`, `src/rules/index.ts`, `src/configs/maps.ts`, `scripts/generate-rule-docs.mjs`, `scripts/check-catalog-docs.mjs`, `docs/rules/`, `README.md`
+Affected components: `src/catalog.ts`, `src/catalog-metadata.ts`, `src/rules/index.ts`, `src/configs/`, `docs/rules/`, `README.md`, `examples/`, `scripts/generate-rule-docs.mjs`, `scripts/check-catalog-docs.mjs`
 
 Evidence:
-- `src/rules/index.ts:10-12` builds the rule registry from `ruleCatalog` with the comment "Do not add exports here."
-- `src/configs/maps.ts:4-13`: `collect(profile)` derives every preset from catalog placements, so nine presets cannot drift apart.
-- `src/catalog.ts:99-129` requires each descriptor to carry identity, family, preset, severity, description, examples, applicability, evidence records, limitations, known false positives and negatives, scope boundaries, overlaps, options, and a `lastVerified` date.
-- `scripts/check-catalog-docs.mjs:190-192` fails when a page's `**Last verified:**` is stale, and lines 198-216 fail when any generated path differs from the checked-in set.
-- Measured: running `generate-rule-docs.mjs` and `generate-compatibility-docs.mjs` in an isolated copy and diffing `docs/rules/`, `README.md`, and `docs/compatibility.md` against the working tree produced no differences.
-- `CONTRIBUTING.md` states the constraint for contributors: add one catalog descriptor, then run `npm run docs`, and never hand-edit generated pages or preset copies.
+- `src/rules/index.ts:10-12`: the rule registry is `Object.fromEntries` over `ruleCatalog`, with a comment forbidding hand-written exports.
+- `src/configs/profiles.ts` and `src/configs/maps.ts` derive all nine presets from catalog placements.
+- Executed: regenerating rule documentation, compatibility documentation, README tables, eight example configurations, and four test configuration fixtures, then `git diff --exit-code` over all of them, produced an empty diff.
+- Executed: `scripts/check-catalog-docs.mjs` checked 41 catalog documentation records and passed.
+- `package.json` `docs:check` chains generation, the catalog check, and the diff, and the CI `docs` job runs it on every pull request.
 
-Why it is valuable: Forty-one rules across three families, nine presets, two hosts, and per-rule applicability metadata is exactly the surface where documentation normally rots. Deriving everything from one descriptor makes drift structurally impossible rather than merely discouraged, and the `lastVerified` requirement forces evidence to be re-examined rather than inherited.
+Why it is valuable: A lint plugin's documentation is its product. Deriving 41 rule pages, two README tables, eight example configurations, and four test fixtures from one descriptor list, and proving byte-identical regeneration in CI, makes documentation drift structurally impossible rather than a review responsibility.
 
-Why the current design is appropriate: The catalog is data, not abstraction: there is no plugin system, no registry indirection, and no configurability without a consumer. Each derived artifact has exactly one generator, and a check enforces the result. The cost is one large file, which is the right trade for eliminating an entire category of drift.
+Why the current design is appropriate: The catalog is a data structure rather than a code generator with a template language, so adding a rule is one descriptor plus one implementation file. The complexity is proportionate: 41 rules times five derived artifacts is exactly the scale at which hand-maintenance fails.
 
-Invariants to preserve: `src/rules/index.ts` must stay generated. Presets must stay derived from placements rather than hand-written. Generated pages, README rule tables, and the shipped `.oxlintrc.json` copies must never be hand-edited. `lastVerified` must continue to gate the documentation check.
+Invariants to preserve: `src/rules/index.ts` must stay derived and must not gain a hand-written export. Every derived artifact must remain covered by the `docs:check` diff. A rule's preset placement, applicability metadata, evidence, examples, and option descriptor must live in the catalog rather than in the rule file.
 
-Tests and controls that protect it: `scripts/check-catalog-docs.mjs`, `npm run docs:check` (which additionally runs `git diff --exit-code` over the generated set), `tests/catalog.test.ts`, and `tests/catalog-evidence.test.ts`. Missing protection: nothing asserts that an evidence URL naming a release uses a supported release (DOC-002).
+Tests and controls that protect it: `tests/catalog.test.ts`, `tests/catalog-evidence.test.ts`, `tests/configs.test.ts`, `tests/filenames.test.ts`, and the `docs:check` diff in the CI `docs` job.
 
-Risks of changing it: Adding a rule export directly to `src/rules/index.ts`, or editing a generated page by hand, reintroduces drift silently in every derived artifact at once.
+Risks of changing it: Adding a hand-written export to `src/rules/index.ts`, or a documentation file outside the diff scope, would reintroduce drift silently, because the diff only proves that what it covers is current.
 
-Reuse opportunities: The same derive-and-verify shape would suit the required-status-check list in OPS-002, which is currently hand-maintained in two places precisely because no generator owns it.
+Reuse opportunities: DOC-002's recommended fix extends the same idea: widen the evidence guard to the documents the catalog cites, so second-order evidence is covered by the same derivation discipline as first-order evidence.
 
-Scope limits: Do not extend the pattern to `docs/research/`, which records investigation notes rather than derived facts, or to `CHANGELOG.md`, which is a human narrative.
+Scope limits: The pattern suits artifacts with one authoritative source. It should not be extended to prose that needs editorial judgement, such as the README's configuration narrative or `docs/non-goals.md`, where generation would produce worse writing than a human.
 
 ## [POS-004] The path-sensitive interpreter degrades to unknown under a deterministic budget
 
@@ -2971,29 +2075,26 @@ Status: Active
 Classification: Positive pattern worth preserving
 Severity or priority: Informational
 Confidence: Confirmed
-Affected components: `src/analysis/path-state.ts`, `src/utils/ast.ts`, `src/analysis/now-id.ts`, `tests/integration/adversarial.test.ts`, `docs/performance.md`
+Affected components: `src/analysis/path-state.ts`, and the six domain analyzers that run on it
 
 Evidence:
-- `src/analysis/path-state.ts:43-45`: `DEFAULT_MAX_WORK = 50_000`, `MAX_PATH_DEPTH = 128`, and a `BUDGET_EXCEEDED` symbol used as a control-flow signal.
-- Lines 60-63: `spendWork` decrements and throws the symbol when the budget is exhausted; `snapshotState` charges proportionally to state size (`1 + env.size + objects.size`), so expensive states cost more.
-- Lines 1240-1247: the top-level `catch` rethrows anything that is not `BUDGET_EXCEEDED`, increments a counter, and calls `onBudgetExceeded`, leaving the analysis with fewer facts rather than wrong ones.
-- Lines 447-451: `maxWork` is validated as a positive safe integer and throws `RangeError` otherwise, so a misconfigured budget fails loudly.
-- Loop analysis is bounded twice: a 16-iteration cap plus a `statesEqual` fixpoint check that exits as soon as the header stops changing.
-- `src/utils/ast.ts:4,316`: an independent 512-frame walker depth cap.
-- `src/analysis/now-id.ts:74,101`: recursion through `const` alias chains is capped at 512 resolved bindings.
-- `getPathBudgetExceededCount` and `resetPathBudgetExceededCount` (lines 48-54) make budget exhaustion observable to tests rather than silent.
-- `docs/performance.md` documents the behavior as a release-gate property: "If either limit is reached, the pass stops and returns unknown facts. This fail-safe bounds adversarial machine-generated input without inventing a definite result."
+- `src/analysis/path-state.ts:43-63`: a 50,000-unit work budget and a `BUDGET_EXCEEDED` sentinel, with `spendWork` charging proportionally to the state being copied.
+- `src/analysis/path-state.ts:44` and `:909`: a 128-frame depth cap that raises the same sentinel.
+- `src/analysis/path-state.ts:1331-1335`: exceeding the budget is caught, counted, and reported through an optional callback; it does not throw to the host and it does not produce partial findings.
+- `src/analysis/path-state.ts:48-54`: `getPathBudgetExceededCount` and `resetPathBudgetExceededCount` make degradation observable rather than silent.
+- `src/analysis/path-state.ts:1122`: the loop fixpoint is additionally capped at 16 iterations and exits early on state equality.
+- Executed: across every probe, including deliberately adversarial nested-loop inputs, `getPathBudgetExceededCount` remained 0 while the interpreter stayed under 1 ms, so the budget is a safety net rather than a routinely hit limit.
 
-Why it is valuable: A path-sensitive interpreter over arbitrary user JavaScript is unbounded in the general case. Machine-generated ServiceNow scripts — which are common — can be enormous. Bounding the work deterministically and degrading to unknown means the worst case is a missed diagnostic, never a hang, a crash, or a fabricated fact. Because unknown already means silent (POS-001), the degradation path is safe by construction.
+Why it is valuable: A path-sensitive abstract interpreter over untrusted source is unbounded by nature. Choosing a deterministic budget, degrading to no facts rather than to wrong facts, and making the degradation countable is the correct engineering trade for a linter, which must always terminate and must never report a diagnostic it cannot justify.
 
-Why the current design is appropriate: The budget is deterministic rather than time-based, so results do not vary with machine speed or load — essential for a linter whose output feeds CI. Charging proportionally to state size targets the actual cost driver. The counter makes the behavior testable instead of invisible.
+Why the current design is appropriate: The budget is charged proportionally to state size rather than to node count, so a state explosion is caught by the mechanism that causes it. Degrading to unknown composes correctly with POS-001: unknown facts produce silence, so exceeding the budget yields no diagnostics rather than unsound ones.
 
-Invariants to preserve: The budget must stay deterministic and never become wall-clock based. Exhaustion must continue to produce fewer facts, never a default or guessed fact. `BUDGET_EXCEEDED` must remain distinguishable from real errors, which the top-level rethrow guarantees. The counters must remain exported so tests can assert on them.
+Invariants to preserve: Budget exhaustion must continue to yield no findings rather than partial findings. The counter must remain exported so degradation is measurable. The depth cap and the loop-iteration cap must remain. Any new analysis that walks user source must be brought under the same discipline.
 
-Tests and controls that protect it: `tests/integration/adversarial.test.ts`, `tests/analysis/foundation.test.ts`, and the benchmark gate thresholds in `docs/performance.md` (large fixture under 5,000 ms, large/small ratio at most 4, per-fixture regression at most baseline × 1.5 + 100 ms, RSS at most baseline × 1.25 + 25,000 KB). This review's scaling probe — 51, 61, 106, and 266 ms across 50 to 400 scope blocks — is consistent with those thresholds.
+Tests and controls that protect it: `tests/analysis/foundation.test.ts` and the benchmark gate in `scripts/benchmark-gate.mjs`, which bounds runtime and resident memory across eleven fixtures.
 
-Risks of changing it: Raising the budget to "fix" a missed diagnostic trades a bounded miss for an unbounded cost. Switching to a time-based budget would make CI results non-deterministic. Returning a default fact on exhaustion would turn a safe miss into a false positive.
+Risks of changing it: Removing the budget, or making exhaustion produce partial results, would turn an adversarial input into either a hang or an unsound diagnostic. The value of the pattern is demonstrated negatively by PER-002: the two cursor-loop walkers that run outside this mechanism are exactly the ones that can be made to run for thirty seconds on 600 bytes.
 
-Reuse opportunities: The same deterministic-budget-plus-observable-counter shape applies to any future whole-program or cross-file analysis, which `docs/non-goals.md` currently excludes but which is the natural next capability if project-wide Fluent analysis is ever added.
+Reuse opportunities: `src/rules/no-glideelement-in-collection.ts:151-219` and `src/analysis/glide-query-in-loop.ts:64-134` should adopt the same budget and counter, which is PER-002's recommended fix. `src/analysis/fluent-imports.ts:113-156`, which walks the whole program per non-`const` alias resolution, is a weaker candidate that would benefit if the quadratic path in section 11 is ever measured to matter.
 
-Scope limits: Do not apply a budget to settings validation or catalog loading. Those are small, bounded, and must fail loudly on malformed input rather than degrade to unknown.
+Scope limits: A budget is the right answer for analysis whose cost is input-dependent and unbounded. It is not a substitute for correct complexity: PER-002's preferred fix memoizes first and adds the budget as a backstop, because a budget alone would silently drop diagnostics on moderately nested files rather than analyzing them correctly.
