@@ -105,14 +105,9 @@ GitHub release retries compare the exact tag, target commit, title, draft state,
 
 ## Governance status
 
-`scripts/release-governance.json` is the desired policy. It is intentionally incomplete until approved stable actor and reviewer IDs are known. `docs/release-governance-status.json` is a historical capture with `historical-unverified` status. It is not live proof.
+`scripts/release-governance.json` is the desired policy. It names the real principals: the `release-sentinel-sn` GitHub App (Integration 4671202) creates release tags, and `martinthommesen` (User 267603464) reviews the `release` environment. `docs/release-governance-status.json` is a historical capture with `historical-unverified` status. It is not live proof.
 
-The current external correction is one of these topologies:
-
-- at least two eligible actors, with a tagger distinct from the environment reviewer
-- a documented independent tagger and approver flow
-
-The current single-reviewer plus self-review prevention topology can deadlock a solo maintainer.
+The tagger and the environment reviewer are distinct principals. The App initiates tag-triggered deployments, so `preventSelfReview` does not block the single human reviewer.
 
 Use the read-only manual workflow `Governance audit` after the desired IDs are configured. The workflow compares live GitHub and npm data without changing controls. You can run the same checker locally:
 

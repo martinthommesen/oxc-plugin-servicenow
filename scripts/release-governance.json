@@ -7,11 +7,17 @@
   },
   "principals": {
     "controlledTagActor": {
-      "id": 0,
-      "login": "UNCONFIGURED_CONTROLLED_TAG_ACTOR",
+      "id": 4671202,
+      "login": "release-sentinel-sn",
       "type": "Integration"
     },
-    "environmentReviewers": []
+    "environmentReviewers": [
+      {
+        "id": 267603464,
+        "type": "User",
+        "login": "martinthommesen"
+      }
+    ]
   },
   "environment": {
     "name": "release",
@@ -21,7 +27,9 @@
       "protectedBranches": false,
       "customBranchPolicies": true,
       "branches": [],
-      "tags": ["v*"]
+      "tags": [
+        "v*"
+      ]
     }
   },
   "mainRuleset": {
@@ -35,7 +43,7 @@
       "compat (node22-host, 22.14.0)",
       "compat (node24-host, 24.16.0)",
       "compat (node26-host, 26.7.0)",
-      "compat (eslint9-current, 26.7.0)",
+      "compat (eslint9-current, 24.16.0)",
       "docs",
       "manifest",
       "artifact",
@@ -48,17 +56,22 @@
       "name": "PR51 immutable release tags",
       "enforcement": "active",
       "refPattern": "refs/tags/v**",
-      "rules": ["deletion", "non_fast_forward"],
+      "rules": [
+        "deletion",
+        "non_fast_forward"
+      ],
       "bypassActors": []
     },
     "creation": {
       "name": "PR51 controlled release tag creation",
       "enforcement": "active",
       "refPattern": "refs/tags/v**",
-      "rules": ["creation"],
+      "rules": [
+        "creation"
+      ],
       "bypassActors": [
         {
-          "id": 0,
+          "id": 4671202,
           "type": "Integration",
           "mode": "always"
         }

@@ -118,7 +118,14 @@ export function normalizeLiveGovernance(raw, desired) {
     repository: desired.repository,
     principals: {
       controlledTagActor: desired.principals.controlledTagActor,
-      environmentReviewers: (environment.reviewers ?? []).map((item) => ({
+      // The environments API nests reviewers inside the required_reviewers
+      // protection rule; a bare `reviewers` array only appears in fixtures.
+      environmentReviewers: (
+        environment.protection_rules?.find((item) => item.type === "required_reviewers")
+          ?.reviewers ??
+        environment.reviewers ??
+        []
+      ).map((item) => ({
         id: item.reviewer?.id,
         type: item.type,
         login: item.reviewer?.login ?? item.reviewer?.name,

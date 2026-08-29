@@ -4,12 +4,9 @@
   "liveVerification": "Live-pending",
   "warning": "This static capture is historical evidence. It is not current live proof.",
   "knownBlockers": [
-    "scripts/release-governance.json does not contain a stable controlled tag actor ID.",
-    "scripts/release-governance.json does not contain an independent environment reviewer ID.",
-    "The prior single-reviewer and prevent-self-review topology can deadlock a solo maintainer.",
-    "A protected-tag publication has not verified stable release provenance."
+    "A protected-tag publication has not verified stable release provenance. The v2.0.0 run published but failed registry-verify on a stale root-export assertion (fixed, see FINDINGS.md OPS-006)."
   ],
-  "capturedAt": "2026-08-20T09:36:12Z",
+  "capturedAt": "2026-08-29T12:29:00Z",
   "repository": "martinthommesen/oxc-plugin-servicenow",
   "github": {
     "mainRuleset": {
@@ -19,22 +16,25 @@
       "conditions": {
         "ref_name": {
           "exclude": [],
-          "include": ["refs/heads/main"]
+          "include": [
+            "refs/heads/main"
+          ]
         }
       },
-      "rules": ["deletion", "non_fast_forward", "pull_request", "required_status_checks"],
+      "rules": [
+        "deletion",
+        "non_fast_forward",
+        "pull_request",
+        "required_status_checks"
+      ],
       "requiredStatusChecks": [
-        "test (20.19.0)",
-        "test (22)",
-        "test (24)",
-        "test (26)",
+        "test",
         "bench",
-        "compat (20.19.0, min-hosts)",
-        "compat (20, node20-floor)",
-        "compat (22, node22-lts)",
-        "compat (24, node24-lts)",
-        "compat (26, node26-current)",
-        "compat (current, eslint9-current)",
+        "compat (min-hosts, 20.19.0)",
+        "compat (node22-host, 22.14.0)",
+        "compat (node24-host, 24.16.0)",
+        "compat (node26-host, 26.7.0)",
+        "compat (eslint9-current, 24.16.0)",
         "docs",
         "manifest",
         "artifact",
@@ -44,15 +44,20 @@
     },
     "tagRuleset": {
       "id": 21081873,
-      "name": "PR51 protected release tags",
+      "name": "PR51 immutable release tags",
       "enforcement": "active",
       "conditions": {
         "ref_name": {
           "exclude": [],
-          "include": ["refs/tags/v**"]
+          "include": [
+            "refs/tags/v**"
+          ]
         }
       },
-      "rules": ["deletion", "non_fast_forward"],
+      "rules": [
+        "deletion",
+        "non_fast_forward"
+      ],
       "currentUserCanBypass": "never"
     },
     "releaseEnvironment": {
@@ -75,6 +80,44 @@
       "repository": [],
       "releaseEnvironment": [],
       "note": "No NPM_TOKEN or other Actions secret is configured."
+    },
+    "tagCreationRuleset": {
+      "id": 21143599,
+      "name": "PR51 controlled release tag creation",
+      "enforcement": "active",
+      "conditions": {
+        "ref_name": {
+          "exclude": [],
+          "include": [
+            "refs/tags/v**"
+          ]
+        }
+      },
+      "rules": [
+        "creation"
+      ],
+      "bypassActors": [
+        {
+          "id": 4671202,
+          "login": "release-sentinel-sn",
+          "type": "Integration",
+          "mode": "always"
+        }
+      ]
+    },
+    "principals": {
+      "controlledTagActor": {
+        "id": 4671202,
+        "login": "release-sentinel-sn",
+        "type": "Integration"
+      },
+      "environmentReviewers": [
+        {
+          "id": 267603464,
+          "type": "User",
+          "login": "martinthommesen"
+        }
+      ]
     }
   },
   "npmTrustedPublisher": {
@@ -84,12 +127,16 @@
     "file": "release.yml",
     "repository": "martinthommesen/oxc-plugin-servicenow",
     "environment": "release",
-    "permissions": ["createPackage"],
+    "permissions": [
+      "createPackage"
+    ],
     "desired": {
       "repository": "oxc-plugin-servicenow",
       "workflow": ".github/workflows/release.yml",
       "environment": "release",
-      "tagRefs": ["refs/tags/v*"],
+      "tagRefs": [
+        "refs/tags/v*"
+      ],
       "workflowFilename": "release.yml"
     },
     "bootstrap": {
