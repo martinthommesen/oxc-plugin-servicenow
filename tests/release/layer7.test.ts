@@ -358,6 +358,32 @@ describe("release automation gates", () => {
     }
   });
 
+  it("pins every uses: reference structurally, not just by regex (FINDINGS.md IMP-001)", () => {
+    // The dependency-free regex check in scripts/check-action-pins.mjs stays
+    // for the workflow CI job; this parsed pass proves every uses: value in
+    // every job step is a centrally pinned owner/repo@sha reference, so a
+    // local composite action or docker:// step cannot slip past the regex.
+    const pins = JSON.parse(
+      readFileSync(path.join(repoRoot, "scripts/action-pins.json"), "utf8"),
+    ) as Record<string, string>;
+    const collectUses = (parsed: any): string[] =>
+      Object.values(parsed.jobs as Record<string, any>).flatMap((job: any) =>
+        (job.steps ?? []).filter((step: any) => step.uses).map((step: any) => step.uses as string),
+      );
+    const assertPinned = (reference: string) => {
+      const match = /^([\w.-]+\/[\w.-]+(?:\/[\w./-]+)?)@([0-9a-f]{40})$/.exec(reference);
+      assert.ok(match, `uses ${reference} is not owner/repo@full-sha`);
+      assert.equal(pins[match![1]], match![2], `${reference} is not centrally pinned`);
+    };
+    for (const candidate of [workflow, ciWorkflow, governanceWorkflow]) {
+      for (const reference of collectUses(candidate)) assertPinned(reference);
+    }
+    // The rejected forms stay rejected.
+    for (const rejected of ["./.github/actions/x", "docker://alpine:3", "actions/checkout@v4"]) {
+      assert.throws(() => assertPinned(rejected));
+    }
+  });
+
   it("parses the workflow graph and proves least-privilege job boundaries", () => {
     const jobs = workflow.jobs;
     assert.deepEqual(jobs.publish.needs, ["validate", "consumer", "publication-state"]);
