@@ -27,6 +27,7 @@ jobs:
           node-version: 24.16.0
           cache: npm
       - run: npm ci
+      - run: npm run compat:check
       - run: npm run lint:check
       - run: npm run format:check
       - run: npm run typecheck
@@ -75,7 +76,12 @@ jobs:
         with:
           node-version: 24.16.0
       - id: matrix
-        run: echo "value=$(node scripts/check-compat-matrix.mjs --github-matrix)" >> "$GITHUB_OUTPUT"
+        run: |
+          # Run the check on its own line first: a failure inside a command
+          # substitution passed to echo is discarded by the shell, so the
+          # step could not fail on a broken matrix (FINDINGS.md OPS-009).
+          value="$(node scripts/check-compat-matrix.mjs --github-matrix)"
+          echo "value=$value" >> "$GITHUB_OUTPUT"
 
   bench:
     timeout-minutes: 30

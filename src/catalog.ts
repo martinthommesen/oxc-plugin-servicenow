@@ -585,7 +585,12 @@ convert();`,
       },
     ],
     good: [
-      { name: "number", filename: "script-include.js", settings: ES5, code: `var n = 9007199254740991;` },
+      {
+        name: "number",
+        filename: "script-include.js",
+        settings: ES5,
+        code: `var n = 9007199254740991;`,
+      },
     ],
   }),
   entry("no-incorrect-array-from-thisarg", noIncorrectArrayFromThisarg, {

@@ -17,7 +17,10 @@ function nestedDoWhile(depth: number, inner: string): string {
 describe("nested cursor-loop scaling (FINDINGS.md PER-002)", () => {
   it("completes a deeply nested do/while without exponential re-traversal", () => {
     assertValid(nestedDoWhile(24, "gs.info(1);"), "no-gliderecord-query-in-loop");
-    assertValid(nestedDoWhile(24, "var x = String(gr.sys_id); arr.push(x);"), "no-glideelement-in-collection");
+    assertValid(
+      nestedDoWhile(24, "var x = String(gr.sys_id); arr.push(x);"),
+      "no-glideelement-in-collection",
+    );
   });
 
   it("still reports a query inside the re-entered do/while body", () => {

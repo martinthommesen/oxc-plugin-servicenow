@@ -10,9 +10,18 @@ const RULE = "no-unfiltered-gliderecord-bulk-operation";
 // (FINDINGS.md COR-013).
 describe("loop-head rebinding (FINDINGS.md COR-013)", () => {
   it("does not carry a tracked object into a shadowing for-of body", () => {
-    assertValid("var gr = new GlideRecord('task');\nfor (var gr of items) { gr.deleteMultiple(); }", RULE);
-    assertValid("var gr = new GlideRecord('task');\nfor (let gr of items) { gr.deleteMultiple(); }", RULE);
-    assertValid("var gr = new GlideRecord('task');\nfor (var gr in items) { gr.deleteMultiple(); }", RULE);
+    assertValid(
+      "var gr = new GlideRecord('task');\nfor (var gr of items) { gr.deleteMultiple(); }",
+      RULE,
+    );
+    assertValid(
+      "var gr = new GlideRecord('task');\nfor (let gr of items) { gr.deleteMultiple(); }",
+      RULE,
+    );
+    assertValid(
+      "var gr = new GlideRecord('task');\nfor (var gr in items) { gr.deleteMultiple(); }",
+      RULE,
+    );
   });
 
   it("still reports the unshadowed bulk operation", () => {

@@ -357,6 +357,10 @@ function packTarball(destination) {
     {
       encoding: "utf8",
       cwd: root,
+      // Sized for artifact growth; Node's 1 MB default is within one
+      // generated-snapshot growth step of the largest packed file
+      // (FINDINGS.md PER-004).
+      maxBuffer: 64 * 1024 * 1024,
     },
   );
   let record;
@@ -369,17 +373,26 @@ function packTarball(destination) {
   return { tarball: join(destination, filename), record };
 }
 
+const TAR_MAX_BUFFER = 64 * 1024 * 1024;
+
 function listTarball(tarball) {
-  return execFileSync("tar", ["-tzf", tarball], { encoding: "utf8" }).split("\n").filter(Boolean);
+  return execFileSync("tar", ["-tzf", tarball], { encoding: "utf8", maxBuffer: TAR_MAX_BUFFER })
+    .split("\n")
+    .filter(Boolean);
 }
 
 function listTarballVerbose(tarball) {
-  return execFileSync("tar", ["-tvzf", tarball], { encoding: "utf8" }).split("\n").filter(Boolean);
+  return execFileSync("tar", ["-tvzf", tarball], { encoding: "utf8", maxBuffer: TAR_MAX_BUFFER })
+    .split("\n")
+    .filter(Boolean);
 }
 
 function readPackedPackage(tarball) {
   return JSON.parse(
-    execFileSync("tar", ["-xOf", tarball, "package/package.json"], { encoding: "utf8" }),
+    execFileSync("tar", ["-xOf", tarball, "package/package.json"], {
+      encoding: "utf8",
+      maxBuffer: TAR_MAX_BUFFER,
+    }),
   );
 }
 
