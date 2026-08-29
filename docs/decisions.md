@@ -59,6 +59,36 @@ Decision: remove the four fields in 3.0.
   them (`require-query-before-next` and the windowing, aggregate, and
   GlideAjax rules).
 
+## The PR #51 acceptance-ledger apparatus retires when the remediation merges (REM-002)
+
+The acceptance ledger (`scripts/pr51-acceptance.json`,
+`scripts/verify-acceptance-ledger.mjs`, the generated
+`docs/pr-51-acceptance-ledger.md` and `docs/pr-51-validation-report.md`,
+`PR51-REMEDIATION-GOAL.md`, `FINDINGS-REMEDIATION.md`, `plans/`, the
+`acceptance:check` and `acceptance:capture` scripts, and their CI steps)
+tracks one pull request's acceptance criteria. It is about 18,000 lines of
+one-off remediation tracking wired into required validation, and it must
+not outlive the remediation it tracks.
+
+Decision: retire the apparatus when the PR #51 remediation line merges into
+`main`.
+
+Trigger and conditions:
+
+- The PR #51 line is merged into `main`.
+- The remaining pending and live-pending criteria are satisfied or
+  explicitly abandoned here.
+- The same commit archives `PR51-REMEDIATION-GOAL.md`,
+  `FINDINGS-REMEDIATION.md`, the generated ledger documents, and `plans/`
+  under a tag or a `history/` directory so the evidence stays retrievable.
+- After removal, `npm run validate` still chains every durable gate, and
+  `workflow:check` and `check-script-paths.mjs` pass with no dangling
+  references.
+
+The durable gates (lint, format, typecheck, tests, docs regeneration,
+evidence, manifest, workflow, compat, benchmark, release artifact) are not
+part of the apparatus and stay required.
+
 ## Autofixes are out of scope until a rule ships one (MNT-001)
 
 The plugin reports diagnostics only. The unused fix machinery was removed;

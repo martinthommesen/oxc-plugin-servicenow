@@ -29,7 +29,7 @@
 - Generated rule pages include a structured applicability matrix, evidence records, false-positive and false-negative lists, overlaps, and fix safety. `npm run docs:check` fails on stale metadata.
 - `npm run bench` measures the real Oxlint executable (time, scale, and peak RSS) and compares recommended, one-rule, all, and plugin-disabled profiles.
 - Packed-consumer compatibility covers the declared oxlint, ESLint, oxfmt, TypeScript, and typescript-eslint boundaries. CI runs the five authoritative cells on Node 20.19.0, 22.14.0, 24.16.0, and 26.7.0.
-- `npm run release:check` cleans `dist`, builds, packs one tarball with `--ignore-scripts`, and records per-file metadata and hashes. `npm run validate` runs packed-consumer tests on that same file.
+- `npm run release:check` cleans `dist`, builds, packs one tarball with `--ignore-scripts`, and records per-file metadata and hashes. `npm run validate:live` runs packed-consumer tests on that same file.
 - The protected-tag release workflow requires the exact changelog heading before it can publish. The release jobs remain unexecuted and live-pending.
 
 ### Analysis
