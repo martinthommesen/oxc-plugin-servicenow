@@ -619,6 +619,44 @@ describe("release automation gates", () => {
     }
   });
 
+  it("bounds every job and network operation (FINDINGS.md REL-002)", async () => {
+    // The retry deadline only stops scheduling; each job needs a final guard
+    // and each fetch its own abort signal so a hang cannot stall a release.
+    const { readdirSync } = await import("node:fs");
+    const workflowFiles = readdirSync(path.join(repoRoot, ".github/workflows")).filter((name) =>
+      /\.ya?ml$/.test(name),
+    );
+    for (const file of workflowFiles) {
+      const parsed = parse(
+        readFileSync(path.join(repoRoot, ".github/workflows", file), "utf8"),
+      ) as { jobs: Record<string, { "timeout-minutes"?: number }> };
+      for (const [name, job] of Object.entries(parsed.jobs)) {
+        assert.ok(
+          Number.isFinite(job["timeout-minutes"]) && (job["timeout-minutes"] ?? 0) > 0,
+          `${file} job ${name} has no timeout-minutes`,
+        );
+      }
+    }
+    let sawSignal: unknown;
+    const url = "https://registry.npmjs.org/-/npm/v1/attestations/pkg@2.0.0";
+    await assert.rejects(
+      fetchAttestations(
+        {
+          dist: {
+            attestations: [{ url, provenance: { predicateType: "https://slsa.dev/provenance/v1" } }],
+          },
+        },
+        "pkg",
+        "2.0.0",
+        (async (_target: string, init: { signal?: unknown }) => {
+          sawSignal = init.signal;
+          return { status: 500, ok: false, url, headers: { get: () => null } };
+        }) as any,
+      ),
+    );
+    assert.ok(sawSignal instanceof AbortSignal, "attestation fetch has no abort signal");
+  });
+
   it("parses the workflow graph and proves least-privilege job boundaries", () => {
     const jobs = workflow.jobs;
     assert.deepEqual(jobs.publish.needs, ["validate", "consumer", "publication-state"]);

@@ -17,6 +17,7 @@ permissions:
 
 jobs:
   verify:
+    timeout-minutes: 20
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
@@ -81,6 +82,7 @@ jobs:
           if-no-files-found: error
 
   recover:
+    timeout-minutes: 20
     needs: verify
     runs-on: ubuntu-latest
     permissions:
