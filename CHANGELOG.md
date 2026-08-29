@@ -8,6 +8,7 @@
 
 ### Fixed
 
+- Fluent import aliases now follow execution order instead of source position. A reassignment inside a nested function makes the alias uncertain in every declaration order, and a builder use inside a function no longer trusts module-level reassignment ordering. Straight-line module-level code keeps positional resolution.
 - The shared path evaluator prunes branches behind statically constant conditions. `if (true) { gr.query(); }` no longer keeps the impossible false path alive, which produced false positives in path-sensitive rules such as `require-query-before-next`. Constant tests cover literal booleans, numbers, strings, `!` chains, ternaries, and `&&`/`||` short-circuits.
 - `analyzeProvenance` now analyzes the AST supplied as its second argument. Previously it always traversed `context.sourceCode.ast`, so an alternate tree had no effect. When an alternate AST is supplied, host scope-manager answers are ignored because they describe the other program.
 - `no-gliderecord-query-in-loop` and `no-glideelement-in-collection` now analyze the body of a synchronous IIFE with the enclosing loop context, so wrapping an operation in `(function () { ... })()` no longer bypasses the checks. Deferred callbacks stay excluded.
