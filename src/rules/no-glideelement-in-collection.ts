@@ -184,8 +184,19 @@ function findRetainedElements(
     return [];
   }
 
+  const visitedIdSets = new WeakMap<ESTree.Node, Set<string>>();
+
   function visit(node: unknown, cursorIds: ReadonlySet<number>): void {
     if (!isNode(node)) return;
+    // The visit is deterministic for a given (node, cursor-id set), so each
+    // pair needs one traversal. Without this memo the do/while and for
+    // branches re-visit each loop body, which composes exponentially for
+    // nested loops (FINDINGS.md PER-002).
+    const key = [...cursorIds].sort((left, right) => left - right).join(",");
+    const seenKeys = visitedIdSets.get(node);
+    if (seenKeys?.has(key)) return;
+    if (seenKeys) seenKeys.add(key);
+    else visitedIdSets.set(node, new Set([key]));
     if (node.type === "CallExpression") {
       const call = node as ESTree.CallExpression;
       const callee = unwrapExpression(call.callee);
