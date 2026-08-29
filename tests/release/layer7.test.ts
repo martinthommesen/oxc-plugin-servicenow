@@ -375,8 +375,8 @@ describe("release automation gates", () => {
       );
     const assertPinned = (reference: string) => {
       const match = /^([\w.-]+\/[\w.-]+(?:\/[\w./-]+)?)@([0-9a-f]{40})$/.exec(reference);
-      assert.ok(match, `uses ${reference} is not owner/repo@full-sha`);
-      assert.equal(pins[match![1]], match![2], `${reference} is not centrally pinned`);
+      assert.ok(match?.[1] && match[2], `uses ${reference} is not owner/repo@full-sha`);
+      assert.equal(pins[match[1]], match[2], `${reference} is not centrally pinned`);
     };
     for (const candidate of [workflow, ciWorkflow, governanceWorkflow]) {
       for (const reference of collectUses(candidate)) assertPinned(reference);

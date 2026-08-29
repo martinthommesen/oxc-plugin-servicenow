@@ -119,29 +119,11 @@ describe("plugin export", () => {
         entry.hasSuggestions,
         `${entry.name} hasSuggestions mismatch`,
       );
-      if (!entry.fixable && !entry.hasSuggestions) continue;
-
-      let sawFix = false;
-      let sawSuggestion = false;
-      for (const example of entry.bad) {
-        const messages = lint(example.code, entry.name, {
-          filename: example.filename ?? "test.js",
-          settings: example.settings,
-        });
-        if (messages.some((message) => message.fixedSource !== undefined)) sawFix = true;
-        if (messages.some((message) => (message.suggestions?.length ?? 0) > 0)) {
-          sawSuggestion = true;
-        }
-      }
-      if (entry.fixable) {
-        assert.ok(sawFix, `${entry.name} is fixable but no bad example produced fixedSource`);
-      }
-      if (entry.hasSuggestions) {
-        assert.ok(
-          sawSuggestion,
-          `${entry.name} hasSuggestions but no bad example produced suggestions`,
-        );
-      }
+      // The plugin reports diagnostics only. The test harness has no fix
+      // application machinery (FINDINGS.md MNT-001), so a rule that starts
+      // declaring fixable or hasSuggestions must bring that support back.
+      assert.equal(entry.fixable, false, `${entry.name} declares an unsupported fix`);
+      assert.equal(entry.hasSuggestions, false, `${entry.name} declares unsupported suggestions`);
     }
   });
 });

@@ -26,14 +26,6 @@ describe("no-gs-now", () => {
     assertValid(`var when = new GlideDateTime();`, "no-gs-now");
   });
 
-  it("does not expose a fix or suggestion", () => {
-    const messages = lint("current.u_opened = gs.now();", "no-gs-now");
-    assert.ok(messages.every((message) => message.fixedSource === undefined));
-    assert.ok(
-      messages.every((message) => !message.suggestions || message.suggestions.length === 0),
-    );
-  });
-
   it("does not flag a shadowed gs binding", () => {
     assertValid("var gs = { now: function () { return 'x'; } }; var when = gs.now();", "no-gs-now");
   });
@@ -162,12 +154,9 @@ describe("engine extras", () => {
     );
   });
 
-  it("no-at-method does not expose a suggestion", () => {
+  it("no-at-method reports the at diagnostic", () => {
     const messages = lint("var last = [1, 2].at(1);", "no-at-method", { settings: ES5 });
     assert.ok(messages.some((message) => message.messageId === "at"));
-    assert.ok(
-      messages.every((message) => !message.suggestions || message.suggestions.length === 0),
-    );
   });
 
   it("no-at-method ignores user-defined and unknown receivers", () => {
