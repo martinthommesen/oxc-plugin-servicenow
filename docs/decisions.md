@@ -35,6 +35,15 @@ deprecation messages visible at lint time.
 - Removal is loud: unknown settings keys throw with a message that names the
   replacement (`surfaces`, `javascriptMode`).
 
+Evidence captured 2026-08-29: the npm downloads API reports 194 downloads
+for the last week; the npm dependents page rejects unauthenticated reads,
+so dependents cannot be measured from this environment. Per the threshold
+above ("cannot be measured"), the concrete 3.0 action is: retire only
+`@sn-es-latest`, keep `scriptType` and `ecmaLatest`. Re-run the check at
+the 3.0 boundary; a measured no-usage result upgrades the action to
+retiring all three. FEAT-001, REM-001, and API-002 share this dependents
+check and re-run it at the same boundary.
+
 ## `validate-gliderecord-calls` is removed in 3.0 (REM-001)
 
 Announced in the changelog and in the generated rule page. The alias stays
