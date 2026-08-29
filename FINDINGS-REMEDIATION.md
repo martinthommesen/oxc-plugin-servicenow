@@ -1,71 +1,72 @@
 # FINDINGS.md remediation ledger
 
 Disposition of every active record in `FINDINGS.md` (super-review of
-2026-08-29). One commit per record on `pr51-remediation/layer6`; the commit
-subject carries the record ID.
+2026-08-29 at `798d286`). One commit per record on
+`pr51-remediation/layer6`; the commit subject carries the record ID.
 
 ## Verification state
 
-- Full suite: 807/807 (including the networked consumer test).
-- The release provenance verifier validates the real published 2.0.0
-  attestation end to end (real Fulcio certificate, public Sigstore trust
-  root, all nine required OIDs including the environment and the ID-enriched
-  subject).
-- Hermetic `npm test`: 805/805, about 21 s; no network access points remain in the default suite (the consumer install moved to `test:consumer`).
-- Clean `git archive HEAD` checkout passes `lint:check`, `format:check`,
-  `typecheck`, and `typecheck:fixtures`.
-- `docs:check`, `evidence:check`, `manifest:check`, `workflow:check`,
-  `compat:check`, `release:check`: all pass.
-- Governance audit returns `ok: true` against live GitHub state
-  (npm trust read still needs an npm login).
-- Acceptance capture records the exact clean commit with a reproducible
-  digest.
+- Hermetic `npm test`: 818/818, offline.
+- `npm run validate` (workflow, compat, lint, format, typecheck, fixtures,
+  build, test, evidence, offline acceptance, docs, manifest, bench,
+  release artifact): passes end to end with no network access points. The
+  networked steps moved to `npm run validate:live`.
+- Offline `acceptance:check`: 533 criteria, 448 verified at exact head,
+  53 pending or implemented, 32 live-pending (the 2 packed-consumer-backed
+  criteria defer to Live-pending offline).
+- Red-before-green: the COR-007 parity fixtures (5 of 6 cases), the
+  COR-008 name matrix (4 cases), the COR-009 alias cases, and the DOC-002
+  widened guard all fail on the pre-fix tree.
+- PER-002 measured: the depth-20 nested `do…while` reproduction took
+  454 ms before the fix and 8.7 ms at depth 30 after it.
+- DOC-002: the Zurich replacement page was fetched and carries the same
+  async-`previous` statements as the Xanadu page it replaces.
 
 ## Dispositions
 
 | ID | Disposition | Commit | Note |
 | --- | --- | --- | --- |
-| OPS-001 | Fixed | 9b7cb73 | Configs tracked; `check-script-paths.mjs` guards recurrence. |
-| OPS-002 | Fixed | faf4855 | One wrong check name corrected; producibility test added. Live ruleset read 2026-08-29: already reconciled, no admin edit needed. |
-| OPS-003 | Fixed | ddab1b1 | Whole tree committed and pushed. |
-| OPS-004 | Fixed | decbb29 | `npm test` hermetic; consumer test is its own script and CI/release job with `--ignore-scripts`. |
-| OPS-005 | Fixed | faf4855 | Real principals from live state: tag actor `release-sentinel-sn` (Integration 4671202), reviewer `martinthommesen` (User 267603464). Checker's reviewer normalization fixed. Audit passes live. |
-| OPS-006 | Fixed | f3ae736 + follow-up | Two failure modes. (1) The consumer probe asserted the removed `PACKAGE_VERSION` root export; fixed and contract-tested (this was latent, not the v2.0.0 incident). (2) The actual v2.0.0 incident: the OID policy compared raw bytes against DER-encoded Fulcio v2 extension values and expected a plain subject in extension 1.24 where Fulcio embeds the ID-enriched `repo:owner@id/name@id:environment:env` form. Fixed with DER-encoded policy values and the enriched subject; the mock fixture now uses real Fulcio encoding, and the fix is proven end to end against the live npm 2.0.0 attestation with the public Sigstore trust root. |
-| OPS-007 | Fixed | 37df16a | Nightly CI schedule plus scheduled `manifest-drift` job; offline `manifest:check` was already required. |
-| TST-001 | Fixed | fbb823c | Fixture clock tracks wall time; 16/16. |
-| TST-002 | Fixed | c757085 | Preset source vendored; digest asserted from bytes. |
-| COR-001 | Fixed | 04339da | Directory heuristics bounded to `context.cwd`; decoy-path tests both directions. |
-| COR-002 | Fixed | ecbf201 | 32-hex suppression for every digest-like name; binding-name stack. |
-| COR-003 | Fixed | 9586dff | Constant-condition pruning (the one reproducible symptom); the other three symptom classes probed correct and pinned by tests. |
-| COR-004 | Fixed | daa0424 | Shared `isSynchronousIife` predicate; both rule families inherit loop context through IIFEs. |
-| COR-005 | Fixed | 598d39f | Live rules already keyed by binding/object identity (verified and pinned); the dead display-name correlator deleted. |
-| COR-006 | Fixed | 9b2d3ad | Alias resolution follows execution order; nested-function writes and function-scoped uses are conservatively uncertain. |
-| API-001 | Fixed | d812370 | `analyzeProvenance` honors its AST argument; host scope skipped for foreign trees. |
-| REL-001 | Fixed | 8ab7dc4 | Prerelease split at the first hyphen only. |
-| REL-002 | Fixed | 11763c1 | 120 s per-operation timeouts (npm children, import probe, attestation fetch) and `timeout-minutes` on every job. |
-| PER-001 | Fixed | 8bbf4fb | 939 KB declaration -> 162 bytes; 200 KB per-declaration budget enforced. |
-| MNT-001 | Fixed | e523f2d | Dead autofix harness deleted; catalog metadata retained as host-facing truth; decision recorded. |
-| MNT-002 | Fixed | 6891266 | `src/version.ts` generated at build time; no load-time filesystem read. |
-| MNT-003 | Fixed | 376d37d | Prototype-free lookup tables; negative tests for `Object.prototype` names. |
-| DOC-001 | Fixed | 28abfb3 | Ledger outputs excluded from the digest scope; digest reproducible. |
-| DOC-002 | Fixed | 92f58d1 | Zurich URLs; release-segment assertion in the evidence tests. |
-| IMP-001 | Fixed | d314dea | Non-`@` `uses:` references fail; YAML-parsed pin assertions added. |
-| IMP-002 | Fixed | 382820e | Bounded npm range `>=11.5.1 <12`; publish job on pipeline Node. |
-| FEAT-001 | Decision recorded | 1d7044b | Thin presets stay through 2.x; 3.0 review trigger in `docs/decisions.md`. |
-| FEAT-002 | Decision recorded | 1d7044b | 1.x settings layer retires in 3.0 per `docs/decisions.md`; dependents check before removal. |
-| REM-001 | Decision recorded | 1d7044b | Removal in 3.0 announced in changelog, rule page, and README. |
-| POS-001..004 | Preserved | — | No change to the protected patterns; COR-003/COR-006 fixes only narrow wrong evidence, unknown still means silent. |
+| COR-007 | Fixed | ebc4636 | `nodeEnd` and `commentOffsets` beside `nodeStart`; fluent-imports, bindings, glide-setnocount, fluent-directives, prefer-glideaggregate, and the harness routed through them; unknown offsets make aliases uncertain; hermetic range-only parity suite plus a source ban on the raw idioms; packed-consumer alias and directive cases added. |
+| PER-002 | Fixed | 964dca9 | `(node, cursor-set)` memo removes the exponential; both walkers run under the path evaluator's budget via `runWithTraversalBudget`, degrading to zero findings and counting the event; `nested-do-while` benchmark fixture added (baseline row seeded from the nested-scopes cell until the next baseline write). |
+| COR-008 | Fixed | 83eaae1 | Digest words anchored to whole name components; ten-name two-directional matrix; changelog names the affected spellings. |
+| COR-009 | Fixed | bd73b57 | `VariableDeclarator` visitor joins the COR-006 execution-order model when a binding has multiple declarators; both directions, the assignment control, and the conditional case pinned. |
+| API-002 | Fixed (deprecation) | ea0d47f | Four never-computed lifecycle fields annotated `@deprecated` on the public and internal records; 3.0 removal recorded in `docs/decisions.md` behind the shared dependents check; contract test pins the constant values. |
+| OPS-004 | Fixed | 6b890e2 | `acceptance:check` runs offline (hermetic inventory, consumer criteria recorded Live-pending, no tracked-file writes); full capture moved to `acceptance:capture` in the networked CI `consumer` job and the release validate job; `npm run validate` is fully offline; networked steps moved to `validate:live`; `consumer` added to the desired required checks. |
+| REL-003 | Fixed | 8a81385 | ASCII relational compare replaces `localeCompare`; mixed-case pairs and a full-list sort pinned. |
+| OPS-008 | Fixed | 24cafc0 | Nightly cron (offset from CI) on `governance-audit.yml`; stays out of required checks; test asserts drift-detection workflows declare a schedule; cadence documented in `docs/release.md`. |
+| MNT-004 | Fixed | 4fcbe99 | `--oidc-subject` is now cross-checked against the plain subject derived from the verified certificate expectations; mismatches fail with `provenance-expectation`; negative test added. |
+| DOC-002 | Fixed | eb9ef8d | Xanadu link repointed to the fetched Zurich page; the release-segment guard now scans file-path evidence documents and everything `docs/non-goals.md` links. |
+| IMP-001 | Fixed | 4be575e | Option A (keep and harden): block-scalar lines skipped, empty-owner references fail, pin table is a `Map`; still dependency-free; scan exported and unit-tested. |
+| REM-002 | Decision recorded | c811a0e | Retirement trigger, archive plan, and post-removal gate conditions in `docs/decisions.md`; nothing deleted before the PR #51 merge. |
+| FEAT-002 | Investigated | 00dc3bd | npm downloads 194/week on 2026-08-29; dependents unreadable without auth, so per the recorded threshold the concrete 3.0 action is: retire only `@sn-es-latest`, re-check at the boundary. |
+| FEAT-001 | Decision stands | 1d7044b | Thin presets stay through 2.x; the 3.0 trigger in `docs/decisions.md` is unchanged and now shares the dated dependents-evidence note. |
+| REM-001 | Decision stands | 1d7044b | `validate-gliderecord-calls` removal in 3.0 remains announced in the changelog, rule page, and README. |
+| POS-001..004 | Preserved | — | No protected pattern weakened. PER-002 extends the POS-004 budget discipline to the cursor-loop walkers; unknown still means silent (COR-007 declines instead of guessing); the catalog derivation and provenance binding are untouched. |
+
+Documentation corrections carried with their related records: the stale
+`isSynchronousIife` and `constantTruthiness` comments in `path-state.ts`
+(with PER-002), the CONTRIBUTING.md invariants for portable offsets,
+budgeted traversals, and dependency-free workflow scripts (with OPS-004),
+and this ledger's previous claim that the required `test` check no longer
+covered the packed-consumer path — it did, through `acceptance:check`;
+after OPS-004 that coverage moves to the `consumer` job, which is why
+`consumer` must become a required check.
 
 ## Outstanding external actions
 
-1. Merging into `main`: this branch shares its base with the pre-2.0 history
-   while `origin/main` gained 39 commits (PRs #102-#120) and shipped 2.0.0.
-   Reconciling the two lines is a maintainer decision outside this
-   remediation.
-2. `npm trust list` in the governance audit needs an npm login; the GitHub
-   half of the audit passes against live state.
-3. Add the new CI `consumer` job to the required status checks of ruleset
-   21081867. This is recommended, not optional: the required `test` check no
-   longer covers the packed-consumer path after the hermetic split, so
-   enforcement is weaker until `consumer` is required. The producibility test
-   accepts whatever list is chosen.
+1. Merging into `main`: this branch still shares its base with the
+   pre-2.0 history while `origin/main` shipped 2.0.0. Reconciling the two
+   lines is a maintainer decision outside this remediation. The REM-002
+   retirement trigger fires on that merge.
+2. Add the CI `consumer` job to the required status checks of ruleset
+   21081867. After OPS-004 this is mandatory, not advisory: the required
+   `test` job now runs the offline acceptance mode, so `consumer` is the
+   only required coverage of the packed-consumer path once applied.
+   `scripts/release-governance.json` already lists it as desired policy,
+   and the governance audit will report the drift nightly until the live
+   ruleset is updated.
+3. `npm trust list` in the governance audit still needs an npm login; the
+   scheduled run reports the GitHub half only.
+4. The benchmark baseline row for the new `nested-do-while/recommended`
+   cell is seeded from the `nested-scopes/recommended` cell; the next
+   `npm run bench -- --write` on the baseline host recalibrates it.
