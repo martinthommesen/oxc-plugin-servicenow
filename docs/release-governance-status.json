@@ -3,7 +3,7 @@
   "evidenceStatus": "point-in-time-verified",
   "liveVerification": "partial",
   "warning": "This capture records verified controls at one point in time. Run the governance audit again before release.",
-  "capturedAt": "2026-08-21T12:02:51Z",
+  "capturedAt": "2026-08-29T14:45:00Z",
   "repository": "martinthommesen/oxc-plugin-servicenow",
   "verified": {
     "mainRuleset": {
@@ -13,6 +13,7 @@
       "refPattern": "refs/heads/main",
       "requiredStatusChecks": [
         "test",
+        "consumer",
         "bench",
         "compat (min-hosts, 20.19.0)",
         "compat (node22-host, 22.14.0)",
@@ -39,14 +40,25 @@
       "immutability": {
         "id": 21081873,
         "name": "PR51 immutable release tags",
-        "rules": ["deletion", "non_fast_forward"],
+        "rules": [
+          "deletion",
+          "non_fast_forward"
+        ],
         "bypassActors": []
       },
       "creation": {
         "id": 21143599,
         "name": "PR51 controlled release tag creation",
-        "rules": ["creation"],
-        "bypassActors": [{ "id": 4671202, "type": "Integration", "mode": "always" }]
+        "rules": [
+          "creation"
+        ],
+        "bypassActors": [
+          {
+            "id": 4671202,
+            "type": "Integration",
+            "mode": "always"
+          }
+        ]
       }
     },
     "releaseEnvironment": {
@@ -54,20 +66,33 @@
       "name": "release",
       "canAdminsBypass": false,
       "preventSelfReview": true,
-      "reviewers": [{ "id": 267603464, "login": "martinthommesen", "type": "User" }],
+      "reviewers": [
+        {
+          "id": 267603464,
+          "login": "martinthommesen",
+          "type": "User"
+        }
+      ],
       "deploymentPolicy": {
         "protectedBranches": false,
         "customBranchPolicies": true,
         "branches": [],
-        "tags": ["v*"]
+        "tags": [
+          "v*"
+        ]
       }
     },
     "releaseSentinel": {
       "appId": 4671202,
       "slug": "release-sentinel-sn",
       "installationId": 155434410,
-      "repositorySelection": ["oxc-plugin-servicenow"],
-      "permissions": { "contents": "write", "metadata": "read" },
+      "repositorySelection": [
+        "oxc-plugin-servicenow"
+      ],
+      "permissions": {
+        "contents": "write",
+        "metadata": "read"
+      },
       "actionsVariable": "RELEASE_SENTINEL_CLIENT_ID",
       "actionsSecret": "RELEASE_SENTINEL_PRIVATE_KEY"
     },
