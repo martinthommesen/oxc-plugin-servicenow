@@ -3,7 +3,7 @@ import { PLUGIN_NAME } from "../constants.js";
 import { rules as allRules } from "../rules/index.js";
 import type { RuleName } from "../rules/index.js";
 import type { ServiceNowSettings } from "../types.js";
-import { isNode, walk } from "../utils/ast.js";
+import { isNode, nodeEnd, nodeStart, walk } from "../utils/ast.js";
 
 export interface LintMessage {
   ruleId: string;
@@ -26,7 +26,7 @@ export interface LintSourceOptions {
 
 export interface ParsedSource {
   ast: unknown;
-  comments?: Array<{ value: string; start: number; end: number }>;
+  comments?: Array<{ value: string; start?: number; end?: number; range?: readonly number[] }>;
 }
 
 function interpolate(
@@ -59,8 +59,10 @@ function locFromNode(
       endColumn: node.loc.end?.column,
     };
   }
-  const start = typeof node.start === "number" ? node.start : 0;
-  const end = typeof node.end === "number" ? node.end : start;
+  const rawStart = nodeStart(node as unknown as ESTree.Node);
+  const start = rawStart >= 0 ? rawStart : 0;
+  const rawEnd = nodeEnd(node as unknown as ESTree.Node);
+  const end = rawEnd >= 0 ? rawEnd : start;
   const a = lineCol(text, start);
   const b = lineCol(text, end);
   return { line: a.line, column: a.column, endLine: b.line, endColumn: b.column };
@@ -96,8 +98,11 @@ export function applyRules(
     ast: parsed.ast,
     lines: source.split("\n"),
     getText(node?: { start?: number; end?: number } | null) {
-      if (!node || typeof node.start !== "number" || typeof node.end !== "number") return source;
-      return source.slice(node.start, node.end);
+      if (!node) return source;
+      const start = nodeStart(node as unknown as ESTree.Node);
+      const end = nodeEnd(node as unknown as ESTree.Node);
+      if (start < 0 || end < 0) return source;
+      return source.slice(start, end);
     },
     getAllComments() {
       return comments;

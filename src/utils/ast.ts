@@ -266,11 +266,23 @@ export type CommentLike = {
   value: string;
   start?: number;
   end?: number;
+  range?: readonly number[];
   loc?: { start: { line: number; column: number }; end: { line: number; column: number } };
 };
 
 export function commentText(comment: CommentLike): string {
   return comment.value.trim();
+}
+
+/**
+ * Stable comment offsets across hosts: `typescript-eslint` comments carry
+ * only `range`, never `start`/`end` (FINDINGS.md COR-007). Returns `null`
+ * when the host provides no offsets, so callers decline instead of guessing.
+ */
+export function commentOffsets(comment: CommentLike): { start: number; end: number } | null {
+  const start = comment.start ?? comment.range?.[0];
+  const end = comment.end ?? comment.range?.[1];
+  return typeof start === "number" && typeof end === "number" ? { start, end } : null;
 }
 
 /** Stable source offset across ESTree, ESLint, and Oxlint node adapters. */
@@ -281,6 +293,16 @@ export function nodeStart(node: ESTree.Node): number {
     span?: { start?: number };
   };
   return compatible.start ?? compatible.range?.[0] ?? compatible.span?.start ?? -1;
+}
+
+/** Stable end offset across ESTree, ESLint, and Oxlint node adapters. */
+export function nodeEnd(node: ESTree.Node): number {
+  const compatible = node as unknown as {
+    end?: number;
+    range?: readonly number[];
+    span?: { end?: number };
+  };
+  return compatible.end ?? compatible.range?.[1] ?? compatible.span?.end ?? -1;
 }
 
 /** Keys that are not syntactic children. ESLint AST nodes also store `parent`. */

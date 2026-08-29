@@ -404,12 +404,38 @@ BusinessRule({
 });
 `,
       );
+      // Alias resolution and directive attachment depend on source offsets,
+      // which typescript-eslint exposes only as `range` (FINDINGS.md COR-007).
+      writeFileSync(
+        path.join(consumer, "alias.now.ts"),
+        `import { Record } from "@servicenow/sdk/core";
+import { helper } from "other";
+let F = Record;
+F = helper;
+F({ table: "incident", name: "Alias" });
+`,
+      );
+      writeFileSync(
+        path.join(consumer, "directive.now.ts"),
+        `import { BusinessRule } from "@servicenow/sdk/core";
+// @fluent-ignore
+export const demo = 1;
+`,
+      );
       writeFileSync(path.join(consumer, "app.ts"), `const x: string = "ordinary";\n`);
       let eslintStdout = "";
       try {
         eslintStdout = execFileSync(
           path.join(consumer, "node_modules", ".bin", "eslint"),
-          ["--format", "json", "table.now.ts", "table.now.tsx", "app.ts"],
+          [
+            "--format",
+            "json",
+            "table.now.ts",
+            "table.now.tsx",
+            "alias.now.ts",
+            "directive.now.ts",
+            "app.ts",
+          ],
           { encoding: "utf8", cwd: consumer },
         );
       } catch (error) {
@@ -421,6 +447,8 @@ BusinessRule({
       }>;
       const fluent = report.find((file) => file.filePath.endsWith("table.now.ts"));
       const fluentTsx = report.find((file) => file.filePath.endsWith("table.now.tsx"));
+      const alias = report.find((file) => file.filePath.endsWith("alias.now.ts"));
+      const directive = report.find((file) => file.filePath.endsWith("directive.now.ts"));
       const ordinary = report.find((file) => file.filePath.endsWith("app.ts"));
       assert.ok(fluent, "expected table.now.ts in ESLint output");
       assert.ok(fluentTsx, "expected table.now.tsx in ESLint output");
@@ -433,6 +461,18 @@ BusinessRule({
       assert.ok(
         fluentTsxRules.includes("servicenow/require-fluent-id"),
         `typed fluent tsx rules: ${fluentTsxRules.join(", ") || "(none)"}`,
+      );
+      assert.ok(alias, "expected alias.now.ts in ESLint output");
+      assert.ok(directive, "expected directive.now.ts in ESLint output");
+      const aliasRules = alias.messages.map((message) => message.ruleId);
+      assert.ok(
+        !aliasRules.includes("servicenow/require-fluent-id"),
+        `reassigned alias must not report (FINDINGS.md COR-007): ${aliasRules.join(", ")}`,
+      );
+      const directiveRules = directive.messages.map((message) => message.ruleId);
+      assert.ok(
+        !directiveRules.includes("servicenow/fluent-directives"),
+        `attached directive must not report (FINDINGS.md COR-007): ${directiveRules.join(", ")}`,
       );
       assert.equal(
         ordinary?.messages.some((message) => message.ruleId?.startsWith("servicenow/")),

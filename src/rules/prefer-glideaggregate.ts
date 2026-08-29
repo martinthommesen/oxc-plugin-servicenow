@@ -1,7 +1,7 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
-import { getName, isNode, isValueReference, nodeStart, walk } from "../utils/ast.js";
+import { getName, isNode, isValueReference, nodeEnd, nodeStart, walk } from "../utils/ast.js";
 import { staticPropertyName } from "../analysis/internal.js";
 import { isServerInstanceContext } from "../context/index.js";
 import { beginRuleFile } from "./helpers.js";
@@ -171,10 +171,8 @@ export const preferGlideaggregate = defineRule({
     ): boolean {
       let valid = true;
       const loopStart = nodeStart(loop);
-      const loopEnd =
-        (loop as { end?: number; range?: readonly number[] }).end ??
-        (loop as { range?: readonly number[] }).range?.[1] ??
-        loopStart;
+      const end = nodeEnd(loop);
+      const loopEnd = end >= 0 ? end : loopStart;
       const ancestors: ESTree.Node[] = [];
       walk(
         context.sourceCode.ast as unknown as ESTree.Node,

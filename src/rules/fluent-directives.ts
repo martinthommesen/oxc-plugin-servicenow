@@ -3,7 +3,14 @@ import type { ESTree } from "@oxlint/plugins";
 import { FLUENT_DIRECTIVE_TYPOS, ruleDocsUrl } from "../constants.js";
 import { knownDirectiveNames } from "../fluent/index.js";
 import { isFluentContext } from "../context/index.js";
-import { isNode, walk } from "../utils/ast.js";
+import {
+  type CommentLike,
+  commentOffsets,
+  isNode,
+  nodeEnd,
+  nodeStart,
+  walk,
+} from "../utils/ast.js";
 import { beginRuleFile } from "./helpers.js";
 
 const DIRECTIVE = /@([A-Za-z][\w-]*)/g;
@@ -34,10 +41,17 @@ interface Occurrence {
   };
 }
 
-function commentsOf(context: { sourceCode: { getAllComments?: () => Comment[] } }): Comment[] {
-  return typeof context.sourceCode.getAllComments === "function"
-    ? context.sourceCode.getAllComments()
-    : [];
+function commentsOf(context: { sourceCode: { getAllComments?: () => CommentLike[] } }): Comment[] {
+  const raw =
+    typeof context.sourceCode.getAllComments === "function"
+      ? context.sourceCode.getAllComments()
+      : [];
+  // typescript-eslint comments carry only `range` (FINDINGS.md COR-007). A
+  // comment with no offsets at all cannot be attached and is skipped.
+  return raw.flatMap((comment) => {
+    const offsets = commentOffsets(comment);
+    return offsets ? [{ value: comment.value, start: offsets.start, end: offsets.end }] : [];
+  });
 }
 
 function firstNonEmptyLine(text: string): number {
@@ -61,9 +75,9 @@ function occurrenceAt(comment: Comment, text: string, index: number, length: num
 }
 
 function nodeRange(node: ESTree.Node, text: string): StatementRef | null {
-  const start = (node as { start?: number }).start;
-  const end = (node as { end?: number }).end;
-  if (typeof start !== "number" || typeof end !== "number") return null;
+  const start = nodeStart(node);
+  const end = nodeEnd(node);
+  if (start < 0 || end < 0) return null;
   const line = (node as { loc?: { start?: { line?: number } } }).loc?.start?.line;
   return { start, end, line: typeof line === "number" ? line : pointAt(text, start).line };
 }

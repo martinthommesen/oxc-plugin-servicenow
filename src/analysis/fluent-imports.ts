@@ -1,6 +1,13 @@
 import type { ESTree } from "@oxlint/plugins";
 import { apisByName, type FluentApiCapability, type FluentSdkManifest } from "../fluent/index.js";
-import { getName, getStringValue, isNode, unwrapExpression, walk } from "../utils/ast.js";
+import {
+  getName,
+  getStringValue,
+  isNode,
+  nodeStart,
+  unwrapExpression,
+  walk,
+} from "../utils/ast.js";
 import { staticPropertyName } from "./members.js";
 import type { FileBindings, LexicalBinding } from "./bindings.js";
 
@@ -104,11 +111,15 @@ function latestSimpleValue(
   bindings: FileBindings,
   useInsideFunction: boolean,
 ): ESTree.Node | null {
-  const useStart = (use as { start?: number }).start ?? Number.POSITIVE_INFINITY;
+  // Portable offsets: typescript-eslint nodes carry only `range`
+  // (FINDINGS.md COR-007). An unknown offset makes ordering unknowable, so
+  // the alias becomes uncertain rather than wrongly resolved.
+  const useStart = nodeStart(use);
   let value = declarationInit(binding);
-  let valueOffset = (binding.node as { start?: number }).start ?? -1;
+  let valueOffset = nodeStart(binding.node);
   let uncertain = false;
   if (!program || binding.kind === "const") return value;
+  if (useStart < 0) return null;
   const ancestors: ESTree.Node[] = [];
   walk(
     program,
@@ -131,7 +142,11 @@ function latestSimpleValue(
           uncertain = true;
           return;
         }
-        const start = (node as { start?: number }).start ?? Number.POSITIVE_INFINITY;
+        const start = nodeStart(node);
+        if (start < 0) {
+          uncertain = true;
+          return;
+        }
         if (start >= useStart) return;
         if (
           assignment.operator !== "=" ||

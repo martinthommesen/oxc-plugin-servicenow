@@ -1,5 +1,6 @@
 import type { ESTree } from "@oxlint/plugins";
 import { analyzePathBindings } from "./path-state.js";
+import { nodeStart } from "../utils/ast.js";
 import type { ProvenanceQuery } from "./provenance.js";
 
 export interface ChooseWindowCountFinding {
@@ -44,7 +45,7 @@ function alternativeKey(value: CountAlternative): string {
     windowed: value.windowed,
     skippedCount: value.skippedCount,
     wantsCount: value.wantsCount,
-    resultStart: value.result?.node.start ?? null,
+    resultStart: value.result ? nodeStart(value.result.node) : null,
     resultUsed: value.result?.used ?? null,
   });
 }

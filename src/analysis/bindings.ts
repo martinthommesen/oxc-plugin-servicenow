@@ -1,5 +1,5 @@
 import type { Context, ESTree } from "@oxlint/plugins";
-import { getName, isNode, walk } from "../utils/ast.js";
+import { getName, isNode, nodeEnd, nodeStart, walk } from "../utils/ast.js";
 
 export type BindingKind =
   | "var"
@@ -115,15 +115,17 @@ export class ScopeTree {
   }
 
   private innermostScopeContaining(node: ESTree.Node): ScopeNode | null {
-    const start = (node as { start?: number }).start;
-    const end = (node as { end?: number }).end;
-    if (typeof start !== "number" || typeof end !== "number") return null;
+    // Portable offsets: typescript-eslint nodes carry only `range`
+    // (FINDINGS.md COR-007). Unknown offsets decline to answer.
+    const start = nodeStart(node);
+    const end = nodeEnd(node);
+    if (start < 0 || end < 0) return null;
     let best: ScopeNode | null = null;
     let bestSpan = Number.POSITIVE_INFINITY;
     for (const scope of this.byBlock.values()) {
-      const blockStart = (scope.block as { start?: number }).start;
-      const blockEnd = (scope.block as { end?: number }).end;
-      if (typeof blockStart !== "number" || typeof blockEnd !== "number") continue;
+      const blockStart = nodeStart(scope.block);
+      const blockEnd = nodeEnd(scope.block);
+      if (blockStart < 0 || blockEnd < 0) continue;
       if (start < blockStart || end > blockEnd) continue;
       const span = blockEnd - blockStart;
       if (span < bestSpan) {
