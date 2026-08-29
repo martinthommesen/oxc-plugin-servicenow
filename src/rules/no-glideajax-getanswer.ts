@@ -1,6 +1,6 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
-import { staticPropertyName } from "../analysis/index.js";
+import { staticPropertyName } from "../analysis/internal.js";
 import { isClientCapableContext } from "../context/index.js";
 import { ruleDocsUrl } from "../constants.js";
 import { beginRuleFile } from "./helpers.js";

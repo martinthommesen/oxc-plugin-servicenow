@@ -13,8 +13,10 @@ export const noAsyncIterators = defineRule({
       url: ruleDocsUrl("no-async-iterators"),
     },
     messages: {
-      forAwait: "`for await…of` is disallowed on the ServiceNow JavaScript engine, including ES2021 mode.",
-      asyncGen: "Async generators are disallowed on the ServiceNow JavaScript engine, including ES2021 mode.",
+      forAwait:
+        "`for await…of` is disallowed on the ServiceNow JavaScript engine, including ES2021 mode. Use a synchronous loop.",
+      asyncGen:
+        "Async generators are disallowed on the ServiceNow JavaScript engine, including ES2021 mode. Use a synchronous generator or return an array.",
     },
   },
   createOnce(context) {

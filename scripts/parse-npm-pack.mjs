@@ -11,7 +11,9 @@ export function parseNpmPackJson(value) {
   try {
     parsed = typeof value === "string" ? JSON.parse(value) : value;
   } catch (error) {
-    throw new Error(`invalid npm pack JSON: ${error instanceof Error ? error.message : String(error)}`);
+    throw new Error(
+      `invalid npm pack JSON: ${error instanceof Error ? error.message : String(error)}`,
+    );
   }
 
   const records = Array.isArray(parsed)
@@ -20,10 +22,23 @@ export function parseNpmPackJson(value) {
       ? Object.values(parsed)
       : [];
   const matches = records.filter(
-    (record) => record && typeof record === "object" && typeof record.filename === "string" && record.filename.length > 0,
+    (record) =>
+      record &&
+      typeof record === "object" &&
+      typeof record.filename === "string" &&
+      record.filename.length > 0,
   );
   if (matches.length !== 1) {
     throw new Error(`expected exactly one npm pack record with filename, found ${matches.length}`);
   }
-  return matches[0];
+  const record = matches[0];
+  if (
+    basename(record.filename) !== record.filename ||
+    record.filename.startsWith("-") ||
+    !/^[0-9A-Za-z._-]+\.tgz$/.test(record.filename)
+  ) {
+    throw new Error(`unsafe npm pack filename ${JSON.stringify(record.filename)}`);
+  }
+  return record;
 }
+import { basename } from "node:path";

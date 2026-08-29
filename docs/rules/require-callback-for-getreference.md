@@ -57,15 +57,19 @@ function onChange() {
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False positive: Local objects named g_form that are not the platform global. False negative: Computed member names.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-boundary: Local objects named g_form are not the platform global.
 
 ## Known false positives
 
-- Local objects named g_form that are not the platform global.
+- None recorded.
 
 ## Known false negatives
 
-- Computed member names.
+- None recorded.
+
+## Intentional scope boundaries
+
+- Local objects named g_form are not the platform global.
 
 ## Overlaps
 
@@ -79,10 +83,12 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False p
 ## Evidence
 
 - **g_form.getReference without a callback is a synchronous server request.**
+  - Verification ID: `rule-evidence-8728c187`
   - URL: https://www.servicenow.com/docs/r/api-reference/c_GlideFormAPI.html
-  - Verified by: declaration-snapshot
+  - Verified by: manual
   - Verified at: 2026-08-20
 - **Recommended hosts report the one-argument form.**
+  - Verification ID: `rule-evidence-49fd26e6`
   - URL: tests/integration/profiles/invalid/sync-getreference.client.js
   - Verified by: integration-test
   - Verified at: 2026-08-20

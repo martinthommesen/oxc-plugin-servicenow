@@ -26,8 +26,25 @@ describe(RULE, () => {
     assertValid(`var md5 = "${ID}";`, RULE);
   });
 
-  it("intentionally excludes uppercase 32-hex from the lowercase matcher", () => {
-    assertValid('var f = "D41D8CD98F00B204E9800998ECF8427E";', RULE);
+  it("flags uppercase sys_ids", () => {
+    assertInvalid('var f = "D41D8CD98F00B204E9800998ECF8427E";', RULE, {
+      messageId: "hardcoded",
+    });
+  });
+
+  it("flags statically assembled sys_ids", () => {
+    assertInvalid('var id = "97c04b3b" + "1b121000" + "43ab85e5" + "bd0713e2";', RULE, {
+      messageId: "hardcoded",
+      count: 1,
+    });
+    assertInvalid('var id = `97c04b3b${"1b12100043ab85e5bd0713e2"}`;', RULE, {
+      messageId: "hardcoded",
+      count: 1,
+    });
+  });
+
+  it("does not suppress a sys_id for a generic hash-like name", () => {
+    assertInvalid(`var userHash = "${ID}";`, RULE, { messageId: "hardcoded" });
   });
 
   it("rejects an unknown rule option", () => {

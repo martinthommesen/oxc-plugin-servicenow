@@ -55,7 +55,7 @@ ajax.getXMLAnswer(handleAnswer);
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False negative: Dynamic sysparm_name values stay silent. Lifecycle: A later request on the same object requires a new usable sysparm_name.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. lifecycle: A later request on the same object requires a new usable sysparm_name.
 
 ## Known false positives
 
@@ -63,7 +63,11 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False n
 
 ## Known false negatives
 
-- Dynamic sysparm_name values stay silent.
+- None recorded.
+
+## Intentional scope boundaries
+
+- None recorded.
 
 ## Overlaps
 
@@ -78,10 +82,12 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False n
 ## Evidence
 
 - **GlideAjax requires a non-empty sysparm_name before getXML, getXMLAnswer, or getXMLWait.**
+  - Verification ID: `rule-evidence-6bbe917f`
   - URL: https://www.servicenow.com/docs/r/api-reference/scripts/p_AJAX.html
-  - Verified by: declaration-snapshot
+  - Verified by: manual
   - Verified at: 2026-08-20
 - **Empty or missing sysparm_name values report on the client host fixtures.**
+  - Verification ID: `rule-evidence-2360ef01`
   - URL: tests/integration/profiles/invalid/glideajax-empty-sysparm.client.js
   - Verified by: integration-test
   - Verified at: 2026-08-20

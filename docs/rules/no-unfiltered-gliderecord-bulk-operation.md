@@ -54,7 +54,7 @@ task.updateMultiple();
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False negative: Dynamic encoded queries stay silent. Lifecycle: query, orderBy, setLimit, and chooseWindow are not restricting filters.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. lifecycle: query, orderBy, setLimit, and chooseWindow are not restricting filters.
 
 ## Known false positives
 
@@ -62,7 +62,11 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False n
 
 ## Known false negatives
 
-- Dynamic encoded queries stay silent.
+- None recorded.
+
+## Intentional scope boundaries
+
+- None recorded.
 
 ## Overlaps
 
@@ -76,10 +80,12 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False n
 ## Evidence
 
 - **updateMultiple and deleteMultiple apply to every row that matches the query filters.**
+  - Verification ID: `rule-evidence-a8a3795f`
   - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html
-  - Verified by: declaration-snapshot
+  - Verified by: manual
   - Verified at: 2026-08-20
 - **Empty or missing addQuery arguments do not count as filters.**
+  - Verification ID: `rule-evidence-aa5ef846`
   - URL: tests/integration/profiles/invalid/empty-addquery-bulk.br.js
   - Verified by: integration-test
   - Verified at: 2026-08-20

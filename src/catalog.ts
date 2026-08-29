@@ -43,15 +43,15 @@ import { validateGliderecordCalls } from "./rules/validate-gliderecord-calls.js"
 import { PLUGIN_NAME, ruleDocsUrl } from "./constants.js";
 import type { ApplicationScope, JavaScriptMode, ServiceNowSettings } from "./types.js";
 import {
-  formatJavascriptModes,
-  formatLimitations,
-  formatSurfaces,
-  ruleDocMetadata,
-  type RuleEvidenceRecord,
-  type SurfaceConfidence,
-} from "./catalog-metadata.js";
-import { optionDocsFromDescriptor, RULE_OPTION_DESCRIPTORS } from "./options/index.js";
-import type { RuleOptionDoc } from "./options/descriptor.js";
+  fluentNamingConventionOptions,
+  noHardcodedSysidOptions,
+  noHardcodedTableNamesOptions,
+  optionDocsFromDescriptor,
+  preferNowIncludeOptions,
+  requireFluentIdOptions,
+} from "./options/index.js";
+import * as metadata from "./catalog-metadata.js";
+import type { RuleOptionDoc, RuleOptionsDescriptor } from "./options/descriptor.js";
 
 export type RuleFamily = "classic" | "fluent" | "engine";
 export type RulePreset = "recommended" | "strict" | "classic-es5" | "es2021" | false;
@@ -75,7 +75,7 @@ export interface RuleApplicability {
   authoring: "classic" | "fluent" | "both";
   surfaces: string;
   javascriptMode: string;
-  minimumSurfaceConfidence: SurfaceConfidence;
+  minimumSurfaceConfidence: metadata.SurfaceConfidence;
   javascriptModes: readonly JavaScriptMode[] | "n/a";
   scopes: readonly ApplicationScope[];
   serviceNowReleases: readonly string[];
@@ -89,6 +89,12 @@ export interface RuleExample {
   filename?: string;
   code: string;
   settings?: ServiceNowSettings;
+}
+
+export interface RuleLimitationCase extends RuleExample {
+  caseId: string;
+  kind: "false-positive" | "false-negative" | "scope-boundary";
+  description: string;
 }
 
 export type { RuleOptionDoc };
@@ -109,13 +115,16 @@ export interface RuleCatalogEntry {
   good: RuleExample[];
   placements: readonly RulePlacement[];
   applicability: RuleApplicability;
-  evidence: readonly RuleEvidenceRecord[];
+  evidence: readonly metadata.RuleEvidenceRecord[];
   limitations: string;
+  limitationCases: readonly RuleLimitationCase[];
   falsePositives: readonly string[];
   falseNegatives: readonly string[];
+  scopeBoundaries: readonly string[];
   overlaps: readonly string[];
   lifecycleAssumptions?: string;
   fixKind: "none" | "safe-fix" | "suggestion";
+  optionDescriptor: RuleOptionsDescriptor<object> | undefined;
   options: readonly RuleOptionDoc[];
   lastVerified: string;
 }
@@ -126,72 +135,46 @@ type RuleCatalogInput = Omit<
   | "implementation"
   | "ruleId"
   | "docsUrl"
-  | "placements"
   | "applicability"
-  | "evidence"
   | "limitations"
   | "falsePositives"
   | "falseNegatives"
-  | "overlaps"
-  | "lifecycleAssumptions"
+  | "scopeBoundaries"
   | "fixKind"
   | "options"
   | "lastVerified"
-> & {
-  placements?: readonly RulePlacement[];
-};
+  | "optionDescriptor"
+> &
+  metadata.RuleDocMetadata & {
+    optionDescriptor: RuleOptionsDescriptor<object> | undefined;
+    limitationCases: readonly RuleLimitationCase[];
+  };
 
-const EXTRA_PLACEMENTS: Partial<Record<string, readonly RulePlacement[]>> = {
-  "no-async-iterators": [
-    { profile: "classic-es5", severity: "error" },
-    { profile: "es2021", severity: "error" },
-  ],
-  "no-weak-references": [
-    { profile: "classic-es5", severity: "error" },
-    { profile: "es2021", severity: "error" },
-  ],
-  "no-typed-arrays": [{ profile: "es2021", severity: "error" }],
-  "no-client-gliderecord": [{ profile: "client", severity: "error" }],
-  "no-gs-now": [{ profile: "client", severity: "error" }],
-  "no-sync-glideajax": [{ profile: "client", severity: "error" }],
-  "require-callback-for-getreference": [{ profile: "client", severity: "error" }],
-  "require-glideajax-sysparm-name": [{ profile: "client", severity: "error" }],
-  "no-glideajax-getanswer": [{ profile: "client", severity: "error" }],
-  "no-br-current-update": [{ profile: "business-rule", severity: "error" }],
-  "require-query-before-next": [{ profile: "business-rule", severity: "error" }],
-  "no-delete-multiple-with-windowing": [{ profile: "business-rule", severity: "error" }],
-  "validate-glideaggregate-calls": [{ profile: "business-rule", severity: "error" }],
-  "require-business-rule-wrapper": [{ profile: "business-rule", severity: "error" }],
-  "no-glideelement-in-collection": [{ profile: "business-rule", severity: "error" }],
-  "no-gliderecord-query-modifier-after-query": [{ profile: "business-rule", severity: "error" }],
-  "fluent-proper-imports": [{ profile: "fluent", severity: "error" }],
-  "fluent-directives": [{ profile: "fluent", severity: "warn" }],
-  "require-fluent-id": [{ profile: "fluent", severity: "error" }],
-  "no-now-id-as-reference": [{ profile: "fluent", severity: "error" }],
-  "no-duplicate-fluent-id": [{ profile: "fluent", severity: "error" }],
-  "no-hardcoded-table-names": [{ profile: "policy", severity: "warn" }],
-  "no-complex-fluent-logic": [{ profile: "policy", severity: "warn" }],
-  "no-system-query-bypass": [{ profile: "security", severity: "warn" }],
-};
+const UNKNOWN_SILENT = "Unknown, escaped, or ambiguous bindings stay silent instead of guessing.";
 
-function entry<N extends string>(name: N, implementation: Rule, rest: RuleCatalogInput): RuleCatalogEntry & { name: N } {
-  const meta = ruleDocMetadata[name];
-  if (!meta) {
-    throw new Error(`Missing catalog metadata for ${name}`);
-  }
-  const primary: RulePlacement[] =
-    rest.preset === false ? [] : [{ profile: rest.preset, severity: rest.severity }];
-  const extras = EXTRA_PLACEMENTS[name] ?? [];
-  const descriptor = RULE_OPTION_DESCRIPTORS[name as keyof typeof RULE_OPTION_DESCRIPTORS];
+function formatLimitations(
+  cases: readonly RuleLimitationCase[],
+  lifecycleAssumptions?: string,
+): string {
+  const parts = cases.map((item) => `${item.kind}: ${item.description}`);
+  if (lifecycleAssumptions) parts.push(`lifecycle: ${lifecycleAssumptions}`);
+  return parts.length === 0 ? UNKNOWN_SILENT : `${UNKNOWN_SILENT} ${parts.join(" ")}`;
+}
+
+function entry<N extends string>(
+  name: N,
+  implementation: Rule,
+  rest: RuleCatalogInput,
+): RuleCatalogEntry & { name: N } {
   const applicability: RuleApplicability = {
-    authoring: meta.applicability.authoring,
-    surfaces: formatSurfaces(meta.applicability.surfaces),
-    javascriptMode: formatJavascriptModes(meta.applicability.javascriptModes),
-    minimumSurfaceConfidence: meta.applicability.minimumSurfaceConfidence,
-    javascriptModes: meta.applicability.javascriptModes,
-    scopes: meta.applicability.scopes,
-    serviceNowReleases: meta.applicability.serviceNowReleases,
-    fluentSdkRange: meta.applicability.fluentSdkRange,
+    authoring: rest.applicability.authoring,
+    surfaces: metadata.formatSurfaces(rest.applicability.surfaces),
+    javascriptMode: metadata.formatJavascriptModes(rest.applicability.javascriptModes),
+    minimumSurfaceConfidence: rest.applicability.minimumSurfaceConfidence,
+    javascriptModes: rest.applicability.javascriptModes,
+    scopes: rest.applicability.scopes,
+    serviceNowReleases: rest.applicability.serviceNowReleases,
+    fluentSdkRange: rest.applicability.fluentSdkRange,
   };
   return {
     name,
@@ -199,22 +182,48 @@ function entry<N extends string>(name: N, implementation: Rule, rest: RuleCatalo
     ruleId: `${PLUGIN_NAME}/${name}`,
     docsUrl: ruleDocsUrl(name),
     ...rest,
-    placements: rest.placements ?? [...primary, ...extras],
     applicability,
-    evidence: meta.evidence,
-    limitations: formatLimitations(meta),
-    falsePositives: meta.falsePositives,
-    falseNegatives: meta.falseNegatives,
-    overlaps: meta.overlaps,
-    lifecycleAssumptions: meta.lifecycleAssumptions,
+    limitations: formatLimitations(rest.limitationCases, rest.lifecycleAssumptions),
+    falsePositives: rest.limitationCases
+      .filter((item) => item.kind === "false-positive")
+      .map((item) => item.description),
+    falseNegatives: rest.limitationCases
+      .filter((item) => item.kind === "false-negative")
+      .map((item) => item.description),
+    scopeBoundaries: rest.limitationCases
+      .filter((item) => item.kind === "scope-boundary")
+      .map((item) => item.description),
     fixKind: rest.fixable ? "safe-fix" : rest.hasSuggestions ? "suggestion" : "none",
-    options: descriptor ? optionDocsFromDescriptor(descriptor) : [],
-    lastVerified: meta.lastVerified,
+    options: rest.optionDescriptor ? optionDocsFromDescriptor(rest.optionDescriptor) : [],
+    lastVerified: metadata.latestEvidenceDate(rest.evidence),
   };
 }
 
 export const ruleCatalog = [
   entry("no-hardcoded-sysid", noHardcodedSysid, {
+    ...metadata.meta(
+      metadata.classic(metadata.CLASSIC_SURFACES),
+      [
+        metadata.evidenceRecord(
+          metadata.SN_FLUENT_CONSTRUCTS,
+          "Named Fluent Now.ID keys are the supported portable identity, not raw sys_id literals.",
+          "manual",
+          "2026-08-20",
+        ),
+        metadata.evidenceRecord(
+          "tests/rules/no-hardcoded-sysid.test.ts",
+          "Literal, uppercase, concatenated, and static-template sys_ids report; exact allow-lists and algorithm-specific hash contexts suppress.",
+          "fixture",
+          "2026-08-21",
+        ),
+      ],
+      {
+        overlaps: ["servicenow/no-now-id-as-reference", "core no-restricted-syntax"],
+      },
+    ),
+    placements: [{ profile: "recommended", severity: "error" }] as const,
+    optionDescriptor: noHardcodedSysidOptions,
+    limitationCases: [],
     title: "No hardcoded sys_id",
     family: "classic",
     preset: "recommended",
@@ -239,6 +248,41 @@ export const ruleCatalog = [
     ],
   }),
   entry("no-promise", noPromise, {
+    ...metadata.meta(
+      metadata.engine(metadata.ES5_MODES),
+      [
+        metadata.evidenceRecord(
+          metadata.SN_JS_FEATURES,
+          "Promises are unsupported in Compatibility and ES5 Standards modes.",
+          "manual",
+          "2026-08-20",
+        ),
+        metadata.evidenceRecord(
+          "tests/rules/no-promise.test.ts",
+          "Platform Promise identifiers report; local bindings stay silent.",
+          "fixture",
+          "2026-08-20",
+        ),
+      ],
+      {
+        overlaps: ["servicenow/no-async-await", "eslint no-restricted-globals"],
+      },
+    ),
+    placements: [{ profile: "classic-es5", severity: "error" }] as const,
+    optionDescriptor: undefined,
+    limitationCases: [
+      {
+        caseId: "no-promise-local-binding",
+        kind: "scope-boundary",
+        description: "Local bindings named Promise are not platform Promises.",
+        name: "local Promise binding",
+        filename: "local-promise.server.js",
+        settings: ES5,
+        code: `function Promise() {}
+Promise.resolve = function (value) { return value; };
+Promise.resolve(1);`,
+      },
+    ],
     title: "No Promise",
     family: "engine",
     preset: "classic-es5",
@@ -264,6 +308,29 @@ export const ruleCatalog = [
     ],
   }),
   entry("no-async-await", noAsyncAwait, {
+    ...metadata.meta(
+      metadata.engine(metadata.ES5_MODES),
+      [
+        metadata.evidenceRecord(
+          metadata.SN_JS_FEATURES,
+          "async/await is unsupported in Compatibility and ES5 Standards modes.",
+          "manual",
+          "2026-08-20",
+        ),
+        metadata.evidenceRecord(
+          "tests/rules/no-async-await.test.ts",
+          "async functions and await expressions report in ES5 mode.",
+          "fixture",
+          "2026-08-20",
+        ),
+      ],
+      {
+        overlaps: ["servicenow/no-promise", "servicenow/no-async-iterators"],
+      },
+    ),
+    placements: [{ profile: "classic-es5", severity: "error" }] as const,
+    optionDescriptor: undefined,
+    limitationCases: [],
     title: "No async/await",
     family: "engine",
     preset: "classic-es5",
@@ -288,17 +355,71 @@ export const ruleCatalog = [
     ],
   }),
   entry("no-bigint", noBigint, {
+    ...metadata.meta(
+      metadata.engine(metadata.ES5_MODES),
+      [
+        metadata.evidenceRecord(
+          metadata.SN_JS_FEATURES,
+          "BigInt is unsupported in Compatibility and ES5 Standards modes.",
+          "manual",
+          "2026-08-20",
+        ),
+        metadata.evidenceRecord(
+          "tests/rules/no-bigint.test.ts",
+          "BigInt literals and the platform BigInt identifier report.",
+          "fixture",
+          "2026-08-20",
+        ),
+      ],
+      {
+        overlaps: ["servicenow/no-unsupported-syntax"],
+      },
+    ),
+    placements: [{ profile: "classic-es5", severity: "error" }] as const,
+    optionDescriptor: undefined,
+    limitationCases: [],
     title: "No BigInt",
     family: "engine",
     preset: "classic-es5",
     severity: "error",
     fixable: false,
     hasSuggestions: false,
-    description: "BigInt literals and `BigInt()` are unsupported in Compatibility or ES5 Standards mode.",
-    bad: [{ name: "literal", filename: "script-include.js", settings: ES5, code: `var n = 9007199254740993n;` }],
+    description:
+      "BigInt literals and `BigInt()` are unsupported in Compatibility or ES5 Standards mode.",
+    bad: [
+      {
+        name: "literal",
+        filename: "script-include.js",
+        settings: ES5,
+        code: `var n = 9007199254740993n;`,
+      },
+    ],
     good: [{ name: "number", filename: "script-include.js", code: `var n = 9007199254740991;` }],
   }),
   entry("prefer-glideaggregate", preferGlideaggregate, {
+    ...metadata.meta(
+      metadata.classic(metadata.SERVER_SURFACES),
+      [
+        metadata.evidenceRecord(
+          metadata.SN_GR,
+          "GlideAggregate is the documented API for count and group queries.",
+          "manual",
+          "2026-08-20",
+        ),
+        metadata.evidenceRecord(
+          "tests/rules/prefer-glideaggregate.test.ts",
+          "Iterate-to-count loops report; if (gr.next()) stays silent.",
+          "fixture",
+          "2026-08-20",
+        ),
+      ],
+      {
+        overlaps: ["servicenow/validate-glideaggregate-calls"],
+      },
+    ),
+    placements: [{ profile: "strict", severity: "warn" }] as const,
+    optionDescriptor: undefined,
+    limitationCases: [],
     title: "Prefer GlideAggregate",
     family: "classic",
     preset: "strict",
@@ -323,6 +444,49 @@ export const ruleCatalog = [
     ],
   }),
   entry("no-client-gliderecord", noClientGliderecord, {
+    ...metadata.meta(
+      metadata.classic(metadata.CLIENT_SURFACES),
+      [
+        metadata.evidenceRecord(
+          metadata.SN_GR,
+          "GlideRecord is a server API and is not a client-side record cursor.",
+          "manual",
+          "2026-08-20",
+        ),
+        metadata.evidenceRecord(
+          "tests/integration/profiles/invalid/client-gliderecord.client.js",
+          "Recommended Oxlint and ESLint flag GlideRecord in client files.",
+          "integration-test",
+          "2026-08-20",
+        ),
+        metadata.evidenceRecord(
+          "tests/integration/context-contracts.test.ts",
+          "Oxlint and ESLint flag direct, global namespace, computed, aliased, and destructured constructors.",
+          "integration-test",
+          "2026-08-21",
+        ),
+      ],
+      {
+        overlaps: ["servicenow/require-query-before-next"],
+      },
+    ),
+    placements: [
+      { profile: "recommended", severity: "error" },
+      { profile: "client", severity: "error" },
+    ] as const,
+    optionDescriptor: undefined,
+    limitationCases: [
+      {
+        caseId: "no-client-gliderecord-mixed-ui-action",
+        kind: "scope-boundary",
+        description:
+          "Mixed client/server UI Actions stay silent because the rule cannot classify execution regions.",
+        name: "mixed UI Action",
+        filename: "mixed.ui-action.js",
+        settings: { authoring: "classic", surfaces: ["ui-action", "client", "server"] },
+        code: `var record = new GlideRecord("incident");`,
+      },
+    ],
     title: "No client GlideRecord",
     family: "classic",
     preset: "recommended",
@@ -347,6 +511,42 @@ export const ruleCatalog = [
     ],
   }),
   entry("no-gs-now", noGsNow, {
+    ...metadata.meta(
+      metadata.classic(metadata.CLASSIC_SURFACES),
+      [
+        metadata.evidenceRecord(
+          metadata.SN_GDT,
+          "gs.now() and gs.nowDateTime() return display strings, not GlideDateTime objects.",
+          "manual",
+          "2026-08-20",
+        ),
+        metadata.evidenceRecord(
+          "tests/integration/fixtures/bad-business-rule.br.js",
+          "Host fixtures report gs.now on Business Rule files.",
+          "integration-test",
+          "2026-08-20",
+        ),
+      ],
+      {
+        overlaps: ["servicenow/no-display-value-date-comparison"],
+      },
+    ),
+    placements: [
+      { profile: "recommended", severity: "error" },
+      { profile: "client", severity: "error" },
+    ] as const,
+    optionDescriptor: undefined,
+    limitationCases: [
+      {
+        caseId: "no-gs-now-local-object",
+        kind: "scope-boundary",
+        description: "Local objects named gs are not the platform global.",
+        name: "local gs object",
+        filename: "local-gs.server.js",
+        code: `var gs = { now: function () { return "local"; } };
+gs.now();`,
+      },
+    ],
     title: "No gs.now()",
     family: "classic",
     preset: "recommended",
@@ -357,7 +557,11 @@ export const ruleCatalog = [
       "`gs.now()` and `gs.nowDateTime()` return timezone-sensitive display strings. `gs.now()` is also gone from client scripts since London. Prefer `new GlideDateTime()`.",
     bad: [
       { name: "gs.now", filename: "incident.br.js", code: `current.u_opened = gs.now();` },
-      { name: "gs.nowDateTime", filename: "incident.br.js", code: `current.u_opened = gs.nowDateTime();` },
+      {
+        name: "gs.nowDateTime",
+        filename: "incident.br.js",
+        code: `current.u_opened = gs.nowDateTime();`,
+      },
     ],
     good: [
       {
@@ -368,6 +572,55 @@ export const ruleCatalog = [
     ],
   }),
   entry("require-query-before-next", requireQueryBeforeNext, {
+    ...metadata.meta(
+      metadata.classic(metadata.SERVER_SURFACES),
+      [
+        metadata.evidenceRecord(
+          metadata.SN_GR,
+          "next() reads the current cursor row after query() or get() executes the query.",
+          "manual",
+          "2026-08-20",
+        ),
+        metadata.evidenceRecord(
+          "tests/integration/profiles/invalid/missing-query.br.js",
+          "Oxlint and ESLint report next() without a preceding query on every path.",
+          "integration-test",
+          "2026-08-20",
+        ),
+        metadata.evidenceRecord(
+          "tests/rules/stateful-lifecycle.test.ts",
+          "Aliases, sibling reassignment, and completion-aware paths are unit-tested.",
+          "fixture",
+          "2026-08-20",
+        ),
+      ],
+      {
+        overlaps: [
+          "servicenow/validate-gliderecord-calls",
+          "servicenow/validate-glideaggregate-calls",
+        ],
+        lifecycleAssumptions:
+          "chooseWindow does not execute a query. Aliases share object identity. Abrupt paths do not join into later statements.",
+      },
+    ),
+    placements: [
+      { profile: "recommended", severity: "error" },
+      { profile: "business-rule", severity: "error" },
+    ] as const,
+    optionDescriptor: undefined,
+    limitationCases: [
+      {
+        caseId: "require-query-before-next-queried-alias",
+        kind: "scope-boundary",
+        description: "A query through a proven alias opens the same record cursor.",
+        name: "queried alias",
+        filename: "queried-alias.server.js",
+        code: `var record = new GlideRecord("incident");
+var alias = record;
+alias.query();
+record.next();`,
+      },
+    ],
     title: "Require query before next",
     family: "classic",
     preset: "recommended",
@@ -392,6 +645,29 @@ export const ruleCatalog = [
     ],
   }),
   entry("validate-gliderecord-calls", validateGliderecordCalls, {
+    ...metadata.meta(
+      metadata.classic(metadata.SERVER_SURFACES),
+      [
+        metadata.evidenceRecord(
+          metadata.SN_GR_GLOBAL,
+          "Deprecated compatibility rule. Prefer require-query-before-next for query lifecycle.",
+          "manual",
+          "2026-08-20",
+        ),
+        metadata.evidenceRecord(
+          "tests/catalog.test.ts",
+          "The rule remains exported and off by default.",
+          "fixture",
+          "2026-08-20",
+        ),
+      ],
+      {
+        overlaps: ["servicenow/require-query-before-next"],
+      },
+    ),
+    placements: [] as const,
+    optionDescriptor: undefined,
+    limitationCases: [],
     title: "Validate GlideRecord calls",
     family: "classic",
     preset: false,
@@ -416,6 +692,32 @@ export const ruleCatalog = [
     ],
   }),
   entry("no-br-current-update", noBrCurrentUpdate, {
+    ...metadata.meta(
+      metadata.classic(["business-rule"]),
+      [
+        metadata.evidenceRecord(
+          metadata.SN_BR,
+          "Business Rules should not call current.update() because the engine already writes the row.",
+          "manual",
+          "2026-08-20",
+        ),
+        metadata.evidenceRecord(
+          "tests/integration/fixtures/bad-business-rule.br.js",
+          "Host fixtures report current.update on Business Rule files.",
+          "integration-test",
+          "2026-08-20",
+        ),
+      ],
+      {
+        overlaps: [],
+      },
+    ),
+    placements: [
+      { profile: "recommended", severity: "error" },
+      { profile: "business-rule", severity: "error" },
+    ] as const,
+    optionDescriptor: undefined,
+    limitationCases: [],
     title: "No current.update() in Business Rules",
     family: "classic",
     preset: "recommended",
@@ -440,6 +742,29 @@ export const ruleCatalog = [
     ],
   }),
   entry("no-hardcoded-table-names", noHardcodedTableNames, {
+    ...metadata.meta(
+      metadata.classic(metadata.SERVER_SURFACES),
+      [
+        metadata.evidenceRecord(
+          metadata.SN_GR,
+          "Table names passed to GlideRecord constructors are string identities that do not rename safely.",
+          "manual",
+          "2026-08-20",
+        ),
+        metadata.evidenceRecord(
+          "tests/rules/glide-and-engine.test.ts",
+          "Literal tables report; named constants and allow-lists stay silent.",
+          "fixture",
+          "2026-08-20",
+        ),
+      ],
+      {
+        overlaps: ["servicenow/fluent-naming-convention"],
+      },
+    ),
+    placements: [{ profile: "policy", severity: "warn" }] as const,
+    optionDescriptor: noHardcodedTableNamesOptions,
+    limitationCases: [],
     title: "No hardcoded table names",
     family: "classic",
     preset: false,
@@ -464,6 +789,42 @@ export const ruleCatalog = [
     ],
   }),
   entry("fluent-proper-imports", fluentProperImports, {
+    ...metadata.meta(
+      metadata.fluent(),
+      [
+        metadata.evidenceRecord(
+          metadata.SN_FLUENT,
+          "Fluent factories are imported from the documented @servicenow/sdk modules.",
+          "manual",
+          "2026-08-20",
+        ),
+        metadata.evidenceRecord(
+          "tests/integration/fixtures/bad-fluent.now.ts",
+          "Host fixtures report factories imported from the wrong module.",
+          "integration-test",
+          "2026-08-20",
+        ),
+      ],
+      {
+        overlaps: ["servicenow/require-fluent-id"],
+      },
+    ),
+    placements: [
+      { profile: "recommended", severity: "error" },
+      { profile: "fluent", severity: "error" },
+    ] as const,
+    optionDescriptor: undefined,
+    limitationCases: [
+      {
+        caseId: "fluent-proper-imports-local-factory",
+        kind: "scope-boundary",
+        description: "Local functions that share a Fluent factory name are not SDK factories.",
+        name: "local factory function",
+        filename: "local-factory.now.ts",
+        code: `function BusinessRule(value) { return value; }
+BusinessRule({ table: "incident" });`,
+      },
+    ],
     title: "Fluent imports from @servicenow/sdk/core",
     family: "fluent",
     preset: "recommended",
@@ -488,6 +849,32 @@ export const ruleCatalog = [
     ],
   }),
   entry("fluent-directives", fluentDirectives, {
+    ...metadata.meta(
+      metadata.fluent(),
+      [
+        metadata.evidenceRecord(
+          metadata.SN_FLUENT,
+          "Fluent ignore directives are line- and file-scoped comments recognized by the SDK toolchain.",
+          "manual",
+          "2026-08-20",
+        ),
+        metadata.evidenceRecord(
+          "tests/integration/profiles/invalid/dangling-fluent-ignore.now.ts",
+          "A trailing @fluent-ignore without a following statement reports.",
+          "integration-test",
+          "2026-08-20",
+        ),
+      ],
+      {
+        overlaps: [],
+      },
+    ),
+    placements: [
+      { profile: "recommended", severity: "warn" },
+      { profile: "fluent", severity: "warn" },
+    ] as const,
+    optionDescriptor: undefined,
+    limitationCases: [],
     title: "Fluent directives",
     family: "fluent",
     preset: "recommended",
@@ -512,6 +899,29 @@ export const ruleCatalog = [
     ],
   }),
   entry("prefer-now-include", preferNowInclude, {
+    ...metadata.meta(
+      metadata.fluent(),
+      [
+        metadata.evidenceRecord(
+          metadata.SN_FLUENT_CONSTRUCTS,
+          "Now.include() loads script and markup files so Fluent metadata stays declarative.",
+          "manual",
+          "2026-08-20",
+        ),
+        metadata.evidenceRecord(
+          "src/catalog.ts",
+          "Catalog examples cover large inline script versus Now.include.",
+          "fixture",
+          "2026-08-20",
+        ),
+      ],
+      {
+        overlaps: ["servicenow/no-complex-fluent-logic"],
+      },
+    ),
+    placements: [{ profile: "strict", severity: "warn" }] as const,
+    optionDescriptor: preferNowIncludeOptions,
+    limitationCases: [],
     title: "Prefer Now.include()",
     family: "fluent",
     preset: "strict",
@@ -536,6 +946,32 @@ export const ruleCatalog = [
     ],
   }),
   entry("require-fluent-id", requireFluentId, {
+    ...metadata.meta(
+      metadata.fluent(),
+      [
+        metadata.evidenceRecord(
+          metadata.SN_FLUENT_CONSTRUCTS,
+          "Factories whose manifest marks $id as required must declare Now.ID or an equivalent id.",
+          "manual",
+          "2026-08-20",
+        ),
+        metadata.evidenceRecord(
+          "tests/integration/profiles/invalid/fluent-alias-missing-id.now.ts",
+          "Aliased factory imports still require $id under recommended.",
+          "integration-test",
+          "2026-08-20",
+        ),
+      ],
+      {
+        overlaps: ["servicenow/no-duplicate-fluent-id", "servicenow/no-now-id-as-reference"],
+      },
+    ),
+    placements: [
+      { profile: "recommended", severity: "error" },
+      { profile: "fluent", severity: "error" },
+    ] as const,
+    optionDescriptor: requireFluentIdOptions,
+    limitationCases: [],
     title: "Require Fluent $id",
     family: "fluent",
     preset: "recommended",
@@ -560,6 +996,29 @@ export const ruleCatalog = [
     ],
   }),
   entry("fluent-naming-convention", fluentNamingConvention, {
+    ...metadata.meta(
+      metadata.fluent(),
+      [
+        metadata.evidenceRecord(
+          metadata.SN_FLUENT,
+          "Fluent file stems and Now.ID keys should stay stable kebab-case or snake_case identifiers.",
+          "manual",
+          "2026-08-20",
+        ),
+        metadata.evidenceRecord(
+          "src/catalog.ts",
+          "Catalog examples cover PascalCase files and kebab-case corrections.",
+          "fixture",
+          "2026-08-20",
+        ),
+      ],
+      {
+        overlaps: ["servicenow/require-fluent-id"],
+      },
+    ),
+    placements: [{ profile: "strict", severity: "warn" }] as const,
+    optionDescriptor: fluentNamingConventionOptions,
+    limitationCases: [],
     title: "Fluent naming convention",
     family: "fluent",
     preset: "strict",
@@ -584,6 +1043,29 @@ export const ruleCatalog = [
     ],
   }),
   entry("no-complex-fluent-logic", noComplexFluentLogic, {
+    ...metadata.meta(
+      metadata.fluent(),
+      [
+        metadata.evidenceRecord(
+          metadata.SN_FLUENT,
+          "Fluent .now.ts files declare metadata; runtime loops belong in src/server.",
+          "manual",
+          "2026-08-20",
+        ),
+        metadata.evidenceRecord(
+          "src/catalog.ts",
+          "Catalog examples cover a runtime loop versus declarative metadata.",
+          "fixture",
+          "2026-08-20",
+        ),
+      ],
+      {
+        overlaps: ["servicenow/prefer-now-include"],
+      },
+    ),
+    placements: [{ profile: "policy", severity: "warn" }] as const,
+    optionDescriptor: undefined,
+    limitationCases: [],
     title: "No complex Fluent logic",
     family: "fluent",
     preset: false,
@@ -608,6 +1090,39 @@ export const ruleCatalog = [
     ],
   }),
   entry("no-at-method", noAtMethod, {
+    ...metadata.meta(
+      metadata.engine(metadata.ES5_MODES),
+      [
+        metadata.evidenceRecord(
+          metadata.SN_JS_FEATURES,
+          "Array.prototype.at is unsupported in Compatibility and ES5 Standards modes.",
+          "manual",
+          "2026-08-20",
+        ),
+        metadata.evidenceRecord(
+          "src/catalog.ts",
+          "Catalog examples cover array.at versus bracket access.",
+          "fixture",
+          "2026-08-20",
+        ),
+      ],
+      {
+        overlaps: ["servicenow/no-unsupported-syntax"],
+      },
+    ),
+    placements: [{ profile: "classic-es5", severity: "error" }] as const,
+    optionDescriptor: undefined,
+    limitationCases: [
+      {
+        caseId: "no-at-method-unknown-receiver",
+        kind: "scope-boundary",
+        description: "Unknown receivers with a method named at stay silent.",
+        name: "unknown receiver",
+        filename: "unknown-at.server.js",
+        settings: ES5,
+        code: `customCollection.at(0);`,
+      },
+    ],
     title: "No .at()",
     family: "engine",
     preset: "classic-es5",
@@ -615,10 +1130,42 @@ export const ruleCatalog = [
     fixable: false,
     hasSuggestions: false,
     description: "`.at()` is not implemented in Compatibility or ES5 Standards mode.",
-    bad: [{ name: "at", filename: "script-include.js", settings: ES5, code: `var last = list.at(-1);` }],
-    good: [{ name: "index", filename: "script-include.js", code: `var last = list[list.length - 1];` }],
+    bad: [
+      {
+        name: "at",
+        filename: "script-include.js",
+        settings: ES5,
+        code: `var last = [1, 2].at(-1);`,
+      },
+    ],
+    good: [
+      { name: "index", filename: "script-include.js", code: `var last = list[list.length - 1];` },
+    ],
   }),
   entry("no-packages-calls", noPackagesCalls, {
+    ...metadata.meta(
+      metadata.classic(metadata.CLASSIC_SURFACES, metadata.ALL_MODES),
+      [
+        metadata.evidenceRecord(
+          metadata.SN_JS_FEATURES,
+          "Packages.* Java interop is not a supported ServiceNow JavaScript API.",
+          "manual",
+          "2026-08-20",
+        ),
+        metadata.evidenceRecord(
+          "tests/rules/glide-and-engine.test.ts",
+          "Fixtures cover static and dynamic Packages access versus local bindings named Packages.",
+          "fixture",
+          "2026-08-21",
+        ),
+      ],
+      {
+        overlaps: [],
+      },
+    ),
+    placements: [{ profile: "recommended", severity: "error" }] as const,
+    optionDescriptor: undefined,
+    limitationCases: [],
     title: "No Packages.*",
     family: "classic",
     preset: "recommended",
@@ -643,6 +1190,33 @@ export const ruleCatalog = [
     ],
   }),
   entry("no-weak-references", noWeakReferences, {
+    ...metadata.meta(
+      metadata.classic(metadata.CLASSIC_SURFACES, metadata.ALL_MODES),
+      [
+        metadata.evidenceRecord(
+          metadata.SN_JS_FEATURES,
+          "WeakRef and FinalizationRegistry are unsupported in instance JavaScript modes.",
+          "manual",
+          "2026-08-20",
+        ),
+        metadata.evidenceRecord(
+          "src/catalog.ts",
+          "Catalog examples cover WeakRef construction.",
+          "fixture",
+          "2026-08-20",
+        ),
+      ],
+      {
+        overlaps: ["servicenow/no-weak-collections"],
+      },
+    ),
+    placements: [
+      { profile: "recommended", severity: "error" },
+      { profile: "classic-es5", severity: "error" },
+      { profile: "es2021", severity: "error" },
+    ] as const,
+    optionDescriptor: undefined,
+    limitationCases: [],
     title: "No WeakRef / FinalizationRegistry",
     family: "engine",
     preset: "recommended",
@@ -655,17 +1229,76 @@ export const ruleCatalog = [
     good: [{ name: "Map", filename: "script-include.js", code: `var cache = new Map();` }],
   }),
   entry("no-weak-collections", noWeakCollections, {
+    ...metadata.meta(
+      metadata.engine(metadata.ES5_MODES),
+      [
+        metadata.evidenceRecord(
+          metadata.SN_JS_FEATURES,
+          "WeakMap and WeakSet are unsupported in Compatibility and ES5 Standards modes.",
+          "manual",
+          "2026-08-20",
+        ),
+        metadata.evidenceRecord(
+          "src/catalog.ts",
+          "Catalog examples cover WeakMap construction in ES5 mode.",
+          "fixture",
+          "2026-08-20",
+        ),
+      ],
+      {
+        overlaps: ["servicenow/no-weak-references"],
+      },
+    ),
+    placements: [{ profile: "classic-es5", severity: "error" }] as const,
+    optionDescriptor: undefined,
+    limitationCases: [],
     title: "No WeakMap / WeakSet",
     family: "engine",
     preset: "classic-es5",
     severity: "error",
     fixable: false,
     hasSuggestions: false,
-    description: "WeakMap and WeakSet are disallowed in Compatibility and ES5 Standards mode. ES2021 supports them.",
-    bad: [{ name: "WeakMap", filename: "script-include.js", settings: ES5, code: `var cache = new WeakMap();` }],
-    good: [{ name: "Map", filename: "script-include.js", settings: ES5, code: `var cache = new Map();` }],
+    description:
+      "WeakMap and WeakSet are disallowed in Compatibility and ES5 Standards mode. ES2021 supports them.",
+    bad: [
+      {
+        name: "WeakMap",
+        filename: "script-include.js",
+        settings: ES5,
+        code: `var cache = new WeakMap();`,
+      },
+    ],
+    good: [
+      { name: "Map", filename: "script-include.js", settings: ES5, code: `var cache = new Map();` },
+    ],
   }),
   entry("no-typed-arrays", noTypedArrays, {
+    ...metadata.meta(
+      metadata.engine(metadata.ES5_MODES),
+      [
+        metadata.evidenceRecord(
+          metadata.SN_JS_FEATURES,
+          "Typed arrays are unsupported in Compatibility and ES5 Standards modes.",
+          "manual",
+          "2026-08-20",
+        ),
+        metadata.evidenceRecord(
+          "src/catalog.ts",
+          "Catalog examples cover Uint8Array construction.",
+          "fixture",
+          "2026-08-20",
+        ),
+      ],
+      {
+        overlaps: ["servicenow/no-unsupported-syntax"],
+      },
+    ),
+    placements: [
+      { profile: "classic-es5", severity: "error" },
+      { profile: "es2021", severity: "error" },
+    ] as const,
+    optionDescriptor: undefined,
+    limitationCases: [],
     title: "No TypedArray / DataView",
     family: "engine",
     preset: "classic-es5",
@@ -685,6 +1318,29 @@ export const ruleCatalog = [
     good: [{ name: "plain array", filename: "script-include.js", code: `var bytes = [0, 1, 2];` }],
   }),
   entry("no-proxy", noProxy, {
+    ...metadata.meta(
+      metadata.engine(metadata.ES5_MODES),
+      [
+        metadata.evidenceRecord(
+          metadata.SN_JS_FEATURES,
+          "Proxy is unsupported in Compatibility and ES5 Standards modes.",
+          "manual",
+          "2026-08-20",
+        ),
+        metadata.evidenceRecord(
+          "src/catalog.ts",
+          "Catalog examples cover new Proxy versus a local binding.",
+          "fixture",
+          "2026-08-20",
+        ),
+      ],
+      {
+        overlaps: ["servicenow/no-unsupported-syntax"],
+      },
+    ),
+    placements: [{ profile: "classic-es5", severity: "error" }] as const,
+    optionDescriptor: undefined,
+    limitationCases: [],
     title: "No Proxy",
     family: "engine",
     preset: "classic-es5",
@@ -692,10 +1348,42 @@ export const ruleCatalog = [
     fixable: false,
     hasSuggestions: false,
     description: "`Proxy` is unsupported in Compatibility and ES5 Standards mode.",
-    bad: [{ name: "new Proxy", filename: "script-include.js", settings: ES5, code: `var p = new Proxy(target, handler);` }],
-    good: [{ name: "plain object", filename: "script-include.js", code: `var p = { prop: value };` }],
+    bad: [
+      {
+        name: "new Proxy",
+        filename: "script-include.js",
+        settings: ES5,
+        code: `var p = new Proxy(target, handler);`,
+      },
+    ],
+    good: [
+      { name: "plain object", filename: "script-include.js", code: `var p = { prop: value };` },
+    ],
   }),
   entry("no-unsupported-syntax", noUnsupportedSyntax, {
+    ...metadata.meta(
+      metadata.engine(metadata.ES5_MODES),
+      [
+        metadata.evidenceRecord(
+          metadata.SN_JS_FEATURES,
+          "Several ES2015+ syntactic forms are unsupported in Compatibility and ES5 Standards modes.",
+          "manual",
+          "2026-08-20",
+        ),
+        metadata.evidenceRecord(
+          "tests/integration/profiles/invalid/es5-promise.server.js",
+          "classic-es5 Oxlint flags unsupported syntax on the ES2021 fixture.",
+          "integration-test",
+          "2026-08-20",
+        ),
+      ],
+      {
+        overlaps: ["servicenow/no-async-await", "servicenow/no-bigint"],
+      },
+    ),
+    placements: [{ profile: "classic-es5", severity: "error" }] as const,
+    optionDescriptor: undefined,
+    limitationCases: [],
     title: "No unsupported ES-latest syntax",
     family: "engine",
     preset: "classic-es5",
@@ -721,6 +1409,34 @@ export const ruleCatalog = [
     ],
   }),
   entry("no-delete-multiple-with-windowing", noDeleteMultipleWithWindowing, {
+    ...metadata.meta(
+      metadata.classic(metadata.SERVER_SURFACES),
+      [
+        metadata.evidenceRecord(
+          metadata.SN_GR,
+          "setLimit and chooseWindow do not limit deleteMultiple(); the call deletes every matching row.",
+          "manual",
+          "2026-08-20",
+        ),
+        metadata.evidenceRecord(
+          "tests/integration/profiles/invalid/windowed-delete.br.js",
+          "Recommended hosts report windowed deleteMultiple.",
+          "integration-test",
+          "2026-08-20",
+        ),
+      ],
+      {
+        overlaps: ["servicenow/no-unfiltered-gliderecord-bulk-operation"],
+        lifecycleAssumptions:
+          "Window methods must resolve to the same GlideRecord object identity as deleteMultiple.",
+      },
+    ),
+    placements: [
+      { profile: "recommended", severity: "error" },
+      { profile: "business-rule", severity: "error" },
+    ] as const,
+    optionDescriptor: undefined,
+    limitationCases: [],
     title: "No deleteMultiple with windowing",
     family: "classic",
     preset: "recommended",
@@ -745,6 +1461,42 @@ export const ruleCatalog = [
     ],
   }),
   entry("require-callback-for-getreference", requireCallbackForGetreference, {
+    ...metadata.meta(
+      metadata.classic(metadata.CLIENT_SURFACES),
+      [
+        metadata.evidenceRecord(
+          metadata.SN_FORM,
+          "g_form.getReference without a callback is a synchronous server request.",
+          "manual",
+          "2026-08-20",
+        ),
+        metadata.evidenceRecord(
+          "tests/integration/profiles/invalid/sync-getreference.client.js",
+          "Recommended hosts report the one-argument form.",
+          "integration-test",
+          "2026-08-20",
+        ),
+      ],
+      {
+        overlaps: [],
+      },
+    ),
+    placements: [
+      { profile: "recommended", severity: "error" },
+      { profile: "client", severity: "error" },
+    ] as const,
+    optionDescriptor: undefined,
+    limitationCases: [
+      {
+        caseId: "require-callback-local-g-form",
+        kind: "scope-boundary",
+        description: "Local objects named g_form are not the platform global.",
+        name: "local g_form object",
+        filename: "local-gform.client.js",
+        code: `var g_form = { getReference: function () {} };
+g_form.getReference("caller_id");`,
+      },
+    ],
     title: "Require callback for getReference",
     family: "classic",
     preset: "recommended",
@@ -769,6 +1521,34 @@ export const ruleCatalog = [
     ],
   }),
   entry("require-glideajax-sysparm-name", requireGlideajaxSysparmName, {
+    ...metadata.meta(
+      metadata.classic(metadata.CLIENT_SURFACES),
+      [
+        metadata.evidenceRecord(
+          metadata.SN_AJAX,
+          "GlideAjax requires a non-empty sysparm_name before getXML, getXMLAnswer, or getXMLWait.",
+          "manual",
+          "2026-08-20",
+        ),
+        metadata.evidenceRecord(
+          "tests/integration/profiles/invalid/glideajax-empty-sysparm.client.js",
+          "Empty or missing sysparm_name values report on the client host fixtures.",
+          "integration-test",
+          "2026-08-20",
+        ),
+      ],
+      {
+        overlaps: ["servicenow/no-glideajax-getanswer", "servicenow/no-sync-glideajax"],
+        lifecycleAssumptions:
+          "A later request on the same object requires a new usable sysparm_name.",
+      },
+    ),
+    placements: [
+      { profile: "recommended", severity: "error" },
+      { profile: "client", severity: "error" },
+    ] as const,
+    optionDescriptor: undefined,
+    limitationCases: [],
     title: "Require GlideAjax sysparm_name",
     family: "classic",
     preset: "recommended",
@@ -776,7 +1556,7 @@ export const ruleCatalog = [
     fixable: false,
     hasSuggestions: false,
     description:
-      "GlideAjax requires a non-empty `addParam(\"sysparm_name\", method)` before `getXML` / `getXMLAnswer` / `getXMLWait`. Extra static keys must start with `sysparm_`. Evidence: https://www.servicenow.com/docs/r/api-reference/scripts/p_AJAX.html",
+      'GlideAjax requires a non-empty `addParam("sysparm_name", method)` before `getXML` / `getXMLAnswer` / `getXMLWait`. Extra static keys must start with `sysparm_`. Evidence: https://www.servicenow.com/docs/r/api-reference/scripts/p_AJAX.html',
     bad: [
       {
         name: "missing sysparm_name",
@@ -793,6 +1573,34 @@ export const ruleCatalog = [
     ],
   }),
   entry("validate-glideaggregate-calls", validateGlideaggregateCalls, {
+    ...metadata.meta(
+      metadata.classic(metadata.SERVER_SURFACES),
+      [
+        metadata.evidenceRecord(
+          metadata.SN_GR,
+          "getAggregate reads a tuple that addAggregate registered before the open query.",
+          "manual",
+          "2026-08-20",
+        ),
+        metadata.evidenceRecord(
+          "tests/integration/profiles/invalid/aggregate-type-only-field.br.js",
+          "Type-only COUNT does not satisfy a field-specific getAggregate.",
+          "integration-test",
+          "2026-08-20",
+        ),
+      ],
+      {
+        overlaps: ["servicenow/require-query-before-next"],
+        lifecycleAssumptions:
+          "Must-tuples intersect on join. addAggregate after query() does not validate the already-open result.",
+      },
+    ),
+    placements: [
+      { profile: "recommended", severity: "error" },
+      { profile: "business-rule", severity: "error" },
+    ] as const,
+    optionDescriptor: undefined,
+    limitationCases: [],
     title: "Validate GlideAggregate calls",
     family: "classic",
     preset: "recommended",
@@ -817,6 +1625,42 @@ export const ruleCatalog = [
     ],
   }),
   entry("no-now-id-as-reference", noNowIdAsReference, {
+    ...metadata.meta(
+      metadata.fluent(),
+      [
+        metadata.evidenceRecord(
+          metadata.SN_FLUENT_CONSTRUCTS,
+          "Now.ID is a metadata identity, not an in-app record reference.",
+          "manual",
+          "2026-08-20",
+        ),
+        metadata.evidenceRecord(
+          "tests/integration/profiles/invalid/now-id-ref.now.ts",
+          "Recommended hosts report Now.ID used as a reference field.",
+          "integration-test",
+          "2026-08-20",
+        ),
+      ],
+      {
+        overlaps: ["servicenow/require-fluent-id"],
+      },
+    ),
+    placements: [
+      { profile: "recommended", severity: "error" },
+      { profile: "fluent", severity: "error" },
+    ] as const,
+    optionDescriptor: undefined,
+    limitationCases: [
+      {
+        caseId: "no-now-id-local-now",
+        kind: "scope-boundary",
+        description: "Local objects named Now are not the SDK namespace.",
+        name: "local Now object",
+        filename: "local-now.now.ts",
+        code: `const Now = { ID: { task: "local" } };
+const value = Now.ID.task;`,
+      },
+    ],
     title: "No Now.ID as a reference",
     family: "fluent",
     preset: "recommended",
@@ -841,6 +1685,32 @@ export const ruleCatalog = [
     ],
   }),
   entry("no-glideajax-getanswer", noGlideajaxGetanswer, {
+    ...metadata.meta(
+      metadata.classic(metadata.CLIENT_SURFACES),
+      [
+        metadata.evidenceRecord(
+          metadata.SN_GLIDEAJAX,
+          "getAnswer belongs to the synchronous getXMLWait pattern.",
+          "manual",
+          "2026-08-20",
+        ),
+        metadata.evidenceRecord(
+          "tests/integration/profiles/invalid/glideajax-getanswer.client.js",
+          "Recommended hosts report getAnswer on proven GlideAjax objects.",
+          "integration-test",
+          "2026-08-20",
+        ),
+      ],
+      {
+        overlaps: ["servicenow/no-sync-glideajax"],
+      },
+    ),
+    placements: [
+      { profile: "recommended", severity: "error" },
+      { profile: "client", severity: "error" },
+    ] as const,
+    optionDescriptor: undefined,
+    limitationCases: [],
     title: "No GlideAjax getAnswer",
     family: "classic",
     preset: "recommended",
@@ -865,6 +1735,32 @@ export const ruleCatalog = [
     ],
   }),
   entry("no-duplicate-fluent-id", noDuplicateFluentId, {
+    ...metadata.meta(
+      metadata.fluent(),
+      [
+        metadata.evidenceRecord(
+          metadata.SN_FLUENT_CONSTRUCTS,
+          "Now.ID keys must be unique in a file so keys.ts can track records.",
+          "manual",
+          "2026-08-20",
+        ),
+        metadata.evidenceRecord(
+          "tests/integration/profiles/invalid/duplicate-id.now.ts",
+          "Recommended hosts report duplicate Now.ID keys.",
+          "integration-test",
+          "2026-08-20",
+        ),
+      ],
+      {
+        overlaps: ["servicenow/require-fluent-id"],
+      },
+    ),
+    placements: [
+      { profile: "recommended", severity: "error" },
+      { profile: "fluent", severity: "error" },
+    ] as const,
+    optionDescriptor: undefined,
+    limitationCases: [],
     title: "No duplicate Fluent $id",
     family: "fluent",
     preset: "recommended",
@@ -889,6 +1785,32 @@ export const ruleCatalog = [
     ],
   }),
   entry("no-glideelement-in-collection", noGlideelementInCollection, {
+    ...metadata.meta(
+      metadata.classic(metadata.SERVER_SURFACES),
+      [
+        metadata.evidenceRecord(
+          metadata.SN_GR,
+          "A GlideElement from a cursor follows the cursor; collections must store extracted values.",
+          "manual",
+          "2026-08-20",
+        ),
+        metadata.evidenceRecord(
+          "tests/integration/profiles/invalid/glideelement-push.br.js",
+          "Recommended hosts report pushing a cursor field into an array.",
+          "integration-test",
+          "2026-08-20",
+        ),
+      ],
+      {
+        overlaps: [],
+      },
+    ),
+    placements: [
+      { profile: "recommended", severity: "error" },
+      { profile: "business-rule", severity: "error" },
+    ] as const,
+    optionDescriptor: undefined,
+    limitationCases: [],
     title: "No GlideElement in a collection",
     family: "classic",
     preset: "recommended",
@@ -913,6 +1835,34 @@ export const ruleCatalog = [
     ],
   }),
   entry("no-gliderecord-query-modifier-after-query", noGliderecordQueryModifierAfterQuery, {
+    ...metadata.meta(
+      metadata.classic(metadata.SERVER_SURFACES),
+      [
+        metadata.evidenceRecord(
+          metadata.SN_GR_GLOBAL,
+          "Query modifiers after query() or get() do not change the open cursor.",
+          "manual",
+          "2026-08-20",
+        ),
+        metadata.evidenceRecord(
+          "tests/integration/profiles/invalid/late-modifier.br.js",
+          "Recommended hosts report addQuery after query before next.",
+          "integration-test",
+          "2026-08-20",
+        ),
+      ],
+      {
+        overlaps: ["servicenow/require-query-before-next"],
+        lifecycleAssumptions:
+          "Modifiers after query are findings only when a consumer uses the still-open cursor.",
+      },
+    ),
+    placements: [
+      { profile: "recommended", severity: "error" },
+      { profile: "business-rule", severity: "error" },
+    ] as const,
+    optionDescriptor: undefined,
+    limitationCases: [],
     title: "No query modifier after query",
     family: "classic",
     preset: "recommended",
@@ -937,6 +1887,53 @@ export const ruleCatalog = [
     ],
   }),
   entry("require-business-rule-wrapper", requireBusinessRuleWrapper, {
+    ...metadata.meta(
+      {
+        authoring: "classic",
+        surfaces: ["business-rule"],
+        minimumSurfaceConfidence: "explicit-only",
+        javascriptModes: "n/a",
+        scopes: metadata.ALL_SCOPES,
+        serviceNowReleases: [...metadata.ZURICH],
+      },
+      [
+        metadata.evidenceRecord(
+          metadata.SN_BR,
+          "Full-script Business Rules use the executeRule(current, previous) IIFE so top-level bindings do not leak.",
+          "manual",
+          "2026-08-20",
+        ),
+        metadata.evidenceRecord(
+          "tests/integration/profiles/invalid/unwrapped.br.js",
+          "The wrapper rule reports only when businessRuleSourceFormat is full-script.",
+          "integration-test",
+          "2026-08-20",
+        ),
+      ],
+      {
+        overlaps: [],
+      },
+    ),
+    placements: [
+      { profile: "recommended", severity: "error" },
+      { profile: "business-rule", severity: "error" },
+    ] as const,
+    optionDescriptor: undefined,
+    limitationCases: [
+      {
+        caseId: "require-wrapper-body-only",
+        kind: "scope-boundary",
+        description: "Body-only Business Rule source does not contain the platform wrapper.",
+        name: "body-only source",
+        filename: "body-only.br.js",
+        settings: {
+          authoring: "classic",
+          surfaces: ["business-rule"],
+          businessRuleSourceFormat: "body-only",
+        },
+        code: `current.short_description = "Updated";`,
+      },
+    ],
     title: "Require Business Rule wrapper",
     family: "classic",
     preset: "recommended",
@@ -963,6 +1960,40 @@ export const ruleCatalog = [
     ],
   }),
   entry("no-display-value-date-comparison", noDisplayValueDateComparison, {
+    ...metadata.meta(
+      metadata.classic(metadata.SERVER_SURFACES),
+      [
+        metadata.evidenceRecord(
+          metadata.SN_GDT,
+          "GlideDateTime.getDisplayValue() follows the session format and is not a chronological sort key.",
+          "manual",
+          "2026-08-20",
+        ),
+        metadata.evidenceRecord(
+          "src/catalog.ts",
+          "Catalog examples cover display-value comparison versus getNumericValue.",
+          "fixture",
+          "2026-08-20",
+        ),
+      ],
+      {
+        overlaps: ["servicenow/no-gs-now"],
+      },
+    ),
+    placements: [{ profile: "strict", severity: "warn" }] as const,
+    optionDescriptor: undefined,
+    limitationCases: [
+      {
+        caseId: "display-date-local-copy",
+        kind: "false-negative",
+        description: "Display values copied into locals are not tracked before comparison.",
+        name: "copied display value",
+        filename: "copied-display.server.js",
+        code: `var date = new GlideDateTime();
+var display = date.getDisplayValue();
+if (display < "2026-01-01") gs.info(display);`,
+      },
+    ],
     title: "No display-value date comparison",
     family: "classic",
     preset: "strict",
@@ -987,6 +2018,31 @@ export const ruleCatalog = [
     ],
   }),
   entry("no-unfiltered-gliderecord-bulk-operation", noUnfilteredGliderecordBulkOperation, {
+    ...metadata.meta(
+      metadata.classic(metadata.SERVER_SURFACES),
+      [
+        metadata.evidenceRecord(
+          metadata.SN_GR,
+          "updateMultiple and deleteMultiple apply to every row that matches the query filters.",
+          "manual",
+          "2026-08-20",
+        ),
+        metadata.evidenceRecord(
+          "tests/integration/profiles/invalid/empty-addquery-bulk.br.js",
+          "Empty or missing addQuery arguments do not count as filters.",
+          "integration-test",
+          "2026-08-20",
+        ),
+      ],
+      {
+        overlaps: ["servicenow/no-delete-multiple-with-windowing"],
+        lifecycleAssumptions:
+          "query, orderBy, setLimit, and chooseWindow are not restricting filters.",
+      },
+    ),
+    placements: [{ profile: "recommended", severity: "warn" }] as const,
+    optionDescriptor: undefined,
+    limitationCases: [],
     title: "No unfiltered GlideRecord bulk operation",
     family: "classic",
     preset: "recommended",
@@ -994,7 +2050,7 @@ export const ruleCatalog = [
     fixable: false,
     hasSuggestions: false,
     description:
-      "`updateMultiple()` / `deleteMultiple()` without a proven restricting filter can touch every row. `query`, `orderBy`, `setLimit`, and `chooseWindow` are not filters. Empty `addQuery()` / `addEncodedQuery(\"\")` do not count.",
+      '`updateMultiple()` / `deleteMultiple()` without a proven restricting filter can touch every row. `query`, `orderBy`, `setLimit`, and `chooseWindow` are not filters. Empty `addQuery()` / `addEncodedQuery("")` do not count.',
     bad: [
       {
         name: "deleteMultiple with no filter",
@@ -1011,6 +2067,37 @@ export const ruleCatalog = [
     ],
   }),
   entry("no-gliderecord-query-in-loop", noGliderecordQueryInLoop, {
+    ...metadata.meta(
+      metadata.classic(metadata.SERVER_SURFACES),
+      [
+        metadata.evidenceRecord(
+          metadata.SN_GR,
+          "query or get inside a next() loop is an N+1 pattern on the GlideRecord cursor.",
+          "manual",
+          "2026-08-20",
+        ),
+        metadata.evidenceRecord(
+          "tests/integration/profiles/invalid/nested-cursor-query.br.js",
+          "Strict hosts report a nested query inside a proven cursor loop.",
+          "integration-test",
+          "2026-08-20",
+        ),
+        metadata.evidenceRecord(
+          "tests/integration/profiles/valid/custom-iterator-loop.br.js",
+          "Custom iterators with next() do not establish cursor depth.",
+          "integration-test",
+          "2026-08-20",
+        ),
+      ],
+      {
+        overlaps: ["servicenow/require-query-before-next"],
+        lifecycleAssumptions:
+          "Only a proven unescaped GlideRecord or GlideAggregate next() receiver establishes cursor depth.",
+      },
+    ),
+    placements: [{ profile: "strict", severity: "warn" }] as const,
+    optionDescriptor: undefined,
+    limitationCases: [],
     title: "No GlideRecord query in a cursor loop",
     family: "classic",
     preset: "strict",
@@ -1035,6 +2122,31 @@ export const ruleCatalog = [
     ],
   }),
   entry("prefer-setnocount-with-choosewindow", preferSetnocountWithChoosewindow, {
+    ...metadata.meta(
+      metadata.classic(metadata.SERVER_SURFACES),
+      [
+        metadata.evidenceRecord(
+          metadata.SN_GR,
+          "query() after chooseWindow() runs COUNT(*) unless setNoCount() or setLimit() skips it.",
+          "manual",
+          "2026-08-20",
+        ),
+        metadata.evidenceRecord(
+          "tests/integration/profiles/invalid/setnocount-second-query.br.js",
+          "A later query epoch is not justified by an earlier getRowCount().",
+          "integration-test",
+          "2026-08-20",
+        ),
+      ],
+      {
+        overlaps: ["servicenow/require-query-before-next"],
+        lifecycleAssumptions:
+          "Window and setNoCount state are scoped to one query epoch and one object identity.",
+      },
+    ),
+    placements: [{ profile: "strict", severity: "warn" }] as const,
+    optionDescriptor: undefined,
+    limitationCases: [],
     title: "Prefer setNoCount with chooseWindow",
     family: "classic",
     preset: "strict",
@@ -1059,6 +2171,35 @@ export const ruleCatalog = [
     ],
   }),
   entry("no-system-query-bypass", noSystemQueryBypass, {
+    ...metadata.meta(
+      metadata.classic(metadata.SERVER_SURFACES),
+      [
+        metadata.evidenceRecord(
+          metadata.SN_GR,
+          "addSystemQuery and related methods bypass query ACLs and need review.",
+          "manual",
+          "2026-08-20",
+        ),
+        metadata.evidenceRecord(
+          "tests/integration/profiles/invalid/system-query.br.js",
+          "The security profile reports documented ACL-bypass methods.",
+          "integration-test",
+          "2026-08-20",
+        ),
+        metadata.evidenceRecord(
+          "tests/integration/context-contracts.test.ts",
+          "Oxlint and ESLint report folded, dynamic, extracted, and escaped GlideRecord bypass access.",
+          "integration-test",
+          "2026-08-21",
+        ),
+      ],
+      {
+        overlaps: [],
+      },
+    ),
+    placements: [{ profile: "security", severity: "warn" }] as const,
+    optionDescriptor: undefined,
+    limitationCases: [],
     title: "Review system query ACL bypass",
     family: "classic",
     preset: false,
@@ -1066,7 +2207,7 @@ export const ruleCatalog = [
     fixable: false,
     hasSuggestions: false,
     description:
-      "Opt-in security review for documented ACL-bypass query APIs: `addSystemQuery`, `addSystemEncodedQuery`, `addSystemOrderBy`, `addSystemOrderByDesc`.",
+      "Opt-in security review for documented ACL-bypass query APIs. Unknown computed GlideRecord access also reports for review.",
     bad: [
       {
         name: "addSystemQuery",
@@ -1083,6 +2224,32 @@ export const ruleCatalog = [
     ],
   }),
   entry("no-sync-glideajax", noSyncGlideajax, {
+    ...metadata.meta(
+      metadata.classic(metadata.CLIENT_SURFACES),
+      [
+        metadata.evidenceRecord(
+          metadata.SN_GLIDEAJAX,
+          "getXMLWait is a synchronous browser request.",
+          "manual",
+          "2026-08-20",
+        ),
+        metadata.evidenceRecord(
+          "src/catalog.ts",
+          "Catalog examples cover getXMLWait versus getXMLAnswer.",
+          "fixture",
+          "2026-08-20",
+        ),
+      ],
+      {
+        overlaps: ["servicenow/no-glideajax-getanswer"],
+      },
+    ),
+    placements: [
+      { profile: "recommended", severity: "error" },
+      { profile: "client", severity: "error" },
+    ] as const,
+    optionDescriptor: undefined,
+    limitationCases: [],
     title: "No synchronous GlideAjax",
     family: "classic",
     preset: "recommended",
@@ -1107,13 +2274,41 @@ export const ruleCatalog = [
     ],
   }),
   entry("no-async-iterators", noAsyncIterators, {
+    ...metadata.meta(
+      metadata.engine(metadata.ALL_MODES),
+      [
+        metadata.evidenceRecord(
+          metadata.SN_JS_FEATURES,
+          "for await...of and async generators are disallowed in every instance JavaScript mode.",
+          "manual",
+          "2026-08-20",
+        ),
+        metadata.evidenceRecord(
+          "tests/integration/profiles/invalid/es2021-async-iter.server.js",
+          "es2021 Oxlint still flags async iteration.",
+          "integration-test",
+          "2026-08-20",
+        ),
+      ],
+      {
+        overlaps: ["servicenow/no-async-await"],
+      },
+    ),
+    placements: [
+      { profile: "recommended", severity: "error" },
+      { profile: "classic-es5", severity: "error" },
+      { profile: "es2021", severity: "error" },
+    ] as const,
+    optionDescriptor: undefined,
+    limitationCases: [],
     title: "No async iterators",
     family: "engine",
     preset: "recommended",
     severity: "error",
     fixable: false,
     hasSuggestions: false,
-    description: "`for await…of` and async generators are disallowed in every instance JavaScript mode, including ES2021.",
+    description:
+      "`for await…of` and async generators are disallowed in every instance JavaScript mode, including ES2021.",
     bad: [
       {
         name: "for await",
@@ -1130,6 +2325,32 @@ export const ruleCatalog = [
     ],
   }),
 ];
+
+const catalogNames = new Set<string>();
+const catalogRuleIds = new Set<string>();
+const catalogImplementations = new Set<Rule>();
+for (const item of ruleCatalog) {
+  if (catalogNames.has(item.name)) throw new Error(`Duplicate catalog rule name: ${item.name}`);
+  if (catalogRuleIds.has(item.ruleId)) throw new Error(`Duplicate catalog rule ID: ${item.ruleId}`);
+  if (catalogImplementations.has(item.implementation)) {
+    throw new Error(`Duplicate catalog implementation: ${item.name}`);
+  }
+  if (item.optionDescriptor && item.optionDescriptor.ruleName !== item.name) {
+    throw new Error(
+      `Catalog option descriptor ${item.optionDescriptor.ruleName} does not match ${item.name}`,
+    );
+  }
+  const profiles = new Set<RuleProfile>();
+  for (const placement of item.placements) {
+    if (profiles.has(placement.profile)) {
+      throw new Error(`Duplicate ${placement.profile} placement for ${item.name}`);
+    }
+    profiles.add(placement.profile);
+  }
+  catalogNames.add(item.name);
+  catalogRuleIds.add(item.ruleId);
+  catalogImplementations.add(item.implementation);
+}
 
 export function getRuleCatalogEntry(name: string): RuleCatalogEntry | undefined {
   return ruleCatalog.find((rule) => rule.name === name || rule.ruleId === name);

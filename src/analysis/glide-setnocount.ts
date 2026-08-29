@@ -1,6 +1,5 @@
 import type { ESTree } from "@oxlint/plugins";
-import { GLIDE_QUERY_EXECUTORS } from "../glide/query-methods.js";
-import { analyzePathBindings, mergeTri } from "./path-state.js";
+import { analyzePathBindings } from "./path-state.js";
 import type { ProvenanceQuery } from "./provenance.js";
 
 export interface ChooseWindowCountFinding {
@@ -8,18 +7,21 @@ export interface ChooseWindowCountFinding {
   name: string;
 }
 
-interface CountData {
-  queryEpoch: number;
-  windowed: boolean | "unknown";
-  skippedCount: boolean | "unknown";
-  wantsCount: boolean | "unknown";
-}
-
-interface PendingFinding {
-  objectId: number;
-  epoch: number;
+interface CountCandidate {
   node: ESTree.CallExpression;
   name: string;
+  used: boolean;
+}
+
+interface CountAlternative {
+  windowed: boolean;
+  skippedCount: boolean;
+  wantsCount: boolean | "unknown";
+  result: CountCandidate | null;
+}
+
+interface CountData {
+  alternatives: CountAlternative[];
 }
 
 function forceCountArg(call: ESTree.CallExpression): boolean | "unknown" {
@@ -30,93 +32,101 @@ function forceCountArg(call: ESTree.CallExpression): boolean | "unknown" {
   return "unknown";
 }
 
-function mergeEpoch(left: number, right: number): number {
-  return left === right ? left : -1;
+function cloneAlternative(value: CountAlternative): CountAlternative {
+  return {
+    ...value,
+    result: value.result ? { ...value.result } : null,
+  };
+}
+
+function alternativeKey(value: CountAlternative): string {
+  return JSON.stringify({
+    windowed: value.windowed,
+    skippedCount: value.skippedCount,
+    wantsCount: value.wantsCount,
+    resultStart: value.result?.node.start ?? null,
+    resultUsed: value.result?.used ?? null,
+  });
+}
+
+function mergeCountData(left: CountData, right: CountData): CountData {
+  const alternatives = new Map<string, CountAlternative>();
+  for (const value of [...left.alternatives, ...right.alternatives]) {
+    alternatives.set(alternativeKey(value), cloneAlternative(value));
+  }
+  return { alternatives: [...alternatives.values()] };
 }
 
 /**
- * Report `query()` / `get()` / `getAsync()` after a definite `chooseWindow()`
- * when that query epoch never skips `COUNT(*)` and never reads `getRowCount()`.
- *
- * Pending diagnostics store `(objectId, queryEpoch)` snapshots. Joins cannot
- * attach those findings to a replaced mutable record.
- *
- * Evidence: Zurich scoped GlideRecord `chooseWindow` / `setNoCount`.
+ * Report a reachable `query()` result that performs the documented
+ * `chooseWindow()` count and is not consumed through `getRowCount()`.
  */
 export function findChooseWindowWithoutNoCount(
   program: ESTree.Node,
   analysis: ProvenanceQuery,
 ): ChooseWindowCountFinding[] {
-  const pending: PendingFinding[] = [];
-  const usedRowCount = new Set<string>();
+  const finalized = new Map<ESTree.CallExpression, string>();
+  const finalize = (alternative: CountAlternative): void => {
+    if (alternative.result && !alternative.result.used) {
+      finalized.set(alternative.result.node, alternative.result.name);
+    }
+  };
 
   analyzePathBindings<CountData>({
     program,
     analysis,
     kinds: ["GlideRecord"],
     emptyData: () => ({
-      queryEpoch: 0,
-      windowed: false,
-      skippedCount: false,
-      wantsCount: false,
+      alternatives: [{ windowed: false, skippedCount: false, wantsCount: false, result: null }],
     }),
-    cloneData: (data) => ({ ...data }),
-    mergeData: (left, right) => ({
-      queryEpoch: mergeEpoch(left.queryEpoch, right.queryEpoch),
-      windowed: mergeTri(left.windowed, right.windowed),
-      skippedCount: mergeTri(left.skippedCount, right.skippedCount),
-      wantsCount: mergeTri(left.wantsCount, right.wantsCount),
-    }),
+    cloneData: (data) => ({ alternatives: data.alternatives.map(cloneAlternative) }),
+    equalsData: (left, right) =>
+      left.alternatives.length === right.alternatives.length &&
+      left.alternatives.every(
+        (value, index) => alternativeKey(value) === alternativeKey(right.alternatives[index]!),
+      ),
+    mergeData: mergeCountData,
     onCall({ call, rec, objectName, property }) {
-      if (!rec || !objectName || !property) return;
+      if (!rec || !property) return;
       if (property === "chooseWindow") {
-        rec.data.windowed = true;
-        rec.data.wantsCount = forceCountArg(call);
-      }
-      if (property === "setNoCount" || property === "setLimit") {
-        rec.data.skippedCount = true;
-      }
-      if (property === "getRowCount") {
-        const executed = rec.data.queryEpoch - 1;
-        if (executed >= 0) {
-          usedRowCount.add(`${rec.id}:${executed}`);
+        for (const value of rec.data.alternatives) {
+          value.windowed = true;
+          value.wantsCount = forceCountArg(call);
         }
-      }
-      if (!GLIDE_QUERY_EXECUTORS.has(property)) return;
-      if (rec.data.queryEpoch < 0) {
-        rec.data = {
-          queryEpoch: -1,
-          windowed: false,
-          skippedCount: false,
-          wantsCount: false,
-        };
         return;
       }
-      if (
-        rec.data.windowed === true &&
-        rec.data.skippedCount === false &&
-        rec.data.wantsCount === false
-      ) {
-        pending.push({
-          objectId: rec.id,
-          epoch: rec.data.queryEpoch,
-          node: call,
-          name: objectName,
-        });
+      if (property === "setNoCount" || property === "setLimit") {
+        for (const value of rec.data.alternatives) value.skippedCount = true;
+        return;
       }
-      rec.data = {
-        queryEpoch: rec.data.queryEpoch + 1,
-        windowed: false,
-        skippedCount: false,
-        wantsCount: false,
-      };
+      if (property === "getRowCount") {
+        for (const value of rec.data.alternatives) {
+          if (value.result) value.result.used = true;
+        }
+        return;
+      }
+      // ServiceNow documents the COUNT(*) behavior for query(), not get() or
+      // getAsync(). Do not extend the performance claim to other executors.
+      if (property !== "query") return;
+      for (const value of rec.data.alternatives) {
+        finalize(value);
+        value.result =
+          value.windowed && !value.skippedCount && value.wantsCount === false
+            ? { node: call, name: objectName ?? "record", used: false }
+            : null;
+        value.windowed = false;
+        value.skippedCount = false;
+        value.wantsCount = false;
+      }
+    },
+    onExit(states) {
+      for (const state of states) {
+        for (const record of state.records) {
+          for (const value of record.data.alternatives) finalize(value);
+        }
+      }
     },
   });
 
-  const findings: ChooseWindowCountFinding[] = [];
-  for (const item of pending) {
-    if (usedRowCount.has(`${item.objectId}:${item.epoch}`)) continue;
-    findings.push({ node: item.node, name: item.name });
-  }
-  return findings;
+  return [...finalized].map(([node, name]) => ({ node, name }));
 }

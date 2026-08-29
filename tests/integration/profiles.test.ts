@@ -54,7 +54,10 @@ describe("profile fixtures", () => {
     const es5 = pluginRulesFor(runOxlint(classicEs5Config, [file]));
     assert.deepEqual(recommended, []);
     assert.ok(es5.includes("servicenow/no-promise"), `classic-es5 diagnostics: ${es5.join(", ")}`);
-    assert.ok(es5.includes("servicenow/no-async-await"), `classic-es5 diagnostics: ${es5.join(", ")}`);
+    assert.ok(
+      es5.includes("servicenow/no-async-await"),
+      `classic-es5 diagnostics: ${es5.join(", ")}`,
+    );
     assert.ok(
       es5.includes("servicenow/no-unsupported-syntax"),
       `classic-es5 diagnostics: ${es5.join(", ")}`,
@@ -62,7 +65,9 @@ describe("profile fixtures", () => {
   });
 
   it("es2021 accepts supported syntax and still flags async iteration", () => {
-    const valid = pluginRulesFor(runOxlint(es2021Config, [path.join(validDir, "es2021.server.js")]));
+    const valid = pluginRulesFor(
+      runOxlint(es2021Config, [path.join(validDir, "es2021.server.js")]),
+    );
     const invalid = pluginRulesFor(
       runOxlint(es2021Config, [path.join(invalidDir, "es2021-async-iter.server.js")]),
     );
@@ -145,16 +150,24 @@ describe("profile fixtures", () => {
       const ids = eslintRecommended(code, file)
         .map((message) => message.ruleId)
         .filter((id): id is string => Boolean(id));
-      assert.ok(ids.includes(ruleId), `${file}: missing ${ruleId} (got ${ids.join(", ") || "(none)"})`);
+      assert.ok(
+        ids.includes(ruleId),
+        `${file}: missing ${ruleId} (got ${ids.join(", ") || "(none)"})`,
+      );
     }
   });
 
   it("recommended flags Phase 2 Fluent identity rules", () => {
-    const nowId = pluginRulesFor(runOxlint(recommendedConfig, [path.join(invalidDir, "now-id-ref.now.ts")]));
+    const nowId = pluginRulesFor(
+      runOxlint(recommendedConfig, [path.join(invalidDir, "now-id-ref.now.ts")]),
+    );
     const duplicate = pluginRulesFor(
       runOxlint(recommendedConfig, [path.join(invalidDir, "duplicate-id.now.ts")]),
     );
-    assert.ok(nowId.includes("servicenow/no-now-id-as-reference"), `now-id-ref: ${nowId.join(", ") || "(none)"}`);
+    assert.ok(
+      nowId.includes("servicenow/no-now-id-as-reference"),
+      `now-id-ref: ${nowId.join(", ") || "(none)"}`,
+    );
     assert.ok(
       duplicate.includes("servicenow/no-duplicate-fluent-id"),
       `duplicate-id: ${duplicate.join(", ") || "(none)"}`,
@@ -168,7 +181,10 @@ describe("profile fixtures", () => {
     const dangling = pluginRulesFor(
       runOxlint(recommendedConfig, [path.join(invalidDir, "dangling-fluent-ignore.now.ts")]),
     );
-    assert.ok(alias.includes("servicenow/require-fluent-id"), `fluent alias: ${alias.join(", ") || "(none)"}`);
+    assert.ok(
+      alias.includes("servicenow/require-fluent-id"),
+      `fluent alias: ${alias.join(", ") || "(none)"}`,
+    );
     assert.ok(
       namespace.includes("servicenow/require-fluent-id"),
       `fluent namespace: ${namespace.join(", ") || "(none)"}`,
@@ -180,7 +196,9 @@ describe("profile fixtures", () => {
   });
 
   it("client rules do not leak onto a server UI Action", () => {
-    const rules = pluginRulesFor(runOxlint(recommendedConfig, [path.join(validDir, "close.ui-action.js")]));
+    const rules = pluginRulesFor(
+      runOxlint(recommendedConfig, [path.join(validDir, "close.ui-action.js")]),
+    );
     assert.ok(!rules.includes("servicenow/no-client-gliderecord"));
     assert.ok(!rules.includes("servicenow/no-br-current-update"));
   });
@@ -215,12 +233,16 @@ describe("profile fixtures", () => {
   });
 
   it("recommended stays silent on body-only Business Rule source", () => {
-    const rules = pluginRulesFor(runOxlint(recommendedConfig, [path.join(invalidDir, "unwrapped.br.js")]));
+    const rules = pluginRulesFor(
+      runOxlint(recommendedConfig, [path.join(invalidDir, "unwrapped.br.js")]),
+    );
     assert.ok(!rules.includes("servicenow/require-business-rule-wrapper"), rules.join(", "));
   });
 
   it("full-script settings enable the Business Rule wrapper rule", () => {
-    const rules = pluginRulesFor(runOxlint(fullScriptConfig, [path.join(invalidDir, "unwrapped.br.js")]));
+    const rules = pluginRulesFor(
+      runOxlint(fullScriptConfig, [path.join(invalidDir, "unwrapped.br.js")]),
+    );
     assert.ok(
       rules.includes("servicenow/require-business-rule-wrapper"),
       `unwrapped: ${rules.join(", ") || "(none)"}`,
@@ -333,7 +355,10 @@ describe("profile fixtures", () => {
       const ids = eslintRecommended(code, file)
         .map((message) => message.ruleId)
         .filter((id): id is string => Boolean(id));
-      assert.ok(ids.includes(ruleId), `${file}: missing ${ruleId} (got ${ids.join(", ") || "(none)"})`);
+      assert.ok(
+        ids.includes(ruleId),
+        `${file}: missing ${ruleId} (got ${ids.join(", ") || "(none)"})`,
+      );
     }
   });
 });

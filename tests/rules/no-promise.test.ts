@@ -5,9 +5,14 @@ const RULE = "no-promise" as const;
 
 describe(RULE, () => {
   it("flags new Promise in ES5", () => {
-    assertInvalid(`var p = new Promise(function (resolve) { resolve(1); });`, RULE, {
-      messageId: "construct",
-    }, { settings: ES5 });
+    assertInvalid(
+      `var p = new Promise(function (resolve) { resolve(1); });`,
+      RULE,
+      {
+        messageId: "construct",
+      },
+      { settings: ES5 },
+    );
   });
 
   it("flags Promise.resolve in ES5", () => {
@@ -19,11 +24,9 @@ describe(RULE, () => {
   });
 
   it("does not flag a shadowed Promise binding", () => {
-    assertValid(
-      `function Promise(fn) { fn(); }\nvar p = new Promise(function () {});`,
-      RULE,
-      { settings: ES5 },
-    );
+    assertValid(`function Promise(fn) { fn(); }\nvar p = new Promise(function () {});`, RULE, {
+      settings: ES5,
+    });
   });
 
   it("skips unknown JavaScript mode", () => {

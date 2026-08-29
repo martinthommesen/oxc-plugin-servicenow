@@ -5,11 +5,21 @@ const RULE = "no-async-await" as const;
 
 describe(RULE, () => {
   it("flags async functions", () => {
-    assertInvalid(`async function load() { return 1; }`, RULE, { messageId: "asyncFn" }, { settings: ES5 });
+    assertInvalid(
+      `async function load() { return 1; }`,
+      RULE,
+      { messageId: "asyncFn" },
+      { settings: ES5 },
+    );
   });
 
   it("flags await", () => {
-    assertInvalid(`async function load() { await other(); }`, RULE, { count: 2 }, { settings: ES5 });
+    assertInvalid(
+      `async function load() { await other(); }`,
+      RULE,
+      { count: 2 },
+      { settings: ES5 },
+    );
   });
 
   it("allows sync functions", () => {

@@ -2,7 +2,17 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { Linter } from "eslint";
 import type { Linter as EsLinter } from "eslint";
-import plugin, { configs, parseRuleOptions, RULE_OPTION_DESCRIPTORS, schemaFromDescriptor } from "../src/index.js";
+import plugin, { configs } from "../src/index.js";
+import { ruleCatalog } from "../src/catalog.js";
+import {
+  fluentNamingConventionOptions,
+  noHardcodedSysidOptions,
+  noHardcodedTableNamesOptions,
+  parseRuleOptions,
+  preferNowIncludeOptions,
+  requireFluentIdOptions,
+  schemaFromDescriptor,
+} from "../src/options/index.js";
 import { ServiceNowConfigError } from "../src/settings/index.js";
 import { lint } from "./helpers/rule-tester.js";
 
@@ -10,15 +20,18 @@ const SYS_ID = "97c04b3b1b12100043ab85e5bd0713e2";
 
 describe("rule option descriptors", () => {
   it("derives host schema from each descriptor", () => {
-    for (const [name, descriptor] of Object.entries(RULE_OPTION_DESCRIPTORS)) {
+    for (const { name, optionDescriptor: descriptor } of ruleCatalog) {
+      if (!descriptor) continue;
       const schema = schemaFromDescriptor(descriptor);
-      const rule = plugin.rules[name as keyof typeof plugin.rules] as { meta?: { schema?: unknown } };
+      const rule = plugin.rules[name as keyof typeof plugin.rules] as {
+        meta?: { schema?: unknown };
+      };
       assert.deepEqual(rule.meta?.schema, schema, `${name} schema drifted from descriptor`);
     }
   });
 
   it("accepts missing options and applies defaults", () => {
-    const parsed = parseRuleOptions(RULE_OPTION_DESCRIPTORS["no-hardcoded-sysid"], []);
+    const parsed = parseRuleOptions(noHardcodedSysidOptions, []);
     assert.deepEqual(parsed.allowedSysIds, []);
     assert.equal(parsed.ignoreHashNames, true);
     assertValidSysIdHonor();
@@ -26,8 +39,7 @@ describe("rule option descriptors", () => {
 
   it("rejects a boolean string without coercion", () => {
     assert.throws(
-      () =>
-        parseRuleOptions(RULE_OPTION_DESCRIPTORS["no-hardcoded-sysid"], [{ ignoreHashNames: "false" }]),
+      () => parseRuleOptions(noHardcodedSysidOptions, [{ ignoreHashNames: "false" }]),
       (error: unknown) =>
         error instanceof ServiceNowConfigError &&
         error.path === "options[0].ignoreHashNames" &&
@@ -37,60 +49,56 @@ describe("rule option descriptors", () => {
 
   it("rejects spreading a string as allowedSysIds", () => {
     assert.throws(
-      () => parseRuleOptions(RULE_OPTION_DESCRIPTORS["no-hardcoded-sysid"], [{ allowedSysIds: "abc" }]),
+      () => parseRuleOptions(noHardcodedSysidOptions, [{ allowedSysIds: "abc" }]),
       /options\[0\]\.allowedSysIds: expected an array of strings, got string/,
     );
   });
 
   it("rejects a non-string array item with a complete path", () => {
     assert.throws(
-      () =>
-        parseRuleOptions(RULE_OPTION_DESCRIPTORS["no-hardcoded-sysid"], [
-          { allowedSysIds: [SYS_ID, SYS_ID, 2] },
-        ]),
+      () => parseRuleOptions(noHardcodedSysidOptions, [{ allowedSysIds: [SYS_ID, SYS_ID, 2] }]),
       /options\[0\]\.allowedSysIds\[2\]: expected a string, got number/,
     );
   });
 
   it("rejects a numeric string for maxLines", () => {
     assert.throws(
-      () => parseRuleOptions(RULE_OPTION_DESCRIPTORS["prefer-now-include"], [{ maxLines: "8" }]),
+      () => parseRuleOptions(preferNowIncludeOptions, [{ maxLines: "8" }]),
       /options\[0\]\.maxLines: expected an integer/,
     );
   });
 
   it("rejects maxLines below the documented minimum", () => {
     assert.throws(
-      () => parseRuleOptions(RULE_OPTION_DESCRIPTORS["prefer-now-include"], [{ maxLines: 0 }]),
+      () => parseRuleOptions(preferNowIncludeOptions, [{ maxLines: 0 }]),
       /options\[0\]\.maxLines: expected an integer >= 1/,
     );
   });
 
   it("rejects allowedTables that are not an array", () => {
     assert.throws(
-      () => parseRuleOptions(RULE_OPTION_DESCRIPTORS["no-hardcoded-table-names"], [{ allowedTables: 42 }]),
+      () => parseRuleOptions(noHardcodedTableNamesOptions, [{ allowedTables: 42 }]),
       /options\[0\]\.allowedTables: expected an array of strings, got number/,
     );
   });
 
   it("rejects an unknown key", () => {
     assert.throws(
-      () => parseRuleOptions(RULE_OPTION_DESCRIPTORS["require-fluent-id"], [{ extra: true }]),
+      () => parseRuleOptions(requireFluentIdOptions, [{ extra: true }]),
       /options\[0\]\.extra: unknown option/,
     );
   });
 
   it("rejects an invalid naming enum", () => {
     assert.throws(
-      () =>
-        parseRuleOptions(RULE_OPTION_DESCRIPTORS["fluent-naming-convention"], [{ idStyle: "PascalCase" }]),
+      () => parseRuleOptions(fluentNamingConventionOptions, [{ idStyle: "PascalCase" }]),
       /options\[0\]\.idStyle: expected one of kebab-case, snake_case, either/,
     );
   });
 
   it("rejects a second positional option", () => {
     assert.throws(
-      () => parseRuleOptions(RULE_OPTION_DESCRIPTORS["require-fluent-id"], [{ preferNowId: false }, true]),
+      () => parseRuleOptions(requireFluentIdOptions, [{ preferNowId: false }, true]),
       /options\[1\]: unexpected extra option value/,
     );
   });

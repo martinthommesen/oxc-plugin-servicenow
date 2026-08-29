@@ -4,6 +4,7 @@ import { appliesOnSurface } from "../context/index.js";
 import { ruleDocsUrl } from "../constants.js";
 import { getName, isNode } from "../utils/ast.js";
 import { beginRuleFile } from "./helpers.js";
+import type { FileBindings } from "../analysis/bindings.js";
 
 function paramName(param: unknown): string | null {
   if (!isNode(param)) return null;
@@ -50,6 +51,50 @@ function isWrapperStatement(node: ESTree.Node): boolean {
   return false;
 }
 
+export interface CanonicalBusinessRuleWrapper {
+  call: ESTree.CallExpression;
+  fn: ESTree.Node;
+  currentParam: ESTree.Node;
+}
+
+export function canonicalBusinessRuleWrapper(
+  program: ESTree.Program,
+  bindings: FileBindings,
+): CanonicalBusinessRuleWrapper | null {
+  let index = 0;
+  while (index < program.body.length) {
+    const statement = program.body[index] as ESTree.Node;
+    if (isIgnorable(statement) || isDirective(statement)) index += 1;
+    else break;
+  }
+  const executable = program.body
+    .slice(index)
+    .filter((statement) => !isIgnorable(statement as ESTree.Node));
+  if (executable.length !== 1) return null;
+  const statement = executable[0] as ESTree.Node;
+  if (!isWrapperStatement(statement) || statement.type !== "ExpressionStatement") return null;
+  const call = unwrap(
+    (statement as ESTree.ExpressionStatement).expression,
+  ) as ESTree.CallExpression;
+  const fn = unwrap(call.callee) as ESTree.Node & { params: readonly unknown[] };
+  const currentParam = fn.params[0] as ESTree.Node | undefined;
+  const previousParam = fn.params[1] as ESTree.Node | undefined;
+  const currentArg = call.arguments[0] as ESTree.Node | undefined;
+  const previousArg = call.arguments[1] as ESTree.Node | undefined;
+  if (currentParam?.type !== "Identifier" || previousParam?.type !== "Identifier") return null;
+  if (getName(currentParam) !== "current" || getName(previousParam) !== "previous") return null;
+  if (
+    !currentArg ||
+    !previousArg ||
+    getName(currentArg) !== "current" ||
+    getName(previousArg) !== "previous"
+  )
+    return null;
+  if (!bindings.isPlatformGlobal(currentArg) || !bindings.isPlatformGlobal(previousArg))
+    return null;
+  return { call, fn, currentParam };
+}
+
 function isIgnorable(node: ESTree.Node): boolean {
   return node.type === "EmptyStatement" || node.type === "DebuggerStatement";
 }
@@ -87,24 +132,17 @@ export const requireBusinessRuleWrapper = defineRule({
         if (script.businessRuleSourceFormat !== "full-script") return false;
       },
       Program(node) {
+        const { analysis } = beginRuleFile(context);
         const program = node as ESTree.Program;
         // A directive prologue is executed before the wrapper and is valid in
         // a full-script Business Rule. Only directives at the start of the
         // program are ignored; later string expressions are ordinary code.
-        let index = 0;
-        while (index < program.body.length) {
-          const statement = program.body[index] as ESTree.Node;
-          if (isIgnorable(statement) || isDirective(statement)) {
-            index += 1;
-            continue;
-          }
-          break;
-        }
-        const executable = program.body
-          .slice(index)
-          .filter((stmt) => !isIgnorable(stmt as ESTree.Node));
-        if (executable.length === 1 && isWrapperStatement(executable[0] as ESTree.Node)) return;
-        const target = (executable[0] as ESTree.Node | undefined) ?? node;
+        if (canonicalBusinessRuleWrapper(program, analysis.bindings)) return;
+        const target =
+          (program.body.find(
+            (statement) =>
+              !isIgnorable(statement as ESTree.Node) && !isDirective(statement as ESTree.Node),
+          ) as ESTree.Node | undefined) ?? node;
         context.report({ node: target, messageId: "missingWrapper" });
       },
     };

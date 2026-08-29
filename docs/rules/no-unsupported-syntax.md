@@ -23,7 +23,7 @@ Optional chaining, nullish coalescing, logical assignment, private instance memb
 | Minimum surface confidence | filename-inferred |
 | JavaScript modes | compatibility, es5 |
 | Application scopes | global, scoped, unknown |
-| ServiceNow releases | xanadu, yokohama, zurich |
+| ServiceNow releases | zurich |
 | Fluent SDK range | n/a |
 
 ## Options
@@ -50,15 +50,19 @@ var name = current.caller_id ? current.caller_id.name : "unknown";
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False positive: Files whose javascriptMode is unknown or es2021. False negative: Syntax that oxc-parser does not represent as the documented node types.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
 
 ## Known false positives
 
-- Files whose javascriptMode is unknown or es2021.
+- None recorded.
 
 ## Known false negatives
 
-- Syntax that oxc-parser does not represent as the documented node types.
+- None recorded.
+
+## Intentional scope boundaries
+
+- None recorded.
 
 ## Overlaps
 
@@ -73,10 +77,12 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False p
 ## Evidence
 
 - **Several ES2015+ syntactic forms are unsupported in Compatibility and ES5 Standards modes.**
+  - Verification ID: `rule-evidence-677ae9a3`
   - URL: https://www.servicenow.com/docs/r/zurich/api-reference/scripts/javascript-engine-feature-support.html
-  - Verified by: declaration-snapshot
+  - Verified by: manual
   - Verified at: 2026-08-20
 - **classic-es5 Oxlint flags unsupported syntax on the ES2021 fixture.**
+  - Verification ID: `rule-evidence-4198479a`
   - URL: tests/integration/profiles/invalid/es5-promise.server.js
   - Verified by: integration-test
   - Verified at: 2026-08-20

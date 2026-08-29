@@ -50,6 +50,24 @@ service.now();`,
       FULL_SCRIPT,
     );
   });
+
+  it("recognizes current only in the canonical full-script wrapper", () => {
+    assertInvalid(
+      `(function executeRule(current, previous) {
+  current.update();
+})(current, previous);`,
+      "no-br-current-update",
+      { messageId: "update" },
+      FULL_SCRIPT,
+    );
+    assertValid(
+      `(function executeRule(current, previous) {
+  current.update();
+})(localCurrent, previous);`,
+      "no-br-current-update",
+      FULL_SCRIPT,
+    );
+  });
 });
 
 describe("Layer 3 identity-based stateful consumers", () => {
@@ -133,11 +151,12 @@ gr.addSystemQuery(gr);`,
       { messageId: "bypass" },
       SERVER,
     );
-    assertValid(
+    assertInvalid(
       `var gr = new GlideRecord("incident");
 prepare(gr);
 gr.addSystemQuery(gr);`,
       "no-system-query-bypass",
+      { messageId: "bypass" },
       SERVER,
     );
   });

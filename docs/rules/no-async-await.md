@@ -23,7 +23,7 @@ async/await is not implemented in Compatibility or ES5 Standards mode.
 | Minimum surface confidence | filename-inferred |
 | JavaScript modes | compatibility, es5 |
 | Application scopes | global, scoped, unknown |
-| ServiceNow releases | xanadu, yokohama, zurich |
+| ServiceNow releases | zurich |
 | Fluent SDK range | n/a |
 
 ## Options
@@ -55,15 +55,19 @@ function loadIncident(id) {
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False positive: Files whose javascriptMode is unknown or es2021. False negative: Transpiled async helpers that no longer use await syntax.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
 
 ## Known false positives
 
-- Files whose javascriptMode is unknown or es2021.
+- None recorded.
 
 ## Known false negatives
 
-- Transpiled async helpers that no longer use await syntax.
+- None recorded.
+
+## Intentional scope boundaries
+
+- None recorded.
 
 ## Overlaps
 
@@ -78,10 +82,12 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False p
 ## Evidence
 
 - **async/await is unsupported in Compatibility and ES5 Standards modes.**
+  - Verification ID: `rule-evidence-98700374`
   - URL: https://www.servicenow.com/docs/r/zurich/api-reference/scripts/javascript-engine-feature-support.html
-  - Verified by: declaration-snapshot
+  - Verified by: manual
   - Verified at: 2026-08-20
 - **async functions and await expressions report in ES5 mode.**
+  - Verification ID: `rule-evidence-aff3e648`
   - URL: tests/rules/no-async-await.test.ts
   - Verified by: fixture
   - Verified at: 2026-08-20

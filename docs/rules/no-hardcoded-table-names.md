@@ -52,15 +52,19 @@ var gr = new GlideRecord(TABLE.WIDGET);
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False positive: Intentional literals for well-known platform tables when allowBuiltins is false. False negative: Table names stored in variables or computed members.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
 
 ## Known false positives
 
-- Intentional literals for well-known platform tables when allowBuiltins is false.
+- None recorded.
 
 ## Known false negatives
 
-- Table names stored in variables or computed members.
+- None recorded.
+
+## Intentional scope boundaries
+
+- None recorded.
 
 ## Overlaps
 
@@ -74,10 +78,12 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False p
 ## Evidence
 
 - **Table names passed to GlideRecord constructors are string identities that do not rename safely.**
+  - Verification ID: `rule-evidence-15f6f752`
   - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html
-  - Verified by: declaration-snapshot
+  - Verified by: manual
   - Verified at: 2026-08-20
 - **Literal tables report; named constants and allow-lists stay silent.**
+  - Verification ID: `rule-evidence-7894eca6`
   - URL: tests/rules/glide-and-engine.test.ts
   - Verified by: fixture
   - Verified at: 2026-08-20

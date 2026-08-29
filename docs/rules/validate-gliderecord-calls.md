@@ -58,15 +58,19 @@ while (gr.next()) {
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False positive: Presets no longer enable this rule. False negative: Same unknown-binding silence as require-query-before-next.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
 
 ## Known false positives
 
-- Presets no longer enable this rule.
+- None recorded.
 
 ## Known false negatives
 
-- Same unknown-binding silence as require-query-before-next.
+- None recorded.
+
+## Intentional scope boundaries
+
+- None recorded.
 
 ## Overlaps
 
@@ -80,12 +84,14 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False p
 ## Evidence
 
 - **Deprecated compatibility rule. Prefer require-query-before-next for query lifecycle.**
+  - Verification ID: `rule-evidence-a93b2686`
   - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordAPI.html
-  - Verified by: declaration-snapshot
+  - Verified by: manual
   - Verified at: 2026-08-20
 - **The rule remains exported and off by default.**
-  - URL: src/catalog.ts
-  - Verified by: declaration-snapshot
+  - Verification ID: `rule-evidence-70cb3ad5`
+  - URL: tests/catalog.test.ts
+  - Verified by: fixture
   - Verified at: 2026-08-20
 
 ## See also

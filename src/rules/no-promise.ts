@@ -2,7 +2,7 @@ import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { PROMISE_STATIC_METHODS, ruleDocsUrl } from "../constants.js";
 import { getName } from "../utils/ast.js";
-import { staticPropertyName } from "../analysis/index.js";
+import { staticPropertyName } from "../analysis/internal.js";
 import { beginRuleFile } from "./helpers.js";
 import { shouldDiagnoseFeature } from "../engine/index.js";
 
@@ -20,7 +20,7 @@ export const noPromise = defineRule({
       construct:
         "Promises are not supported in Compatibility or ES5 Standards mode. Use synchronous Glide APIs, or set `settings.servicenow.javascriptMode` to `es2021` when the script runs in that mode.",
       staticMethod:
-        "`Promise.{{method}}()` is not supported in Compatibility or ES5 Standards mode.",
+        "`Promise.{{method}}()` is not supported in Compatibility or ES5 Standards mode. Use synchronous Glide APIs, or set `settings.servicenow.javascriptMode` to `es2021` when the script runs in that mode.",
     },
   },
   createOnce(context) {

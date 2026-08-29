@@ -1,0 +1,61 @@
+{
+  "version": "1.1.0",
+  "source": {
+    "commit": "c987eee23127b7a0fa0d137768d9f5c888875dc2",
+    "tree": "82633b8c46a5382d12d24e64bb1f904e4e1608ba",
+    "presetSourceSha256": "e9f4caaa5d2f54daf0d4c4bb3e1186b2dcaefd5374ddb56285bcc89b6a52c74c",
+    "paths": [
+      "src/configs/recommended.ts",
+      "src/configs/strict.ts"
+    ]
+  },
+  "recommended": {
+    "servicenow/no-hardcoded-sysid": "error",
+    "servicenow/no-promise": "error",
+    "servicenow/no-async-await": "error",
+    "servicenow/no-bigint": "error",
+    "servicenow/prefer-glideaggregate": "warn",
+    "servicenow/no-client-gliderecord": "error",
+    "servicenow/no-gs-now": "error",
+    "servicenow/validate-gliderecord-calls": "warn",
+    "servicenow/no-br-current-update": "error",
+    "servicenow/fluent-proper-imports": "error",
+    "servicenow/fluent-directives": "warn",
+    "servicenow/prefer-now-include": "warn",
+    "servicenow/require-fluent-id": "error",
+    "servicenow/fluent-naming-convention": "warn",
+    "servicenow/no-complex-fluent-logic": "warn",
+    "servicenow/no-at-method": "warn",
+    "servicenow/no-packages-calls": "error",
+    "servicenow/no-typed-arrays": "error",
+    "servicenow/no-proxy": "error",
+    "servicenow/no-unsupported-syntax": "error",
+    "servicenow/no-sync-glideajax": "error"
+  },
+  "strict": {
+    "servicenow/no-hardcoded-sysid": "error",
+    "servicenow/no-promise": "error",
+    "servicenow/no-async-await": "error",
+    "servicenow/no-bigint": "error",
+    "servicenow/prefer-glideaggregate": "error",
+    "servicenow/no-client-gliderecord": "error",
+    "servicenow/no-gs-now": "error",
+    "servicenow/validate-gliderecord-calls": "error",
+    "servicenow/no-br-current-update": "error",
+    "servicenow/fluent-proper-imports": "error",
+    "servicenow/fluent-directives": "error",
+    "servicenow/prefer-now-include": "error",
+    "servicenow/require-fluent-id": "error",
+    "servicenow/fluent-naming-convention": "error",
+    "servicenow/no-complex-fluent-logic": "error",
+    "servicenow/no-at-method": "error",
+    "servicenow/no-packages-calls": "error",
+    "servicenow/no-typed-arrays": "error",
+    "servicenow/no-proxy": "error",
+    "servicenow/no-unsupported-syntax": "error",
+    "servicenow/no-sync-glideajax": "error",
+    "servicenow/no-hardcoded-table-names": "warn",
+    "servicenow/no-weak-references": "error",
+    "servicenow/no-async-iterators": "error"
+  }
+}

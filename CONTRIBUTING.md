@@ -8,7 +8,7 @@ Run every local gate with one command:
 npm run validate
 ```
 
-That command runs typecheck, build, tests (including oxlint, ESLint, oxfmt, profile fixtures, and the packed-package consumer), generated-doc consistency, the Fluent manifest check, the real Oxlint benchmark, and `release:check -- --consumer` on one inspected tarball.
+That command runs workflow, compatibility, lint, format, type, build, test, documentation-evidence, acceptance-ledger, generated-documentation, Fluent-manifest, benchmark, and exact-artifact checks. The final check cleans `dist`, packs one tarball, and runs the packed consumer on that file.
 
 `npm test` runs `scripts/run-tests.mjs`. That script lists every `*.test.ts` file and passes the list to `tsx --test`. Do not use a quoted `tests/**/*.test.ts` glob. Node 20 treats that path as one missing file.
 
@@ -31,7 +31,7 @@ Read [Non-goals and rejected rule ideas](docs/non-goals.md) before you propose a
 - Recognize platform APIs with binding and provenance helpers. Do not match `gs`, `Promise`, or `GlideRecord` by name alone.
 - When provenance, mode, or surface is unknown, suppress the diagnostic.
 - Message text should say what is wrong and what to do instead.
-- Do not invent Fluent APIs. Add them to `src/fluent/manifest.ts` with an evidence URL.
+- Do not invent Fluent APIs. Update the version-pinned declaration fixture with `npm run manifest:update`.
 
 ## Autofixes
 
@@ -39,17 +39,18 @@ Add a fix only when the rewrite preserves semantics. Include exact output, synta
 
 ## Changelog
 
-Add a short Unreleased note in `CHANGELOG.md` for user-visible rule, preset, or settings changes. Before you tag a release, move those notes under an exact heading `## <version> — YYYY-MM-DD`.
+Add a short note under `Unreleased` in `CHANGELOG.md` for user-visible rule, preset, or settings changes. Before you tag a release, move the applicable notes under an exact heading `## <version> — YYYY-MM-DD`. The heading must be the first version heading after `Unreleased`.
 
 ## Release
 
-1. Set `package.json` version and add the exact changelog heading for that version.
-2. Run `npm run validate`. That command inspects one tarball and runs packed-consumer tests on that file.
-3. Merge to `main`. Tag `v<version>` on that commit. The tag must match `package.json`.
-4. `.github/workflows/release.yml` validates on a read-only job, uploads the inspected tarball, runs the consumer matrix on that file, then publishes the same file with `npm publish <tarball> --ignore-scripts --provenance`.
-5. The publish job uses the protected `release` environment and npm trusted-publishing OIDC (`id-token: write`). Do not set `NPM_TOKEN`.
-6. After publish, `scripts/verify-published-package.mjs` imports the registry package and compares integrity to the inspected tarball. The workflow creates the GitHub release only after that check passes.
-7. If publish fails after a green validate/consumer run, fix the registry or trust configuration and re-run the publish job. Do not publish from a pull request or a working tree.
+1. Complete the desired governance IDs in `scripts/release-governance.json` and run the read-only governance audit.
+2. Set the package version and add the exact changelog heading for that version.
+3. Run `npm run validate`. This command inspects one tarball and runs packed-consumer tests on that file.
+4. Merge to `main`. Tag `v<version>` at the exact current protected `main` tip.
+5. Let `.github/workflows/release.yml` validate and publish the uploaded tarball through the protected `release` environment.
+6. Confirm that registry integrity, provenance identity, public imports, and the GitHub release all match the inspected artifact.
+
+The publish job uses npm trusted-publishing OIDC and has only `id-token: write`. Do not set `NPM_TOKEN`. Do not publish from a pull request or a working tree.
 
 See [Release provenance](docs/release.md).
 

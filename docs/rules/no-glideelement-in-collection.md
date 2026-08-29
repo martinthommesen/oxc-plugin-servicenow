@@ -60,7 +60,7 @@ while (incident.next()) {
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False negative: Stores through unknown helpers or computed members.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
 
 ## Known false positives
 
@@ -68,7 +68,11 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False n
 
 ## Known false negatives
 
-- Stores through unknown helpers or computed members.
+- None recorded.
+
+## Intentional scope boundaries
+
+- None recorded.
 
 ## Overlaps
 
@@ -82,10 +86,12 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False n
 ## Evidence
 
 - **A GlideElement from a cursor follows the cursor; collections must store extracted values.**
+  - Verification ID: `rule-evidence-a6b70c8c`
   - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html
-  - Verified by: declaration-snapshot
+  - Verified by: manual
   - Verified at: 2026-08-20
 - **Recommended hosts report pushing a cursor field into an array.**
+  - Verification ID: `rule-evidence-00753aa8`
   - URL: tests/integration/profiles/invalid/glideelement-push.br.js
   - Verified by: integration-test
   - Verified at: 2026-08-20

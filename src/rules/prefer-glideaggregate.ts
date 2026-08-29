@@ -1,30 +1,10 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
-import { getName, isNode, isValueReference, walk } from "../utils/ast.js";
-import { staticPropertyName } from "../analysis/index.js";
+import { getName, isNode, isValueReference, nodeStart, walk } from "../utils/ast.js";
+import { staticPropertyName } from "../analysis/internal.js";
 import { isServerInstanceContext } from "../context/index.js";
 import { beginRuleFile } from "./helpers.js";
-
-interface GrBinding {
-  name: string;
-  counted: boolean;
-  iterated: boolean;
-  onlyIncremented: boolean;
-  countNode: ESTree.Node | null;
-}
-
-function emptyBinding(name: string): GrBinding {
-  return { name, counted: false, iterated: false, onlyIncremented: false, countNode: null };
-}
-
-function isIncrement(node: ESTree.Node): boolean {
-  if (node.type === "UpdateExpression") return true;
-  if (node.type === "AssignmentExpression") {
-    return (node as ESTree.AssignmentExpression).operator === "+=";
-  }
-  return false;
-}
 
 export const preferGlideaggregate = defineRule({
   meta: {
@@ -38,32 +18,13 @@ export const preferGlideaggregate = defineRule({
       getRowCount:
         "`{{name}}.getRowCount()` loads every matching row. Use `GlideAggregate` with `addAggregate('COUNT')` instead. This diagnostic does not rewrite the query; copy filters by hand.",
       iterateCount:
-        "`{{name}}` is only iterated to count rows. Use `GlideAggregate` — it is dramatically faster on large tables.",
+        "This loop only counts rows from `{{name}}`. Use `GlideAggregate` with `addAggregate('COUNT')` instead.",
     },
   },
   createOnce(context) {
-    // Key state by the analysis ObjectId, not by identifier spelling. A
-    // shadowed parameter and an outer alias may have the same name while
-    // referring to different runtime cursors.
-    let bindings: Map<number, GrBinding>;
-
     return {
       before() {
-        bindings = new Map();
         if (!isServerInstanceContext(beginRuleFile(context).context)) return false;
-      },
-      VariableDeclarator(node) {
-        const { analysis } = beginRuleFile(context);
-        const decl = node as ESTree.VariableDeclarator;
-        if (!decl.init) return;
-        const receiver = glideRecordReceiver(analysis, decl.init);
-        if (receiver) ensureBinding(receiver.id, receiver.name);
-      },
-      AssignmentExpression(node) {
-        const { analysis } = beginRuleFile(context);
-        const assign = node as ESTree.AssignmentExpression;
-        const receiver = glideRecordReceiver(analysis, assign.right);
-        if (receiver) ensureBinding(receiver.id, receiver.name);
       },
       CallExpression(node) {
         const { analysis } = beginRuleFile(context);
@@ -74,20 +35,13 @@ export const preferGlideaggregate = defineRule({
         if (!property) return;
         const receiver = glideRecordReceiver(analysis, member.object);
         if (!receiver) return;
-        const binding = ensureBinding(receiver.id, receiver.name);
 
         if (property === "getRowCount") {
-          binding.counted = true;
-          binding.countNode = node;
           context.report({
             node,
             messageId: "getRowCount",
             data: { name: receiver.name },
           });
-        }
-
-        if (property === "next") {
-          binding.iterated = true;
         }
       },
       WhileStatement(node) {
@@ -95,17 +49,6 @@ export const preferGlideaggregate = defineRule({
       },
       ForStatement(node) {
         checkLoopBody(node as ESTree.ForStatement);
-      },
-      after() {
-        for (const binding of bindings.values()) {
-          if (binding.iterated && binding.onlyIncremented && !binding.counted) {
-            context.report({
-              node: binding.countNode ?? (context.sourceCode.ast as unknown as ESTree.Node),
-              messageId: "iterateCount",
-              data: { name: binding.name },
-            });
-          }
-        }
       },
     };
 
@@ -126,17 +69,6 @@ export const preferGlideaggregate = defineRule({
       return { id: proven.objectId, name: getName(node) ?? "record" };
     }
 
-    function ensureBinding(id: number, name: string): GrBinding {
-      const existing = bindings.get(id);
-      if (existing) {
-        if (existing.name === "record" && name !== "record") existing.name = name;
-        return existing;
-      }
-      const created = emptyBinding(name);
-      bindings.set(id, created);
-      return created;
-    }
-
     function checkLoopBody(node: ESTree.WhileStatement | ESTree.ForStatement) {
       const { analysis } = beginRuleFile(context);
       const test = node.test;
@@ -146,7 +78,6 @@ export const preferGlideaggregate = defineRule({
       if (staticPropertyName(callee) !== "next") return;
       const receiver = glideRecordReceiver(analysis, callee.object);
       if (!receiver) return;
-      const binding = ensureBinding(receiver.id, receiver.name);
 
       const body = node.body;
       const statements = body.type === "BlockStatement" ? [...body.body] : [body];
@@ -167,80 +98,113 @@ export const preferGlideaggregate = defineRule({
         if (counterId === undefined) counterId = target;
         if (counterId !== target) return;
       }
-      if (counterId === undefined || !numericCounterDeclaration(counterId, analysis)) return;
-      if (!counterHasOnlyAllowedUses(counterId, analysis)) return;
-      binding.onlyIncremented = true;
-      binding.countNode = node;
+      if (counterId === undefined) return;
+      const declaration = counterDeclaration(counterId, analysis);
+      if (
+        !declaration ||
+        !counterHasOnlyAllowedUses(counterId, declaration, node, new Set(updates), analysis)
+      )
+        return;
+      context.report({ node, messageId: "iterateCount", data: { name: receiver.name } });
     }
 
-    function counterUpdateTarget(node: ESTree.Node, analysis: ReturnType<typeof beginRuleFile>["analysis"]): number | null {
+    function counterUpdateTarget(
+      node: ESTree.Node,
+      analysis: ReturnType<typeof beginRuleFile>["analysis"],
+    ): number | null {
       if (node.type === "UpdateExpression") {
         const update = node as ESTree.UpdateExpression;
-        if (update.operator !== "++" || !isNode(update.argument) || update.argument.type !== "Identifier") return null;
+        if (
+          update.operator !== "++" ||
+          !isNode(update.argument) ||
+          update.argument.type !== "Identifier"
+        )
+          return null;
         const name = getName(update.argument);
-        const resolved = name ? analysis.bindings.tree.resolve(name, update.argument) : null;
+        const resolved = name ? analysis.bindings.resolve(name, update.argument) : null;
         return resolved?.id ?? null;
       }
       if (node.type !== "AssignmentExpression") return null;
       const assignment = node as ESTree.AssignmentExpression;
-      if (assignment.operator !== "+=" || !isNode(assignment.left) || assignment.left.type !== "Identifier") return null;
+      if (
+        assignment.operator !== "+=" ||
+        !isNode(assignment.left) ||
+        assignment.left.type !== "Identifier"
+      )
+        return null;
       const value = assignment.right as { type?: string; value?: unknown };
       if (value.type !== "Literal" || value.value !== 1) return null;
       const name = getName(assignment.left);
-      const resolved = name ? analysis.bindings.tree.resolve(name, assignment.left) : null;
+      const resolved = name ? analysis.bindings.resolve(name, assignment.left) : null;
       return resolved?.id ?? null;
     }
 
-    function numericCounterDeclaration(id: number, analysis: ReturnType<typeof beginRuleFile>["analysis"]): boolean {
-      for (const scope of analysis.bindings.tree.root ? [analysis.bindings.tree.root] : []) {
-        const stack = [scope];
-        while (stack.length > 0) {
-          const current = stack.pop()!;
-          const binding = [...current.bindings.values()].find((candidate) => candidate.id === id);
-          if (binding) {
-            if (binding.node.type !== "VariableDeclarator") return false;
-            const init = (binding.node as ESTree.VariableDeclarator).init as { type?: string; value?: unknown } | null;
-            return Boolean(init && init.type === "Literal" && typeof init.value === "number");
-          }
-          // ScopeTree does not expose children; declaration spans let the
-          // fallback below resolve the binding and inspect its node.
-        }
-      }
-      // Resolve through any reference carrying the binding identity when the
-      // root-only traversal cannot see nested scope maps.
+    function counterDeclaration(
+      id: number,
+      analysis: ReturnType<typeof beginRuleFile>["analysis"],
+    ): ESTree.VariableDeclarator | null {
       let declaration: ESTree.Node | null = null;
       walk(context.sourceCode.ast as unknown as ESTree.Node, {
         VariableDeclarator(node) {
           const candidate = node as ESTree.VariableDeclarator;
           if (!isNode(candidate.id) || candidate.id.type !== "Identifier") return;
-          const resolved = analysis.bindings.tree.resolve(getName(candidate.id) ?? "", candidate.id);
+          const resolved = analysis.bindings.resolve(getName(candidate.id) ?? "", candidate.id);
           if (resolved?.id === id) declaration = candidate;
         },
       });
-      if (!declaration) return false;
-      const init = (declaration as ESTree.VariableDeclarator).init as { type?: string; value?: unknown } | null;
-      return Boolean(init && init.type === "Literal" && typeof init.value === "number");
+      if (!declaration) return null;
+      const init = (declaration as ESTree.VariableDeclarator).init as {
+        type?: string;
+        value?: unknown;
+      } | null;
+      return init && init.type === "Literal" && typeof init.value === "number"
+        ? (declaration as ESTree.VariableDeclarator)
+        : null;
     }
 
-    function counterHasOnlyAllowedUses(id: number, analysis: ReturnType<typeof beginRuleFile>["analysis"]): boolean {
+    function counterHasOnlyAllowedUses(
+      id: number,
+      declaration: ESTree.VariableDeclarator,
+      loop: ESTree.Node,
+      allowedUpdates: ReadonlySet<ESTree.Node>,
+      analysis: ReturnType<typeof beginRuleFile>["analysis"],
+    ): boolean {
       let valid = true;
+      const loopStart = nodeStart(loop);
+      const loopEnd =
+        (loop as { end?: number; range?: readonly number[] }).end ??
+        (loop as { range?: readonly number[] }).range?.[1] ??
+        loopStart;
       const ancestors: ESTree.Node[] = [];
-      walk(context.sourceCode.ast as unknown as ESTree.Node, {
-        Identifier(node) {
-          if (!isValueReference(node, ancestors)) return;
-          const name = getName(node);
-          const resolved = name ? analysis.bindings.tree.resolve(name, node, ancestors) : null;
-          if (resolved?.id !== id) return;
-          const parent = ancestors[ancestors.length - 2];
-          const isDeclaration = parent?.type === "VariableDeclarator" &&
-            (parent as ESTree.VariableDeclarator).id === node;
-          const isUpdate = parent?.type === "UpdateExpression" &&
-            (parent as ESTree.UpdateExpression).argument === node;
-          const isAssignment = parent?.type === "AssignmentExpression" &&
-            (parent as ESTree.AssignmentExpression).left === node;
-          if (!isDeclaration && !isUpdate && !isAssignment) valid = false;
+      walk(
+        context.sourceCode.ast as unknown as ESTree.Node,
+        {
+          Identifier(node) {
+            if (!isValueReference(node, ancestors)) return;
+            const name = getName(node);
+            const resolved = name ? analysis.bindings.resolve(name, node, ancestors) : null;
+            if (resolved?.id !== id) return;
+            const parent = ancestors[ancestors.length - 2];
+            const isDeclaration =
+              parent?.type === "VariableDeclarator" &&
+              (parent as ESTree.VariableDeclarator).id === node;
+            if (isDeclaration && parent === declaration) return;
+            if (parent && allowedUpdates.has(parent)) return;
+            const position = nodeStart(node);
+            if (position < loopStart || position <= loopEnd) {
+              valid = false;
+              return;
+            }
+            const writesAfter =
+              (parent?.type === "UpdateExpression" &&
+                (parent as ESTree.UpdateExpression).argument === node) ||
+              (parent?.type === "AssignmentExpression" &&
+                (parent as ESTree.AssignmentExpression).left === node);
+            if (writesAfter) valid = false;
+          },
         },
-      }, ancestors);
+        ancestors,
+      );
       return valid;
     }
   },

@@ -1,10 +1,14 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
-import { getAncestors, isCanonicalNowId } from "../analysis/index.js";
-import { getName, getStringValue, nowIdKey, objectPropertyValue } from "../utils/ast.js";
+import { getAncestors } from "../analysis/internal.js";
+import { getName, getStringValue, objectPropertyValue } from "../utils/ast.js";
 import { basename } from "../utils/filenames.js";
-import { parseRuleOptions, fluentNamingConventionOptions, schemaFromDescriptor } from "../options/index.js";
+import {
+  parseRuleOptions,
+  fluentNamingConventionOptions,
+  schemaFromDescriptor,
+} from "../options/index.js";
 import type { FluentNamingOptions } from "../options/index.js";
 import { isFluentContext } from "../context/index.js";
 import { beginRuleFile } from "./helpers.js";
@@ -41,14 +45,10 @@ export const fluentNamingConvention = defineRule({
     },
     schema: schemaFromDescriptor(fluentNamingConventionOptions),
     messages: {
-      file:
-        "Fluent file '{{file}}' should be {{style}} (e.g. `log-state-change.now.ts`).",
-      nowId:
-        "`Now.ID['{{key}}']` should be {{style}} so keys stay stable and readable.",
-      tableExport:
-        "Exported table `{{exportName}}` should match its `name` (`{{tableName}}`).",
-      tableName:
-        "Table name `{{tableName}}` should be snake_case{{scope}}.",
+      file: "Fluent file '{{file}}' should be {{style}} (e.g. `log-state-change.now.ts`).",
+      nowId: "`Now.ID['{{key}}']` should be {{style}} so keys stay stable and readable.",
+      tableExport: "Exported table `{{exportName}}` should match its `name` (`{{tableName}}`).",
+      tableName: "Table name `{{tableName}}` should be snake_case{{scope}}.",
     },
   },
   createOnce(context) {
@@ -64,7 +64,6 @@ export const fluentNamingConvention = defineRule({
         idStyle = options.idStyle;
         fileStyle = options.fileStyle;
         scopePrefix = script.settings.scopePrefix;
-
       },
       Program() {
         const file = basename(context.filename);
@@ -78,10 +77,10 @@ export const fluentNamingConvention = defineRule({
         }
       },
       MemberExpression(node) {
-        const { analysis } = beginRuleFile(context);
-        if (!isCanonicalNowId(node, analysis)) return;
-        const key = nowIdKey(node);
-        if (!key) return;
+        const { file } = beginRuleFile(context);
+        const fact = file.nowIdAt.get(node);
+        if (!fact || fact.kind !== "static") return;
+        const key = fact.key;
         if (matches(idStyle, key)) return;
         context.report({
           node,

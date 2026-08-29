@@ -1,10 +1,6 @@
 import type { ESTree } from "@oxlint/plugins";
-import {
-  GLIDE_QUERY_EXECUTORS,
-  GLIDE_QUERY_MODIFIERS,
-  GLIDE_RESULT_CONSUMERS,
-} from "../glide/query-methods.js";
-import { analyzePathBindings, mergeTri } from "./path-state.js";
+import { nodeStart } from "../utils/ast.js";
+import { analyzePathBindings } from "./path-state.js";
 import type { ProvenanceQuery } from "./provenance.js";
 
 export interface QueryModifierFinding {
@@ -14,8 +10,8 @@ export interface QueryModifierFinding {
 }
 
 interface LifecycleData {
-  opened: boolean | "unknown";
-  pending: boolean | "unknown";
+  opened: boolean;
+  pending: boolean;
 }
 
 export function findQueryModifiersAfterQuery(
@@ -23,28 +19,34 @@ export function findQueryModifiersAfterQuery(
   analysis: ProvenanceQuery,
 ): QueryModifierFinding[] {
   const findings: QueryModifierFinding[] = [];
+  const reported = new Set<number>();
   analyzePathBindings<LifecycleData>({
     program,
     analysis,
     kinds: ["GlideRecord"],
     emptyData: () => ({ opened: false, pending: false }),
     cloneData: (data) => ({ ...data }),
+    equalsData: (left, right) => left.opened === right.opened && left.pending === right.pending,
     mergeData: (left, right) => ({
-      opened: mergeTri(left.opened, right.opened),
-      pending: mergeTri(left.pending, right.pending),
+      opened: left.opened || right.opened,
+      pending: left.pending || right.pending,
     }),
     onCall({ call, rec, objectName, property }) {
-      if (!rec || !objectName || !property) return;
-      if (GLIDE_QUERY_EXECUTORS.has(property)) {
+      if (!rec || !property) return;
+      if (analysis.glide.executors.has(property)) {
         rec.data.opened = true;
         rec.data.pending = false;
         return;
       }
-      if (GLIDE_QUERY_MODIFIERS.has(property) && rec.data.opened === true) {
+      if (analysis.glide.modifiers.has(property) && rec.data.opened === true) {
         rec.data.pending = true;
       }
-      if (GLIDE_RESULT_CONSUMERS.has(property) && rec.data.pending === true) {
-        findings.push({ node: call, name: objectName, method: property });
+      if (analysis.glide.consumers.has(property) && rec.data.pending === true) {
+        const key = nodeStart(call);
+        if (!reported.has(key)) {
+          reported.add(key);
+          findings.push({ node: call, name: objectName ?? "record", method: property });
+        }
       }
     },
   });

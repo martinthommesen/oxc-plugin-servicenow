@@ -1,13 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { Context } from "@oxlint/plugins";
-import { readFileSync } from "node:fs";
 import { parse } from "./helpers/rule-tester.js";
 import { applyRules } from "../src/runtime/apply-rules.js";
 import { resolveScriptContext } from "../src/context/resolve.js";
 import { validateServiceNowSettings, ServiceNowSettingsError } from "../src/settings/index.js";
 import { classifyFile } from "../src/utils/filenames.js";
-import { assertInvalid, assertValid, ES5, ES2021, lint } from "./helpers/rule-tester.js";
+import { assertInvalid, assertValid, ES2021, lint } from "./helpers/rule-tester.js";
 
 describe("settings validation", () => {
   it("accepts empty settings", () => {
@@ -17,17 +16,11 @@ describe("settings validation", () => {
   });
 
   it("rejects unknown keys", () => {
-    assert.throws(
-      () => validateServiceNowSettings({ ecamLatest: true }),
-      ServiceNowSettingsError,
-    );
+    assert.throws(() => validateServiceNowSettings({ ecamLatest: true }), ServiceNowSettingsError);
   });
 
   it("rejects an invalid javascriptMode", () => {
-    assert.throws(
-      () => validateServiceNowSettings({ javascriptMode: "es6" }),
-      /javascriptMode/,
-    );
+    assert.throws(() => validateServiceNowSettings({ javascriptMode: "es6" }), /javascriptMode/);
   });
 
   it("maps ecmaLatest true to a deprecation", () => {
@@ -43,7 +36,7 @@ describe("settings validation", () => {
     );
   });
 
-    it("rejects a malformed sys_id", () => {
+  it("rejects a malformed sys_id", () => {
     assert.throws(
       () => validateServiceNowSettings({ allowedSysIds: ["NOT-A-SYS-ID"] }),
       /allowedSysIds/,
@@ -51,10 +44,42 @@ describe("settings validation", () => {
   });
 
   it("rejects duplicate surfaces", () => {
+    assert.throws(() => validateServiceNowSettings({ surfaces: ["client", "client"] }), /surfaces/);
+  });
+
+  it("rejects empty surfaces", () => {
     assert.throws(
-      () => validateServiceNowSettings({ surfaces: ["client", "client"] }),
-      /surfaces/,
+      () => validateServiceNowSettings({ surfaces: [] }),
+      (error: unknown) =>
+        error instanceof ServiceNowSettingsError && error.message.includes(".surfaces"),
     );
+  });
+
+  it("rejects legacy scriptType combined with extra surfaces", () => {
+    for (const settings of [
+      { scriptType: "server", surfaces: ["server", "client"] },
+      { scriptType: "business-rule", surfaces: ["business-rule", "client"] },
+      { scriptType: "ui-action", surfaces: ["ui-action", "client"] },
+    ]) {
+      assert.throws(
+        () => validateServiceNowSettings(settings),
+        (error: unknown) =>
+          error instanceof ServiceNowSettingsError && error.message.includes(".scriptType"),
+      );
+    }
+  });
+
+  it("accepts explicit mixed UI Action surfaces without scriptType", () => {
+    for (const surfaces of [
+      ["ui-action", "client"],
+      ["ui-action", "server"],
+      ["ui-action", "client", "server"],
+    ] as const) {
+      assert.deepEqual(
+        validateServiceNowSettings({ authoring: "classic", surfaces }).settings.surfaces,
+        surfaces,
+      );
+    }
   });
 
   it("rejects a conflicting scriptType and surfaces pair", () => {
@@ -97,7 +122,10 @@ describe("settings validation", () => {
   });
 
   it("rejects an invalid Business Rule timing", () => {
-    assert.throws(() => validateServiceNowSettings({ businessRuleWhen: "sometime" }), /businessRuleWhen/);
+    assert.throws(
+      () => validateServiceNowSettings({ businessRuleWhen: "sometime" }),
+      /businessRuleWhen/,
+    );
   });
   it("deep-freezes nested settings and does not share mutable arrays", () => {
     const first = validateServiceNowSettings({
@@ -106,8 +134,15 @@ describe("settings validation", () => {
       surfaces: ["server"],
     });
     const second = validateServiceNowSettings({ surfaces: ["client"] });
-    assert.throws(() => (first.settings.allowedSysIds as string[]).push("00000000000000000000000000000000"), TypeError);
-    assert.throws(() => ((first.settings as unknown as { surfaces: string[] }).surfaces as string[]).push("client"), TypeError);
+    assert.throws(
+      () => (first.settings.allowedSysIds as string[]).push("00000000000000000000000000000000"),
+      TypeError,
+    );
+    assert.throws(
+      () =>
+        ((first.settings as unknown as { surfaces: string[] }).surfaces as string[]).push("client"),
+      TypeError,
+    );
     assert.deepEqual(second.settings.allowedSysIds, []);
     assert.deepEqual(second.settings.surfaces, ["client"]);
   });
@@ -142,6 +177,18 @@ describe("release and context resolution", () => {
     assert.equal(script.sources.scope, "unknown");
     assert.equal(script.confidence, "unknown");
   });
+
+  it("does not infer a pragma without parser comment tokens", () => {
+    const context = {
+      filename: "incident.br.js",
+      settings: {},
+      sourceCode: { text: "// @servicenow-es-latest" },
+      options: [],
+    } as unknown as Context;
+    const script = resolveScriptContext(context);
+    assert.equal(script.javascriptMode, "unknown");
+    assert.equal(script.sources.javascriptMode, "unknown");
+  });
 });
 
 describe("classifyFile compatibility", () => {
@@ -156,7 +203,9 @@ describe("classifyFile compatibility", () => {
 describe("context-aware engine rules", () => {
   it("ES2021 accepts Promise and optional chaining", () => {
     assertValid("var p = Promise.resolve(1); var x = p?.then;", "no-promise", { settings: ES2021 });
-    assertValid("var x = current?.caller_id ?? 'n';", "no-unsupported-syntax", { settings: ES2021 });
+    assertValid("var x = current?.caller_id ?? 'n';", "no-unsupported-syntax", {
+      settings: ES2021,
+    });
   });
 
   it("ES2021 still flags async iteration", () => {
@@ -168,7 +217,7 @@ describe("context-aware engine rules", () => {
     );
   });
 
-    it("unknown mode does not assume ES5", () => {
+  it("unknown mode does not assume ES5", () => {
     assertValid("var p = new Promise(function () {});", "no-promise");
     assertValid("var x = current?.name;", "no-unsupported-syntax");
   });
@@ -291,14 +340,14 @@ gr.next();`,
 
   it("rejects contradictory legacy UI Action settings", () => {
     assert.throws(
-      () => lint(`var gr = new GlideRecord("incident");`, "no-client-gliderecord", {
-        filename: "close.ui-action.js",
-        settings: { scriptType: "server", surfaces: ["ui-action", "client"] },
-      }),
+      () =>
+        lint(`var gr = new GlideRecord("incident");`, "no-client-gliderecord", {
+          filename: "close.ui-action.js",
+          settings: { scriptType: "server", surfaces: ["ui-action", "client"] },
+        }),
       /scriptType.*conflicts/,
     );
   });
-
 
   it("runs client GlideRecord when the UI Action is explicitly client", () => {
     assertInvalid(
@@ -316,12 +365,25 @@ gr.next();`,
     });
   });
 
-  it("runs client GlideRecord on a mixed UI Action that includes client", () => {
+  it("suppresses client GlideRecord on a mixed client/server UI Action", () => {
+    assertValid(`var gr = new GlideRecord("incident");`, "no-client-gliderecord", {
+      filename: "close.ui-action.js",
+      settings: { surfaces: ["ui-action", "client", "server"] },
+    });
+  });
+
+  it("keeps surface rules silent when only JavaScript mode is known", () => {
+    const settings = { javascriptMode: "es5" as const };
+    assertValid("gs.now();", "no-gs-now", { filename: "plain.js", settings });
+    assertValid('var gr = new GlideRecord("incident"); gr.next();', "validate-gliderecord-calls", {
+      filename: "plain.js",
+      settings,
+    });
     assertInvalid(
-      `var gr = new GlideRecord("incident");`,
-      "no-client-gliderecord",
-      { messageId: "glideRecord" },
-      { filename: "close.ui-action.js", settings: { surfaces: ["ui-action", "client", "server"] } },
+      "Promise.resolve(1);",
+      "no-promise",
+      { messageId: "staticMethod" },
+      { filename: "plain.js", settings },
     );
   });
 });

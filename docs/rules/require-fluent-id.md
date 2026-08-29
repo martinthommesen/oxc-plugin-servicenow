@@ -14,7 +14,7 @@ Fluent entities must declare `$id` when the selected SDK manifest marks the impo
 - **Last verified:** 2026-08-20
 - **Implementation:** [`src/rules/require-fluent-id.ts`](../../src/rules/require-fluent-id.ts)
 - **Fluent manifest:** sdk-docs-2026-03
-- **Fluent SDK versions:** 3.0.0, 4.1.0, 4.8.0, 4.10.0, 4.11.0 (unspecified selects 4.11.0)
+- **Fluent SDK versions:** 3.0.0, 3.0.1, 3.0.2, 3.0.3, 4.0.0, 4.0.1, 4.0.2, 4.1.0, 4.1.1, 4.2.0, 4.3.0, 4.4.0, 4.4.1, 4.5.0, 4.6.0, 4.6.1, 4.7.0, 4.7.1, 4.7.2, 4.8.0, 4.8.1, 4.9.0, 4.9.1, 4.9.2, 4.10.0, 4.10.1, 4.11.0 (unspecified selects 4.11.0)
 
 ## Applicability
 
@@ -26,7 +26,7 @@ Fluent entities must declare `$id` when the selected SDK manifest marks the impo
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
 | ServiceNow releases | zurich |
-| Fluent SDK range | 3.0.0 \|\| 4.1.0 \|\| 4.8.0 \|\| 4.10.0 \|\| 4.11.0 |
+| Fluent SDK range | 3.0.0 \|\| 4.1.0 \|\| 4.8.0 \|\| 4.10.0 \|\| 4.10.1 \|\| 4.11.0 |
 
 ## Options
 
@@ -67,15 +67,19 @@ BusinessRule({
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False positive: APIs whose selected SDK manifest marks $id as optional. False negative: Ids assigned after the factory call.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
 
 ## Known false positives
 
-- APIs whose selected SDK manifest marks $id as optional.
+- None recorded.
 
 ## Known false negatives
 
-- Ids assigned after the factory call.
+- None recorded.
+
+## Intentional scope boundaries
+
+- None recorded.
 
 ## Overlaps
 
@@ -90,10 +94,12 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False p
 ## Evidence
 
 - **Factories whose manifest marks $id as required must declare Now.ID or an equivalent id.**
+  - Verification ID: `rule-evidence-e4dc20db`
   - URL: https://www.servicenow.com/docs/r/application-development/servicenow-sdk/fluent-constructs.html
-  - Verified by: declaration-snapshot
+  - Verified by: manual
   - Verified at: 2026-08-20
 - **Aliased factory imports still require $id under recommended.**
+  - Verification ID: `rule-evidence-0618f375`
   - URL: tests/integration/profiles/invalid/fluent-alias-missing-id.now.ts
   - Verified by: integration-test
   - Verified at: 2026-08-20

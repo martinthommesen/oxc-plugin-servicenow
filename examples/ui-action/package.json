@@ -4,6 +4,6 @@
   "type": "module",
   "scripts": {
     "lint": "oxlint -c .oxlintrc.json valid invalid",
-    "format": "oxfmt -c ../../oxfmt.recommended.json valid"
+    "format": "oxfmt -c oxfmt.config.ts --check valid"
   }
 }

@@ -1,6 +1,6 @@
 # servicenow/no-system-query-bypass
 
-Opt-in security review for documented ACL-bypass query APIs: `addSystemQuery`, `addSystemEncodedQuery`, `addSystemOrderBy`, `addSystemOrderByDesc`.
+Opt-in security review for documented ACL-bypass query APIs. Unknown computed GlideRecord access also reports for review.
 
 - **Family:** classic
 - **Preset:** security
@@ -11,7 +11,7 @@ Opt-in security review for documented ACL-bypass query APIs: `addSystemQuery`, `
 - **Authoring:** classic
 - **Surfaces:** Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent.
 - **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
-- **Last verified:** 2026-08-20
+- **Last verified:** 2026-08-21
 - **Implementation:** [`src/rules/no-system-query-bypass.ts`](../../src/rules/no-system-query-bypass.ts)
 
 ## Applicability
@@ -54,15 +54,19 @@ user.query();
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False positive: Intentional admin maintenance scripts. False negative: Bypass methods reached through computed names.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
 
 ## Known false positives
 
-- Intentional admin maintenance scripts.
+- None recorded.
 
 ## Known false negatives
 
-- Bypass methods reached through computed names.
+- None recorded.
+
+## Intentional scope boundaries
+
+- None recorded.
 
 ## Overlaps
 
@@ -76,13 +80,20 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False p
 ## Evidence
 
 - **addSystemQuery and related methods bypass query ACLs and need review.**
+  - Verification ID: `rule-evidence-4fb54c3e`
   - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html
-  - Verified by: declaration-snapshot
+  - Verified by: manual
   - Verified at: 2026-08-20
 - **The security profile reports documented ACL-bypass methods.**
+  - Verification ID: `rule-evidence-641a3f6f`
   - URL: tests/integration/profiles/invalid/system-query.br.js
   - Verified by: integration-test
   - Verified at: 2026-08-20
+- **Oxlint and ESLint report folded, dynamic, extracted, and escaped GlideRecord bypass access.**
+  - Verification ID: `rule-evidence-b21138a1`
+  - URL: tests/integration/context-contracts.test.ts
+  - Verified by: integration-test
+  - Verified at: 2026-08-21
 
 ## See also
 

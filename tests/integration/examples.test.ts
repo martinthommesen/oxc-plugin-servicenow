@@ -30,12 +30,34 @@ function collectSources(dir: string): string[] {
   return out;
 }
 
+function withLocalConfig<T>(
+  project: string,
+  run: (configPath: string) => T,
+  settings?: unknown,
+): T {
+  const directory = path.join(examplesDir, project);
+  const configPath = path.join(directory, ".local-test.oxlintrc.json");
+  const config = JSON.parse(readFileSync(path.join(directory, ".oxlintrc.json"), "utf8")) as {
+    jsPlugins: Array<{ name: string; specifier: string }>;
+    settings?: unknown;
+  };
+  const plugin = config.jsPlugins[0];
+  assert.ok(plugin);
+  plugin.specifier = "../../dist/index.js";
+  if (settings !== undefined) config.settings = settings;
+  writeFileSync(configPath, JSON.stringify(config));
+  try {
+    return run(configPath);
+  } finally {
+    unlinkSync(configPath);
+  }
+}
+
 describe("example projects", () => {
   it("recommended oxlint is silent on every example valid tree", () => {
     for (const project of PROJECTS) {
-      const config = path.join(examplesDir, project, ".oxlintrc.json");
       const valid = path.join(examplesDir, project, "valid");
-      const report = runOxlint(config, collectSources(valid));
+      const report = withLocalConfig(project, (config) => runOxlint(config, collectSources(valid)));
       assert.deepEqual(
         pluginRulesFor(report),
         [],
@@ -46,11 +68,10 @@ describe("example projects", () => {
 
   it("example invalid trees produce plugin diagnostics", () => {
     for (const project of PROJECTS) {
-      const config = path.join(examplesDir, project, ".oxlintrc.json");
       const invalid = path.join(examplesDir, project, "invalid");
       const files = collectSources(invalid);
       if (files.length === 0) continue;
-      const report = runOxlint(config, files);
+      const report = withLocalConfig(project, (config) => runOxlint(config, files));
       assert.ok(
         pluginRulesFor(report).length > 0,
         `${project} invalid produced no plugin diagnostics`,
@@ -77,32 +98,32 @@ describe("example projects", () => {
     assert.ok(json, "UI Action README JSON block must not be empty");
     const documented = JSON.parse(json) as { servicenow?: { surfaces?: string } };
     assert.equal(documented.servicenow?.surfaces, "auto");
-    const configPath = path.join(examplesDir, "ui-action/.readme-test.oxlintrc.json");
-    const base = JSON.parse(readFileSync(path.join(examplesDir, "ui-action/.oxlintrc.json"), "utf8")) as Record<string, unknown>;
-    base.settings = documented;
-    writeFileSync(configPath, JSON.stringify(base));
-    try {
-      const report = runOxlint(configPath, [path.join(examplesDir, "ui-action/invalid/client-query.client.ui-action.js")]);
-      assert.ok(pluginRulesFor(report).includes("servicenow/no-client-gliderecord"));
-    } finally {
-      unlinkSync(configPath);
-    }
+    withLocalConfig(
+      "ui-action",
+      (configPath) => {
+        const report = runOxlint(configPath, [
+          path.join(examplesDir, "ui-action/invalid/client-query.client.ui-action.js"),
+        ]);
+        assert.ok(pluginRulesFor(report).includes("servicenow/no-client-gliderecord"));
+      },
+      documented,
+    );
   });
 
   it("classic mode examples fail for the intended engine rule, not a sys_id crutch", () => {
-    const compatibility = pluginRulesFor(
-      runOxlint(
-        path.join(examplesDir, "classic-compatibility/.oxlintrc.json"),
-        [path.join(examplesDir, "classic-compatibility/invalid/promise.server.js")],
+    const compatibility = withLocalConfig("classic-compatibility", (config) =>
+      pluginRulesFor(
+        runOxlint(config, [
+          path.join(examplesDir, "classic-compatibility/invalid/promise.server.js"),
+        ]),
       ),
     );
     assert.ok(compatibility.includes("servicenow/no-promise"), compatibility.join(", "));
     assert.ok(!compatibility.includes("servicenow/no-hardcoded-sysid"), compatibility.join(", "));
 
-    const es5 = pluginRulesFor(
-      runOxlint(
-        path.join(examplesDir, "classic-es5/.oxlintrc.json"),
-        [path.join(examplesDir, "classic-es5/invalid/optional.server.js")],
+    const es5 = withLocalConfig("classic-es5", (config) =>
+      pluginRulesFor(
+        runOxlint(config, [path.join(examplesDir, "classic-es5/invalid/optional.server.js")]),
       ),
     );
     assert.ok(es5.includes("servicenow/no-unsupported-syntax"), es5.join(", "));

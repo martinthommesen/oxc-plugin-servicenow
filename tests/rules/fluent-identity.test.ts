@@ -9,7 +9,19 @@ describe("fluentSdkVersion registry", () => {
   it("rejects an unsupported SDK version", () => {
     assert.throws(
       () => validateServiceNowSettings({ fluentSdkVersion: "9.9.9" }),
-      (error: unknown) => error instanceof ServiceNowSettingsError && /unsupported Fluent SDK version/.test(error.message),
+      (error: unknown) =>
+        error instanceof ServiceNowSettingsError &&
+        /unsupported Fluent SDK version/.test(error.message),
+    );
+  });
+
+  it("accepts every reviewed exact patch and rejects unpublished patches", () => {
+    assert.doesNotThrow(() => validateServiceNowSettings({ fluentSdkVersion: "3.0.3" }));
+    assert.doesNotThrow(() => validateServiceNowSettings({ fluentSdkVersion: "4.9.1" }));
+    assert.doesNotThrow(() => validateServiceNowSettings({ fluentSdkVersion: "4.10.1" }));
+    assert.throws(
+      () => validateServiceNowSettings({ fluentSdkVersion: "4.10.2" }),
+      ServiceNowSettingsError,
     );
   });
 
@@ -21,19 +33,67 @@ describe("fluentSdkVersion registry", () => {
 
   it("models the List ID transition from 3.0.0 to 4.1.0", () => {
     const list = `import { List } from "@servicenow/sdk/core";\nList({ table: "incident", columns: [], view: "Default" });`;
-    assertInvalid(list, "require-fluent-id", { messageId: "missing" }, { ...NOW, settings: { fluentSdkVersion: "3.0.0" } });
+    assertInvalid(
+      list,
+      "require-fluent-id",
+      { messageId: "missing" },
+      { ...NOW, settings: { fluentSdkVersion: "3.0.0" } },
+    );
     assertValid(list, "require-fluent-id", { ...NOW, settings: { fluentSdkVersion: "4.1.0" } });
   });
 
   it("respects capability introduction boundaries", () => {
     const alias = `import { AliasTemplate } from "@servicenow/sdk/core";\nAliasTemplate({ name: "template" });`;
     assertValid(alias, "require-fluent-id", { ...NOW, settings: { fluentSdkVersion: "4.1.0" } });
-    assertInvalid(alias, "require-fluent-id", { messageId: "missing" }, { ...NOW, settings: { fluentSdkVersion: "4.8.0" } });
-    assertInvalid(alias, "require-fluent-id", { messageId: "missing" }, { ...NOW, settings: { fluentSdkVersion: "4.11.0" } });
+    assertInvalid(
+      alias,
+      "require-fluent-id",
+      { messageId: "missing" },
+      { ...NOW, settings: { fluentSdkVersion: "4.8.0" } },
+    );
+    assertInvalid(
+      alias,
+      "require-fluent-id",
+      { messageId: "missing" },
+      { ...NOW, settings: { fluentSdkVersion: "4.11.0" } },
+    );
 
     const producer = `import { CatalogItemRecordProducer } from "@servicenow/sdk/core";\nCatalogItemRecordProducer({ name: "producer" });`;
     assertValid(producer, "require-fluent-id", { ...NOW, settings: { fluentSdkVersion: "4.1.0" } });
-    assertInvalid(producer, "require-fluent-id", { messageId: "missing" }, { ...NOW, settings: { fluentSdkVersion: "4.8.0" } });
+    assertInvalid(
+      producer,
+      "require-fluent-id",
+      { messageId: "missing" },
+      { ...NOW, settings: { fluentSdkVersion: "4.8.0" } },
+    );
+  });
+
+  it("uses declaration-proven factory presence and absence", () => {
+    const sla = `import { Sla } from "@servicenow/sdk/core";\nSla({ name: "Response" });`;
+    assertValid(sla, "require-fluent-id", { ...NOW, settings: { fluentSdkVersion: "4.2.0" } });
+    assertInvalid(
+      sla,
+      "require-fluent-id",
+      { messageId: "missing" },
+      { ...NOW, settings: { fluentSdkVersion: "4.3.0" } },
+    );
+
+    const graphql = `import { GraphQLApi } from "@servicenow/sdk/core";\nGraphQLApi({ name: "API" });`;
+    assertValid(graphql, "require-fluent-id", { ...NOW, settings: { fluentSdkVersion: "4.10.1" } });
+    assertInvalid(
+      graphql,
+      "require-fluent-id",
+      { messageId: "missing" },
+      { ...NOW, settings: { fluentSdkVersion: "4.11.0" } },
+    );
+
+    for (const phantom of ["DatabaseIndex", "Module", "ScriptedRestApi", "UiFormatter"]) {
+      assertValid(
+        `import { ${phantom} } from "@servicenow/sdk/core";\n${phantom}({ name: "local" });`,
+        "require-fluent-id",
+        NOW,
+      );
+    }
   });
 });
 
@@ -65,6 +125,53 @@ describe("Fluent factory binding identity", () => {
     assertValid(
       `function BusinessRule(config) { return config; }\nBusinessRule({ name: "Local helper" });`,
       "fluent-proper-imports",
+      NOW,
+    );
+  });
+
+  it("resolves mutable named aliases at each call", () => {
+    assertInvalid(
+      `import { BusinessRule } from "@servicenow/sdk/core";
+let BR = BusinessRule;
+BR({ name: "SDK" });
+BR = function local(config) { return config; };
+BR({ name: "local" });`,
+      "require-fluent-id",
+      { messageId: "missing", count: 1 },
+      NOW,
+    );
+    assertInvalid(
+      `import { BusinessRule } from "@servicenow/sdk/core";
+let BR = function local(config) { return config; };
+BR({ name: "local" });
+BR = BusinessRule;
+BR({ name: "SDK" });`,
+      "require-fluent-id",
+      { messageId: "missing", count: 1 },
+      NOW,
+    );
+  });
+
+  it("resolves mutable namespace aliases at each call", () => {
+    assertInvalid(
+      `import * as sdk from "@servicenow/sdk/core";
+let alias = sdk;
+alias.BusinessRule({ name: "SDK" });
+alias = { BusinessRule(config) { return config; } };
+alias.BusinessRule({ name: "local" });`,
+      "require-fluent-id",
+      { messageId: "missing", count: 1 },
+      NOW,
+    );
+  });
+
+  it("stays conservative after conditional alias writes", () => {
+    assertValid(
+      `import { BusinessRule } from "@servicenow/sdk/core";
+let BR = BusinessRule;
+if (condition) BR = function local(config) { return config; };
+BR({ name: "unknown" });`,
+      "require-fluent-id",
       NOW,
     );
   });
@@ -114,6 +221,36 @@ BusinessRule({ $id: Now.ID.fake, script: Now.include("./not-sdk.js") });`,
       NOW,
     );
   });
+
+  it("accepts immutable aliases of Now and Now.ID", () => {
+    assertValid(
+      `const SDK = Now;
+const IDs = SDK.ID;
+BusinessRule({ $id: IDs["aliased"] });`,
+      "require-fluent-id",
+      NOW,
+    );
+  });
+
+  it("requires identity provenance on every branch", () => {
+    assertInvalid(
+      `import { BusinessRule } from "@servicenow/sdk/core";
+let id;
+if (condition) id = Now.ID["branch"]; else id = "raw";
+BusinessRule({ $id: id });`,
+      "require-fluent-id",
+      { messageId: "preferNowId" },
+      NOW,
+    );
+    assertValid(
+      `import { BusinessRule } from "@servicenow/sdk/core";
+let id;
+if (condition) id = Now.ID["left"]; else id = Now.ID["right"];
+BusinessRule({ $id: id });`,
+      "require-fluent-id",
+      NOW,
+    );
+  });
 });
 
 describe("Now.ID provenance and use sites", () => {
@@ -125,20 +262,51 @@ config.reference = Now.ID[key];
 consume([Now.ID[key]]);
 BusinessRule({ $id: Now.ID[key], name: "dynamic" });`;
     assertInvalid(dynamic, "no-now-id-as-reference", { count: 2 }, NOW);
-    assertValid(`const key = getKey();
+    assertValid(
+      `const key = getKey();
 const id = Now.ID[key];
-BusinessRule({ $id: id, name: "dynamic" });`, "require-fluent-id", NOW);
+BusinessRule({ $id: id, name: "dynamic" });`,
+      "require-fluent-id",
+      NOW,
+    );
   });
 
   it("ignores type-only Now.ID references", () => {
-    assertValid(`const id = Now.ID["type-only"];
-type IdType = typeof id;`, "no-now-id-as-reference", NOW);
+    assertValid(
+      `const id = Now.ID["type-only"];
+type IdType = typeof id;`,
+      "no-now-id-as-reference",
+      NOW,
+    );
   });
 
   it("does not exempt member assignment or object storage as an alias", () => {
-    assertInvalid(`const config = {};
-config.reference = Now.ID["reference"];`, "no-now-id-as-reference", { count: 1 }, NOW);
-    assertInvalid(`const values = [Now.ID["stored"]];`, "no-now-id-as-reference", { count: 1 }, NOW);
+    assertInvalid(
+      `const config = {};
+config.reference = Now.ID["reference"];`,
+      "no-now-id-as-reference",
+      { count: 1 },
+      NOW,
+    );
+    assertInvalid(
+      `const values = [Now.ID["stored"]];`,
+      "no-now-id-as-reference",
+      { count: 1 },
+      NOW,
+    );
+  });
+
+  it("reports identity values in compound assignments", () => {
+    assertInvalid(
+      `let value = "";
+value += Now.ID["append"];
+value ||= Now.ID["fallback"];
+const config = { $id: "raw" };
+config.$id += Now.ID["compound-id"];`,
+      "no-now-id-as-reference",
+      { count: 3 },
+      NOW,
+    );
   });
 });
 

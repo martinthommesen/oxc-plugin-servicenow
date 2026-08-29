@@ -1,108 +1,149 @@
-# Release provenance
+# Release process
 
-This page describes how 2.0.0 and later releases publish the exact inspected package. The workflow is intentionally split into read-only validation, an artifact-only trusted-publishing job, registry verification, and GitHub-release jobs.
+This document defines the release process for `2.0.0` and later. The current work remains under `Unreleased`. No stable `2.0.0` release has been performed.
 
-## Required heading
+## Merge readiness and release readiness
 
-`CHANGELOG.md` must contain an exact release heading before a tag can publish:
-
-```text
-## 2.0.0 — 2026-08-20
-```
-
-The date uses a valid `YYYY-MM-DD` calendar date. A mention of the version anywhere else is not enough. `npm run release:check` and the release validate job use `scripts/check-release-artifact.mjs` for this check.
-
-## Local artifact check
-
-Run the same inspect path that the release workflow uses:
+Merge readiness uses repository-local checks:
 
 ```bash
-npm run build
+npm run validate
+```
+
+This command does not publish, create a tag, or prove live governance. It cleans and inspects a package artifact, runs the packed consumer, and checks the implementation, tests, docs, manifest, benchmark, and workflows.
+
+Release readiness also requires approved external actions:
+
+1. Configure the controlled tag actor and at least one independent environment reviewer in `scripts/release-governance.json`.
+2. Verify the desired policy against live GitHub and npm settings.
+3. Move the applicable `Unreleased` notes under the exact release heading.
+4. Merge the approved stack to protected `main`.
+5. Create `v<version>` at the exact current `origin/main` commit.
+6. Approve the protected `release` environment deployment.
+7. Verify the registry package, provenance, and GitHub release.
+
+These steps are live-pending. Do not describe a green local check as live release proof.
+
+## Release identity
+
+The protected-tag workflow requires all release identities to agree:
+
+- `package.json` and `package-lock.json` version
+- changelog version
+- `v<version>` tag
+- tarball filename and packed package metadata
+- npm package metadata and registry bytes
+- provenance subject
+- GitHub release title and asset
+
+The release heading must be the first version heading after `## Unreleased`:
+
+```text
+## 2.0.0 — 2026-08-21
+```
+
+The date must be a real, non-future UTC calendar date in `YYYY-MM-DD` format. Keep future notes under `Unreleased` until the implementation and version are ready. Stable versions publish under `latest`. Prerelease versions publish under `next`.
+
+The artifact gate rejects a `package.json` version that is not exact SemVer. Workflow outputs enter shell commands only through quoted environment variables.
+
+## Exact artifact check
+
+Run:
+
+```bash
 npm run release:check
 ```
 
-`release:check` does the following:
+The check performs these actions:
 
-1. Rebuilds current `src/` into ignored `dist/` before packing (unless an explicit tarball is supplied).
-2. Confirms the changelog heading for the `package.json` version.
-3. Runs `npm pack --ignore-scripts`; the parser accepts both legacy array and npm-12 package-keyed JSON output.
-4. Rejects a tarball that is missing public exports or declarations, or that includes `src/`, `tests/`, `.github/`, `scripts/`, `plans/`, or `docs/`.
-5. Prints the tarball path, SHA-256 digest, and npm `sha512` integrity.
+1. Deletes `dist` and builds it again.
+2. Runs `npm pack --json --ignore-scripts`.
+3. Inspects the exact tarball that later jobs use.
+4. Rejects path traversal, links, executable files, unexpected root outputs, source, tests, workflows, scripts, plans, docs, secrets, and source maps.
+5. Verifies every package export and declaration target.
+6. Preserves normalized package metadata. Each file record contains its path, size, mode, link value, and SHA-256 digest. The package record contains the tarball SHA-1, SHA-256, SHA-512 integrity, size, unpacked size, and entry count.
 
-To run packed-consumer tests on that same file:
+The build does not ship JavaScript or declaration source maps because their source files are not in the package. This policy prevents dangling maps.
+
+Run the same packed-consumer path used by `npm run validate`:
 
 ```bash
 npm run release:check -- --consumer
 ```
 
-To run every compatibility cell on that same file locally (the current Node process cannot substitute for another cell's runtime):
+The default consumer runs the `localSmokeCell` dependency set under the current host Node and npm. `--consumer-all` runs every dependency set under that same host. The release gate and CI pass the expected tarball SHA-256 before the consumer installs or imports the package. Neither mode proves that one process ran under multiple Node versions. CI provides the authoritative five-cell runtime matrix from `scripts/compat-matrix.json`.
+
+## Workflow boundaries
+
+`.github/workflows/release.yml` keeps each privilege at one boundary:
+
+1. `validate` uses read-only source access. It verifies the exact tag, exact `origin/main` tip, changelog, tests, and artifact.
+2. `consumer` runs every compatibility cell against the uploaded tarball.
+3. `publication-state` reads current registry state.
+4. `publish` receives only the reviewed publish-input artifact. It has only `id-token: write`, does not check out source, and does not install dependencies.
+5. `registry-verify` has no ID-token permission. It verifies the exact registry bytes, exports, declarations, and Sigstore provenance identity.
+6. `github-release` has only `contents: write`. It creates or verifies one release and one exact asset.
+
+The publish input includes the tarball, normalized npm-pack manifest, and reviewed publish helpers. No later job rebuilds the package.
+
+## Trusted publishing and retries
+
+The publish job uses Node `24.5.0` and requires its executable npm version to equal `11.5.1`. It publishes with `--ignore-scripts --provenance`. It does not use `NPM_TOKEN`.
+
+The workflow models these outcomes:
+
+- accepted publication
+- an existing version that needs identity verification
+- an ambiguous transport result that needs registry verification
+- a permanent failure
+
+Registry retries are bounded. They use structured npm status codes and retry only transient transport errors, publication lag, HTTP 429, and HTTP 5xx. Every install attempt uses a new temporary consumer. Authentication, configuration, schema, identity, integrity, and provenance errors fail immediately.
+
+Provenance verification requires the expected package, version, tarball digest, repository, workflow, commit, tag, GitHub Actions builder, release environment, and OIDC subject. Registry integrity and provenance are separate checks.
+
+GitHub release retries compare the exact tag, target commit, title, draft state, prerelease state, changelog-derived notes, asset name, and asset bytes. The helper never overwrites a conflicting asset.
+
+## Governance status
+
+`scripts/release-governance.json` is the desired policy. It is intentionally incomplete until approved stable actor and reviewer IDs are known. `docs/release-governance-status.json` is a historical capture with `historical-unverified` status. It is not live proof.
+
+The current external correction is one of these topologies:
+
+- at least two eligible actors, with a tagger distinct from the environment reviewer
+- a documented independent tagger and approver flow
+
+The current single-reviewer plus self-review prevention topology can deadlock a solo maintainer.
+
+Use the read-only manual workflow `Governance audit` after the desired IDs are configured. The workflow compares live GitHub and npm data without changing controls. You can run the same checker locally:
 
 ```bash
-npm run release:check -- --consumer-all
+node scripts/check-release-governance.mjs
 ```
 
-Do not run `npm publish` from a working tree. The release workflow publishes the immutable inspected tarball filename with `--ignore-scripts`.
-
-## Tag ancestry and protected release controls
-
-The `v*` tag commit must be an ancestor of `origin/main`. The validate job fetches `main` and runs `git merge-base --is-ancestor "$GITHUB_SHA" origin/main`, and requires `v<package.json.version>` to equal the tag.
-
-Protect `main` and the `release` GitHub Environment so a random tag cannot publish. The `release` environment must require a reviewer, and npm trusted publishing must be configured for this exact repository/workflow pair. No long-lived `NPM_TOKEN` is used.
-
-## Workflow isolation and exact artifact
-
-1. **validate** checks out the tag with read-only `contents`, builds once, runs all gates, inspects one tarball, and uploads it as `release-tarball`.
-2. **consumer** is a required six-cell matrix (`min-hosts` on Node 20.19.0, `node20-floor` on Node 20, `node22-lts` on Node 22, `node24-lts` on Node 24, `node26-current` on Node 26, and `eslint9-current` on declared `current`). Every cell installs and tests the exact uploaded tarball, not source `dist/`.
-3. **publish** is the only job with `id-token: write`. It receives only the uploaded tarball, uses Node 24.5.0 (which bundles the pinned npm 11.5.1), verifies the executable `npm --version`, and runs `npm publish <tarball> --ignore-scripts --provenance --access public`. It does not check out source, install dependencies, import the package, or run registry checks.
-4. **registry-verify** has no OIDC permission. It installs with `--ignore-scripts`, resolves every package export/declaration, imports the registry package through bare public specifiers, and compares `dist.integrity`, provenance, and version to the inspected tarball.
-5. **github-release** has only minimum `contents: write`, runs after registry verification, and invokes `scripts/create-github-release.mjs` to create or idempotently verify the release asset.
-
-A matrix result is a required input to publish; a skipped or failed cell cannot be hidden by running `--all` under one host runtime.
-
-## Trusted publishing npm pin
-
-The release runtime is pinned to Node `24.5.0`, whose bundled executable npm is `11.5.1`. The workflow executes `npm --version` and requires the exact `11.5.1` value; it never reads `process.versions.npm` and never installs npm in the OIDC job. `scripts/check-trusted-publishing-npm.mjs` provides the same parser/check as an executable local helper.
-
-## Retry safety
-
-A publish request can be accepted by npm even when the client receives a network error, and a release rerun can encounter an already-existing version. The publish step is allowed to report an ambiguous failure so the separate no-OIDC registry job can decide safely:
-
-- If the registry does not list the version or integrity/provenance differs, the workflow fails; do not publish another artifact.
-- If the registry lists the exact inspected `sha512` integrity and provenance, verification succeeds and no second publish is attempted.
-- `scripts/create-github-release.mjs` treats an existing release as a retry: it compares the named asset bytes (or GitHub's SHA-256 digest), uploads only a missing asset, and fails on a mismatch. It never overwrites a mismatched asset.
-- If GitHub release creation fails after a successful registry check, rerun the release job or invoke the helper with the same immutable tarball; do not republish.
-
-## Captured GitHub governance
-
-The repository controls were applied and captured on 2026-08-20 in [`docs/release-governance-live.json`](./release-governance-live.json): active `main` pull-request/status-check ruleset `21081867`, active protected `v**` tag ruleset `21081873`, a non-bypassable reviewer-gated `release` environment, repository-level SHA-pinning enforcement, and npm trusted publisher `3d460658-361a-4591-a6bb-8f9ca2364eaf`. The npm publisher is configured for repository `martinthommesen/oxc-plugin-servicenow`, workflow filename `release.yml` (the repository path is `.github/workflows/release.yml`), and environment `release`; no `NPM_TOKEN` secret is used. A one-time `2.0.0-bootstrap.0` publication created the package so the trusted-publisher relationship could be configured; it is not evidence for the stable OIDC release.
-
-## Explicitly-live gates
-
-Local tests use deterministic metadata, fake command boundaries, and the current packed artifact. They do **not** prove external OIDC trust, registry availability/provenance, or GitHub permissions. The governance gates below are captured in [`docs/release-governance-live.json`](./release-governance-live.json); only the approved stable-tag run remains live-pending:
-
-1. **Complete:** the protected `release` environment requires a reviewer and administrators cannot bypass it.
-2. **Complete:** npm trusted publishing is configured for this repository and the `release.yml` workflow, with no `NPM_TOKEN` secret.
-3. Tag `v2.0.0` on a commit already on protected `main` after PR approval and merge.
-4. Confirm all validate and real Node matrix jobs pass on that tag.
-5. Approve the publish job in the `release` environment.
-6. Confirm registry verification sees the exact tarball integrity and provenance, and imports all public exports.
-7. Confirm the GitHub release exists with the inspected `oxc-plugin-servicenow-2.0.0.tgz` asset.
-
-Only after the remaining live checks should maintainers close #58 and #76's release criteria.
-
-
-## Merge readiness versus release readiness
-
-**Merge readiness** is entirely in-repository: the typecheck, test, real-host compatibility cells, benchmark, documentation, manifest, artifact, and workflow-pin checks are green and the workflow permissions are reviewable. It does not require a tag or a live publication.
-
-**Release readiness** starts only after merge: an approved protected `v*` tag must pass the real Node 20/22/24/26 matrix, trusted-publishing OIDC, registry integrity/provenance/import verification, and idempotent GitHub release creation. These are intentionally live gates and remain pending until a maintainer runs them.
-
-The desired GitHub ruleset and npm publisher restrictions are recorded in `scripts/release-governance.json`; the applied controls and npm trust record are captured in `docs/release-governance-live.json`:
+If API access is unavailable, verify each item manually:
 
 ```bash
-gh api repos/:owner/:repo/rulesets
-gh api repos/:owner/:repo/environments/release
+gh api repos/martinthommesen/oxc-plugin-servicenow/rulesets
+gh api repos/martinthommesen/oxc-plugin-servicenow/environments/release
+gh api repos/martinthommesen/oxc-plugin-servicenow/actions/permissions
+gh api repos/martinthommesen/oxc-plugin-servicenow/actions/secrets
 npm trust list oxc-plugin-servicenow --json
 ```
 
-The repository/workflow/environment/tag restriction must match those records. No tag-only live proof is required to merge the implementation.
+Check the main ruleset contexts, tag creation and immutability, reviewer IDs, self-review prevention, administrator bypass, tag-only deployment policy, Actions policy, pinned actions, absence of `NPM_TOKEN`, and trusted-publisher repository, workflow, and environment.
+
+Do not change repository or environment settings without explicit approval.
+
+## Live release evidence
+
+A stable protected-tag run must still prove all of these items:
+
+1. The tag is the exact protected `main` tip.
+2. All validate and compatibility jobs pass.
+3. An independent reviewer approves the release environment.
+4. npm accepts or already contains the exact inspected bytes.
+5. Registry integrity and Sigstore provenance identity pass.
+6. Every public export and declaration works from the registry package.
+7. The GitHub release contains the exact changelog notes and tarball asset.
+
+Until an authorized release completes these checks, their disposition is `Live-pending`.

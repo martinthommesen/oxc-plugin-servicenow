@@ -14,7 +14,8 @@ export const noBigint = defineRule({
       url: ruleDocsUrl("no-bigint"),
     },
     messages: {
-      literal: "BigInt literals (`{{raw}}`) are not supported in Compatibility or ES5 Standards mode.",
+      literal:
+        "BigInt literals (`{{raw}}`) are not supported in Compatibility or ES5 Standards mode. Use Number or String.",
       ctor: "`BigInt` is not supported in Compatibility or ES5 Standards mode. Use Number or String.",
     },
   },

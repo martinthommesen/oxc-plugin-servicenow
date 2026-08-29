@@ -1,7 +1,7 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
-import { getName, staticMemberChain } from "../utils/ast.js";
+import { getName } from "../utils/ast.js";
 import { beginRuleFile } from "./helpers.js";
 
 export const noPackagesCalls = defineRule({
@@ -22,13 +22,14 @@ export const noPackagesCalls = defineRule({
       MemberExpression(node) {
         const { analysis } = beginRuleFile(context);
         const member = node as ESTree.MemberExpression;
-        const chain = staticMemberChain(member);
-        if (!chain || chain[0] !== "Packages") return;
         const root = rootIdentifier(member);
-        if (!root || !analysis.isPlatformGlobal(root)) return;
+        if (!root || getName(root) !== "Packages" || !analysis.isPlatformGlobal(root)) return;
         const ancestors = context.sourceCode.getAncestors(node);
         const parent = ancestors[ancestors.length - 1] as ESTree.Node | undefined;
-        if (parent?.type === "MemberExpression" && (parent as ESTree.MemberExpression).object === node) {
+        if (
+          parent?.type === "MemberExpression" &&
+          (parent as ESTree.MemberExpression).object === node
+        ) {
           return;
         }
         context.report({ node, messageId: "packages" });

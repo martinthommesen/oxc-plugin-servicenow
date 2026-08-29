@@ -1,11 +1,15 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
-import { getAncestors } from "../analysis/index.js";
+import { getAncestors } from "../analysis/internal.js";
 import { isProvenNowIdValue } from "../analysis/now-id.js";
 import { ruleDocsUrl } from "../constants.js";
 import { getStringValue, objectProperty } from "../utils/ast.js";
 import { isFluentContext } from "../context/index.js";
-import { parseRuleOptions, requireFluentIdOptions, schemaFromDescriptor } from "../options/index.js";
+import {
+  parseRuleOptions,
+  requireFluentIdOptions,
+  schemaFromDescriptor,
+} from "../options/index.js";
 import type { RequireFluentIdOptions } from "../options/index.js";
 import { isSysId } from "../utils/sysid.js";
 import { beginRuleFile } from "./helpers.js";
@@ -77,6 +81,10 @@ export const requireFluentId = defineRule({
 function hintFrom(arg: ESTree.ObjectExpression, api: string): string {
   const name = objectProperty(arg, "name");
   const nameValue = name ? getStringValue(name.value) : null;
-  if (nameValue) return nameValue.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  if (nameValue)
+    return nameValue
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
   return api.toLowerCase();
 }

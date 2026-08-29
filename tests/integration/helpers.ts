@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -19,23 +19,54 @@ export type OxlintReport = {
   diagnostics: OxlintDiagnostic[];
 };
 
-export function runOxlint(configPath: string, targets: string[]): OxlintReport {
+export type OxlintProcessResult = {
+  status: 0 | 1;
+  signal: null;
+  stdout: string;
+  stderr: string;
+  report: OxlintReport;
+};
+
+export function runOxlintProcess(configPath: string, targets: string[]): OxlintProcessResult {
+  const result = spawnSync(oxlintBin, ["--format", "json", "-c", configPath, ...targets], {
+    encoding: "utf8",
+    cwd: repoRoot,
+  });
+  if (result.error) throw result.error;
+  if (result.signal) throw new Error(`oxlint terminated by ${result.signal}`);
+  if (result.status !== 0 && result.status !== 1) {
+    throw new Error(`oxlint exited ${result.status}: ${result.stderr || result.stdout}`);
+  }
+  let report: OxlintReport;
   try {
-    const stdout = execFileSync(oxlintBin, ["--format", "json", "-c", configPath, ...targets], {
-      encoding: "utf8",
-      cwd: repoRoot,
-    });
-    return JSON.parse(stdout) as OxlintReport;
-  } catch (error) {
-    const failed = error as { stdout?: string; stderr?: string; message?: string };
-    const stdout = failed.stdout ?? "";
-    if (stdout.trimStart().startsWith("{")) {
-      return JSON.parse(stdout) as OxlintReport;
-    }
+    report = JSON.parse(result.stdout) as OxlintReport;
+  } catch {
     throw new Error(
-      [failed.stderr, stdout, failed.message].filter(Boolean).join("\n") || "oxlint failed",
+      `oxlint emitted malformed or truncated JSON:\n${result.stdout}\n${result.stderr}`,
     );
   }
+  if (!report || !Array.isArray(report.diagnostics)) {
+    throw new Error("oxlint JSON has no diagnostics array");
+  }
+  const hostFailure = report.diagnostics.find((diagnostic) =>
+    /parse|parser|configuration|plugin-load/i.test(diagnostic.code),
+  );
+  if (hostFailure)
+    throw new Error(`oxlint host diagnostic: ${hostFailure.code}: ${hostFailure.message}`);
+  if (result.status === 1 && report.diagnostics.length === 0) {
+    throw new Error("oxlint exited 1 without diagnostics");
+  }
+  return {
+    status: result.status,
+    signal: null,
+    stdout: result.stdout,
+    stderr: result.stderr,
+    report,
+  };
+}
+
+export function runOxlint(configPath: string, targets: string[]): OxlintReport {
+  return runOxlintProcess(configPath, targets).report;
 }
 
 export function pluginRuleId(code: string): string | undefined {

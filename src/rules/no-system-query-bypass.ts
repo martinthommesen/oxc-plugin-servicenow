@@ -1,50 +1,9 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
-import { staticPropertyName } from "../analysis/index.js";
-import { isNode, walk } from "../utils/ast.js";
+import { isComputedUnknown, staticPropertyName } from "../analysis/internal.js";
 import { isServerInstanceContext } from "../context/index.js";
-import { GLIDE_SYSTEM_BYPASS_METHODS } from "../glide/query-methods.js";
 import { ruleDocsUrl } from "../constants.js";
 import { beginRuleFile } from "./helpers.js";
-
-function sameObjectArgument(
-  call: ESTree.CallExpression,
-  objectId: number | undefined,
-  analysis: ReturnType<typeof beginRuleFile>["analysis"],
-): boolean {
-  if (objectId === undefined) return false;
-  return call.arguments.some((argument) => analysis.ofExpression(argument)?.objectId === objectId);
-}
-
-/**
- * The analysis marks a receiver escaped after visiting call arguments. For
- * `gr.addSystemQuery(gr)`, that is an escape caused by the call being checked,
- * not evidence that the receiver was already unsafe. Find escapes before this
- * call so the receiver guard remains conservative for earlier helper/storage
- * escapes while preserving this definite bypass diagnostic.
- */
-function escapedBefore(
-  call: ESTree.CallExpression,
-  objectId: number | undefined,
-  analysis: ReturnType<typeof beginRuleFile>["analysis"],
-  program: ESTree.Node,
-): boolean {
-  if (objectId === undefined) return true;
-  let found = false;
-  walk(program as unknown as Record<string, unknown>, {
-    Identifier(node) {
-      if (found || typeof node.start !== "number" || node.start >= (call.start ?? 0)) return;
-      const proven = analysis.ofExpression(node);
-      if (proven?.objectId === objectId && proven.escaped) found = true;
-    },
-    MemberExpression(node) {
-      if (found || typeof node.start !== "number" || node.start >= (call.start ?? 0)) return;
-      const proven = analysis.ofExpression(node);
-      if (proven?.objectId === objectId && proven.escaped) found = true;
-    },
-  });
-  return found;
-}
 
 export const noSystemQueryBypass = defineRule({
   meta: {
@@ -57,6 +16,8 @@ export const noSystemQueryBypass = defineRule({
     messages: {
       bypass:
         "`{{method}}()` bypasses query ACL enforcement. Keep it only when system-level access is intended, and document the reason in a disable comment.",
+      possibleBypass:
+        "Computed access on a GlideRecord can select a query ACL-bypass method. Use an explicit method and document system-level access.",
     },
   },
   createOnce(context) {
@@ -65,23 +26,20 @@ export const noSystemQueryBypass = defineRule({
         const { context: script } = beginRuleFile(context);
         if (!isServerInstanceContext(script)) return false;
       },
-      CallExpression(node) {
+      MemberExpression(node) {
         const { analysis } = beginRuleFile(context);
-        const call = node as ESTree.CallExpression;
-        if (call.callee.type !== "MemberExpression") return;
-        const method = staticPropertyName(call.callee);
-        if (!method || !GLIDE_SYSTEM_BYPASS_METHODS.has(method)) return;
-        const object = (call.callee as ESTree.MemberExpression).object;
+        const member = node as ESTree.MemberExpression;
+        const method = staticPropertyName(member);
+        const possible = isComputedUnknown(member);
+        if ((!method || !analysis.glide.systemBypass.has(method)) && !possible) return;
+        const object = member.object;
         const proven = analysis.ofExpression(object);
         if (!proven || proven.kind !== "GlideRecord" || proven.invalid) return;
-        if (proven.escaped) {
-          const sameArgument = sameObjectArgument(call, proven.objectId, analysis);
-          const program = context.sourceCode.ast as unknown;
-          if (!sameArgument || !isNode(program) || escapedBefore(call, proven.objectId, analysis, program)) {
-            return;
-          }
+        if (method && analysis.glide.systemBypass.has(method)) {
+          context.report({ node, messageId: "bypass", data: { method } });
+        } else {
+          context.report({ node, messageId: "possibleBypass" });
         }
-        context.report({ node, messageId: "bypass", data: { method } });
       },
     };
   },

@@ -50,15 +50,19 @@ var cache = new Map();
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False positive: Local bindings that reuse those names. False negative: Dynamic construction through unknown identifiers.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
 
 ## Known false positives
 
-- Local bindings that reuse those names.
+- None recorded.
 
 ## Known false negatives
 
-- Dynamic construction through unknown identifiers.
+- None recorded.
+
+## Intentional scope boundaries
+
+- None recorded.
 
 ## Overlaps
 
@@ -72,10 +76,12 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False p
 ## Evidence
 
 - **WeakRef and FinalizationRegistry are unsupported in instance JavaScript modes.**
+  - Verification ID: `rule-evidence-0d698644`
   - URL: https://www.servicenow.com/docs/r/zurich/api-reference/scripts/javascript-engine-feature-support.html
-  - Verified by: declaration-snapshot
+  - Verified by: manual
   - Verified at: 2026-08-20
 - **Catalog examples cover WeakRef construction.**
+  - Verification ID: `rule-evidence-4a65e4de`
   - URL: src/catalog.ts
   - Verified by: fixture
   - Verified at: 2026-08-20

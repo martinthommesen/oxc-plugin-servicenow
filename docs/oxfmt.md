@@ -30,7 +30,7 @@ npx oxfmt --write .
 | Files | Style |
 | --- | --- |
 | `**/*.now.ts` | TypeScript / Fluent. Single quotes. Trailing commas. Width 100. |
-| `**/*.{server,client,br,si}.js`, `src/server/**` | Classic Studio style. Double quotes. No trailing commas. Width 120. |
+| `**/*.{server,client,br,si}.js`, `**/*.ui-action.js`, `src/{server,client}/**` | Classic Studio style. Double quotes. No trailing commas. Width 120. Compound UI Action suffixes such as `.client.ui-action.js` and `.server.ui-action.js` are included. |
 | `**/.now/**`, `keys.ts` | Ignored SDK sync artifacts. |
 
-CI formats `tests/integration/profiles/oxfmt/sample.br.js` and `sample.now.ts` with `--check`.
+CI formats the dedicated fixtures and all eight example `valid` trees with `--check`.

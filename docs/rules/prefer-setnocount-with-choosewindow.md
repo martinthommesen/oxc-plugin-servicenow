@@ -61,15 +61,19 @@ while (rec.next()) {
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False positive: chooseWindow that forces a count with a boolean literal third argument. False negative: Unknown third arguments stay silent. Lifecycle: Window and setNoCount state are scoped to one query epoch and one object identity.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. lifecycle: Window and setNoCount state are scoped to one query epoch and one object identity.
 
 ## Known false positives
 
-- chooseWindow that forces a count with a boolean literal third argument.
+- None recorded.
 
 ## Known false negatives
 
-- Unknown third arguments stay silent.
+- None recorded.
+
+## Intentional scope boundaries
+
+- None recorded.
 
 ## Overlaps
 
@@ -83,10 +87,12 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False p
 ## Evidence
 
 - **query() after chooseWindow() runs COUNT(*) unless setNoCount() or setLimit() skips it.**
+  - Verification ID: `rule-evidence-d217ef14`
   - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html
-  - Verified by: declaration-snapshot
+  - Verified by: manual
   - Verified at: 2026-08-20
 - **A later query epoch is not justified by an earlier getRowCount().**
+  - Verification ID: `rule-evidence-334bc3e5`
   - URL: tests/integration/profiles/invalid/setnocount-second-query.br.js
   - Verified by: integration-test
   - Verified at: 2026-08-20

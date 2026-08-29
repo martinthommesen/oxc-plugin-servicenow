@@ -52,15 +52,19 @@ current.work_notes = "Moved to In Progress";
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False positive: Server Script Includes that are not Business Rules. False negative: current aliases that escape before update.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
 
 ## Known false positives
 
-- Server Script Includes that are not Business Rules.
+- None recorded.
 
 ## Known false negatives
 
-- current aliases that escape before update.
+- None recorded.
+
+## Intentional scope boundaries
+
+- None recorded.
 
 ## Overlaps
 
@@ -74,10 +78,12 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False p
 ## Evidence
 
 - **Business Rules should not call current.update() because the engine already writes the row.**
+  - Verification ID: `rule-evidence-7c1b865e`
   - URL: https://www.servicenow.com/docs/r/application-development/business-rules-classic/c_BusinessRules.html
-  - Verified by: declaration-snapshot
+  - Verified by: manual
   - Verified at: 2026-08-20
 - **Host fixtures report current.update on Business Rule files.**
+  - Verification ID: `rule-evidence-de8886ac`
   - URL: tests/integration/fixtures/bad-business-rule.br.js
   - Verified by: integration-test
   - Verified at: 2026-08-20

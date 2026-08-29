@@ -1,9 +1,9 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
-import { staticPropertyName } from "../analysis/index.js";
+import { staticPropertyName } from "../analysis/internal.js";
 import { getName } from "../utils/ast.js";
-import { appliesOnSurface, isClientCapableContext, isInstanceScript } from "../context/index.js";
+import { appliesOnSurface, isServerInstanceContext } from "../context/index.js";
 import { beginRuleFile } from "./helpers.js";
 
 export const noGsNow = defineRule({
@@ -27,7 +27,9 @@ export const noGsNow = defineRule({
     return {
       CallExpression(node) {
         const { analysis, context: script } = beginRuleFile(context);
-        if (!isInstanceScript(script) && !isClientCapableContext(script)) return;
+        const client = appliesOnSurface(script, "client", "filename");
+        const server = isServerInstanceContext(script, "filename");
+        if (!client && !server) return;
         const call = node as ESTree.CallExpression;
         if (call.callee.type !== "MemberExpression") return;
         const member = call.callee as ESTree.MemberExpression;
@@ -41,11 +43,7 @@ export const noGsNow = defineRule({
         const isNow = property === "now";
         const isNowDateTime = property === "nowDateTime";
         if (!isNow && !isNowDateTime) return;
-        const messageId = isNowDateTime
-          ? "nowDateTime"
-          : appliesOnSurface(script, "client")
-            ? "client"
-            : "server";
+        const messageId = isNowDateTime ? "nowDateTime" : client ? "client" : "server";
         context.report({ node, messageId });
       },
     };

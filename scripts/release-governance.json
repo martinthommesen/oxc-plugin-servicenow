@@ -1,31 +1,76 @@
 {
-  "branch": "main",
-  "requirePullRequest": true,
-  "allowForcePush": false,
-  "allowDeletion": false,
-  "requiredChecks": [
-    "test",
-    "bench",
-    "compat",
-    "docs",
-    "manifest",
-    "artifact",
-    "workflow"
-  ],
-  "protectedTags": [
-    "v*"
-  ],
+  "schemaVersion": 2,
+  "repository": {
+    "owner": "martinthommesen",
+    "name": "oxc-plugin-servicenow",
+    "workflowPath": ".github/workflows/release.yml"
+  },
+  "principals": {
+    "controlledTagActor": {
+      "id": 0,
+      "login": "UNCONFIGURED_CONTROLLED_TAG_ACTOR",
+      "type": "Integration"
+    },
+    "environmentReviewers": []
+  },
   "environment": {
     "name": "release",
-    "requiredReviewers": true
+    "preventSelfReview": true,
+    "canAdminsBypass": false,
+    "deploymentPolicy": {
+      "protectedBranches": false,
+      "customBranchPolicies": true,
+      "branches": [],
+      "tags": ["v*"]
+    }
+  },
+  "mainRuleset": {
+    "name": "PR51 main governance",
+    "enforcement": "active",
+    "refPattern": "refs/heads/main",
+    "requiredStatusChecks": [
+      "test",
+      "bench",
+      "compat (min-hosts, 20.19.0)",
+      "compat (node22-host, 22.14.0)",
+      "compat (node24-host, 24.16.0)",
+      "compat (node26-host, 26.7.0)",
+      "compat (eslint9-current, 26.7.0)",
+      "docs",
+      "manifest",
+      "artifact",
+      "workflow"
+    ],
+    "codeql": "informational"
+  },
+  "releaseTagRulesets": {
+    "immutability": {
+      "name": "PR51 immutable release tags",
+      "enforcement": "active",
+      "refPattern": "refs/tags/v**",
+      "rules": ["deletion", "non_fast_forward"],
+      "bypassActors": []
+    },
+    "creation": {
+      "name": "PR51 controlled release tag creation",
+      "enforcement": "active",
+      "refPattern": "refs/tags/v**",
+      "rules": ["creation"],
+      "bypassActors": [
+        {
+          "id": 0,
+          "type": "Integration",
+          "mode": "always"
+        }
+      ]
+    }
   },
   "npmTrustedPublisher": {
-    "repository": "oxc-plugin-servicenow",
-    "workflow": ".github/workflows/release.yml",
+    "type": "github",
+    "repository": "martinthommesen/oxc-plugin-servicenow",
+    "workflowFilename": "release.yml",
     "environment": "release",
-    "tagRefs": [
-      "refs/tags/v*"
-    ],
-    "workflowFilename": "release.yml"
+    "tagRefPattern": "refs/tags/v*",
+    "oidcSubject": "repo:martinthommesen/oxc-plugin-servicenow:environment:release"
   }
 }

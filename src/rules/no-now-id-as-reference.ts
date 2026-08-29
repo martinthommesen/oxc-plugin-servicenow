@@ -1,6 +1,6 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
-import { findNowIdMisuses } from "../analysis/index.js";
+import { findNowIdMisuses } from "../analysis/internal.js";
 import { isFluentContext } from "../context/index.js";
 import { ruleDocsUrl } from "../constants.js";
 import { beginRuleFile } from "./helpers.js";

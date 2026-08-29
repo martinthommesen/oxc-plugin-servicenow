@@ -26,6 +26,7 @@ Each decision includes a revisit condition. A rejected idea can return only when
 | Table, field, or choice validation without schema input | The plugin has no instance schema. | None | A generated schema or typed SDK artifact is a supported input. |
 | Cross-scope legality from namespace strings | Prefixes are not proof of runtime scope. | `settings.servicenow.scope` when explicit | ServiceNow exports machine-readable scope metadata into the repo. |
 | Cross-file `$id` uniqueness | File-local analysis cannot see the project index. | `no-duplicate-fluent-id` in one file; [project-wide Fluent research](research/39-project-wide-fluent.md) | A project-wide Fluent index exists. |
+| Cross-file Fluent barrel resolution | Oxlint supplies one file at a time, and the plugin does not resolve project imports. Local re-exports cannot prove an SDK factory origin. | Import factories directly from the declaration-proven SDK module. | The host provides a deterministic, project-root-constrained module graph. |
 | Taint or redirect security conclusions | AST-only analysis cannot prove sources and sinks. | [Taint research](research/37-taint-security.md) | A conservative taint model is evidence-backed. |
 | Business Rule timing claims without metadata | `when` / `order` live outside the script. | `require-business-rule-wrapper` when format is explicit; [Business Rule metadata research](research/35-business-rule-metadata.md) | `businessRuleWhen` is set or Fluent `when` is a same-file literal. |
 

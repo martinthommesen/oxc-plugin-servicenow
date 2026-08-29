@@ -1,18 +1,62 @@
 import { CLIENT_GLOBALS_STRONG } from "../constants.js";
 import type { ScriptAuthoring, ScriptSurface } from "../types.js";
 
-export const CLIENT_FILE =
-  /(\.client\.|\.cs\.|client[-_.]?script|catalog[-_.]?client|sys_script_client|catalog_script_client|ui[-_.]?script|ui_script|on[-_]?change|on[-_]?load|on[-_]?submit|ui[-_.]?policy)/i;
-export const BR_FILE = /(business[-_.]?rule|\.br\.|sys_script(?![_a-z])|\/br\/)/i;
-export const SI_FILE = /(script[-_.]?include|\.si\.|\/script-include)/i;
-export const UI_ACTION_FILE = /(ui[-_.]?action|\.ua\.|sys_ui_action)/i;
-export const SCHEDULED_FILE = /(scheduled[-_.]?script|\.ss\.|sysauto_script|sys_trigger)/i;
-export const FIX_SCRIPT_FILE = /(fix[-_.]?script|\.fix\.|sys_script_fix)/i;
-export const SERVER_DIR = /(?:^|[\\/])(?:src[\\/])?server[\\/]/i;
-/** Public convention for server-side classic scripts (for example `thing.server.js`). */
-export const SERVER_FILE = /\.server\.(?:[cm]?[jt]sx?)$/i;
-export const CLIENT_DIR = /(?:^|[\\/])(?:src[\\/])?client[\\/]/i;
+const SCRIPT_EXTENSIONS = ["js", "cjs", "mjs"] as const;
 
+function scriptGlobs(stems: readonly string[]): string[] {
+  return stems.flatMap((stem) => SCRIPT_EXTENSIONS.map((extension) => `${stem}.${extension}`));
+}
+
+export const CLIENT_FILE_GLOBS = scriptGlobs([
+  "**/*.client",
+  "**/*.cs",
+  "**/*client-script*",
+  "**/*client_script*",
+  "**/*clientscript*",
+  "**/*catalog-client*",
+  "**/*catalog_client*",
+  "**/sys_script_client*",
+  "**/catalog_script_client*",
+  "**/*ui-script*",
+  "**/*ui_script*",
+  "**/*uiscript*",
+  "**/*onchange*",
+  "**/*onload*",
+  "**/*onsubmit*",
+  "**/*ui-policy*",
+  "**/*ui_policy*",
+  "**/client/**/*",
+  "**/src/client/**/*",
+]);
+
+export const BUSINESS_RULE_FILE_GLOBS = scriptGlobs([
+  "**/*.br",
+  "**/*business-rule*",
+  "**/*business_rule*",
+  "**/*businessrule*",
+  "**/sys_script",
+  "**/br/**/*",
+  "**/src/br/**/*",
+]);
+
+export const CLIENT_FILE =
+  /(?:^|[-_.])(?:client[-_.]?script|catalog[-_.]?client|ui[-_.]?script|on[-_.]?change|on[-_.]?load|on[-_.]?submit|ui[-_.]?policy)(?=[-_.]|$)|^(?:sys_script_client|catalog_script_client)(?=[-_.]|$)|(?:^|[-_.])(?:client|cs)(?=[-_.]|$)/i;
+export const BR_FILE =
+  /(?:^|[-_.])business[-_.]?rule(?=[-_.]|$)|(?:^|[-_.])br(?=\.[cm]?js$)|^sys_script\.[cm]?js$/i;
+export const SI_FILE =
+  /(?:^|[-_.])script[-_.]?include(?=[-_.]|$)|(?:^|[-_.])si(?=\.[cm]?js$)|^sys_script_include(?=[-_.]|$)/i;
+export const UI_ACTION_FILE =
+  /(?:^|[-_.])ui[-_.]?action(?=[-_.]|$)|(?:^|[-_.])ua(?=\.[cm]?js$)|^sys_ui_action(?=[-_.]|$)/i;
+export const SCHEDULED_FILE =
+  /(?:^|[-_.])scheduled[-_.]?script(?=[-_.]|$)|(?:^|[-_.])ss(?=\.[cm]?js$)|^(?:sysauto_script|sys_trigger)(?=[-_.]|$)/i;
+export const FIX_SCRIPT_FILE =
+  /(?:^|[-_.])fix[-_.]?script(?=[-_.]|$)|(?:^|[-_.])fix(?=\.[cm]?js$)|^sys_script_fix(?=[-_.]|$)/i;
+export const SERVER_FILE = /(?:^|[-_.])server(?=\.[cm]?js$)/i;
+
+const CLIENT_DIR = /(?:^|\/)client(?:\/|$)/i;
+const BR_DIR = /(?:^|\/)br(?:\/|$)/i;
+const SI_DIR = /(?:^|\/)script-include(?:\/|$)/i;
+const SERVER_DIR = /(?:^|\/)server(?:\/|$)/i;
 const CLIENT_GLOBAL_RE = new RegExp(`\\b(?:${CLIENT_GLOBALS_STRONG.join("|")})\\b`);
 export const ES_LATEST_IN_COMMENT = /(^|\s)@sn-es-latest\b/;
 
@@ -36,23 +80,24 @@ export function looksLikeClientSource(sourceText: string): boolean {
 
 export function surfacesFromFilename(filename: string): ScriptSurface[] {
   const path = normalizeFilename(filename);
-  const surfaces: ScriptSurface[] = [];
+  const file = basename(path);
+  const surfaces = new Set<ScriptSurface>();
+  if (UI_ACTION_FILE.test(file)) surfaces.add("ui-action");
+  if (CLIENT_FILE.test(file) || CLIENT_DIR.test(path)) surfaces.add("client");
+  if (BR_FILE.test(file) || BR_DIR.test(path)) surfaces.add("business-rule");
+  if (SI_FILE.test(file) || SI_DIR.test(path)) surfaces.add("script-include");
+  if (SCHEDULED_FILE.test(file)) surfaces.add("scheduled-script");
+  if (FIX_SCRIPT_FILE.test(file)) surfaces.add("fix-script");
+  if (SERVER_DIR.test(path) || SERVER_FILE.test(file)) surfaces.add("server");
 
-  if (UI_ACTION_FILE.test(path)) surfaces.push("ui-action");
-  if (CLIENT_FILE.test(path) || CLIENT_DIR.test(path)) surfaces.push("client");
-  if (BR_FILE.test(path)) surfaces.push("business-rule");
-  if (SI_FILE.test(path)) surfaces.push("script-include");
-  if (SCHEDULED_FILE.test(path)) surfaces.push("scheduled-script");
-  if (FIX_SCRIPT_FILE.test(path)) surfaces.push("fix-script");
-  if (SERVER_DIR.test(path) || SERVER_FILE.test(path)) surfaces.push("server");
-
-  return unique(surfaces);
+  if (surfaces.has("ui-action")) {
+    if ([...surfaces].some((surface) => !["ui-action", "client", "server"].includes(surface)))
+      return [];
+    return [...surfaces];
+  }
+  return surfaces.size > 1 ? [] : [...surfaces];
 }
 
 export function authoringFromFilename(filename: string): ScriptAuthoring | undefined {
   return isFluentFile(filename) ? "fluent" : undefined;
-}
-
-function unique(values: ScriptSurface[]): ScriptSurface[] {
-  return [...new Set(values)];
 }

@@ -59,7 +59,7 @@ if (count.next()) {
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False negative: Dynamic aggregate types or fields stay silent. Lifecycle: Must-tuples intersect on join. addAggregate after query() does not validate the already-open result.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. lifecycle: Must-tuples intersect on join. addAggregate after query() does not validate the already-open result.
 
 ## Known false positives
 
@@ -67,7 +67,11 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False n
 
 ## Known false negatives
 
-- Dynamic aggregate types or fields stay silent.
+- None recorded.
+
+## Intentional scope boundaries
+
+- None recorded.
 
 ## Overlaps
 
@@ -81,10 +85,12 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False n
 ## Evidence
 
 - **getAggregate reads a tuple that addAggregate registered before the open query.**
+  - Verification ID: `rule-evidence-2fafa11a`
   - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html
-  - Verified by: declaration-snapshot
+  - Verified by: manual
   - Verified at: 2026-08-20
 - **Type-only COUNT does not satisfy a field-specific getAggregate.**
+  - Verification ID: `rule-evidence-00591c39`
   - URL: tests/integration/profiles/invalid/aggregate-type-only-field.br.js
   - Verified by: integration-test
   - Verified at: 2026-08-20

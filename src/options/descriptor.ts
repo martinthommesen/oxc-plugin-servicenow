@@ -60,9 +60,7 @@ export function typeName(value: unknown): string {
   return typeof value;
 }
 
-function descriptorDefaults<T extends object>(
-  descriptor: RuleOptionsDescriptor<T>,
-): T {
+function descriptorDefaults<T extends object>(descriptor: RuleOptionsDescriptor<T>): T {
   const out: Record<string, unknown> = {};
   for (const [key, field] of Object.entries(descriptor.fields)) {
     const typed = field as OptionField;
@@ -83,10 +81,16 @@ function parseField(field: OptionField, path: string, value: unknown): unknown {
         throw new ServiceNowConfigError(path, `expected an integer, got ${JSON.stringify(value)}`);
       }
       if (field.minimum !== undefined && value < field.minimum) {
-        throw new ServiceNowConfigError(path, `expected an integer >= ${field.minimum}, got ${value}`);
+        throw new ServiceNowConfigError(
+          path,
+          `expected an integer >= ${field.minimum}, got ${value}`,
+        );
       }
       if (field.maximum !== undefined && value > field.maximum) {
-        throw new ServiceNowConfigError(path, `expected an integer <= ${field.maximum}, got ${value}`);
+        throw new ServiceNowConfigError(
+          path,
+          `expected an integer <= ${field.maximum}, got ${value}`,
+        );
       }
       return value;
     case "enum":
@@ -110,7 +114,10 @@ function parseField(field: OptionField, path: string, value: unknown): unknown {
       return value;
     case "stringArray":
       if (!Array.isArray(value)) {
-        throw new ServiceNowConfigError(path, `expected an array of strings, got ${typeName(value)}`);
+        throw new ServiceNowConfigError(
+          path,
+          `expected an array of strings, got ${typeName(value)}`,
+        );
       }
       return value.map((item, index) => {
         if (typeof item !== "string") {
@@ -237,7 +244,10 @@ export function parseRuleOptions<T extends object>(
     return descriptorDefaults(descriptor);
   }
   if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
-    throw new ServiceNowConfigError(`options[${index}]`, `expected an object, got ${typeName(raw)}`);
+    throw new ServiceNowConfigError(
+      `options[${index}]`,
+      `expected an object, got ${typeName(raw)}`,
+    );
   }
   const rec = raw as Record<string, unknown>;
   const allowed = new Set(Object.keys(descriptor.fields));

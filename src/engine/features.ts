@@ -1,5 +1,9 @@
 import type { JavaScriptMode, ServiceNowScriptContext } from "../types.js";
-import { appliesInJavaScriptModes, appliesToInstanceScripts, isFluentContext } from "../context/index.js";
+import {
+  appliesInJavaScriptModes,
+  appliesToInstanceScripts,
+  isFluentContext,
+} from "../context/index.js";
 
 /**
  * ServiceNow JavaScript engine capabilities.
@@ -70,13 +74,34 @@ export const ENGINE_FEATURES: Record<EngineFeatureId, EngineFeature> = {
   bigint: feature("bigint", "BigInt", "supported", "unsupported"),
   "at-method": feature("at-method", "Array/String.prototype.at", "supported", "unsupported"),
   "typed-arrays": feature("typed-arrays", "TypedArray constructors", "supported", "disallowed"),
-  "bigint64-arrays": feature("bigint64-arrays", "BigInt64Array / BigUint64Array", "unsupported", "unsupported", {
-    unsupportedInAllInstanceModes: true,
-  }),
+  "bigint64-arrays": feature(
+    "bigint64-arrays",
+    "BigInt64Array / BigUint64Array",
+    "unsupported",
+    "unsupported",
+    {
+      unsupportedInAllInstanceModes: true,
+    },
+  ),
   proxy: feature("proxy", "Proxy", "supported", "disallowed"),
-  "optional-chaining": feature("optional-chaining", "optional chaining", "supported", "unsupported"),
-  "nullish-coalescing": feature("nullish-coalescing", "nullish coalescing", "supported", "unsupported"),
-  "logical-assignment": feature("logical-assignment", "logical assignment", "supported", "unsupported"),
+  "optional-chaining": feature(
+    "optional-chaining",
+    "optional chaining",
+    "supported",
+    "unsupported",
+  ),
+  "nullish-coalescing": feature(
+    "nullish-coalescing",
+    "nullish coalescing",
+    "supported",
+    "unsupported",
+  ),
+  "logical-assignment": feature(
+    "logical-assignment",
+    "logical assignment",
+    "supported",
+    "unsupported",
+  ),
   "private-instance-members": feature(
     "private-instance-members",
     "private instance class members",
@@ -95,9 +120,15 @@ export const ENGINE_FEATURES: Record<EngineFeatureId, EngineFeature> = {
   "weak-ref": feature("weak-ref", "WeakRef", "disallowed", "disallowed", {
     unsupportedInAllInstanceModes: true,
   }),
-  "finalization-registry": feature("finalization-registry", "FinalizationRegistry", "disallowed", "disallowed", {
-    unsupportedInAllInstanceModes: true,
-  }),
+  "finalization-registry": feature(
+    "finalization-registry",
+    "FinalizationRegistry",
+    "disallowed",
+    "disallowed",
+    {
+      unsupportedInAllInstanceModes: true,
+    },
+  ),
   "async-iterators": feature("async-iterators", "async iteration", "disallowed", "disallowed", {
     unsupportedInAllInstanceModes: true,
   }),
@@ -105,7 +136,10 @@ export const ENGINE_FEATURES: Record<EngineFeatureId, EngineFeature> = {
 
 export const ENGINE_FEATURE_RELEASE = "zurich";
 
-export function featureSupport(id: EngineFeatureId, mode: JavaScriptMode): FeatureSupport | "unknown" {
+export function featureSupport(
+  id: EngineFeatureId,
+  mode: JavaScriptMode,
+): FeatureSupport | "unknown" {
   if (mode === "unknown") return "unknown";
   return ENGINE_FEATURES[id].support[mode];
 }

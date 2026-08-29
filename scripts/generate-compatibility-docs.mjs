@@ -18,7 +18,7 @@ function replaceMarkedSection(source, name, body) {
 const cellRows = matrix.cells
   .map(
     (cell) =>
-      `| \`${cell.id}\` | ${cell.node} | ${cell.oxlint} | ${cell.eslint} | ${cell.oxfmt} |`,
+      `| \`${cell.id}\` | ${cell.node} | ${cell.npm} | ${cell.oxlint} | ${cell.eslint} | ${cell.oxfmt} | ${cell.typescriptEslint ?? "not installed"} | ${cell.typescript ?? "not installed"} |`,
   )
   .join("\n");
 
@@ -26,29 +26,29 @@ const page = `# Compatibility
 
 This page is generated from \`scripts/compat-matrix.json\`. Do not edit it by hand. Run \`npm run docs\` after you change the matrix.
 
-CI and \`npm run compat\` install the packed tarball in a clean consumer for each matrix cell that the current Node version can run.
+CI runs every cell under its exact Node runtime. Local \`npm run compat\` uses the \`${matrix.localSmokeCell}\` dependency set under the current host Node and npm. \`npm run compat -- --all\` is only a same-runtime dependency smoke test and is not multi-runtime proof.
 
 ## Declared ranges
 
 | Component | Declared range | Tested minimum | Tested current or latest |
 | --- | --- | --- | --- |
-| Node.js | \`${matrix.node.engines}\` | ${matrix.node.minimum} | ${matrix.node.currentLts} LTS, ${matrix.node.currentMaintenance} maintenance, and ${matrix.node.current} Current |
-| oxlint | \`${matrix.oxlint.peer}\` | ${matrix.oxlint.minimum} | ${matrix.oxlint.latestCompatible} |
+| Node.js | \`${matrix.node.engines}\` | ${matrix.node.minimum} | ${matrix.node.supported.join(", ")} |
+| oxlint | \`${matrix.oxlint.peer}\` | ${matrix.oxlint.minimum} | ${matrix.oxlint.highestCompatible} |
 | \`@oxlint/plugins\` | \`${matrix.oxlintPlugins.dependency}\` | ${matrix.oxlintPlugins.pinned} | ${matrix.oxlintPlugins.pinned} |
 | ESLint | \`${matrix.eslint.peer}\` | ${matrix.eslint.minimum} | ${matrix.eslint.currentV9} and ${matrix.eslint.current} |
-| oxfmt | \`${matrix.oxfmt.peer}\` | ${matrix.oxfmt.minimum} | ${matrix.oxfmt.latest} |
-| typescript-eslint | \`${matrix.typescriptEslint.peer}\` (optional) | ${matrix.typescriptEslint.minimum ?? matrix.typescriptEslint.tested} | ${matrix.typescriptEslint.current ?? matrix.typescriptEslint.tested} |
-| TypeScript parser runtime | optional parser dependency | ${matrix.typescript.tested} | ${matrix.typescript.tested} |
+| oxfmt | \`${matrix.oxfmt.peer}\` | ${matrix.oxfmt.minimum} | ${matrix.oxfmt.highestCompatible} |
+| typescript-eslint | \`${matrix.typescriptEslint.peer}\` (optional) | ${matrix.typescriptEslint.minimum} | ${matrix.typescriptEslint.current} |
+| TypeScript parser runtime | optional parser dependency | ${matrix.typescript.minimum} | ${matrix.typescript.current} |
 | Fluent SDK knowledge | selected \`fluentSdkVersion\` | ${matrix.fluentSdk.join(", ")} | unspecified selects the current manifest |
 | ServiceNow JavaScript | ${matrix.javascriptModes.map((mode) => `\`${mode}\``).join(", ")} | all listed modes | unknown never assumes ES5 |
 
 ## Packed-consumer matrix
 
-| Cell | Node | oxlint | ESLint | oxfmt |
-| --- | --- | --- | --- | --- |
+| Cell | Node | npm | oxlint | ESLint | oxfmt | typescript-eslint | TypeScript |
+| --- | --- | --- | --- | --- | --- | --- | --- |
 ${cellRows}
 
-A cell fails with one of these classes: \`package\`, \`host-api\`, \`runtime\`, \`parser\`, or \`formatter\`. Every cell also parses a TypeScript \`.now.tsx\` fixture with typescript-eslint ${matrix.typescriptEslint.current ?? matrix.typescriptEslint.tested} and TypeScript ${matrix.typescript.tested}; the ESLint 10 cells use npm's legacy-peer-deps install mode because that optional parser package currently declares an ESLint <10 peer, while the plugin's ESLint host API remains tested directly.
+A cell fails with one of these classes: \`package\`, \`host-api\`, \`runtime\`, \`parser\`, or \`formatter\`. Parser cells exercise the exported ESLint configuration on real \`.now.ts\` and \`.now.tsx\` files. ESLint 10 cells omit typescript-eslint because its current peer range does not accept ESLint 10. Every supported combination installs with normal npm peer resolution.
 
 ## Contributors
 
@@ -68,10 +68,10 @@ let readme = await readFile(readmePath, "utf8");
 const table = [
   "| Component | Tested range |",
   "| --- | --- |",
-  `| Node | ${matrix.node.minimum}, ${matrix.node.currentLts}, ${matrix.node.currentMaintenance}, and ${matrix.node.current} |`,
-  `| oxlint | ${matrix.oxlint.minimum} (\`${matrix.oxlint.peer}\`) |`,
+  `| Node | ${matrix.node.supported.join(", ")} |`,
+  `| oxlint | ${matrix.oxlint.minimum} and ${matrix.oxlint.highestCompatible} (\`${matrix.oxlint.peer}\`) |`,
   `| ESLint | ${matrix.eslint.minimum}, ${matrix.eslint.currentV9}, and ${matrix.eslint.current} (\`${matrix.eslint.peer}\`) |`,
-  `| oxfmt | ${matrix.oxfmt.minimum} and ${matrix.oxfmt.latest} (\`${matrix.oxfmt.peer}\`) |`,
+  `| oxfmt | ${matrix.oxfmt.minimum} and ${matrix.oxfmt.highestCompatible} (\`${matrix.oxfmt.peer}\`) |`,
   `| ServiceNow engine tables | Zurich feature-support document |`,
   `| Fluent SDK | ${matrix.fluentSdk.join(", ")} |`,
 ].join("\n");

@@ -57,7 +57,7 @@ ga.getXMLAnswer(function (answer) {
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False negative: Unknown GlideAjax receivers stay silent.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
 
 ## Known false positives
 
@@ -65,7 +65,11 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False n
 
 ## Known false negatives
 
-- Unknown GlideAjax receivers stay silent.
+- None recorded.
+
+## Intentional scope boundaries
+
+- None recorded.
 
 ## Overlaps
 
@@ -79,10 +83,12 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False n
 ## Evidence
 
 - **getXMLWait is a synchronous browser request.**
+  - Verification ID: `rule-evidence-cb70312b`
   - URL: https://www.servicenow.com/docs/r/api-reference/c_GlideAjaxAPI.html
-  - Verified by: declaration-snapshot
+  - Verified by: manual
   - Verified at: 2026-08-20
 - **Catalog examples cover getXMLWait versus getXMLAnswer.**
+  - Verification ID: `rule-evidence-49c24e2d`
   - URL: src/catalog.ts
   - Verified by: fixture
   - Verified at: 2026-08-20

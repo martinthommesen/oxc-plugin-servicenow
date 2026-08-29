@@ -4,7 +4,6 @@ import {
   BR_FILE,
   CLIENT_FILE,
   looksLikeClientSource,
-  normalizeFilename,
   SI_FILE,
   surfacesFromFilename,
   UI_ACTION_FILE,
@@ -12,7 +11,12 @@ import {
 import type { ScriptKind, ServiceNowSettings } from "../types.js";
 import { getValidatedSettings } from "../settings/index.js";
 
-export { basename, isFluentFile, looksLikeClientSource, normalizeFilename } from "../context/filename.js";
+export {
+  basename,
+  isFluentFile,
+  looksLikeClientSource,
+  normalizeFilename,
+} from "../context/filename.js";
 
 /**
  * @deprecated Use `getScriptContext`. Maps the new context model onto the
@@ -57,7 +61,10 @@ export function classifyFromContext(context: Context): ScriptKind {
  */
 export function usesClassicEngine(context: Context): boolean {
   const ctx = getScriptContext(context);
-  return ctx.authoring === "classic" && (ctx.javascriptMode === "es5" || ctx.javascriptMode === "compatibility");
+  return (
+    ctx.authoring === "classic" &&
+    (ctx.javascriptMode === "es5" || ctx.javascriptMode === "compatibility")
+  );
 }
 
 export function hasEsLatestPragma(context: Context): boolean {

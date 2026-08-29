@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 2,
+  "repository": { "owner": "example", "name": "plugin", "workflowPath": ".github/workflows/release.yml" },
+  "principals": {
+    "controlledTagActor": { "id": 101, "login": "release-app", "type": "Integration" },
+    "environmentReviewers": [{ "id": 202, "login": "release-reviewers", "type": "Team" }]
+  },
+  "environment": {
+    "name": "release",
+    "preventSelfReview": true,
+    "canAdminsBypass": false,
+    "deploymentPolicy": { "protectedBranches": false, "customBranchPolicies": true, "branches": [], "tags": ["v*"] }
+  },
+  "mainRuleset": {
+    "name": "main",
+    "enforcement": "active",
+    "refPattern": "refs/heads/main",
+    "requiredStatusChecks": ["test", "compat"],
+    "codeql": "informational"
+  },
+  "releaseTagRulesets": {
+    "immutability": {
+      "name": "immutable",
+      "enforcement": "active",
+      "refPattern": "refs/tags/v**",
+      "rules": ["deletion", "non_fast_forward"],
+      "bypassActors": []
+    },
+    "creation": {
+      "name": "creation",
+      "enforcement": "active",
+      "refPattern": "refs/tags/v**",
+      "rules": ["creation"],
+      "bypassActors": [{ "id": 101, "type": "Integration", "mode": "always" }]
+    }
+  },
+  "npmTrustedPublisher": {
+    "type": "github",
+    "repository": "example/plugin",
+    "workflowFilename": "release.yml",
+    "environment": "release",
+    "tagRefPattern": "refs/tags/v*",
+    "oidcSubject": "repo:example/plugin:environment:release"
+  }
+}

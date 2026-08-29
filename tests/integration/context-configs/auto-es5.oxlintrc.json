@@ -1,0 +1,12 @@
+{
+  "$schema": "../../../node_modules/oxlint/configuration_schema.json",
+  "jsPlugins": [{ "name": "servicenow", "specifier": "../../.." }],
+  "settings": { "servicenow": { "javascriptMode": "es5" } },
+  "rules": {
+    "servicenow/no-client-gliderecord": "error",
+    "servicenow/no-gs-now": "error",
+    "servicenow/no-promise": "error",
+    "servicenow/no-system-query-bypass": "error",
+    "servicenow/validate-gliderecord-calls": "error"
+  }
+}

@@ -2,7 +2,7 @@ import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
 import { getName } from "../utils/ast.js";
-import { staticPropertyName } from "../analysis/index.js";
+import { staticPropertyName } from "../analysis/internal.js";
 import { beginRuleFile } from "./helpers.js";
 import { shouldDiagnoseFeature } from "../engine/index.js";
 
@@ -10,12 +10,15 @@ export const noProxy = defineRule({
   meta: {
     type: "problem",
     docs: {
-      description: "Disallow `Proxy` and `Proxy.revocable` in Compatibility and ES5 ServiceNow scripts.",
+      description:
+        "Disallow `Proxy` and `Proxy.revocable` in Compatibility and ES5 ServiceNow scripts.",
       url: ruleDocsUrl("no-proxy"),
     },
     messages: {
-      construct: "`Proxy` is not supported in Compatibility or ES5 Standards mode. Use a plain object.",
-      revocable: "`Proxy.revocable()` is not supported in Compatibility or ES5 Standards mode.",
+      construct:
+        "`Proxy` is not supported in Compatibility or ES5 Standards mode. Use a plain object.",
+      revocable:
+        "`Proxy.revocable()` is not supported in Compatibility or ES5 Standards mode. Use a plain object.",
     },
   },
   createOnce(context) {

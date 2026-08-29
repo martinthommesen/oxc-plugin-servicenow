@@ -1,5 +1,5 @@
 import type { ESTree } from "@oxlint/plugins";
-import { getName, getStringValue, isNode } from "../utils/ast.js";
+import { getName, getStaticStringValue, isNode } from "../utils/ast.js";
 
 /**
  * Return a statically known property name for a member expression.
@@ -9,7 +9,7 @@ import { getName, getStringValue, isNode } from "../utils/ast.js";
 export function staticPropertyName(node: unknown): string | null {
   if (!isNode(node) || node.type !== "MemberExpression") return null;
   const member = node as unknown as ESTree.MemberExpression;
-  if (member.computed) return getStringValue(member.property);
+  if (member.computed) return getStaticStringValue(member.property);
   return getName(member.property);
 }
 
@@ -29,5 +29,5 @@ export function isComputedUnknown(node: unknown): boolean {
   if (!isNode(node) || node.type !== "MemberExpression") return false;
   const member = node as unknown as ESTree.MemberExpression;
   if (!member.computed) return false;
-  return getStringValue(member.property) === null;
+  return getStaticStringValue(member.property) === null;
 }

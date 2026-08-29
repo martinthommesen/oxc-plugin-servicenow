@@ -2,17 +2,15 @@
 
 ## Unreleased
 
-## 2.0.0 — 2026-08-20
-
 ### Validation
 
 - Rule options use one descriptor for host schema, runtime parsing, and generated docs. Invalid types throw a path-specific `ServiceNowConfigError`.
 - Shared validated settings defaults are deeply frozen, including nested `allowedSysIds` and `allowedTables`.
 - Generated rule pages include a structured applicability matrix, evidence records, false-positive and false-negative lists, overlaps, and fix safety. `npm run docs:check` fails on stale metadata.
 - `npm run bench` measures the real Oxlint executable (time, scale, and peak RSS) and compares recommended, one-rule, all, and plugin-disabled profiles.
-- Packed-consumer compatibility covers minimum and current oxlint, ESLint 9/10, and oxfmt 0.16/0.64. CI runs those cells on Node 20.19, 20, and 22.
-- `npm run release:check` packs one tarball with `--ignore-scripts`, inspects the file list, and requires `## <version> — YYYY-MM-DD` in `CHANGELOG.md`. `npm run validate` runs packed-consumer tests on that same file.
-- Release publishes the inspected `.tgz` through a protected `release` environment with npm OIDC trusted publishing. The publish job uses `--ignore-scripts` and then `scripts/verify-published-package.mjs` to import the registry package and compare integrity.
+- Packed-consumer compatibility covers the declared oxlint, ESLint, oxfmt, TypeScript, and typescript-eslint boundaries. CI runs the five authoritative cells on Node 20.19.0, 22.14.0, 24.16.0, and 26.7.0.
+- `npm run release:check` cleans `dist`, builds, packs one tarball with `--ignore-scripts`, and records per-file metadata and hashes. `npm run validate` runs packed-consumer tests on that same file.
+- The protected-tag release workflow requires the exact changelog heading before it can publish. The release jobs remain unexecuted and live-pending.
 
 ### Analysis
 

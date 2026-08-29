@@ -1,6 +1,6 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
-import { getAncestors } from "../analysis/index.js";
+import { getAncestors } from "../analysis/internal.js";
 import { importedBindingFor, resolveFluentCandidate } from "../analysis/fluent-imports.js";
 import { staticPropertyName } from "../analysis/members.js";
 import { importOwnedApis } from "../fluent/index.js";
@@ -20,8 +20,7 @@ export const fluentProperImports = defineRule({
     messages: {
       wrongModule:
         "Import `{{names}}` from `{{expected}}`, not `{{source}}`. Ownership comes from the Fluent SDK manifest.",
-      missingCore:
-        "`{{name}}` is a Fluent API and must be imported from `{{expected}}`.",
+      missingCore: "`{{name}}` is a Fluent API and must be imported from `{{expected}}`.",
     },
   },
   createOnce(context) {
@@ -37,7 +36,12 @@ export const fluentProperImports = defineRule({
         for (const spec of decl.specifiers) {
           if (spec.type !== "ImportSpecifier") continue;
           const local = spec.local as ESTree.Node;
-          const imported = importedBindingFor(local, [node, spec as unknown as ESTree.Node], file.bindings, file.fluent.imports);
+          const imported = importedBindingFor(
+            local,
+            [node, spec as unknown as ESTree.Node],
+            file.bindings,
+            file.fluent.imports,
+          );
           if (!imported || imported.exportedName === "*") continue;
           const expected = owned.get(imported.exportedName);
           if (!expected) continue;
@@ -91,7 +95,7 @@ export const fluentProperImports = defineRule({
         if (direct) {
           const expected = owned.get(direct);
           if (!expected) return;
-          const binding = file.bindings.tree.resolve(direct, call.callee as ESTree.Node, ancestors);
+          const binding = file.bindings.resolve(direct, call.callee as ESTree.Node, ancestors);
           if (binding && binding.kind !== "import") return;
           context.report({
             node: call.callee as unknown as ESTree.Node,

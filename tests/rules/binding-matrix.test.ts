@@ -1,23 +1,32 @@
+import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { assertInvalid, assertValid } from "../helpers/rule-tester.js";
-import { glideRecordBindingMatrix, STATEFUL_MATRIX_RULES } from "../helpers/binding-matrix.js";
+import { lint } from "../helpers/rule-tester.js";
+import { BINDING_MATRIX_CASES, STATEFUL_MATRIX_RULES } from "../helpers/binding-matrix.js";
 
-describe("binding and control-flow matrix", () => {
+describe("rule-specific binding and lifecycle matrix", () => {
   for (const rule of STATEFUL_MATRIX_RULES) {
-    describe(rule, () => {
-      for (const testCase of glideRecordBindingMatrix("next()")) {
-        it(`${testCase.name} ${testCase.expect === "report" && rule === "require-query-before-next" ? "reports" : "stays silent"}`, () => {
-          const options = {
-            filename: testCase.filename ?? "incident.br.js",
-            settings: testCase.settings,
-          };
-          if (testCase.expect === "report" && rule === "require-query-before-next") {
-            assertInvalid(testCase.code, rule, { messageId: "missingQuery" }, options);
-          } else {
-            assertValid(testCase.code, rule, options);
-          }
-        });
-      }
+    const cases = BINDING_MATRIX_CASES.filter((testCase) => testCase.rule === rule);
+    it(`${rule} has direct reporting and adjacent silent cases`, () => {
+      assert.ok(cases.some((testCase) => testCase.expected === "report"));
+      assert.ok(cases.some((testCase) => testCase.expected === "silent"));
     });
+    for (const testCase of cases) {
+      it(`${testCase.id}: ${testCase.expected}`, () => {
+        const messages = lint(testCase.code, testCase.rule, {
+          filename: testCase.filename,
+          settings: testCase.settings,
+        });
+        if (testCase.expected === "silent") {
+          assert.deepEqual(messages, []);
+          return;
+        }
+        assert.equal(messages.length, 1);
+        const message = messages[0];
+        assert.equal(message?.messageId, testCase.messageId);
+        assert.equal(message?.message, testCase.message);
+        assert.deepEqual({ line: message?.line, column: message?.column }, testCase.start);
+        assert.deepEqual({ line: message?.endLine, column: message?.endColumn }, testCase.end);
+      });
+    }
   }
 });

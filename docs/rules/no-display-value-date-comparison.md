@@ -58,15 +58,19 @@ if (start.getNumericValue() > end.getNumericValue()) {
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False positive: Equality checks that only display the string. False negative: Display values copied into locals before comparison.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-negative: Display values copied into locals are not tracked before comparison.
 
 ## Known false positives
 
-- Equality checks that only display the string.
+- None recorded.
 
 ## Known false negatives
 
-- Display values copied into locals before comparison.
+- Display values copied into locals are not tracked before comparison.
+
+## Intentional scope boundaries
+
+- None recorded.
 
 ## Overlaps
 
@@ -80,10 +84,12 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False p
 ## Evidence
 
 - **GlideDateTime.getDisplayValue() follows the session format and is not a chronological sort key.**
+  - Verification ID: `rule-evidence-795f4584`
   - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideDateTimeAPI.html
-  - Verified by: declaration-snapshot
+  - Verified by: manual
   - Verified at: 2026-08-20
 - **Catalog examples cover display-value comparison versus getNumericValue.**
+  - Verification ID: `rule-evidence-b37fd159`
   - URL: src/catalog.ts
   - Verified by: fixture
   - Verified at: 2026-08-20

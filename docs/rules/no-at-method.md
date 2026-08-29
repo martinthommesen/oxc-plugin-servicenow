@@ -23,7 +23,7 @@
 | Minimum surface confidence | filename-inferred |
 | JavaScript modes | compatibility, es5 |
 | Application scopes | global, scoped, unknown |
-| ServiceNow releases | xanadu, yokohama, zurich |
+| ServiceNow releases | zurich |
 | Fluent SDK range | n/a |
 
 ## Options
@@ -37,7 +37,7 @@
 ### Incorrect: at
 
 ```js
-var last = list.at(-1);
+var last = [1, 2].at(-1);
 ```
 
 ## Correct
@@ -50,15 +50,19 @@ var last = list[list.length - 1];
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False positive: User objects that define an at method and are not proven platform arrays. False negative: Computed member names.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-boundary: Unknown receivers with a method named at stay silent.
 
 ## Known false positives
 
-- User objects that define an at method and are not proven platform arrays.
+- None recorded.
 
 ## Known false negatives
 
-- Computed member names.
+- None recorded.
+
+## Intentional scope boundaries
+
+- Unknown receivers with a method named at stay silent.
 
 ## Overlaps
 
@@ -72,10 +76,12 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False p
 ## Evidence
 
 - **Array.prototype.at is unsupported in Compatibility and ES5 Standards modes.**
+  - Verification ID: `rule-evidence-7c65dafd`
   - URL: https://www.servicenow.com/docs/r/zurich/api-reference/scripts/javascript-engine-feature-support.html
-  - Verified by: declaration-snapshot
+  - Verified by: manual
   - Verified at: 2026-08-20
 - **Catalog examples cover array.at versus bracket access.**
+  - Verification ID: `rule-evidence-af425db8`
   - URL: src/catalog.ts
   - Verified by: fixture
   - Verified at: 2026-08-20

@@ -58,15 +58,19 @@ if (current.assignment_group.nil()) {
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False positive: Body-only Business Rule source, which is the default unknown format. False negative: Wrappers that do not use the documented executeRule name.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-boundary: Body-only Business Rule source does not contain the platform wrapper.
 
 ## Known false positives
 
-- Body-only Business Rule source, which is the default unknown format.
+- None recorded.
 
 ## Known false negatives
 
-- Wrappers that do not use the documented executeRule name.
+- None recorded.
+
+## Intentional scope boundaries
+
+- Body-only Business Rule source does not contain the platform wrapper.
 
 ## Overlaps
 
@@ -80,10 +84,12 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False p
 ## Evidence
 
 - **Full-script Business Rules use the executeRule(current, previous) IIFE so top-level bindings do not leak.**
+  - Verification ID: `rule-evidence-1c40659e`
   - URL: https://www.servicenow.com/docs/r/application-development/business-rules-classic/c_BusinessRules.html
-  - Verified by: declaration-snapshot
+  - Verified by: manual
   - Verified at: 2026-08-20
 - **The wrapper rule reports only when businessRuleSourceFormat is full-script.**
+  - Verification ID: `rule-evidence-a86c29c7`
   - URL: tests/integration/profiles/invalid/unwrapped.br.js
   - Verified by: integration-test
   - Verified at: 2026-08-20

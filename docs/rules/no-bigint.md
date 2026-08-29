@@ -23,7 +23,7 @@ BigInt literals and `BigInt()` are unsupported in Compatibility or ES5 Standards
 | Minimum surface confidence | filename-inferred |
 | JavaScript modes | compatibility, es5 |
 | Application scopes | global, scoped, unknown |
-| ServiceNow releases | xanadu, yokohama, zurich |
+| ServiceNow releases | zurich |
 | Fluent SDK range | n/a |
 
 ## Options
@@ -50,15 +50,19 @@ var n = 9007199254740991;
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False positive: Local bindings named BigInt. False negative: Runtime evaluation of the BigInt constructor through an unknown member.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
 
 ## Known false positives
 
-- Local bindings named BigInt.
+- None recorded.
 
 ## Known false negatives
 
-- Runtime evaluation of the BigInt constructor through an unknown member.
+- None recorded.
+
+## Intentional scope boundaries
+
+- None recorded.
 
 ## Overlaps
 
@@ -72,10 +76,12 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False p
 ## Evidence
 
 - **BigInt is unsupported in Compatibility and ES5 Standards modes.**
+  - Verification ID: `rule-evidence-8aca1d80`
   - URL: https://www.servicenow.com/docs/r/zurich/api-reference/scripts/javascript-engine-feature-support.html
-  - Verified by: declaration-snapshot
+  - Verified by: manual
   - Verified at: 2026-08-20
 - **BigInt literals and the platform BigInt identifier report.**
+  - Verification ID: `rule-evidence-1c7039c0`
   - URL: tests/rules/no-bigint.test.ts
   - Verified by: fixture
   - Verified at: 2026-08-20

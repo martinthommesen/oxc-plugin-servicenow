@@ -1,8 +1,8 @@
 import type { Context, ESTree } from "@oxlint/plugins";
 import { CLIENT_GLOBALS_STRONG } from "../constants.js";
 import { resolveScriptContext } from "../context/resolve.js";
-import { getValidatedSettingsResult } from "../settings/index.js";
-import type { ServiceNowScriptContext, ValidatedServiceNowSettings } from "../types.js";
+import { fingerprintServiceNowSettings, getValidatedSettingsResult } from "../settings/index.js";
+import type { ServiceNowScriptContext } from "../types.js";
 import { getName, isNode, isValueReference, walk } from "../utils/ast.js";
 import { createFileBindings, type FileBindings } from "./bindings.js";
 import { staticPropertyName } from "./members.js";
@@ -13,14 +13,29 @@ import {
   type ProvenanceKind,
   type ProvenanceQuery,
 } from "./provenance.js";
-import { resolveFluentManifest, type FluentSdkManifest } from "../fluent/index.js";
+import {
+  DEFAULT_FLUENT_SDK_VERSION,
+  resolveFluentManifest,
+  type FluentSdkManifest,
+} from "../fluent/index.js";
 import type { FluentApiCapability } from "../fluent/index.js";
+import {
+  GLIDE_API_RELEASE,
+  resolveGlideCapabilities,
+  type GlideCapabilityView,
+} from "../glide/index.js";
 import {
   collectFluentImports,
   resolveFluentFactory,
   type FluentImportBinding,
 } from "./fluent-imports.js";
-import { isCanonicalNow, mergeNowIdFacts, nowIdValue, type NowIdFact } from "./now-id.js";
+import {
+  isCanonicalNow,
+  mergeNowIdFacts,
+  nowIdFactsEqual,
+  nowIdValue,
+  type NowIdFact,
+} from "./now-id.js";
 
 export interface FluentFileFacts {
   manifest: FluentSdkManifest;
@@ -52,6 +67,7 @@ const ALL_KINDS: readonly ProvenanceKind[] = [
 const PLATFORM_ALIAS_KINDS = new Set<ProvenanceKind>(["g_form", "gs", "current"]);
 
 const bySource = new WeakMap<object, Map<string, FileAnalysis>>();
+const ANALYSIS_RESOLVER_VERSION = 2;
 let analysisPasses = 0;
 
 export function getAnalysisPassCount(): number {
@@ -60,24 +76,6 @@ export function getAnalysisPassCount(): number {
 
 export function resetAnalysisPassCount(): void {
   analysisPasses = 0;
-}
-
-function settingsKey(settings: ValidatedServiceNowSettings): string {
-  return JSON.stringify({
-    authoring: settings.authoring,
-    surfaces: settings.surfaces,
-    allowedSysIds: settings.allowedSysIds,
-    allowedTables: settings.allowedTables,
-    scopePrefix: settings.scopePrefix,
-    javascriptMode: settings.javascriptMode,
-    scriptType: settings.scriptType,
-    fluentSdkVersion: settings.fluentSdkVersion,
-    scope: settings.scope,
-    businessRuleSourceFormat: settings.businessRuleSourceFormat,
-    businessRuleWhen: settings.businessRuleWhen,
-    ecmaLatest: settings.ecmaLatest,
-    release: settings.release,
-  });
 }
 
 function emptyProvenance(kind: ProvenanceKind, extras?: Partial<Provenance>): Provenance {
@@ -93,11 +91,7 @@ function emptyProvenance(kind: ProvenanceKind, extras?: Partial<Provenance>): Pr
   });
 }
 
-const SERVER_GLOBALS = new Set([
-  "gs",
-  "current",
-  "previous",
-]);
+const SERVER_GLOBALS = new Set(["current", "previous"]);
 
 function inferSurfacesFromAst(
   program: ESTree.Node,
@@ -134,6 +128,8 @@ function buildFileAnalysis(context: Context): FileAnalysis {
     inferClient: program ? () => inferClientFromAst(program, bindings) : undefined,
     inferSurfaces: program ? () => inferSurfacesFromAst(program, bindings) : undefined,
   });
+  const settings = getValidatedSettingsResult(context).settings;
+  const glide = resolveGlideCapabilities({ scope: settings.scope, release: settings.release });
 
   const provenanceAtNode = new Map<ESTree.Node, Provenance>();
   const identifierAtNode = new Map<ESTree.Node, Provenance>();
@@ -141,16 +137,21 @@ function buildFileAnalysis(context: Context): FileAnalysis {
 
   if (program) {
     const kindByObject = new Map<number, ProvenanceKind>();
-    const query = makeQuery(bindings, provenanceAtNode, identifierAtNode);
+    const query = makeQuery(bindings, provenanceAtNode, identifierAtNode, glide);
     analyzePathBindings<FilePathData>({
       program,
       analysis: query,
       kinds: ALL_KINDS,
       emptyData: () => ({ nowIdKey: null }),
       cloneData: (data) => ({ ...data }),
+      equalsData: (left, right) => nowIdFactsEqual(left.nowIdKey, right.nowIdKey),
       mergeData: (left, right) => ({
         nowIdKey: mergeNowIdFacts(left.nowIdKey, right.nowIdKey),
       }),
+      mergeDistinctData: (left, right) => {
+        if (left.nowIdKey === null || right.nowIdKey === null) return undefined;
+        return { nowIdKey: mergeNowIdFacts(left.nowIdKey, right.nowIdKey) };
+      },
       onCall() {},
       onValue(node) {
         const key = nowIdValue(node, query);
@@ -201,7 +202,8 @@ function buildFileAnalysis(context: Context): FileAnalysis {
           const ctor = getName((node as ESTree.NewExpression).callee);
           const kind = ctorProvenanceKind(ctor);
           if (!kind) return;
-          if (!bindings.isPlatformGlobal((node as ESTree.NewExpression).callee as ESTree.Node)) return;
+          if (!bindings.isPlatformGlobal((node as ESTree.NewExpression).callee as ESTree.Node))
+            return;
           provenanceAtNode.set(node, emptyProvenance(kind, { objectId: undefined }));
         },
       },
@@ -209,8 +211,7 @@ function buildFileAnalysis(context: Context): FileAnalysis {
     );
   }
 
-  const provenance = makeQuery(bindings, provenanceAtNode, identifierAtNode);
-  const settings = getValidatedSettingsResult(context).settings;
+  const provenance = makeQuery(bindings, provenanceAtNode, identifierAtNode, glide);
   const manifest = resolveFluentManifest(settings.fluentSdkVersion);
   const imports = program ? collectFluentImports(program, bindings) : new Map();
 
@@ -236,9 +237,11 @@ function makeQuery(
   bindings: FileBindings,
   provenanceAtNode: Map<ESTree.Node, Provenance>,
   identifierAtNode: Map<ESTree.Node, Provenance>,
+  glide: GlideCapabilityView,
 ): ProvenanceQuery {
   return {
     bindings,
+    glide,
     ofIdentifier(node) {
       return identifierAtNode.get(node) ?? null;
     },
@@ -281,7 +284,17 @@ export function getFileAnalysis(context: Context): FileAnalysis {
     bucket = new Map();
     bySource.set(source, bucket);
   }
-  const key = settingsKey(getValidatedSettingsResult(context).settings);
+  const settings = getValidatedSettingsResult(context).settings;
+  const host = context as Context & { physicalFilename?: string; cwd?: string };
+  const key = JSON.stringify([
+    context.filename,
+    host.physicalFilename ?? "",
+    host.cwd ?? "",
+    fingerprintServiceNowSettings(settings),
+    DEFAULT_FLUENT_SDK_VERSION,
+    GLIDE_API_RELEASE,
+    ANALYSIS_RESOLVER_VERSION,
+  ]);
   const hit = bucket.get(key);
   if (hit) return hit;
   const created = buildFileAnalysis(context);

@@ -1,9 +1,13 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { FLUENT_LARGE_CONTENT_KEYS, ruleDocsUrl } from "../constants.js";
-import { isCanonicalNowInclude } from "../analysis/index.js";
+import { isCanonicalNowInclude } from "../analysis/internal.js";
 import { getStringValue, propertyKeyName } from "../utils/ast.js";
-import { parseRuleOptions, preferNowIncludeOptions, schemaFromDescriptor } from "../options/index.js";
+import {
+  parseRuleOptions,
+  preferNowIncludeOptions,
+  schemaFromDescriptor,
+} from "../options/index.js";
 import type { PreferNowIncludeOptions } from "../options/index.js";
 import { isFluentContext } from "../context/index.js";
 import { beginRuleFile } from "./helpers.js";

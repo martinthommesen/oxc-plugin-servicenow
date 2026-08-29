@@ -87,12 +87,35 @@ rec.query();`,
     );
   });
 
-  it("stays silent when chooseWindow is only in one branch", () => {
-    assertValid(
+  it("reports when chooseWindow is reachable on one branch", () => {
+    assertInvalid(
       `var rec = new GlideRecord("incident");
 if (page) rec.chooseWindow(0, 20);
 rec.query();`,
       RULE,
+      { messageId: "missing" },
+    );
+  });
+
+  it("reports when setNoCount skips only one reachable path", () => {
+    assertInvalid(
+      `var rec = new GlideRecord("incident");
+rec.chooseWindow(0, 20);
+if (skip) rec.setNoCount(true);
+rec.query();`,
+      RULE,
+      { messageId: "missing" },
+    );
+  });
+
+  it("does not let one branch consume another branch's count result", () => {
+    assertInvalid(
+      `var rec = new GlideRecord("incident");
+rec.chooseWindow(0, 20);
+rec.query();
+if (useCount) rec.getRowCount();`,
+      RULE,
+      { messageId: "missing" },
     );
   });
 

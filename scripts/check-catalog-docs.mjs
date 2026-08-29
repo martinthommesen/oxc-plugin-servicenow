@@ -1,12 +1,12 @@
-import { access, readdir, readFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { execFileSync } from "node:child_process";
+import { access, readFile } from "node:fs/promises";
+import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { pathToFileURL } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const { ruleCatalog } = await import(pathToFileURL(join(root, "src/catalog.ts")).href);
-const { ruleDocMetadata } = await import(pathToFileURL(join(root, "src/catalog-metadata.ts")).href);
-const { RULE_OPTION_DESCRIPTORS, optionDocsFromDescriptor } = await import(
+const { optionDocsFromDescriptor } = await import(
   pathToFileURL(join(root, "src/options/index.ts")).href
 );
 
@@ -14,6 +14,15 @@ const errors = [];
 
 function fail(message) {
   errors.push(message);
+}
+
+function isValidIsoDate(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return (
+    date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
+  );
 }
 
 function unescapedPipeCount(line) {
@@ -51,7 +60,9 @@ function checkMarkdownTables(source, label) {
     const expected = tableColumnCount(line);
     const header = tableColumnCount(lines[index - 1]);
     if (expected < 2 || header !== expected) {
-      fail(`${label}:${index + 1} malformed Markdown table header (${header} columns, delimiter ${expected})`);
+      fail(
+        `${label}:${index + 1} malformed Markdown table header (${header} columns, delimiter ${expected})`,
+      );
       continue;
     }
     for (let row = index + 1; row < lines.length; row += 1) {
@@ -68,28 +79,34 @@ function checkMarkdownTables(source, label) {
 }
 
 async function sourceExists(relativePath) {
+  if (
+    !relativePath ||
+    relativePath.includes("\0") ||
+    relativePath.includes("\\") ||
+    isAbsolute(relativePath)
+  ) {
+    return false;
+  }
+  const resolved = resolve(root, relativePath);
+  const fromRoot = relative(root, resolved);
+  if (fromRoot === ".." || fromRoot.startsWith("../") || isAbsolute(fromRoot)) return false;
   try {
-    await access(join(root, relativePath));
+    await access(resolved);
     return true;
   } catch {
     return false;
   }
 }
 
-const catalogNames = new Set(ruleCatalog.map((rule) => rule.name));
-const metadataNames = new Set(Object.keys(ruleDocMetadata));
-
-for (const name of catalogNames) {
-  if (!metadataNames.has(name)) fail(`catalog rule ${name} is missing structured metadata`);
-}
-for (const name of metadataNames) {
-  if (!catalogNames.has(name)) fail(`metadata ${name} does not match a catalog rule`);
-}
-
 for (const rule of ruleCatalog) {
-  const latest = rule.evidence.reduce((max, item) => (item.verifiedAt > max ? item.verifiedAt : max), "");
+  const latest = rule.evidence.reduce(
+    (max, item) => (item.verifiedAt > max ? item.verifiedAt : max),
+    "",
+  );
   if (rule.lastVerified !== latest) {
-    fail(`${rule.name} lastVerified ${rule.lastVerified} does not match latest evidence date ${latest}`);
+    fail(
+      `${rule.name} lastVerified ${rule.lastVerified} does not match latest evidence date ${latest}`,
+    );
   }
   for (const field of [
     "authoring",
@@ -106,13 +123,18 @@ for (const rule of ruleCatalog) {
   if (rule.family === "fluent" && !rule.applicability.fluentSdkRange) {
     fail(`${rule.name} is Fluent and is missing fluentSdkRange`);
   }
-  if (!Array.isArray(rule.falsePositives) || !Array.isArray(rule.falseNegatives) || !Array.isArray(rule.overlaps)) {
-    fail(`${rule.name} is missing structured false-positive, false-negative, or overlap lists`);
+  if (
+    !Array.isArray(rule.falsePositives) ||
+    !Array.isArray(rule.falseNegatives) ||
+    !Array.isArray(rule.scopeBoundaries) ||
+    !Array.isArray(rule.overlaps)
+  ) {
+    fail(`${rule.name} is missing structured limitation or overlap lists`);
   }
   for (const evidence of rule.evidence) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(evidence.verifiedAt)) {
       fail(`${rule.name} evidence has invalid verifiedAt ${evidence.verifiedAt}`);
-    } else if (Number.isNaN(Date.parse(`${evidence.verifiedAt}T00:00:00Z`))) {
+    } else if (!isValidIsoDate(evidence.verifiedAt)) {
       fail(`${rule.name} evidence has impossible verifiedAt ${evidence.verifiedAt}`);
     } else if (evidence.verifiedAt > new Date().toISOString().slice(0, 10)) {
       fail(`${rule.name} evidence date is in the future: ${evidence.verifiedAt}`);
@@ -121,11 +143,12 @@ for (const rule of ruleCatalog) {
       fail(`${rule.name} evidence uses a placeholder URL ${evidence.url}`);
     } else if (!/^https?:\/\//.test(evidence.url)) {
       const localPath = evidence.url.split(/[?#]/, 1)[0];
-      if (!(await sourceExists(localPath))) fail(`${rule.name} evidence path does not exist: ${evidence.url}`);
+      if (!(await sourceExists(localPath)))
+        fail(`${rule.name} evidence path does not exist: ${evidence.url}`);
     }
   }
   if (rule.preset === "recommended" && rule.severity === "error") {
-    const authoritative = rule.evidence.some((item) => /^https:\/\//.test(item.url));
+    const authoritative = rule.evidence.some((item) => item.url.startsWith("https://"));
     const verified = rule.evidence.some(
       (item) => item.verifiedBy === "fixture" || item.verifiedBy === "integration-test",
     );
@@ -136,7 +159,7 @@ for (const rule of ruleCatalog) {
       fail(`${rule.name} is a recommended error without fixture or integration-test evidence`);
     }
   }
-  const descriptor = RULE_OPTION_DESCRIPTORS[rule.name];
+  const descriptor = rule.optionDescriptor;
   if (descriptor) {
     const expected = optionDocsFromDescriptor(descriptor);
     if (JSON.stringify(rule.options) !== JSON.stringify(expected)) {
@@ -155,6 +178,7 @@ for (const rule of ruleCatalog) {
     "## Applicability",
     "## Known false positives",
     "## Known false negatives",
+    "## Intentional scope boundaries",
     "## Overlaps",
     "## Fix safety",
     "## Evidence",
@@ -170,6 +194,26 @@ for (const rule of ruleCatalog) {
 
 const readme = await readFile(join(root, "README.md"), "utf8");
 checkMarkdownTables(readme, "README.md");
+
+const generatedState = execFileSync(
+  "git",
+  [
+    "-c",
+    "core.fsmonitor=false",
+    "status",
+    "--porcelain=v1",
+    "--untracked-files=all",
+    "--",
+    "docs/rules",
+    "README.md",
+    "docs/compatibility.md",
+    "examples",
+    "tests/integration/profiles/configs",
+    "tests/integration/fixtures/.oxlintrc.json",
+  ],
+  { cwd: root, encoding: "utf8" },
+).trim();
+if (generatedState) fail(`generated files differ from the checked-in set:\n${generatedState}`);
 
 if (errors.length > 0) {
   console.error(errors.map((item) => ` - ${item}`).join("\n"));

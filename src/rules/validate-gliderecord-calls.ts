@@ -1,10 +1,10 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
-import { getName, isExpressionStatementCall } from "../utils/ast.js";
-import { findMissingQueryBeforeNext, staticPropertyName } from "../analysis/index.js";
+import { getName, isExpressionStatementCall, nodeStart } from "../utils/ast.js";
+import { findMissingQueryBeforeNext, staticPropertyName } from "../analysis/internal.js";
 import { beginRuleFile } from "./helpers.js";
-import { isFluentContext } from "../context/index.js";
+import { isServerInstanceContext } from "../context/index.js";
 
 const UNUSED_RETURN = new Set(["insert", "update", "get", "next"]);
 
@@ -30,18 +30,22 @@ export const validateGliderecordCalls = defineRule({
       unusedReturn:
         "The return value of `{{name}}.{{method}}()` is ignored. Check `insert`, `update`, `get`, and `next`. Bulk methods such as `updateMultiple` and `deleteMultiple` are not flagged.",
       missingQuery:
-        "`{{name}}.next()` is called without a preceding `.query()` or `.get()` on every path. `chooseWindow()` only configures a later query.",
+        "`{{name}}.next()` is called without a preceding `.query()` or `.get()` on every path. Call `.query()` or `.get()` on every path before `.next()`; `chooseWindow()` only configures a later query.",
     },
   },
   createOnce(context) {
+    const reportedMissingQuery = new Set<number>();
     return {
       before() {
         const { context: script } = beginRuleFile(context);
-        if (isFluentContext(script)) return false;
+        if (!isServerInstanceContext(script)) return false;
       },
       Program(node) {
         const { analysis } = beginRuleFile(context);
         for (const finding of findMissingQueryBeforeNext(node as ESTree.Node, analysis)) {
+          const start = nodeStart(finding.node);
+          if (reportedMissingQuery.has(start)) continue;
+          reportedMissingQuery.add(start);
           context.report({
             node: finding.node,
             messageId: "missingQuery",

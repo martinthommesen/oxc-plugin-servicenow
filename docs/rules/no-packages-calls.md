@@ -11,7 +11,7 @@ The Rhino `Packages.*` Java bridge is unavailable in scoped apps and on the mode
 - **Authoring:** classic
 - **Surfaces:** Applies to client, server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent.
 - **JavaScript mode:** Runs when javascriptMode is compatibility, es5, es2021. Unknown mode stays silent.
-- **Last verified:** 2026-08-20
+- **Last verified:** 2026-08-21
 - **Implementation:** [`src/rules/no-packages-calls.ts`](../../src/rules/no-packages-calls.ts)
 
 ## Applicability
@@ -50,15 +50,19 @@ var result = new GlideDateTime();
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False positive: Object keys named Packages. False negative: Indirect Packages access through computed members.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
 
 ## Known false positives
 
-- Object keys named Packages.
+- None recorded.
 
 ## Known false negatives
 
-- Indirect Packages access through computed members.
+- None recorded.
+
+## Intentional scope boundaries
+
+- None recorded.
 
 ## Overlaps
 
@@ -72,13 +76,15 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False p
 ## Evidence
 
 - **Packages.* Java interop is not a supported ServiceNow JavaScript API.**
+  - Verification ID: `rule-evidence-0e3b2a8d`
   - URL: https://www.servicenow.com/docs/r/zurich/api-reference/scripts/javascript-engine-feature-support.html
-  - Verified by: declaration-snapshot
+  - Verified by: manual
   - Verified at: 2026-08-20
-- **Catalog examples cover Packages.java versus local bindings named Packages.**
-  - URL: src/catalog.ts
+- **Fixtures cover static and dynamic Packages access versus local bindings named Packages.**
+  - Verification ID: `rule-evidence-2126ac25`
+  - URL: tests/rules/glide-and-engine.test.ts
   - Verified by: fixture
-  - Verified at: 2026-08-20
+  - Verified at: 2026-08-21
 
 ## See also
 

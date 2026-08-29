@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import { parseSync } from "oxc-parser";
-import { applyRules, type LintMessage, type LintSourceOptions } from "../../src/runtime/apply-rules.js";
+import {
+  applyRules,
+  type LintMessage,
+  type LintSourceOptions,
+} from "../../src/runtime/apply-rules.js";
 import type { RuleName } from "../../src/rules/index.js";
 import type { ServiceNowSettings } from "../../src/types.js";
 

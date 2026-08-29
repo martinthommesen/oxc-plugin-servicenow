@@ -1,11 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import {
-  assertInvalid,
-  assertValid,
-  ES5,
-  lint,
-} from "../helpers/rule-tester.js";
+import { assertInvalid, assertValid, ES5, lint } from "../helpers/rule-tester.js";
 
 describe("no-gs-now", () => {
   it("flags gs.now()", () => {
@@ -17,9 +12,14 @@ describe("no-gs-now", () => {
   });
 
   it("uses the client message in client files", () => {
-    assertInvalid(`var when = gs.now();`, "no-gs-now", { messageId: "client" }, {
-      filename: "form.client.js",
-    });
+    assertInvalid(
+      `var when = gs.now();`,
+      "no-gs-now",
+      { messageId: "client" },
+      {
+        filename: "form.client.js",
+      },
+    );
   });
 
   it("allows GlideDateTime", () => {
@@ -29,7 +29,9 @@ describe("no-gs-now", () => {
   it("does not expose a fix or suggestion", () => {
     const messages = lint("current.u_opened = gs.now();", "no-gs-now");
     assert.ok(messages.every((message) => message.fixedSource === undefined));
-    assert.ok(messages.every((message) => !message.suggestions || message.suggestions.length === 0));
+    assert.ok(
+      messages.every((message) => !message.suggestions || message.suggestions.length === 0),
+    );
   });
 
   it("does not flag a shadowed gs binding", () => {
@@ -140,13 +142,43 @@ describe("no-hardcoded-table-names", () => {
 
 describe("engine extras", () => {
   it("no-at-method flags .at() in ES5", () => {
-    assertInvalid(`var last = items.at(-1);`, "no-at-method", { messageId: "at" }, { settings: ES5 });
+    assertInvalid(
+      `var last = [1, 2].at(-1);`,
+      "no-at-method",
+      { messageId: "at" },
+      { settings: ES5 },
+    );
+    assertInvalid(
+      `var first = "text".at(0);`,
+      "no-at-method",
+      { messageId: "at" },
+      { settings: ES5 },
+    );
+    assertInvalid(
+      `const items = [1, 2]; var last = items.at(-1);`,
+      "no-at-method",
+      { messageId: "at" },
+      { settings: ES5 },
+    );
   });
 
   it("no-at-method does not expose a suggestion", () => {
-    const messages = lint("var last = list.at(2);", "no-at-method", { settings: ES5 });
+    const messages = lint("var last = [1, 2].at(1);", "no-at-method", { settings: ES5 });
     assert.ok(messages.some((message) => message.messageId === "at"));
-    assert.ok(messages.every((message) => !message.suggestions || message.suggestions.length === 0));
+    assert.ok(
+      messages.every((message) => !message.suggestions || message.suggestions.length === 0),
+    );
+  });
+
+  it("no-at-method ignores user-defined and unknown receivers", () => {
+    assertValid(
+      `var cache = { at: function (key) { return key; } }; cache.at("x");`,
+      "no-at-method",
+      { settings: ES5 },
+    );
+    assertValid(`function read(value) { return value.at(0); }`, "no-at-method", { settings: ES5 });
+    assertValid(`let items = [1, 2]; items.at(0);`, "no-at-method", { settings: ES5 });
+    assertValid(`[1, 2].at(0);`, "no-at-method", { settings: { javascriptMode: "es2021" } });
   });
 
   it("no-packages-calls flags Packages", () => {
@@ -157,6 +189,10 @@ describe("engine extras", () => {
 
   it("no-packages-calls reports a Packages chain once", () => {
     assertInvalid('var s = new Packages.java.lang.String("x");', "no-packages-calls", { count: 1 });
+  });
+
+  it("no-packages-calls flags dynamic computed access", () => {
+    assertInvalid("var value = Packages[name][member];", "no-packages-calls", { count: 1 });
   });
 
   it("no-packages-calls allows Packages as an object key", () => {
@@ -176,9 +212,14 @@ describe("engine extras", () => {
   });
 
   it("no-weak-collections flags WeakMap in ES5", () => {
-    assertInvalid(`var cache = new WeakMap();`, "no-weak-collections", { messageId: "weak" }, {
-      settings: ES5,
-    });
+    assertInvalid(
+      `var cache = new WeakMap();`,
+      "no-weak-collections",
+      { messageId: "weak" },
+      {
+        settings: ES5,
+      },
+    );
   });
 
   it("no-async-iterators flags for await", () => {
@@ -190,65 +231,115 @@ describe("engine extras", () => {
   });
 
   it("no-typed-arrays flags Int8Array", () => {
-    assertInvalid(`var bytes = new Int8Array(16);`, "no-typed-arrays", { messageId: "ctor" }, {
-      settings: ES5,
-    });
+    assertInvalid(
+      `var bytes = new Int8Array(16);`,
+      "no-typed-arrays",
+      { messageId: "ctor" },
+      {
+        settings: ES5,
+      },
+    );
   });
 
   it("no-typed-arrays flags DataView", () => {
-    assertInvalid(`var view = new DataView(buffer);`, "no-typed-arrays", { messageId: "ctor" }, {
-      settings: ES5,
-    });
+    assertInvalid(
+      `var view = new DataView(buffer);`,
+      "no-typed-arrays",
+      { messageId: "ctor" },
+      {
+        settings: ES5,
+      },
+    );
   });
 
   it("no-proxy flags new Proxy", () => {
-    assertInvalid(`var p = new Proxy(target, handler);`, "no-proxy", { messageId: "construct" }, {
-      settings: ES5,
-    });
+    assertInvalid(
+      `var p = new Proxy(target, handler);`,
+      "no-proxy",
+      { messageId: "construct" },
+      {
+        settings: ES5,
+      },
+    );
   });
 
   it("no-proxy flags Proxy.revocable", () => {
-    assertInvalid(`var p = Proxy.revocable(target, handler);`, "no-proxy", {
-      messageId: "revocable",
-    }, { settings: ES5 });
+    assertInvalid(
+      `var p = Proxy.revocable(target, handler);`,
+      "no-proxy",
+      {
+        messageId: "revocable",
+      },
+      { settings: ES5 },
+    );
   });
 });
 
 describe("no-unsupported-syntax", () => {
   it("flags optional chaining", () => {
-    assertInvalid(`var name = current.caller_id?.name;`, "no-unsupported-syntax", {
-      messageId: "optional",
-    }, { settings: ES5 });
+    assertInvalid(
+      `var name = current.caller_id?.name;`,
+      "no-unsupported-syntax",
+      {
+        messageId: "optional",
+      },
+      { settings: ES5 },
+    );
   });
 
   it("flags nullish coalescing", () => {
-    assertInvalid(`var name = value ?? "unknown";`, "no-unsupported-syntax", {
-      messageId: "nullish",
-    }, { settings: ES5 });
+    assertInvalid(
+      `var name = value ?? "unknown";`,
+      "no-unsupported-syntax",
+      {
+        messageId: "nullish",
+      },
+      { settings: ES5 },
+    );
   });
 
   it("flags logical assignment", () => {
-    assertInvalid(`cache ||= {};`, "no-unsupported-syntax", { messageId: "logicalAssign" }, {
-      settings: ES5,
-    });
+    assertInvalid(
+      `cache ||= {};`,
+      "no-unsupported-syntax",
+      { messageId: "logicalAssign" },
+      {
+        settings: ES5,
+      },
+    );
   });
 
   it("flags private class members", () => {
-    assertInvalid(`class C { #hidden = 1; }`, "no-unsupported-syntax", {
-      messageId: "privateInstance",
-    }, { settings: ES5 });
+    assertInvalid(
+      `class C { #hidden = 1; }`,
+      "no-unsupported-syntax",
+      {
+        messageId: "privateInstance",
+      },
+      { settings: ES5 },
+    );
   });
 
   it("flags regexp lookbehind", () => {
-    assertInvalid(`var r = /(?<=@)\\w+/;`, "no-unsupported-syntax", { messageId: "lookbehind" }, {
-      settings: ES5,
-    });
+    assertInvalid(
+      `var r = /(?<=@)\\w+/;`,
+      "no-unsupported-syntax",
+      { messageId: "lookbehind" },
+      {
+        settings: ES5,
+      },
+    );
   });
 
   it("flags new RegExp lookbehind", () => {
-    assertInvalid(`var r = new RegExp("(?<=a)b");`, "no-unsupported-syntax", {
-      messageId: "lookbehind",
-    }, { settings: ES5 });
+    assertInvalid(
+      `var r = new RegExp("(?<=a)b");`,
+      "no-unsupported-syntax",
+      {
+        messageId: "lookbehind",
+      },
+      { settings: ES5 },
+    );
   });
 
   it("allows named capture groups and lookahead", () => {

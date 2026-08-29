@@ -23,7 +23,7 @@
 | Minimum surface confidence | filename-inferred |
 | JavaScript modes | compatibility, es5, es2021 |
 | Application scopes | global, scoped, unknown |
-| ServiceNow releases | xanadu, yokohama, zurich |
+| ServiceNow releases | zurich |
 | Fluent SDK range | n/a |
 
 ## Options
@@ -58,7 +58,7 @@ function drain(items) {
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False negative: Async iteration compiled away before lint.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
 
 ## Known false positives
 
@@ -66,7 +66,11 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False n
 
 ## Known false negatives
 
-- Async iteration compiled away before lint.
+- None recorded.
+
+## Intentional scope boundaries
+
+- None recorded.
 
 ## Overlaps
 
@@ -80,10 +84,12 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False n
 ## Evidence
 
 - **for await...of and async generators are disallowed in every instance JavaScript mode.**
+  - Verification ID: `rule-evidence-72f4d327`
   - URL: https://www.servicenow.com/docs/r/zurich/api-reference/scripts/javascript-engine-feature-support.html
-  - Verified by: declaration-snapshot
+  - Verified by: manual
   - Verified at: 2026-08-20
 - **es2021 Oxlint still flags async iteration.**
+  - Verification ID: `rule-evidence-8be4cfbc`
   - URL: tests/integration/profiles/invalid/es2021-async-iter.server.js
   - Verified by: integration-test
   - Verified at: 2026-08-20

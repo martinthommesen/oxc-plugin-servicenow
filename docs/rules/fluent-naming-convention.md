@@ -14,7 +14,7 @@
 - **Last verified:** 2026-08-20
 - **Implementation:** [`src/rules/fluent-naming-convention.ts`](../../src/rules/fluent-naming-convention.ts)
 - **Fluent manifest:** sdk-docs-2026-03
-- **Fluent SDK versions:** 3.0.0, 4.1.0, 4.8.0, 4.10.0, 4.11.0 (unspecified selects 4.11.0)
+- **Fluent SDK versions:** 3.0.0, 3.0.1, 3.0.2, 3.0.3, 4.0.0, 4.0.1, 4.0.2, 4.1.0, 4.1.1, 4.2.0, 4.3.0, 4.4.0, 4.4.1, 4.5.0, 4.6.0, 4.6.1, 4.7.0, 4.7.1, 4.7.2, 4.8.0, 4.8.1, 4.9.0, 4.9.1, 4.9.2, 4.10.0, 4.10.1, 4.11.0 (unspecified selects 4.11.0)
 
 ## Applicability
 
@@ -26,7 +26,7 @@
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
 | ServiceNow releases | zurich |
-| Fluent SDK range | 3.0.0 \|\| 4.1.0 \|\| 4.8.0 \|\| 4.10.0 \|\| 4.11.0 |
+| Fluent SDK range | 3.0.0 \|\| 4.1.0 \|\| 4.8.0 \|\| 4.10.0 \|\| 4.10.1 \|\| 4.11.0 |
 
 ## Options
 
@@ -65,15 +65,19 @@ BusinessRule({
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False positive: Generated file names that include a required scope prefix. False negative: Ids constructed at runtime.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
 
 ## Known false positives
 
-- Generated file names that include a required scope prefix.
+- None recorded.
 
 ## Known false negatives
 
-- Ids constructed at runtime.
+- None recorded.
+
+## Intentional scope boundaries
+
+- None recorded.
 
 ## Overlaps
 
@@ -87,10 +91,12 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False p
 ## Evidence
 
 - **Fluent file stems and Now.ID keys should stay stable kebab-case or snake_case identifiers.**
+  - Verification ID: `rule-evidence-e4fe4448`
   - URL: https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html
-  - Verified by: declaration-snapshot
+  - Verified by: manual
   - Verified at: 2026-08-20
 - **Catalog examples cover PascalCase files and kebab-case corrections.**
+  - Verification ID: `rule-evidence-fdbf0751`
   - URL: src/catalog.ts
   - Verified by: fixture
   - Verified at: 2026-08-20

@@ -35,13 +35,13 @@ export const noUnsupportedSyntax = defineRule({
       nullish:
         "Nullish coalescing (`??`) is not supported in Compatibility or ES5 Standards mode. Use a ternary, or set `javascriptMode` to `es2021`.",
       logicalAssign:
-        "Logical assignment (`{{op}}`) is not supported in Compatibility or ES5 Standards mode.",
+        "Logical assignment (`{{op}}`) is not supported in Compatibility or ES5 Standards mode. Use an explicit assignment and condition.",
       privateInstance:
-        "Private instance class members (`#{{name}}`) are not supported on the ServiceNow JavaScript engine.",
+        "Private instance class members (`#{{name}}`) are not supported on the ServiceNow JavaScript engine. Use a public property or a closure.",
       privateStatic:
-        "Private static class members (`#{{name}}`) are not supported in Compatibility or ES5 Standards mode.",
+        "Private static class members (`#{{name}}`) are not supported in Compatibility or ES5 Standards mode. Use a public static property or a closure.",
       lookbehind:
-        "RegExp lookbehind (`(?<=` / `(?<!`) is not supported in Compatibility or ES5 Standards mode.",
+        "RegExp lookbehind (`(?<=` / `(?<!`) is not supported in Compatibility or ES5 Standards mode. Rewrite the expression with supported capture groups or string operations.",
     },
   },
   createOnce(context) {
@@ -62,7 +62,10 @@ export const noUnsupportedSyntax = defineRule({
         if (featureOn("optional-chaining")) context.report({ node, messageId: "optional" });
       },
       LogicalExpression(node) {
-        if ((node as ESTree.LogicalExpression).operator === "??" && featureOn("nullish-coalescing")) {
+        if (
+          (node as ESTree.LogicalExpression).operator === "??" &&
+          featureOn("nullish-coalescing")
+        ) {
           context.report({ node, messageId: "nullish" });
         }
       },

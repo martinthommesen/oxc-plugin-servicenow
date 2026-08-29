@@ -2,7 +2,11 @@ import { defineRule } from "@oxlint/plugins";
 import type { Context, ESTree } from "@oxlint/plugins";
 import { BUILTIN_TABLES, ruleDocsUrl } from "../constants.js";
 import { getName, getStringValue } from "../utils/ast.js";
-import { parseRuleOptions, noHardcodedTableNamesOptions, schemaFromDescriptor } from "../options/index.js";
+import {
+  parseRuleOptions,
+  noHardcodedTableNamesOptions,
+  schemaFromDescriptor,
+} from "../options/index.js";
 import type { NoHardcodedTableNamesOptions } from "../options/index.js";
 import { beginRuleFile } from "./helpers.js";
 

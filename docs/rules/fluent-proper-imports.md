@@ -14,7 +14,7 @@ Fluent entity and column APIs must be imported from the module recorded in the s
 - **Last verified:** 2026-08-20
 - **Implementation:** [`src/rules/fluent-proper-imports.ts`](../../src/rules/fluent-proper-imports.ts)
 - **Fluent manifest:** sdk-docs-2026-03
-- **Fluent SDK versions:** 3.0.0, 4.1.0, 4.8.0, 4.10.0, 4.11.0 (unspecified selects 4.11.0)
+- **Fluent SDK versions:** 3.0.0, 3.0.1, 3.0.2, 3.0.3, 4.0.0, 4.0.1, 4.0.2, 4.1.0, 4.1.1, 4.2.0, 4.3.0, 4.4.0, 4.4.1, 4.5.0, 4.6.0, 4.6.1, 4.7.0, 4.7.1, 4.7.2, 4.8.0, 4.8.1, 4.9.0, 4.9.1, 4.9.2, 4.10.0, 4.10.1, 4.11.0 (unspecified selects 4.11.0)
 
 ## Applicability
 
@@ -26,7 +26,7 @@ Fluent entity and column APIs must be imported from the module recorded in the s
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
 | ServiceNow releases | zurich |
-| Fluent SDK range | 3.0.0 \|\| 4.1.0 \|\| 4.8.0 \|\| 4.10.0 \|\| 4.11.0 |
+| Fluent SDK range | 3.0.0 \|\| 4.1.0 \|\| 4.8.0 \|\| 4.10.0 \|\| 4.10.1 \|\| 4.11.0 |
 
 ## Options
 
@@ -68,15 +68,19 @@ BusinessRule({
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False positive: Local functions that share a factory name and are not imported. False negative: Dynamic import specifiers.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-boundary: Local functions that share a Fluent factory name are not SDK factories.
 
 ## Known false positives
 
-- Local functions that share a factory name and are not imported.
+- None recorded.
 
 ## Known false negatives
 
-- Dynamic import specifiers.
+- None recorded.
+
+## Intentional scope boundaries
+
+- Local functions that share a Fluent factory name are not SDK factories.
 
 ## Overlaps
 
@@ -90,10 +94,12 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False p
 ## Evidence
 
 - **Fluent factories are imported from the documented @servicenow/sdk modules.**
+  - Verification ID: `rule-evidence-0ce48013`
   - URL: https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html
-  - Verified by: declaration-snapshot
+  - Verified by: manual
   - Verified at: 2026-08-20
 - **Host fixtures report factories imported from the wrong module.**
+  - Verification ID: `rule-evidence-06a9b1a1`
   - URL: tests/integration/fixtures/bad-fluent.now.ts
   - Verified by: integration-test
   - Verified at: 2026-08-20

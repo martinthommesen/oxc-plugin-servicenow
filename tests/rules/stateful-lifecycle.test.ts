@@ -47,6 +47,38 @@ ga.getAggregate("SUM", "amount");`,
       { messageId: "unknownAggregate" },
       SERVER,
     );
+    assertInvalid(
+      `var ga = new GlideAggregate("incident");
+ga.addAggregate("COUNT");
+ga.query();
+ga.addAggregate(kind);
+ga.getAggregate("SUM", "amount");`,
+      RULE,
+      { messageId: "unknownAggregate" },
+      SERVER,
+    );
+  });
+
+  it("preserves correlated static and dynamic branch alternatives", () => {
+    assertInvalid(
+      `var ga = new GlideAggregate("incident");
+if (dynamic) ga.addAggregate(kind);
+else ga.addAggregate("COUNT");
+ga.query();
+ga.getAggregate("SUM", "amount");`,
+      RULE,
+      { messageId: "unknownAggregate" },
+      SERVER,
+    );
+    assertValid(
+      `var ga = new GlideAggregate("incident");
+if (dynamic) ga.addAggregate(kind);
+else ga.addAggregate("SUM", "amount");
+ga.query();
+ga.getAggregate("SUM", "amount");`,
+      RULE,
+      SERVER,
+    );
   });
 
   it("retains earlier aggregates on a later query epoch", () => {
@@ -127,6 +159,34 @@ gr.deleteMultiple();`,
       { messageId: "unfiltered" },
       SERVER,
     );
+    assertInvalid(
+      `var gr = new GlideRecord("task");
+gr.addQuery(42);
+gr.deleteMultiple();`,
+      RULE,
+      { messageId: "unfiltered" },
+      SERVER,
+    );
+    assertInvalid(
+      `var gr = new GlideRecord("task");
+gr.addEncodedQuery(false);
+gr.deleteMultiple();`,
+      RULE,
+      { messageId: "unfiltered" },
+      SERVER,
+    );
+  });
+
+  it("treats a shadowed undefined filter as dynamic", () => {
+    assertValid(
+      `function run(undefined) {
+  var gr = new GlideRecord("task");
+  gr.addQuery(undefined);
+  gr.deleteMultiple();
+}`,
+      RULE,
+      SERVER,
+    );
   });
 
   it("stays silent for a dynamic filter argument", () => {
@@ -199,6 +259,33 @@ ajax.getXMLAnswer(handleAnswer);`,
       RULE,
       CLIENT,
     );
+  });
+
+  it("flags a statically non-string method value", () => {
+    for (const value of ["false", "42", "{}", "[]"]) {
+      assertInvalid(
+        `var ajax = new GlideAjax("x_acme.UserLookup");
+ajax.addParam("sysparm_name", ${value});
+ajax.getXMLAnswer(handleAnswer);`,
+        RULE,
+        { messageId: "invalidValue" },
+        CLIENT,
+      );
+    }
+  });
+
+  it("treats missing and non-string keys as definitely absent", () => {
+    for (const key of ["", "null", "false", "42", "{}", "[]"]) {
+      const argument = key === "" ? "" : key;
+      assertInvalid(
+        `var ajax = new GlideAjax("x_acme.UserLookup");
+ajax.addParam(${argument});
+ajax.getXMLAnswer(handleAnswer);`,
+        RULE,
+        { messageId: "missingName" },
+        CLIENT,
+      );
+    }
   });
 
   it("keeps sibling aliases after one name is reassigned", () => {
@@ -305,7 +392,7 @@ while (incident.next()) {
 }`,
       RULE,
       { messageId: "nestedQuery" },
-      SERVER,
+      { ...SERVER, settings: { scope: "global", release: "zurich" } },
     );
   });
 });
@@ -317,7 +404,15 @@ describe("require-query-before-next executors", () => {
 gr.getAsync(id);
 gr.next();`,
       "require-query-before-next",
-      SERVER,
+      { ...SERVER, settings: { scope: "global", release: "zurich" } },
+    );
+    assertInvalid(
+      `var gr = new GlideRecord("incident");
+gr.getAsync(id);
+gr.next();`,
+      "require-query-before-next",
+      { messageId: "missingQuery" },
+      { ...SERVER, settings: { scope: "scoped", release: "zurich" } },
     );
   });
 });

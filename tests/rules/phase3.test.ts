@@ -2,7 +2,10 @@ import { describe, it } from "node:test";
 import { assertInvalid, assertValid } from "../helpers/rule-tester.js";
 
 const SERVER = { filename: "incident.br.js" };
-const FULL = { filename: "incident.br.js", settings: { businessRuleSourceFormat: "full-script" as const } };
+const FULL = {
+  filename: "incident.br.js",
+  settings: { businessRuleSourceFormat: "full-script" as const },
+};
 
 describe("no-glideelement-in-collection", () => {
   const RULE = "no-glideelement-in-collection" as const;
@@ -125,6 +128,58 @@ while (ready ?? incident.next()) numbers.push(incident.number);`;
     assertValid(nullish, RULE, SERVER);
   });
 
+  it("tracks every cursor required by a truthy conjunction", () => {
+    assertInvalid(
+      `var values = [];
+var a = new GlideRecord("incident");
+var b = new GlideRecord("task");
+a.query();
+b.query();
+while (a.next() && b.next()) values.push(a.number);`,
+      RULE,
+      { messageId: "retained" },
+      SERVER,
+    );
+  });
+
+  it("finds retained fields inside nested literals", () => {
+    assertInvalid(
+      `var values = [];
+var gr = new GlideRecord("incident");
+gr.query();
+while (gr.next()) values.push({ fields: [gr.number] });`,
+      RULE,
+      { messageId: "retained" },
+      SERVER,
+    );
+  });
+
+  it("does not trust a shadowed String extractor", () => {
+    assertInvalid(
+      `function String(value) { return value; }
+var values = [];
+var gr = new GlideRecord("incident");
+gr.query();
+while (gr.next()) values.push(String(gr.number));`,
+      RULE,
+      { messageId: "retained" },
+      SERVER,
+    );
+    assertInvalid(
+      `var Formatter = class String {
+  run() {
+    var values = [];
+    var gr = new GlideRecord("incident");
+    gr.query();
+    while (gr.next()) values.push(String(gr.number));
+  }
+};`,
+      RULE,
+      { messageId: "retained" },
+      SERVER,
+    );
+  });
+
   it("skips client files", () => {
     assertValid(
       `var numbers = [];
@@ -232,8 +287,8 @@ consumeSecondResult(gr);`,
     );
   });
 
-  it("stays silent when only one branch consumes", () => {
-    assertValid(
+  it("reports when a conditional re-query leaves one stale-result path", () => {
+    assertInvalid(
       `var incident = new GlideRecord("incident");
 incident.query();
 incident.addQuery("active", true);
@@ -242,6 +297,7 @@ if (ready) {
 }
 incident.next();`,
       RULE,
+      { messageId: "lateModifier" },
       SERVER,
     );
   });
@@ -771,6 +827,20 @@ while (incident.next()) {
       SERVER,
     );
   });
+
+  it("tracks cursor advancement in a for update on later iterations", () => {
+    assertInvalid(
+      `var cursor = new GlideRecord("incident");
+var inner = new GlideRecord("task");
+cursor.query();
+for (; keepGoing; cursor.next()) {
+  inner.query();
+}`,
+      RULE,
+      { messageId: "nestedQuery" },
+      SERVER,
+    );
+  });
 });
 
 describe("cursor condition implications", () => {
@@ -793,7 +863,12 @@ describe("no-system-query-bypass", () => {
   const RULE = "no-system-query-bypass" as const;
 
   it("flags documented bypass methods", () => {
-    for (const method of ["addSystemQuery", "addSystemEncodedQuery", "addSystemOrderBy", "addSystemOrderByDesc"]) {
+    for (const method of [
+      "addSystemQuery",
+      "addSystemEncodedQuery",
+      "addSystemOrderBy",
+      "addSystemOrderByDesc",
+    ]) {
       assertInvalid(
         `var user = new GlideRecord("sys_user");
 user.${method}("active", true);
@@ -846,6 +921,39 @@ user.query();`,
       `var user = new GlideRecord("sys_user");
 var rec = user;
 rec["addSystemQuery"]("active", true);`,
+      RULE,
+      { messageId: "bypass" },
+      SERVER,
+    );
+  });
+
+  it("flags folded, dynamic, extracted, and escaped bypass access", () => {
+    assertInvalid(
+      `var user = new GlideRecord("sys_user");
+user["addSystem" + "Query"]("active=true");`,
+      RULE,
+      { messageId: "bypass" },
+      SERVER,
+    );
+    assertInvalid(
+      `var user = new GlideRecord("sys_user");
+user[method]("active=true");`,
+      RULE,
+      { messageId: "possibleBypass" },
+      SERVER,
+    );
+    assertInvalid(
+      `var user = new GlideRecord("sys_user");
+var bypass = user.addSystemQuery;
+bypass.call(user, "active=true");`,
+      RULE,
+      { messageId: "bypass" },
+      SERVER,
+    );
+    assertInvalid(
+      `var user = new GlideRecord("sys_user");
+prepare(user);
+user.addSystemQuery("active=true");`,
       RULE,
       { messageId: "bypass" },
       SERVER,

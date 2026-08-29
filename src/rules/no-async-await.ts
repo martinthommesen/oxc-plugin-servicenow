@@ -15,7 +15,8 @@ export const noAsyncAwait = defineRule({
     messages: {
       asyncFn:
         "Async functions are not supported in Compatibility or ES5 Standards mode. Rewrite this as a synchronous Glide script, or set `javascriptMode` to `es2021`.",
-      awaitExpr: "`await` is not supported in Compatibility or ES5 Standards mode.",
+      awaitExpr:
+        "`await` is not supported in Compatibility or ES5 Standards mode. Rewrite with synchronous control flow, or set `javascriptMode` to `es2021`.",
     },
   },
   createOnce(context) {

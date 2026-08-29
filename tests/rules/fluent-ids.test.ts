@@ -75,6 +75,40 @@ CatalogItem({ $id: Now.ID["software-request"], variableSet: id });`,
     );
   });
 
+  it("flags immutable namespace aliases used as references", () => {
+    assertInvalid(
+      `const SDK = Now;
+const IDs = SDK.ID;
+const MoreIDs = IDs;
+consume(SDK.ID["first"]);
+consume(MoreIDs["second"]);`,
+      REF,
+      { messageId: "asReference", count: 2 },
+      NOW,
+    );
+  });
+
+  it("accepts wrapped identity sinks", () => {
+    assertValid(
+      `const id = (Now.ID["wrapped"] as unknown)!;
+BusinessRule({ $id: (id satisfies unknown) });
+const config = {};
+config.$id = (id as unknown);`,
+      REF,
+      NOW,
+    );
+  });
+
+  it("reports reading an identity on the left of a compound assignment", () => {
+    assertInvalid(
+      `let id = Now.ID["compound-left"];
+id += "suffix";`,
+      REF,
+      { messageId: "asReference" },
+      NOW,
+    );
+  });
+
   it("flags nested metadata objects", () => {
     assertInvalid(
       `Flow({
@@ -107,11 +141,9 @@ Record({ $id: id });`,
   });
 
   it("skips non-.now.ts files", () => {
-    assertValid(
-      `CatalogItem({ variableSet: Now.ID["user-information"] });`,
-      REF,
-      { filename: "legacy.js" },
-    );
+    assertValid(`CatalogItem({ variableSet: Now.ID["user-information"] });`, REF, {
+      filename: "legacy.js",
+    });
   });
 });
 
@@ -179,6 +211,19 @@ BusinessRule({ $id: id, name: "A", table: "incident" });
 BusinessRule({ $id: id, name: "B", table: "incident" });`,
       DUP,
       { messageId: "duplicate" },
+    );
+  });
+
+  it("resolves duplicate keys through namespace aliases", () => {
+    assertInvalid(
+      `const SDK = Now;
+const IDs = SDK.ID;
+const MoreIDs = IDs;
+BusinessRule({ $id: SDK.ID["shared-alias"], name: "A" });
+BusinessRule({ $id: MoreIDs["shared-alias"], name: "B" });`,
+      DUP,
+      { messageId: "duplicate" },
+      NOW,
     );
   });
 

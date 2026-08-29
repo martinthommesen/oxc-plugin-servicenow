@@ -17,7 +17,8 @@ import {
   security,
   securityRules,
 } from "./configs/profiles.js";
-import { PACKAGE_NAME, PACKAGE_VERSION, PLUGIN_NAME } from "./constants.js";
+import { PACKAGE_VERSION, PLUGIN_NAME } from "./constants.js";
+import { BUSINESS_RULE_FILE_GLOBS, CLIENT_FILE_GLOBS } from "./context/filename.js";
 import { rules } from "./rules/index.js";
 
 const defined = definePlugin({
@@ -39,13 +40,7 @@ const plugin = eslintCompatPlugin(defined) as typeof defined & {
 };
 
 // ESLint 10 defaults to JS/CJS/MJS only and would skip Fluent *.now.ts.
-const ESLINT_FLAT_FILES = [
-  "**/*.js",
-  "**/*.cjs",
-  "**/*.mjs",
-  "**/*.now.ts",
-  "**/*.now.tsx",
-];
+const ESLINT_FLAT_FILES = ["**/*.js", "**/*.cjs", "**/*.mjs", "**/*.now.ts", "**/*.now.tsx"];
 
 function flatConfig(
   name: string,
@@ -63,8 +58,6 @@ function flatConfig(
 }
 
 const CLASSIC_FILES = ["**/*.js", "**/*.cjs", "**/*.mjs"];
-const CLIENT_FILES = ["**/*.client.js", "**/*.client.cjs", "**/*.client.mjs"];
-const BUSINESS_RULE_FILES = ["**/*.br.js", "**/*.br.cjs", "**/*.br.mjs"];
 const FLUENT_FILES = ["**/*.now.ts", "**/*.now.tsx"];
 
 export const configs = {
@@ -108,13 +101,13 @@ export const configs = {
       "client",
       clientRules,
       { authoring: "classic", surfaces: ["client"] },
-      CLIENT_FILES,
+      CLIENT_FILE_GLOBS,
     ),
     businessRule: flatConfig(
       "business-rule",
       businessRuleRules,
       { authoring: "classic", surfaces: ["business-rule"] },
-      BUSINESS_RULE_FILES,
+      BUSINESS_RULE_FILE_GLOBS,
     ),
     fluent: flatConfig("fluent", fluentRules, { authoring: "fluent" }, FLUENT_FILES),
   },
@@ -124,46 +117,6 @@ plugin.configs = configs;
 plugin.meta = { name: PLUGIN_NAME, version: PACKAGE_VERSION };
 
 export default plugin;
-export { plugin, rules };
-export { recommendedOxfmtConfig, recommended as oxfmtRecommended } from "./oxfmt/index.js";
-export { applyRules } from "./runtime/apply-rules.js";
-export { ruleCatalog } from "./catalog.js";
-export { PACKAGE_NAME, PACKAGE_VERSION, PLUGIN_NAME } from "./constants.js";
-export { getScriptContext, resolveScriptContext } from "./context/index.js";
-export {
-  validateServiceNowSettings,
-  ServiceNowSettingsError,
-  ServiceNowConfigError,
-  isSupportedServiceNowRelease,
-  SUPPORTED_SERVICENOW_RELEASES,
-} from "./settings/index.js";
-export {
-  parseRuleOptions,
-  schemaFromDescriptor,
-  optionDocsFromDescriptor,
-  RULE_OPTION_DESCRIPTORS,
-} from "./options/index.js";
-export {
-  DEFAULT_FLUENT_MANIFEST,
-  CURRENT_FLUENT_SDK_VERSION,
-  SUPPORTED_FLUENT_SDK_VERSIONS,
-  resolveFluentManifest,
-} from "./fluent/index.js";
-export { ENGINE_FEATURES } from "./engine/index.js";
-export {
-  GLIDE_API_RELEASE,
-  GLIDE_RECORD_METHODS,
-  GLIDE_SYSTEM_BYPASS_METHODS,
-} from "./glide/index.js";
-export type {
-  ServiceNowSettings,
-  ServiceNowRelease,
-  ServiceNowScriptContext,
-  ScriptKind,
-  ScriptSurface,
-  JavaScriptMode,
-  BusinessRuleWhen,
-  RuleConfigMap,
-} from "./types.js";
+export { plugin };
+export type { ServiceNowSettings, RuleConfigMap } from "./types.js";
 export type { RuleName } from "./rules/index.js";
-export type { LintMessage, LintSourceOptions } from "./runtime/apply-rules.js";

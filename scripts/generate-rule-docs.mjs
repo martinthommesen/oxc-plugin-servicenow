@@ -6,9 +6,11 @@ import { pathToFileURL } from "node:url";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 const { ruleCatalog } = await import(pathToFileURL(join(root, "src/catalog.ts")).href);
-const { DEFAULT_FLUENT_MANIFEST, SUPPORTED_FLUENT_SDK_VERSIONS, CURRENT_FLUENT_SDK_VERSION } = await import(
-  pathToFileURL(join(root, "src/fluent/index.ts")).href
+const presets110 = JSON.parse(
+  await readFile(join(root, "tests/fixtures/presets-1.1.0.json"), "utf8"),
 );
+const { DEFAULT_FLUENT_MANIFEST, SUPPORTED_FLUENT_SDK_VERSIONS, CURRENT_FLUENT_SDK_VERSION } =
+  await import(pathToFileURL(join(root, "src/fluent/index.ts")).href);
 const {
   businessRuleRules,
   classicEs5Rules,
@@ -16,7 +18,6 @@ const {
   es2021Rules,
   fluentRules,
   recommendedRules,
-  securityRules,
   strictRules,
 } = await import(pathToFileURL(join(root, "src/configs/maps.ts")).href);
 
@@ -62,11 +63,53 @@ function replaceMarkedSection(source, name, body) {
   return source.replace(pattern, `${start}\n${body.trim()}\n${end}`);
 }
 
-function recommendedRulesJson() {
-  const lines = Object.entries(recommendedRules).map(
-    ([id, severity]) => `    ${JSON.stringify(id)}: ${JSON.stringify(severity)}`,
-  );
-  return `{\n${lines.join(",\n")}\n  }`;
+const profileExport = {
+  recommended: "configs.recommendedRules",
+  strict: "configs.strictRules",
+  "classic-es5": "configs.classicEs5Rules",
+  es2021: "configs.es2021Rules",
+  client: "configs.clientRules",
+  "business-rule": "configs.businessRuleRules",
+  fluent: "configs.fluentRules",
+  policy: "configs.policyRules",
+  security: "configs.securityRules",
+};
+
+function migrationTable() {
+  const current = { recommended: recommendedRules, strict: strictRules };
+  const rows = [];
+  for (const preset of ["recommended", "strict"]) {
+    const oldMap = presets110[preset];
+    const currentMap = current[preset];
+    const ruleIds = new Set([...Object.keys(oldMap), ...Object.keys(currentMap)]);
+    for (const ruleId of [...ruleIds].sort()) {
+      const oldSeverity = oldMap[ruleId] ?? "off";
+      const newSeverity = currentMap[ruleId] ?? "off";
+      if (oldSeverity === newSeverity) continue;
+      const rule = ruleCatalog.find((item) => item.ruleId === ruleId);
+      const replacements =
+        rule?.placements
+          .filter((item) => item.profile !== preset)
+          .map((item) => `${profileExport[item.profile]} (${item.severity})`)
+          .join("<br>") || "Enable the rule explicitly";
+      let action;
+      if (ruleId === "servicenow/validate-gliderecord-calls") {
+        action = "Replace it with `servicenow/require-query-before-next`.";
+      } else if (newSeverity === "off") {
+        action = `Select ${replacements}.`;
+      } else {
+        action = `Review the ${oldSeverity}-to-${newSeverity} severity change.`;
+      }
+      rows.push(
+        `| \`${ruleId}\` | ${preset} | ${oldSeverity} | ${newSeverity} | ${replacements} | ${action} |`,
+      );
+    }
+  }
+  return [
+    "| Rule | 1.1 preset | 1.1 | 2.0 | Replacement profile | Required action |",
+    "| --- | --- | --- | --- | --- | --- |",
+    ...rows,
+  ].join("\n");
 }
 
 async function writeRuleDocs() {
@@ -81,8 +124,7 @@ async function writeRuleDocs() {
       .join("\n");
     const good = rule.good
       .map(
-        (ex) =>
-          `### Correct: ${ex.name}\n\n\`\`\`${fenceLang(ex.filename)}\n${ex.code}\n\`\`\`\n`,
+        (ex) => `### Correct: ${ex.name}\n\n\`\`\`${fenceLang(ex.filename)}\n${ex.code}\n\`\`\`\n`,
       )
       .join("\n");
     const evidence =
@@ -90,7 +132,7 @@ async function writeRuleDocs() {
         ? rule.evidence
             .map(
               (item) =>
-                `- **${item.claim}**\n  - URL: ${item.url}\n  - Verified by: ${item.verifiedBy}\n  - Verified at: ${item.verifiedAt}`,
+                `- **${item.claim}**\n  - Verification ID: \`${item.verificationId}\`\n  - URL: ${item.url}\n  - Verified by: ${item.verifiedBy}\n  - Verified at: ${item.verifiedAt}`,
             )
             .join("\n")
         : "- None recorded. Add an authoritative ServiceNow or Oxc link before expanding this rule.";
@@ -102,8 +144,14 @@ async function writeRuleDocs() {
       rule.falseNegatives.length > 0
         ? rule.falseNegatives.map((item) => `- ${item}`).join("\n")
         : "- None recorded.";
+    const scopeBoundaries =
+      rule.scopeBoundaries.length > 0
+        ? rule.scopeBoundaries.map((item) => `- ${item}`).join("\n")
+        : "- None recorded.";
     const overlaps =
-      rule.overlaps.length > 0 ? rule.overlaps.map((item) => `- \`${item}\``).join("\n") : "- None recorded.";
+      rule.overlaps.length > 0
+        ? rule.overlaps.map((item) => `- \`${item}\``).join("\n")
+        : "- None recorded.";
     const modes =
       rule.applicability.javascriptModes === "n/a"
         ? "n/a"
@@ -178,6 +226,10 @@ ${falsePositives}
 
 ${falseNegatives}
 
+## Intentional scope boundaries
+
+${scopeBoundaries}
+
 ## Overlaps
 
 ${overlaps}
@@ -230,6 +282,7 @@ async function writeReadmeTables() {
   readme = replaceMarkedSection(readme, "classic-rules", classic);
   readme = replaceMarkedSection(readme, "engine-rules", engine);
   readme = replaceMarkedSection(readme, "fluent-rules", fluent);
+  readme = replaceMarkedSection(readme, "migration-1.1-to-2.0", migrationTable());
   await writeFile(readmePath, readme);
   console.log("updated README rule tables");
 }
@@ -249,6 +302,10 @@ function rulesForGeneratedConfig(path) {
 
 async function writeOxlintrcRules(path, specifierComment, rules = rulesForGeneratedConfig(path)) {
   const current = JSON.parse(await readFile(path, "utf8"));
+  if (path.replaceAll("\\", "/").includes("/examples/")) {
+    current.$schema = "./node_modules/oxlint/configuration_schema.json";
+    current.jsPlugins = [{ name: "servicenow", specifier: "oxc-plugin-servicenow" }];
+  }
   current.rules = rules;
   await writeFile(path, `${JSON.stringify(current, null, 2)}\n`);
   console.log("updated", specifierComment, path);

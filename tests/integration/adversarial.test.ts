@@ -4,7 +4,13 @@ import path from "node:path";
 import { describe, it } from "node:test";
 import { Linter } from "eslint";
 import { configs } from "../../src/index.js";
-import { pluginRuleId, pluginRulesFor, repoRoot, runOxlint, type OxlintDiagnostic } from "./helpers.js";
+import {
+  pluginRuleId,
+  pluginRulesFor,
+  repoRoot,
+  runOxlint,
+  type OxlintDiagnostic,
+} from "./helpers.js";
 
 const profilesDir = path.join(repoRoot, "tests/integration/profiles");
 const recommendedConfig = path.join(profilesDir, "configs/recommended.oxlintrc.json");
@@ -52,7 +58,9 @@ function assertHostFinding(input: {
     `oxlint ${input.file}: message ${oxlintRule[0]?.message}`,
   );
 
-  const eslint = eslintMessages(code, input.file).filter((message) => message.ruleId === input.rule);
+  const eslint = eslintMessages(code, input.file).filter(
+    (message) => message.ruleId === input.rule,
+  );
   assert.equal(
     eslint.length,
     1,
@@ -60,7 +68,10 @@ function assertHostFinding(input: {
   );
   assert.equal(eslint[0]?.messageId, input.messageId, `eslint ${input.file}: messageId`);
   assert.equal(eslint[0]?.line, input.line, `eslint ${input.file}: line`);
-  assert.ok(eslint[0]?.message.includes(input.includes), `eslint ${input.file}: message ${eslint[0]?.message}`);
+  assert.ok(
+    eslint[0]?.message.includes(input.includes),
+    `eslint ${input.file}: message ${eslint[0]?.message}`,
+  );
 }
 
 describe("adversarial host binding and control-flow", () => {

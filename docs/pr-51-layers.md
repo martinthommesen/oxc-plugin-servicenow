@@ -5,7 +5,7 @@ This document assigns the #51 change set to independently reviewable layers. PR 
 ## Dependency graph
 
 ```
-1 Context, settings, catalog
+1 Context, settings, options
         ↓
 2 Binding, object identity, provenance, control flow
         ↓
@@ -22,17 +22,17 @@ This document assigns the #51 change set to independently reviewable layers. PR 
 
 Each layer has its own tests. Later layers consume earlier contracts and must not reintroduce name-keyed analysis.
 
-## Layer 1 — Context, settings, and catalog foundation
+## Layer 1 — Context, settings, and option foundation
 
-**Owns:** `src/settings/`, `src/context/`, `src/catalog.ts`, `src/options/`, `src/types.ts`, filename classification, `ServiceNowSettingsError`.
+**Owns:** `src/settings/`, `src/context/`, `src/options/`, `src/types.ts`, filename classification, `ServiceNowSettingsError`.
 
 **Contract:** Unknown context stays unknown. Contradictory settings throw. Shared defaults are deeply immutable. Rule options parse from one descriptor.
 
-**Rollback:** Revert settings/context/catalog commits. Do not keep rules that depend on the new settings object.
+**Rollback:** Revert settings, context, and option commits. Do not keep rules that depend on the new settings object.
 
 ## Layer 2 — Lexical binding, object identity, provenance, and control flow
 
-**Owns:** `src/analysis/file-analysis.ts`, `src/analysis/path-state.ts`, `src/analysis/bindings.ts`, `src/analysis/provenance.ts`.
+**Owns:** `src/analysis/` except `src/analysis/now-id.ts` and `src/analysis/fluent-imports.ts`.
 
 **Contract:** Binding identity is not object identity. Joins intersect must-facts and union risk. Abrupt completion does not flow into later statements. Analysis runs once per source file.
 
@@ -73,7 +73,7 @@ Each layer has its own tests. Later layers consume earlier contracts and must no
 | Path prefix | Layer |
 | --- | --- |
 | `src/settings/`, `src/options/`, `src/context/`, `src/types.ts` | 1 |
-| `src/analysis/` | 2 |
+| `src/analysis/` except `src/analysis/now-id.ts` and `src/analysis/fluent-imports.ts` | 2 |
 | `src/rules/` classic stateful + `src/glide/` | 3 |
 | `src/fluent/`, Fluent rules, `src/analysis/now-id.ts`, `src/analysis/fluent-imports.ts` | 4 |
 | `src/catalog.ts`, `src/catalog-metadata.ts`, `docs/rules/`, `scripts/generate-rule-docs.mjs`, `scripts/check-catalog-docs.mjs` | 5 |

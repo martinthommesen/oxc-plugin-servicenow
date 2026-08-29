@@ -56,15 +56,19 @@ current.u_opened = new GlideDateTime();
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False positive: Local objects with a now method that is not the platform gs binding. False negative: gs aliases that escape before the call.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-boundary: Local objects named gs are not the platform global.
 
 ## Known false positives
 
-- Local objects with a now method that is not the platform gs binding.
+- None recorded.
 
 ## Known false negatives
 
-- gs aliases that escape before the call.
+- None recorded.
+
+## Intentional scope boundaries
+
+- Local objects named gs are not the platform global.
 
 ## Overlaps
 
@@ -78,10 +82,12 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False p
 ## Evidence
 
 - **gs.now() and gs.nowDateTime() return display strings, not GlideDateTime objects.**
+  - Verification ID: `rule-evidence-f4c2d565`
   - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideDateTimeAPI.html
-  - Verified by: declaration-snapshot
+  - Verified by: manual
   - Verified at: 2026-08-20
 - **Host fixtures report gs.now on Business Rule files.**
+  - Verification ID: `rule-evidence-2bea52fc`
   - URL: tests/integration/fixtures/bad-business-rule.br.js
   - Verified by: integration-test
   - Verified at: 2026-08-20

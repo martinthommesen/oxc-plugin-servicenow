@@ -1,13 +1,16 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
-import { staticPropertyName } from "../analysis/index.js";
+import { staticPropertyName } from "../analysis/internal.js";
 import { isFluentContext, isInstanceScript } from "../context/index.js";
 import { ruleDocsUrl } from "../constants.js";
 import { beginRuleFile } from "./helpers.js";
 
 const RELATIONAL = new Set(["<", ">", "<=", ">=", "-"]);
 
-function isDisplayValueCall(node: ESTree.Node, analysis: ReturnType<typeof beginRuleFile>["analysis"]): boolean {
+function isDisplayValueCall(
+  node: ESTree.Node,
+  analysis: ReturnType<typeof beginRuleFile>["analysis"],
+): boolean {
   if (node.type !== "CallExpression") return false;
   const call = node as ESTree.CallExpression;
   if (staticPropertyName(call.callee) !== "getDisplayValue") return false;
@@ -39,7 +42,10 @@ export const noDisplayValueDateComparison = defineRule({
         const { analysis } = beginRuleFile(context);
         const expr = node as ESTree.BinaryExpression;
         if (!RELATIONAL.has(expr.operator)) return;
-        if (isDisplayValueCall(expr.left as ESTree.Node, analysis) || isDisplayValueCall(expr.right as ESTree.Node, analysis)) {
+        if (
+          isDisplayValueCall(expr.left as ESTree.Node, analysis) ||
+          isDisplayValueCall(expr.right as ESTree.Node, analysis)
+        ) {
           context.report({ node, messageId: "displayCompare", data: { op: expr.operator } });
         }
       },

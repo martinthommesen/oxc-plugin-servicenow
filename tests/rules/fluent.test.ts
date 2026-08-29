@@ -1,3 +1,4 @@
+import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { assertInvalid, assertValid, lint } from "../helpers/rule-tester.js";
 
@@ -37,9 +38,13 @@ describe("fluent-proper-imports", () => {
   });
 
   it("does not rewrite a wrong-module import", () => {
-    const messages = lint(`import { BusinessRule } from "@servicenow/sdk";`, "fluent-proper-imports", {
-      filename: NOW,
-    });
+    const messages = lint(
+      `import { BusinessRule } from "@servicenow/sdk";`,
+      "fluent-proper-imports",
+      {
+        filename: NOW,
+      },
+    );
     if (!messages.every((message) => message.fixedSource === undefined)) {
       throw new Error("expected no autofix");
     }
@@ -157,6 +162,16 @@ describe("prefer-now-include", () => {
     );
   });
 
+  it("allows Now.include through an immutable Now alias", () => {
+    assertValid(
+      `import { BusinessRule } from "@servicenow/sdk/core";
+const SDK = Now;
+BusinessRule({ $id: SDK.ID["x"], script: (SDK.include("./x.server.js")) });`,
+      "prefer-now-include",
+      { filename: NOW },
+    );
+  });
+
   it("flags a large payload under a quoted script key", () => {
     const script = Array.from({ length: 10 }, (_, i) => `    gs.info(${i});`).join("\\n");
     assertInvalid(
@@ -181,6 +196,16 @@ describe("fluent-naming-convention", () => {
   it("flags a PascalCase Now.ID key", () => {
     assertInvalid(
       `import { BusinessRule } from "@servicenow/sdk/core";\nBusinessRule({ $id: Now.ID["LogState"] });`,
+      "fluent-naming-convention",
+      { messageId: "nowId" },
+      { filename: "log-state.now.ts" },
+    );
+  });
+
+  it("flags a PascalCase key through a Now.ID alias", () => {
+    assertInvalid(
+      `const IDs = Now.ID;
+BusinessRule({ $id: IDs["BadAliasKey"] });`,
       "fluent-naming-convention",
       { messageId: "nowId" },
       { filename: "log-state.now.ts" },
@@ -217,15 +242,25 @@ describe("no-complex-fluent-logic", () => {
 
 describe("fluent-directives", () => {
   it("flags a typo", () => {
-    assertInvalid(`// @fluent-ignre\nexport const demo = 1;\n`, "fluent-directives", {
-      messageId: "typo",
-    }, { filename: NOW });
+    assertInvalid(
+      `// @fluent-ignre\nexport const demo = 1;\n`,
+      "fluent-directives",
+      {
+        messageId: "typo",
+      },
+      { filename: NOW },
+    );
   });
 
   it("flags @ts-ignore", () => {
-    assertInvalid(`// @ts-ignore\nexport const demo = 1;\n`, "fluent-directives", {
-      messageId: "tsIgnore",
-    }, { filename: NOW });
+    assertInvalid(
+      `// @ts-ignore\nexport const demo = 1;\n`,
+      "fluent-directives",
+      {
+        messageId: "tsIgnore",
+      },
+      { filename: NOW },
+    );
   });
 
   it("allows @fluent-disable-sync", () => {
@@ -250,6 +285,92 @@ describe("fluent-directives", () => {
       "fluent-directives",
       { messageId: "firstLine" },
       { filename: NOW },
+    );
+  });
+
+  it("requires exact adjacency", () => {
+    assertInvalid(
+      `// @fluent-ignore\n\nexport const demo = 1;\n`,
+      "fluent-directives",
+      { messageId: "misplaced" },
+      { filename: NOW },
+    );
+    assertInvalid(
+      `// @fluent-disable-sync\n// unrelated\nexport const demo = 1;\n`,
+      "fluent-directives",
+      { messageId: "misplaced" },
+      { filename: NOW },
+    );
+  });
+
+  it("attaches inside nested statement lists", () => {
+    assertValid(`function run() {\n  // @fluent-ignore\n  work();\n}\n`, "fluent-directives", {
+      filename: NOW,
+    });
+    assertInvalid(
+      `function run() {\n  // @fluent-ignore\n}\nwork();\n`,
+      "fluent-directives",
+      { messageId: "dangling" },
+      { filename: NOW },
+    );
+  });
+
+  it("handles one-line and multiline block comments", () => {
+    assertValid(`/* @fluent-ignore */\nexport const demo = 1;\n`, "fluent-directives", {
+      filename: NOW,
+    });
+    assertInvalid(
+      `/* @fluent-ignore\n */\nexport const demo = 1;\n`,
+      "fluent-directives",
+      { messageId: "misplaced" },
+      { filename: NOW },
+    );
+    const file = lint(
+      `/* heading\n * @fluent-disable-sync-for-file\n */\nexport const demo = 1;\n`,
+      "fluent-directives",
+      { filename: NOW },
+    );
+    assert.equal(file[0]?.messageId, "firstLine");
+    assert.deepEqual({ line: file[0]?.line, column: file[0]?.column }, { line: 2, column: 3 });
+  });
+
+  it("reports each directive at its exact occurrence", () => {
+    const source = `\uFEFF  // @fluent-ignre @fluent-unknown\r\nexport const demo = 1;\r\n`;
+    const messages = lint(source, "fluent-directives", { filename: NOW });
+    assert.deepEqual(
+      messages.map((message) => message.messageId),
+      ["typo", "unknown"],
+    );
+    for (const [index, name] of ["@fluent-ignre", "@fluent-unknown"].entries()) {
+      const start = source.indexOf(name);
+      assert.deepEqual(
+        {
+          line: messages[index]?.line,
+          column: messages[index]?.column,
+          endLine: messages[index]?.endLine,
+          endColumn: messages[index]?.endColumn,
+        },
+        { line: 1, column: start, endLine: 1, endColumn: start + name.length },
+      );
+    }
+  });
+
+  it("reports the exact TypeScript directive occurrence", () => {
+    const message = lint(
+      `  // note @ts-expect-error\nexport const demo = 1;\n`,
+      "fluent-directives",
+      {
+        filename: NOW,
+      },
+    )[0];
+    assert.deepEqual(
+      {
+        messageId: message?.messageId,
+        line: message?.line,
+        column: message?.column,
+        endColumn: message?.endColumn,
+      },
+      { messageId: "tsIgnore", line: 1, column: 10, endColumn: 26 },
     );
   });
 });

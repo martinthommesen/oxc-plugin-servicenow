@@ -1,16 +1,61 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { getAnalysisPassCount, resetAnalysisPassCount } from "../../src/analysis/index.js";
+import type { ESTree } from "@oxlint/plugins";
+import { getAnalysisPassCount, resetAnalysisPassCount } from "../../src/analysis/internal.js";
+import { buildScopeTree } from "../../src/analysis/bindings.js";
+import {
+  getPathBudgetExceededCount,
+  resetPathBudgetExceededCount,
+} from "../../src/analysis/path-state.js";
 import { applyRules } from "../../src/runtime/apply-rules.js";
+import { walk } from "../../src/utils/ast.js";
 import { assertInvalid, assertValid, parse } from "../helpers/rule-tester.js";
 
 describe("shared file analysis", () => {
+  it("coalesces duplicate var declarations into one ordered binding", () => {
+    const parsed = parse("var rec; var rec = 1;", "duplicates.js");
+    const binding = buildScopeTree(parsed.ast as unknown as ESTree.Node).root?.bindings.get("rec");
+    assert.ok(binding);
+    assert.equal(binding.declarations.length, 2);
+    assert.equal(binding.declarations[0]?.start, 4);
+    assert.equal(binding.declarations[1]?.start, 13);
+  });
+
+  it("keeps static-block var declarations inside the static block", () => {
+    assertInvalid(
+      `var rec = new GlideRecord("incident");
+class Cache {
+  static { var rec = {}; }
+}
+rec.next();`,
+      "require-query-before-next",
+      { messageId: "missingQuery" },
+    );
+  });
+
   it("builds lexical and provenance analysis once per source object", () => {
     resetAnalysisPassCount();
     const code = `var gr = new GlideRecord("incident");\ngr.query();\ngr.next();`;
     const parsed = parse(code, "once.br.js");
     applyRules(code, parsed, { filename: "once.br.js" });
     assert.equal(getAnalysisPassCount(), 1);
+  });
+
+  it("keeps cached analysis distinct for each filename", () => {
+    resetAnalysisPassCount();
+    const code = `var gr = new GlideRecord("incident");\ncurrent.update();`;
+    const parsed = parse(code, "shared.js");
+    assert.equal(
+      applyRules(code, parsed, { filename: "form.client.js", ruleNames: ["no-client-gliderecord"] })
+        .length,
+      1,
+    );
+    assert.equal(
+      applyRules(code, parsed, { filename: "incident.br.js", ruleNames: ["no-br-current-update"] })
+        .length,
+      1,
+    );
+    assert.equal(getAnalysisPassCount(), 2);
   });
 
   it("keeps sibling aliases after one name is reassigned", () => {
@@ -32,6 +77,70 @@ gr.next();
 gr = {};`,
       "require-query-before-next",
       { messageId: "missingQuery" },
+    );
+  });
+
+  it("does not let a later closure capture change an earlier use", () => {
+    assertInvalid(
+      `var rec = new GlideRecord("incident");
+rec.next();
+var later = function () { return rec; };`,
+      "require-query-before-next",
+      { messageId: "missingQuery" },
+    );
+  });
+
+  it("does not execute an uncalled capturing function", () => {
+    assertInvalid(
+      `var rec = new GlideRecord("incident");
+function openLater() { rec.query(); }
+rec.next();`,
+      "require-query-before-next",
+      { messageId: "missingQuery" },
+    );
+  });
+
+  it("propagates direct helper effects at invocation time", () => {
+    assertValid(
+      `function open(record) { record.query(); }
+var rec = new GlideRecord("incident");
+open(rec);
+rec.next();`,
+      "require-query-before-next",
+    );
+  });
+
+  it("binds fresh records into directly invoked helpers", () => {
+    assertInvalid(
+      `function read(record) { record.next(); }
+read(new GlideRecord("incident"));`,
+      "require-query-before-next",
+      { messageId: "missingQuery", count: 1 },
+    );
+  });
+
+  it("keeps direct helper invocations state-specific", () => {
+    assertInvalid(
+      `function read(record) { record.next(); }
+var ready = new GlideRecord("incident");
+ready.query();
+read(ready);
+var unopened = new GlideRecord("problem");
+read(unopened);`,
+      "require-query-before-next",
+      { messageId: "missingQuery", count: 1 },
+    );
+  });
+
+  it("escapes closure captures only when the closure escapes", () => {
+    assertInvalid(
+      `var rec = new GlideRecord("incident");
+rec.next();
+var later = function () { rec.query(); };
+handoff(later);
+rec.next();`,
+      "require-query-before-next",
+      { messageId: "missingQuery", count: 1 },
     );
   });
 
@@ -79,9 +188,59 @@ gr.next();`,
       { messageId: "missingQuery" },
     );
   });
+
+  it("keeps named function-expression bindings inside the function", () => {
+    assertInvalid(
+      `var local = function GlideRecord() {
+  var inner = new GlideRecord("problem");
+  inner.next();
+};
+var outer = new GlideRecord("incident");
+outer.next();`,
+      "require-query-before-next",
+      { messageId: "missingQuery", count: 1 },
+    );
+  });
+
+  it("keeps named class-expression bindings inside the class", () => {
+    assertInvalid(
+      `var Local = class GlideRecord {
+  read() {
+    var inner = new GlideRecord("problem");
+    inner.next();
+  }
+};
+var outer = new GlideRecord("incident");
+outer.next();`,
+      "require-query-before-next",
+      { messageId: "missingQuery", count: 1 },
+    );
+  });
 });
 
 describe("path identity and completion", () => {
+  it("caps generic AST traversal depth", () => {
+    let node: Record<string, unknown> = { type: "Identifier", name: "value" };
+    for (let depth = 0; depth < 1_000; depth += 1) {
+      node = { type: "ExpressionStatement", expression: node };
+    }
+    let visited = 0;
+    walk(node, { ExpressionStatement: () => (visited += 1) });
+    assert.equal(visited, 512);
+  });
+
+  it("degrades pathological nested loops to unknown within the work budget", () => {
+    resetPathBudgetExceededCount();
+    const code = `var rec = new GlideRecord("incident");\n${"while (flag) {".repeat(400)}rec.next();${"}".repeat(400)}`;
+    const started = Date.now();
+    applyRules(code, parse(code, "nested.br.js"), {
+      filename: "nested.br.js",
+      ruleNames: ["require-query-before-next"],
+    });
+    assert.ok(getPathBudgetExceededCount() > 0);
+    assert.ok(Date.now() - started < 5_000, "path analysis exceeded five seconds");
+  });
+
   it("shares query state across aliases", () => {
     assertValid(
       `var gr = new GlideRecord("incident");
@@ -99,6 +258,16 @@ ready && gr.query();
 gr.next();`,
       "require-query-before-next",
       { messageId: "missingQuery" },
+    );
+  });
+
+  it("lets a definite query recover after a branch join", () => {
+    assertValid(
+      `var gr = new GlideRecord("incident");
+if (preload) gr.query();
+gr.query();
+gr.next();`,
+      "require-query-before-next",
     );
   });
 
@@ -242,6 +411,19 @@ rec.next();`,
     );
   });
 
+  it("reaches a loop fixed point before evaluating later iterations", () => {
+    assertInvalid(
+      `var rec = new GlideRecord("incident");
+rec.query();
+while (more) {
+  rec.next();
+  rec.addQuery("active", true);
+}`,
+      "no-gliderecord-query-modifier-after-query",
+      { messageId: "lateModifier", count: 1 },
+    );
+  });
+
   it("preserves object identity through equivalent expression results", () => {
     assertValid(
       `var rec = new GlideRecord("incident");
@@ -267,7 +449,217 @@ alias.next();`,
     );
   });
 
+  it("evaluates call arguments before applying the outer call", () => {
+    assertValid(
+      `var ajax = new GlideAjax("Lookup");
+ajax.getXMLAnswer(ajax.addParam("sysparm_name", "lookup"));`,
+      "require-glideajax-sysparm-name",
+      { filename: "form.client.js" },
+    );
+  });
 
+  it("evaluates computed assignment targets", () => {
+    assertValid(
+      `var rec = new GlideRecord("incident");
+cache[rec.query()] = true;
+rec.next();`,
+      "require-query-before-next",
+    );
+  });
+
+  it("does not treat a logical-assignment right side as definite", () => {
+    assertInvalid(
+      `var rec = new GlideRecord("incident");
+ready &&= rec.query();
+rec.next();`,
+      "require-query-before-next",
+      { messageId: "missingQuery" },
+    );
+  });
+
+  it("does not treat a destructuring default as definite", () => {
+    assertInvalid(
+      `var rec = new GlideRecord("incident");
+var { value = rec.query() } = source;
+rec.next();`,
+      "require-query-before-next",
+      { messageId: "missingQuery" },
+    );
+  });
+
+  it("evaluates computed destructuring keys before the binding write", () => {
+    assertValid(
+      `var rec = new GlideRecord("incident");
+var { [rec.query()]: value } = source;
+rec.next();`,
+      "require-query-before-next",
+    );
+  });
+
+  it("does not erase a value for an uninitialized var redeclaration", () => {
+    assertInvalid(
+      `var rec = new GlideRecord("incident");
+var rec;
+rec.deleteMultiple();`,
+      "no-unfiltered-gliderecord-bulk-operation",
+      { messageId: "unfiltered" },
+    );
+  });
+
+  it("invalidates an existing for-of assignment target", () => {
+    assertValid(
+      `var rec = new GlideRecord("incident");
+for (rec of records) {}
+rec.deleteMultiple();`,
+      "no-unfiltered-gliderecord-bulk-operation",
+    );
+  });
+
+  it("does not fabricate a catch path when no handler exists", () => {
+    assertValid(
+      `var rec = new GlideRecord("incident");
+try {
+  rec.query();
+} finally {}
+rec.next();`,
+      "require-query-before-next",
+    );
+  });
+
+  it("runs a catch handler only for a reachable throw", () => {
+    assertValid(
+      `var rec = new GlideRecord("incident");
+try {
+  throw (rec.query(), new Error("stop"));
+} catch (error) {}
+rec.next();`,
+      "require-query-before-next",
+    );
+  });
+
+  it("does not run a catch handler on a normal-only path", () => {
+    assertValid(
+      `var rec = new GlideRecord("incident");
+try {
+  rec.query();
+} catch (error) {
+  rec = new GlideRecord("problem");
+}
+rec.next();`,
+      "require-query-before-next",
+    );
+  });
+
+  it("lets an abrupt finalizer override an earlier normal completion", () => {
+    assertValid(
+      `function run() {
+  var rec = new GlideRecord("incident");
+  try {
+    rec.query();
+  } finally {
+    return;
+  }
+  rec.next();
+}`,
+      "require-query-before-next",
+    );
+  });
+
+  it("preserves an earlier abrupt completion through a normal finalizer", () => {
+    assertValid(
+      `function run() {
+  var rec = new GlideRecord("incident");
+  try {
+    return;
+  } finally {
+    rec.query();
+  }
+  rec.next();
+}`,
+      "require-query-before-next",
+    );
+  });
+
+  it("accepts an exhaustive switch when every case opens the cursor", () => {
+    assertValid(
+      `var rec = new GlideRecord("incident");
+switch (mode) {
+  case "one":
+    rec.query();
+    break;
+  default:
+    rec.query();
+}
+rec.next();`,
+      "require-query-before-next",
+    );
+  });
+
+  it("keeps switch fallthrough entry paths distinct", () => {
+    assertInvalid(
+      `var rec = new GlideRecord("incident");
+switch (mode) {
+  case "one":
+    rec.query();
+  default:
+    rec.next();
+}`,
+      "require-query-before-next",
+      { messageId: "missingQuery" },
+    );
+  });
+
+  it("keeps code after an exhaustive abrupt switch unreachable", () => {
+    assertValid(
+      `function run(mode) {
+  var rec = new GlideRecord("incident");
+  switch (mode) {
+    case "ready":
+      return rec.query();
+    default:
+      throw new Error("unsupported");
+  }
+  rec.next();
+}`,
+      "require-query-before-next",
+    );
+  });
+
+  it("continues after a break consumed by its label", () => {
+    assertInvalid(
+      `var rec = new GlideRecord("incident");
+done: {
+  break done;
+}
+rec.next();`,
+      "require-query-before-next",
+      { messageId: "missingQuery" },
+    );
+  });
+
+  it("keeps code after a provably infinite loop unreachable", () => {
+    assertValid(
+      `var rec = new GlideRecord("incident");
+while (true) {}
+rec.next();`,
+      "require-query-before-next",
+    );
+  });
+
+  it("analyzes one finally body across normal and return paths", () => {
+    assertInvalid(
+      `function run(stop) {
+  var rec = new GlideRecord("incident");
+  try {
+    if (stop) return;
+  } finally {
+    rec.next();
+  }
+}`,
+      "require-query-before-next",
+      { messageId: "missingQuery", count: 1 },
+    );
+  });
 });
 
 describe("unknown context", () => {
@@ -285,7 +677,10 @@ gr.deleteMultiple();`,
   it("stays silent on ordinary JavaScript without ServiceNow context", () => {
     const code = `var gr = new GlideRecord("task");\ngr.deleteMultiple();`;
     const parsed = parse(code, "util.js");
-    const messages = applyRules(code, parsed, { filename: "util.js", ruleNames: ["no-unfiltered-gliderecord-bulk-operation"] });
+    const messages = applyRules(code, parsed, {
+      filename: "util.js",
+      ruleNames: ["no-unfiltered-gliderecord-bulk-operation"],
+    });
     assert.deepEqual(messages, []);
   });
 });

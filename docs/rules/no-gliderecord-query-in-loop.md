@@ -60,7 +60,7 @@ while (incident.next()) {
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False negative: Unknown or escaped loop receivers stay silent. Lifecycle: Only a proven unescaped GlideRecord or GlideAggregate next() receiver establishes cursor depth.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. lifecycle: Only a proven unescaped GlideRecord or GlideAggregate next() receiver establishes cursor depth.
 
 ## Known false positives
 
@@ -68,7 +68,11 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False n
 
 ## Known false negatives
 
-- Unknown or escaped loop receivers stay silent.
+- None recorded.
+
+## Intentional scope boundaries
+
+- None recorded.
 
 ## Overlaps
 
@@ -82,14 +86,17 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False n
 ## Evidence
 
 - **query or get inside a next() loop is an N+1 pattern on the GlideRecord cursor.**
+  - Verification ID: `rule-evidence-93626115`
   - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html
-  - Verified by: declaration-snapshot
+  - Verified by: manual
   - Verified at: 2026-08-20
 - **Strict hosts report a nested query inside a proven cursor loop.**
+  - Verification ID: `rule-evidence-d3e2997d`
   - URL: tests/integration/profiles/invalid/nested-cursor-query.br.js
   - Verified by: integration-test
   - Verified at: 2026-08-20
 - **Custom iterators with next() do not establish cursor depth.**
+  - Verification ID: `rule-evidence-57475c2d`
   - URL: tests/integration/profiles/valid/custom-iterator-loop.br.js
   - Verified by: integration-test
   - Verified at: 2026-08-20

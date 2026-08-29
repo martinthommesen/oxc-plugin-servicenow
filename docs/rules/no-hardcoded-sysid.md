@@ -11,7 +11,7 @@ Hardcoded 32-character sys_ids break when an app is installed on another instanc
 - **Authoring:** classic
 - **Surfaces:** Applies to client, server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent.
 - **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
-- **Last verified:** 2026-08-20
+- **Last verified:** 2026-08-21
 - **Implementation:** [`src/rules/no-hardcoded-sysid.ts`](../../src/rules/no-hardcoded-sysid.ts)
 
 ## Applicability
@@ -53,16 +53,19 @@ current.assignment_group = assignmentGroup;
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False positive: MD5-like binding names when ignoreHashNames is true. False negative: Uppercase 32-hex strings are intentionally excluded by the lowercase-only matcher. False negative: sys_ids built by concatenation or runtime encoding.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
 
 ## Known false positives
 
-- MD5-like binding names when ignoreHashNames is true.
+- None recorded.
 
 ## Known false negatives
 
-- Uppercase 32-hex strings are intentionally excluded by the lowercase-only matcher.
-- sys_ids built by concatenation or runtime encoding.
+- None recorded.
+
+## Intentional scope boundaries
+
+- None recorded.
 
 ## Overlaps
 
@@ -77,13 +80,15 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False p
 ## Evidence
 
 - **Named Fluent Now.ID keys are the supported portable identity, not raw sys_id literals.**
+  - Verification ID: `rule-evidence-5b7be311`
   - URL: https://www.servicenow.com/docs/r/application-development/servicenow-sdk/fluent-constructs.html
-  - Verified by: declaration-snapshot
+  - Verified by: manual
   - Verified at: 2026-08-20
-- **Literal 32-hex strings report; settings and option allow-lists suppress.**
+- **Literal, uppercase, concatenated, and static-template sys_ids report; exact allow-lists and algorithm-specific hash contexts suppress.**
+  - Verification ID: `rule-evidence-5620fb82`
   - URL: tests/rules/no-hardcoded-sysid.test.ts
   - Verified by: fixture
-  - Verified at: 2026-08-20
+  - Verified at: 2026-08-21
 
 ## See also
 

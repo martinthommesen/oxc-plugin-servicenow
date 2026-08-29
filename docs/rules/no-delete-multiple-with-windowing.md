@@ -55,7 +55,7 @@ stale.deleteMultiple();
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False negative: Windowing applied through an escaped helper. Lifecycle: Window methods must resolve to the same GlideRecord object identity as deleteMultiple.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. lifecycle: Window methods must resolve to the same GlideRecord object identity as deleteMultiple.
 
 ## Known false positives
 
@@ -63,7 +63,11 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False n
 
 ## Known false negatives
 
-- Windowing applied through an escaped helper.
+- None recorded.
+
+## Intentional scope boundaries
+
+- None recorded.
 
 ## Overlaps
 
@@ -77,10 +81,12 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False n
 ## Evidence
 
 - **setLimit and chooseWindow do not limit deleteMultiple(); the call deletes every matching row.**
+  - Verification ID: `rule-evidence-5fe74792`
   - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html
-  - Verified by: declaration-snapshot
+  - Verified by: manual
   - Verified at: 2026-08-20
 - **Recommended hosts report windowed deleteMultiple.**
+  - Verification ID: `rule-evidence-49ec0528`
   - URL: tests/integration/profiles/invalid/windowed-delete.br.js
   - Verified by: integration-test
   - Verified at: 2026-08-20

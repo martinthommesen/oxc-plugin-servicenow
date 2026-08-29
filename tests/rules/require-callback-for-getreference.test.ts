@@ -46,7 +46,34 @@ describe("require-callback-for-getreference", () => {
 
   it("allows inline, arrow, and named callbacks", () => {
     assertValid(`g_form.getReference("caller_id", handleCaller);`, RULE, CLIENT);
-    assertValid(`g_form.getReference("caller_id", (caller) => g_form.setValue("u_manager", caller.manager));`, RULE, CLIENT);
+    assertValid(
+      `g_form.getReference("caller_id", (caller) => g_form.setValue("u_manager", caller.manager));`,
+      RULE,
+      CLIENT,
+    );
+    assertValid(
+      `function handleCaller(caller) { g_form.setValue("u_manager", caller.manager); }
+g_form.getReference("caller_id", handleCaller);`,
+      RULE,
+      CLIENT,
+    );
+    assertValid(
+      `const handleCaller = (caller) => g_form.setValue("u_manager", caller.manager);
+g_form.getReference("caller_id", handleCaller);`,
+      RULE,
+      CLIENT,
+    );
+  });
+
+  it("flags statically non-callable callbacks", () => {
+    for (const callback of ["false", "42", '"handler"', "{}", "[]"]) {
+      assertInvalid(
+        `g_form.getReference("caller_id", ${callback});`,
+        RULE,
+        { messageId: "invalidCallback" },
+        CLIENT,
+      );
+    }
   });
 
   it("supports a static computed member", () => {

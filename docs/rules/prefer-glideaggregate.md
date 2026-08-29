@@ -57,15 +57,19 @@ var count = ga.next() ? parseInt(ga.getAggregate("COUNT"), 10) : 0;
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False positive: Loops that read more than a count from each row. False negative: Count accumulation through helpers or aliased counters.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
 
 ## Known false positives
 
-- Loops that read more than a count from each row.
+- None recorded.
 
 ## Known false negatives
 
-- Count accumulation through helpers or aliased counters.
+- None recorded.
+
+## Intentional scope boundaries
+
+- None recorded.
 
 ## Overlaps
 
@@ -79,10 +83,12 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False p
 ## Evidence
 
 - **GlideAggregate is the documented API for count and group queries.**
+  - Verification ID: `rule-evidence-df414ab9`
   - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html
-  - Verified by: declaration-snapshot
+  - Verified by: manual
   - Verified at: 2026-08-20
 - **Iterate-to-count loops report; if (gr.next()) stays silent.**
+  - Verification ID: `rule-evidence-66fb1576`
   - URL: tests/rules/prefer-glideaggregate.test.ts
   - Verified by: fixture
   - Verified at: 2026-08-20

@@ -1,12 +1,22 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
 import { describe, it } from "node:test";
 import { repoRoot } from "./helpers.js";
 import { parseNpmPackJson } from "../../scripts/parse-npm-pack.mjs";
+
+const EXAMPLE_PROJECTS = [
+  "business-rule",
+  "classic-compatibility",
+  "classic-es5",
+  "client",
+  "es2021",
+  "fluent",
+  "mixed",
+  "ui-action",
+];
 
 function ensureBuiltDist(): void {
   try {
@@ -48,6 +58,7 @@ describe("packed package consumer", () => {
     try {
       assert.ok(files.includes("package/package.json"));
       assert.ok(files.includes("package/dist/index.js"));
+      assert.ok(files.includes("package/dist/analysis/index.js"));
       assert.ok(files.includes("package/dist/oxfmt/index.js"));
       assert.ok(files.includes("package/oxfmt.recommended.json"));
       assert.ok(files.includes("package/README.md"));
@@ -61,10 +72,11 @@ describe("packed package consumer", () => {
         path.join(consumer, "package.json"),
         JSON.stringify({ name: "sn-oxc-consumer", private: true, type: "module" }, null, 2),
       );
-      execFileSync("npm", ["install", tarball, "oxlint@1.79.0", "eslint@10.8.1", "oxfmt@0.64.0"], {
-        cwd: consumer,
-        encoding: "utf8",
-      });
+      execFileSync(
+        "npm",
+        ["install", tarball, "oxlint@1.79.0", "eslint@10.8.1", "oxfmt@0.64.0", "typescript@7.0.2"],
+        { cwd: consumer, encoding: "utf8" },
+      );
 
       const installed = path.join(consumer, "node_modules/oxc-plugin-servicenow");
       const pkg = JSON.parse(readFileSync(path.join(installed, "package.json"), "utf8")) as {
@@ -74,23 +86,113 @@ describe("packed package consumer", () => {
       };
       assert.equal(pkg.name, "oxc-plugin-servicenow");
       assert.ok(pkg.exports["."]);
+      assert.ok(pkg.exports["./analysis"]);
       assert.ok(pkg.exports["./oxfmt"]);
       assert.ok(pkg.exports["./oxfmt.recommended.json"]);
 
-      const plugin = (await import(pathToFileURL(path.join(installed, "dist/index.js")).href)) as {
-        default: { meta: { name: string } };
-        configs: { recommendedRules: Record<string, string> };
-        PACKAGE_VERSION: string;
+      const imports = JSON.parse(
+        execFileSync(
+          process.execPath,
+          [
+            "--input-type=module",
+            "-e",
+            `import * as root from "oxc-plugin-servicenow";
+import * as analysis from "oxc-plugin-servicenow/analysis";
+import * as oxfmt from "oxc-plugin-servicenow/oxfmt";
+console.log(JSON.stringify({
+  rootKeys: Object.keys(root).sort(),
+  analysisKeys: Object.keys(analysis).sort(),
+  metaName: root.default.meta.name,
+  version: root.default.meta.version,
+  hardcoded: root.configs.recommendedRules["servicenow/no-hardcoded-sysid"],
+  bypass: root.configs.recommendedRules["servicenow/no-system-query-bypass"],
+  singleQuote: oxfmt.recommendedOxfmtConfig.singleQuote,
+}));`,
+          ],
+          { cwd: consumer, encoding: "utf8" },
+        ),
+      ) as {
+        rootKeys: string[];
+        analysisKeys: string[];
+        metaName: string;
+        version: string;
+        hardcoded: string;
+        bypass?: string;
+        singleQuote: boolean;
       };
-      assert.equal(plugin.default.meta.name, "servicenow");
-      assert.equal(plugin.PACKAGE_VERSION, pkg.version);
-      assert.equal(plugin.configs.recommendedRules["servicenow/no-hardcoded-sysid"], "error");
-      assert.equal(plugin.configs.recommendedRules["servicenow/no-system-query-bypass"], undefined);
+      assert.deepEqual(imports.rootKeys, ["configs", "default", "plugin"]);
+      assert.deepEqual(imports.analysisKeys, ["analyzeProvenance", "getScriptContext"]);
+      assert.equal(imports.metaName, "servicenow");
+      assert.equal(imports.version, pkg.version);
+      assert.equal(imports.hardcoded, "error");
+      assert.equal(imports.bypass, undefined);
+      assert.equal(imports.singleQuote, true);
 
-      const oxfmt = (await import(pathToFileURL(path.join(installed, "dist/oxfmt/index.js")).href)) as {
-        recommendedOxfmtConfig: { singleQuote: boolean };
-      };
-      assert.equal(oxfmt.recommendedOxfmtConfig.singleQuote, true);
+      const catalogError = execFileSync(
+        process.execPath,
+        [
+          "--input-type=module",
+          "-e",
+          `try {
+  await import("oxc-plugin-servicenow/catalog");
+  console.log("loaded");
+} catch (error) {
+  console.log(error.code);
+}`,
+        ],
+        { cwd: consumer, encoding: "utf8" },
+      ).trim();
+      assert.equal(catalogError, "ERR_PACKAGE_PATH_NOT_EXPORTED");
+
+      writeFileSync(
+        path.join(consumer, "consumer.ts"),
+        `import plugin, {
+  configs,
+  type RuleConfigMap,
+  type RuleName,
+  type ServiceNowSettings,
+} from "oxc-plugin-servicenow";
+import {
+  analyzeProvenance,
+  getScriptContext,
+  type AnalysisProvenance,
+  type AnalysisProvenanceQuery,
+  type ServiceNowScriptContext,
+} from "oxc-plugin-servicenow/analysis";
+import { recommendedOxfmtConfig } from "oxc-plugin-servicenow/oxfmt";
+
+const settings: ServiceNowSettings = { javascriptMode: "es2021" };
+const ruleName: RuleName = "no-hardcoded-sysid";
+const rules: RuleConfigMap = { [ruleName]: "error" };
+const analyze: typeof analyzeProvenance = analyzeProvenance;
+const getContext: typeof getScriptContext = getScriptContext;
+let query: AnalysisProvenanceQuery | undefined;
+let provenance: AnalysisProvenance | undefined;
+let context: ServiceNowScriptContext | undefined;
+void [plugin, configs, settings, rules, analyze, getContext, query, provenance, context, recommendedOxfmtConfig];
+`,
+      );
+      writeFileSync(
+        path.join(consumer, "tsconfig.json"),
+        JSON.stringify(
+          {
+            compilerOptions: {
+              module: "NodeNext",
+              moduleResolution: "NodeNext",
+              strict: true,
+              noEmit: true,
+              skipLibCheck: false,
+            },
+            include: ["consumer.ts"],
+          },
+          null,
+          2,
+        ),
+      );
+      execFileSync(path.join(consumer, "node_modules", ".bin", "tsc"), ["-p", "tsconfig.json"], {
+        cwd: consumer,
+        encoding: "utf8",
+      });
 
       const oxfmtJson = JSON.parse(
         readFileSync(path.join(installed, "oxfmt.recommended.json"), "utf8"),
@@ -150,8 +252,12 @@ describe("packed package consumer", () => {
       } catch (error) {
         eslintStdout = (error as { stdout?: string }).stdout ?? "";
       }
-      const eslintReport = JSON.parse(eslintStdout) as Array<{ messages: Array<{ ruleId: string }> }>;
-      const eslintRules = eslintReport.flatMap((file) => file.messages.map((message) => message.ruleId));
+      const eslintReport = JSON.parse(eslintStdout) as Array<{
+        messages: Array<{ ruleId: string }>;
+      }>;
+      const eslintRules = eslintReport.flatMap((file) =>
+        file.messages.map((message) => message.ruleId),
+      );
       assert.ok(
         eslintRules.includes("servicenow/no-hardcoded-sysid"),
         `packed eslint rules: ${eslintRules.join(", ") || "(none)"}`,
@@ -165,15 +271,59 @@ describe("packed package consumer", () => {
         path.join(consumer, ".oxfmtrc.json"),
         readFileSync(path.join(installed, "oxfmt.recommended.json"), "utf8"),
       );
-      execFileSync(path.join(consumer, "node_modules", ".bin", "oxfmt"), ["-c", ".oxfmtrc.json", "sample.br.js"], {
-        encoding: "utf8",
-        cwd: consumer,
-      });
+      execFileSync(
+        path.join(consumer, "node_modules", ".bin", "oxfmt"),
+        ["-c", ".oxfmtrc.json", "sample.br.js"],
+        {
+          encoding: "utf8",
+          cwd: consumer,
+        },
+      );
       execFileSync(
         path.join(consumer, "node_modules", ".bin", "oxfmt"),
         ["-c", ".oxfmtrc.json", "--check", "sample.br.js"],
         { encoding: "utf8", cwd: consumer },
       );
+
+      for (const project of EXAMPLE_PROJECTS) {
+        const source = path.join(repoRoot, "examples", project);
+        const destination = path.join(consumer, "examples", project);
+        cpSync(source, destination, { recursive: true });
+        const config = JSON.parse(
+          readFileSync(path.join(destination, ".oxlintrc.json"), "utf8"),
+        ) as { jsPlugins: Array<{ specifier: string }> };
+        assert.equal(config.jsPlugins[0]?.specifier, "oxc-plugin-servicenow");
+        const readme = readFileSync(path.join(destination, "README.md"), "utf8");
+        for (const command of [
+          "npx oxlint -c .oxlintrc.json valid",
+          "npx oxlint -c .oxlintrc.json invalid",
+          "npx oxfmt -c oxfmt.config.ts --check valid",
+        ]) {
+          assert.ok(readme.includes(command), `${project} README omits ${command}`);
+        }
+        execFileSync("npx", ["oxlint", "-c", ".oxlintrc.json", "valid"], {
+          cwd: destination,
+          encoding: "utf8",
+        });
+        let invalidOutput = "";
+        assert.throws(() => {
+          try {
+            execFileSync("npx", ["oxlint", "-c", ".oxlintrc.json", "invalid"], {
+              cwd: destination,
+              encoding: "utf8",
+            });
+          } catch (error) {
+            const failed = error as { stdout?: string; stderr?: string };
+            invalidOutput = (failed.stdout ?? "") + (failed.stderr ?? "");
+            throw error;
+          }
+        });
+        assert.match(invalidOutput, /servicenow/);
+        execFileSync("npx", ["oxfmt", "-c", "oxfmt.config.ts", "--check", "valid"], {
+          cwd: destination,
+          encoding: "utf8",
+        });
+      }
     } finally {
       rmSync(consumer, { recursive: true, force: true });
       rmSync(staging, { recursive: true, force: true });

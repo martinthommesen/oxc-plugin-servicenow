@@ -1,9 +1,9 @@
 {
-  "$schema": "../../node_modules/oxlint/configuration_schema.json",
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
   "jsPlugins": [
     {
       "name": "servicenow",
-      "specifier": "../.."
+      "specifier": "oxc-plugin-servicenow"
     }
   ],
   "settings": {

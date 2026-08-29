@@ -5,7 +5,9 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const pins = JSON.parse(readFileSync(join(root, "scripts/action-pins.json"), "utf8"));
 export function checkActionPins() {
-  const workflows = readdirSync(join(root, ".github/workflows")).filter((name) => /\.(?:yml|yaml)$/.test(name));
+  const workflows = readdirSync(join(root, ".github/workflows")).filter((name) =>
+    /\.(?:yml|yaml)$/.test(name),
+  );
   const seen = new Map();
   const errors = [];
   for (const file of workflows) {
@@ -13,9 +15,11 @@ export function checkActionPins() {
     for (const match of text.matchAll(/^\s*-?\s*uses:\s*([^@\s]+)@([^\s#]+)/gm)) {
       const [, action, ref] = match;
       if (!action || !ref) continue;
-      if (!/^[0-9a-f]{40}$/.test(ref)) errors.push(`${file}: ${action} is not pinned to a full SHA`);
+      if (!/^[0-9a-f]{40}$/.test(ref))
+        errors.push(`${file}: ${action} is not pinned to a full SHA`);
       if (!(action in pins)) errors.push(`${file}: ${action} is not in scripts/action-pins.json`);
-      else if (pins[action] !== ref) errors.push(`${file}: ${action}@${ref} differs from centrally reviewed ${pins[action]}`);
+      else if (pins[action] !== ref)
+        errors.push(`${file}: ${action}@${ref} differs from centrally reviewed ${pins[action]}`);
       const prior = seen.get(action);
       if (prior && prior.ref !== ref) errors.push(`${file}: ${action} diverges from ${prior.file}`);
       else if (!prior) seen.set(action, { file, ref });
@@ -30,7 +34,9 @@ export function checkActionPins() {
 
 export function main() {
   const result = checkActionPins();
-  console.log(`checked ${result.actions} centrally pinned actions across ${result.workflows} workflows`);
+  console.log(
+    `checked ${result.actions} centrally pinned actions across ${result.workflows} workflows`,
+  );
   return result;
 }
 

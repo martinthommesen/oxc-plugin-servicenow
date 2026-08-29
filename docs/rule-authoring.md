@@ -25,9 +25,9 @@ Do not edit `docs/rules/*.md`, README rule tables, or recommended `.oxlintrc.jso
 
 ## Evidence
 
-Record every ServiceNow-specific claim in `src/catalog-metadata.ts` as a structured evidence object with `url`, `claim`, `verifiedBy`, and `verifiedAt`. Do not invent Fluent APIs. Add them to `src/fluent/manifest.ts` with an evidence URL.
+Record every ServiceNow-specific claim in `src/catalog-metadata.ts` as a structured evidence object with its kind, exact claim, symbol or section, source, version, verification date, and local proof where applicable. Do not invent Fluent APIs. Update the version-pinned declaration fixture with `npm run manifest:update`.
 
-Recommended errors require an authoritative `https://` URL and a `fixture` or `integration-test` verification record. `npm run docs:check` fails when that metadata is missing or stale.
+Recommended errors require separate normative ServiceNow evidence and an automated fixture or integration-test record. `npm run evidence:check` proves every automated verification ID against one exact passing test. `npm run docs:check` fails when generated content is stale.
 
 If the detection needs schema, types, or a project index, label the work as research. Do not fake those capabilities with heuristics.
 

@@ -15,7 +15,7 @@ describe("performance baseline", () => {
       regression: { maxRecommendedLargeMs: number; maxScale: number };
       results: Array<{ fixture: string; profile: string; elapsedMs: number; peakRssKb: number }>;
     };
-    assert.equal(baseline.command, "npm run bench");
+    assert.equal(baseline.command, "npm run bench -- --write");
     assert.equal(baseline.statistic, "median");
     assert.ok(baseline.regression.maxRecommendedLargeMs >= 2000);
     const fixtures = baseline.results.map((row) => row.fixture);

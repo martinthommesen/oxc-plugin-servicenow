@@ -11,6 +11,18 @@ The plugin is written against the official [`@oxlint/plugins`](https://www.npmjs
 npm install -D oxc-plugin-servicenow oxlint oxfmt
 ```
 
+## Supported package entry points
+
+| Entry point | Supported exports |
+| --- | --- |
+| `oxc-plugin-servicenow` | Default plugin, `plugin`, `configs`, and the `ServiceNowSettings`, `RuleConfigMap`, and `RuleName` types. |
+| `oxc-plugin-servicenow/analysis` | `analyzeProvenance`, `getScriptContext`, and their read-only public types. |
+| `oxc-plugin-servicenow/oxfmt` | The TypeScript oxfmt configuration exports. |
+| `oxc-plugin-servicenow/oxfmt.recommended.json` | The JSON oxfmt preset. |
+| `oxc-plugin-servicenow/package.json` | Package metadata through Node package exports. |
+
+Other source and `dist` paths are internal. Do not import them.
+
 ---
 
 ## Why this exists
@@ -133,7 +145,7 @@ What the preset does:
 | Files | Style |
 | --- | --- |
 | `**/*.now.ts` | TypeScript / Fluent — single quotes, trailing commas, width 100 |
-| `**/*.{server,client,br,si}.js`, `src/server/**` | Classic Studio style — double quotes, no trailing commas, width 120 |
+| `**/*.{server,client,br,si}.js`, `**/*.ui-action.js`, `src/{server,client}/**` | Classic Studio style — double quotes, no trailing commas, width 120. Includes compound `.client.ui-action.js` and `.server.ui-action.js` suffixes. |
 | `**/.now/**`, `keys.ts` | Ignored (SDK sync artefacts) |
 
 Then:
@@ -245,12 +257,12 @@ Configure once. Invalid keys, types, or conflicting values throw a configuration
 | --- | --- |
 | `javascriptMode` | `compatibility`, `es5`, `es2021`, or `unknown` (default) |
 | `authoring` | `classic`, `fluent`, or `auto` |
-| `surfaces` | `auto` or an array such as `["ui-action","client"]` |
+| `surfaces` | `auto` or a non-empty array. Mixed UI Actions must omit deprecated `scriptType` and use values such as `["ui-action","client","server"]`. |
 | `scope` | `global`, `scoped`, or `unknown` |
 | `scopePrefix` | Application scope prefix such as `x_acme` |
 | `allowedSysIds` | 32-character lowercase sys_ids that `no-hardcoded-sysid` ignores |
 | `allowedTables` | Table names that `no-hardcoded-table-names` ignores |
-| `release` | ServiceNow release identifier used for versioned knowledge |
+| `release` | Optional release selector. Only `"zurich"` is accepted. |
 | `fluentSdkVersion` | Fluent SDK semver the manifest should evaluate |
 | `businessRuleSourceFormat` | `full-script`, `body-only`, or `unknown` |
 | `scriptType` | **Deprecated.** Use `authoring` and `surfaces`. |
@@ -317,7 +329,7 @@ Per-file `// @sn-es-latest` still maps to `es2021` with inferred confidence. Pre
 | [`no-unfiltered-gliderecord-bulk-operation`](docs/rules/no-unfiltered-gliderecord-bulk-operation.md) | recommended |  | `updateMultiple()` / `deleteMultiple()` without a proven restricting filter can touch every row |
 | [`no-gliderecord-query-in-loop`](docs/rules/no-gliderecord-query-in-loop.md) | strict |  | A `query()`, `get()`, or `getAsync()` inside a proven GlideRecord / GlideAggregate `.next()` loop is an N+1 pattern |
 | [`prefer-setnocount-with-choosewindow`](docs/rules/prefer-setnocount-with-choosewindow.md) | strict |  | Zurich scoped GlideRecord documents that `query()` after `chooseWindow()` runs `COUNT(*)` unless `setNoCount()` or `setLimit()` skips it |
-| [`no-system-query-bypass`](docs/rules/no-system-query-bypass.md) | security |  | Opt-in security review for documented ACL-bypass query APIs: `addSystemQuery`, `addSystemEncodedQuery`, `addSystemOrderBy`, `addSystemOrderByDesc` |
+| [`no-system-query-bypass`](docs/rules/no-system-query-bypass.md) | security |  | Opt-in security review for documented ACL-bypass query APIs |
 | [`no-sync-glideajax`](docs/rules/no-sync-glideajax.md) | recommended |  | `getXMLWait()` blocks the browser and does not work in Service Portal |
 <!-- generated:classic-rules:end -->
 
@@ -493,12 +505,83 @@ These are platform limits, not bugs in this package:
 
 2.0.0 is a major release because presets and settings change behavior.
 
+<!-- generated:migration-1.1-to-2.0:start -->
+| Rule | 1.1 preset | 1.1 | 2.0 | Replacement profile | Required action |
+| --- | --- | --- | --- | --- | --- |
+| `servicenow/fluent-naming-convention` | recommended | warn | off | configs.strictRules (warn) | Select configs.strictRules (warn). |
+| `servicenow/no-async-await` | recommended | error | off | configs.classicEs5Rules (error) | Select configs.classicEs5Rules (error). |
+| `servicenow/no-async-iterators` | recommended | off | error | configs.classicEs5Rules (error)<br>configs.es2021Rules (error) | Review the off-to-error severity change. |
+| `servicenow/no-at-method` | recommended | warn | off | configs.classicEs5Rules (error) | Select configs.classicEs5Rules (error). |
+| `servicenow/no-bigint` | recommended | error | off | configs.classicEs5Rules (error) | Select configs.classicEs5Rules (error). |
+| `servicenow/no-complex-fluent-logic` | recommended | warn | off | configs.policyRules (warn) | Select configs.policyRules (warn). |
+| `servicenow/no-delete-multiple-with-windowing` | recommended | off | error | configs.businessRuleRules (error) | Review the off-to-error severity change. |
+| `servicenow/no-duplicate-fluent-id` | recommended | off | error | configs.fluentRules (error) | Review the off-to-error severity change. |
+| `servicenow/no-glideajax-getanswer` | recommended | off | error | configs.clientRules (error) | Review the off-to-error severity change. |
+| `servicenow/no-glideelement-in-collection` | recommended | off | error | configs.businessRuleRules (error) | Review the off-to-error severity change. |
+| `servicenow/no-gliderecord-query-modifier-after-query` | recommended | off | error | configs.businessRuleRules (error) | Review the off-to-error severity change. |
+| `servicenow/no-now-id-as-reference` | recommended | off | error | configs.fluentRules (error) | Review the off-to-error severity change. |
+| `servicenow/no-promise` | recommended | error | off | configs.classicEs5Rules (error) | Select configs.classicEs5Rules (error). |
+| `servicenow/no-proxy` | recommended | error | off | configs.classicEs5Rules (error) | Select configs.classicEs5Rules (error). |
+| `servicenow/no-typed-arrays` | recommended | error | off | configs.classicEs5Rules (error)<br>configs.es2021Rules (error) | Select configs.classicEs5Rules (error)<br>configs.es2021Rules (error). |
+| `servicenow/no-unfiltered-gliderecord-bulk-operation` | recommended | off | warn | Enable the rule explicitly | Review the off-to-warn severity change. |
+| `servicenow/no-unsupported-syntax` | recommended | error | off | configs.classicEs5Rules (error) | Select configs.classicEs5Rules (error). |
+| `servicenow/no-weak-references` | recommended | off | error | configs.classicEs5Rules (error)<br>configs.es2021Rules (error) | Review the off-to-error severity change. |
+| `servicenow/prefer-glideaggregate` | recommended | warn | off | configs.strictRules (warn) | Select configs.strictRules (warn). |
+| `servicenow/prefer-now-include` | recommended | warn | off | configs.strictRules (warn) | Select configs.strictRules (warn). |
+| `servicenow/require-business-rule-wrapper` | recommended | off | error | configs.businessRuleRules (error) | Review the off-to-error severity change. |
+| `servicenow/require-callback-for-getreference` | recommended | off | error | configs.clientRules (error) | Review the off-to-error severity change. |
+| `servicenow/require-glideajax-sysparm-name` | recommended | off | error | configs.clientRules (error) | Review the off-to-error severity change. |
+| `servicenow/require-query-before-next` | recommended | off | error | configs.businessRuleRules (error) | Review the off-to-error severity change. |
+| `servicenow/validate-glideaggregate-calls` | recommended | off | error | configs.businessRuleRules (error) | Review the off-to-error severity change. |
+| `servicenow/validate-gliderecord-calls` | recommended | warn | off | Enable the rule explicitly | Replace it with `servicenow/require-query-before-next`. |
+| `servicenow/fluent-directives` | strict | error | warn | configs.recommendedRules (warn)<br>configs.fluentRules (warn) | Review the error-to-warn severity change. |
+| `servicenow/fluent-naming-convention` | strict | error | warn | Enable the rule explicitly | Review the error-to-warn severity change. |
+| `servicenow/no-async-await` | strict | error | off | configs.classicEs5Rules (error) | Select configs.classicEs5Rules (error). |
+| `servicenow/no-at-method` | strict | error | off | configs.classicEs5Rules (error) | Select configs.classicEs5Rules (error). |
+| `servicenow/no-bigint` | strict | error | off | configs.classicEs5Rules (error) | Select configs.classicEs5Rules (error). |
+| `servicenow/no-complex-fluent-logic` | strict | error | off | configs.policyRules (warn) | Select configs.policyRules (warn). |
+| `servicenow/no-delete-multiple-with-windowing` | strict | off | error | configs.recommendedRules (error)<br>configs.businessRuleRules (error) | Review the off-to-error severity change. |
+| `servicenow/no-display-value-date-comparison` | strict | off | warn | Enable the rule explicitly | Review the off-to-warn severity change. |
+| `servicenow/no-duplicate-fluent-id` | strict | off | error | configs.recommendedRules (error)<br>configs.fluentRules (error) | Review the off-to-error severity change. |
+| `servicenow/no-glideajax-getanswer` | strict | off | error | configs.recommendedRules (error)<br>configs.clientRules (error) | Review the off-to-error severity change. |
+| `servicenow/no-glideelement-in-collection` | strict | off | error | configs.recommendedRules (error)<br>configs.businessRuleRules (error) | Review the off-to-error severity change. |
+| `servicenow/no-gliderecord-query-in-loop` | strict | off | warn | Enable the rule explicitly | Review the off-to-warn severity change. |
+| `servicenow/no-gliderecord-query-modifier-after-query` | strict | off | error | configs.recommendedRules (error)<br>configs.businessRuleRules (error) | Review the off-to-error severity change. |
+| `servicenow/no-hardcoded-table-names` | strict | warn | off | configs.policyRules (warn) | Select configs.policyRules (warn). |
+| `servicenow/no-now-id-as-reference` | strict | off | error | configs.recommendedRules (error)<br>configs.fluentRules (error) | Review the off-to-error severity change. |
+| `servicenow/no-promise` | strict | error | off | configs.classicEs5Rules (error) | Select configs.classicEs5Rules (error). |
+| `servicenow/no-proxy` | strict | error | off | configs.classicEs5Rules (error) | Select configs.classicEs5Rules (error). |
+| `servicenow/no-typed-arrays` | strict | error | off | configs.classicEs5Rules (error)<br>configs.es2021Rules (error) | Select configs.classicEs5Rules (error)<br>configs.es2021Rules (error). |
+| `servicenow/no-unfiltered-gliderecord-bulk-operation` | strict | off | warn | configs.recommendedRules (warn) | Review the off-to-warn severity change. |
+| `servicenow/no-unsupported-syntax` | strict | error | off | configs.classicEs5Rules (error) | Select configs.classicEs5Rules (error). |
+| `servicenow/prefer-glideaggregate` | strict | error | warn | Enable the rule explicitly | Review the error-to-warn severity change. |
+| `servicenow/prefer-now-include` | strict | error | warn | Enable the rule explicitly | Review the error-to-warn severity change. |
+| `servicenow/prefer-setnocount-with-choosewindow` | strict | off | warn | Enable the rule explicitly | Review the off-to-warn severity change. |
+| `servicenow/require-business-rule-wrapper` | strict | off | error | configs.recommendedRules (error)<br>configs.businessRuleRules (error) | Review the off-to-error severity change. |
+| `servicenow/require-callback-for-getreference` | strict | off | error | configs.recommendedRules (error)<br>configs.clientRules (error) | Review the off-to-error severity change. |
+| `servicenow/require-glideajax-sysparm-name` | strict | off | error | configs.recommendedRules (error)<br>configs.clientRules (error) | Review the off-to-error severity change. |
+| `servicenow/require-query-before-next` | strict | off | error | configs.recommendedRules (error)<br>configs.businessRuleRules (error) | Review the off-to-error severity change. |
+| `servicenow/validate-glideaggregate-calls` | strict | off | error | configs.recommendedRules (error)<br>configs.businessRuleRules (error) | Review the off-to-error severity change. |
+| `servicenow/validate-gliderecord-calls` | strict | error | off | Enable the rule explicitly | Replace it with `servicenow/require-query-before-next`. |
+<!-- generated:migration-1.1-to-2.0:end -->
+
 1. Replace `settings.servicenow.ecmaLatest` with `javascriptMode`.
 2. Replace `settings.servicenow.scriptType` with `authoring` and `surfaces`.
 3. Remove ES5-only rules from a context-neutral `recommended` map. Add `configs.classicEs5Rules` where the app is Compatibility or ES5.
 4. Replace `validate-gliderecord-calls` with `require-query-before-next`.
 5. Do not expect autofixes from `no-gs-now`, `prefer-glideaggregate`, `no-at-method`, `no-weak-references`, or `fluent-proper-imports`.
 6. Treat unknown mode as unknown. Valid ES2021 code must not be rejected unless you opt into `classic-es5`.
+7. Configure the `typescript-eslint` parser before an ESLint flat preset selects typed `*.now.ts` or `*.now.tsx` files.
+8. Upgrade oxfmt from the 1.1 peer floor of `>=0.16.0` to `>=0.64.0`.
+9. Set `settings.servicenow.release` only to `"zurich"`. No other release selector is accepted.
+10. Import shared analysis only from `oxc-plugin-servicenow/analysis`.
+
+The 2.0 root no longer exports these 1.1 implementation details: `rules`,
+`recommendedOxfmtConfig`, `oxfmtRecommended`, `applyRules`, `ruleCatalog`,
+`PACKAGE_NAME`, `PACKAGE_VERSION`, and `PLUGIN_NAME`. It also removes the
+`ScriptKind`, `LintMessage`, and `LintSourceOptions` root types. Import oxfmt
+configuration from `/oxfmt`. Test harnesses and catalog data have no public
+replacement.
 
 ## Tested compatibility
 
@@ -507,12 +590,12 @@ The table is generated from `scripts/compat-matrix.json`. See [Compatibility](do
 <!-- generated:compatibility:start -->
 | Component | Tested range |
 | --- | --- |
-| Node | 20.19.0, 24, 22, and 26 |
-| oxlint | 1.79.0 (`>=1.79.0 <2`) |
-| ESLint | 9.0.0, 9.39.5, and 10.8.1 (`>=9.0.0`) |
-| oxfmt | 0.64.0 and latest (`>=0.64.0`) |
+| Node | 20.19.0, 22.14.0, 24.16.0, 26.7.0 |
+| oxlint | 1.79.0 and 1.79.0 (`>=1.79.0 <2`) |
+| ESLint | 9.0.0, 9.39.5, and 10.8.1 (`>=9.0.0 <11`) |
+| oxfmt | 0.64.0 and 0.64.0 (`>=0.64.0 <1`) |
 | ServiceNow engine tables | Zurich feature-support document |
-| Fluent SDK | 3.0.0, 4.1.0, 4.8.0, 4.10.0, 4.11.0 |
+| Fluent SDK | 3.0.0, 3.0.1, 3.0.2, 3.0.3, 4.0.0, 4.0.1, 4.0.2, 4.1.0, 4.1.1, 4.2.0, 4.3.0, 4.4.0, 4.4.1, 4.5.0, 4.6.0, 4.6.1, 4.7.0, 4.7.1, 4.7.2, 4.8.0, 4.8.1, 4.9.0, 4.9.1, 4.9.2, 4.10.0, 4.10.1, 4.11.0 |
 <!-- generated:compatibility:end -->
 
 ## Development

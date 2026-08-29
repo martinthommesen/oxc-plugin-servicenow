@@ -23,7 +23,7 @@ Compatibility and ES5 Standards modes do not implement Promises. The rule is sil
 | Minimum surface confidence | filename-inferred |
 | JavaScript modes | compatibility, es5 |
 | Application scopes | global, scoped, unknown |
-| ServiceNow releases | xanadu, yokohama, zurich |
+| ServiceNow releases | zurich |
 | Fluent SDK range | n/a |
 
 ## Options
@@ -53,15 +53,19 @@ if (gr.get(sysId)) {
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False positive: Local bindings named Promise. False negative: Dynamic construction that does not resolve to the platform Promise identifier.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-boundary: Local bindings named Promise are not platform Promises.
 
 ## Known false positives
 
-- Local bindings named Promise.
+- None recorded.
 
 ## Known false negatives
 
-- Dynamic construction that does not resolve to the platform Promise identifier.
+- None recorded.
+
+## Intentional scope boundaries
+
+- Local bindings named Promise are not platform Promises.
 
 ## Overlaps
 
@@ -76,10 +80,12 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False p
 ## Evidence
 
 - **Promises are unsupported in Compatibility and ES5 Standards modes.**
+  - Verification ID: `rule-evidence-8b8b6f53`
   - URL: https://www.servicenow.com/docs/r/zurich/api-reference/scripts/javascript-engine-feature-support.html
-  - Verified by: declaration-snapshot
+  - Verified by: manual
   - Verified at: 2026-08-20
 - **Platform Promise identifiers report; local bindings stay silent.**
+  - Verification ID: `rule-evidence-a5d99d64`
   - URL: tests/rules/no-promise.test.ts
   - Verified by: fixture
   - Verified at: 2026-08-20

@@ -5,6 +5,7 @@ import {
   entitiesRequiringId,
   knownDirectiveNames,
 } from "../src/fluent/index.js";
+import { compareFluentVersions, isAllowedFluentEvidenceLocation } from "../src/fluent/evidence.js";
 
 function isHttpsServiceNowDocsUrl(evidence: string): boolean {
   let parsed: URL;
@@ -45,5 +46,32 @@ describe("Fluent SDK manifest", () => {
     const flow = DEFAULT_FLUENT_MANIFEST.apis.find((api) => api.name === "Flow");
     assert.equal(flow?.module, "unknown");
     assert.equal(flow?.idRequirement, "unknown");
+  });
+
+  it("rejects deceptive and malformed evidence locations", () => {
+    assert.equal(
+      isAllowedFluentEvidenceLocation("https://www.servicenow.com.attacker.example/docs/r/api"),
+      false,
+    );
+    assert.equal(
+      isAllowedFluentEvidenceLocation(
+        "https://registry.npmjs.org/attacker/@servicenow%2fsdk-core/-/sdk-core-4.11.0.tgz",
+      ),
+      false,
+    );
+    assert.equal(isAllowedFluentEvidenceLocation("docs/../secrets.txt"), false);
+    assert.equal(
+      isAllowedFluentEvidenceLocation(
+        "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html",
+      ),
+      true,
+    );
+  });
+
+  it("compares semantic versions numerically", () => {
+    assert.ok(compareFluentVersions("4.9.2", "4.10.0") < 0);
+    assert.ok(compareFluentVersions("4.10.0", "4.9.2") > 0);
+    assert.equal(compareFluentVersions("4.10.0", "4.10.0"), 0);
+    assert.throws(() => compareFluentVersions("4.10", "4.10.0"));
   });
 });

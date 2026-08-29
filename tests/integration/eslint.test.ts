@@ -61,8 +61,15 @@ describe("eslint host integration", () => {
   it("reports the expected rules on the bad Fluent fixture", () => {
     const messages = verify(badFluent, "bad-fluent.now.ts");
     const ids = ruleIds(messages);
-    assert.ok(ids.includes("servicenow/fluent-proper-imports"), `missing import diagnostic (got ${ids.join(", ") || "(none)"})`);
-    assert.equal(ids.includes("servicenow/require-fluent-id"), false, "wrong-module imports must not cascade semantic diagnostics");
+    assert.ok(
+      ids.includes("servicenow/fluent-proper-imports"),
+      `missing import diagnostic (got ${ids.join(", ") || "(none)"})`,
+    );
+    assert.equal(
+      ids.includes("servicenow/require-fluent-id"),
+      false,
+      "wrong-module imports must not cascade semantic diagnostics",
+    );
   });
 
   it("reports no diagnostics on the clean examples", () => {

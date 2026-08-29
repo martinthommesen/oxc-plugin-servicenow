@@ -60,7 +60,7 @@ while (incident.next()) {
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False negative: A second query() before next() is allowed and stays silent. Lifecycle: Modifiers after query are findings only when a consumer uses the still-open cursor.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. lifecycle: Modifiers after query are findings only when a consumer uses the still-open cursor.
 
 ## Known false positives
 
@@ -68,7 +68,11 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False n
 
 ## Known false negatives
 
-- A second query() before next() is allowed and stays silent.
+- None recorded.
+
+## Intentional scope boundaries
+
+- None recorded.
 
 ## Overlaps
 
@@ -82,10 +86,12 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False n
 ## Evidence
 
 - **Query modifiers after query() or get() do not change the open cursor.**
+  - Verification ID: `rule-evidence-f9164c6e`
   - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordAPI.html
-  - Verified by: declaration-snapshot
+  - Verified by: manual
   - Verified at: 2026-08-20
 - **Recommended hosts report addQuery after query before next.**
+  - Verification ID: `rule-evidence-e0ffb02c`
   - URL: tests/integration/profiles/invalid/late-modifier.br.js
   - Verified by: integration-test
   - Verified at: 2026-08-20

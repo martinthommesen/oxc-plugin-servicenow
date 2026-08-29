@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "."
+  },
+  "include": [
+    "tests/fixtures/types/servicenow-sdk.d.ts",
+    "tests/integration/profiles/valid/**/*.ts",
+    "tests/integration/profiles/valid/**/*.tsx",
+    "examples/**/valid/**/*.ts",
+    "examples/**/valid/**/*.tsx"
+  ],
+  "exclude": ["dist", "node_modules", "**/invalid/**"]
+}

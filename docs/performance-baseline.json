@@ -1,20 +1,24 @@
 {
   "date": "2026-08-20",
   "node": "v22.14.0",
+  "npm": "10.9.2",
   "oxlint": "1.79.0",
   "plugin": "2.0.0",
   "cpu": "Intel(R) Xeon(R) Processor",
-  "command": "npm run bench",
+  "platform": "linux",
+  "arch": "x64",
+  "commit": "b87972a8336d6cf6209801395cad82f72b827436",
+  "command": "npm run bench -- --write",
   "warmup": 1,
   "samples": 3,
   "statistic": "median",
   "regression": {
-    "elapsedMultiplier": 2.5,
-    "elapsedFloorMs": 500,
-    "rssMultiplier": 2,
-    "rssFloorKb": 50000,
-    "maxScale": 20,
-    "maxRecommendedLargeMs": 15000
+    "elapsedMultiplier": 1.5,
+    "elapsedFloorMs": 100,
+    "rssMultiplier": 1.25,
+    "rssFloorKb": 25000,
+    "maxScale": 4,
+    "maxRecommendedLargeMs": 5000
   },
   "scale": 1.64,
   "results": [

@@ -23,7 +23,7 @@
 | Minimum surface confidence | filename-inferred |
 | JavaScript modes | compatibility, es5 |
 | Application scopes | global, scoped, unknown |
-| ServiceNow releases | xanadu, yokohama, zurich |
+| ServiceNow releases | zurich |
 | Fluent SDK range | n/a |
 
 ## Options
@@ -50,15 +50,19 @@ var p = { prop: value };
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False positive: Local bindings named Proxy. False negative: Dynamic construction through unknown identifiers.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
 
 ## Known false positives
 
-- Local bindings named Proxy.
+- None recorded.
 
 ## Known false negatives
 
-- Dynamic construction through unknown identifiers.
+- None recorded.
+
+## Intentional scope boundaries
+
+- None recorded.
 
 ## Overlaps
 
@@ -72,10 +76,12 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False p
 ## Evidence
 
 - **Proxy is unsupported in Compatibility and ES5 Standards modes.**
+  - Verification ID: `rule-evidence-19d6e35b`
   - URL: https://www.servicenow.com/docs/r/zurich/api-reference/scripts/javascript-engine-feature-support.html
-  - Verified by: declaration-snapshot
+  - Verified by: manual
   - Verified at: 2026-08-20
 - **Catalog examples cover new Proxy versus a local binding.**
+  - Verification ID: `rule-evidence-1bb25325`
   - URL: src/catalog.ts
   - Verified by: fixture
   - Verified at: 2026-08-20

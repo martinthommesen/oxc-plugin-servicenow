@@ -57,7 +57,7 @@ ajax.getXMLAnswer(function (answer) {
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False negative: getAnswer through an escaped or unknown receiver.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
 
 ## Known false positives
 
@@ -65,7 +65,11 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False n
 
 ## Known false negatives
 
-- getAnswer through an escaped or unknown receiver.
+- None recorded.
+
+## Intentional scope boundaries
+
+- None recorded.
 
 ## Overlaps
 
@@ -79,10 +83,12 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. False n
 ## Evidence
 
 - **getAnswer belongs to the synchronous getXMLWait pattern.**
+  - Verification ID: `rule-evidence-34ac8749`
   - URL: https://www.servicenow.com/docs/r/api-reference/c_GlideAjaxAPI.html
-  - Verified by: declaration-snapshot
+  - Verified by: manual
   - Verified at: 2026-08-20
 - **Recommended hosts report getAnswer on proven GlideAjax objects.**
+  - Verification ID: `rule-evidence-b262bad0`
   - URL: tests/integration/profiles/invalid/glideajax-getanswer.client.js
   - Verified by: integration-test
   - Verified at: 2026-08-20

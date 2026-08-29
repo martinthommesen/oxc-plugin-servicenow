@@ -13,22 +13,61 @@ function ids(config: unknown, code: string, filename: string): string[] {
 
 describe("ESLint flat profile context contracts", () => {
   it("supplies independent classic ES5 settings", () => {
-    assert.ok(ids(configs.flat.classicEs5, "var p = Promise.resolve(1);", "x.server.js").includes("servicenow/no-promise"));
+    assert.ok(
+      ids(configs.flat.classicEs5, "var p = Promise.resolve(1);", "x.server.js").includes(
+        "servicenow/no-promise",
+      ),
+    );
     assert.deepEqual(ids(configs.flat.classicEs5, "var p = Promise.resolve(1);", "x.now.ts"), []);
   });
 
   it("limits the client profile to client filenames and settings", () => {
-    assert.ok(ids(configs.flat.client, 'var gr = new GlideRecord("incident");', "x.client.js").includes("servicenow/no-client-gliderecord"));
-    assert.deepEqual(ids(configs.flat.client, 'var gr = new GlideRecord("incident");', "x.server.js"), []);
+    for (const filename of [
+      "x.client.js",
+      "x.cs.cjs",
+      "catalog-client.mjs",
+      "sys_script_client_onchange.js",
+      "src/client/x.js",
+    ]) {
+      assert.ok(
+        ids(configs.flat.client, 'var gr = new GlideRecord("incident");', filename).includes(
+          "servicenow/no-client-gliderecord",
+        ),
+        filename,
+      );
+    }
+    assert.deepEqual(
+      ids(configs.flat.client, 'var gr = new GlideRecord("incident");', "x.server.js"),
+      [],
+    );
   });
 
   it("limits the Business Rule profile to Business Rule files", () => {
-    assert.ok(ids(configs.flat.businessRule, "current.update();", "x.br.js").includes("servicenow/no-br-current-update"));
+    for (const filename of [
+      "x.br.js",
+      "incident.business-rule.cjs",
+      "sys_script.mjs",
+      "src/br/x.js",
+    ]) {
+      assert.ok(
+        ids(configs.flat.businessRule, "current.update();", filename).includes(
+          "servicenow/no-br-current-update",
+        ),
+        filename,
+      );
+    }
     assert.deepEqual(ids(configs.flat.businessRule, "current.update();", "x.server.js"), []);
+    assert.deepEqual(ids(configs.flat.businessRule, "current.update();", "sys_script2.js"), []);
   });
 
   it("supplies Fluent authoring for .now.ts", () => {
-    assert.ok(ids(configs.flat.fluent, 'import { BusinessRule } from "@servicenow/sdk/core"; BusinessRule({ table: "incident" });', "x.now.ts").includes("servicenow/require-fluent-id"));
+    assert.ok(
+      ids(
+        configs.flat.fluent,
+        'import { BusinessRule } from "@servicenow/sdk/core"; BusinessRule({ table: "incident" });',
+        "x.now.ts",
+      ).includes("servicenow/require-fluent-id"),
+    );
     assert.deepEqual(ids(configs.flat.fluent, "current.update();", "x.server.js"), []);
   });
 });
