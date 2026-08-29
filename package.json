@@ -58,6 +58,7 @@
     "CHANGELOG.md"
   ],
   "scripts": {
+    "prebuild": "node scripts/generate-version.mjs",
     "build": "tsc -p tsconfig.build.json",
     "clean": "rm -rf dist",
     "prepack": "npm run clean && npm run build",
