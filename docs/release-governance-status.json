@@ -1,34 +1,19 @@
 {
-  "schemaVersion": 1,
-  "evidenceStatus": "historical-unverified",
-  "liveVerification": "Live-pending",
-  "warning": "This static capture is historical evidence. It is not current live proof.",
-  "knownBlockers": [
-    "The v2.0.0 registry-verify job failed after a successful immutable publish because the verifier compared raw-byte OID policy values against DER-encoded Fulcio v2 extension values, and expected a plain OIDC subject in extension 1.24 where Fulcio embeds the ID-enriched form. Both fixed and proven against the live 2.0.0 attestation; the stale PACKAGE_VERSION root-export assertion (FINDINGS.md OPS-006) was a second, untriggered failure behind it."
-  ],
-  "capturedAt": "2026-08-29T12:29:00Z",
+  "schemaVersion": 2,
+  "evidenceStatus": "point-in-time-verified",
+  "liveVerification": "partial",
+  "warning": "This capture records verified controls at one point in time. Run the governance audit again before release.",
+  "capturedAt": "2026-08-29T14:45:00Z",
   "repository": "martinthommesen/oxc-plugin-servicenow",
-  "github": {
+  "verified": {
     "mainRuleset": {
       "id": 21081867,
       "name": "PR51 main governance",
       "enforcement": "active",
-      "conditions": {
-        "ref_name": {
-          "exclude": [],
-          "include": [
-            "refs/heads/main"
-          ]
-        }
-      },
-      "rules": [
-        "deletion",
-        "non_fast_forward",
-        "pull_request",
-        "required_status_checks"
-      ],
+      "refPattern": "refs/heads/main",
       "requiredStatusChecks": [
         "test",
+        "consumer",
         "bench",
         "compat (min-hosts, 20.19.0)",
         "compat (node22-host, 22.14.0)",
@@ -40,119 +25,96 @@
         "artifact",
         "workflow"
       ],
-      "currentUserCanBypass": "never"
-    },
-    "tagRuleset": {
-      "id": 21081873,
-      "name": "PR51 immutable release tags",
-      "enforcement": "active",
-      "conditions": {
-        "ref_name": {
-          "exclude": [],
-          "include": [
-            "refs/tags/v**"
-          ]
-        }
-      },
-      "rules": [
+      "additionalRules": [
         "deletion",
-        "non_fast_forward"
+        "non_fast_forward",
+        "pull_request",
+        "code_scanning",
+        "code_quality",
+        "code_coverage",
+        "required_linear_history"
       ],
-      "currentUserCanBypass": "never"
+      "bypassActors": []
+    },
+    "releaseTagRulesets": {
+      "immutability": {
+        "id": 21081873,
+        "name": "PR51 immutable release tags",
+        "rules": [
+          "deletion",
+          "non_fast_forward"
+        ],
+        "bypassActors": []
+      },
+      "creation": {
+        "id": 21143599,
+        "name": "PR51 controlled release tag creation",
+        "rules": [
+          "creation"
+        ],
+        "bypassActors": [
+          {
+            "id": 4671202,
+            "type": "Integration",
+            "mode": "always"
+          }
+        ]
+      }
     },
     "releaseEnvironment": {
+      "id": 20240747277,
       "name": "release",
       "canAdminsBypass": false,
-      "requiredReviewer": "martinthommesen",
       "preventSelfReview": true,
-      "protectedBranches": true
-    },
-    "actions": {
-      "shaPinningRequired": true,
-      "allowedActions": "all"
-    },
-    "ciEvidence": {
-      "runId": 32351809969,
-      "headSha": "2db2282c5c8b466c6d51c9499c5dfbfb4c028045",
-      "note": "Pull-request CI run at the documentation-complete merge commit passed all 15 CI jobs; PR #51 rollup was 18/18 successful including CodeQL."
-    },
-    "secrets": {
-      "repository": [],
-      "releaseEnvironment": [],
-      "note": "No NPM_TOKEN or other Actions secret is configured."
-    },
-    "tagCreationRuleset": {
-      "id": 21143599,
-      "name": "PR51 controlled release tag creation",
-      "enforcement": "active",
-      "conditions": {
-        "ref_name": {
-          "exclude": [],
-          "include": [
-            "refs/tags/v**"
-          ]
-        }
-      },
-      "rules": [
-        "creation"
-      ],
-      "bypassActors": [
-        {
-          "id": 4671202,
-          "login": "release-sentinel-sn",
-          "type": "Integration",
-          "mode": "always"
-        }
-      ]
-    },
-    "principals": {
-      "controlledTagActor": {
-        "id": 4671202,
-        "login": "release-sentinel-sn",
-        "type": "Integration"
-      },
-      "environmentReviewers": [
+      "reviewers": [
         {
           "id": 267603464,
-          "type": "User",
-          "login": "martinthommesen"
+          "login": "martinthommesen",
+          "type": "User"
         }
-      ]
-    }
-  },
-  "npmTrustedPublisher": {
-    "status": "configured",
-    "id": "3d460658-361a-4591-a6bb-8f9ca2364eaf",
-    "type": "github",
-    "file": "release.yml",
-    "repository": "martinthommesen/oxc-plugin-servicenow",
-    "environment": "release",
-    "permissions": [
-      "createPackage"
-    ],
-    "desired": {
-      "repository": "oxc-plugin-servicenow",
-      "workflow": ".github/workflows/release.yml",
-      "environment": "release",
-      "tagRefs": [
-        "refs/tags/v*"
       ],
-      "workflowFilename": "release.yml"
+      "deploymentPolicy": {
+        "protectedBranches": false,
+        "customBranchPolicies": true,
+        "branches": [],
+        "tags": [
+          "v*"
+        ]
+      }
     },
-    "bootstrap": {
-      "version": "2.0.0-bootstrap.0",
-      "distTag": "next",
-      "registryIntegrity": "sha512-4mgibuZMqfvatzyVPYt0/TvAo8aeCedw2GnSurlrBDe3VJB1xQjzene0tQa0ONZiIjfIyDP6mNuJivhFp/5+Fg==",
-      "registryTarball": "https://registry.npmjs.org/oxc-plugin-servicenow/-/oxc-plugin-servicenow-2.0.0-bootstrap.0.tgz",
-      "provenance": "not claimed for bootstrap; target stable release must use OIDC provenance",
-      "localSha256": "36d5e6af9676b08f48727b450ed8cfe5c079e8eaf0db7dfc41308dcdebc5687f",
-      "registryShasum": "cae540f3eb1b60c0575fa2393ddc0f877d5d0de2"
+    "releaseSentinel": {
+      "appId": 4671202,
+      "slug": "release-sentinel-sn",
+      "installationId": 155434410,
+      "repositorySelection": [
+        "oxc-plugin-servicenow"
+      ],
+      "permissions": {
+        "contents": "write",
+        "metadata": "read"
+      },
+      "actionsVariable": "RELEASE_SENTINEL_CLIENT_ID",
+      "actionsSecret": "RELEASE_SENTINEL_PRIVATE_KEY"
+    },
+    "actions": {
+      "enabled": true,
+      "allowedActions": "selected",
+      "githubOwnedAllowed": true,
+      "verifiedCreatorsAllowed": false,
+      "shaPinningRequired": true,
+      "defaultWorkflowPermissions": "read",
+      "canApprovePullRequestReviews": false
     }
   },
-  "ciEvidence": {
-    "runId": 32355160103,
-    "headSha": "10e359da6757cee5a224a9037f5bd414e13daac7",
-    "codeqlRunId": 32355157426,
-    "note": "PR #51 CI run at the npm-governance documentation commit passed all 15 CI jobs; the GitHub CodeQL rollup also passed."
-  }
+  "livePending": [
+    {
+      "item": "npm trusted-publisher repository, workflow, and environment identity",
+      "reason": "The npm trust read API returned 401 without an authenticated npm publishing session.",
+      "manualCheck": "npm trust list oxc-plugin-servicenow --json"
+    },
+    {
+      "item": "stable release provenance",
+      "reason": "No stable protected-tag release has been authorized or run."
+    }
+  ]
 }

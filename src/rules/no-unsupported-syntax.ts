@@ -1,12 +1,14 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
+import { findStablePlatformConstructorCalls } from "../analysis/internal.js";
 import { getName, getStringValue } from "../utils/ast.js";
 import { beginRuleFile } from "./helpers.js";
 import { shouldDiagnoseFeature, type EngineFeatureId } from "../engine/index.js";
 
 const LOGICAL_ASSIGN = new Set(["||=", "&&=", "??="]);
 const LOOKBEHIND = /\(\?<[=!]/;
+const REGEXP_NAMES = ["RegExp"] as const;
 
 function regexPattern(node: ESTree.Node): string | null {
   const rec = node as {
@@ -26,7 +28,7 @@ export const noUnsupportedSyntax = defineRule({
     type: "problem",
     docs: {
       description:
-        "Disallow JavaScript syntax that the configured ServiceNow mode does not support. Features are versioned from the Zurich engine tables.",
+        "Disallow JavaScript syntax that the configured ServiceNow release and mode do not support.",
       url: ruleDocsUrl("no-unsupported-syntax"),
     },
     messages: {
@@ -42,6 +44,8 @@ export const noUnsupportedSyntax = defineRule({
         "Private static class members (`#{{name}}`) are not supported in Compatibility or ES5 Standards mode. Use a public static property or a closure.",
       lookbehind:
         "RegExp lookbehind (`(?<=` / `(?<!`) is not supported in Compatibility or ES5 Standards mode. Rewrite the expression with supported capture groups or string operations.",
+      objectMethod:
+        "Object literal shorthand methods are not available in Compatibility or ES5 Standards mode. Use a function-valued property, or set `javascriptMode` to `es2021`.",
     },
   },
   createOnce(context) {
@@ -52,6 +56,9 @@ export const noUnsupportedSyntax = defineRule({
           "optional-chaining",
           "nullish-coalescing",
           "logical-assignment",
+          "object-method-syntax",
+          "async-object-method-syntax",
+          "generator-object-method-syntax",
           "private-instance-members",
           "private-static-members",
           "lookbehind",
@@ -77,6 +84,19 @@ export const noUnsupportedSyntax = defineRule({
       },
       PropertyDefinition: checkPrivate,
       MethodDefinition: checkPrivate,
+      Property(node) {
+        const property = node as ESTree.ObjectProperty;
+        if (property.kind !== "init" || !property.method) return;
+        const method = property.value as { async?: boolean; generator?: boolean };
+        const feature: EngineFeatureId = method.async
+          ? "async-object-method-syntax"
+          : method.generator
+            ? "generator-object-method-syntax"
+            : "object-method-syntax";
+        if (featureOn(feature)) {
+          context.report({ node, messageId: "objectMethod" });
+        }
+      },
       Literal(node) {
         if (!featureOn("lookbehind")) return;
         const pattern = regexPattern(node);
@@ -84,8 +104,26 @@ export const noUnsupportedSyntax = defineRule({
           context.report({ node, messageId: "lookbehind" });
         }
       },
-      NewExpression: checkRegExpCtor,
-      CallExpression: checkRegExpCtor,
+      Program(node) {
+        if (!featureOn("lookbehind")) return;
+        const { analysis, file } = beginRuleFile(context);
+        for (const finding of findStablePlatformConstructorCalls({
+          program: node as ESTree.Node,
+          analysis,
+          bindingWrites: file.bindingWrites,
+          mutations: file.mutations,
+          names: REGEXP_NAMES,
+          namespaces: ["globalThis"],
+          mutationSemantics: "authority",
+        })) {
+          const first = finding.node.arguments[0];
+          if (!first || first.type === "SpreadElement") continue;
+          const value = getStringValue(first);
+          if (value && LOOKBEHIND.test(value)) {
+            context.report({ node: finding.node, messageId: "lookbehind" });
+          }
+        }
+      },
     };
 
     function featureOn(id: EngineFeatureId): boolean {
@@ -105,20 +143,6 @@ export const noUnsupportedSyntax = defineRule({
       }
       if (featureOn("private-instance-members")) {
         context.report({ node: key, messageId: "privateInstance", data: { name } });
-      }
-    }
-
-    function checkRegExpCtor(node: ESTree.NewExpression | ESTree.CallExpression) {
-      if (!featureOn("lookbehind")) return;
-      const { analysis } = beginRuleFile(context);
-      const callee = node.callee as ESTree.Node;
-      if (getName(callee) !== "RegExp") return;
-      if (!analysis.isPlatformGlobal(callee)) return;
-      const first = node.arguments[0];
-      if (!first || first.type === "SpreadElement") return;
-      const value = getStringValue(first);
-      if (value && LOOKBEHIND.test(value)) {
-        context.report({ node, messageId: "lookbehind" });
       }
     }
   },

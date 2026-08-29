@@ -67,12 +67,52 @@ export const BINDING_MATRIX_CASES: readonly BindingMatrixCase[] = [
     'var rec = new GlideRecord("incident");\nrec.next();',
     "rec.next()",
     "missingQuery",
-    "`rec.next()` is called without a preceding `.query()` or `.get()` on every path. Call `.query()` or `.get()` on every path before `.next()`; `chooseWindow()` only configures a later query.",
+    "`rec.next()` is called without a preceding documented query executor on every path. Execute the query on every path before advancing the cursor; `chooseWindow()` only configures a later query.",
   ),
+  {
+    ...report(
+      "query-alias-unopened",
+      "require-query-before-next",
+      'var rec = new GlideRecord("incident");\nrec._next();',
+      "rec._next()",
+      "missingQuery",
+      "`rec._next()` is called without a preceding documented query executor on every path. Execute the query on every path before advancing the cursor; `chooseWindow()` only configures a later query.",
+    ),
+    settings: { scope: "scoped", release: "zurich" } as const,
+  },
   silent(
     "query-direct-opened",
     "require-query-before-next",
     'var rec = new GlideRecord("incident");\nrec.query();\nrec.next();',
+  ),
+  {
+    ...silent(
+      "query-computed-alias-opened",
+      "require-query-before-next",
+      'var rec = new GlideRecord("incident");\nrec["_query"]();\nrec["_next"]();',
+    ),
+    settings: { scope: "scoped", release: "zurich" } as const,
+  },
+  {
+    ...silent(
+      "query-global-no-domain-opened",
+      "require-query-before-next",
+      'var rec = new GlideRecord("incident");\nrec.queryNoDomain();\nrec.next();',
+    ),
+    settings: { scope: "global", release: "zurich" } as const,
+  },
+  {
+    ...silent(
+      "query-unknown-no-domain-possible",
+      "require-query-before-next",
+      'var rec = new GlideRecord("incident");\nrec.queryNoDomain();\nrec.next();',
+    ),
+    settings: { scope: "unknown", release: "zurich" } as const,
+  },
+  silent(
+    "query-dynamic-executor-unknown",
+    "require-query-before-next",
+    'var rec = new GlideRecord("incident");\nrec[executor]();\nrec.next();',
   ),
   report(
     "aggregate-next-before-query",
@@ -108,6 +148,36 @@ export const BINDING_MATRIX_CASES: readonly BindingMatrixCase[] = [
     "nestedQuery",
     "`inner.query()` runs inside a GlideRecord cursor loop. Prefer a display/reference value or one query outside the loop.",
   ),
+  {
+    ...report(
+      "loop-documented-aliases",
+      "no-gliderecord-query-in-loop",
+      'var outer = new GlideRecord("incident");\nouter._query();\nwhile (outer._next()) {\n  var inner = new GlideRecord("problem");\n  inner._query();\n}',
+      "inner._query()",
+      "nestedQuery",
+      "`inner._query()` runs inside a GlideRecord cursor loop. Prefer a display/reference value or one query outside the loop.",
+    ),
+    settings: { scope: "scoped", release: "zurich" } as const,
+  },
+  {
+    ...report(
+      "loop-global-no-domain-query",
+      "no-gliderecord-query-in-loop",
+      'var outer = new GlideRecord("incident");\nouter.query();\nwhile (outer.next()) {\n  var inner = new GlideRecord("problem");\n  inner.queryNoDomain();\n}',
+      "inner.queryNoDomain()",
+      "nestedQuery",
+      "`inner.queryNoDomain()` runs inside a GlideRecord cursor loop. Prefer a display/reference value or one query outside the loop.",
+    ),
+    settings: { scope: "global", release: "zurich" } as const,
+  },
+  {
+    ...silent(
+      "loop-unknown-no-domain-query",
+      "no-gliderecord-query-in-loop",
+      'var outer = new GlideRecord("incident");\nouter.query();\nwhile (outer.next()) {\n  var inner = new GlideRecord("problem");\n  inner.queryNoDomain();\n}',
+    ),
+    settings: { scope: "unknown", release: "zurich" } as const,
+  },
   silent(
     "loop-query-before-cursor",
     "no-gliderecord-query-in-loop",
@@ -119,7 +189,31 @@ export const BINDING_MATRIX_CASES: readonly BindingMatrixCase[] = [
     'var rec = new GlideRecord("incident");\nrec.query();\nrec.addQuery("active", true);\nrec.next();',
     "rec.next()",
     "lateModifier",
-    "`rec.next()` consumes a cursor after a query modifier. Call `query()` again, or move the modifier before the first query.",
+    "`rec.next()` consumes a cursor after a query modifier. Execute the query again, or move the modifier before the first query.",
+  ),
+  {
+    ...report(
+      "modifier-after-global-no-domain-query",
+      "no-gliderecord-query-modifier-after-query",
+      'var rec = new GlideRecord("incident");\nrec.queryNoDomain();\nrec.addQuery("active", true);\nrec.next();',
+      "rec.next()",
+      "lateModifier",
+      "`rec.next()` consumes a cursor after a query modifier. Execute the query again, or move the modifier before the first query.",
+    ),
+    settings: { scope: "global", release: "zurich" } as const,
+  },
+  {
+    ...silent(
+      "modifier-after-unknown-no-domain-query",
+      "no-gliderecord-query-modifier-after-query",
+      'var rec = new GlideRecord("incident");\nrec.query();\nrec.addQuery("active", true);\nrec.queryNoDomain();\nrec.next();',
+    ),
+    settings: { scope: "unknown", release: "zurich" } as const,
+  },
+  silent(
+    "modifier-after-dynamic-refresh",
+    "no-gliderecord-query-modifier-after-query",
+    'var rec = new GlideRecord("incident");\nrec.query();\nrec.addQuery("active", true);\nrec[executor]();\nrec.next();',
   ),
   silent(
     "modifier-before-query",
@@ -167,6 +261,27 @@ export const BINDING_MATRIX_CASES: readonly BindingMatrixCase[] = [
     'var ajax = new GlideAjax("Example");\najax.addParam("sysparm_name", "load");\najax.getXML(callback);',
     "matrix.client.js",
   ),
+  {
+    ...report(
+      "client-direct-gliderecord",
+      "no-client-gliderecord",
+      'new GlideRecord("incident");',
+      'new GlideRecord("incident")',
+      "glideRecord",
+      "Client GlideRecord is not supported in scoped applications. Query through a Script Include with `GlideAjax` or a Scripted REST API.",
+      "matrix.client.js",
+    ),
+    settings: { scope: "scoped" } as const,
+  },
+  {
+    ...silent(
+      "client-namespace-escape-before-reassign",
+      "no-client-gliderecord",
+      'var ns = global;\nprepare(ns);\nns = localNamespace;\nnew GlideRecord("incident");',
+      "matrix.client.js",
+    ),
+    settings: { scope: "scoped" } as const,
+  },
   report(
     "element-retained-in-array",
     "no-glideelement-in-collection",

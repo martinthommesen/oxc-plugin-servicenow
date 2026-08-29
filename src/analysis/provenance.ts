@@ -7,6 +7,8 @@ export type ProvenanceKind =
   | "GlideAggregate"
   | "GlideAjax"
   | "GlideDateTime"
+  | "DataView"
+  | "Set"
   | "g_form"
   | "gs"
   | "current";
@@ -17,38 +19,32 @@ export interface Provenance {
   kind: ProvenanceKind;
   /** Binding is no longer a reliable alias of the constructed object. */
   invalid: boolean;
-  /** Passed to a helper, stored, or closed over by a nested function. */
+  /** Passed to unknown code, stored externally, or captured by an escaping nested function. */
   escaped: boolean;
-  /**
-   * @deprecated Never computed: always `"unopened"`. The lifecycle facts
-   * live in the per-domain analyzers (`query-before-next.ts`,
-   * `glide-windowing.ts`, `glideajax-params.ts`, `glide-setnocount.ts`).
-   * Removed in 3.0 (FINDINGS.md API-002).
-   */
   queryState: QueryState;
-  /** @deprecated Never computed: always `false`. Removed in 3.0 (FINDINGS.md API-002). */
+  /** `setLimit` / `chooseWindow` was seen on this object. */
   windowed: boolean;
-  /** @deprecated Never computed: always `false`. Removed in 3.0 (FINDINGS.md API-002). */
+  /** `addParam("sysparm_name", ...)` was seen on this GlideAjax object. */
   sysparmName: boolean;
-  /** @deprecated Never computed: always empty. Removed in 3.0 (FINDINGS.md API-002). */
+  /** Statically registered `addAggregate(type, field?)` tuples. */
   aggregates: ReadonlySet<string>;
   bindingId?: number;
   objectId?: number;
 }
 
-// A Map so an identifier from user source (constructor, toString, __proto__)
-// cannot resolve through Object.prototype (FINDINGS.md MNT-003).
-const CTOR_TO_KIND: ReadonlyMap<string, ProvenanceKind> = new Map([
-  ["GlideRecord", "GlideRecord"],
-  ["GlideRecordSecure", "GlideRecord"],
-  ["GlideAggregate", "GlideAggregate"],
-  ["GlideAjax", "GlideAjax"],
-  ["GlideDateTime", "GlideDateTime"],
-]);
+const CTOR_TO_KIND: Record<string, ProvenanceKind> = {
+  GlideRecord: "GlideRecord",
+  GlideRecordSecure: "GlideRecord",
+  GlideAggregate: "GlideAggregate",
+  GlideAjax: "GlideAjax",
+  GlideDateTime: "GlideDateTime",
+  DataView: "DataView",
+  Set: "Set",
+};
 
 export function ctorProvenanceKind(name: string | null): ProvenanceKind | null {
   if (!name) return null;
-  return CTOR_TO_KIND.get(name) ?? null;
+  return Object.prototype.hasOwnProperty.call(CTOR_TO_KIND, name) ? CTOR_TO_KIND[name]! : null;
 }
 
 export interface ProvenanceQuery {

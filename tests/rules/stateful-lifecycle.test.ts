@@ -1,4 +1,5 @@
 import { describe, it } from "node:test";
+import { SUPPORTED_SERVICENOW_RELEASES } from "../../src/settings/releases.js";
 import { assertInvalid, assertValid } from "../helpers/rule-tester.js";
 
 const SERVER = { filename: "incident.br.js" };
@@ -177,7 +178,7 @@ gr.deleteMultiple();`,
     );
   });
 
-  it("treats a shadowed undefined filter as dynamic", () => {
+  it("stays silent for a shadowed undefined filter", () => {
     assertValid(
       `function run(undefined) {
   var gr = new GlideRecord("task");
@@ -199,6 +200,17 @@ gr.deleteMultiple();`,
     );
   });
 
+  it("stays silent after an unknown method follows merged filter state", () => {
+    assertValid(
+      `var gr = new GlideRecord("task");
+if (ready) gr.addQuery("active", true);
+gr.unknownMethod();
+gr.deleteMultiple();`,
+      RULE,
+      SERVER,
+    );
+  });
+
   it("does not treat shape or executor calls as filters", () => {
     assertInvalid(
       `var gr = new GlideRecord("task");
@@ -210,6 +222,24 @@ gr.deleteMultiple();`,
       { messageId: "unfiltered" },
       SERVER,
     );
+    for (const release of SUPPORTED_SERVICENOW_RELEASES) {
+      assertInvalid(
+        `var gr = new GlideRecord("task");
+gr._query();
+gr.deleteMultiple();`,
+        RULE,
+        { messageId: "unfiltered" },
+        { ...SERVER, settings: { scope: "scoped", release } },
+      );
+      assertInvalid(
+        `var gr = new GlideRecord("task");
+gr.queryNoDomain();
+gr.deleteMultiple();`,
+        RULE,
+        { messageId: "unfiltered" },
+        { ...SERVER, settings: { scope: "global", release } },
+      );
+    }
   });
 });
 
@@ -382,8 +412,79 @@ while (cursor.next()) {
     );
   });
 
-  it("flags getAsync inside a proven cursor loop", () => {
+  it("recognizes documented executor and cursor aliases", () => {
     assertInvalid(
+      `var incident = new GlideRecord("incident");
+incident._query();
+while (incident._next()) {
+  var caller = new GlideRecord("sys_user");
+  caller["_query"]();
+}`,
+      RULE,
+      { messageId: "nestedQuery" },
+      { ...SERVER, settings: { scope: "scoped", release: "zurich" } },
+    );
+    assertInvalid(
+      `var incident = new GlideRecord("incident");
+incident.query();
+while (incident._next()) {
+  var caller = new GlideRecord("sys_user");
+  caller.queryNoDomain();
+}`,
+      RULE,
+      { messageId: "nestedQuery" },
+      { ...SERVER, settings: { scope: "global", release: "zurich" } },
+    );
+  });
+
+  it("does not assume a global-only nested executor at unknown scope", () => {
+    assertValid(
+      `var incident = new GlideRecord("incident");
+incident.query();
+while (incident.next()) {
+  var caller = new GlideRecord("sys_user");
+  caller.queryNoDomain();
+}`,
+      RULE,
+      { ...SERVER, settings: { scope: "unknown", release: "zurich" } },
+    );
+  });
+
+  it("does not project undocumented GlideRecord aliases onto GlideAggregate", () => {
+    assertValid(
+      `var aggregate = new GlideAggregate("incident");
+aggregate.query();
+while (aggregate._next()) {
+  var caller = new GlideRecord("sys_user");
+  caller.query();
+}`,
+      RULE,
+      SERVER,
+    );
+    assertValid(
+      `var incident = new GlideRecord("incident");
+incident.query();
+while (incident.next()) {
+  var aggregate = new GlideAggregate("task");
+  aggregate._query();
+}`,
+      RULE,
+      SERVER,
+    );
+    assertValid(
+      `var incident = new GlideRecord("incident");
+incident.query();
+while (incident.next()) {
+  var aggregate = new GlideAggregate("task");
+  aggregate.get("abc");
+}`,
+      RULE,
+      SERVER,
+    );
+  });
+
+  it("does not treat an undocumented getAsync as a nested query", () => {
+    assertValid(
       `var incident = new GlideRecord("incident");
 incident.query();
 while (incident.next()) {
@@ -391,26 +492,224 @@ while (incident.next()) {
   caller.getAsync(incident.getValue("caller_id"));
 }`,
       RULE,
-      { messageId: "nestedQuery" },
       { ...SERVER, settings: { scope: "global", release: "zurich" } },
+    );
+  });
+
+  it("recognizes boolean-comparison cursor conditions", () => {
+    assertInvalid(
+      `var incident = new GlideRecord("incident");
+incident.query();
+while (incident.next() === true) {
+  var caller = new GlideRecord("sys_user");
+  caller.query();
+}`,
+      RULE,
+      { messageId: "nestedQuery" },
+      SERVER,
+    );
+  });
+
+  it("flags a query after next in a loop test", () => {
+    assertInvalid(
+      `var incident = new GlideRecord("incident");
+var caller = new GlideRecord("sys_user");
+incident.query();
+while (incident.next() && caller.query()) {}`,
+      RULE,
+      { messageId: "nestedQuery" },
+      SERVER,
+    );
+  });
+
+  it("keeps an invoked function expression inside the cursor loop", () => {
+    assertInvalid(
+      `var incident = new GlideRecord("incident");
+incident.query();
+while (incident.next()) {
+  (function () {
+    var caller = new GlideRecord("sys_user");
+    caller.query();
+  })();
+}`,
+      RULE,
+      { messageId: "nestedQuery" },
+      SERVER,
+    );
+  });
+
+  it("evaluates invoked-function parameter defaults inside the cursor loop", () => {
+    assertInvalid(
+      `var incident = new GlideRecord("incident");
+var caller = new GlideRecord("sys_user");
+incident.query();
+while (incident.next()) {
+  (function (value = caller.query()) {})();
+}`,
+      RULE,
+      { messageId: "nestedQuery" },
+      SERVER,
+    );
+    assertValid(
+      `var incident = new GlideRecord("incident");
+var caller = new GlideRecord("sys_user");
+incident.query();
+while (incident.next()) {
+  (function (value = caller.query()) {})("supplied");
+}`,
+      RULE,
+      SERVER,
+    );
+    for (const argument of ["undefined", "void 0", "missing"]) {
+      assertInvalid(
+        `var incident = new GlideRecord("incident");
+var caller = new GlideRecord("sys_user");
+const missing = undefined;
+incident.query();
+while (incident.next()) {
+  (function (value = caller.query()) {})(${argument});
+}`,
+        RULE,
+        { messageId: "nestedQuery" },
+        SERVER,
+      );
+    }
+    assertValid(
+      `var undefined = "supplied";
+var incident = new GlideRecord("incident");
+var caller = new GlideRecord("sys_user");
+incident.query();
+while (incident.next()) {
+  (function (value = caller.query()) {})(undefined);
+}`,
+      RULE,
+      SERVER,
+    );
+    assertValid(
+      `var incident = new GlideRecord("incident");
+var caller = new GlideRecord("sys_user");
+incident.query();
+while (incident.next()) {
+  (function (value = caller.query()) {})(missing);
+}
+const missing = undefined;`,
+      RULE,
+      SERVER,
+    );
+  });
+
+  it("does not revisit a do-while body after an unconditional exit", () => {
+    assertValid(
+      `var incident = new GlideRecord("incident");
+incident.query();
+do {
+  var caller = new GlideRecord("sys_user");
+  caller.query();
+  break;
+} while (incident.next());`,
+      RULE,
+      SERVER,
+    );
+  });
+
+  it("revisits a do-while body when continue can reach the cursor test", () => {
+    assertInvalid(
+      `var incident = new GlideRecord("incident");
+var caller = new GlideRecord("sys_user");
+incident.query();
+do {
+  caller.query();
+  if (skip) continue;
+  break;
+} while (incident.next());`,
+      RULE,
+      { messageId: "nestedQuery" },
+      SERVER,
     );
   });
 });
 
 describe("require-query-before-next executors", () => {
-  it("treats getAsync as a documented opener", () => {
+  const RULE = "require-query-before-next" as const;
+
+  it("accepts _query before either documented cursor advancer", () => {
     assertValid(
+      `var gr = new GlideRecord("incident");
+var alias = gr;
+alias["_query"]();
+gr._next();`,
+      RULE,
+      { ...SERVER, settings: { scope: "scoped", release: "zurich" } },
+    );
+  });
+
+  it("accepts queryNoDomain when global scope is explicit or possible", () => {
+    const code = `var gr = new GlideRecord("incident");
+gr.queryNoDomain();
+gr.next();`;
+    assertValid(code, RULE, {
+      ...SERVER,
+      settings: { scope: "global", release: "zurich" },
+    });
+    assertValid(code, RULE, {
+      ...SERVER,
+      settings: { scope: "unknown", release: "zurich" },
+    });
+  });
+
+  it("requires _query on every reachable path", () => {
+    assertInvalid(
+      `var gr = new GlideRecord("incident");
+if (ready) gr._query();
+gr._next();`,
+      RULE,
+      { messageId: "missingQuery" },
+      SERVER,
+    );
+    assertValid(
+      `var gr = new GlideRecord("incident");
+if (ready) gr._query();
+else gr.query();
+gr._next();`,
+      RULE,
+      SERVER,
+    );
+  });
+
+  it("stays silent after an unresolved computed call", () => {
+    assertValid(
+      `var gr = new GlideRecord("incident");
+gr[executor]();
+gr._next();`,
+      RULE,
+      SERVER,
+    );
+    assertValid(
+      `var first = new GlideRecord("incident");
+var original = first;
+var second = new GlideRecord("problem");
+var method = "_query";
+first[(first = second, method)]();
+original.next();`,
+      RULE,
+      SERVER,
+    );
+  });
+
+  it("does not treat an undocumented getAsync as an opener", () => {
+    assertInvalid(
       `var gr = new GlideRecord("incident");
 gr.getAsync(id);
 gr.next();`,
-      "require-query-before-next",
+      RULE,
+      { messageId: "missingQuery" },
       { ...SERVER, settings: { scope: "global", release: "zurich" } },
     );
     assertInvalid(
       `var gr = new GlideRecord("incident");
 gr.getAsync(id);
 gr.next();`,
-      "require-query-before-next",
+      RULE,
       { messageId: "missingQuery" },
       { ...SERVER, settings: { scope: "scoped", release: "zurich" } },
     );

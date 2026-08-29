@@ -1,0 +1,56 @@
+name: Rule proposal
+description: Propose a documented ServiceNow or Fluent correctness rule.
+title: "rule: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: Describe the defect, risk, or unsupported pattern that the rule would detect.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Platform evidence
+      description: Link to primary ServiceNow documentation, SDK declarations, or another authoritative source.
+    validations:
+      required: true
+  - type: textarea
+    id: invalid
+    attributes:
+      label: Code that must report
+      render: javascript
+    validations:
+      required: true
+  - type: textarea
+    id: valid
+    attributes:
+      label: Adjacent code that must stay silent
+      render: javascript
+    validations:
+      required: true
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Surface
+      options:
+        - Classic server script
+        - Classic client script
+        - UI Action
+        - Fluent metadata
+        - Multiple surfaces
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I reviewed docs/non-goals.md.
+          required: true
+        - label: The rule does not match platform APIs by name alone.
+          required: true
+        - label: I searched existing rules and proposals.
+          required: true

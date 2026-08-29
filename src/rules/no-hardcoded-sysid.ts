@@ -1,7 +1,14 @@
 import { defineRule } from "@oxlint/plugins";
 import type { Context, ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
-import { getName, getStaticStringValue, getStringValue } from "../utils/ast.js";
+import {
+  getName,
+  getStaticStringValue,
+  getStringValue,
+  propertyKeyName,
+  propertyName,
+  unwrapExpression,
+} from "../utils/ast.js";
 import {
   parseRuleOptions,
   noHardcodedSysidOptions,
@@ -28,15 +35,101 @@ function reportSysIds(
   node: ESTree.Node,
   value: string,
   allowed: Set<string>,
-  bindingName: string | null,
   ignoreHashNames: boolean,
 ): void {
+  const ids = findSysIds(value);
+  if (ids.length === 0) return;
+  const bindingName = ignoreHashNames ? valueOwnerName(context, node) : null;
   if (ignoreHashNames && looksLikeDigestContext(bindingName, value)) return;
 
-  for (const id of findSysIds(value)) {
+  for (const id of ids) {
     if (allowed.has(id.toLowerCase())) continue;
     context.report({
       node,
+      messageId: "hardcoded",
+      data: { id },
+    });
+  }
+}
+
+interface StaticSegment {
+  node: ESTree.Node;
+  value: string;
+  child: boolean;
+}
+
+/**
+ * Find the nearest syntactic owner of a value without relying on visitor order.
+ * Function and class bodies start new execution regions, so an outer variable
+ * named `md5` does not suppress unrelated constants inside a nested body.
+ */
+function valueOwnerName(context: Context, node: ESTree.Node): string | null {
+  const ancestors = context.sourceCode.getAncestors(node) as ESTree.Node[];
+  for (let index = ancestors.length - 1; index >= 0; index -= 1) {
+    const ancestor = ancestors[index];
+    if (!ancestor) continue;
+    if (ancestor.type === "AssignmentPattern") {
+      return getName((ancestor as ESTree.AssignmentPattern).left);
+    }
+    if (ancestor.type === "AssignmentExpression") {
+      const left = unwrapExpression((ancestor as ESTree.AssignmentExpression).left);
+      return getName(left) ?? propertyName(left);
+    }
+    if (ancestor.type === "Property") {
+      return propertyKeyName(ancestor as ESTree.ObjectProperty);
+    }
+    if (ancestor.type === "PropertyDefinition") {
+      const field = ancestor as { computed?: boolean; key?: unknown };
+      return field.computed
+        ? getStringValue(field.key)
+        : (getName(field.key) ?? getStringValue(field.key));
+    }
+    if (ancestor.type === "VariableDeclarator") {
+      return getName((ancestor as ESTree.VariableDeclarator).id);
+    }
+    if (
+      ancestor.type === "FunctionDeclaration" ||
+      ancestor.type === "FunctionExpression" ||
+      ancestor.type === "ArrowFunctionExpression" ||
+      ancestor.type === "ClassDeclaration" ||
+      ancestor.type === "ClassExpression" ||
+      ancestor.type === "StaticBlock"
+    ) {
+      return null;
+    }
+  }
+  return null;
+}
+
+function reportStaticSegments(
+  context: Context,
+  node: ESTree.Node,
+  segments: readonly StaticSegment[],
+  allowed: Set<string>,
+  ignoreHashNames: boolean,
+): void {
+  const value = segments.map((segment) => segment.value).join("");
+  const matches = [...value.matchAll(/\b[0-9a-f]{32}\b/gi)];
+  if (matches.length === 0) return;
+  const bindingName = ignoreHashNames ? valueOwnerName(context, node) : null;
+  if (ignoreHashNames && looksLikeDigestContext(bindingName, value)) return;
+
+  let offset = 0;
+  const ranges = segments.map((segment) => {
+    const start = offset;
+    offset += segment.value.length;
+    return { ...segment, start, end: offset };
+  });
+
+  for (const match of matches) {
+    const id = match[0];
+    if (allowed.has(id.toLowerCase())) continue;
+    const start = match.index;
+    const end = start + id.length;
+    const segment = ranges.find((candidate) => start >= candidate.start && end <= candidate.end);
+    if (segment?.child) continue;
+    context.report({
+      node: segment?.node ?? node,
       messageId: "hardcoded",
       data: { id },
     });
@@ -49,7 +142,6 @@ export const noHardcodedSysid = defineRule({
     docs: {
       description:
         "Disallow hardcoded ServiceNow sys_ids. Store them in system properties, constants, or Fluent `Now.ID`.",
-      recommended: "recommended",
       url: ruleDocsUrl("no-hardcoded-sysid"),
     },
     schema: schemaFromDescriptor(noHardcodedSysidOptions),
@@ -61,7 +153,6 @@ export const noHardcodedSysid = defineRule({
   createOnce(context) {
     let allowed: Set<string>;
     let ignoreHashNames: boolean;
-    let bindingStack: Array<string | null>;
 
     return {
       before() {
@@ -73,50 +164,55 @@ export const noHardcodedSysid = defineRule({
         const options = parseRuleOptions(noHardcodedSysidOptions, context.options);
         allowed = allowedSet(context, options);
         ignoreHashNames = options.ignoreHashNames;
-        bindingStack = [];
-      },
-      VariableDeclarator(node) {
-        bindingStack.push(getName((node as ESTree.VariableDeclarator).id));
-      },
-      "VariableDeclarator:exit"() {
-        bindingStack.pop();
-      },
-      Property(node) {
-        const prop = node as unknown as ESTree.ObjectProperty;
-        bindingStack.push(getName(prop.key) ?? getStringValue(prop.key));
-      },
-      "Property:exit"() {
-        bindingStack.pop();
       },
       Literal(node) {
         const value = getStringValue(node);
-        if (value)
-          reportSysIds(context, node, value, allowed, bindingStack.at(-1) ?? null, ignoreHashNames);
+        if (value) reportSysIds(context, node, value, allowed, ignoreHashNames);
       },
       TemplateLiteral(node) {
         const template = node as ESTree.TemplateLiteral;
-        const value = getStaticStringValue(template);
-        if (!value) return;
-        const childContainsId = template.expressions.some((expression) => {
-          const childValue = getStaticStringValue(expression);
-          return childValue !== null && findSysIds(childValue).length > 0;
-        });
-        if (!childContainsId) {
-          reportSysIds(context, node, value, allowed, bindingStack.at(-1) ?? null, ignoreHashNames);
+        const segments: StaticSegment[] = [];
+        for (let index = 0; index < template.quasis.length; index += 1) {
+          const quasi = template.quasis[index];
+          if (!quasi) return;
+          segments.push({
+            node: quasi as unknown as ESTree.Node,
+            value: quasi.value.cooked ?? quasi.value.raw,
+            child: false,
+          });
+          const expression = template.expressions[index];
+          if (!expression) continue;
+          const value = getStaticStringValue(expression);
+          if (value === null) {
+            reportSysIds(
+              context,
+              quasi as unknown as ESTree.Node,
+              quasi.value.cooked ?? quasi.value.raw,
+              allowed,
+              ignoreHashNames,
+            );
+            return;
+          }
+          segments.push({ node: expression, value, child: true });
         }
+        reportStaticSegments(context, node, segments, allowed, ignoreHashNames);
       },
       BinaryExpression(node) {
         const expression = node as ESTree.BinaryExpression;
         if (expression.operator !== "+") return;
-        const value = getStaticStringValue(expression);
-        if (!value) return;
-        const childContainsId = [expression.left, expression.right].some((child) => {
-          const childValue = getStaticStringValue(child);
-          return childValue !== null && findSysIds(childValue).length > 0;
-        });
-        if (!childContainsId) {
-          reportSysIds(context, node, value, allowed, bindingStack.at(-1) ?? null, ignoreHashNames);
-        }
+        const left = getStaticStringValue(expression.left);
+        const right = getStaticStringValue(expression.right);
+        if (left === null || right === null) return;
+        reportStaticSegments(
+          context,
+          node,
+          [
+            { node: expression.left, value: left, child: true },
+            { node: expression.right, value: right, child: true },
+          ],
+          allowed,
+          ignoreHashNames,
+        );
       },
     };
   },

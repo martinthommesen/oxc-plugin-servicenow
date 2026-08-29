@@ -10,13 +10,23 @@ export const TRUSTED_PUBLISHING_NPM_BELOW = "12.0.0";
 /** @deprecated Use TRUSTED_PUBLISHING_NPM_MINIMUM. */
 export const TRUSTED_PUBLISHING_NPM_VERSION = TRUSTED_PUBLISHING_NPM_MINIMUM;
 
+function parseCore(version) {
+  const match = /^(\d+)\.(\d+)\.(\d+)((?:[-+]).*)?$/.exec(version);
+  if (!match) throw new Error(`invalid npm version bound: ${version}`);
+  return { core: [Number(match[1]), Number(match[2]), Number(match[3])], suffix: match[4] ?? "" };
+}
+
 function compareCoreVersions(left, right) {
-  const a = left.split(/[-+]/)[0].split(".").map(Number);
-  const b = right.split(/[-+]/)[0].split(".").map(Number);
+  const a = parseCore(left);
+  const b = parseCore(right);
   for (let index = 0; index < 3; index += 1) {
-    if (a[index] !== b[index]) return a[index] - b[index];
+    if (a.core[index] !== b.core[index]) return a.core[index] - b.core[index];
   }
-  return 0;
+  // SemVer: a prerelease precedes its release. The bounds are plain x.y.z,
+  // so a prerelease npm (11.5.1-rc.0) must stay below the 11.5.1 minimum.
+  const aPre = a.suffix.startsWith("-") ? 0 : 1;
+  const bPre = b.suffix.startsWith("-") ? 0 : 1;
+  return aPre - bPre;
 }
 
 /** Parse only a single semver-like npm --version line; npm must not be guessed from Node metadata. */

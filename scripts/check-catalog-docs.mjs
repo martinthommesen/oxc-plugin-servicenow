@@ -6,6 +6,12 @@ import { pathToFileURL } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const { ruleCatalog } = await import(pathToFileURL(join(root, "src/catalog.ts")).href);
+const { SUPPORTED_SERVICENOW_RELEASES } = await import(
+  pathToFileURL(join(root, "src/settings/index.ts")).href
+);
+const { CATALOG_RELEASE_REVIEWS } = await import(
+  pathToFileURL(join(root, "src/catalog-metadata.ts")).href
+);
 const { optionDocsFromDescriptor } = await import(
   pathToFileURL(join(root, "src/options/index.ts")).href
 );
@@ -78,6 +84,30 @@ function checkMarkdownTables(source, label) {
   }
 }
 
+function checkPublishedReadmeLinks(source) {
+  const lines = source.split(/\r?\n/);
+  let fenced = false;
+  const checkTarget = (target, line) => {
+    if (/^(?:https:\/\/|#|mailto:)/.test(target)) return;
+    fail(
+      `README.md:${line} uses relative link ${JSON.stringify(target)} even though its target is not shipped in the package`,
+    );
+  };
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    if (/^\s*```/.test(line)) {
+      fenced = !fenced;
+      continue;
+    }
+    if (fenced) continue;
+    for (const match of line.matchAll(/\]\(([^\s)]+)(?:\s+[^)]*)?\)/g)) {
+      checkTarget(match[1], index + 1);
+    }
+    const definition = line.match(/^\s*\[[^\]]+\]:\s*(?:<([^>]+)>|(\S+))/);
+    if (definition) checkTarget(definition[1] ?? definition[2], index + 1);
+  }
+}
+
 async function sourceExists(relativePath) {
   if (
     !relativePath ||
@@ -95,6 +125,93 @@ async function sourceExists(relativePath) {
     return true;
   } catch {
     return false;
+  }
+}
+
+const catalogNames = ruleCatalog.map((rule) => rule.name).sort();
+const reviewReleaseNames = Object.keys(CATALOG_RELEASE_REVIEWS).sort();
+if (
+  JSON.stringify(reviewReleaseNames) !== JSON.stringify([...SUPPORTED_SERVICENOW_RELEASES].sort())
+) {
+  fail("catalog release-review registry keys do not match supported ServiceNow releases");
+}
+const allowedReviewBases = new Set([
+  "direct",
+  "engine-matrix",
+  "engine-updates",
+  "glide-record",
+  "glide-aggregate",
+]);
+for (const release of SUPPORTED_SERVICENOW_RELEASES) {
+  const releaseReview = CATALOG_RELEASE_REVIEWS[release];
+  if (!releaseReview) continue;
+  if (release === "zurich") {
+    if (releaseReview.kind !== "legacy-baseline") {
+      fail("Zurich catalog review must remain the explicit legacy baseline");
+    }
+    continue;
+  }
+  if (releaseReview.kind !== "per-rule") {
+    fail(`${release} catalog review must be per-rule`);
+    continue;
+  }
+  if (!isValidIsoDate(releaseReview.reviewedAt)) {
+    fail(`${release} catalog review has invalid reviewedAt ${releaseReview.reviewedAt}`);
+  }
+  const releaseEvidenceBases = Object.keys(releaseReview.evidence ?? {}).sort();
+  if (JSON.stringify(releaseEvidenceBases) !== JSON.stringify([...allowedReviewBases].sort())) {
+    fail(`${release} release evidence does not define every review basis exactly once`);
+  }
+  for (const basis of allowedReviewBases) {
+    const records = releaseReview.evidence?.[basis];
+    if (!Array.isArray(records)) continue;
+    if (basis !== "direct" && records.length === 0) {
+      fail(`${release} ${basis} release evidence must not be empty`);
+    }
+    for (const record of records) {
+      if (!record?.url?.startsWith("https://") || !record?.claim?.trim()) {
+        fail(`${release} ${basis} release evidence needs an https URL and claim`);
+      }
+    }
+  }
+  const reviewedNames = Object.keys(releaseReview.rules).sort();
+  if (JSON.stringify(reviewedNames) !== JSON.stringify(catalogNames)) {
+    const missing = catalogNames.filter((name) => !reviewedNames.includes(name));
+    const extra = reviewedNames.filter((name) => !catalogNames.includes(name));
+    fail(
+      `${release} per-rule review keys differ from catalog (missing: ${missing.join(", ") || "none"}; extra: ${extra.join(", ") || "none"})`,
+    );
+  }
+  for (const rule of ruleCatalog) {
+    const review = releaseReview.rules[rule.name];
+    if (!review) continue;
+    if (rule.family === "fluent") {
+      if (review.status !== "not-applicable" || review.axis !== "fluent-sdk") {
+        fail(`${release}/${rule.name} must be not-applicable on the Fluent SDK axis`);
+      }
+      continue;
+    }
+    if (review.status !== "reviewed" && review.status !== "invariant") {
+      fail(`${release}/${rule.name} must be reviewed or release-invariant`);
+      continue;
+    }
+    if (review.status === "reviewed") {
+      if (!Array.isArray(review.basis) || review.basis.length === 0) {
+        fail(`${release}/${rule.name} reviewed basis must be non-empty`);
+      } else if (review.basis.some((basis) => !allowedReviewBases.has(basis))) {
+        fail(`${release}/${rule.name} has an unsupported review basis`);
+      }
+      const evidenceUrls = new Set(rule.evidence.map((item) => item.url));
+      for (const basis of review.basis) {
+        for (const record of releaseReview.evidence[basis] ?? []) {
+          if (!evidenceUrls.has(record.url)) {
+            fail(`${release}/${rule.name} is missing ${basis} evidence ${record.url}`);
+          }
+        }
+      }
+    } else if (!review.rationale?.trim()) {
+      fail(`${release}/${rule.name} invariant review needs a rationale`);
+    }
   }
 }
 
@@ -119,6 +236,37 @@ for (const rule of ruleCatalog) {
     if (rule.applicability[field] == null || rule.applicability[field] === "") {
       fail(`${rule.name} applicability.${field} is missing`);
     }
+  }
+  const releases = rule.applicability.serviceNowReleases;
+  if (!Array.isArray(releases)) {
+    fail(`${rule.name} applicability.serviceNowReleases must be an array`);
+  } else if (rule.family === "fluent") {
+    if (releases.length !== 0) {
+      fail(`${rule.name} is Fluent SDK-versioned and must not claim instance releases`);
+    }
+  } else if (releases.length === 0) {
+    fail(`${rule.name} has no reviewed ServiceNow release`);
+  } else {
+    if (new Set(releases).size !== releases.length) {
+      fail(`${rule.name} applicability.serviceNowReleases contains duplicates`);
+    }
+    for (const release of releases) {
+      if (!SUPPORTED_SERVICENOW_RELEASES.includes(release)) {
+        fail(`${rule.name} applicability contains unsupported release ${release}`);
+      }
+    }
+  }
+  const expectedReleases = SUPPORTED_SERVICENOW_RELEASES.filter((release) => {
+    if (rule.family === "fluent") return false;
+    const releaseReview = CATALOG_RELEASE_REVIEWS[release];
+    if (releaseReview?.kind === "legacy-baseline") return true;
+    const review = releaseReview?.rules[rule.name];
+    return review?.status === "reviewed" || review?.status === "invariant";
+  });
+  if (JSON.stringify(releases) !== JSON.stringify(expectedReleases)) {
+    fail(
+      `${rule.name} derived releases ${JSON.stringify(releases)} do not match review registry ${JSON.stringify(expectedReleases)}`,
+    );
   }
   if (rule.family === "fluent" && !rule.applicability.fluentSdkRange) {
     fail(`${rule.name} is Fluent and is missing fluentSdkRange`);
@@ -194,6 +342,7 @@ for (const rule of ruleCatalog) {
 
 const readme = await readFile(join(root, "README.md"), "utf8");
 checkMarkdownTables(readme, "README.md");
+checkPublishedReadmeLinks(readme);
 
 const generatedState = execFileSync(
   "git",

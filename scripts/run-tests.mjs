@@ -3,11 +3,9 @@ import { mkdirSync } from "node:fs";
 import { readdir, stat } from "node:fs/promises";
 import { dirname, isAbsolute, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { createRequire } from "node:module";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const require = createRequire(import.meta.url);
-const tsxCli = require.resolve("tsx/cli");
+const tsxRegistration = new URL("./register-tsx.mjs", import.meta.url).href;
 const args = process.argv.slice(2);
 const reportIndex = args.indexOf("--report-json");
 let reportJson;
@@ -89,7 +87,7 @@ const reporterArgs = reportJson
   : [];
 const child = spawn(
   process.execPath,
-  [tsxCli, "--test", "--test-concurrency=1", ...reporterArgs, ...files],
+  ["--import", tsxRegistration, "--test", "--test-concurrency=1", ...reporterArgs, ...files],
   {
     stdio: "inherit",
     cwd: root,

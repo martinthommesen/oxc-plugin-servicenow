@@ -1,0 +1,107 @@
+import type { ESTree } from "@oxlint/plugins";
+import { isNode, unwrapExpression, walk } from "../utils/ast.js";
+import type { FileBindings } from "./bindings.js";
+import type { BindingWriteQuery } from "./binding-writes.js";
+import { resolveConstValue } from "./members.js";
+
+const MAX_STABLE_CALL_SITES = 20_000;
+
+export interface ImmediateFunction {
+  readonly type: "FunctionDeclaration" | "FunctionExpression" | "ArrowFunctionExpression";
+  readonly params: readonly ESTree.Node[];
+  readonly body: ESTree.Node;
+  readonly generator?: boolean;
+}
+
+export interface StableInvocationQuery {
+  /** Resolve a function body proven to execute immediately at this call site. */
+  resolve(callee: unknown): ImmediateFunction | null;
+}
+
+export function isFunctionNode(node: unknown): node is ImmediateFunction {
+  return (
+    isNode(node) &&
+    (node.type === "FunctionDeclaration" ||
+      node.type === "FunctionExpression" ||
+      node.type === "ArrowFunctionExpression")
+  );
+}
+
+function executesImmediately(node: ImmediateFunction): boolean {
+  return node.type === "ArrowFunctionExpression" || !node.generator;
+}
+
+/**
+ * Index local functions whose runtime identity is stable enough to expand at
+ * one direct call site. Multiple call sites stay unknown because the shared
+ * provenance view is intentionally not call-context-sensitive.
+ */
+export function analyzeStableInvocations(
+  program: ESTree.Node,
+  bindings: FileBindings,
+  bindingWrites: BindingWriteQuery,
+): StableInvocationQuery {
+  const calls: ESTree.CallExpression[] = [];
+  let callBudgetExceeded = false;
+
+  walk(program, {
+    CallExpression(node) {
+      const call = node as ESTree.CallExpression;
+      if (calls.length < MAX_STABLE_CALL_SITES) calls.push(call);
+      else callBudgetExceeded = true;
+    },
+  });
+
+  const resolveBase = (callee: unknown): ImmediateFunction | null => {
+    const direct = unwrapExpression(callee);
+    if (!isNode(direct)) return null;
+    if (isFunctionNode(direct)) return executesImmediately(direct) ? direct : null;
+    // Calling a member, conditional, or sequence expression can evaluate
+    // additional code at the call site. Keep expansion to a direct binding;
+    // resolveConstValue may then follow its immutable aliases.
+    if (direct.type !== "Identifier") return null;
+    // Lexical resolution is not authoritative anywhere in a file containing
+    // direct eval or `with`. Check before following const aliases as well as
+    // function declarations.
+    if (bindingWrites.hasDynamicScope()) return null;
+    const value = resolveConstValue(direct, bindings);
+    if (!value) return null;
+    if (isFunctionNode(value)) return executesImmediately(value) ? value : null;
+    if (value.type !== "Identifier") return null;
+    const binding = bindings.resolve(value.name, value);
+    if (
+      binding?.kind !== "function" ||
+      binding.node.type !== "FunctionDeclaration" ||
+      bindingWrites.isWritten(binding.id)
+    ) {
+      return null;
+    }
+    if (!isFunctionNode(binding.node)) return null;
+    return executesImmediately(binding.node) ? binding.node : null;
+  };
+
+  const callCounts = new WeakMap<ImmediateFunction, number>();
+  if (!callBudgetExceeded) {
+    for (const call of calls) {
+      const fn = resolveBase(call.callee);
+      if (fn) callCounts.set(fn, (callCounts.get(fn) ?? 0) + 1);
+    }
+  }
+
+  const cache = new WeakMap<ESTree.Node, ImmediateFunction | null>();
+  return Object.freeze({
+    resolve(callee: unknown): ImmediateFunction | null {
+      const direct = unwrapExpression(callee);
+      if (!isNode(direct)) return null;
+      if (cache.has(direct)) return cache.get(direct) ?? null;
+      if (isFunctionNode(direct) && executesImmediately(direct)) {
+        cache.set(direct, direct);
+        return direct;
+      }
+      const fn = callBudgetExceeded ? null : resolveBase(direct);
+      const resolved = fn && callCounts.get(fn) === 1 ? fn : null;
+      cache.set(direct, resolved);
+      return resolved;
+    },
+  });
+}

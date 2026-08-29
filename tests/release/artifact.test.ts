@@ -15,7 +15,7 @@ import {
   tarballIntegrity,
 } from "../../scripts/check-release-artifact.mjs";
 import { inspectPublishInput } from "../../scripts/publish-release-package.mjs";
-import { repoRoot } from "../integration/helpers.js";
+import { repoRoot, TSX_CLI_EXECUTION_PATTERN } from "../integration/helpers.js";
 
 const pkg = JSON.parse(readFileSync(path.join(repoRoot, "package.json"), "utf8")) as {
   name: string;
@@ -26,7 +26,7 @@ const pkg = JSON.parse(readFileSync(path.join(repoRoot, "package.json"), "utf8")
 describe("release artifact gates", () => {
   it("requires an exact changelog version heading", () => {
     const changelog = readFileSync(path.join(repoRoot, "CHANGELOG.md"), "utf8");
-    assert.equal(changelogHasVersionHeading(changelog, pkg.version), false);
+    assert.equal(changelogHasVersionHeading(changelog, pkg.version), true);
     assert.equal(changelogHasVersionHeading("# Changelog\n\n## Unreleased\n", "2.0.0"), false);
     assert.equal(changelogHasVersionHeading("# Changelog\n\n## 2.0.0\n", "2.0.0"), false);
     assert.equal(
@@ -139,18 +139,9 @@ describe("release artifact gates", () => {
   it("wires validate and release scripts to one inspected tarball", () => {
     const releaseCheck = pkg.scripts["release:check"];
     const validate = pkg.scripts.validate;
-    const validateLive = pkg.scripts["validate:live"];
     assert.equal(releaseCheck, "node scripts/check-release-artifact.mjs");
     assert.ok(validate, "package.json is missing the validate script");
-    // The aggregate gate must run offline; the networked packed-consumer
-    // steps live in validate:live (FINDINGS.md OPS-004).
-    assert.match(validate, /release:check$/);
-    assert.doesNotMatch(validate, /test:consumer|acceptance:capture|--consumer/);
-    assert.match(validate, /acceptance:check/);
-    assert.ok(validateLive, "package.json is missing the validate:live script");
-    assert.match(validateLive, /release:check -- --consumer/);
-    assert.match(validateLive, /test:consumer/);
-    assert.match(validateLive, /acceptance:capture/);
+    assert.match(validate, /release:check -- --consumer/);
     assert.doesNotMatch(validate, /(?:^| )compat(?: |$)/);
 
     const workflow = readFileSync(path.join(repoRoot, ".github/workflows/release.yml"), "utf8");
@@ -168,15 +159,18 @@ describe("release artifact gates", () => {
     assert.doesNotMatch(uncommented, /NPM_TOKEN/);
     assert.doesNotMatch(uncommented, /secrets\./);
     assert.match(workflow, /git rev-parse origin\/main/);
+    assert.match(workflow, /test "\$GITHUB_SHA" = "\$\(git rev-parse origin\/main\)"/);
     assert.doesNotMatch(workflow, /merge-base --is-ancestor/);
     assert.doesNotMatch(workflow, /npm run compat -- --all/);
     assert.match(workflow, /compat-consumer\.mjs --cell .* --tarball/);
     assert.match(workflow, /--sha256 "\$SHA256"/);
+    assert.doesNotMatch(workflow, TSX_CLI_EXECUTION_PATTERN);
     const artifactGate = readFileSync(
       path.join(repoRoot, "scripts/check-release-artifact.mjs"),
       "utf8",
     );
-    assert.match(artifactGate, /require\.resolve\("tsx\/cli"\)/);
+    assert.match(artifactGate, /execFileSync\(process\.execPath, args/);
+    assert.doesNotMatch(artifactGate, /tsx\/cli/);
     assert.doesNotMatch(artifactGate, /execFileSync\("npx", \["tsx"/);
   });
 

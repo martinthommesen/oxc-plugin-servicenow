@@ -62,7 +62,7 @@ export function assertValid(code: string, rule: RuleName, options: RunOptions = 
   assert.equal(
     messages.length,
     0,
-    `Expected no diagnostics, got:\n${messages.map((m) => `  - ${m.message}`).join("\n")}`,
+    `Expected no diagnostics, got:\n${messages.map((m) => `  - ${m.messageId ?? "?"} ${m.message}`).join("\n")}\nSource:\n${code}`,
   );
 }
 
@@ -77,7 +77,7 @@ export function assertInvalid(
   assert.equal(
     messages.length,
     count,
-    `Expected exactly ${count} diagnostic(s), got ${messages.length}:\n${messages.map((m) => `  - ${m.messageId ?? "?"} ${m.message}`).join("\n")}`,
+    `Expected exactly ${count} diagnostic(s), got ${messages.length}:\n${messages.map((m) => `  - ${m.messageId ?? "?"} ${m.message}`).join("\n")}\nSource:\n${code}`,
   );
   if (expected.messageId) {
     assert.ok(

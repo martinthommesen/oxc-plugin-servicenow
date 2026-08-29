@@ -1,6 +1,6 @@
-# ES2021 server scripts
+# Australia ES2021 server scripts
 
-Promise and async/await are allowed. `for await` remains banned.
+Promise, async/await, `Object.hasOwn()`, corrected `BigInt.asUintN()` narrowing and `Array.from()` mapper `thisArg` handling, BigInt64 typed arrays, static TypedArray factories, and the seven Set composition methods are Supported. Private instance members and DataView BigInt getters are Not Supported; `for await` is Disallowed.
 
 ## Commands
 
@@ -15,6 +15,7 @@ Promise and async/await are allowed. `for await` remains banned.
 {
   "servicenow": {
     "javascriptMode": "es2021",
+    "release": "australia",
     "surfaces": [
       "server"
     ]

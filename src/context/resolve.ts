@@ -80,6 +80,9 @@ function resolveAuthoring(
       confidence: "explicit",
     };
   }
+  if (settings.surfaces !== "auto") {
+    return { authoring: "classic", confidence: "explicit" };
+  }
   const fromFile = authoringFromFilename(filename);
   if (fromFile) {
     return { authoring: fromFile, confidence: "filename" };
@@ -91,12 +94,17 @@ function resolveSurfaces(
   filename: string,
   settings: ValidatedServiceNowSettings,
   authoring: ScriptAuthoring,
+  authoringConfidence: ContextConfidence,
   inferClient?: () => boolean,
   inferSurfaces?: () => { client: boolean; server: boolean },
   baseDirectory?: string,
 ): { surfaces: Set<ScriptSurface>; confidence: ContextConfidence } {
   if (authoring === "fluent") {
-    if (settings.surfaces !== "auto" && settings.surfaces.length > 0) {
+    if (
+      authoringConfidence === "explicit" &&
+      settings.surfaces !== "auto" &&
+      settings.surfaces.length > 0
+    ) {
       throw new ServiceNowSettingsError(
         ".surfaces",
         "Fluent authoring cannot list instance execution surfaces",
@@ -192,6 +200,7 @@ export function resolveScriptContext(
     filename,
     settings,
     authoring.authoring,
+    authoring.confidence,
     extras.inferClient,
     extras.inferSurfaces,
     (context as Context & { cwd?: string }).cwd,
@@ -280,6 +289,7 @@ export function appliesOnSurface(
 }
 
 const SERVER_ONLY_SURFACES: readonly ScriptSurface[] = [
+  "acl",
   "business-rule",
   "script-include",
   "server",

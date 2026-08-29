@@ -22,24 +22,36 @@ describe("ESLint flat profile context contracts", () => {
   });
 
   it("limits the client profile to client filenames and settings", () => {
+    const scopedClient = {
+      ...configs.flat.client,
+      settings: {
+        servicenow: {
+          ...configs.flat.client.settings.servicenow,
+          scope: "scoped",
+        },
+      },
+    };
     for (const filename of [
       "x.client.js",
       "x.cs.cjs",
       "catalog-client.mjs",
       "sys_script_client_onchange.js",
+      "approve.client.ui-action.js",
       "src/client/x.js",
     ]) {
       assert.ok(
-        ids(configs.flat.client, 'var gr = new GlideRecord("incident");', filename).includes(
+        ids(scopedClient, 'var gr = new GlideRecord("incident");', filename).includes(
           "servicenow/no-client-gliderecord",
         ),
         filename,
       );
     }
     assert.deepEqual(
-      ids(configs.flat.client, 'var gr = new GlideRecord("incident");', "x.server.js"),
+      ids(configs.flat.client, 'var gr = new GlideRecord("incident");', "x.client.js"),
       [],
+      "the generic client profile must not guess application scope",
     );
+    assert.deepEqual(ids(scopedClient, 'var gr = new GlideRecord("incident");', "x.server.js"), []);
   });
 
   it("limits the Business Rule profile to Business Rule files", () => {
@@ -58,6 +70,35 @@ describe("ESLint flat profile context contracts", () => {
     }
     assert.deepEqual(ids(configs.flat.businessRule, "current.update();", "x.server.js"), []);
     assert.deepEqual(ids(configs.flat.businessRule, "current.update();", "sys_script2.js"), []);
+  });
+
+  it("limits the ACL profile to ACL files and reviews proven queries", () => {
+    const code = 'var user = new GlideRecord("sys_user"); user.query();';
+    for (const filename of [
+      "read.acl.js",
+      "incident.access-control.cjs",
+      "read.access.control.js",
+      "sys_security_acl_read.mjs",
+      "src/access-controls/read.js",
+      "src/access_control/read.cjs",
+      "src/accesscontrol/read.mjs",
+    ]) {
+      assert.ok(
+        ids(configs.flat.acl, code, filename).includes("servicenow/no-gliderecord-query-in-acl"),
+        filename,
+      );
+    }
+    for (const filename of [
+      "helper.server.js",
+      "accesscontroller.js",
+      "sys_security_aclanything.js",
+      "src/client/read.acl.js",
+      "src/br/read.acl.js",
+      "read.client.acl.js",
+      "read.business-rule.acl.js",
+    ]) {
+      assert.deepEqual(ids(configs.flat.acl, code, filename), [], filename);
+    }
   });
 
   it("supplies Fluent authoring for .now.ts", () => {

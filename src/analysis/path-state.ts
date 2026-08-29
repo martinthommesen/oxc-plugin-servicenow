@@ -8,14 +8,15 @@ import {
   walk,
 } from "../utils/ast.js";
 import type { FileBindings, LexicalBinding, ScopeNode } from "./bindings.js";
+import { resolvePlatformGlobalName } from "./globals.js";
 import { isFunctionLike } from "./bindings.js";
-import { staticPropertyName } from "./members.js";
+import { isDefinitelyUndefinedValue, resolveConstValue, staticPropertyName } from "./members.js";
 import type { ProvenanceKind, ProvenanceQuery } from "./provenance.js";
 
 export type BindingId = number;
 export type ObjectId = number;
 export type Completion = "normal" | "return" | "throw" | "break" | "continue";
-type InternalCompletion = Completion | "unreachable";
+type InternalCompletion = Completion | "unreachable" | "suspend";
 
 export interface SharedRecord<T> {
   id: ObjectId;
@@ -27,6 +28,8 @@ export interface SharedRecord<T> {
 export interface PathCallInput<T> {
   call: ESTree.CallExpression;
   rec: SharedRecord<T> | undefined;
+  /** Unwrapped member receiver captured before computed keys and arguments run. */
+  receiver: ESTree.Node | null;
   objectName: string | null;
   property: string | null;
 }
@@ -43,6 +46,7 @@ type AbruptCompletion = Exclude<InternalCompletion, "normal">;
 const DEFAULT_MAX_WORK = 50_000;
 const MAX_PATH_DEPTH = 128;
 const BUDGET_EXCEEDED = Symbol("path-analysis-budget-exceeded");
+const EMPTY_OBJECT_IDS: ReadonlySet<ObjectId> = new Set();
 let budgetExceededCount = 0;
 
 export function getPathBudgetExceededCount(): number {
@@ -53,6 +57,24 @@ export function resetPathBudgetExceededCount(): void {
   budgetExceededCount = 0;
 }
 
+export function dedupePathFindings<T extends { node: ESTree.Node }>(
+  findings: T[],
+  keyOf?: (finding: T) => string,
+): T[] {
+  const seen = new WeakMap<ESTree.Node, Set<string>>();
+  return findings.filter((finding) => {
+    let keys = seen.get(finding.node);
+    if (!keys) {
+      keys = new Set();
+      seen.set(finding.node, keys);
+    }
+    const key = keyOf?.(finding) ?? "";
+    if (keys.has(key)) return false;
+    keys.add(key);
+    return true;
+  });
+}
+
 interface WorkBudget {
   remaining: number;
 }
@@ -60,25 +82,6 @@ interface WorkBudget {
 function spendWork(budget: WorkBudget, amount = 1): void {
   budget.remaining -= amount;
   if (budget.remaining < 0) throw BUDGET_EXCEEDED;
-}
-
-/**
- * Run an AST traversal under the same deterministic work budget the path
- * evaluator uses. Exceeding the budget degrades to `fallback` (no findings)
- * and increments the shared exceeded counter instead of running unbounded
- * (FINDINGS.md PER-002).
- */
-export function runWithTraversalBudget<T>(run: (spend: () => void) => T, fallback: T): T {
-  const budget: WorkBudget = { remaining: DEFAULT_MAX_WORK };
-  try {
-    return run(() => spendWork(budget));
-  } catch (error) {
-    if (error === BUDGET_EXCEEDED) {
-      budgetExceededCount += 1;
-      return fallback;
-    }
-    throw error;
-  }
 }
 
 interface EnvState<T> {
@@ -103,8 +106,22 @@ export interface PathAnalysisOptions<T> {
   equalsData: (left: T, right: T) => boolean;
   onCall: (input: PathCallInput<T>) => void;
   onRef?: (input: PathRefInput<T>) => void;
-  /** Allocate an object when an expression is a proven constructed value. */
+  /** Allocate an abstract value; a later evaluation refreshes an invalid or escaped site. */
   onValue?: (node: ESTree.Node) => T | undefined;
+  /**
+   * Analyze function bodies that have no direct call in this file. Disable
+   * this for execution diagnostics that must not inspect deferred or dead
+   * helper bodies. Defaults to true for existing syntax and lifecycle passes.
+   */
+  analyzeUncalledFunctions?: boolean;
+  /** Stop the current execution path at its first await while direct callers continue. */
+  stopAtAwait?: boolean;
+  /**
+   * Retain records that no surviving binding references after a control-flow
+   * join. Risk domains need these records for exit findings; program-point
+   * alias domains can disable retention to keep loop fixpoints finite.
+   */
+  retainUnboundRecords?: boolean;
   /** Inspect every reachable program completion after the shared traversal. */
   onExit?: (states: readonly PathExitState<T>[]) => void;
   /** Internal deterministic work cap. Exceeding it degrades this pass to unknown. */
@@ -119,64 +136,6 @@ export interface PathExitState<T> {
 
 export function isFunctionLikeNode(node: ESTree.Node): boolean {
   return isFunctionLike(node);
-}
-
-/**
- * Truthiness of a statically constant test expression: literal booleans,
- * numbers, strings, bigints, regex literals, `null`, and `!` chains over
- * them. Everything else is unknown. Used to prune branches a constant
- * condition makes unreachable (FINDINGS.md COR-003).
- */
-export function constantTruthiness(node: unknown): boolean | undefined {
-  const expr = unwrapExpression(node);
-  if (!isNode(expr)) return undefined;
-  if (expr.type === "Literal") {
-    const value = (expr as { value?: unknown; regex?: unknown }).value;
-    if ((expr as { regex?: unknown }).regex) return true;
-    if (value === null) return false;
-    if (
-      typeof value === "boolean" ||
-      typeof value === "number" ||
-      typeof value === "string" ||
-      typeof value === "bigint"
-    ) {
-      return Boolean(value);
-    }
-    return undefined;
-  }
-  if (expr.type === "UnaryExpression" && (expr as ESTree.UnaryExpression).operator === "!") {
-    const inner = constantTruthiness((expr as ESTree.UnaryExpression).argument);
-    return inner === undefined ? undefined : !inner;
-  }
-  return undefined;
-}
-
-/**
- * True for a call whose callee is a synchronous function or arrow expression:
- * an IIFE that runs at this program point. Its body inherits the enclosing
- * execution context; deferred callbacks do not (FINDINGS.md COR-004).
- */
-export function isSynchronousIife(node: unknown): boolean {
-  if (!isNode(node) || node.type !== "CallExpression") return false;
-  return iifeCallee(node as ESTree.CallExpression) !== null;
-}
-
-interface IifeFunction {
-  type: string;
-  body: ESTree.Node;
-  async?: boolean;
-  generator?: boolean;
-}
-
-/** The invoked function body owner for a synchronous IIFE, unwrapping parens. */
-export function iifeCallee(call: ESTree.CallExpression): IifeFunction | null {
-  const callee = unwrapExpression(call.callee);
-  if (!isNode(callee)) return null;
-  if (callee.type !== "FunctionExpression" && callee.type !== "ArrowFunctionExpression")
-    return null;
-  const fn = callee as unknown as IifeFunction;
-  if (fn.async || fn.generator) return null;
-  return fn;
 }
 
 export function mergeTri(
@@ -245,6 +204,15 @@ function isDefinitelyTrue(node: unknown): boolean {
   const expr = unwrapExpression(node);
   if (!isNode(expr)) return false;
   return expr.type === "Literal" && (expr as unknown as { value?: unknown }).value === true;
+}
+
+function isDefinitelyFalse(node: unknown): boolean {
+  const expr = unwrapExpression(node);
+  return Boolean(
+    isNode(expr) &&
+    expr.type === "Literal" &&
+    (expr as unknown as { value?: unknown }).value === false,
+  );
 }
 
 export function visitChildren(
@@ -322,6 +290,8 @@ function mergeStates<T>(
   mergeData: (left: T, right: T) => T,
   mergeDistinctData?: (left: T, right: T) => T | undefined,
   alloc?: () => ObjectId,
+  retainUnboundRecords = true,
+  retainedObjectIds: ReadonlySet<ObjectId> = EMPTY_OBJECT_IDS,
 ): EnvState<T> {
   const env = new Map<BindingId, ObjectId | undefined>();
   const objects = new Map<ObjectId, SharedRecord<T>>();
@@ -372,7 +342,15 @@ function mergeStates<T>(
     }
     env.set(bindingId, leftId);
   }
-  return { env, objects, completion: "normal", abrupt: new Map() };
+  if (!retainUnboundRecords) {
+    const boundObjectIds = new Set(env.values());
+    for (const objectId of objects.keys()) {
+      if (!boundObjectIds.has(objectId) && !retainedObjectIds.has(objectId)) {
+        objects.delete(objectId);
+      }
+    }
+  }
+  return { env, objects, completion: "normal", completionLabel: null, abrupt: new Map() };
 }
 
 function statesEqual<T>(
@@ -401,12 +379,23 @@ function mergeMany<T>(
   mergeData: (left: T, right: T) => T,
   mergeDistinctData?: (left: T, right: T) => T | undefined,
   alloc?: () => ObjectId,
+  retainUnboundRecords = true,
+  retainedObjectIds: ReadonlySet<ObjectId> = EMPTY_OBJECT_IDS,
 ): EnvState<T> | undefined {
   const reachable = paths.filter((path) => path.completion === "normal");
   if (reachable.length === 0) return undefined;
   let current = reachable[0]!;
   for (let i = 1; i < reachable.length; i++) {
-    current = mergeStates(current, reachable[i]!, emptyData, mergeData, mergeDistinctData, alloc);
+    current = mergeStates(
+      current,
+      reachable[i]!,
+      emptyData,
+      mergeData,
+      mergeDistinctData,
+      alloc,
+      retainUnboundRecords,
+      retainedObjectIds,
+    );
   }
   return current;
 }
@@ -444,17 +433,20 @@ function ctorKind(
 ): ProvenanceKind | null {
   const expr = unwrapExpression(node);
   if (!isNode(expr) || expr.type !== "NewExpression") return null;
-  const callee = (expr as ESTree.NewExpression).callee;
-  const name = getName(callee);
+  const callee = resolveConstValue((expr as ESTree.NewExpression).callee, analysis.bindings);
+  if (!callee) return null;
+  const name = resolvePlatformGlobalName(callee, analysis.bindings);
   if (!name) return null;
-  const map: ReadonlyMap<string, ProvenanceKind> = new Map([
-    ["GlideRecord", "GlideRecord"],
-    ["GlideRecordSecure", "GlideRecord"],
-    ["GlideAggregate", "GlideAggregate"],
-    ["GlideAjax", "GlideAjax"],
-    ["GlideDateTime", "GlideDateTime"],
-  ]);
-  const kind = map.get(name);
+  const map: Record<string, ProvenanceKind> = {
+    GlideRecord: "GlideRecord",
+    GlideRecordSecure: "GlideRecord",
+    GlideAggregate: "GlideAggregate",
+    GlideAjax: "GlideAjax",
+    GlideDateTime: "GlideDateTime",
+    DataView: "DataView",
+    Set: "Set",
+  };
+  const kind = map[name];
   if (!kind || !kinds.includes(kind)) return null;
   if (!analysis.isPlatformCtor(callee, [name])) return null;
   return kind;
@@ -485,14 +477,13 @@ function capturedBindings(fn: ESTree.Node, bindings: FileBindings): BindingId[] 
   const ancestors: ESTree.Node[] = [];
   const visit = (node: unknown): void => {
     if (!isNode(node)) return;
-    // A nested closure has its own capture set. Do not accidentally attribute
-    // its references to the containing function.
-    if (isFunctionLike(node) && node !== fn) return;
     ancestors.push(node);
     if (node.type === "Identifier" && isValueReference(node, ancestors)) {
       const binding = bindings.resolve(getName(node) ?? "", node, ancestors);
       const declared = binding ? bindings.tree.scopeById(binding.scopeId) : null;
-      if (binding && !scopeContains(declared, fn)) found.add(binding.id);
+      if (binding && !scopeContains(declared, fn)) {
+        found.add(binding.id);
+      }
     }
     visitChildren(node, (child) => visit(child));
     ancestors.pop();
@@ -518,6 +509,9 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
     onCall,
     onRef,
     onValue,
+    analyzeUncalledFunctions = true,
+    stopAtAwait = false,
+    retainUnboundRecords = true,
     onExit,
     maxWork = DEFAULT_MAX_WORK,
     onBudgetExceeded,
@@ -535,12 +529,22 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
   const ancestors: ESTree.Node[] = [];
   const newExpressionIds = new WeakMap<ESTree.Node, ObjectId>();
   const platformObjects = new Map<string, ObjectId>();
+  const retainedPlatformObjectIds = new Set<ObjectId>();
   const functionDefs = new Map<BindingId, ESTree.Node>();
   const declaredFunctions = new Map<BindingId, ESTree.Node>();
   const directlyCalledFunctions = new WeakSet<ESTree.Node>();
   const activeFunctions = new Set<ESTree.Node>();
   const functionCaptures = new WeakMap<ESTree.Node, readonly BindingId[]>();
+  const tryThrowPaths: EnvState<T>[][] = [];
   const PLATFORM_ALIASES = new Set(["g_form", "gs", "current"]);
+
+  const recordPossibleThrow = (state: EnvState<T>): void => {
+    const paths = tryThrowPaths[tryThrowPaths.length - 1];
+    if (!paths || state.completion !== "normal") return;
+    const possibleThrow = snapshotState(state, cloneData, budget);
+    setCompletion(possibleThrow, "throw");
+    paths.push(possibleThrow);
+  };
 
   const capturesOf = (fn: ESTree.Node): readonly BindingId[] => {
     const existing = functionCaptures.get(fn);
@@ -575,7 +579,12 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
   walk(program, {
     CallExpression(node) {
       const callee = unwrapExpression((node as ESTree.CallExpression).callee);
-      if (!isNode(callee) || callee.type !== "Identifier") return;
+      if (!isNode(callee)) return;
+      if (isFunctionLike(callee)) {
+        directlyCalledFunctions.add(callee);
+        return;
+      }
+      if (callee.type !== "Identifier") return;
       const binding = bindings.resolve(getName(callee) ?? "", callee);
       const fn = binding ? declaredFunctions.get(binding.id) : undefined;
       if (fn) directlyCalledFunctions.add(fn);
@@ -617,6 +626,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
         if (objectId === undefined) {
           objectId = alloc();
           platformObjects.set(name, objectId);
+          retainedPlatformObjectIds.add(objectId);
         }
         ensure(state, objectId);
         return objectId;
@@ -673,7 +683,26 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
     if (onValue) {
       const existing = newExpressionIds.get(expr);
       if (existing !== undefined) {
-        ensure(state, existing);
+        const record = state.objects.get(existing);
+        if (!record || record.invalid || record.escaped) {
+          const data = onValue(expr);
+          if (data === undefined) return undefined;
+          // Allocation sites are reused to keep loop fixpoints finite, but a
+          // binding can still point at the site's value from an earlier
+          // evaluation. Detach those stale aliases before publishing facts
+          // for the newly evaluated host value.
+          for (const [bindingId, objectId] of state.env) {
+            if (objectId === existing) state.env.set(bindingId, undefined);
+          }
+          const refreshed: SharedRecord<T> = {
+            id: existing,
+            escaped: false,
+            invalid: false,
+            data,
+          };
+          state.objects.set(existing, refreshed);
+          onRef?.({ node: expr, rec: refreshed, name: getName(expr), bindingId: null });
+        }
         return existing;
       }
       const data = onValue(expr);
@@ -691,6 +720,49 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
       }
     }
     return undefined;
+  };
+
+  const normalValueFromExpr = (state: EnvState<T>, node: unknown): ESTree.Node | null => {
+    const expr = unwrapExpression(node);
+    if (!isNode(expr)) return null;
+    if (!stopAtAwait) return expr;
+    if (expr.type === "AwaitExpression") return null;
+    if (expr.type === "SequenceExpression") {
+      const expressions = (expr as ESTree.SequenceExpression).expressions;
+      for (const item of expressions.slice(0, -1)) {
+        if (normalValueFromExpr(state, item) === null) return null;
+      }
+      return normalValueFromExpr(state, expressions[expressions.length - 1]);
+    }
+    if (expr.type === "ConditionalExpression") {
+      const conditional = expr as ESTree.ConditionalExpression;
+      const consequent = normalValueFromExpr(state, conditional.consequent);
+      const alternate = normalValueFromExpr(state, conditional.alternate);
+      if (consequent === null) return alternate;
+      if (alternate === null) return consequent;
+      const consequentId = objectFromExpr(state, consequent);
+      const alternateId = objectFromExpr(state, alternate);
+      if (consequentId !== undefined && consequentId === alternateId) return consequent;
+      return expr;
+    }
+    if (expr.type === "LogicalExpression") {
+      const logical = expr as ESTree.LogicalExpression;
+      const left = normalValueFromExpr(state, logical.left);
+      if (left === null) return null;
+      const right = normalValueFromExpr(state, logical.right);
+      if (right === null) return left;
+      const leftId = objectFromExpr(state, left);
+      const rightId = objectFromExpr(state, right);
+      return leftId !== undefined && leftId === rightId ? left : expr;
+    }
+    if (expr.type === "AssignmentExpression") {
+      const assignment = expr as ESTree.AssignmentExpression;
+      const right = normalValueFromExpr(state, assignment.right);
+      if (right === null)
+        return ["&&=", "||=", "??="].includes(assignment.operator) ? assignment.left : null;
+      return assignment.operator === "=" ? right : expr;
+    }
+    return expr;
   };
 
   const markEscape = (state: EnvState<T>, node: unknown): void => {
@@ -902,12 +974,26 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
     const flattened = paths.flatMap((path) => completionPaths(path, cloneData, budget));
     const normal = flattened.filter((path) => path.completion === "normal");
     const abrupt = flattened.filter((path) => path.completion !== "normal");
-    const merged = mergeMany(normal, emptyData, mergeData, mergeDistinctData, alloc);
+    const merged = mergeMany(
+      normal,
+      emptyData,
+      mergeData,
+      mergeDistinctData,
+      alloc,
+      retainUnboundRecords,
+      retainedPlatformObjectIds,
+    );
     state.abrupt.clear();
     if (merged) {
       replaceWith(state, merged);
       state.completion = "normal";
       state.completionLabel = null;
+      for (const path of abrupt) {
+        const kind = path.completion as AbruptCompletion;
+        const list = state.abrupt.get(kind) ?? [];
+        list.push(pathWithoutAlternatives(path, cloneData, budget));
+        state.abrupt.set(kind, list);
+      }
     } else if (abrupt.length > 0) {
       // Keep one completion in the primary state and retain all other
       // alternatives. Owning loops/switches/try statements consume them.
@@ -936,7 +1022,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
       }
       // Analyze local syntax once, without definition-time outer values. A
       // proven direct call below replays it with invocation-time arguments.
-      if (!directlyCalledFunctions.has(node)) {
+      if (analyzeUncalledFunctions && !directlyCalledFunctions.has(node)) {
         const local = snapshotState(state, cloneData, budget);
         local.env.clear();
         local.objects.clear();
@@ -950,12 +1036,14 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
       case "ObjectExpression":
       case "ArrayExpression":
         visitChildren(node, (child) => visit(child, state, false));
-        markEscape(state, node);
+        if (state.completion === "normal") markEscape(state, node);
         break;
       case "VariableDeclarator": {
         const decl = node as ESTree.VariableDeclarator;
         if (decl.init) visit(decl.init, state, false);
+        if (state.completion !== "normal") break;
         visitPatternExpressions(state, decl.id);
+        if (state.completion !== "normal") break;
         const declaration = ancestors[ancestors.length - 2];
         // `var name;` is a runtime no-op when the hoisted binding already has
         // a value. Lexical declarations still initialize their binding here.
@@ -974,17 +1062,33 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
         const target = unwrapExpression(assign.left);
         if (isNode(target) && target.type === "MemberExpression") {
           visit(target.object, state, false);
+          if (state.completion !== "normal") break;
           if (target.computed) visit(target.property, state, false);
         } else if (assign.operator !== "=") {
           visit(assign.left, state, false);
         }
-        if (logicalAssignment) {
-          const afterLeft = snapshotState(state, cloneData, budget);
-          visit(assign.right, state, false);
-          joinInto(state, [afterLeft, snapshotState(state, cloneData, budget)]);
-        } else {
-          visit(assign.right, state, false);
+        if (state.completion !== "normal") break;
+        const afterLeft = logicalAssignment ? snapshotState(state, cloneData, budget) : null;
+        visit(assign.right, state, false);
+        if (stopAtAwait) {
+          const paths = completionPaths(state, cloneData, budget);
+          for (const path of paths) {
+            if (path.completion !== "normal") continue;
+            if (assign.operator === "=" || logicalAssignment) {
+              if (assign.operator === "=") {
+                visitPatternExpressions(path, assign.left);
+                if (path.completion !== "normal") continue;
+              }
+              const value = normalValueFromExpr(path, assign.right);
+              if (value !== null) assignFrom(path, assign.left, value);
+            } else {
+              invalidatePattern(path, assign.left);
+            }
+          }
+          joinInto(state, afterLeft ? [afterLeft, ...paths] : paths);
+          break;
         }
+        if (afterLeft) joinInto(state, [afterLeft, snapshotState(state, cloneData, budget)]);
         if (assign.operator === "=") {
           visitPatternExpressions(state, assign.left);
           assignFrom(state, assign.left, assign.right);
@@ -993,15 +1097,25 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
         }
         break;
       }
+      case "UpdateExpression": {
+        const update = node as ESTree.UpdateExpression;
+        visit(update.argument, state, false);
+        if (state.completion !== "normal") break;
+        // Both prefix and postfix update coerce the old value and write a
+        // number back to the binding. The expression result is never the
+        // tracked object identity.
+        invalidatePattern(state, update.argument);
+        break;
+      }
       case "IfStatement": {
         const stmt = node as ESTree.IfStatement;
         visit(stmt.test, state, false);
-        const known = constantTruthiness(stmt.test);
-        if (known === true) {
+        if (state.completion !== "normal") break;
+        if (isDefinitelyTrue(stmt.test)) {
           visit(stmt.consequent, state, false);
           break;
         }
-        if (known === false) {
+        if (isDefinitelyFalse(stmt.test)) {
           if (stmt.alternate) visit(stmt.alternate, state, false);
           break;
         }
@@ -1015,9 +1129,13 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
       case "ConditionalExpression": {
         const expr = node as ESTree.ConditionalExpression;
         visit(expr.test, state, false);
-        const known = constantTruthiness(expr.test);
-        if (known !== undefined) {
-          visit(known ? expr.consequent : expr.alternate, state, false);
+        if (state.completion !== "normal") break;
+        if (isDefinitelyTrue(expr.test)) {
+          visit(expr.consequent, state, false);
+          break;
+        }
+        if (isDefinitelyFalse(expr.test)) {
+          visit(expr.alternate, state, false);
           break;
         }
         const consequent = snapshotState(state, cloneData, budget);
@@ -1030,19 +1148,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
       case "LogicalExpression": {
         const expr = node as ESTree.LogicalExpression;
         visit(expr.left, state, false);
-        const left = constantTruthiness(expr.left);
-        const operator = expr.operator;
-        // Short-circuit with a constant left side: the right side either
-        // always or never evaluates (FINDINGS.md COR-003).
-        const rightAlways =
-          (operator === "&&" && left === true) || (operator === "||" && left === false);
-        const rightNever =
-          (operator === "&&" && left === false) || (operator === "||" && left === true);
-        if (rightNever) break;
-        if (rightAlways) {
-          visit(expr.right, state, false);
-          break;
-        }
+        if (state.completion !== "normal") break;
         const afterLeft = snapshotState(state, cloneData, budget);
         visit(expr.right, state, false);
         joinInto(state, [afterLeft, snapshotState(state, cloneData, budget)]);
@@ -1064,17 +1170,28 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
       case "SwitchStatement": {
         const stmt = node as ESTree.SwitchStatement;
         visit(stmt.discriminant, state, false);
+        if (state.completion !== "normal") break;
         const before = snapshotState(state, cloneData, budget);
         const exits: EnvState<T>[] = [];
         const abruptExits: EnvState<T>[] = [];
         let hasDefault = false;
         let fall: EnvState<T> | undefined;
+        const directState = snapshotState(before, cloneData, budget);
         for (const switchCase of stmt.cases) {
           if (!switchCase.test) hasDefault = true;
-          const direct = snapshotState(before, cloneData, budget);
-          if (switchCase.test) visit(switchCase.test, direct, false);
+          if (switchCase.test) visit(switchCase.test, directState, false);
+          const direct = snapshotState(directState, cloneData, budget);
           const entry = fall
-            ? mergeStates(direct, fall, emptyData, mergeData, mergeDistinctData, alloc)
+            ? mergeStates(
+                direct,
+                fall,
+                emptyData,
+                mergeData,
+                mergeDistinctData,
+                alloc,
+                retainUnboundRecords,
+                retainedPlatformObjectIds,
+              )
             : direct;
           for (const consequent of switchCase.consequent) visit(consequent, entry, false);
           if (entry.completion === "break" && !entry.completionLabel) {
@@ -1088,7 +1205,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
             fall = undefined;
           }
         }
-        if (!hasDefault) exits.push(before);
+        if (!hasDefault) exits.push(snapshotState(directState, cloneData, budget));
         if (fall?.completion === "normal") exits.push(fall);
         joinInto(state, [...exits, ...abruptExits]);
         break;
@@ -1107,6 +1224,15 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
         if (node.type === "ForInStatement" || node.type === "ForOfStatement") {
           const iterable = node as ESTree.ForInStatement | ESTree.ForOfStatement;
           if (iterable.right) visit(iterable.right, state, false);
+          if (
+            node.type === "ForOfStatement" &&
+            (node as ESTree.ForOfStatement).await &&
+            stopAtAwait &&
+            state.completion === "normal"
+          ) {
+            setCompletion(state, "suspend");
+            break;
+          }
         }
 
         const beforeTest = snapshotState(state, cloneData, budget);
@@ -1132,12 +1258,15 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
           ? (node as ESTree.ForStatement).test
           : isWhile
             ? (node as ESTree.WhileStatement).test
-            : undefined;
-        const infinite = (isFor || isWhile) && isDefinitelyTrue(test);
+            : isDoWhile
+              ? (node as ESTree.DoWhileStatement).test
+              : undefined;
+        const infinite = (isFor || isWhile || isDoWhile) && isDefinitelyTrue(test);
         const exits: EnvState<T>[] =
           isDoWhile || infinite ? [] : [snapshotState(testState, cloneData, budget)];
         const initialHeader = snapshotState(isDoWhile ? beforeTest : testState, cloneData, budget);
         let header = snapshotState(initialHeader, cloneData, budget);
+        let converged = false;
         for (let iteration = 0; iteration < 16; iteration += 1) {
           const bodyState = snapshotState(header, cloneData, budget);
           if (node.type === "ForInStatement" || node.type === "ForOfStatement") {
@@ -1178,8 +1307,19 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
             if (!infinite) exits.push(snapshotState(path, cloneData, budget));
             backEdges.push(path);
           }
-          const back = mergeMany(backEdges, emptyData, mergeData, mergeDistinctData, alloc);
-          if (!back) break;
+          const back = mergeMany(
+            backEdges,
+            emptyData,
+            mergeData,
+            mergeDistinctData,
+            alloc,
+            retainUnboundRecords,
+            retainedPlatformObjectIds,
+          );
+          if (!back) {
+            converged = true;
+            break;
+          }
           const nextHeader = mergeStates(
             initialHeader,
             back,
@@ -1187,30 +1327,44 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
             mergeData,
             mergeDistinctData,
             alloc,
+            retainUnboundRecords,
+            retainedPlatformObjectIds,
           );
-          if (statesEqual(header, nextHeader, equalsData)) break;
+          if (statesEqual(header, nextHeader, equalsData)) {
+            converged = true;
+            break;
+          }
           header = nextHeader;
         }
         if (exits.length === 0) setCompletion(state, "unreachable");
-        else joinInto(state, exits);
+        else if (converged) joinInto(state, exits);
+        else throw BUDGET_EXCEEDED;
         break;
       }
 
       case "TryStatement": {
         const stmt = node as ESTree.TryStatement;
         const tried = snapshotState(state, cloneData, budget);
-        visit(stmt.block, tried, false);
+        const possibleThrows: EnvState<T>[] = [];
+        tryThrowPaths.push(possibleThrows);
+        try {
+          visit(stmt.block, tried, false);
+        } finally {
+          tryThrowPaths.pop();
+        }
         const handled: EnvState<T>[] = [];
-        for (const path of completionPaths(tried, cloneData, budget)) {
+        for (const path of [...completionPaths(tried, cloneData, budget), ...possibleThrows]) {
           if (path.completion === "throw" && stmt.handler) {
             setCompletion(path, "normal");
             visit(stmt.handler, path, false);
+            handled.push(path);
+            continue;
           }
           handled.push(path);
         }
         if (stmt.finalizer) {
           for (const path of handled) {
-            if (path.completion === "unreachable") continue;
+            if (path.completion === "unreachable" || path.completion === "suspend") continue;
             const priorCompletion = path.completion;
             const priorLabel = path.completionLabel ?? null;
             setCompletion(path, "normal");
@@ -1223,21 +1377,48 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
       }
       case "CallExpression": {
         const call = node as ESTree.CallExpression;
-        // Capture the evaluated receiver before arguments can reassign its
-        // binding. Nested argument calls still mutate the same object record.
-        visit(call.callee, state, false);
+        recordPossibleThrow(state);
         const callee = unwrapExpression(call.callee);
         const property = staticPropertyName(callee);
         let objectName: string | null = null;
-        let rec: SharedRecord<T> | undefined;
+        let receiver: ESTree.Node | null = null;
+        let receiverId: ObjectId | undefined;
         if (isNode(callee) && callee.type === "MemberExpression") {
-          const object = unwrapExpression((callee as ESTree.MemberExpression).object);
-          objectName = getName(object);
-          const objectId = objectFromExpr(state, object);
-          rec = recordOf(state, objectId);
+          const member = callee as ESTree.MemberExpression;
+          // JavaScript captures the member receiver before evaluating a
+          // computed property or any arguments. Preserve that identity even
+          // when those later expressions reassign its binding.
+          ancestors.push(member);
+          visit(member.object, state, false);
+          if (state.completion === "normal") {
+            const object = unwrapExpression(member.object);
+            receiver = isNode(object) ? object : null;
+            objectName = getName(object);
+            receiverId = objectFromExpr(state, object);
+            if (member.computed) visit(member.property, state, false);
+          }
+          ancestors.pop();
+        } else {
+          visit(call.callee, state, false);
         }
-        for (const arg of call.arguments) visit(arg, state, false);
-        onCall({ call, rec, objectName, property });
+        if (state.completion !== "normal") break;
+        const argumentIds: Array<ObjectId | undefined> = [];
+        for (const arg of call.arguments) {
+          visit(arg, state, false);
+          if (state.completion !== "normal") break;
+          argumentIds.push(objectFromExpr(state, arg));
+        }
+        if (state.completion !== "normal") break;
+        // Invocation remains able to throw after all argument effects complete.
+        recordPossibleThrow(state);
+        const rec = recordOf(state, receiverId);
+        onCall({ call, rec, receiver, objectName, property });
+        if (rec && property === null) {
+          // A computed call whose property cannot be resolved may invoke any
+          // mutating platform method. Keep the receiver identity out of later
+          // must-fact and risk conclusions rather than guessing its effects.
+          rec.escaped = true;
+        }
         const direct = unwrapExpression(call.callee);
         let fn: ESTree.Node | undefined;
         if (isNode(direct) && isFunctionLike(direct)) {
@@ -1246,31 +1427,78 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
           const binding = resolveBinding(bindings, direct, ancestors);
           fn = binding ? functionDefs.get(binding.id) : undefined;
         }
-        if (fn && !activeFunctions.has(fn)) {
+        const deferred = Boolean((fn as unknown as { generator?: boolean } | undefined)?.generator);
+        if (fn && !deferred && !activeFunctions.has(fn)) {
           activeFunctions.add(fn);
           const invocation = snapshotState(state, cloneData, budget);
-          const argumentIds = call.arguments.map((argument) => objectFromExpr(state, argument));
           const params = (fn as unknown as { params: readonly ESTree.Node[] }).params;
+          const hasSpreadArgument = call.arguments.some(
+            (argument) => argument.type === "SpreadElement",
+          );
           ancestors.push(fn);
           for (let index = 0; index < params.length; index += 1) {
-            visitPatternExpressions(invocation, params[index]);
-            bindPattern(invocation, params[index], argumentIds[index]);
+            const param = unwrapExpression(params[index]);
+            if (
+              !hasSpreadArgument &&
+              isNode(param) &&
+              param.type === "AssignmentPattern" &&
+              (index >= call.arguments.length ||
+                isDefinitelyUndefinedValue(call.arguments[index], bindings))
+            ) {
+              const assignment = param as ESTree.AssignmentPattern;
+              visit(assignment.right, invocation, false);
+              bindPattern(
+                invocation,
+                assignment.left,
+                objectFromExpr(invocation, assignment.right),
+              );
+            } else {
+              bindPattern(
+                invocation,
+                params[index],
+                hasSpreadArgument ? undefined : argumentIds[index],
+              );
+            }
           }
           const body = (fn as unknown as { body: ESTree.Node }).body;
           visit(body, invocation, false);
           ancestors.pop();
           const returned = completionPaths(invocation, cloneData, budget);
+          const asyncFunction = Boolean((fn as unknown as { async?: boolean }).async);
           for (const path of returned) {
-            if (path.completion === "return") setCompletion(path, "normal");
-          }
-          const merged = mergeMany(returned, emptyData, mergeData, mergeDistinctData, alloc);
-          if (merged) {
-            for (const id of state.objects.keys()) {
-              const updated = merged.objects.get(id);
-              if (updated) state.objects.set(id, updated);
+            if (
+              path.completion === "return" ||
+              path.completion === "suspend" ||
+              (asyncFunction && path.completion === "throw")
+            ) {
+              setCompletion(path, "normal");
             }
           }
+          const capturedIds = capturesOf(fn);
+          const projected = returned.map((path) => {
+            const result = snapshotState(state, cloneData, budget);
+            result.objects = new Map(path.objects);
+            for (const id of capturedIds) {
+              result.env.set(id, path.env.get(id));
+            }
+            setCompletion(result, path.completion, path.completionLabel ?? null);
+            return result;
+          });
+          joinInto(state, projected);
           activeFunctions.delete(fn);
+        } else if (fn && deferred) {
+          const parent = ancestors[ancestors.length - 2];
+          const discarded =
+            parent?.type === "ExpressionStatement" &&
+            (parent as ESTree.ExpressionStatement).expression === call;
+          if (!discarded) {
+            for (const capturedId of capturesOf(fn)) {
+              const objectId = state.env.get(capturedId);
+              const captured = objectId === undefined ? undefined : state.objects.get(objectId);
+              if (captured) captured.escaped = true;
+            }
+          }
+          for (const arg of call.arguments) markEscape(state, arg);
         } else {
           if (fn) {
             for (const capturedId of capturesOf(fn)) {
@@ -1284,22 +1512,37 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
         break;
       }
       case "NewExpression": {
-        const prior = newExpressionIds.get(node);
+        const expr = node as ESTree.NewExpression;
+        recordPossibleThrow(state);
+        const prior = newExpressionIds.get(expr);
         if (prior !== undefined) state.objects.delete(prior);
-        for (const arg of (node as ESTree.NewExpression).arguments) markEscape(state, arg);
-        objectFromExpr(state, node);
-        visitChildren(node, (child) => visit(child, state, false));
+        visit(expr.callee, state, false);
+        if (state.completion !== "normal") break;
+        for (const arg of expr.arguments) {
+          visit(arg, state, false);
+          if (state.completion !== "normal") break;
+        }
+        if (state.completion !== "normal") break;
+        // Construction can throw after argument evaluation but before allocation.
+        recordPossibleThrow(state);
+        for (const arg of expr.arguments) markEscape(state, arg);
+        objectFromExpr(state, expr);
+        break;
+      }
+      case "AwaitExpression": {
+        visit((node as ESTree.AwaitExpression).argument, state, false);
+        if (stopAtAwait && state.completion === "normal") setCompletion(state, "suspend");
         break;
       }
       case "ReturnStatement":
         markEscape(state, (node as ESTree.ReturnStatement).argument);
         visit((node as ESTree.ReturnStatement).argument, state, false);
-        state.completion = "return";
+        if (state.completion === "normal") state.completion = "return";
         break;
       case "ThrowStatement":
         markEscape(state, (node as ESTree.ThrowStatement).argument);
         visit((node as ESTree.ThrowStatement).argument, state, false);
-        state.completion = "throw";
+        if (state.completion === "normal") state.completion = "throw";
         break;
       case "BreakStatement":
         setCompletion(state, "break", getName((node as ESTree.BreakStatement).label));
@@ -1342,7 +1585,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
     if (onExit) {
       onExit(
         completionPaths(finalState, cloneData, budget).map((path) => ({
-          completion: path.completion,
+          completion: path.completion === "suspend" ? "return" : path.completion,
           records: [...path.objects.values()],
         })),
       );

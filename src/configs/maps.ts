@@ -30,6 +30,8 @@ export const es2021Rules: RuleConfigMap = collect("es2021");
 
 export const clientRules: RuleConfigMap = collect("client");
 
+export const aclRules: RuleConfigMap = collect("acl");
+
 export const businessRuleRules: RuleConfigMap = collect("business-rule");
 
 export const fluentRules: RuleConfigMap = collect("fluent");

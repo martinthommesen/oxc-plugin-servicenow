@@ -3,8 +3,10 @@
   "goal": {
     "path": "PR51-REMEDIATION-GOAL.md",
     "sha256": "22f9e1d3d370eaa88001d8c7587f2878b7955a8d9b80922de5848696096a2dc1",
-    "criteria": 533
+    "criteria": 533,
+    "criteriaSha256": "8c69c68424ca8495a7888c2f8b34784c973f23d6d7c08b81aa099d9545e9d2ce"
   },
+  "criteriaDigest": "6f9473920d9ffde625bcf68418da08cde196282c91661c2d40608c9bfff68d02",
   "criteria": [
     {
       "id": "PR51-64EA58AEE4C9",
@@ -1117,7 +1119,11 @@
       "proofs": [
         {
           "file": "tests/analysis/foundation.test.ts",
-          "fullName": "path identity and completion > runs a catch handler only for a reachable throw"
+          "fullName": "path identity and completion > does not run a catch handler on a normal-only path"
+        },
+        {
+          "file": "tests/analysis/path-state.test.ts",
+          "fullName": "path-state evaluator > visits a catch handler after an explicit throw"
         }
       ],
       "caseIds": [],
@@ -1357,7 +1363,7 @@
       "proofs": [
         {
           "file": "tests/analysis/foundation.test.ts",
-          "fullName": "path identity and completion > runs a catch handler only for a reachable throw"
+          "fullName": "path identity and completion > does not fabricate a catch path when no handler exists"
         }
       ],
       "caseIds": [],
@@ -1416,8 +1422,8 @@
       "implementationFiles": ["src/analysis/path-state.ts", "src/analysis/bindings.ts"],
       "proofs": [
         {
-          "file": "tests/analysis/foundation.test.ts",
-          "fullName": "path identity and completion > runs a catch handler only for a reachable throw"
+          "file": "tests/analysis/path-state.test.ts",
+          "fullName": "path-state evaluator > visits a catch handler after an explicit throw"
         }
       ],
       "caseIds": [],
@@ -9193,7 +9199,7 @@
       "proofs": [
         {
           "file": "tests/catalog-evidence.test.ts",
-          "fullName": "catalog evidence > no-hardcoded-sysid: rule-evidence-5620fb82"
+          "fullName": "catalog evidence > no-hardcoded-sysid: rule-evidence-7930a0f5"
         }
       ],
       "caseIds": [],
@@ -9343,7 +9349,7 @@
       "proofs": [
         {
           "file": "tests/catalog-evidence.test.ts",
-          "fullName": "catalog evidence > no-hardcoded-sysid: rule-evidence-5620fb82"
+          "fullName": "catalog evidence > no-hardcoded-sysid: rule-evidence-7930a0f5"
         }
       ],
       "caseIds": [],
@@ -9403,7 +9409,7 @@
       "proofs": [
         {
           "file": "tests/catalog-evidence.test.ts",
-          "fullName": "catalog evidence > no-hardcoded-sysid: rule-evidence-5620fb82"
+          "fullName": "catalog evidence > no-hardcoded-sysid: rule-evidence-7930a0f5"
         }
       ],
       "caseIds": [],
@@ -12223,7 +12229,7 @@
       "proofs": [
         {
           "file": "tests/release/layer7.test.ts",
-          "fullName": "release automation gates > resolves only existing lightweight or bounded annotated tags at the expected commit"
+          "fullName": "release automation gates > requires the release tag commit to equal the freshly fetched main tip"
         }
       ],
       "caseIds": [],
@@ -12256,7 +12262,7 @@
       "proofs": [
         {
           "file": "tests/release/layer7.test.ts",
-          "fullName": "release automation gates > parses the workflow graph and proves least-privilege job boundaries"
+          "fullName": "release automation gates > requires the release tag commit to equal the freshly fetched main tip"
         }
       ],
       "caseIds": [],

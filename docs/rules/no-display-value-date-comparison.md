@@ -9,9 +9,9 @@ Do not relationally compare `GlideDateTime.getDisplayValue()` strings. Use `getN
 - **Fix safety:** diagnostic only
 - **Suggestions:** no
 - **Authoring:** classic
-- **Surfaces:** Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent.
+- **Surfaces:** Applies to server, acl, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. UI Actions require an explicit server surface; mixed client/server UI Actions stay silent because execution regions are not classified. Unknown surfaces stay silent.
 - **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
-- **Last verified:** 2026-08-20
+- **Last verified:** 2026-08-24
 - **Implementation:** [`src/rules/no-display-value-date-comparison.ts`](../../src/rules/no-display-value-date-comparison.ts)
 
 ## Applicability
@@ -19,11 +19,11 @@ Do not relationally compare `GlideDateTime.getDisplayValue()` strings. Use `getN
 | Dimension | Value |
 | --- | --- |
 | Authoring | classic |
-| Surfaces | Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent. |
+| Surfaces | Applies to server, acl, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. UI Actions require an explicit server surface; mixed client/server UI Actions stay silent because execution regions are not classified. Unknown surfaces stay silent. |
 | Minimum surface confidence | filename-inferred |
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
-| ServiceNow releases | zurich |
+| ServiceNow releases | zurich, australia |
 | Fluent SDK range | n/a |
 
 ## Options
@@ -58,7 +58,7 @@ if (start.getNumericValue() > end.getNumericValue()) {
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-negative: Display values copied into locals are not tracked before comparison.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-negative: Display values copied into locals are not tracked before comparison. false-negative: A possible platform constructor namespace reassignment, prototype or relevant instance-method mutation, or dynamic-scope uncertainty suppresses matching diagnostics throughout the file.
 
 ## Known false positives
 
@@ -67,6 +67,7 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-n
 ## Known false negatives
 
 - Display values copied into locals are not tracked before comparison.
+- A possible platform constructor namespace reassignment, prototype or relevant instance-method mutation, or dynamic-scope uncertainty suppresses matching diagnostics throughout the file.
 
 ## Intentional scope boundaries
 
@@ -84,15 +85,20 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-n
 ## Evidence
 
 - **GlideDateTime.getDisplayValue() follows the session format and is not a chronological sort key.**
-  - Verification ID: `rule-evidence-795f4584`
+  - Verification ID: `rule-evidence-16c3e6e5`
   - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideDateTimeAPI.html
   - Verified by: manual
   - Verified at: 2026-08-20
 - **Catalog examples cover display-value comparison versus getNumericValue.**
-  - Verification ID: `rule-evidence-b37fd159`
+  - Verification ID: `rule-evidence-54d15346`
   - URL: src/catalog.ts
   - Verified by: fixture
   - Verified at: 2026-08-20
+- **Constructor namespace, prototype, instance-method, and dynamic-scope mutations are covered by shared platform-authority fixtures.**
+  - Verification ID: `rule-evidence-825ff6f9`
+  - URL: tests/rules/platform-method-authority.test.ts
+  - Verified by: fixture
+  - Verified at: 2026-08-24
 
 ## See also
 

@@ -1,14 +1,11 @@
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { createRequire } from "node:module";
 import { copyFileSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, posix } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseNpmPackJson } from "./parse-npm-pack.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const require = createRequire(import.meta.url);
-const tsxCli = require.resolve("tsx/cli");
 const RELEASE_VERSION =
   /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-(?:(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?$/;
 
@@ -235,7 +232,9 @@ export function tarballIntegrity(buffer) {
 export function normalizeNpmPackManifest(record, tarball) {
   const tarballBytes = readFileSync(tarball);
   const files = record.files.map((file) => {
-    const bytes = execFileSync("tar", ["-xOf", tarball, `package/${file.path}`]);
+    const bytes = execFileSync("tar", ["-xOf", tarball, `package/${file.path}`], {
+      maxBuffer: 64 * 1024 * 1024,
+    });
     if (bytes.byteLength !== file.size) {
       fail(`npm pack size mismatch for ${file.path}`);
     }
@@ -400,7 +399,7 @@ function runConsumer(tarball, allCells) {
     sha256File(tarball),
   ];
   if (allCells) args.push("--all");
-  execFileSync(process.execPath, [tsxCli, ...args], {
+  execFileSync(process.execPath, args, {
     cwd: root,
     encoding: "utf8",
     stdio: "inherit",

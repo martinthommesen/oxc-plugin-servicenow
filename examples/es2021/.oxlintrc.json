@@ -9,14 +9,24 @@
   "settings": {
     "servicenow": {
       "javascriptMode": "es2021",
+      "release": "australia",
       "surfaces": [
         "server"
       ]
     }
   },
   "rules": {
+    "servicenow/no-incorrect-array-from-thisarg": "error",
+    "servicenow/no-unhoisted-block-function-use": "error",
+    "servicenow/no-object-method-constructor": "error",
+    "servicenow/no-incorrect-bigint-asuintn": "error",
     "servicenow/no-weak-references": "error",
+    "servicenow/no-object-hasown": "error",
+    "servicenow/no-unsupported-date-fraction": "error",
+    "servicenow/no-unsupported-set-methods": "error",
+    "servicenow/no-unsupported-static-methods": "error",
     "servicenow/no-typed-arrays": "error",
+    "servicenow/no-unsupported-syntax": "error",
     "servicenow/no-async-iterators": "error"
   }
 }

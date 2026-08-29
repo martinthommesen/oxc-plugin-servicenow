@@ -1,6 +1,6 @@
 # Release process
 
-This document defines the release process for `2.0.0` and later. The current work remains under `Unreleased`. No stable `2.0.0` release has been performed.
+This document defines the release process for `2.0.0` and later. npm published the stable `2.0.0` package on 2026-08-27. New work remains under `Unreleased` until its release is ready.
 
 ## Merge readiness and release readiness
 
@@ -10,7 +10,7 @@ Merge readiness uses repository-local checks:
 npm run validate
 ```
 
-This command runs offline (FINDINGS.md OPS-004). It does not publish, create a tag, or prove live governance. It cleans and inspects a package artifact and checks the implementation, tests, docs, manifest, benchmark, and workflows. `npm run validate:live` adds the networked steps: the packed-consumer test, the full acceptance capture, and the packed-consumer run against the inspected tarball.
+This command does not publish, create a tag, or prove live governance. It cleans and inspects a package artifact, runs the packed consumer, and checks the implementation, tests, docs, manifest, benchmark, and workflows.
 
 Release readiness also requires approved external actions:
 
@@ -22,7 +22,9 @@ Release readiness also requires approved external actions:
 6. Approve the protected `release` environment deployment.
 7. Verify the registry package, provenance, and GitHub release.
 
-These steps are live-pending. Do not describe a green local check as live release proof.
+Keep `main` unchanged until the release workflow's initial tip check passes. The check runs immediately after checkout and before dependency installation. If the tip changed first, cut a new version after review; protected release tags are immutable and must not be moved.
+
+Treat each incomplete step as `Live-pending`. Do not describe a green local check as live release proof.
 
 ## Release identity
 
@@ -65,7 +67,7 @@ The check performs these actions:
 
 The build does not ship JavaScript or declaration source maps because their source files are not in the package. This policy prevents dangling maps.
 
-Run the same packed-consumer path used by `npm run validate:live`:
+Run the same packed-consumer path used by `npm run validate`:
 
 ```bash
 npm run release:check -- --consumer
@@ -101,31 +103,41 @@ Registry retries are bounded. They use structured npm status codes and retry onl
 
 Provenance verification requires the expected package, version, tarball digest, repository, workflow, commit, tag, GitHub Actions builder, release environment, and OIDC subject. Registry integrity and provenance are separate checks.
 
+Fulcio encodes GitHub workflow certificate extensions as DER UTF8String values. The verifier decodes these values before comparison. The expected OIDC subject includes the immutable GitHub owner and repository IDs.
+
 GitHub release retries compare the exact tag, target commit, title, draft state, prerelease state, changelog-derived notes, asset name, and asset bytes. The helper never overwrites a conflicting asset.
+
+## Recover a missing GitHub release
+
+Use `Recover GitHub release` only when npm publication succeeded but a later verification or GitHub release step failed. Do not republish the version. Do not delete or move its protected tag.
+
+1. Fix the failed verifier through the normal pull request process.
+2. Run `Recover GitHub release` from `main`.
+3. Enter the exact published version.
+4. Review the verification job.
+5. Verify the GitHub release notes and tarball asset.
+
+The recovery workflow fetches the immutable tag and registry package. It verifies the registry bytes, installed exports, declarations, provenance, workflow identity, commit, and tag. It then reuses the normal GitHub release helper and permission boundary. It cannot publish to npm or create a tag.
 
 ## Governance status
 
-`scripts/release-governance.json` is the desired policy. It names the real principals: the `release-sentinel-sn` GitHub App (Integration 4671202) creates release tags, and `martinthommesen` (User 267603464) reviews the `release` environment. `docs/release-governance-status.json` is a historical capture with `historical-unverified` status. It is not live proof.
+`scripts/release-governance.json` is the desired policy. `docs/release-governance-status.json` is a point-in-time capture, not permanent live proof.
 
-The tagger and the environment reviewer are distinct principals. The App initiates tag-triggered deployments, so `preventSelfReview` does not block the single human reviewer.
+The repository uses an independent tagger and approver flow. The `Release Sentinel SN` GitHub App can create `v*` tags. The app cannot approve the `release` environment. The environment requires approval from `martinthommesen`, prevents self-review, blocks administrator bypass, and accepts only `v*` tag deployments.
 
-The read-only workflow `Governance audit` runs nightly and on manual dispatch. It compares live GitHub and npm data with the desired policy without changing controls, so governance drift is reported within a day instead of waiting for a human to ask. It is not a required status check, so a transient API failure cannot block merges. The npm trusted-publisher half still needs an npm login, so an unattended run reports the GitHub half only. You can run the same checker locally:
+Use the read-only manual workflow `Governance audit` to compare current GitHub controls with the desired policy. You can run the same checker locally:
 
 ```bash
 node scripts/check-release-governance.mjs
 ```
 
-If API access is unavailable, verify each item manually:
+The npm trusted-publisher read API requires an authenticated npm publishing session. The automated audit marks that identity `Live-pending`. Verify it manually before release:
 
 ```bash
-gh api repos/martinthommesen/oxc-plugin-servicenow/rulesets
-gh api repos/martinthommesen/oxc-plugin-servicenow/environments/release
-gh api repos/martinthommesen/oxc-plugin-servicenow/actions/permissions
-gh api repos/martinthommesen/oxc-plugin-servicenow/actions/secrets
 npm trust list oxc-plugin-servicenow --json
 ```
 
-Check the main ruleset contexts, tag creation and immutability, reviewer IDs, self-review prevention, administrator bypass, tag-only deployment policy, Actions policy, pinned actions, absence of `NPM_TOKEN`, and trusted-publisher repository, workflow, and environment.
+Check that it names this repository, `release.yml`, and the `release` environment. The GitHub audit checks the main ruleset contexts, tag creation and immutability, reviewer IDs, self-review prevention, administrator bypass, and tag-only deployment policy.
 
 Do not change repository or environment settings without explicit approval.
 

@@ -1,92 +1,156 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { parseDocument } from "yaml";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-// A Map so a reference spelled like an Object.prototype member cannot
-// resolve through the prototype chain (FINDINGS.md IMP-001, MNT-003).
-const pins = new Map(
-  Object.entries(JSON.parse(readFileSync(join(root, "scripts/action-pins.json"), "utf8"))),
+const pinEntries = parseActionPinCatalog(
+  readFileSync(join(root, "scripts/action-pins.json"), "utf8"),
 );
-function compositeActionFiles() {
-  const actionsRoot = join(root, ".github/actions");
-  if (!existsSync(actionsRoot)) return [];
-  return readdirSync(actionsRoot, { recursive: true, encoding: "utf8" })
-    .filter((name) => /(?:^|\/)action\.(?:yml|yaml)$/.test(name))
-    .map((name) => join(".github/actions", name));
+
+export function parseActionPinCatalog(source) {
+  const document = parseDocument(source, { strict: true });
+  const parseProblems = [...document.errors, ...document.warnings];
+  if (parseProblems.length > 0) {
+    throw new Error(
+      `invalid action pin catalog:\n${parseProblems.map(({ message }) => message).join("\n")}`,
+    );
+  }
+  let catalog;
+  try {
+    catalog = JSON.parse(source);
+  } catch (error) {
+    throw new Error(
+      `invalid action pin catalog: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+  if (!Array.isArray(catalog)) {
+    throw new Error("invalid action pin catalog: expected an array of action pins");
+  }
+  return catalog;
 }
 
-/**
- * Extract `uses:` references without a YAML dependency: the CI `workflow`
- * job runs before `npm ci`, so this file must stay dependency-free
- * (FINDINGS.md IMP-001). Lines inside `|`/`>` block scalars are skipped so a
- * `run:` body containing the literal text `uses:` is not matched as an
- * action reference.
- */
-export function extractUsesReferences(text) {
+function collectUses(workflow) {
   const references = [];
-  let scalarIndent = -1;
-  for (const line of text.split(/\r?\n/)) {
-    const content = line.trim();
-    const indent = line.length - line.trimStart().length;
-    if (scalarIndent >= 0) {
-      if (content === "" || indent > scalarIndent) continue;
-      scalarIndent = -1;
+  if (!workflow || typeof workflow !== "object") return references;
+  // Composite actions put their steps under runs.steps instead of jobs.
+  const runsSteps = workflow.runs?.steps;
+  if (Array.isArray(runsSteps)) {
+    for (const step of runsSteps) {
+      if (step && typeof step === "object" && !Array.isArray(step) && Object.hasOwn(step, "uses")) {
+        references.push(step.uses);
+      }
     }
-    if (/^[^#'"]*:\s*[|>][0-9+-]*\s*(?:#.*)?$/.test(line)) {
-      scalarIndent = indent;
-      continue;
+  }
+  const jobs = workflow.jobs;
+  if (!jobs || typeof jobs !== "object" || Array.isArray(jobs)) return references;
+  for (const job of Object.values(jobs)) {
+    if (!job || typeof job !== "object" || Array.isArray(job)) continue;
+    if (Object.hasOwn(job, "uses")) references.push(job.uses);
+    if (!Array.isArray(job.steps)) continue;
+    for (const step of job.steps) {
+      if (step && typeof step === "object" && !Array.isArray(step) && Object.hasOwn(step, "uses")) {
+        references.push(step.uses);
+      }
     }
-    const match = /^\s*-?\s*uses:\s*(\S+)/.exec(line);
-    if (match) references.push(match[1].replace(/^['"]|['"]$/g, ""));
   }
   return references;
 }
 
-/** Validate one file's references against the central pin table. */
-export function scanWorkflowText(file, text, seen = new Map()) {
+export function checkActionPinSources(sources, reviewedPinEntries) {
+  const pins = new Map();
   const errors = [];
-  for (const reference of extractUsesReferences(text)) {
-    // Any uses: value without owner/repo@sha shape is a hard failure. A local
-    // composite action or docker:// reference cannot be SHA-pinned and must
-    // not pass silently (FINDINGS.md IMP-001).
-    const at = reference.indexOf("@");
-    if (at < 0) {
-      errors.push(`${file}: uses ${reference} is not a SHA-pinnable owner/repo reference`);
+  for (const entry of reviewedPinEntries) {
+    if (
+      !entry ||
+      typeof entry !== "object" ||
+      typeof entry.action !== "string" ||
+      !/^[^@\s]+$/.test(entry.action) ||
+      typeof entry.commit !== "string" ||
+      !/^[0-9a-f]{40}$/.test(entry.commit)
+    ) {
+      errors.push("scripts/action-pins.json contains an invalid action pin entry");
       continue;
     }
-    const action = reference.slice(0, at);
-    const ref = reference.slice(at + 1);
-    if (!action || !ref) {
-      errors.push(`${file}: uses ${reference} is malformed`);
+    if (pins.has(entry.action)) {
+      errors.push(`scripts/action-pins.json contains duplicate action ${entry.action}`);
       continue;
     }
-    if (!/^[0-9a-f]{40}$/.test(ref)) errors.push(`${file}: ${action} is not pinned to a full SHA`);
-    if (!pins.has(action)) errors.push(`${file}: ${action} is not in scripts/action-pins.json`);
-    else if (pins.get(action) !== ref)
-      errors.push(`${file}: ${action}@${ref} differs from centrally reviewed ${pins.get(action)}`);
-    const prior = seen.get(action);
-    if (prior && prior.ref !== ref) errors.push(`${file}: ${action} diverges from ${prior.file}`);
-    else if (!prior) seen.set(action, { file, ref });
+    pins.set(entry.action, entry.commit);
   }
-  return errors;
-}
 
-export function checkActionPins() {
-  const workflows = readdirSync(join(root, ".github/workflows"))
-    .filter((name) => /\.(?:yml|yaml)$/.test(name))
-    .map((name) => join(".github/workflows", name));
-  const files = [...workflows, ...compositeActionFiles()];
   const seen = new Map();
-  const errors = [];
-  for (const file of files) {
-    errors.push(...scanWorkflowText(file, readFileSync(join(root, file), "utf8"), seen));
+  for (const { file, text } of sources) {
+    const document = parseDocument(text, { strict: true, merge: true });
+    const parseProblems = [...document.errors, ...document.warnings];
+    if (parseProblems.length > 0) {
+      for (const problem of parseProblems) errors.push(`${file}: ${problem.message}`);
+      continue;
+    }
+    let workflow;
+    try {
+      workflow = document.toJS({ maxAliasCount: 100 });
+    } catch (error) {
+      errors.push(`${file}: ${error instanceof Error ? error.message : String(error)}`);
+      continue;
+    }
+    const references = collectUses(workflow);
+    for (const reference of references) {
+      if (typeof reference !== "string") {
+        errors.push(`${file}: uses must be a string action reference`);
+        continue;
+      }
+      if (reference.startsWith("./")) continue;
+      const separator = reference.lastIndexOf("@");
+      const action = separator > 0 ? reference.slice(0, separator) : reference;
+      const ref = separator > 0 ? reference.slice(separator + 1) : "";
+      if (!/^[0-9a-f]{40}$/.test(ref)) {
+        errors.push(`${file}: ${reference} is not pinned to a full SHA`);
+        continue;
+      }
+      if (!pins.has(action)) {
+        errors.push(`${file}: ${action} is not in scripts/action-pins.json`);
+      } else if (pins.get(action) !== ref) {
+        errors.push(
+          `${file}: ${action}@${ref} differs from centrally reviewed ${pins.get(action)}`,
+        );
+      }
+      const prior = seen.get(action);
+      if (prior && prior.ref !== ref) errors.push(`${file}: ${action} diverges from ${prior.file}`);
+      else if (!prior) seen.set(action, { file, ref });
+    }
   }
   for (const action of pins.keys()) {
     if (!seen.has(action)) errors.push(`central pin ${action} is unused`);
   }
   if (errors.length) throw new Error(`workflow action pin check failed:\n${errors.join("\n")}`);
-  return { workflows: files.length, actions: seen.size };
+  return { workflows: sources.length, actions: seen.size };
+}
+
+// Local composite actions (`uses: ./.github/actions/...`) are exempt from
+// SHA pinning, but their own action.yml steps can reference third-party
+// actions, so those files are scanned too (FINDINGS.md IMP-001).
+function compositeActionSources() {
+  const actionsRoot = join(root, ".github/actions");
+  if (!existsSync(actionsRoot)) return [];
+  return readdirSync(actionsRoot, { recursive: true, encoding: "utf8" })
+    .filter((name) => /(?:^|\/)action\.(?:yml|yaml)$/.test(name))
+    .sort()
+    .map((name) => ({
+      file: join(".github/actions", name),
+      text: readFileSync(join(actionsRoot, name), "utf8"),
+    }));
+}
+
+export function checkActionPins() {
+  const workflows = readdirSync(join(root, ".github/workflows"))
+    .filter((name) => /\.(?:yml|yaml)$/.test(name))
+    .sort();
+  const sources = workflows.map((file) => ({
+    file,
+    text: readFileSync(join(root, ".github/workflows", file), "utf8"),
+  }));
+  return checkActionPinSources([...sources, ...compositeActionSources()], pinEntries);
 }
 
 export function main() {

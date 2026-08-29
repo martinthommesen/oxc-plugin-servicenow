@@ -1,7 +1,6 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
-import { nodeStart } from "../utils/ast.js";
 import { findMissingQueryBeforeNext } from "../analysis/internal.js";
 import { beginRuleFile } from "./helpers.js";
 import { isServerInstanceContext } from "../context/index.js";
@@ -11,31 +10,27 @@ export const requireQueryBeforeNext = defineRule({
     type: "problem",
     docs: {
       description:
-        "Require a proven GlideRecord binding to call `.query()` or `.get()` before `.next()`. `chooseWindow()` does not execute a query.",
+        "Require a proven GlideRecord binding to use a documented query executor before advancing its cursor with `.next()` or `._next()`. `chooseWindow()` does not execute a query.",
       url: ruleDocsUrl("require-query-before-next"),
     },
     messages: {
       missingQuery:
-        "`{{name}}.next()` is called without a preceding `.query()` or `.get()` on every path. Call `.query()` or `.get()` on every path before `.next()`; `chooseWindow()` only configures a later query.",
+        "`{{name}}.{{method}}()` is called without a preceding documented query executor on every path. Execute the query on every path before advancing the cursor; `chooseWindow()` only configures a later query.",
     },
   },
   createOnce(context) {
-    const reported = new Set<number>();
     return {
       before() {
         const { context: script } = beginRuleFile(context);
         if (!isServerInstanceContext(script)) return false;
       },
       Program(node) {
-        const { analysis } = beginRuleFile(context);
-        for (const finding of findMissingQueryBeforeNext(node as ESTree.Node, analysis)) {
-          const start = nodeStart(finding.node);
-          if (reported.has(start)) continue;
-          reported.add(start);
+        const { analysis, file } = beginRuleFile(context);
+        for (const finding of findMissingQueryBeforeNext(node as ESTree.Node, analysis, file)) {
           context.report({
             node: finding.node,
             messageId: "missingQuery",
-            data: { name: finding.name },
+            data: { name: finding.name, method: finding.method },
           });
         }
       },

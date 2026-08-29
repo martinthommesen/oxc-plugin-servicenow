@@ -20,7 +20,6 @@
     "servicenow/fluent-proper-imports": "error",
     "servicenow/fluent-directives": "warn",
     "servicenow/require-fluent-id": "error",
-    "servicenow/no-packages-calls": "error",
     "servicenow/no-weak-references": "error",
     "servicenow/no-delete-multiple-with-windowing": "error",
     "servicenow/require-callback-for-getreference": "error",

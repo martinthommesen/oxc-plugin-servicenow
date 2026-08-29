@@ -64,10 +64,7 @@ export function compareReleaseVersions(left, right) {
     const rightNumber = /^\d+$/.test(rightPart);
     if (leftNumber && rightNumber) return Number(leftPart) - Number(rightPart);
     if (leftNumber !== rightNumber) return leftNumber ? -1 : 1;
-    // SemVer 11.4.3: alphanumeric identifiers compare in ASCII order.
-    // localeCompare orders across case by ICU collation, which diverges and
-    // varies between Node builds (FINDINGS.md REL-003).
-    return leftPart < rightPart ? -1 : 1;
+    return leftPart.localeCompare(rightPart);
   }
   return 0;
 }

@@ -1,7 +1,11 @@
 import type { ESTree } from "@oxlint/plugins";
 import { getStringValue, nodeStart } from "../utils/ast.js";
 import { classifyStaticArg } from "./static-args.js";
-import { analyzePathBindings, mergeTri } from "./path-state.js";
+import {
+  hasAuthoritativeConstructedMethod,
+  type PlatformMethodAuthorityFacts,
+} from "./platform-method-authority.js";
+import { analyzePathBindings, dedupePathFindings, mergeTri } from "./path-state.js";
 import type { ProvenanceQuery } from "./provenance.js";
 
 export interface GlideAjaxParamFinding {
@@ -58,6 +62,7 @@ function sysparmValueState(
 export function findGlideAjaxParamIssues(
   program: ESTree.Node,
   analysis: ProvenanceQuery,
+  authority: PlatformMethodAuthorityFacts,
 ): GlideAjaxParamFinding[] {
   const findings: GlideAjaxParamFinding[] = [];
   const reported = new Set<string>();
@@ -82,8 +87,21 @@ export function findGlideAjaxParamIssues(
       terminal: mergeTri(left.terminal, right.terminal),
       uncertain: left.uncertain || right.uncertain,
     }),
-    onCall({ call, rec, objectName, property }) {
-      if (!rec || !objectName || !property) return;
+    onCall({ call, rec, receiver, objectName, property }) {
+      if (!rec || !receiver || !objectName || !property) return;
+      if (property !== "addParam" && !TERMINAL.has(property)) return;
+      if (
+        !hasAuthoritativeConstructedMethod(authority, receiver, "GlideAjax", property, "browser")
+      ) {
+        // An unproven addParam implementation may or may not register the
+        // method name. Preserve uncertainty so a later real request stays
+        // silent instead of being reported as definitely unconfigured.
+        if (property === "addParam") {
+          rec.data.sysparmName = mergeSysparm(rec.data.sysparmName, "unknown");
+          rec.data.uncertain = true;
+        }
+        return;
+      }
       if (property === "addParam") {
         if (rec.data.terminal === true) {
           report({ node: call, name: objectName, messageId: "afterTerminal" });
@@ -121,6 +139,9 @@ export function findGlideAjaxParamIssues(
         rec.data.uncertain = false;
       }
     },
+    onBudgetExceeded() {
+      findings.length = 0;
+    },
   });
-  return findings;
+  return dedupePathFindings(findings, (finding) => finding.messageId);
 }

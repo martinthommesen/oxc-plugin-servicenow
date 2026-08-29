@@ -1,3 +1,4 @@
+import { PACKAGE_VERSION } from "./version.js";
 import {
   DEFAULT_FLUENT_MANIFEST,
   FLUENT_CORE_MODULE as MANIFEST_CORE_MODULE,
@@ -14,10 +15,14 @@ export const PACKAGE_NAME = "oxc-plugin-servicenow";
  * has no load-time filesystem read and `"sideEffects": false` stays true
  * (FINDINGS.md MNT-002). A drift test asserts it matches `package.json`.
  */
-export { PACKAGE_VERSION } from "./version.js";
+export { PACKAGE_VERSION };
 
-export const DOCS_BASE_URL =
-  "https://github.com/martinthommesen/oxc-plugin-servicenow/blob/main/docs/rules";
+export const REPOSITORY_URL = "https://github.com/martinthommesen/oxc-plugin-servicenow";
+
+/** Immutable Git ref created and verified before the corresponding package is published. */
+export const PACKAGE_GIT_REF = `v${PACKAGE_VERSION}`;
+
+export const DOCS_BASE_URL = `${REPOSITORY_URL}/blob/${PACKAGE_GIT_REF}/docs/rules`;
 
 export function ruleDocsUrl(ruleName: string): string {
   return `${DOCS_BASE_URL}/${ruleName}.md`;
@@ -55,11 +60,9 @@ export const KNOWN_FLUENT_DIRECTIVES = DEFAULT_FLUENT_MANIFEST.directives.map(
   (directive) => directive.name,
 );
 
-// Null prototype: the key comes from comment text (FINDINGS.md MNT-003).
-export const FLUENT_DIRECTIVE_TYPOS: Record<string, string> = Object.assign(
-  Object.create(null) as Record<string, string>,
-  DEFAULT_FLUENT_MANIFEST.typos,
-);
+export const FLUENT_DIRECTIVE_TYPOS: Record<string, string> = {
+  ...DEFAULT_FLUENT_MANIFEST.typos,
+};
 
 /** Properties that typically hold large script / markup payloads in Fluent. */
 export const FLUENT_LARGE_CONTENT_KEYS: ReadonlySet<string> = new Set([

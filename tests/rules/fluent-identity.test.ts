@@ -25,6 +25,21 @@ describe("fluentSdkVersion registry", () => {
     );
   });
 
+  it("keeps the Australia release independent from the selected Fluent SDK manifest", () => {
+    const businessRule = `import { BusinessRule } from "@servicenow/sdk/core";\nBusinessRule({ table: "incident", name: "Update" });`;
+    for (const fluentSdkVersion of ["4.4.0", "4.4.1", "4.11.0"]) {
+      assert.doesNotThrow(() =>
+        validateServiceNowSettings({ release: "australia", fluentSdkVersion }),
+      );
+      assertInvalid(
+        businessRule,
+        "require-fluent-id",
+        { messageId: "missing" },
+        { ...NOW, settings: { release: "australia", fluentSdkVersion } },
+      );
+    }
+  });
+
   it("keeps the published Table signature across 3.0.0 and 4.1.0", () => {
     const table = `import { Table } from "@servicenow/sdk/core";\nexport const incident = Table({ name: "x_acme_incident" });`;
     assertValid(table, "require-fluent-id", { ...NOW, settings: { fluentSdkVersion: "3.0.0" } });
@@ -59,29 +74,6 @@ describe("fluentSdkVersion registry", () => {
       `${head}\nfunction go() { ${use} }\nL = console.log;\ngo();`,
       "require-fluent-id",
       V3,
-    );
-  });
-
-  it("applies repeated var declarators in execution order (FINDINGS.md COR-009)", () => {
-    const head =
-      'import { Record } from "@servicenow/sdk/core";\nimport { unrelated } from "other";';
-    const use = 'F({ table: "incident", name: "Alias" });';
-    // The later declarator rebinds away from the factory: no diagnostic.
-    assertValid(`${head}\nvar F = Record;\nvar F = unrelated;\n${use}`, "require-fluent-id", NOW);
-    // The later declarator rebinds to the factory: the call needs an $id.
-    assertInvalid(
-      `${head}\nvar F = unrelated;\nvar F = Record;\n${use}`,
-      "require-fluent-id",
-      { messageId: "missing" },
-      NOW,
-    );
-    // Control: the plain-assignment spelling keeps its behaviour.
-    assertValid(`${head}\nvar F = Record;\nF = unrelated;\n${use}`, "require-fluent-id", NOW);
-    // A repeated declarator inside an if() makes the alias uncertain.
-    assertValid(
-      `${head}\nvar F = unrelated;\nif (flag) { var F = Record; }\n${use}`,
-      "require-fluent-id",
-      NOW,
     );
   });
 

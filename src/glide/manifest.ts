@@ -1,21 +1,57 @@
+import { SUPPORTED_SERVICENOW_RELEASES, type ServiceNowRelease } from "../settings/releases.js";
+import type { ApplicationScope } from "../types.js";
+
 /**
  * Versioned ServiceNow GlideRecord API capability table.
  *
- * Method names and roles come from the scoped GlideRecord reference for the
- * Zurich documentation set. Do not match a method only because its name
- * starts with `addSystem`.
+ * Method names and roles come from the scoped and global GlideRecord
+ * references for each reviewed documentation release. Do not infer a role
+ * from a method name alone.
  *
- * Evidence: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html
+ * Evidence:
+ * https://www.servicenow.com/docs/r/zurich/api-reference/server-api-reference/c_GlideRecordScopedAPI.html
+ * https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html
  */
 
-export const GLIDE_API_RELEASE: ServiceNowRelease = "zurich";
+export const GLIDE_API_RELEASES: readonly ServiceNowRelease[] = SUPPORTED_SERVICENOW_RELEASES;
 
-export const GLIDE_SCOPED_RECORD_EVIDENCE =
-  "https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html";
+const GLIDE_METHOD_SUPPORT_BY_RELEASE: Readonly<Record<ServiceNowRelease, true>> = Object.freeze({
+  zurich: true,
+  australia: true,
+});
+const GLIDE_METHOD_RELEASES = Object.freeze(
+  Object.keys(GLIDE_METHOD_SUPPORT_BY_RELEASE) as ServiceNowRelease[],
+);
 
-/** Global (non-scoped) GlideRecord API. Used only for methods absent from the scoped page. */
-export const GLIDE_GLOBAL_RECORD_EVIDENCE =
-  "https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordAPI.html";
+export interface GlideRecordEvidence {
+  readonly scoped: string;
+  readonly global: string;
+  readonly officialReleaseLabel: string;
+  readonly officialUpdatedAt: string | null;
+  readonly reviewedAt: string;
+}
+
+export const GLIDE_RECORD_EVIDENCE: Readonly<Record<ServiceNowRelease, GlideRecordEvidence>> =
+  Object.freeze({
+    zurich: Object.freeze({
+      scoped:
+        "https://www.servicenow.com/docs/r/zurich/api-reference/server-api-reference/c_GlideRecordScopedAPI.html",
+      global:
+        "https://www.servicenow.com/docs/r/zurich/api-reference/server-api-reference/c_GlideRecordAPI.html",
+      officialReleaseLabel: "Zurich",
+      officialUpdatedAt: null,
+      reviewedAt: "2026-08-22",
+    }),
+    australia: Object.freeze({
+      scoped:
+        "https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html",
+      global:
+        "https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordAPI.html",
+      officialReleaseLabel: "Australia",
+      officialUpdatedAt: "2026-03-12",
+      reviewedAt: "2026-08-22",
+    }),
+  });
 
 export type GlideApiScope = "scoped" | "global";
 
@@ -25,6 +61,7 @@ export type GlideMethodRole =
   | "acl-bypass"
   | "executor"
   | "consumer"
+  | "cursor-advance"
   | "bulk"
   | "value-extractor"
   | "neutral";
@@ -32,26 +69,37 @@ export type GlideMethodRole =
 export interface GlideMethodCapability {
   name: string;
   roles: readonly GlideMethodRole[];
-  evidence: string;
+  evidence: Readonly<Record<ServiceNowRelease, string>>;
   apiScope: GlideApiScope;
   supportedScopes: readonly GlideApiScope[];
   releases: readonly ServiceNowRelease[];
 }
 
+export type GlideDocumentedMethodInventory = Readonly<
+  Record<ServiceNowRelease, Readonly<Record<GlideApiScope, readonly string[]>>>
+>;
+
 function method(
   name: string,
   roles: readonly GlideMethodRole[],
-  extra: Partial<
-    Pick<GlideMethodCapability, "evidence" | "apiScope" | "supportedScopes" | "releases">
-  > = {},
+  extra: Partial<Pick<GlideMethodCapability, "apiScope" | "supportedScopes" | "releases">> = {},
 ): GlideMethodCapability {
+  const apiScope = extra.apiScope ?? "scoped";
+  const evidence = Object.freeze(
+    Object.fromEntries(
+      SUPPORTED_SERVICENOW_RELEASES.map((release) => [
+        release,
+        GLIDE_RECORD_EVIDENCE[release][apiScope],
+      ]),
+    ) as Record<ServiceNowRelease, string>,
+  );
   return {
     name,
     roles,
-    evidence: extra.evidence ?? GLIDE_SCOPED_RECORD_EVIDENCE,
-    apiScope: extra.apiScope ?? "scoped",
+    evidence,
+    apiScope,
     supportedScopes: extra.supportedScopes ?? ["scoped", "global"],
-    releases: extra.releases ?? [GLIDE_API_RELEASE],
+    releases: extra.releases ?? GLIDE_METHOD_RELEASES,
   };
 }
 
@@ -59,8 +107,7 @@ function method(
  * Documented GlideRecord methods used by conservative query analysis.
  *
  * `addOrCondition` belongs to `GlideQueryCondition`, not GlideRecord.
- * `addInactiveQuery` and `addNotExistsQuery` are not on the Zurich scoped page.
- * `getAsync` is documented on the global GlideRecord API, not the scoped page.
+ * `addInactiveQuery` and `addNotExistsQuery` are not on the reviewed scoped pages.
  */
 export const GLIDE_RECORD_METHODS: readonly GlideMethodCapability[] = [
   method("addActiveQuery", ["filter"]),
@@ -84,13 +131,14 @@ export const GLIDE_RECORD_METHODS: readonly GlideMethodCapability[] = [
   method("setNoCount", ["shape"]),
   method("setCategory", ["shape"]),
   method("query", ["executor"]),
-  method("get", ["executor"]),
-  method("getAsync", ["executor"], {
+  method("_query", ["executor"]),
+  method("queryNoDomain", ["executor"], {
     apiScope: "global",
     supportedScopes: ["global"],
-    evidence: GLIDE_GLOBAL_RECORD_EVIDENCE,
   }),
-  method("next", ["consumer"]),
+  method("get", ["executor"]),
+  method("next", ["consumer", "cursor-advance"]),
+  method("_next", ["consumer", "cursor-advance"]),
   method("hasNext", ["consumer"]),
   method("getRowCount", ["consumer"]),
   method("updateMultiple", ["bulk"]),
@@ -107,6 +155,116 @@ export const GLIDE_RECORD_METHODS: readonly GlideMethodCapability[] = [
   method("setWorkflow", ["neutral"]),
   method("getElement", ["neutral"]),
 ];
+
+const AUSTRALIA_SHARED_METHODS = [
+  "addFunction",
+  "canCreate",
+  "canDelete",
+  "canRead",
+  "canWrite",
+  "disableSysIdInOptimization",
+  "getAttribute",
+  "getClassDisplayValue",
+  "getED",
+  "getEncodedQuery",
+  "getLabel",
+  "getLink",
+  "getRecordClassName",
+  "getTableName",
+  "isNewRecord",
+  "isValid",
+  "isValidField",
+  "isValidRecord",
+  "operation",
+  "setAbortAction",
+  "setNewGuidValue",
+  "updateWithReferences",
+] as const;
+
+const AUSTRALIA_SCOPED_ONLY_METHODS = [
+  "getElements",
+  "getLastErrorMessage",
+  "isActionAborted",
+  "isEncodedQueryValid",
+  "isValidEncodedQuery",
+  "isView",
+] as const;
+
+const AUSTRALIA_GLOBAL_ONLY_METHODS = [
+  "addDomainQuery",
+  "addExtraField",
+  "addInactiveQuery",
+  "addValue",
+  "applyEncodedQuery",
+  "applyTemplate",
+  "autoSysFields",
+  "changes",
+  "find",
+  "getDynamicAttribute",
+  "getDynamicAttributeDisplayValue",
+  "getDynamicAttributeValue",
+  "getEscapedDisplayValue",
+  "getFields",
+  "getLocation",
+  "getPlural",
+  "getRelatedLists",
+  "getRelatedTables",
+  "getRowNumber",
+  "hasAttachments",
+  "insertWithReferences",
+  "instanceOf",
+  "restoreLocation",
+  "saveLocation",
+  "setDisplayValue",
+  "setDynamicAttributeDisplayValue",
+  "setDynamicAttributeValue",
+  "setDynamicAttributeValues",
+  "setForceUpdate",
+  "setLocation",
+  "setNewGuid",
+  "setQueryReferences",
+  "setUseEngines",
+] as const;
+
+function sortedUniqueNames(...groups: readonly (readonly string[])[]): readonly string[] {
+  return Object.freeze([...new Set(groups.flat())].sort());
+}
+
+function modeledNamesForScope(scope: GlideApiScope): readonly string[] {
+  return GLIDE_RECORD_METHODS.filter((entry) => entry.supportedScopes.includes(scope)).map(
+    (entry) => entry.name,
+  );
+}
+
+const MODELED_SCOPED_METHODS = modeledNamesForScope("scoped");
+const MODELED_GLOBAL_METHODS = modeledNamesForScope("global");
+
+/**
+ * Complete reviewed method-name inventories used only as a method-vs-field
+ * firewall. Semantic query roles remain in `GLIDE_RECORD_METHODS`.
+ *
+ * Australia is complete against both official API pages. Zurich retains the
+ * smaller role-bearing inventory until its own page-wide audit is completed;
+ * Australia names are never asserted as Zurich API availability.
+ */
+export const GLIDE_DOCUMENTED_METHODS: GlideDocumentedMethodInventory = Object.freeze({
+  zurich: Object.freeze({
+    scoped: sortedUniqueNames(MODELED_SCOPED_METHODS),
+    global: sortedUniqueNames(MODELED_GLOBAL_METHODS),
+  }),
+  australia: Object.freeze({
+    scoped: sortedUniqueNames(
+      MODELED_SCOPED_METHODS,
+      AUSTRALIA_SHARED_METHODS,
+      AUSTRALIA_SCOPED_ONLY_METHODS,
+    ),
+    global: sortedUniqueNames(
+      MODELED_GLOBAL_METHODS,
+      AUSTRALIA_SHARED_METHODS,
+      AUSTRALIA_GLOBAL_ONLY_METHODS,
+    ),
+  }),
+});
 
 function namesWithRole(role: GlideMethodRole): Set<string> {
   return new Set(
@@ -130,12 +288,20 @@ export const GLIDE_QUERY_EXECUTORS = namesWithRole("executor");
 
 export const GLIDE_RESULT_CONSUMERS = namesWithRole("consumer");
 
+/** Documented methods that advance a GlideRecord cursor and require an opened result. */
+export const GLIDE_CURSOR_ADVANCERS = namesWithRole("cursor-advance");
+
 export const GLIDE_BULK_METHODS = namesWithRole("bulk");
 
 export const GLIDE_VALUE_EXTRACTORS = namesWithRole("value-extractor");
 
-/** Every method name in the versioned table, including neutrals. */
-export const GLIDE_KNOWN_METHODS = new Set(GLIDE_RECORD_METHODS.map((entry) => entry.name));
+/** Every reviewed documented method name across supported releases and scopes. */
+export const GLIDE_KNOWN_METHODS = new Set(
+  SUPPORTED_SERVICENOW_RELEASES.flatMap((release) => [
+    ...GLIDE_DOCUMENTED_METHODS[release].scoped,
+    ...GLIDE_DOCUMENTED_METHODS[release].global,
+  ]),
+);
 
 class ReadonlySetView<T> implements ReadonlySet<T> {
   readonly #values: Set<T>;
@@ -184,52 +350,85 @@ function readonlyNames(
 
 export interface GlideCapabilityView {
   readonly scope: ApplicationScope;
-  readonly release: ServiceNowRelease;
+  readonly release: ServiceNowRelease | undefined;
+  readonly releases: readonly ServiceNowRelease[];
+  /** Methods documented for every admissible release and API scope. */
   readonly methods: readonly GlideMethodCapability[];
   readonly filters: ReadonlySet<string>;
   readonly modifiers: ReadonlySet<string>;
   readonly systemBypass: ReadonlySet<string>;
+  /** Executors definitely available in the configured scope. */
   readonly executors: ReadonlySet<string>;
+  /** Executors available in at least one API scope allowed by the configured scope. */
+  readonly possibleExecutors: ReadonlySet<string>;
   readonly consumers: ReadonlySet<string>;
+  readonly cursorAdvancers: ReadonlySet<string>;
   readonly bulk: ReadonlySet<string>;
   readonly valueExtractors: ReadonlySet<string>;
+  /** Role-bearing methods whose effects are modeled by shared analysis. */
+  readonly modeledMethods: ReadonlySet<string>;
+  /** Complete documented-name firewall; does not imply a modeled effect. */
   readonly knownMethods: ReadonlySet<string>;
 }
 
 const CAPABILITY_CACHE = new Map<string, GlideCapabilityView>();
+const GLIDE_API_SCOPES: readonly GlideApiScope[] = ["scoped", "global"];
 
-/** Select documented methods for one exact application scope and release. */
+/** Select documented methods for every admissible application scope and release. */
 export function resolveGlideCapabilities(input: {
   scope: ApplicationScope;
   release?: ServiceNowRelease;
 }): GlideCapabilityView {
-  const release = input.release ?? GLIDE_API_RELEASE;
-  const key = `${input.scope}:${release}`;
+  const key = `${input.scope}:${input.release ?? "*"}`;
   const existing = CAPABILITY_CACHE.get(key);
   if (existing) return existing;
-  const effectiveScope: GlideApiScope = input.scope === "global" ? "global" : "scoped";
+  const releases = Object.freeze(
+    input.release === undefined ? [...SUPPORTED_SERVICENOW_RELEASES] : [input.release],
+  );
+  const scopes: readonly GlideApiScope[] =
+    input.scope === "unknown" ? GLIDE_API_SCOPES : [input.scope];
+  const combinations = releases.flatMap((release) => scopes.map((scope) => ({ release, scope })));
+  const supports = (
+    entry: GlideMethodCapability,
+    candidate: { release: ServiceNowRelease; scope: GlideApiScope },
+  ) =>
+    entry.releases.includes(candidate.release) && entry.supportedScopes.includes(candidate.scope);
+  const possibleMethods = Object.freeze(
+    GLIDE_RECORD_METHODS.filter((entry) =>
+      combinations.some((candidate) => supports(entry, candidate)),
+    ),
+  );
   const methods = Object.freeze(
-    GLIDE_RECORD_METHODS.filter(
-      (entry) => entry.releases.includes(release) && entry.supportedScopes.includes(effectiveScope),
+    possibleMethods.filter((entry) =>
+      combinations.every((candidate) => supports(entry, candidate)),
     ),
   );
   const filters = readonlyNames(methods, "filter");
   const shape = readonlyNames(methods, "shape");
   const view: GlideCapabilityView = Object.freeze({
     scope: input.scope,
-    release,
+    release: input.release,
+    releases,
     methods,
     filters,
     modifiers: new ReadonlySetView([...filters, ...shape]),
     systemBypass: readonlyNames(methods, "acl-bypass"),
     executors: readonlyNames(methods, "executor"),
+    possibleExecutors: readonlyNames(possibleMethods, "executor"),
     consumers: readonlyNames(methods, "consumer"),
+    cursorAdvancers: readonlyNames(methods, "cursor-advance"),
     bulk: readonlyNames(methods, "bulk"),
     valueExtractors: readonlyNames(methods, "value-extractor"),
-    knownMethods: readonlyNames(methods),
+    modeledMethods: readonlyNames(possibleMethods),
+    // A documented method in either API scope must not be mistaken for a
+    // GlideElement field. Scope misuse belongs to a separate diagnostic.
+    knownMethods: new ReadonlySetView(
+      releases.flatMap((release) => [
+        ...GLIDE_DOCUMENTED_METHODS[release].scoped,
+        ...GLIDE_DOCUMENTED_METHODS[release].global,
+      ]),
+    ),
   });
   CAPABILITY_CACHE.set(key, view);
   return view;
 }
-import type { ServiceNowRelease } from "../settings/releases.js";
-import type { ApplicationScope } from "../types.js";

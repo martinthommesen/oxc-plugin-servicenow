@@ -27,8 +27,8 @@ export const validateGlideaggregateCalls = defineRule({
         if (!isServerInstanceContext(script)) return false;
       },
       Program(node) {
-        const { analysis } = beginRuleFile(context);
-        for (const finding of findGlideAggregateIssues(node as ESTree.Node, analysis)) {
+        const { analysis, file } = beginRuleFile(context);
+        for (const finding of findGlideAggregateIssues(node as ESTree.Node, analysis, file)) {
           context.report({
             node: finding.node,
             messageId: finding.messageId,

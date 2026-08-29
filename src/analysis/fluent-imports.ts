@@ -1,13 +1,6 @@
 import type { ESTree } from "@oxlint/plugins";
 import { apisByName, type FluentApiCapability, type FluentSdkManifest } from "../fluent/index.js";
-import {
-  getName,
-  getStringValue,
-  isNode,
-  nodeStart,
-  unwrapExpression,
-  walk,
-} from "../utils/ast.js";
+import { getName, getStringValue, isNode, unwrapExpression, walk } from "../utils/ast.js";
 import { staticPropertyName } from "./members.js";
 import type { FileBindings, LexicalBinding } from "./bindings.js";
 
@@ -111,15 +104,11 @@ function latestSimpleValue(
   bindings: FileBindings,
   useInsideFunction: boolean,
 ): ESTree.Node | null {
-  // Portable offsets: typescript-eslint nodes carry only `range`
-  // (FINDINGS.md COR-007). An unknown offset makes ordering unknowable, so
-  // the alias becomes uncertain rather than wrongly resolved.
-  const useStart = nodeStart(use);
+  const useStart = (use as { start?: number }).start ?? Number.POSITIVE_INFINITY;
   let value = declarationInit(binding);
-  let valueOffset = nodeStart(binding.node);
+  let valueOffset = (binding.node as { start?: number }).start ?? -1;
   let uncertain = false;
   if (!program || binding.kind === "const") return value;
-  if (useStart < 0) return null;
   const ancestors: ESTree.Node[] = [];
   walk(
     program,
@@ -142,11 +131,7 @@ function latestSimpleValue(
           uncertain = true;
           return;
         }
-        const start = nodeStart(node);
-        if (start < 0) {
-          uncertain = true;
-          return;
-        }
+        const start = (node as { start?: number }).start ?? Number.POSITIVE_INFINITY;
         if (start >= useStart) return;
         if (
           assignment.operator !== "=" ||
@@ -157,42 +142,6 @@ function latestSimpleValue(
         }
         if (start > valueOffset) {
           value = isNode(assignment.right) ? assignment.right : null;
-          valueOffset = start;
-        }
-      },
-      VariableDeclarator(node) {
-        // A repeated `var` declarator rebinds like an assignment, so it
-        // joins the same execution-order model. A binding with a single
-        // declarator is fully described by the seed above (FINDINGS.md
-        // COR-009).
-        if (binding.declarations.length < 2) return;
-        const declarator = node as ESTree.VariableDeclarator;
-        if (!isNode(declarator.init)) return;
-        const id = unwrapExpression(declarator.id);
-        if (!isNode(id) || id.type !== "Identifier") return;
-        const resolved = bindings.resolve(getName(id) ?? "", id, ancestors);
-        if (resolved?.id !== binding.id) return;
-        const insideFunction = ancestors
-          .slice(0, -1)
-          .some((ancestor) => FUNCTION_ANCESTORS.has(ancestor.type));
-        if (insideFunction || useInsideFunction) {
-          uncertain = true;
-          return;
-        }
-        const start = nodeStart(node);
-        if (start < 0) {
-          uncertain = true;
-          return;
-        }
-        if (start >= useStart) return;
-        if (
-          ancestors.slice(0, -1).some((ancestor) => CONDITIONAL_WRITE_ANCESTORS.has(ancestor.type))
-        ) {
-          uncertain = true;
-          return;
-        }
-        if (start > valueOffset) {
-          value = declarator.init;
           valueOffset = start;
         }
       },

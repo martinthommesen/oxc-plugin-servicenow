@@ -5,6 +5,7 @@ import {
   type FluentSdkManifest,
 } from "./manifest.js";
 import { FLUENT_DECLARATION_SNAPSHOTS } from "./declaration-snapshots.js";
+import { compareFluentVersions } from "./evidence.js";
 
 /** Reviewed default used when `fluentSdkVersion` is omitted. */
 export const DEFAULT_FLUENT_SDK_VERSION = "4.11.0";
@@ -233,6 +234,7 @@ function manifestForVersion(sdkVersion: string): FluentSdkManifest {
   const manual = new Map(DEFAULT_FLUENT_MANIFEST.apis.map((api) => [api.name, api]));
   const apis: FluentApiCapability[] = [];
   for (const api of DEFAULT_FLUENT_MANIFEST.apis) {
+    if (api.introduced && compareFluentVersions(sdkVersion, api.introduced) < 0) continue;
     if (api.module === "unknown") {
       apis.push({ ...api });
       continue;
@@ -240,10 +242,33 @@ function manifestForVersion(sdkVersion: string): FluentSdkManifest {
     const declaration = snapshot.capabilities[api.name];
     if (!declaration) continue;
     const declaredPolicy = declaration.idPolicy;
+    const deprecated =
+      declaredPolicy === "deprecated"
+        ? (api.deprecated ??
+          SUPPORTED_FLUENT_SDK_VERSIONS.find(
+            (version) => DECLARATIONS[version]?.capabilities[api.name]?.idPolicy === "deprecated",
+          ))
+        : undefined;
+    const evidenceRecords =
+      deprecated &&
+      !api.evidenceRecords.some(
+        (record) => record.transition === "deprecated" && record.version === deprecated,
+      )
+        ? [
+            ...api.evidenceRecords,
+            {
+              url: `https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core-${deprecated}.tgz`,
+              symbol: api.name,
+              version: deprecated,
+              transition: "deprecated" as const,
+            },
+          ]
+        : api.evidenceRecords;
     apis.push({
       ...api,
       idRequirement: declaredPolicy === "unknown" ? api.idRequirement : declaredPolicy,
-      deprecated: declaredPolicy === "deprecated" ? sdkVersion : undefined,
+      deprecated,
+      evidenceRecords,
     });
   }
   for (const [name, declaration] of Object.entries(snapshot.discoveredCapabilities)) {
@@ -251,7 +276,8 @@ function manifestForVersion(sdkVersion: string): FluentSdkManifest {
     const introduced = SUPPORTED_FLUENT_SDK_VERSIONS.find(
       (version) => DECLARATIONS[version]?.discoveredCapabilities[name],
     );
-    const evidence = `https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core-${sdkVersion}.tgz`;
+    const evidenceVersion = introduced ?? sdkVersion;
+    const evidence = `https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core-${evidenceVersion}.tgz`;
     apis.push({
       name,
       module: declaration.module,
@@ -263,8 +289,8 @@ function manifestForVersion(sdkVersion: string): FluentSdkManifest {
         {
           url: evidence,
           symbol: name,
-          version: sdkVersion,
-          transition: introduced === sdkVersion ? "introduced" : "current",
+          version: evidenceVersion,
+          transition: "introduced",
         },
       ],
     });

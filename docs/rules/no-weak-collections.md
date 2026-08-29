@@ -1,6 +1,6 @@
 # servicenow/no-weak-collections
 
-WeakMap and WeakSet are disallowed in Compatibility and ES5 Standards mode. ES2021 supports them.
+WeakMap and WeakSet are disallowed in Compatibility and ES5 Standards mode. ES2021 supports them. Direct calls and stable same-execution aliases report; bare aliases captured before a later guard still report, while visibly polyfilled calls stay silent.
 
 - **Family:** engine
 - **Preset:** classic-es5
@@ -9,9 +9,9 @@ WeakMap and WeakSet are disallowed in Compatibility and ES5 Standards mode. ES20
 - **Fix safety:** diagnostic only
 - **Suggestions:** no
 - **Authoring:** classic
-- **Surfaces:** Applies to client, server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent.
+- **Surfaces:** Applies to server, acl, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. UI Actions require an explicit server surface; mixed client/server UI Actions stay silent because execution regions are not classified. An explicit javascriptMode also enables documented engine checks in otherwise unclassified files.
 - **JavaScript mode:** Runs when javascriptMode is compatibility, es5. Unknown mode stays silent.
-- **Last verified:** 2026-08-20
+- **Last verified:** 2026-08-24
 - **Implementation:** [`src/rules/no-weak-collections.ts`](../../src/rules/no-weak-collections.ts)
 
 ## Applicability
@@ -19,11 +19,11 @@ WeakMap and WeakSet are disallowed in Compatibility and ES5 Standards mode. ES20
 | Dimension | Value |
 | --- | --- |
 | Authoring | classic |
-| Surfaces | Applies to client, server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent. |
+| Surfaces | Applies to server, acl, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. UI Actions require an explicit server surface; mixed client/server UI Actions stay silent because execution regions are not classified. An explicit javascriptMode also enables documented engine checks in otherwise unclassified files. |
 | Minimum surface confidence | filename-inferred |
 | JavaScript modes | compatibility, es5 |
 | Application scopes | global, scoped, unknown |
-| ServiceNow releases | zurich |
+| ServiceNow releases | zurich, australia |
 | Fluent SDK range | n/a |
 
 ## Options
@@ -42,15 +42,16 @@ var cache = new WeakMap();
 
 ## Correct
 
-### Correct: Map
+### Correct: object keyed by a stable primitive ID
 
 ```js
-var cache = new Map();
+var cacheBySysId = {};
+cacheBySysId[sysId] = value;
 ```
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-boundary: A possible callable replacement for WeakMap or WeakSet suppresses matching diagnostics throughout the file, regardless of source order. scope-boundary: A call protected by a structurally dominating availability guard stays silent for code shared with other runtimes.
 
 ## Known false positives
 
@@ -62,10 +63,12 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
 
 ## Intentional scope boundaries
 
-- None recorded.
+- A possible callable replacement for WeakMap or WeakSet suppresses matching diagnostics throughout the file, regardless of source order.
+- A call protected by a structurally dominating availability guard stays silent for code shared with other runtimes.
 
 ## Overlaps
 
+- `servicenow/no-map-set`
 - `servicenow/no-weak-references`
 
 ## Fix safety
@@ -76,15 +79,20 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
 ## Evidence
 
 - **WeakMap and WeakSet are unsupported in Compatibility and ES5 Standards modes.**
-  - Verification ID: `rule-evidence-14b4968c`
+  - Verification ID: `rule-evidence-387ab368`
   - URL: https://www.servicenow.com/docs/r/zurich/api-reference/scripts/javascript-engine-feature-support.html
   - Verified by: manual
   - Verified at: 2026-08-20
-- **Catalog examples cover WeakMap construction in ES5 mode.**
-  - Verification ID: `rule-evidence-86f37e88`
-  - URL: src/catalog.ts
+- **Fixtures cover WeakMap aliases, guarded alias capture, availability invalidation, and shared constructor-provenance behavior.**
+  - Verification ID: `rule-evidence-eccf608c`
+  - URL: tests/rules/unsupported-constructors.test.ts
   - Verified by: fixture
-  - Verified at: 2026-08-20
+  - Verified at: 2026-08-24
+- **The Australia JavaScript engine feature table was reviewed for this rule's modeled capability cells.**
+  - Verification ID: `rule-evidence-dcd2c521`
+  - URL: https://www.servicenow.com/docs/r/api-reference/scripts/javascript-engine-feature-support.html
+  - Verified by: manual
+  - Verified at: 2026-08-22
 
 ## See also
 

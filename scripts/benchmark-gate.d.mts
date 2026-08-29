@@ -3,7 +3,7 @@ export interface BenchmarkRow {
   profile: string;
   elapsedMs: number;
   peakRssKb: number;
-  rawSamples?: Array<{ elapsedMs: number; peakRssKb: number }>;
+  rawSamples?: Array<{ elapsedMs: number; peakRssKb: number | null }>;
 }
 export function assertBenchmarkFixtureSet(
   results: BenchmarkRow[],
@@ -28,7 +28,7 @@ export function checkBenchmarkRegression(
       maxRecommendedLargeMs: number;
     };
   },
-): void;
+): string[];
 
 export function validateBenchmarkSummary<T extends { scale: number; results: BenchmarkRow[] }>(
   summary: T,

@@ -1,4 +1,9 @@
-export { buildScopeTree, createFileBindings, collectPatternNames } from "./bindings.js";
+export {
+  buildScopeTree,
+  createFileBindings,
+  collectPatternNames,
+  forEachResolvedPatternBinding,
+} from "./bindings.js";
 export type { FileBindings, LexicalBinding, ScopeTree } from "./bindings.js";
 export {
   analyzeProvenance,
@@ -10,8 +15,32 @@ export {
 export { ctorProvenanceKind, getAncestors } from "./provenance.js";
 export type { Provenance, ProvenanceKind, ProvenanceQuery, QueryState } from "./provenance.js";
 export type { FileAnalysis } from "./file-analysis.js";
+export type { BindingWriteQuery } from "./binding-writes.js";
+export { findUnhoistedBlockFunctionUses } from "./block-function-hoisting.js";
+export type { UnhoistedBlockFunctionUse } from "./block-function-hoisting.js";
+export { findObjectMethodConstructions } from "./object-method-construction.js";
+export type { ObjectMethodConstruction } from "./object-method-construction.js";
+export { createEmptyArrayBindingQuery } from "./empty-array-bindings.js";
+export type { EmptyArrayBindingQuery } from "./empty-array-bindings.js";
+export type { MutationQuery } from "./mutations.js";
+export {
+  hasAuthoritativeConstructedMethod,
+  hasAuthoritativeGlobalObjectMethod,
+  hasAuthoritativeGlideRecordMethod,
+} from "./platform-method-authority.js";
+export type { PlatformMethodAuthorityFacts } from "./platform-method-authority.js";
 export type { BindingId, ObjectId, Completion } from "./path-state.js";
-export { staticPropertyName, staticCalleeProperty, isComputedUnknown } from "./members.js";
+export {
+  isDefinitelyNonCallable,
+  isDefinitelyNullishValue,
+  isDefinitelyUndefinedValue,
+  staticPropertyName,
+  staticCalleeProperty,
+  isComputedUnknown,
+  resolveConstValue,
+  resolveDominatingConstValue,
+  resolveDestructuredConstMember,
+} from "./members.js";
 export { findMissingQueryBeforeNext } from "./query-before-next.js";
 export type { MissingQueryFinding } from "./query-before-next.js";
 export { findWindowedDeleteMultiple } from "./glide-windowing.js";
@@ -40,3 +69,13 @@ export { findQueriesInCursorLoops } from "./glide-query-in-loop.js";
 export type { QueryInLoopFinding } from "./glide-query-in-loop.js";
 export { findChooseWindowWithoutNoCount } from "./glide-setnocount.js";
 export type { ChooseWindowCountFinding } from "./glide-setnocount.js";
+export {
+  findStablePlatformConstructorCalls,
+  findStablePlatformStaticMethodCalls,
+} from "./platform-constructor-calls.js";
+export type {
+  PlatformConstructorCallFinding,
+  PlatformGlobalAliasOrigin,
+  PlatformStaticMethodCallFinding,
+} from "./platform-constructor-calls.js";
+export { builtInCallMayWritePlatformProperty } from "./builtin-property-writes.js";

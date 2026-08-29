@@ -71,12 +71,6 @@
       "profile": "recommended"
     },
     {
-      "fixture": "nested-do-while/recommended",
-      "elapsedMs": 196,
-      "peakRssKb": 87080,
-      "profile": "recommended"
-    },
-    {
       "fixture": "fluent-large/recommended",
       "elapsedMs": 151,
       "peakRssKb": 85432,

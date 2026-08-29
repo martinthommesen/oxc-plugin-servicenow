@@ -18,4 +18,8 @@ export interface DeclarationSnapshot {
   readonly capabilities: Readonly<Record<string, DeclarationCapability>>;
   readonly discoveredCapabilities: Readonly<Record<string, DeclarationCapability>>;
   readonly absent: readonly string[];
+  readonly typos: Readonly<Record<string, string>>;
+  readonly lifecycle: Readonly<
+    Record<string, { introduced: string | null; deprecated: string | null }>
+  >;
 }

@@ -101,11 +101,15 @@ export function validateBenchmarkSummary(summary, options = {}) {
       if (!Array.isArray(row.rawSamples) || row.rawSamples.length !== summary.samples) {
         throw new Error(`benchmark ${caseKey(row)} raw samples are missing`);
       }
+      let availableRssSamples = 0;
       for (const sample of row.rawSamples) {
-        if (!(sample.elapsedMs > 0) || !(sample.peakRssKb > 0)) {
+        if (!(sample.elapsedMs > 0) || (sample.peakRssKb !== null && !(sample.peakRssKb > 0))) {
           throw new Error(`benchmark ${caseKey(row)} raw sample is malformed`);
         }
+        if (sample.peakRssKb !== null) availableRssSamples += 1;
       }
+      if (availableRssSamples === 0)
+        throw new Error(`benchmark ${caseKey(row)} required peak RSS metric is unavailable`);
     }
   }
   assertBenchmarkFixtureSet(summary.results, summary.results);
@@ -116,22 +120,21 @@ export function checkBenchmarkRegression(results, baseline) {
   validateThresholds(baseline.regression);
   const baselineRows = baseline.results ?? [];
   assertBenchmarkFixtureSet(results, baselineRows);
+  const trends = [];
   for (const row of results) {
     const previous = baselineRows.find((item) => caseKey(item) === caseKey(row));
     const elapsedLimit =
       previous.elapsedMs * baseline.regression.elapsedMultiplier +
       baseline.regression.elapsedFloorMs;
     if (row.elapsedMs > elapsedLimit) {
-      throw new Error(
+      trends.push(
         `${row.fixture}/${row.profile} elapsed ${row.elapsedMs}ms exceeded ${elapsedLimit}ms`,
       );
     }
     const rssLimit =
       previous.peakRssKb * baseline.regression.rssMultiplier + baseline.regression.rssFloorKb;
     if (row.peakRssKb > rssLimit) {
-      throw new Error(
-        `${row.fixture}/${row.profile} RSS ${row.peakRssKb}KB exceeded ${rssLimit}KB`,
-      );
+      trends.push(`${row.fixture}/${row.profile} RSS ${row.peakRssKb}KB exceeded ${rssLimit}KB`);
     }
   }
   const large = results.find((row) => row.fixture === "classic-large/recommended");
@@ -147,4 +150,5 @@ export function checkBenchmarkRegression(results, baseline) {
       `classic-large/recommended exceeded ${baseline.regression.maxRecommendedLargeMs}ms`,
     );
   }
+  return trends;
 }

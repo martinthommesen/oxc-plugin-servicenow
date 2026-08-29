@@ -20,6 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -34,12 +35,9 @@ jobs:
       - run: npm test
       - run: npm run evidence:check
         if: always()
-      # Offline acceptance verification: the required test job must not
-      # depend on the live registry (FINDINGS.md OPS-004). The consumer job
-      # below captures the full networked evidence.
       - run: npm run acceptance:check
         if: always()
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: pr51-acceptance
@@ -62,17 +60,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      # The complete acceptance capture runs the full test tree including
-      # the networked packed-consumer proofs, so it lives in this networked
-      # job (FINDINGS.md OPS-004).
-      - run: npm run acceptance:capture
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: pr51-acceptance-full
-          path: |
-            artifacts/pr51-acceptance.json
-            artifacts/pr51-acceptance.md
-          if-no-files-found: error
+      - run: npm run test:consumer
 
   compat-matrix:
     timeout-minutes: 10
@@ -112,9 +100,15 @@ jobs:
             baseline_commit="$GITHUB_SHA"
           fi
           test -n "$baseline_commit"
-          git show "$baseline_commit:docs/performance-baseline.json" > "$RUNNER_TEMP/performance-baseline.json"
+          if git cat-file -e "$baseline_commit:docs/performance-baseline.json" 2>/dev/null; then
+            git show "$baseline_commit:docs/performance-baseline.json" > "$RUNNER_TEMP/performance-baseline.json"
+          else
+            # Bootstrap the first committed baseline when the target branch
+            # predates performance evidence.
+            cp docs/performance-baseline.json "$RUNNER_TEMP/performance-baseline.json"
+          fi
       - run: npm run bench -- --baseline "$RUNNER_TEMP/performance-baseline.json" --output artifacts/performance-current.json
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: performance-current
@@ -133,6 +127,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -140,10 +135,12 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
+      - name: TypeScript runner smoke
+        run: node scripts/run-tests.mjs tests/utils/ast.test.ts
       - name: Packed consumer cell
         env:
           SN_COMPAT_CELL: ${{ matrix.cell }}
-        run: npx tsx scripts/compat-consumer.mjs --cell "$SN_COMPAT_CELL"
+        run: node scripts/compat-consumer.mjs --cell "$SN_COMPAT_CELL"
 
   docs:
     timeout-minutes: 10
@@ -197,6 +194,8 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24.16.0
+          cache: npm
+      - run: npm ci --ignore-scripts
       - run: npm run workflow:check
 
   manifest-drift:

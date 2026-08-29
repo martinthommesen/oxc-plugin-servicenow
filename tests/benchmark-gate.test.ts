@@ -56,6 +56,42 @@ describe("benchmark regression gate", () => {
     assert.equal(validateBenchmarkSummary(summary()).results.length, 1);
     assert.throws(() => validateBenchmarkSummary({ ...summary(), scale: Number.NaN }), /scale/);
     assert.throws(() => validateBenchmarkSummary(summary([row("a", 1, 0)])), /unavailable RSS/);
+    const withRawSamples = {
+      ...summary(),
+      samples: 2,
+      results: [
+        {
+          ...row("a", 1),
+          rawSamples: [
+            { elapsedMs: 1, peakRssKb: null },
+            { elapsedMs: 1, peakRssKb: 100 },
+          ],
+        },
+      ],
+    };
+    assert.equal(
+      validateBenchmarkSummary(withRawSamples, { requireRawSamples: true }).results.length,
+      1,
+    );
+    assert.throws(
+      () =>
+        validateBenchmarkSummary(
+          {
+            ...withRawSamples,
+            results: [
+              {
+                ...row("a", 1),
+                rawSamples: [
+                  { elapsedMs: 1, peakRssKb: null },
+                  { elapsedMs: 1, peakRssKb: null },
+                ],
+              },
+            ],
+          },
+          { requireRawSamples: true },
+        ),
+      /unavailable/,
+    );
   });
 
   it("turns repeated full-file growth into a failing gate", () => {
@@ -77,6 +113,20 @@ describe("benchmark regression gate", () => {
         baseline,
       ),
     );
+  });
+
+  it("reports absolute runner variance as trend evidence", () => {
+    const baseline = {
+      results: [row("classic-small/recommended", 100), row("classic-large/recommended", 200)],
+      regression,
+    };
+    const trends = checkBenchmarkRegression(
+      [row("classic-small/recommended", 300, 500), row("classic-large/recommended", 600, 500)],
+      baseline,
+    );
+    assert.equal(trends.length, 4);
+    assert.match(trends.join("\n"), /elapsed/);
+    assert.match(trends.join("\n"), /RSS/);
   });
 
   it("accepts only a clean, complete Oxlint result", () => {

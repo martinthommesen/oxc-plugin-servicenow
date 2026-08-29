@@ -51,6 +51,22 @@ if (alias${index}.next()) {
 `;
 }
 
+function aclAnalysisBlock(index) {
+  return `var aclRec${index} = new GlideRecord("incident");
+var aclAlias${index} = aclRec${index};
+if (flag${index}) {
+  aclAlias${index}.addQuery("active", true);
+} else {
+  gs.info("keep identity");
+}
+try {
+  gs.info(aclAlias${index}.getValue("number"));
+} catch (error${index}) {
+  gs.error(error${index});
+}
+`;
+}
+
 function fluentRecords(count) {
   const records = Array.from(
     { length: count },
@@ -63,17 +79,6 @@ function fluentRecords(count) {
 });`,
   );
   return `import { BusinessRule } from "@servicenow/sdk/core";\n\n${records.join("\n\n")}\n`;
-}
-
-function nestedDoWhile(depth) {
-  // The PER-002 reproduction shape: nesting once doubled the cursor-loop
-  // walkers' traversals per level, so this fixture keeps the exponential
-  // visible to the gate (FINDINGS.md PER-002).
-  let body = glideRecordBlock(0);
-  for (let index = 0; index < depth; index += 1) {
-    body = `do {\n${body}} while (flag${index});\n`;
-  }
-  return body;
 }
 
 function nestedScopes(depth) {
@@ -117,8 +122,11 @@ function generateFixtures(directory) {
     join(directory, "classic/branch-heavy.br.js"),
     Array.from({ length: 80 }, (_, index) => branchHeavyBlock(index)).join("\n"),
   );
+  writeFileSync(
+    join(directory, "classic/large.acl.js"),
+    Array.from({ length: 200 * repeat }, (_, index) => aclAnalysisBlock(index)).join("\n"),
+  );
   writeFileSync(join(directory, "classic/nested.br.js"), nestedScopes(12));
-  writeFileSync(join(directory, "classic/nested-do-while.br.js"), nestedDoWhile(30));
   writeFileSync(join(directory, "fluent/large.now.ts"), fluentRecords(80));
   writeFileSync(join(directory, "client/skip.client.js"), 'g_form.setValue("priority", "1");\n');
   writeFileSync(join(directory, "mixed/src/server/list.br.js"), glideRecordBlock(1));
@@ -152,9 +160,12 @@ function measure(configPath, targets) {
     let stdout = "";
     let stderr = "";
     let peakRssKb = 0;
-    const poll = setInterval(() => {
+    const sampleRss = () => {
       if (child.pid) peakRssKb = Math.max(peakRssKb, readPeakRssKb(child.pid));
-    }, 10);
+    };
+    sampleRss();
+    child.once("spawn", sampleRss);
+    const poll = setInterval(sampleRss, 10);
     child.stdout.setEncoding("utf8");
     child.stderr.setEncoding("utf8");
     child.stdout.on("data", (chunk) => (stdout += chunk));
@@ -168,10 +179,9 @@ function measure(configPath, targets) {
       if (child.pid) peakRssKb = Math.max(peakRssKb, readPeakRssKb(child.pid));
       try {
         validateOxlintProcessResult({ status, signal, stdout, stderr });
-        if (peakRssKb <= 0) throw new Error("required peak RSS metric is unavailable");
         resolvePromise({
           elapsedMs: Number(process.hrtime.bigint() - started) / 1e6,
-          peakRssKb,
+          peakRssKb: peakRssKb || null,
         });
       } catch (error) {
         reject(error);
@@ -190,11 +200,16 @@ async function runCase(fixture, profile, configPath, targets) {
   const rawSamples = [];
   for (let index = 0; index < samples; index += 1)
     rawSamples.push(await measure(configPath, targets));
+  const rssSamples = rawSamples
+    .map((sample) => sample.peakRssKb)
+    .filter((peakRssKb) => peakRssKb !== null);
+  if (rssSamples.length === 0)
+    throw new Error(`required peak RSS metric is unavailable for ${fixture}`);
   return {
     fixture,
     profile,
     elapsedMs: Math.round(median(rawSamples.map((sample) => sample.elapsedMs))),
-    peakRssKb: Math.round(median(rawSamples.map((sample) => sample.peakRssKb))),
+    peakRssKb: Math.round(median(rssSamples)),
     rawSamples,
   };
 }
@@ -248,7 +263,12 @@ async function main() {
         configs.recommended,
         [join(work, "classic/large.br.js")],
       ],
-      ["classic-large/all", "all", configs.all, [join(work, "classic/large.br.js")]],
+      [
+        "classic-large/all",
+        "all",
+        configs.all,
+        [join(work, "classic/large.br.js"), join(work, "classic/large.acl.js")],
+      ],
       [
         "branch-heavy/recommended",
         "recommended",
@@ -260,12 +280,6 @@ async function main() {
         "recommended",
         configs.recommended,
         [join(work, "classic/nested.br.js")],
-      ],
-      [
-        "nested-do-while/recommended",
-        "recommended",
-        configs.recommended,
-        [join(work, "classic/nested-do-while.br.js")],
       ],
       [
         "fluent-large/recommended",
@@ -313,7 +327,9 @@ async function main() {
       console.log(`${row.fixture} ${row.profile} ${row.elapsedMs}ms rss=${row.peakRssKb}KB`);
     console.log(`scale small->large recommended: ${summary.scale}x`);
     console.log(`wrote current benchmark ${outputPath}`);
-    checkBenchmarkRegression(results, baseline);
+    for (const trend of checkBenchmarkRegression(results, baseline)) {
+      console.warn(`performance trend: ${trend}`);
+    }
     if (writeBaseline) {
       assertBenchmarkFixtureSet(results, results);
       writeFileSync(

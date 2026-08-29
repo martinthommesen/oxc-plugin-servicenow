@@ -4,7 +4,14 @@ import { describe, it } from "node:test";
 import plugin, { configs } from "../src/index.js";
 import * as publicApi from "../src/index.js";
 import { ruleCatalog } from "../src/catalog.js";
-import { PACKAGE_NAME, PACKAGE_VERSION, PLUGIN_NAME } from "../src/constants.js";
+import {
+  DOCS_BASE_URL,
+  PACKAGE_GIT_REF,
+  PACKAGE_NAME,
+  PACKAGE_VERSION,
+  PLUGIN_NAME,
+  REPOSITORY_URL,
+} from "../src/constants.js";
 import { rules } from "../src/rules/index.js";
 
 describe("plugin export", () => {
@@ -46,6 +53,18 @@ describe("plugin export", () => {
     }
   });
 
+  it("pins every rule document to the package release tag", () => {
+    assert.equal(PACKAGE_GIT_REF, `v${PACKAGE_VERSION}`);
+    assert.equal(DOCS_BASE_URL, `${REPOSITORY_URL}/blob/v${PACKAGE_VERSION}/docs/rules`);
+    for (const entry of ruleCatalog) {
+      const expected = `${DOCS_BASE_URL}/${entry.name}.md`;
+      const rule = rules[entry.name] as { meta?: { docs?: { url?: string } } };
+      assert.equal(entry.docsUrl, expected, entry.name);
+      assert.equal(rule.meta?.docs?.url, expected, entry.name);
+      assert.equal(entry.docsUrl.includes("/blob/main/"), false, entry.name);
+    }
+  });
+
   it("eslintCompatPlugin injected create() for ESLint", () => {
     for (const [name, rule] of Object.entries(rules)) {
       const rec = rule as { create?: unknown };
@@ -80,6 +99,14 @@ describe("plugin export", () => {
       if (entry.preset === false) {
         assert.equal(inRecommended, false, `${entry.name} should stay off recommended`);
       }
+      const implementation = rules[entry.name] as {
+        meta?: { docs?: { recommended?: unknown } };
+      };
+      assert.equal(
+        implementation.meta?.docs?.recommended,
+        inRecommended,
+        `${entry.name} meta.docs.recommended mismatch`,
+      );
       for (const placement of entry.placements) {
         if (placement.profile === "recommended") {
           assert.equal(configs.recommendedRules[entry.ruleId], placement.severity);
@@ -105,6 +132,20 @@ describe("plugin export", () => {
       assert.ok(config.files.includes("**/*.now.ts"), `${config.name} missing **/*.now.ts`);
       assert.ok(!config.files.includes("**/*.ts"), `${config.name} should not include **/*.ts`);
     }
+  });
+
+  it("the client flat config includes compound UI Action filenames", () => {
+    assert.ok(configs.flat.client.files.includes("**/*.client.ui-action.js"));
+  });
+
+  it("the ACL flat config selects ACL names and preserves filename conflict checks", () => {
+    assert.ok(configs.flat.acl.files.includes("**/{acl,*[-_.]acl}.{js,cjs,mjs}"));
+    assert.ok(
+      configs.flat.acl.files.includes(
+        "**/{access.control,access.controls,*[-_.]access.control,*[-_.]access.controls}.{js,cjs,mjs}",
+      ),
+    );
+    assert.equal(configs.flat.acl.settings.servicenow.surfaces, "auto");
   });
 
   it("catalog fixable and hasSuggestions match rule meta and real output", () => {

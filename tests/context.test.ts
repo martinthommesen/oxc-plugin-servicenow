@@ -5,6 +5,7 @@ import { parse } from "./helpers/rule-tester.js";
 import { applyRules } from "../src/runtime/apply-rules.js";
 import { resolveScriptContext } from "../src/context/resolve.js";
 import { validateServiceNowSettings, ServiceNowSettingsError } from "../src/settings/index.js";
+import { SUPPORTED_SERVICENOW_RELEASES } from "../src/settings/releases.js";
 import { classifyFile } from "../src/utils/filenames.js";
 import { assertInvalid, assertValid, ES2021, lint } from "./helpers/rule-tester.js";
 
@@ -45,6 +46,10 @@ describe("settings validation", () => {
 
   it("rejects duplicate surfaces", () => {
     assert.throws(() => validateServiceNowSettings({ surfaces: ["client", "client"] }), /surfaces/);
+  });
+
+  it("accepts ACL as an explicit server-side surface", () => {
+    assert.deepEqual(validateServiceNowSettings({ surfaces: ["acl"] }).settings.surfaces, ["acl"]);
   });
 
   it("rejects empty surfaces", () => {
@@ -149,8 +154,25 @@ describe("settings validation", () => {
 });
 
 describe("release and context resolution", () => {
-  it("accepts the documented Zurich release and rejects unknown values", () => {
-    assert.equal(validateServiceNowSettings({ release: "zurich" }).settings.release, "zurich");
+  it("does not reject filename-derived Fluent authoring with classic surfaces", () => {
+    const context = {
+      filename: "client.now.ts",
+      settings: { servicenow: { surfaces: ["client"] } },
+      sourceCode: { text: "", getAllComments: () => [] },
+      options: [],
+    } as unknown as Context;
+    const script = resolveScriptContext(context);
+    assert.equal(script.authoring, "classic");
+    assert.deepEqual([...script.surfaces], ["client"]);
+    assert.equal(script.sources.authoring, "explicit");
+    assert.equal(script.sources.surfaces, "explicit");
+  });
+
+  it("accepts every reviewed release and rejects unknown values", () => {
+    for (const release of SUPPORTED_SERVICENOW_RELEASES) {
+      assert.equal(validateServiceNowSettings({ release }).settings.release, release);
+    }
+    assert.equal(validateServiceNowSettings({}).settings.release, undefined);
     assert.throws(() => validateServiceNowSettings({ release: "zurichx" }), /release.*one of/);
   });
 
@@ -159,7 +181,7 @@ describe("release and context resolution", () => {
       `var gr = new GlideRecord("incident");`,
       "no-client-gliderecord",
       { messageId: "glideRecord" },
-      { filename: "incident.now.ts", settings: { scriptType: "client" } },
+      { filename: "incident.now.ts", settings: { scriptType: "client", scope: "scoped" } },
     );
   });
 
@@ -198,6 +220,42 @@ describe("classifyFile compatibility", () => {
       "ui-action",
     );
   });
+
+  it("recognizes record-type directories", () => {
+    const cases = [
+      ["src/business-rules/update.js", "business-rule"],
+      ["src/script-includes/helper.js", "script-include"],
+      ["src/ui-actions/close.js", "ui-action"],
+      ["src/fix-scripts/repair.js", "fix-script"],
+      ["src/scheduled-scripts/nightly.js", "scheduled-script"],
+      ["src/access-controls/read.js", "acl"],
+    ] as const;
+    for (const [filename, expected] of cases) {
+      const context = {
+        filename,
+        settings: {},
+        sourceCode: { text: "", getAllComments: () => [] },
+        options: [],
+      } as unknown as Context;
+      assert.deepEqual([...resolveScriptContext(context).surfaces], [expected]);
+    }
+  });
+
+  it("keeps a specific record type inside a server directory", () => {
+    for (const [filename, expected] of [
+      ["src/server/incident.br.js", "business-rule"],
+      ["src/server/helper.si.js", "script-include"],
+      ["src/server/read.acl.js", "acl"],
+    ] as const) {
+      const context = {
+        filename,
+        settings: {},
+        sourceCode: { text: "", getAllComments: () => [] },
+        options: [],
+      } as unknown as Context;
+      assert.deepEqual([...resolveScriptContext(context).surfaces], [expected]);
+    }
+  });
 });
 
 describe("context-aware engine rules", () => {
@@ -214,6 +272,15 @@ describe("context-aware engine rules", () => {
       "no-async-iterators",
       { messageId: "forAwait" },
       { settings: ES2021 },
+    );
+  });
+
+  it("uses an explicit mode for engine-wide bans on an unclassified file", () => {
+    assertInvalid(
+      "async function drain(items) { for await (const item of items) {} }",
+      "no-async-iterators",
+      { messageId: "forAwait" },
+      { filename: "plain.js", settings: ES2021 },
     );
   });
 
@@ -315,7 +382,7 @@ describe("UI Action surfaces", () => {
 var gr = new GlideRecord("incident");`,
       "no-client-gliderecord",
       { messageId: "glideRecord" },
-      { filename: "close.ui-action.js" },
+      { filename: "close.ui-action.js", settings: { scope: "scoped" } },
     );
   });
 
@@ -354,7 +421,10 @@ gr.next();`,
       `var gr = new GlideRecord("incident");`,
       "no-client-gliderecord",
       { messageId: "glideRecord" },
-      { filename: "close.ui-action.js", settings: { surfaces: ["ui-action", "client"] } },
+      {
+        filename: "close.ui-action.js",
+        settings: { surfaces: ["ui-action", "client"], scope: "scoped" },
+      },
     );
   });
 

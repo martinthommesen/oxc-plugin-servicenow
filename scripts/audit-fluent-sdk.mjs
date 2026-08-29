@@ -18,6 +18,9 @@ const fixturePath = path.join(root, "tests/fixtures/fluent-sdk-declarations.json
 const generatedPath = path.join(root, "src/fluent/declaration-snapshots.ts");
 const registryBase = "https://registry.npmjs.org";
 const packageNames = ["@servicenow/sdk", "@servicenow/sdk-core"];
+const FETCH_TIMEOUT_MS = 30_000;
+const MAX_METADATA_BYTES = 16 * 1024 * 1024;
+const MAX_TARBALL_DOWNLOAD_BYTES = 64 * 1024 * 1024;
 // The reviewed @servicenow/sdk@4.11.0 package unpacks to 56,676,619 bytes.
 const MAX_TAR_BYTES = 64 * 1024 * 1024;
 const phantomCandidates = ["DatabaseIndex", "Module", "ScriptedRestApi", "UiFormatter"];
@@ -28,11 +31,104 @@ function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
 }
 
+function lifecycleSnapshot(version, capabilities, discoveredCapabilities) {
+  const atOrAfter = (left, right) => {
+    const a = left.split(".").map(Number);
+    const b = right.split(".").map(Number);
+    return a[0] > b[0] || (a[0] === b[0] && (a[1] > b[1] || (a[1] === b[1] && a[2] >= b[2])));
+  };
+  return Object.fromEntries(
+    [...new Set([...Object.keys(capabilities), ...Object.keys(discoveredCapabilities)])]
+      .sort()
+      .map((name) => {
+        const api = DEFAULT_FLUENT_MANIFEST.apis.find((item) => item.name === name);
+        if (api?.introduced && !atOrAfter(version, api.introduced)) return null;
+        const introduced =
+          api?.introduced ??
+          (api
+            ? null
+            : (SUPPORTED_FLUENT_SDK_VERSIONS.find(
+                (candidate) =>
+                  FLUENT_DECLARATION_SNAPSHOTS[candidate]?.discoveredCapabilities[name],
+              ) ?? null));
+        return [
+          name,
+          {
+            introduced,
+            deprecated:
+              api?.deprecated && atOrAfter(version, api.deprecated) ? api.deprecated : null,
+          },
+        ];
+      })
+      .filter((entry) => entry !== null),
+  );
+}
+
 export function verifyIntegrity(bytes, integrity, label) {
   const [algorithm, expected] = integrity.split("-", 2);
   assert.equal(algorithm, "sha512", `${label}: unsupported integrity algorithm`);
   const actual = createHash("sha512").update(bytes).digest("base64");
   assert.equal(actual, expected, `${label}: tarball integrity mismatch`);
+}
+
+/** Accept only the npm-owned artifact URL for the exact package and version. */
+export function canonicalRegistryTarballUrl(value, name, version) {
+  assert.ok(packageNames.includes(name), `${name}@${version}: unsupported package name`);
+  let url;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error(`${name}@${version}: tarball URL is malformed`);
+  }
+  const basename = name.slice("@servicenow/".length);
+  const expectedPath = `/@servicenow/${basename}/-/${basename}-${version}.tgz`;
+  assert.ok(
+    url.origin === registryBase &&
+      !url.username &&
+      !url.password &&
+      !url.port &&
+      !url.search &&
+      !url.hash &&
+      url.pathname === expectedPath,
+    `${name}@${version}: tarball URL is not the canonical npm artifact`,
+  );
+  return url.href;
+}
+
+/** Buffer a registry response only after enforcing declared and observed byte caps. */
+export async function readResponseBytes(response, label, maxBytes) {
+  assert.ok(
+    Number.isSafeInteger(maxBytes) && maxBytes > 0,
+    `${label}: response byte cap must be a positive safe integer`,
+  );
+  const rawLength = response.headers.get("content-length");
+  if (rawLength !== null) {
+    assert.match(rawLength, /^(?:0|[1-9]\d*)$/u, `${label}: invalid Content-Length`);
+    const declaredLength = Number(rawLength);
+    assert.ok(
+      Number.isSafeInteger(declaredLength) && declaredLength <= maxBytes,
+      `${label}: declared response exceeds ${maxBytes} bytes`,
+    );
+  }
+  assert.ok(response.body, `${label}: response body is missing`);
+  const reader = response.body.getReader();
+  const chunks = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > maxBytes) {
+        await reader.cancel().catch(() => undefined);
+        throw new Error(`${label}: response exceeds ${maxBytes} bytes`);
+      }
+      chunks.push(Buffer.from(value));
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  return Buffer.concat(chunks, total);
 }
 
 function tarString(bytes, start, length) {
@@ -81,12 +177,21 @@ export function tarFiles(tgz, label, maxOutputLength = MAX_TAR_BYTES) {
 
 async function metadata(name) {
   const encoded = encodeURIComponent(name);
-  const response = await fetch(`${registryBase}/${encoded}`, {
+  const url = `${registryBase}/${encoded}`;
+  const response = await fetch(url, {
     headers: { accept: "application/json" },
     redirect: "error",
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   });
   assert.equal(response.status, 200, `${name}: registry metadata status ${response.status}`);
-  return response.json();
+  if (response.url) assert.equal(response.url, url, `${name}: registry metadata URL changed`);
+  const bytes = await readResponseBytes(response, `${name}: registry metadata`, MAX_METADATA_BYTES);
+  const parsed = JSON.parse(bytes.toString("utf8"));
+  assert.ok(
+    parsed && typeof parsed === "object" && !Array.isArray(parsed),
+    `${name}: metadata malformed`,
+  );
+  return parsed;
 }
 
 async function artifact(meta, name, version) {
@@ -94,20 +199,24 @@ async function artifact(meta, name, version) {
   assert.ok(record, `${name}@${version}: metadata missing`);
   assert.equal(record.name, name, `${name}@${version}: package name mismatch`);
   assert.equal(record.version, version, `${name}@${version}: package version mismatch`);
-  assert.match(
-    record.dist?.tarball ?? "",
-    /^https:\/\//u,
-    `${name}@${version}: HTTPS tarball required`,
-  );
+  const tarballUrl = canonicalRegistryTarballUrl(record.dist?.tarball ?? "", name, version);
   assert.match(
     record.dist?.integrity ?? "",
     /^sha512-/u,
     `${name}@${version}: sha512 integrity required`,
   );
-  const response = await fetch(record.dist.tarball, { redirect: "follow" });
+  const response = await fetch(tarballUrl, {
+    redirect: "error",
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+  });
   assert.equal(response.status, 200, `${name}@${version}: tarball status ${response.status}`);
-  assert.equal(new URL(response.url).protocol, "https:", `${name}@${version}: redirect left HTTPS`);
-  const bytes = Buffer.from(await response.arrayBuffer());
+  if (response.url)
+    assert.equal(response.url, tarballUrl, `${name}@${version}: tarball response URL changed`);
+  const bytes = await readResponseBytes(
+    response,
+    `${name}@${version}: tarball`,
+    MAX_TARBALL_DOWNLOAD_BYTES,
+  );
   verifyIntegrity(bytes, record.dist.integrity, `${name}@${version}`);
   const files = tarFiles(bytes, `${name}@${version}`);
   const packageFile = files.get("package/package.json");
@@ -119,7 +228,7 @@ async function artifact(meta, name, version) {
     name,
     version,
     publishedAt: meta.time?.[version] ?? null,
-    tarball: record.dist.tarball,
+    tarball: tarballUrl,
     integrity: record.dist.integrity,
     files,
     manifest,
@@ -192,7 +301,7 @@ export function moduleResolver(sdk, core) {
     let target = exportTarget(exports[subpath]);
     const wildcard = exportTarget(exports["./*"]);
     if (!target && wildcard) {
-      target = wildcard.replace("*", subpath.slice(2));
+      target = wildcard.replaceAll("*", subpath.slice(2));
     }
     assert.equal(typeof target, "string", `${specifier}: core package export missing`);
     const filename = `package/${target.replace(/^\.\//u, "")}`;
@@ -386,6 +495,8 @@ async function auditVersion(version, metadataByName) {
     capabilities,
     discoveredCapabilities,
     absent,
+    typos: DEFAULT_FLUENT_MANIFEST.typos,
+    lifecycle: lifecycleSnapshot(version, capabilities, discoveredCapabilities),
     unresolvedBareExports: [...resolver.unresolvedBareExports].sort(),
     unreviewedRequiredFactories,
   };
@@ -399,6 +510,8 @@ export function runtimeSnapshot(snapshot) {
         capabilities: item.capabilities,
         discoveredCapabilities: item.discoveredCapabilities,
         absent: item.absent,
+        typos: item.typos,
+        lifecycle: item.lifecycle,
       },
     ]),
   );
@@ -406,9 +519,6 @@ export function runtimeSnapshot(snapshot) {
 
 export function generatedSource(snapshot) {
   const runtime = runtimeSnapshot(snapshot);
-  // An interface annotation instead of `as const`: the literal type of this
-  // module emitted a ~939 KB declaration file for types no consumer reads
-  // (FINDINGS.md PER-001).
   return (
     `/* Generated by scripts/audit-fluent-sdk.mjs. Do not edit. */\n` +
     `import type { DeclarationSnapshot } from "./snapshot-types.js";\n\n` +

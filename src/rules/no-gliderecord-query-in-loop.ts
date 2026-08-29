@@ -10,7 +10,7 @@ export const noGliderecordQueryInLoop = defineRule({
     type: "suggestion",
     docs: {
       description:
-        "Warn when a proven GlideRecord / GlideAggregate `query()`, `get()`, or `getAsync()` runs inside an outer proven `.next()` cursor loop. Unrelated iterators do not establish cursor depth.",
+        "Warn when a proven GlideRecord or GlideAggregate executes a query inside an outer proven record cursor loop, including direct IIFEs and stable local helper calls. GlideRecord recognizes `.next()` and `._next()`; GlideAggregate recognizes `.next()`.",
       url: ruleDocsUrl("no-gliderecord-query-in-loop"),
     },
     messages: {
@@ -25,8 +25,8 @@ export const noGliderecordQueryInLoop = defineRule({
         if (!isServerInstanceContext(script)) return false;
       },
       Program(node) {
-        const { analysis } = beginRuleFile(context);
-        for (const finding of findQueriesInCursorLoops(node as ESTree.Node, analysis)) {
+        const { analysis, file } = beginRuleFile(context);
+        for (const finding of findQueriesInCursorLoops(node as ESTree.Node, analysis, file)) {
           context.report({
             node: finding.node,
             messageId: "nestedQuery",

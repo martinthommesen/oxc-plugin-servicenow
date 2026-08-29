@@ -1,6 +1,10 @@
 import type { ESTree } from "@oxlint/plugins";
 import { nodeStart } from "../utils/ast.js";
 import { analyzePathBindings } from "./path-state.js";
+import {
+  hasAuthoritativeGlideRecordMethod,
+  type PlatformMethodAuthorityFacts,
+} from "./platform-method-authority.js";
 import type { ProvenanceQuery } from "./provenance.js";
 
 export interface QueryModifierFinding {
@@ -17,6 +21,7 @@ interface LifecycleData {
 export function findQueryModifiersAfterQuery(
   program: ESTree.Node,
   analysis: ProvenanceQuery,
+  authority: PlatformMethodAuthorityFacts,
 ): QueryModifierFinding[] {
   const findings: QueryModifierFinding[] = [];
   const reported = new Set<number>();
@@ -31,10 +36,22 @@ export function findQueryModifiersAfterQuery(
       opened: left.opened || right.opened,
       pending: left.pending || right.pending,
     }),
-    onCall({ call, rec, objectName, property }) {
-      if (!rec || !property) return;
+    onCall({ call, rec, receiver, objectName, property }) {
+      if (!rec || !receiver || !property) return;
+      if (!hasAuthoritativeGlideRecordMethod(authority, receiver, property)) {
+        rec.data.opened = false;
+        rec.data.pending = false;
+        return;
+      }
       if (analysis.glide.executors.has(property)) {
         rec.data.opened = true;
+        rec.data.pending = false;
+        return;
+      }
+      if (analysis.glide.possibleExecutors.has(property)) {
+        // A scope-specific executor may have refreshed the cursor. Positive
+        // lifecycle diagnostics require certainty, so discard stale facts.
+        rec.data.opened = false;
         rec.data.pending = false;
         return;
       }
@@ -48,6 +65,10 @@ export function findQueryModifiersAfterQuery(
           findings.push({ node: call, name: objectName ?? "record", method: property });
         }
       }
+    },
+    onBudgetExceeded() {
+      findings.length = 0;
+      reported.clear();
     },
   });
   return findings;

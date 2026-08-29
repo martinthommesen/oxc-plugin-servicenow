@@ -6,7 +6,7 @@ import type { ServiceNowRelease } from "./settings/releases.js";
  *
  * Unknown means the plugin does not know the mode and must not assume ES5.
  *
- * @see https://www.servicenow.com/docs/r/zurich/api-reference/scripts/c_JS_modes.html
+ * @see https://www.servicenow.com/docs/r/api-reference/scripts/c_JS_modes.html
  */
 export type JavaScriptMode = "compatibility" | "es5" | "es2021" | "unknown";
 
@@ -20,6 +20,7 @@ export type ScriptAuthoring = "classic" | "fluent";
 export type ScriptSurface =
   | "client"
   | "server"
+  | "acl"
   | "business-rule"
   | "script-include"
   | "ui-action"
@@ -122,7 +123,7 @@ export interface ServiceNowSettings {
   scope?: ApplicationScope;
   /** Application scope prefix, for example `x_acme`. Used by naming rules. */
   scopePrefix?: string;
-  /** ServiceNow release identifier used for versioned knowledge, for example `zurich`. */
+  /** ServiceNow release identifier used for versioned knowledge, for example `australia`. */
   release?: ServiceNowRelease;
   /** How Business Rule source is stored when that is known. */
   businessRuleSourceFormat?: BusinessRuleSourceFormat;
@@ -134,6 +135,15 @@ export interface ServiceNowSettings {
   /** Fluent SDK version the manifest should evaluate, for example `4.1.0`. */
   fluentSdkVersion?: string;
 }
+
+/** Read-only view returned by the deprecated `getSettings` compatibility API. */
+export type ReadonlyServiceNowSettings = Readonly<
+  Omit<ServiceNowSettings, "allowedSysIds" | "allowedTables" | "surfaces">
+> & {
+  readonly allowedSysIds?: readonly string[];
+  readonly allowedTables?: readonly string[];
+  readonly surfaces?: "auto" | readonly ScriptSurface[];
+};
 
 /**
  * Normalized settings after runtime validation.

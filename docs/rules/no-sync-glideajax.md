@@ -9,9 +9,9 @@
 - **Fix safety:** diagnostic only
 - **Suggestions:** no
 - **Authoring:** classic
-- **Surfaces:** Applies to client, ui-action when those surfaces are known. Unknown surfaces stay silent.
+- **Surfaces:** Applies to client, ui-action when those surfaces are known. Mixed client/server UI Actions stay silent because execution regions are not classified. Unknown surfaces stay silent.
 - **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
-- **Last verified:** 2026-08-20
+- **Last verified:** 2026-08-24
 - **Implementation:** [`src/rules/no-sync-glideajax.ts`](../../src/rules/no-sync-glideajax.ts)
 
 ## Applicability
@@ -19,11 +19,11 @@
 | Dimension | Value |
 | --- | --- |
 | Authoring | classic |
-| Surfaces | Applies to client, ui-action when those surfaces are known. Unknown surfaces stay silent. |
+| Surfaces | Applies to client, ui-action when those surfaces are known. Mixed client/server UI Actions stay silent because execution regions are not classified. Unknown surfaces stay silent. |
 | Minimum surface confidence | filename-inferred |
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
-| ServiceNow releases | zurich |
+| ServiceNow releases | zurich, australia |
 | Fluent SDK range | n/a |
 
 ## Options
@@ -57,7 +57,7 @@ ga.getXMLAnswer(function (answer) {
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-negative: A possible GlideAjax constructor, prototype, or getXMLWait mutation suppresses matching calls throughout the file.
 
 ## Known false positives
 
@@ -65,7 +65,7 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
 
 ## Known false negatives
 
-- None recorded.
+- A possible GlideAjax constructor, prototype, or getXMLWait mutation suppresses matching calls throughout the file.
 
 ## Intentional scope boundaries
 
@@ -83,15 +83,20 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
 ## Evidence
 
 - **getXMLWait is a synchronous browser request.**
-  - Verification ID: `rule-evidence-cb70312b`
+  - Verification ID: `rule-evidence-c6177bcc`
   - URL: https://www.servicenow.com/docs/r/api-reference/c_GlideAjaxAPI.html
   - Verified by: manual
   - Verified at: 2026-08-20
 - **Catalog examples cover getXMLWait versus getXMLAnswer.**
-  - Verification ID: `rule-evidence-49c24e2d`
+  - Verification ID: `rule-evidence-2de6efe6`
   - URL: src/catalog.ts
   - Verified by: fixture
   - Verified at: 2026-08-20
+- **Constructor, prototype, instance-method, and dynamic-scope mutations remain silent.**
+  - Verification ID: `rule-evidence-28d7c249`
+  - URL: tests/rules/glide-and-engine.test.ts
+  - Verified by: fixture
+  - Verified at: 2026-08-24
 
 ## See also
 

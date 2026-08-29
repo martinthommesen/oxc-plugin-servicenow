@@ -1,32 +1,29 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
-import { staticPropertyName, type ProvenanceQuery } from "../analysis/internal.js";
+import {
+  hasAuthoritativeGlobalObjectMethod,
+  isDefinitelyNullishValue,
+  resolveDominatingConstValue,
+  staticPropertyName,
+  type BindingWriteQuery,
+  type ProvenanceQuery,
+} from "../analysis/internal.js";
 import { isClientCapableContext } from "../context/index.js";
 import { ruleDocsUrl } from "../constants.js";
-import { getName, isNode, unwrapExpression } from "../utils/ast.js";
+import { getName, isNode } from "../utils/ast.js";
 import { beginRuleFile } from "./helpers.js";
 
 function isNullishCallback(node: unknown, analysis: ProvenanceQuery): boolean {
   if (!node) return true;
-  if (!isNode(node)) return false;
-  if (node.type === "Identifier" && getName(node) === "undefined") {
-    return analysis.isPlatformGlobal(node);
-  }
-  if (node.type === "Literal") {
-    const value = (node as { value?: unknown }).value;
-    return value === null || value === undefined;
-  }
-  if (node.type === "UnaryExpression") {
-    return (node as ESTree.UnaryExpression).operator === "void";
-  }
-  return false;
+  return isDefinitelyNullishValue(node, analysis.bindings);
 }
 
 function callbackKind(
   node: unknown,
   analysis: ProvenanceQuery,
+  bindingWrites: BindingWriteQuery,
 ): "callable" | "invalid" | "unknown" {
-  const value = unwrapExpression(node);
+  const value = resolveDominatingConstValue(node, analysis.bindings);
   if (!isNode(value)) return "unknown";
   if (value.type === "FunctionExpression" || value.type === "ArrowFunctionExpression")
     return "callable";
@@ -35,22 +32,20 @@ function callbackKind(
     if (!name) return "unknown";
     const binding = analysis.bindings.resolve(name, value);
     if (!binding) return "unknown";
-    if (binding.kind === "function") return "callable";
-    if (binding.kind === "const" && binding.node.type === "VariableDeclarator") {
-      const init = unwrapExpression((binding.node as ESTree.VariableDeclarator).init);
-      if (
-        isNode(init) &&
-        (init.type === "FunctionExpression" || init.type === "ArrowFunctionExpression")
-      ) {
-        return "callable";
-      }
+    if (binding.kind === "function") {
+      return bindingWrites.isWritten(binding.id) ? "unknown" : "callable";
+    }
+    if (binding.kind === "class") {
+      return bindingWrites.isWritten(binding.id) ? "unknown" : "invalid";
     }
     return "unknown";
   }
   if (
     value.type === "Literal" ||
+    value.type === "TemplateLiteral" ||
     value.type === "ObjectExpression" ||
-    value.type === "ArrayExpression"
+    value.type === "ArrayExpression" ||
+    value.type === "ClassExpression"
   ) {
     return "invalid";
   }
@@ -79,19 +74,27 @@ export const requireCallbackForGetreference = defineRule({
         if (!isClientCapableContext(script)) return false;
       },
       CallExpression(node) {
-        const { analysis } = beginRuleFile(context);
+        const { analysis, file } = beginRuleFile(context);
         const call = node as ESTree.CallExpression;
         if (call.callee.type !== "MemberExpression") return;
         if (staticPropertyName(call.callee) !== "getReference") return;
         const object = (call.callee as ESTree.MemberExpression).object;
         const proven = analysis.ofExpression(object);
         if (proven?.kind !== "g_form" || proven.invalid || proven.escaped) return;
+        if (
+          !hasAuthoritativeGlobalObjectMethod(file, object, "g_form", "getReference", {
+            prototypeConstructor: "GlideForm",
+            runtime: "browser",
+          })
+        ) {
+          return;
+        }
         // A spread has unknown runtime arity. It may supply a callback even
         // when no syntactic second argument is present.
         if (call.arguments.some((argument) => argument.type === "SpreadElement")) return;
         const callback = call.arguments[1];
         if (call.arguments.length >= 2 && !isNullishCallback(callback, analysis)) {
-          if (callbackKind(callback, analysis) === "invalid") {
+          if (callbackKind(callback, analysis, file.bindingWrites) === "invalid") {
             context.report({ node, messageId: "invalidCallback" });
           }
           return;

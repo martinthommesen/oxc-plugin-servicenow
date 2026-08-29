@@ -1,5 +1,6 @@
 import { PLUGIN_NAME } from "../constants.js";
 import {
+  aclRules,
   businessRuleRules,
   classicEs5Rules,
   clientRules,
@@ -10,6 +11,7 @@ import {
 } from "./maps.js";
 
 export {
+  aclRules,
   businessRuleRules,
   classicEs5Rules,
   clientRules,
@@ -32,6 +34,11 @@ export const es2021 = {
 export const client = {
   name: `${PLUGIN_NAME}/client`,
   rules: clientRules,
+};
+
+export const acl = {
+  name: `${PLUGIN_NAME}/acl`,
+  rules: aclRules,
 };
 
 export const businessRule = {

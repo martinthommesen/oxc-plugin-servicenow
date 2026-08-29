@@ -1,5 +1,19 @@
 # Contributing
 
+Thank you for improving the project.
+Before you start, search existing issues and discussions.
+Use the issue forms for defects, rule proposals, and feature requests.
+Ask usage questions in GitHub Discussions.
+
+Follow the [code of conduct](CODE_OF_CONDUCT.md).
+Use the process in [SECURITY.md](SECURITY.md) to report vulnerabilities.
+Do not report a vulnerability through a public issue.
+
+Fork the repository and create a focused branch.
+Open a pull request against `main`.
+Keep each pull request limited to one reviewable purpose.
+Sign off web commits and explain any public compatibility change.
+
 ## Validation
 
 Run every local gate with one command:
@@ -8,11 +22,11 @@ Run every local gate with one command:
 npm run validate
 ```
 
-That command runs workflow, compatibility, lint, format, type, build, test, documentation-evidence, acceptance-ledger, generated-documentation, Fluent-manifest, benchmark, and exact-artifact checks. Every step runs offline (FINDINGS.md OPS-004). Run `npm run validate:live` to add the networked steps: the packed-consumer test, the full acceptance capture, and the packed-consumer run against the inspected tarball.
+That command checks workflow action pins and the compatibility matrix; runs lint, format, project and fixture typechecking, build, tests, and Fluent-manifest verification; then checks evidence, acceptance, generated-documentation consistency, benchmarks, and the release artifact with a packed consumer.
 
-`npm test` runs `scripts/run-tests.mjs`. That script lists every `*.test.ts` file and passes the list to `tsx --test`. Do not use a quoted `tests/**/*.test.ts` glob. Node 20 treats that path as one missing file.
+`npm test` runs the serial TypeScript suite through `scripts/run-tests.mjs`, then runs `npm run fluent:check`. The test runner lists every `*.test.ts` file and passes the list to Node's test runner with the project-local `tsx` loader. Do not use a quoted `tests/**/*.test.ts` glob. Node 20 treats that path as one missing file.
 
-`npm test` is hermetic: it does not reach the network. The packed-consumer test installs packages from the live npm registry, so it runs separately as `npm run test:consumer`. CI and the release workflow run it in their own networked jobs, and `npm run validate:live` includes it.
+`npm test` is hermetic: it does not reach the network. The packed-consumer test installs packages from the live npm registry, so it runs separately as `npm run test:consumer`. CI and the release workflow run it as their own jobs, and `npm run validate` includes it.
 
 ## Add a rule
 
@@ -29,13 +43,11 @@ Read [Non-goals and rejected rule ideas](docs/non-goals.md) before you propose a
 ## Analysis style
 
 - Prefer `createOnce` and return `false` from `before()` to skip a file.
-- Read node and comment source offsets only through `nodeStart`, `nodeEnd`, and `commentOffsets` in `src/utils/ast.ts`. Hosts such as `typescript-eslint` provide only `range`, and a raw `.start` read fails silently there (FINDINGS.md COR-007). A test bans the raw idioms.
-- Bound every traversal over user source with a deterministic budget. Use `analyzePathBindings` or wrap a hand-written walker in `runWithTraversalBudget`, and degrade to no findings when the budget is exhausted (FINDINGS.md PER-002, POS-004).
 - Read context through `beginRuleFile(context)` or `getScriptContext(context)`.
 - Recognize platform APIs with binding and provenance helpers. Do not match `gs`, `Promise`, or `GlideRecord` by name alone.
 - When provenance, mode, or surface is unknown, suppress the diagnostic.
 - Message text should say what is wrong and what to do instead.
-- Do not invent Fluent APIs. Update the version-pinned declaration fixture with `npm run manifest:update`.
+- Do not invent Fluent APIs. Update the version-pinned declaration fixture with `npm run manifest:update`. The auditor accepts only exact npm-registry artifact URLs and enforces response, decompression, declaration, and graph-work limits before updating reviewed evidence; do not weaken those bounds to accommodate an unexplained upstream artifact.
 
 ## Autofixes
 
@@ -47,19 +59,15 @@ Add a short note under `Unreleased` in `CHANGELOG.md` for user-visible rule, pre
 
 ## Release
 
-1. Complete the desired governance IDs in `scripts/release-governance.json` and run the read-only governance audit.
+1. Confirm the desired policy and principal IDs in `scripts/release-governance.json`, then run the read-only GitHub audit with `node scripts/check-release-governance.mjs`.
 2. Set the package version and add the exact changelog heading for that version.
-3. Run `npm run validate:live`. This command runs every offline gate, then inspects one tarball and runs packed-consumer tests on that file.
+3. Run `npm run validate`.
 4. Merge to `main`. Tag `v<version>` at the exact current protected `main` tip.
 5. Let `.github/workflows/release.yml` validate and publish the uploaded tarball through the protected `release` environment.
-6. Confirm that registry integrity, provenance identity, public imports, and the GitHub release all match the inspected artifact.
+6. Confirm that `validate / Verify release tag is current main tip`, `registry-verify` through `node scripts/verify-published-package.mjs`, and `github-release` through `node scripts/create-github-release.mjs` all pass against the inspected artifact. These gates cover registry integrity, provenance identity, public imports, and the GitHub release asset and commit.
+
+Keep `main` unchanged until the release workflow's initial tip check passes. Protected release tags are immutable; never move one to recover from a mismatch.
 
 The publish job uses npm trusted-publishing OIDC and has only `id-token: write`. Do not set `NPM_TOKEN`. Do not publish from a pull request or a working tree.
-
-See [Release provenance](docs/release.md).
-
-## Dependency-free CI scripts
-
-The CI `workflow` job runs `npm run workflow:check` before `npm ci`, so `scripts/check-action-pins.mjs`, `scripts/check-script-paths.mjs`, and `scripts/check-compat-matrix.mjs` must import Node built-ins only (FINDINGS.md IMP-001).
 
 Dependabot updates npm and GitHub Actions weekly. Oxc-related packages are grouped. Do not auto-merge those updates.

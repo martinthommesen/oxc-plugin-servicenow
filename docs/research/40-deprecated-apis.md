@@ -40,7 +40,7 @@ Plugin-specific APIs are not universal. Mark them `plugins` and skip unless the 
 
 ## Update process
 
-A human repeats the Zurich (or current) API reference review when `GLIDE_API_RELEASE` or `DEFAULT_FLUENT_MANIFEST.version` changes. There is no machine-readable ServiceNow deprecation feed that this repository can trust yet.
+A human repeats the API reference review when `SUPPORTED_SERVICENOW_RELEASES`, the Glide evidence table, or `DEFAULT_FLUENT_MANIFEST.version` changes. There is no machine-readable ServiceNow deprecation feed that this repository can trust yet.
 
 ## Preset
 

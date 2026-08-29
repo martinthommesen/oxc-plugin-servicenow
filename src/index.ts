@@ -2,6 +2,8 @@ import { definePlugin, eslintCompatPlugin } from "@oxlint/plugins";
 import { recommended, recommendedRules } from "./configs/recommended.js";
 import { strict, strictRules } from "./configs/strict.js";
 import {
+  acl,
+  aclRules,
   businessRule,
   businessRuleRules,
   classicEs5,
@@ -18,7 +20,7 @@ import {
   securityRules,
 } from "./configs/profiles.js";
 import { PACKAGE_VERSION, PLUGIN_NAME } from "./constants.js";
-import { BUSINESS_RULE_FILE_GLOBS, CLIENT_FILE_GLOBS } from "./context/filename.js";
+import { ACL_FILE_GLOBS, BUSINESS_RULE_FILE_GLOBS, CLIENT_FILE_GLOBS } from "./context/filename.js";
 import { rules } from "./rules/index.js";
 
 const defined = definePlugin({
@@ -66,6 +68,7 @@ export const configs = {
   classicEs5,
   es2021,
   client,
+  acl,
   businessRule,
   fluent,
   policy,
@@ -75,6 +78,7 @@ export const configs = {
   classicEs5Rules,
   es2021Rules,
   clientRules,
+  aclRules,
   businessRuleRules,
   fluentRules,
   policyRules,
@@ -103,6 +107,7 @@ export const configs = {
       { authoring: "classic", surfaces: ["client"] },
       CLIENT_FILE_GLOBS,
     ),
+    acl: flatConfig("acl", aclRules, { authoring: "classic", surfaces: "auto" }, ACL_FILE_GLOBS),
     businessRule: flatConfig(
       "business-rule",
       businessRuleRules,
@@ -118,5 +123,10 @@ plugin.meta = { name: PLUGIN_NAME, version: PACKAGE_VERSION };
 
 export default plugin;
 export { plugin };
-export type { ServiceNowSettings, RuleConfigMap } from "./types.js";
+export type {
+  ReadonlyServiceNowSettings,
+  RuleConfigMap,
+  ServiceNowRelease,
+  ServiceNowSettings,
+} from "./types.js";
 export type { RuleName } from "./rules/index.js";

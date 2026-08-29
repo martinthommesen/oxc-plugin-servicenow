@@ -9,9 +9,9 @@ async/await is not implemented in Compatibility or ES5 Standards mode.
 - **Fix safety:** diagnostic only
 - **Suggestions:** no
 - **Authoring:** classic
-- **Surfaces:** Applies to client, server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent.
+- **Surfaces:** Applies to server, acl, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. UI Actions require an explicit server surface; mixed client/server UI Actions stay silent because execution regions are not classified. An explicit javascriptMode also enables documented engine checks in otherwise unclassified files.
 - **JavaScript mode:** Runs when javascriptMode is compatibility, es5. Unknown mode stays silent.
-- **Last verified:** 2026-08-20
+- **Last verified:** 2026-08-22
 - **Implementation:** [`src/rules/no-async-await.ts`](../../src/rules/no-async-await.ts)
 
 ## Applicability
@@ -19,11 +19,11 @@ async/await is not implemented in Compatibility or ES5 Standards mode.
 | Dimension | Value |
 | --- | --- |
 | Authoring | classic |
-| Surfaces | Applies to client, server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent. |
+| Surfaces | Applies to server, acl, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. UI Actions require an explicit server surface; mixed client/server UI Actions stay silent because execution regions are not classified. An explicit javascriptMode also enables documented engine checks in otherwise unclassified files. |
 | Minimum surface confidence | filename-inferred |
 | JavaScript modes | compatibility, es5 |
 | Application scopes | global, scoped, unknown |
-| ServiceNow releases | zurich |
+| ServiceNow releases | zurich, australia |
 | Fluent SDK range | n/a |
 
 ## Options
@@ -82,15 +82,20 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
 ## Evidence
 
 - **async/await is unsupported in Compatibility and ES5 Standards modes.**
-  - Verification ID: `rule-evidence-98700374`
+  - Verification ID: `rule-evidence-c494572f`
   - URL: https://www.servicenow.com/docs/r/zurich/api-reference/scripts/javascript-engine-feature-support.html
   - Verified by: manual
   - Verified at: 2026-08-20
 - **async functions and await expressions report in ES5 mode.**
-  - Verification ID: `rule-evidence-aff3e648`
+  - Verification ID: `rule-evidence-75462ec9`
   - URL: tests/rules/no-async-await.test.ts
   - Verified by: fixture
   - Verified at: 2026-08-20
+- **The Australia JavaScript engine feature table was reviewed for this rule's modeled capability cells.**
+  - Verification ID: `rule-evidence-271ddeb4`
+  - URL: https://www.servicenow.com/docs/r/api-reference/scripts/javascript-engine-feature-support.html
+  - Verified by: manual
+  - Verified at: 2026-08-22
 
 ## See also
 

@@ -40,7 +40,6 @@ export const fluentNamingConvention = defineRule({
     docs: {
       description:
         "Enforce Fluent naming conventions for files, `$id` keys, exported tables, and entity `name` fields.",
-      recommended: "recommended",
       url: ruleDocsUrl("fluent-naming-convention"),
     },
     schema: schemaFromDescriptor(fluentNamingConventionOptions),

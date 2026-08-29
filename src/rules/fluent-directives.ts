@@ -3,14 +3,7 @@ import type { ESTree } from "@oxlint/plugins";
 import { FLUENT_DIRECTIVE_TYPOS, ruleDocsUrl } from "../constants.js";
 import { knownDirectiveNames } from "../fluent/index.js";
 import { isFluentContext } from "../context/index.js";
-import {
-  type CommentLike,
-  commentOffsets,
-  isNode,
-  nodeEnd,
-  nodeStart,
-  walk,
-} from "../utils/ast.js";
+import { isNode, walk } from "../utils/ast.js";
 import { beginRuleFile } from "./helpers.js";
 
 const DIRECTIVE = /@([A-Za-z][\w-]*)/g;
@@ -41,17 +34,10 @@ interface Occurrence {
   };
 }
 
-function commentsOf(context: { sourceCode: { getAllComments?: () => CommentLike[] } }): Comment[] {
-  const raw =
-    typeof context.sourceCode.getAllComments === "function"
-      ? context.sourceCode.getAllComments()
-      : [];
-  // typescript-eslint comments carry only `range` (FINDINGS.md COR-007). A
-  // comment with no offsets at all cannot be attached and is skipped.
-  return raw.flatMap((comment) => {
-    const offsets = commentOffsets(comment);
-    return offsets ? [{ value: comment.value, start: offsets.start, end: offsets.end }] : [];
-  });
+function commentsOf(context: { sourceCode: { getAllComments?: () => Comment[] } }): Comment[] {
+  return typeof context.sourceCode.getAllComments === "function"
+    ? context.sourceCode.getAllComments()
+    : [];
 }
 
 function firstNonEmptyLine(text: string): number {
@@ -75,9 +61,9 @@ function occurrenceAt(comment: Comment, text: string, index: number, length: num
 }
 
 function nodeRange(node: ESTree.Node, text: string): StatementRef | null {
-  const start = nodeStart(node);
-  const end = nodeEnd(node);
-  if (start < 0 || end < 0) return null;
+  const start = (node as { start?: number }).start;
+  const end = (node as { end?: number }).end;
+  if (typeof start !== "number" || typeof end !== "number") return null;
   const line = (node as { loc?: { start?: { line?: number } } }).loc?.start?.line;
   return { start, end, line: typeof line === "number" ? line : pointAt(text, start).line };
 }
@@ -175,7 +161,7 @@ export const fluentDirectives = defineRule({
     type: "suggestion",
     docs: {
       description:
-        "Validate ServiceNow Fluent directives (`@fluent-ignore`, `@fluent-disable-sync`, `@fluent-disable-sync-for-file`) and catch typos. Previous-line directives attach to the next statement.",
+        "Validate documented ServiceNow Fluent SDK directive names and placement. SDK directives are not Oxlint or ESLint disable comments.",
       url: ruleDocsUrl("fluent-directives"),
     },
     schema: [],
@@ -183,11 +169,11 @@ export const fluentDirectives = defineRule({
       unknown: "Unknown Fluent directive `@{{name}}`. Supported directives: {{supported}}.",
       typo: "Unknown Fluent directive `@{{name}}`. Did you mean `@{{suggestion}}`?",
       dangling:
-        "`@{{name}}` has no following statement to suppress. Place it on the line immediately above the diagnostic.",
+        "`@{{name}}` has no following statement for the Fluent SDK to act on. Place it immediately above its target statement.",
       misplaced:
-        "`@{{name}}` is not attached to the immediately following statement. Place it on the previous line of that statement.",
+        "`@{{name}}` is not attached to its target statement. Place it on the line immediately before that statement.",
       tsIgnore:
-        "`@ts-ignore` does not suppress Fluent diagnostics. Use `@fluent-ignore` on the previous line.",
+        "`@{{name}}` is a TypeScript compiler directive, not a ServiceNow Fluent SDK directive or an Oxlint/ESLint disable comment.",
       firstLine:
         "`@fluent-disable-sync-for-file` applies to the whole file and must be on the first non-empty line after an optional BOM.",
     },
@@ -214,6 +200,7 @@ export const fluentDirectives = defineRule({
             context.report({
               loc: occurrenceAt(comment, text, tsMatch.index, tsMatch[0].length).loc,
               messageId: "tsIgnore",
+              data: { name: tsMatch[0].slice(1) },
             });
           }
 

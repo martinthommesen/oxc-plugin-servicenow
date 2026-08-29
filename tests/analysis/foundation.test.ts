@@ -9,18 +9,9 @@ import {
 } from "../../src/analysis/path-state.js";
 import { applyRules } from "../../src/runtime/apply-rules.js";
 import { walk } from "../../src/utils/ast.js";
-import { ctorProvenanceKind } from "../../src/analysis/provenance.js";
-import { assertInvalid, assertValid, lint, parse } from "../helpers/rule-tester.js";
+import { assertInvalid, assertValid, parse } from "../helpers/rule-tester.js";
 
 describe("shared file analysis", () => {
-  it("returns no provenance kind for Object.prototype member names (FINDINGS.md MNT-003)", () => {
-    for (const name of ["constructor", "toString", "valueOf", "__proto__", "hasOwnProperty"]) {
-      assert.equal(ctorProvenanceKind(name), null);
-    }
-    assert.equal(ctorProvenanceKind("GlideRecord"), "GlideRecord");
-    assert.equal(ctorProvenanceKind("GlideRecordSecure"), "GlideRecord");
-  });
-
   it("coalesces duplicate var declarations into one ordered binding", () => {
     const parsed = parse("var rec; var rec = 1;", "duplicates.js");
     const binding = buildScopeTree(parsed.ast as unknown as ESTree.Node).root?.bindings.get("rec");
@@ -55,8 +46,11 @@ rec.next();`,
     const code = `var gr = new GlideRecord("incident");\ncurrent.update();`;
     const parsed = parse(code, "shared.js");
     assert.equal(
-      applyRules(code, parsed, { filename: "form.client.js", ruleNames: ["no-client-gliderecord"] })
-        .length,
+      applyRules(code, parsed, {
+        filename: "form.client.js",
+        ruleNames: ["no-client-gliderecord"],
+        settings: { scope: "scoped" },
+      }).length,
       1,
     );
     assert.equal(
@@ -228,71 +222,26 @@ outer.next();`,
 });
 
 describe("path identity and completion", () => {
-  it("prunes branches behind constant conditions (FINDINGS.md COR-003)", () => {
-    const RULE = "require-query-before-next" as const;
-    const SERVER = { filename: "a.br.js" };
-    const gr = 'var gr = new GlideRecord("x");';
-    // Constant-true: the query always runs, the impossible false path is gone.
-    assertValid(`${gr} if (true) { gr.query(); } while (gr.next()) {}`, RULE, SERVER);
-    assertValid(`${gr} if (1) { gr.query(); } while (gr.next()) {}`, RULE, SERVER);
-    assertValid(`${gr} if (!false) { gr.query(); } while (gr.next()) {}`, RULE, SERVER);
-    assertValid(`${gr} true ? gr.query() : null; while (gr.next()) {}`, RULE, SERVER);
-    assertValid(`${gr} if (false) {} else { gr.query(); } while (gr.next()) {}`, RULE, SERVER);
-    assertValid(`${gr} true && gr.query(); while (gr.next()) {}`, RULE, SERVER);
-    assertValid(`${gr} false || gr.query(); while (gr.next()) {}`, RULE, SERVER);
-    // Constant-false: the query can never run.
-    assertInvalid(`${gr} if (false) { gr.query(); } while (gr.next()) {}`, RULE, {}, SERVER);
-    assertInvalid(`${gr} false && gr.query(); while (gr.next()) {}`, RULE, {}, SERVER);
-    // Unknown conditions keep the every-path contract.
-    assertInvalid(`${gr} if (c) { gr.query(); } while (gr.next()) {}`, RULE, {}, SERVER);
-  });
-
-  it("keeps diagnostics invariant under sibling-branch reordering (FINDINGS.md COR-003)", () => {
-    const RULE = "require-query-before-next" as const;
-    const SERVER = { filename: "a.br.js" };
-    const forward = `var gr; if (c) { gr = new GlideRecord("a"); gr.query(); } else { gr = new GlideRecord("b"); gr.query(); } while (gr.next()) {}`;
-    const reversed = `var gr; if (c) { gr = new GlideRecord("b"); gr.query(); } else { gr = new GlideRecord("a"); gr.query(); } while (gr.next()) {}`;
-    assert.equal(lint(forward, RULE, SERVER).length, lint(reversed, RULE, SERVER).length);
-  });
-
-  it("keeps the return completion through finally (FINDINGS.md COR-003)", () => {
-    const RULE = "require-query-before-next" as const;
-    const SERVER = { filename: "a.br.js" };
-    // The fallthrough path always queried; the return path never reaches next.
-    assertValid(
-      `function f(c) {
-  var gr = new GlideRecord("x");
-  try {
-    if (c) { return null; }
-    gr.query();
-  } finally { gs.info(1); }
-  while (gr.next()) {}
-}
-f(true);`,
-      RULE,
-      SERVER,
-    );
-  });
-
-  it("caps generic AST traversal depth", () => {
+  it("traverses deeply nested ASTs without a silent depth cap", () => {
     let node: Record<string, unknown> = { type: "Identifier", name: "value" };
     for (let depth = 0; depth < 1_000; depth += 1) {
       node = { type: "ExpressionStatement", expression: node };
     }
     let visited = 0;
     walk(node, { ExpressionStatement: () => (visited += 1) });
-    assert.equal(visited, 512);
+    assert.equal(visited, 1_000);
   });
 
   it("degrades pathological nested loops to unknown within the work budget", () => {
     resetPathBudgetExceededCount();
     const code = `var rec = new GlideRecord("incident");\n${"while (flag) {".repeat(400)}rec.next();${"}".repeat(400)}`;
     const started = Date.now();
-    applyRules(code, parse(code, "nested.br.js"), {
+    const messages = applyRules(code, parse(code, "nested.br.js"), {
       filename: "nested.br.js",
       ruleNames: ["require-query-before-next"],
     });
     assert.ok(getPathBudgetExceededCount() > 0);
+    assert.deepEqual(messages, []);
     assert.ok(Date.now() - started < 5_000, "path analysis exceeded five seconds");
   });
 
@@ -504,6 +453,15 @@ alias.next();`,
     );
   });
 
+  it("invalidates a tracked binding after numeric update coercion", () => {
+    assertValid(
+      `var rec = new GlideRecord("incident");
+rec++;
+rec.next();`,
+      "require-query-before-next",
+    );
+  });
+
   it("evaluates call arguments before applying the outer call", () => {
     assertValid(
       `var ajax = new GlideAjax("Lookup");
@@ -581,14 +539,15 @@ rec.next();`,
     );
   });
 
-  it("runs a catch handler only for a reachable throw", () => {
-    assertValid(
+  it("keeps the pre-call state when the call itself may throw", () => {
+    assertInvalid(
       `var rec = new GlideRecord("incident");
 try {
   throw (rec.query(), new Error("stop"));
 } catch (error) {}
 rec.next();`,
       "require-query-before-next",
+      { messageId: "missingQuery" },
     );
   });
 

@@ -14,7 +14,8 @@ One recommended config can cover classic, client, server, UI Action, and Fluent 
 ```json
 {
   "servicenow": {
-    "scopePrefix": "x_acme"
+    "scopePrefix": "x_acme",
+    "scope": "scoped"
   }
 }
 ```

@@ -9,9 +9,9 @@
 - **Fix safety:** diagnostic only
 - **Suggestions:** no
 - **Authoring:** classic
-- **Surfaces:** Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent.
+- **Surfaces:** Applies to server, acl, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. UI Actions require an explicit server surface; mixed client/server UI Actions stay silent because execution regions are not classified. Unknown surfaces stay silent.
 - **JavaScript mode:** Not instance-executed, or independent of JavaScript mode unless a rule documents a mode gate.
-- **Last verified:** 2026-08-20
+- **Last verified:** 2026-08-24
 - **Implementation:** [`src/rules/no-delete-multiple-with-windowing.ts`](../../src/rules/no-delete-multiple-with-windowing.ts)
 
 ## Applicability
@@ -19,11 +19,11 @@
 | Dimension | Value |
 | --- | --- |
 | Authoring | classic |
-| Surfaces | Applies to server, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. Unknown surfaces stay silent. |
+| Surfaces | Applies to server, acl, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. UI Actions require an explicit server surface; mixed client/server UI Actions stay silent because execution regions are not classified. Unknown surfaces stay silent. |
 | Minimum surface confidence | filename-inferred |
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
-| ServiceNow releases | zurich |
+| ServiceNow releases | zurich, australia |
 | Fluent SDK range | n/a |
 
 ## Options
@@ -55,7 +55,7 @@ stale.deleteMultiple();
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. lifecycle: Window methods must resolve to the same GlideRecord object identity as deleteMultiple.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-negative: A possible platform constructor namespace reassignment, prototype or relevant instance-method mutation, or dynamic-scope uncertainty suppresses matching diagnostics throughout the file. lifecycle: Window methods must resolve to the same GlideRecord object identity as deleteMultiple.
 
 ## Known false positives
 
@@ -63,7 +63,7 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. lifecyc
 
 ## Known false negatives
 
-- None recorded.
+- A possible platform constructor namespace reassignment, prototype or relevant instance-method mutation, or dynamic-scope uncertainty suppresses matching diagnostics throughout the file.
 
 ## Intentional scope boundaries
 
@@ -81,15 +81,30 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. lifecyc
 ## Evidence
 
 - **setLimit and chooseWindow do not limit deleteMultiple(); the call deletes every matching row.**
-  - Verification ID: `rule-evidence-5fe74792`
-  - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html
+  - Verification ID: `rule-evidence-edfe6e7c`
+  - URL: https://www.servicenow.com/docs/r/zurich/api-reference/server-api-reference/c_GlideRecordScopedAPI.html
   - Verified by: manual
   - Verified at: 2026-08-20
 - **Recommended hosts report windowed deleteMultiple.**
-  - Verification ID: `rule-evidence-49ec0528`
+  - Verification ID: `rule-evidence-c8bf267c`
   - URL: tests/integration/profiles/invalid/windowed-delete.br.js
   - Verified by: integration-test
   - Verified at: 2026-08-20
+- **Constructor namespace, prototype, instance-method, and dynamic-scope mutations are covered by shared platform-authority fixtures.**
+  - Verification ID: `rule-evidence-b7d88284`
+  - URL: tests/rules/platform-method-authority.test.ts
+  - Verified by: fixture
+  - Verified at: 2026-08-24
+- **The Australia-scoped GlideRecord API was reviewed for the methods and lifecycle facts used by this rule.**
+  - Verification ID: `rule-evidence-0128acb8`
+  - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html
+  - Verified by: manual
+  - Verified at: 2026-08-22
+- **The Australia-global GlideRecord API was reviewed for the methods and lifecycle facts used by this rule.**
+  - Verification ID: `rule-evidence-0f21a303`
+  - URL: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordAPI.html
+  - Verified by: manual
+  - Verified at: 2026-08-22
 
 ## See also
 

@@ -347,6 +347,136 @@ export const FLUENT_DECLARATION_SNAPSHOTS: Readonly<Record<string, DeclarationSn
       "UiPage",
       "UiPolicy",
     ],
+    typos: {
+      "fluent-ignre": "fluent-ignore",
+      "fluent-igonre": "fluent-ignore",
+      "fluent-ignore-next-line": "fluent-ignore",
+      "fluent-ignore-sync": "fluent-disable-sync",
+      "fluent-disable": "fluent-disable-sync",
+      "fluent-disable-sync-next-line": "fluent-disable-sync",
+      "fluent-disable-sync-file": "fluent-disable-sync-for-file",
+      "fluent-disable-file": "fluent-disable-sync-for-file",
+      "fluent-skip": "fluent-ignore",
+      "fluent-nosync": "fluent-disable-sync",
+    },
+    lifecycle: {
+      Acl: {
+        introduced: null,
+        deprecated: null,
+      },
+      ApplicationMenu: {
+        introduced: null,
+        deprecated: null,
+      },
+      BooleanColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      BusinessRule: {
+        introduced: null,
+        deprecated: null,
+      },
+      ChoiceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ClientScript: {
+        introduced: null,
+        deprecated: null,
+      },
+      ConditionsColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      CrossScopePrivilege: {
+        introduced: null,
+        deprecated: null,
+      },
+      DateColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DateTimeColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DecimalColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Experience: {
+        introduced: "3.0.0",
+        deprecated: null,
+      },
+      FieldNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      IntegerColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      List: {
+        introduced: null,
+        deprecated: null,
+      },
+      ListColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Property: {
+        introduced: null,
+        deprecated: null,
+      },
+      Record: {
+        introduced: null,
+        deprecated: null,
+      },
+      ReferenceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      RestApi: {
+        introduced: null,
+        deprecated: null,
+      },
+      Role: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      StringColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Table: {
+        introduced: null,
+        deprecated: null,
+      },
+      TableNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedFieldColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedTextColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserPreference: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserRolesColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+    },
   },
   "3.0.1": {
     capabilities: {
@@ -693,6 +823,136 @@ export const FLUENT_DECLARATION_SNAPSHOTS: Readonly<Record<string, DeclarationSn
       "UiPage",
       "UiPolicy",
     ],
+    typos: {
+      "fluent-ignre": "fluent-ignore",
+      "fluent-igonre": "fluent-ignore",
+      "fluent-ignore-next-line": "fluent-ignore",
+      "fluent-ignore-sync": "fluent-disable-sync",
+      "fluent-disable": "fluent-disable-sync",
+      "fluent-disable-sync-next-line": "fluent-disable-sync",
+      "fluent-disable-sync-file": "fluent-disable-sync-for-file",
+      "fluent-disable-file": "fluent-disable-sync-for-file",
+      "fluent-skip": "fluent-ignore",
+      "fluent-nosync": "fluent-disable-sync",
+    },
+    lifecycle: {
+      Acl: {
+        introduced: null,
+        deprecated: null,
+      },
+      ApplicationMenu: {
+        introduced: null,
+        deprecated: null,
+      },
+      BooleanColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      BusinessRule: {
+        introduced: null,
+        deprecated: null,
+      },
+      ChoiceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ClientScript: {
+        introduced: null,
+        deprecated: null,
+      },
+      ConditionsColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      CrossScopePrivilege: {
+        introduced: null,
+        deprecated: null,
+      },
+      DateColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DateTimeColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DecimalColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Experience: {
+        introduced: "3.0.0",
+        deprecated: null,
+      },
+      FieldNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      IntegerColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      List: {
+        introduced: null,
+        deprecated: null,
+      },
+      ListColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Property: {
+        introduced: null,
+        deprecated: null,
+      },
+      Record: {
+        introduced: null,
+        deprecated: null,
+      },
+      ReferenceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      RestApi: {
+        introduced: null,
+        deprecated: null,
+      },
+      Role: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      StringColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Table: {
+        introduced: null,
+        deprecated: null,
+      },
+      TableNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedFieldColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedTextColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserPreference: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserRolesColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+    },
   },
   "3.0.2": {
     capabilities: {
@@ -1039,6 +1299,136 @@ export const FLUENT_DECLARATION_SNAPSHOTS: Readonly<Record<string, DeclarationSn
       "UiPage",
       "UiPolicy",
     ],
+    typos: {
+      "fluent-ignre": "fluent-ignore",
+      "fluent-igonre": "fluent-ignore",
+      "fluent-ignore-next-line": "fluent-ignore",
+      "fluent-ignore-sync": "fluent-disable-sync",
+      "fluent-disable": "fluent-disable-sync",
+      "fluent-disable-sync-next-line": "fluent-disable-sync",
+      "fluent-disable-sync-file": "fluent-disable-sync-for-file",
+      "fluent-disable-file": "fluent-disable-sync-for-file",
+      "fluent-skip": "fluent-ignore",
+      "fluent-nosync": "fluent-disable-sync",
+    },
+    lifecycle: {
+      Acl: {
+        introduced: null,
+        deprecated: null,
+      },
+      ApplicationMenu: {
+        introduced: null,
+        deprecated: null,
+      },
+      BooleanColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      BusinessRule: {
+        introduced: null,
+        deprecated: null,
+      },
+      ChoiceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ClientScript: {
+        introduced: null,
+        deprecated: null,
+      },
+      ConditionsColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      CrossScopePrivilege: {
+        introduced: null,
+        deprecated: null,
+      },
+      DateColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DateTimeColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DecimalColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Experience: {
+        introduced: "3.0.0",
+        deprecated: null,
+      },
+      FieldNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      IntegerColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      List: {
+        introduced: null,
+        deprecated: null,
+      },
+      ListColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Property: {
+        introduced: null,
+        deprecated: null,
+      },
+      Record: {
+        introduced: null,
+        deprecated: null,
+      },
+      ReferenceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      RestApi: {
+        introduced: null,
+        deprecated: null,
+      },
+      Role: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      StringColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Table: {
+        introduced: null,
+        deprecated: null,
+      },
+      TableNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedFieldColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedTextColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserPreference: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserRolesColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+    },
   },
   "3.0.3": {
     capabilities: {
@@ -1385,6 +1775,136 @@ export const FLUENT_DECLARATION_SNAPSHOTS: Readonly<Record<string, DeclarationSn
       "UiPage",
       "UiPolicy",
     ],
+    typos: {
+      "fluent-ignre": "fluent-ignore",
+      "fluent-igonre": "fluent-ignore",
+      "fluent-ignore-next-line": "fluent-ignore",
+      "fluent-ignore-sync": "fluent-disable-sync",
+      "fluent-disable": "fluent-disable-sync",
+      "fluent-disable-sync-next-line": "fluent-disable-sync",
+      "fluent-disable-sync-file": "fluent-disable-sync-for-file",
+      "fluent-disable-file": "fluent-disable-sync-for-file",
+      "fluent-skip": "fluent-ignore",
+      "fluent-nosync": "fluent-disable-sync",
+    },
+    lifecycle: {
+      Acl: {
+        introduced: null,
+        deprecated: null,
+      },
+      ApplicationMenu: {
+        introduced: null,
+        deprecated: null,
+      },
+      BooleanColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      BusinessRule: {
+        introduced: null,
+        deprecated: null,
+      },
+      ChoiceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ClientScript: {
+        introduced: null,
+        deprecated: null,
+      },
+      ConditionsColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      CrossScopePrivilege: {
+        introduced: null,
+        deprecated: null,
+      },
+      DateColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DateTimeColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DecimalColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Experience: {
+        introduced: "3.0.0",
+        deprecated: null,
+      },
+      FieldNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      IntegerColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      List: {
+        introduced: null,
+        deprecated: null,
+      },
+      ListColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Property: {
+        introduced: null,
+        deprecated: null,
+      },
+      Record: {
+        introduced: null,
+        deprecated: null,
+      },
+      ReferenceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      RestApi: {
+        introduced: null,
+        deprecated: null,
+      },
+      Role: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      StringColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Table: {
+        introduced: null,
+        deprecated: null,
+      },
+      TableNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedFieldColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedTextColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserPreference: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserRolesColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+    },
   },
   "4.0.0": {
     capabilities: {
@@ -1824,6 +2344,172 @@ export const FLUENT_DECLARATION_SNAPSHOTS: Readonly<Record<string, DeclarationSn
       "UiFormatter",
       "UiPolicy",
     ],
+    typos: {
+      "fluent-ignre": "fluent-ignore",
+      "fluent-igonre": "fluent-ignore",
+      "fluent-ignore-next-line": "fluent-ignore",
+      "fluent-ignore-sync": "fluent-disable-sync",
+      "fluent-disable": "fluent-disable-sync",
+      "fluent-disable-sync-next-line": "fluent-disable-sync",
+      "fluent-disable-sync-file": "fluent-disable-sync-for-file",
+      "fluent-disable-file": "fluent-disable-sync-for-file",
+      "fluent-skip": "fluent-ignore",
+      "fluent-nosync": "fluent-disable-sync",
+    },
+    lifecycle: {
+      Acl: {
+        introduced: null,
+        deprecated: null,
+      },
+      ApplicationMenu: {
+        introduced: null,
+        deprecated: null,
+      },
+      BooleanColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      BusinessRule: {
+        introduced: null,
+        deprecated: null,
+      },
+      ChoiceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ClientScript: {
+        introduced: null,
+        deprecated: null,
+      },
+      ConditionsColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      CrossScopePrivilege: {
+        introduced: null,
+        deprecated: null,
+      },
+      CssInclude: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      DateColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DateTimeColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DecimalColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      FieldNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      IntegerColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      JsInclude: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      List: {
+        introduced: null,
+        deprecated: null,
+      },
+      ListColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Property: {
+        introduced: null,
+        deprecated: null,
+      },
+      Record: {
+        introduced: null,
+        deprecated: null,
+      },
+      ReferenceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      RestApi: {
+        introduced: null,
+        deprecated: null,
+      },
+      Role: {
+        introduced: null,
+        deprecated: null,
+      },
+      SPAngularProvider: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      SPWidget: {
+        introduced: null,
+        deprecated: null,
+      },
+      SPWidgetDependency: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      ScriptAction: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptInclude: {
+        introduced: null,
+        deprecated: null,
+      },
+      StringColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Table: {
+        introduced: null,
+        deprecated: null,
+      },
+      TableNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Test: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedFieldColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedTextColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      UiAction: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPage: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UserPreference: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserRolesColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+    },
   },
   "4.0.1": {
     capabilities: {
@@ -2263,6 +2949,172 @@ export const FLUENT_DECLARATION_SNAPSHOTS: Readonly<Record<string, DeclarationSn
       "UiFormatter",
       "UiPolicy",
     ],
+    typos: {
+      "fluent-ignre": "fluent-ignore",
+      "fluent-igonre": "fluent-ignore",
+      "fluent-ignore-next-line": "fluent-ignore",
+      "fluent-ignore-sync": "fluent-disable-sync",
+      "fluent-disable": "fluent-disable-sync",
+      "fluent-disable-sync-next-line": "fluent-disable-sync",
+      "fluent-disable-sync-file": "fluent-disable-sync-for-file",
+      "fluent-disable-file": "fluent-disable-sync-for-file",
+      "fluent-skip": "fluent-ignore",
+      "fluent-nosync": "fluent-disable-sync",
+    },
+    lifecycle: {
+      Acl: {
+        introduced: null,
+        deprecated: null,
+      },
+      ApplicationMenu: {
+        introduced: null,
+        deprecated: null,
+      },
+      BooleanColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      BusinessRule: {
+        introduced: null,
+        deprecated: null,
+      },
+      ChoiceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ClientScript: {
+        introduced: null,
+        deprecated: null,
+      },
+      ConditionsColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      CrossScopePrivilege: {
+        introduced: null,
+        deprecated: null,
+      },
+      CssInclude: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      DateColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DateTimeColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DecimalColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      FieldNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      IntegerColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      JsInclude: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      List: {
+        introduced: null,
+        deprecated: null,
+      },
+      ListColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Property: {
+        introduced: null,
+        deprecated: null,
+      },
+      Record: {
+        introduced: null,
+        deprecated: null,
+      },
+      ReferenceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      RestApi: {
+        introduced: null,
+        deprecated: null,
+      },
+      Role: {
+        introduced: null,
+        deprecated: null,
+      },
+      SPAngularProvider: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      SPWidget: {
+        introduced: null,
+        deprecated: null,
+      },
+      SPWidgetDependency: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      ScriptAction: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptInclude: {
+        introduced: null,
+        deprecated: null,
+      },
+      StringColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Table: {
+        introduced: null,
+        deprecated: null,
+      },
+      TableNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Test: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedFieldColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedTextColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      UiAction: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPage: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UserPreference: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserRolesColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+    },
   },
   "4.0.2": {
     capabilities: {
@@ -2702,6 +3554,172 @@ export const FLUENT_DECLARATION_SNAPSHOTS: Readonly<Record<string, DeclarationSn
       "UiFormatter",
       "UiPolicy",
     ],
+    typos: {
+      "fluent-ignre": "fluent-ignore",
+      "fluent-igonre": "fluent-ignore",
+      "fluent-ignore-next-line": "fluent-ignore",
+      "fluent-ignore-sync": "fluent-disable-sync",
+      "fluent-disable": "fluent-disable-sync",
+      "fluent-disable-sync-next-line": "fluent-disable-sync",
+      "fluent-disable-sync-file": "fluent-disable-sync-for-file",
+      "fluent-disable-file": "fluent-disable-sync-for-file",
+      "fluent-skip": "fluent-ignore",
+      "fluent-nosync": "fluent-disable-sync",
+    },
+    lifecycle: {
+      Acl: {
+        introduced: null,
+        deprecated: null,
+      },
+      ApplicationMenu: {
+        introduced: null,
+        deprecated: null,
+      },
+      BooleanColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      BusinessRule: {
+        introduced: null,
+        deprecated: null,
+      },
+      ChoiceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ClientScript: {
+        introduced: null,
+        deprecated: null,
+      },
+      ConditionsColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      CrossScopePrivilege: {
+        introduced: null,
+        deprecated: null,
+      },
+      CssInclude: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      DateColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DateTimeColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DecimalColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      FieldNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      IntegerColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      JsInclude: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      List: {
+        introduced: null,
+        deprecated: null,
+      },
+      ListColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Property: {
+        introduced: null,
+        deprecated: null,
+      },
+      Record: {
+        introduced: null,
+        deprecated: null,
+      },
+      ReferenceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      RestApi: {
+        introduced: null,
+        deprecated: null,
+      },
+      Role: {
+        introduced: null,
+        deprecated: null,
+      },
+      SPAngularProvider: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      SPWidget: {
+        introduced: null,
+        deprecated: null,
+      },
+      SPWidgetDependency: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      ScriptAction: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptInclude: {
+        introduced: null,
+        deprecated: null,
+      },
+      StringColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Table: {
+        introduced: null,
+        deprecated: null,
+      },
+      TableNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Test: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedFieldColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedTextColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      UiAction: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPage: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UserPreference: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserRolesColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+    },
   },
   "4.1.0": {
     capabilities: {
@@ -3141,6 +4159,172 @@ export const FLUENT_DECLARATION_SNAPSHOTS: Readonly<Record<string, DeclarationSn
       "UiFormatter",
       "UiPolicy",
     ],
+    typos: {
+      "fluent-ignre": "fluent-ignore",
+      "fluent-igonre": "fluent-ignore",
+      "fluent-ignore-next-line": "fluent-ignore",
+      "fluent-ignore-sync": "fluent-disable-sync",
+      "fluent-disable": "fluent-disable-sync",
+      "fluent-disable-sync-next-line": "fluent-disable-sync",
+      "fluent-disable-sync-file": "fluent-disable-sync-for-file",
+      "fluent-disable-file": "fluent-disable-sync-for-file",
+      "fluent-skip": "fluent-ignore",
+      "fluent-nosync": "fluent-disable-sync",
+    },
+    lifecycle: {
+      Acl: {
+        introduced: null,
+        deprecated: null,
+      },
+      ApplicationMenu: {
+        introduced: null,
+        deprecated: null,
+      },
+      BooleanColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      BusinessRule: {
+        introduced: null,
+        deprecated: null,
+      },
+      ChoiceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ClientScript: {
+        introduced: null,
+        deprecated: null,
+      },
+      ConditionsColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      CrossScopePrivilege: {
+        introduced: null,
+        deprecated: null,
+      },
+      CssInclude: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      DateColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DateTimeColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DecimalColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      FieldNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      IntegerColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      JsInclude: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      List: {
+        introduced: null,
+        deprecated: "4.1.0",
+      },
+      ListColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Property: {
+        introduced: null,
+        deprecated: null,
+      },
+      Record: {
+        introduced: null,
+        deprecated: null,
+      },
+      ReferenceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      RestApi: {
+        introduced: null,
+        deprecated: null,
+      },
+      Role: {
+        introduced: null,
+        deprecated: null,
+      },
+      SPAngularProvider: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      SPWidget: {
+        introduced: null,
+        deprecated: null,
+      },
+      SPWidgetDependency: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      ScriptAction: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptInclude: {
+        introduced: null,
+        deprecated: null,
+      },
+      StringColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Table: {
+        introduced: null,
+        deprecated: null,
+      },
+      TableNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Test: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedFieldColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedTextColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      UiAction: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPage: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UserPreference: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserRolesColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+    },
   },
   "4.1.1": {
     capabilities: {
@@ -3580,6 +4764,172 @@ export const FLUENT_DECLARATION_SNAPSHOTS: Readonly<Record<string, DeclarationSn
       "UiFormatter",
       "UiPolicy",
     ],
+    typos: {
+      "fluent-ignre": "fluent-ignore",
+      "fluent-igonre": "fluent-ignore",
+      "fluent-ignore-next-line": "fluent-ignore",
+      "fluent-ignore-sync": "fluent-disable-sync",
+      "fluent-disable": "fluent-disable-sync",
+      "fluent-disable-sync-next-line": "fluent-disable-sync",
+      "fluent-disable-sync-file": "fluent-disable-sync-for-file",
+      "fluent-disable-file": "fluent-disable-sync-for-file",
+      "fluent-skip": "fluent-ignore",
+      "fluent-nosync": "fluent-disable-sync",
+    },
+    lifecycle: {
+      Acl: {
+        introduced: null,
+        deprecated: null,
+      },
+      ApplicationMenu: {
+        introduced: null,
+        deprecated: null,
+      },
+      BooleanColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      BusinessRule: {
+        introduced: null,
+        deprecated: null,
+      },
+      ChoiceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ClientScript: {
+        introduced: null,
+        deprecated: null,
+      },
+      ConditionsColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      CrossScopePrivilege: {
+        introduced: null,
+        deprecated: null,
+      },
+      CssInclude: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      DateColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DateTimeColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DecimalColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      FieldNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      IntegerColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      JsInclude: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      List: {
+        introduced: null,
+        deprecated: "4.1.0",
+      },
+      ListColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Property: {
+        introduced: null,
+        deprecated: null,
+      },
+      Record: {
+        introduced: null,
+        deprecated: null,
+      },
+      ReferenceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      RestApi: {
+        introduced: null,
+        deprecated: null,
+      },
+      Role: {
+        introduced: null,
+        deprecated: null,
+      },
+      SPAngularProvider: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      SPWidget: {
+        introduced: null,
+        deprecated: null,
+      },
+      SPWidgetDependency: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      ScriptAction: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptInclude: {
+        introduced: null,
+        deprecated: null,
+      },
+      StringColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Table: {
+        introduced: null,
+        deprecated: null,
+      },
+      TableNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Test: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedFieldColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedTextColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      UiAction: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPage: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UserPreference: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserRolesColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+    },
   },
   "4.2.0": {
     capabilities: {
@@ -4035,6 +5385,180 @@ export const FLUENT_DECLARATION_SNAPSHOTS: Readonly<Record<string, DeclarationSn
       "StateModel",
       "UiFormatter",
     ],
+    typos: {
+      "fluent-ignre": "fluent-ignore",
+      "fluent-igonre": "fluent-ignore",
+      "fluent-ignore-next-line": "fluent-ignore",
+      "fluent-ignore-sync": "fluent-disable-sync",
+      "fluent-disable": "fluent-disable-sync",
+      "fluent-disable-sync-next-line": "fluent-disable-sync",
+      "fluent-disable-sync-file": "fluent-disable-sync-for-file",
+      "fluent-disable-file": "fluent-disable-sync-for-file",
+      "fluent-skip": "fluent-ignore",
+      "fluent-nosync": "fluent-disable-sync",
+    },
+    lifecycle: {
+      Acl: {
+        introduced: null,
+        deprecated: null,
+      },
+      ApplicationMenu: {
+        introduced: null,
+        deprecated: null,
+      },
+      BooleanColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      BusinessRule: {
+        introduced: null,
+        deprecated: null,
+      },
+      ChoiceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ClientScript: {
+        introduced: null,
+        deprecated: null,
+      },
+      ConditionsColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      CrossScopePrivilege: {
+        introduced: null,
+        deprecated: null,
+      },
+      CssInclude: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      DateColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DateTimeColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DecimalColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      FieldNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      HtmlColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      IntegerColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      JsInclude: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      List: {
+        introduced: null,
+        deprecated: "4.1.0",
+      },
+      ListColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Property: {
+        introduced: null,
+        deprecated: null,
+      },
+      Record: {
+        introduced: null,
+        deprecated: null,
+      },
+      ReferenceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      RestApi: {
+        introduced: null,
+        deprecated: null,
+      },
+      Role: {
+        introduced: null,
+        deprecated: null,
+      },
+      SPAngularProvider: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      SPWidget: {
+        introduced: null,
+        deprecated: null,
+      },
+      SPWidgetDependency: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      ScriptAction: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptInclude: {
+        introduced: null,
+        deprecated: null,
+      },
+      StringColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Table: {
+        introduced: null,
+        deprecated: null,
+      },
+      TableNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Test: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedFieldColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedTextColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      UiAction: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPage: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPolicy: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserPreference: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserRolesColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+    },
   },
   "4.3.0": {
     capabilities: {
@@ -4567,6 +6091,216 @@ export const FLUENT_DECLARATION_SNAPSHOTS: Readonly<Record<string, DeclarationSn
       "StateModel",
       "UiFormatter",
     ],
+    typos: {
+      "fluent-ignre": "fluent-ignore",
+      "fluent-igonre": "fluent-ignore",
+      "fluent-ignore-next-line": "fluent-ignore",
+      "fluent-ignore-sync": "fluent-disable-sync",
+      "fluent-disable": "fluent-disable-sync",
+      "fluent-disable-sync-next-line": "fluent-disable-sync",
+      "fluent-disable-sync-file": "fluent-disable-sync-for-file",
+      "fluent-disable-file": "fluent-disable-sync-for-file",
+      "fluent-skip": "fluent-ignore",
+      "fluent-nosync": "fluent-disable-sync",
+    },
+    lifecycle: {
+      Acl: {
+        introduced: null,
+        deprecated: null,
+      },
+      Applicability: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      ApplicationMenu: {
+        introduced: null,
+        deprecated: null,
+      },
+      BooleanColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      BusinessRule: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogClientScript: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogItem: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogItemRecordProducer: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      ChoiceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ClientScript: {
+        introduced: null,
+        deprecated: null,
+      },
+      ConditionsColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      CrossScopePrivilege: {
+        introduced: null,
+        deprecated: null,
+      },
+      CssInclude: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      Dashboard: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      DateColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DateTimeColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DecimalColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      EmailNotification: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      FieldNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      HtmlColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      IntegerColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      JsInclude: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      List: {
+        introduced: null,
+        deprecated: "4.1.0",
+      },
+      ListColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Property: {
+        introduced: null,
+        deprecated: null,
+      },
+      Record: {
+        introduced: null,
+        deprecated: null,
+      },
+      ReferenceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      RestApi: {
+        introduced: null,
+        deprecated: null,
+      },
+      Role: {
+        introduced: null,
+        deprecated: null,
+      },
+      SPAngularProvider: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      SPWidget: {
+        introduced: null,
+        deprecated: null,
+      },
+      SPWidgetDependency: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      ScriptAction: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptInclude: {
+        introduced: null,
+        deprecated: null,
+      },
+      Sla: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      StringColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Table: {
+        introduced: null,
+        deprecated: null,
+      },
+      TableNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Test: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedFieldColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedTextColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      UiAction: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPage: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPolicy: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserPreference: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserRolesColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      UxListMenuConfig: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      Workspace: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+    },
   },
   "4.4.0": {
     capabilities: {
@@ -5153,6 +6887,220 @@ export const FLUENT_DECLARATION_SNAPSHOTS: Readonly<Record<string, DeclarationSn
       "StateModel",
       "UiFormatter",
     ],
+    typos: {
+      "fluent-ignre": "fluent-ignore",
+      "fluent-igonre": "fluent-ignore",
+      "fluent-ignore-next-line": "fluent-ignore",
+      "fluent-ignore-sync": "fluent-disable-sync",
+      "fluent-disable": "fluent-disable-sync",
+      "fluent-disable-sync-next-line": "fluent-disable-sync",
+      "fluent-disable-sync-file": "fluent-disable-sync-for-file",
+      "fluent-disable-file": "fluent-disable-sync-for-file",
+      "fluent-skip": "fluent-ignore",
+      "fluent-nosync": "fluent-disable-sync",
+    },
+    lifecycle: {
+      Acl: {
+        introduced: null,
+        deprecated: null,
+      },
+      Applicability: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      ApplicationMenu: {
+        introduced: null,
+        deprecated: null,
+      },
+      BooleanColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      BusinessRule: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogClientScript: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogItem: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogItemRecordProducer: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      ChoiceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ClientScript: {
+        introduced: null,
+        deprecated: null,
+      },
+      ConditionsColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      CrossScopePrivilege: {
+        introduced: null,
+        deprecated: null,
+      },
+      CssInclude: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      Dashboard: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      DateColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DateTimeColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DecimalColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      EmailNotification: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      FieldNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      HtmlColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ImportSet: {
+        introduced: "4.4.0",
+        deprecated: null,
+      },
+      IntegerColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      JsInclude: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      List: {
+        introduced: null,
+        deprecated: "4.1.0",
+      },
+      ListColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Property: {
+        introduced: null,
+        deprecated: null,
+      },
+      Record: {
+        introduced: null,
+        deprecated: null,
+      },
+      ReferenceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      RestApi: {
+        introduced: null,
+        deprecated: null,
+      },
+      Role: {
+        introduced: null,
+        deprecated: null,
+      },
+      SPAngularProvider: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      SPWidget: {
+        introduced: null,
+        deprecated: null,
+      },
+      SPWidgetDependency: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      ScriptAction: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptInclude: {
+        introduced: null,
+        deprecated: null,
+      },
+      Sla: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      StringColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Table: {
+        introduced: null,
+        deprecated: null,
+      },
+      TableNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Test: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedFieldColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedTextColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      UiAction: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPage: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPolicy: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserPreference: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserRolesColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      UxListMenuConfig: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      Workspace: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+    },
   },
   "4.4.1": {
     capabilities: {
@@ -5739,6 +7687,220 @@ export const FLUENT_DECLARATION_SNAPSHOTS: Readonly<Record<string, DeclarationSn
       "StateModel",
       "UiFormatter",
     ],
+    typos: {
+      "fluent-ignre": "fluent-ignore",
+      "fluent-igonre": "fluent-ignore",
+      "fluent-ignore-next-line": "fluent-ignore",
+      "fluent-ignore-sync": "fluent-disable-sync",
+      "fluent-disable": "fluent-disable-sync",
+      "fluent-disable-sync-next-line": "fluent-disable-sync",
+      "fluent-disable-sync-file": "fluent-disable-sync-for-file",
+      "fluent-disable-file": "fluent-disable-sync-for-file",
+      "fluent-skip": "fluent-ignore",
+      "fluent-nosync": "fluent-disable-sync",
+    },
+    lifecycle: {
+      Acl: {
+        introduced: null,
+        deprecated: null,
+      },
+      Applicability: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      ApplicationMenu: {
+        introduced: null,
+        deprecated: null,
+      },
+      BooleanColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      BusinessRule: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogClientScript: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogItem: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogItemRecordProducer: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      ChoiceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ClientScript: {
+        introduced: null,
+        deprecated: null,
+      },
+      ConditionsColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      CrossScopePrivilege: {
+        introduced: null,
+        deprecated: null,
+      },
+      CssInclude: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      Dashboard: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      DateColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DateTimeColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DecimalColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      EmailNotification: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      FieldNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      HtmlColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ImportSet: {
+        introduced: "4.4.0",
+        deprecated: null,
+      },
+      IntegerColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      JsInclude: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      List: {
+        introduced: null,
+        deprecated: "4.1.0",
+      },
+      ListColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Property: {
+        introduced: null,
+        deprecated: null,
+      },
+      Record: {
+        introduced: null,
+        deprecated: null,
+      },
+      ReferenceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      RestApi: {
+        introduced: null,
+        deprecated: null,
+      },
+      Role: {
+        introduced: null,
+        deprecated: null,
+      },
+      SPAngularProvider: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      SPWidget: {
+        introduced: null,
+        deprecated: null,
+      },
+      SPWidgetDependency: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      ScriptAction: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptInclude: {
+        introduced: null,
+        deprecated: null,
+      },
+      Sla: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      StringColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Table: {
+        introduced: null,
+        deprecated: null,
+      },
+      TableNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Test: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedFieldColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedTextColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      UiAction: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPage: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPolicy: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserPreference: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserRolesColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      UxListMenuConfig: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      Workspace: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+    },
   },
   "4.5.0": {
     capabilities: {
@@ -6413,6 +8575,252 @@ export const FLUENT_DECLARATION_SNAPSHOTS: Readonly<Record<string, DeclarationSn
       "StateModel",
       "UiFormatter",
     ],
+    typos: {
+      "fluent-ignre": "fluent-ignore",
+      "fluent-igonre": "fluent-ignore",
+      "fluent-ignore-next-line": "fluent-ignore",
+      "fluent-ignore-sync": "fluent-disable-sync",
+      "fluent-disable": "fluent-disable-sync",
+      "fluent-disable-sync-next-line": "fluent-disable-sync",
+      "fluent-disable-sync-file": "fluent-disable-sync-for-file",
+      "fluent-disable-file": "fluent-disable-sync-for-file",
+      "fluent-skip": "fluent-ignore",
+      "fluent-nosync": "fluent-disable-sync",
+    },
+    lifecycle: {
+      Acl: {
+        introduced: null,
+        deprecated: null,
+      },
+      Applicability: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      ApplicationMenu: {
+        introduced: null,
+        deprecated: null,
+      },
+      BooleanColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      BusinessRule: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogClientScript: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogItem: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogItemRecordProducer: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      ChoiceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ClientScript: {
+        introduced: null,
+        deprecated: null,
+      },
+      ColumnTypeCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      ConditionsColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      CrossScopePrivilege: {
+        introduced: null,
+        deprecated: null,
+      },
+      CssInclude: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      Dashboard: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      DateColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DateTimeColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DecimalColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      EmailNotification: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      FieldNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      HtmlColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ImportSet: {
+        introduced: "4.4.0",
+        deprecated: null,
+      },
+      IntegerColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      JsInclude: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      LinterCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      List: {
+        introduced: null,
+        deprecated: "4.1.0",
+      },
+      ListColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Property: {
+        introduced: null,
+        deprecated: null,
+      },
+      Record: {
+        introduced: null,
+        deprecated: null,
+      },
+      ReferenceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      RestApi: {
+        introduced: null,
+        deprecated: null,
+      },
+      Role: {
+        introduced: null,
+        deprecated: null,
+      },
+      SPAngularProvider: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      SPMenu: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      SPTheme: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      SPWidget: {
+        introduced: null,
+        deprecated: null,
+      },
+      SPWidgetDependency: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      ScheduledScript: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      ScriptAction: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptInclude: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptOnlyCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      ServicePortal: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      Sla: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      StringColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Table: {
+        introduced: null,
+        deprecated: null,
+      },
+      TableCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      TableNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Test: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedFieldColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedTextColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      UiAction: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPage: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPolicy: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserPreference: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserRolesColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      UxListMenuConfig: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      Workspace: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+    },
   },
   "4.6.0": {
     capabilities: {
@@ -7113,6 +9521,260 @@ export const FLUENT_DECLARATION_SNAPSHOTS: Readonly<Record<string, DeclarationSn
       "StateModel",
       "UiFormatter",
     ],
+    typos: {
+      "fluent-ignre": "fluent-ignore",
+      "fluent-igonre": "fluent-ignore",
+      "fluent-ignore-next-line": "fluent-ignore",
+      "fluent-ignore-sync": "fluent-disable-sync",
+      "fluent-disable": "fluent-disable-sync",
+      "fluent-disable-sync-next-line": "fluent-disable-sync",
+      "fluent-disable-sync-file": "fluent-disable-sync-for-file",
+      "fluent-disable-file": "fluent-disable-sync-for-file",
+      "fluent-skip": "fluent-ignore",
+      "fluent-nosync": "fluent-disable-sync",
+    },
+    lifecycle: {
+      Acl: {
+        introduced: null,
+        deprecated: null,
+      },
+      Applicability: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      ApplicationMenu: {
+        introduced: null,
+        deprecated: null,
+      },
+      BooleanColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      BusinessRule: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogClientScript: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogItem: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogItemRecordProducer: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      ChoiceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ClientScript: {
+        introduced: null,
+        deprecated: null,
+      },
+      ColumnTypeCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      ConditionsColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      CrossScopePrivilege: {
+        introduced: null,
+        deprecated: null,
+      },
+      CssInclude: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      Dashboard: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      DateColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DateTimeColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DecimalColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      EmailNotification: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      FieldNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      HtmlColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ImportSet: {
+        introduced: "4.4.0",
+        deprecated: null,
+      },
+      InboundEmailAction: {
+        introduced: null,
+        deprecated: null,
+      },
+      IntegerColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      JsInclude: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      LinterCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      List: {
+        introduced: null,
+        deprecated: "4.1.0",
+      },
+      ListColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Property: {
+        introduced: null,
+        deprecated: null,
+      },
+      Record: {
+        introduced: null,
+        deprecated: null,
+      },
+      ReferenceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      RestApi: {
+        introduced: null,
+        deprecated: null,
+      },
+      Role: {
+        introduced: null,
+        deprecated: null,
+      },
+      SPAngularProvider: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      SPMenu: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      SPPageRouteMap: {
+        introduced: "4.6.0",
+        deprecated: null,
+      },
+      SPTheme: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      SPWidget: {
+        introduced: null,
+        deprecated: null,
+      },
+      SPWidgetDependency: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      ScheduledScript: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      ScriptAction: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptInclude: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptOnlyCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      ServicePortal: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      Sla: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      StringColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Table: {
+        introduced: null,
+        deprecated: null,
+      },
+      TableCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      TableNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Test: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedFieldColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedTextColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      UiAction: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPage: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPolicy: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserPreference: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserRolesColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      UxListMenuConfig: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      Workspace: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+    },
   },
   "4.6.1": {
     capabilities: {
@@ -7813,6 +10475,260 @@ export const FLUENT_DECLARATION_SNAPSHOTS: Readonly<Record<string, DeclarationSn
       "StateModel",
       "UiFormatter",
     ],
+    typos: {
+      "fluent-ignre": "fluent-ignore",
+      "fluent-igonre": "fluent-ignore",
+      "fluent-ignore-next-line": "fluent-ignore",
+      "fluent-ignore-sync": "fluent-disable-sync",
+      "fluent-disable": "fluent-disable-sync",
+      "fluent-disable-sync-next-line": "fluent-disable-sync",
+      "fluent-disable-sync-file": "fluent-disable-sync-for-file",
+      "fluent-disable-file": "fluent-disable-sync-for-file",
+      "fluent-skip": "fluent-ignore",
+      "fluent-nosync": "fluent-disable-sync",
+    },
+    lifecycle: {
+      Acl: {
+        introduced: null,
+        deprecated: null,
+      },
+      Applicability: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      ApplicationMenu: {
+        introduced: null,
+        deprecated: null,
+      },
+      BooleanColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      BusinessRule: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogClientScript: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogItem: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogItemRecordProducer: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      ChoiceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ClientScript: {
+        introduced: null,
+        deprecated: null,
+      },
+      ColumnTypeCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      ConditionsColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      CrossScopePrivilege: {
+        introduced: null,
+        deprecated: null,
+      },
+      CssInclude: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      Dashboard: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      DateColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DateTimeColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DecimalColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      EmailNotification: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      FieldNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      HtmlColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ImportSet: {
+        introduced: "4.4.0",
+        deprecated: null,
+      },
+      InboundEmailAction: {
+        introduced: null,
+        deprecated: null,
+      },
+      IntegerColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      JsInclude: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      LinterCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      List: {
+        introduced: null,
+        deprecated: "4.1.0",
+      },
+      ListColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Property: {
+        introduced: null,
+        deprecated: null,
+      },
+      Record: {
+        introduced: null,
+        deprecated: null,
+      },
+      ReferenceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      RestApi: {
+        introduced: null,
+        deprecated: null,
+      },
+      Role: {
+        introduced: null,
+        deprecated: null,
+      },
+      SPAngularProvider: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      SPMenu: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      SPPageRouteMap: {
+        introduced: "4.6.0",
+        deprecated: null,
+      },
+      SPTheme: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      SPWidget: {
+        introduced: null,
+        deprecated: null,
+      },
+      SPWidgetDependency: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      ScheduledScript: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      ScriptAction: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptInclude: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptOnlyCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      ServicePortal: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      Sla: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      StringColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Table: {
+        introduced: null,
+        deprecated: null,
+      },
+      TableCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      TableNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Test: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedFieldColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedTextColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      UiAction: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPage: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPolicy: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserPreference: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserRolesColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      UxListMenuConfig: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      Workspace: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+    },
   },
   "4.7.0": {
     capabilities: {
@@ -8522,6 +11438,264 @@ export const FLUENT_DECLARATION_SNAPSHOTS: Readonly<Record<string, DeclarationSn
       "StateModel",
       "UiFormatter",
     ],
+    typos: {
+      "fluent-ignre": "fluent-ignore",
+      "fluent-igonre": "fluent-ignore",
+      "fluent-ignore-next-line": "fluent-ignore",
+      "fluent-ignore-sync": "fluent-disable-sync",
+      "fluent-disable": "fluent-disable-sync",
+      "fluent-disable-sync-next-line": "fluent-disable-sync",
+      "fluent-disable-sync-file": "fluent-disable-sync-for-file",
+      "fluent-disable-file": "fluent-disable-sync-for-file",
+      "fluent-skip": "fluent-ignore",
+      "fluent-nosync": "fluent-disable-sync",
+    },
+    lifecycle: {
+      Acl: {
+        introduced: null,
+        deprecated: null,
+      },
+      Applicability: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      ApplicationMenu: {
+        introduced: null,
+        deprecated: null,
+      },
+      BooleanColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      BusinessRule: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogClientScript: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogItem: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogItemRecordProducer: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      ChoiceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ClientScript: {
+        introduced: null,
+        deprecated: null,
+      },
+      ColumnTypeCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      ConditionsColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      CrossScopePrivilege: {
+        introduced: null,
+        deprecated: null,
+      },
+      CssInclude: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      Dashboard: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      DataPolicy: {
+        introduced: "4.7.0",
+        deprecated: null,
+      },
+      DateColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DateTimeColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DecimalColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      EmailNotification: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      FieldNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      HtmlColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ImportSet: {
+        introduced: "4.4.0",
+        deprecated: null,
+      },
+      InboundEmailAction: {
+        introduced: null,
+        deprecated: null,
+      },
+      IntegerColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      JsInclude: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      LinterCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      List: {
+        introduced: null,
+        deprecated: "4.1.0",
+      },
+      ListColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Property: {
+        introduced: null,
+        deprecated: null,
+      },
+      Record: {
+        introduced: null,
+        deprecated: null,
+      },
+      ReferenceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      RestApi: {
+        introduced: null,
+        deprecated: null,
+      },
+      Role: {
+        introduced: null,
+        deprecated: null,
+      },
+      SPAngularProvider: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      SPMenu: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      SPPageRouteMap: {
+        introduced: "4.6.0",
+        deprecated: null,
+      },
+      SPTheme: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      SPWidget: {
+        introduced: null,
+        deprecated: null,
+      },
+      SPWidgetDependency: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      ScheduledScript: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      ScriptAction: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptInclude: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptOnlyCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      ServicePortal: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      Sla: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      StringColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Table: {
+        introduced: null,
+        deprecated: null,
+      },
+      TableCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      TableNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Test: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedFieldColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedTextColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      UiAction: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPage: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPolicy: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserPreference: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserRolesColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      UxListMenuConfig: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      Workspace: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+    },
   },
   "4.7.1": {
     capabilities: {
@@ -9231,6 +12405,264 @@ export const FLUENT_DECLARATION_SNAPSHOTS: Readonly<Record<string, DeclarationSn
       "StateModel",
       "UiFormatter",
     ],
+    typos: {
+      "fluent-ignre": "fluent-ignore",
+      "fluent-igonre": "fluent-ignore",
+      "fluent-ignore-next-line": "fluent-ignore",
+      "fluent-ignore-sync": "fluent-disable-sync",
+      "fluent-disable": "fluent-disable-sync",
+      "fluent-disable-sync-next-line": "fluent-disable-sync",
+      "fluent-disable-sync-file": "fluent-disable-sync-for-file",
+      "fluent-disable-file": "fluent-disable-sync-for-file",
+      "fluent-skip": "fluent-ignore",
+      "fluent-nosync": "fluent-disable-sync",
+    },
+    lifecycle: {
+      Acl: {
+        introduced: null,
+        deprecated: null,
+      },
+      Applicability: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      ApplicationMenu: {
+        introduced: null,
+        deprecated: null,
+      },
+      BooleanColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      BusinessRule: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogClientScript: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogItem: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogItemRecordProducer: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      ChoiceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ClientScript: {
+        introduced: null,
+        deprecated: null,
+      },
+      ColumnTypeCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      ConditionsColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      CrossScopePrivilege: {
+        introduced: null,
+        deprecated: null,
+      },
+      CssInclude: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      Dashboard: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      DataPolicy: {
+        introduced: "4.7.0",
+        deprecated: null,
+      },
+      DateColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DateTimeColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DecimalColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      EmailNotification: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      FieldNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      HtmlColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ImportSet: {
+        introduced: "4.4.0",
+        deprecated: null,
+      },
+      InboundEmailAction: {
+        introduced: null,
+        deprecated: null,
+      },
+      IntegerColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      JsInclude: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      LinterCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      List: {
+        introduced: null,
+        deprecated: "4.1.0",
+      },
+      ListColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Property: {
+        introduced: null,
+        deprecated: null,
+      },
+      Record: {
+        introduced: null,
+        deprecated: null,
+      },
+      ReferenceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      RestApi: {
+        introduced: null,
+        deprecated: null,
+      },
+      Role: {
+        introduced: null,
+        deprecated: null,
+      },
+      SPAngularProvider: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      SPMenu: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      SPPageRouteMap: {
+        introduced: "4.6.0",
+        deprecated: null,
+      },
+      SPTheme: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      SPWidget: {
+        introduced: null,
+        deprecated: null,
+      },
+      SPWidgetDependency: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      ScheduledScript: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      ScriptAction: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptInclude: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptOnlyCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      ServicePortal: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      Sla: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      StringColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Table: {
+        introduced: null,
+        deprecated: null,
+      },
+      TableCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      TableNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Test: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedFieldColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedTextColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      UiAction: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPage: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPolicy: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserPreference: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserRolesColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      UxListMenuConfig: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      Workspace: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+    },
   },
   "4.7.2": {
     capabilities: {
@@ -9940,6 +13372,264 @@ export const FLUENT_DECLARATION_SNAPSHOTS: Readonly<Record<string, DeclarationSn
       "StateModel",
       "UiFormatter",
     ],
+    typos: {
+      "fluent-ignre": "fluent-ignore",
+      "fluent-igonre": "fluent-ignore",
+      "fluent-ignore-next-line": "fluent-ignore",
+      "fluent-ignore-sync": "fluent-disable-sync",
+      "fluent-disable": "fluent-disable-sync",
+      "fluent-disable-sync-next-line": "fluent-disable-sync",
+      "fluent-disable-sync-file": "fluent-disable-sync-for-file",
+      "fluent-disable-file": "fluent-disable-sync-for-file",
+      "fluent-skip": "fluent-ignore",
+      "fluent-nosync": "fluent-disable-sync",
+    },
+    lifecycle: {
+      Acl: {
+        introduced: null,
+        deprecated: null,
+      },
+      Applicability: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      ApplicationMenu: {
+        introduced: null,
+        deprecated: null,
+      },
+      BooleanColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      BusinessRule: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogClientScript: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogItem: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogItemRecordProducer: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      ChoiceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ClientScript: {
+        introduced: null,
+        deprecated: null,
+      },
+      ColumnTypeCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      ConditionsColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      CrossScopePrivilege: {
+        introduced: null,
+        deprecated: null,
+      },
+      CssInclude: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      Dashboard: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      DataPolicy: {
+        introduced: "4.7.0",
+        deprecated: null,
+      },
+      DateColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DateTimeColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DecimalColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      EmailNotification: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      FieldNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      HtmlColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ImportSet: {
+        introduced: "4.4.0",
+        deprecated: null,
+      },
+      InboundEmailAction: {
+        introduced: null,
+        deprecated: null,
+      },
+      IntegerColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      JsInclude: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      LinterCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      List: {
+        introduced: null,
+        deprecated: "4.1.0",
+      },
+      ListColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Property: {
+        introduced: null,
+        deprecated: null,
+      },
+      Record: {
+        introduced: null,
+        deprecated: null,
+      },
+      ReferenceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      RestApi: {
+        introduced: null,
+        deprecated: null,
+      },
+      Role: {
+        introduced: null,
+        deprecated: null,
+      },
+      SPAngularProvider: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      SPMenu: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      SPPageRouteMap: {
+        introduced: "4.6.0",
+        deprecated: null,
+      },
+      SPTheme: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      SPWidget: {
+        introduced: null,
+        deprecated: null,
+      },
+      SPWidgetDependency: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      ScheduledScript: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      ScriptAction: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptInclude: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptOnlyCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      ServicePortal: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      Sla: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      StringColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Table: {
+        introduced: null,
+        deprecated: null,
+      },
+      TableCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      TableNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Test: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedFieldColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedTextColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      UiAction: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPage: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPolicy: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserPreference: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserRolesColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      UxListMenuConfig: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      Workspace: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+    },
   },
   "4.8.0": {
     capabilities: {
@@ -10693,6 +14383,280 @@ export const FLUENT_DECLARATION_SNAPSHOTS: Readonly<Record<string, DeclarationSn
       "StateModel",
       "UiFormatter",
     ],
+    typos: {
+      "fluent-ignre": "fluent-ignore",
+      "fluent-igonre": "fluent-ignore",
+      "fluent-ignore-next-line": "fluent-ignore",
+      "fluent-ignore-sync": "fluent-disable-sync",
+      "fluent-disable": "fluent-disable-sync",
+      "fluent-disable-sync-next-line": "fluent-disable-sync",
+      "fluent-disable-sync-file": "fluent-disable-sync-for-file",
+      "fluent-disable-file": "fluent-disable-sync-for-file",
+      "fluent-skip": "fluent-ignore",
+      "fluent-nosync": "fluent-disable-sync",
+    },
+    lifecycle: {
+      Acl: {
+        introduced: null,
+        deprecated: null,
+      },
+      Alias: {
+        introduced: "4.8.0",
+        deprecated: null,
+      },
+      AliasTemplate: {
+        introduced: "4.8.0",
+        deprecated: null,
+      },
+      Applicability: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      ApplicationMenu: {
+        introduced: null,
+        deprecated: null,
+      },
+      BooleanColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      BusinessRule: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogClientScript: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogItem: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogItemRecordProducer: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      ChoiceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ClientScript: {
+        introduced: null,
+        deprecated: null,
+      },
+      ColumnTypeCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      ConditionsColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      CrossScopePrivilege: {
+        introduced: null,
+        deprecated: null,
+      },
+      CssInclude: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      Dashboard: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      DataPolicy: {
+        introduced: "4.7.0",
+        deprecated: null,
+      },
+      DateColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DateTimeColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DecimalColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      EmailNotification: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      FieldNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      HtmlColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ImportSet: {
+        introduced: "4.4.0",
+        deprecated: null,
+      },
+      InboundEmailAction: {
+        introduced: null,
+        deprecated: null,
+      },
+      IntegerColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      JsInclude: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      LinterCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      List: {
+        introduced: null,
+        deprecated: "4.1.0",
+      },
+      ListColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Property: {
+        introduced: null,
+        deprecated: null,
+      },
+      Record: {
+        introduced: null,
+        deprecated: null,
+      },
+      ReferenceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      RestApi: {
+        introduced: null,
+        deprecated: null,
+      },
+      RestMessage: {
+        introduced: "4.8.0",
+        deprecated: null,
+      },
+      RetryPolicy: {
+        introduced: "4.8.0",
+        deprecated: null,
+      },
+      Role: {
+        introduced: null,
+        deprecated: null,
+      },
+      SPAngularProvider: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      SPMenu: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      SPPageRouteMap: {
+        introduced: "4.6.0",
+        deprecated: null,
+      },
+      SPTheme: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      SPWidget: {
+        introduced: null,
+        deprecated: null,
+      },
+      SPWidgetDependency: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      ScheduledScript: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      ScriptAction: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptInclude: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptOnlyCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      ServicePortal: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      Sla: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      StringColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Table: {
+        introduced: null,
+        deprecated: null,
+      },
+      TableCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      TableNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Test: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedFieldColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedTextColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      UiAction: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPage: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPolicy: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserPreference: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserRolesColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      UxListMenuConfig: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      Workspace: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+    },
   },
   "4.8.1": {
     capabilities: {
@@ -11446,6 +15410,280 @@ export const FLUENT_DECLARATION_SNAPSHOTS: Readonly<Record<string, DeclarationSn
       "StateModel",
       "UiFormatter",
     ],
+    typos: {
+      "fluent-ignre": "fluent-ignore",
+      "fluent-igonre": "fluent-ignore",
+      "fluent-ignore-next-line": "fluent-ignore",
+      "fluent-ignore-sync": "fluent-disable-sync",
+      "fluent-disable": "fluent-disable-sync",
+      "fluent-disable-sync-next-line": "fluent-disable-sync",
+      "fluent-disable-sync-file": "fluent-disable-sync-for-file",
+      "fluent-disable-file": "fluent-disable-sync-for-file",
+      "fluent-skip": "fluent-ignore",
+      "fluent-nosync": "fluent-disable-sync",
+    },
+    lifecycle: {
+      Acl: {
+        introduced: null,
+        deprecated: null,
+      },
+      Alias: {
+        introduced: "4.8.0",
+        deprecated: null,
+      },
+      AliasTemplate: {
+        introduced: "4.8.0",
+        deprecated: null,
+      },
+      Applicability: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      ApplicationMenu: {
+        introduced: null,
+        deprecated: null,
+      },
+      BooleanColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      BusinessRule: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogClientScript: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogItem: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogItemRecordProducer: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      ChoiceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ClientScript: {
+        introduced: null,
+        deprecated: null,
+      },
+      ColumnTypeCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      ConditionsColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      CrossScopePrivilege: {
+        introduced: null,
+        deprecated: null,
+      },
+      CssInclude: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      Dashboard: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      DataPolicy: {
+        introduced: "4.7.0",
+        deprecated: null,
+      },
+      DateColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DateTimeColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DecimalColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      EmailNotification: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      FieldNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      HtmlColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ImportSet: {
+        introduced: "4.4.0",
+        deprecated: null,
+      },
+      InboundEmailAction: {
+        introduced: null,
+        deprecated: null,
+      },
+      IntegerColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      JsInclude: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      LinterCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      List: {
+        introduced: null,
+        deprecated: "4.1.0",
+      },
+      ListColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Property: {
+        introduced: null,
+        deprecated: null,
+      },
+      Record: {
+        introduced: null,
+        deprecated: null,
+      },
+      ReferenceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      RestApi: {
+        introduced: null,
+        deprecated: null,
+      },
+      RestMessage: {
+        introduced: "4.8.0",
+        deprecated: null,
+      },
+      RetryPolicy: {
+        introduced: "4.8.0",
+        deprecated: null,
+      },
+      Role: {
+        introduced: null,
+        deprecated: null,
+      },
+      SPAngularProvider: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      SPMenu: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      SPPageRouteMap: {
+        introduced: "4.6.0",
+        deprecated: null,
+      },
+      SPTheme: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      SPWidget: {
+        introduced: null,
+        deprecated: null,
+      },
+      SPWidgetDependency: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      ScheduledScript: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      ScriptAction: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptInclude: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptOnlyCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      ServicePortal: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      Sla: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      StringColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Table: {
+        introduced: null,
+        deprecated: null,
+      },
+      TableCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      TableNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Test: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedFieldColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedTextColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      UiAction: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPage: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPolicy: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserPreference: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserRolesColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      UxListMenuConfig: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      Workspace: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+    },
   },
   "4.9.0": {
     capabilities: {
@@ -12199,6 +16437,280 @@ export const FLUENT_DECLARATION_SNAPSHOTS: Readonly<Record<string, DeclarationSn
       "StateModel",
       "UiFormatter",
     ],
+    typos: {
+      "fluent-ignre": "fluent-ignore",
+      "fluent-igonre": "fluent-ignore",
+      "fluent-ignore-next-line": "fluent-ignore",
+      "fluent-ignore-sync": "fluent-disable-sync",
+      "fluent-disable": "fluent-disable-sync",
+      "fluent-disable-sync-next-line": "fluent-disable-sync",
+      "fluent-disable-sync-file": "fluent-disable-sync-for-file",
+      "fluent-disable-file": "fluent-disable-sync-for-file",
+      "fluent-skip": "fluent-ignore",
+      "fluent-nosync": "fluent-disable-sync",
+    },
+    lifecycle: {
+      Acl: {
+        introduced: null,
+        deprecated: null,
+      },
+      Alias: {
+        introduced: "4.8.0",
+        deprecated: null,
+      },
+      AliasTemplate: {
+        introduced: "4.8.0",
+        deprecated: null,
+      },
+      Applicability: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      ApplicationMenu: {
+        introduced: null,
+        deprecated: null,
+      },
+      BooleanColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      BusinessRule: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogClientScript: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogItem: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogItemRecordProducer: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      ChoiceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ClientScript: {
+        introduced: null,
+        deprecated: null,
+      },
+      ColumnTypeCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      ConditionsColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      CrossScopePrivilege: {
+        introduced: null,
+        deprecated: null,
+      },
+      CssInclude: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      Dashboard: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      DataPolicy: {
+        introduced: "4.7.0",
+        deprecated: null,
+      },
+      DateColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DateTimeColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DecimalColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      EmailNotification: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      FieldNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      HtmlColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ImportSet: {
+        introduced: "4.4.0",
+        deprecated: null,
+      },
+      InboundEmailAction: {
+        introduced: null,
+        deprecated: null,
+      },
+      IntegerColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      JsInclude: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      LinterCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      List: {
+        introduced: null,
+        deprecated: "4.1.0",
+      },
+      ListColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Property: {
+        introduced: null,
+        deprecated: null,
+      },
+      Record: {
+        introduced: null,
+        deprecated: null,
+      },
+      ReferenceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      RestApi: {
+        introduced: null,
+        deprecated: null,
+      },
+      RestMessage: {
+        introduced: "4.8.0",
+        deprecated: null,
+      },
+      RetryPolicy: {
+        introduced: "4.8.0",
+        deprecated: null,
+      },
+      Role: {
+        introduced: null,
+        deprecated: null,
+      },
+      SPAngularProvider: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      SPMenu: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      SPPageRouteMap: {
+        introduced: "4.6.0",
+        deprecated: null,
+      },
+      SPTheme: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      SPWidget: {
+        introduced: null,
+        deprecated: null,
+      },
+      SPWidgetDependency: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      ScheduledScript: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      ScriptAction: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptInclude: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptOnlyCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      ServicePortal: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      Sla: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      StringColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Table: {
+        introduced: null,
+        deprecated: null,
+      },
+      TableCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      TableNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Test: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedFieldColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedTextColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      UiAction: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPage: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPolicy: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserPreference: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserRolesColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      UxListMenuConfig: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      Workspace: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+    },
   },
   "4.9.1": {
     capabilities: {
@@ -12952,6 +17464,280 @@ export const FLUENT_DECLARATION_SNAPSHOTS: Readonly<Record<string, DeclarationSn
       "StateModel",
       "UiFormatter",
     ],
+    typos: {
+      "fluent-ignre": "fluent-ignore",
+      "fluent-igonre": "fluent-ignore",
+      "fluent-ignore-next-line": "fluent-ignore",
+      "fluent-ignore-sync": "fluent-disable-sync",
+      "fluent-disable": "fluent-disable-sync",
+      "fluent-disable-sync-next-line": "fluent-disable-sync",
+      "fluent-disable-sync-file": "fluent-disable-sync-for-file",
+      "fluent-disable-file": "fluent-disable-sync-for-file",
+      "fluent-skip": "fluent-ignore",
+      "fluent-nosync": "fluent-disable-sync",
+    },
+    lifecycle: {
+      Acl: {
+        introduced: null,
+        deprecated: null,
+      },
+      Alias: {
+        introduced: "4.8.0",
+        deprecated: null,
+      },
+      AliasTemplate: {
+        introduced: "4.8.0",
+        deprecated: null,
+      },
+      Applicability: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      ApplicationMenu: {
+        introduced: null,
+        deprecated: null,
+      },
+      BooleanColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      BusinessRule: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogClientScript: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogItem: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogItemRecordProducer: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      ChoiceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ClientScript: {
+        introduced: null,
+        deprecated: null,
+      },
+      ColumnTypeCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      ConditionsColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      CrossScopePrivilege: {
+        introduced: null,
+        deprecated: null,
+      },
+      CssInclude: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      Dashboard: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      DataPolicy: {
+        introduced: "4.7.0",
+        deprecated: null,
+      },
+      DateColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DateTimeColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DecimalColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      EmailNotification: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      FieldNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      HtmlColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ImportSet: {
+        introduced: "4.4.0",
+        deprecated: null,
+      },
+      InboundEmailAction: {
+        introduced: null,
+        deprecated: null,
+      },
+      IntegerColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      JsInclude: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      LinterCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      List: {
+        introduced: null,
+        deprecated: "4.1.0",
+      },
+      ListColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Property: {
+        introduced: null,
+        deprecated: null,
+      },
+      Record: {
+        introduced: null,
+        deprecated: null,
+      },
+      ReferenceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      RestApi: {
+        introduced: null,
+        deprecated: null,
+      },
+      RestMessage: {
+        introduced: "4.8.0",
+        deprecated: null,
+      },
+      RetryPolicy: {
+        introduced: "4.8.0",
+        deprecated: null,
+      },
+      Role: {
+        introduced: null,
+        deprecated: null,
+      },
+      SPAngularProvider: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      SPMenu: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      SPPageRouteMap: {
+        introduced: "4.6.0",
+        deprecated: null,
+      },
+      SPTheme: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      SPWidget: {
+        introduced: null,
+        deprecated: null,
+      },
+      SPWidgetDependency: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      ScheduledScript: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      ScriptAction: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptInclude: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptOnlyCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      ServicePortal: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      Sla: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      StringColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Table: {
+        introduced: null,
+        deprecated: null,
+      },
+      TableCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      TableNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Test: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedFieldColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedTextColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      UiAction: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPage: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPolicy: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserPreference: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserRolesColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      UxListMenuConfig: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      Workspace: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+    },
   },
   "4.9.2": {
     capabilities: {
@@ -13705,6 +18491,280 @@ export const FLUENT_DECLARATION_SNAPSHOTS: Readonly<Record<string, DeclarationSn
       "StateModel",
       "UiFormatter",
     ],
+    typos: {
+      "fluent-ignre": "fluent-ignore",
+      "fluent-igonre": "fluent-ignore",
+      "fluent-ignore-next-line": "fluent-ignore",
+      "fluent-ignore-sync": "fluent-disable-sync",
+      "fluent-disable": "fluent-disable-sync",
+      "fluent-disable-sync-next-line": "fluent-disable-sync",
+      "fluent-disable-sync-file": "fluent-disable-sync-for-file",
+      "fluent-disable-file": "fluent-disable-sync-for-file",
+      "fluent-skip": "fluent-ignore",
+      "fluent-nosync": "fluent-disable-sync",
+    },
+    lifecycle: {
+      Acl: {
+        introduced: null,
+        deprecated: null,
+      },
+      Alias: {
+        introduced: "4.8.0",
+        deprecated: null,
+      },
+      AliasTemplate: {
+        introduced: "4.8.0",
+        deprecated: null,
+      },
+      Applicability: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      ApplicationMenu: {
+        introduced: null,
+        deprecated: null,
+      },
+      BooleanColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      BusinessRule: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogClientScript: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogItem: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogItemRecordProducer: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      ChoiceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ClientScript: {
+        introduced: null,
+        deprecated: null,
+      },
+      ColumnTypeCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      ConditionsColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      CrossScopePrivilege: {
+        introduced: null,
+        deprecated: null,
+      },
+      CssInclude: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      Dashboard: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      DataPolicy: {
+        introduced: "4.7.0",
+        deprecated: null,
+      },
+      DateColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DateTimeColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DecimalColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      EmailNotification: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      FieldNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      HtmlColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ImportSet: {
+        introduced: "4.4.0",
+        deprecated: null,
+      },
+      InboundEmailAction: {
+        introduced: null,
+        deprecated: null,
+      },
+      IntegerColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      JsInclude: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      LinterCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      List: {
+        introduced: null,
+        deprecated: "4.1.0",
+      },
+      ListColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Property: {
+        introduced: null,
+        deprecated: null,
+      },
+      Record: {
+        introduced: null,
+        deprecated: null,
+      },
+      ReferenceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      RestApi: {
+        introduced: null,
+        deprecated: null,
+      },
+      RestMessage: {
+        introduced: "4.8.0",
+        deprecated: null,
+      },
+      RetryPolicy: {
+        introduced: "4.8.0",
+        deprecated: null,
+      },
+      Role: {
+        introduced: null,
+        deprecated: null,
+      },
+      SPAngularProvider: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      SPMenu: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      SPPageRouteMap: {
+        introduced: "4.6.0",
+        deprecated: null,
+      },
+      SPTheme: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      SPWidget: {
+        introduced: null,
+        deprecated: null,
+      },
+      SPWidgetDependency: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      ScheduledScript: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      ScriptAction: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptInclude: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptOnlyCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      ServicePortal: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      Sla: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      StringColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Table: {
+        introduced: null,
+        deprecated: null,
+      },
+      TableCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      TableNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Test: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedFieldColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedTextColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      UiAction: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPage: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPolicy: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserPreference: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserRolesColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      UxListMenuConfig: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      Workspace: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+    },
   },
   "4.10.0": {
     capabilities: {
@@ -14468,6 +19528,284 @@ export const FLUENT_DECLARATION_SNAPSHOTS: Readonly<Record<string, DeclarationSn
       },
     },
     absent: ["DatabaseIndex", "Flow", "GraphQLApi", "Module", "ScriptedRestApi", "UiFormatter"],
+    typos: {
+      "fluent-ignre": "fluent-ignore",
+      "fluent-igonre": "fluent-ignore",
+      "fluent-ignore-next-line": "fluent-ignore",
+      "fluent-ignore-sync": "fluent-disable-sync",
+      "fluent-disable": "fluent-disable-sync",
+      "fluent-disable-sync-next-line": "fluent-disable-sync",
+      "fluent-disable-sync-file": "fluent-disable-sync-for-file",
+      "fluent-disable-file": "fluent-disable-sync-for-file",
+      "fluent-skip": "fluent-ignore",
+      "fluent-nosync": "fluent-disable-sync",
+    },
+    lifecycle: {
+      Acl: {
+        introduced: null,
+        deprecated: null,
+      },
+      Alias: {
+        introduced: "4.8.0",
+        deprecated: null,
+      },
+      AliasTemplate: {
+        introduced: "4.8.0",
+        deprecated: null,
+      },
+      Applicability: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      ApplicationMenu: {
+        introduced: null,
+        deprecated: null,
+      },
+      BooleanColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      BusinessRule: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogClientScript: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogItem: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogItemRecordProducer: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      ChoiceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ClientScript: {
+        introduced: null,
+        deprecated: null,
+      },
+      ColumnTypeCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      ConditionsColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      CrossScopePrivilege: {
+        introduced: null,
+        deprecated: null,
+      },
+      CssInclude: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      Dashboard: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      DataPolicy: {
+        introduced: "4.7.0",
+        deprecated: null,
+      },
+      DateColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DateTimeColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DecimalColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      EmailNotification: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      FieldNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      HtmlColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ImportSet: {
+        introduced: "4.4.0",
+        deprecated: null,
+      },
+      InboundEmailAction: {
+        introduced: null,
+        deprecated: null,
+      },
+      IntegerColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      JsInclude: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      LinterCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      List: {
+        introduced: null,
+        deprecated: "4.1.0",
+      },
+      ListColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Property: {
+        introduced: null,
+        deprecated: null,
+      },
+      Record: {
+        introduced: null,
+        deprecated: null,
+      },
+      ReferenceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      RestApi: {
+        introduced: null,
+        deprecated: null,
+      },
+      RestMessage: {
+        introduced: "4.8.0",
+        deprecated: null,
+      },
+      RetryPolicy: {
+        introduced: "4.8.0",
+        deprecated: null,
+      },
+      Role: {
+        introduced: null,
+        deprecated: null,
+      },
+      SPAngularProvider: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      SPMenu: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      SPPageRouteMap: {
+        introduced: "4.6.0",
+        deprecated: null,
+      },
+      SPTheme: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      SPWidget: {
+        introduced: null,
+        deprecated: null,
+      },
+      SPWidgetDependency: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      ScheduledScript: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      ScriptAction: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptInclude: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptOnlyCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      ServicePortal: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      Sla: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      StateModel: {
+        introduced: "4.10.0",
+        deprecated: null,
+      },
+      StringColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Table: {
+        introduced: null,
+        deprecated: null,
+      },
+      TableCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      TableNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Test: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedFieldColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedTextColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      UiAction: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPage: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPolicy: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserPreference: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserRolesColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      UxListMenuConfig: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      Workspace: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+    },
   },
   "4.10.1": {
     capabilities: {
@@ -15231,6 +20569,284 @@ export const FLUENT_DECLARATION_SNAPSHOTS: Readonly<Record<string, DeclarationSn
       },
     },
     absent: ["DatabaseIndex", "Flow", "GraphQLApi", "Module", "ScriptedRestApi", "UiFormatter"],
+    typos: {
+      "fluent-ignre": "fluent-ignore",
+      "fluent-igonre": "fluent-ignore",
+      "fluent-ignore-next-line": "fluent-ignore",
+      "fluent-ignore-sync": "fluent-disable-sync",
+      "fluent-disable": "fluent-disable-sync",
+      "fluent-disable-sync-next-line": "fluent-disable-sync",
+      "fluent-disable-sync-file": "fluent-disable-sync-for-file",
+      "fluent-disable-file": "fluent-disable-sync-for-file",
+      "fluent-skip": "fluent-ignore",
+      "fluent-nosync": "fluent-disable-sync",
+    },
+    lifecycle: {
+      Acl: {
+        introduced: null,
+        deprecated: null,
+      },
+      Alias: {
+        introduced: "4.8.0",
+        deprecated: null,
+      },
+      AliasTemplate: {
+        introduced: "4.8.0",
+        deprecated: null,
+      },
+      Applicability: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      ApplicationMenu: {
+        introduced: null,
+        deprecated: null,
+      },
+      BooleanColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      BusinessRule: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogClientScript: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogItem: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogItemRecordProducer: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      ChoiceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ClientScript: {
+        introduced: null,
+        deprecated: null,
+      },
+      ColumnTypeCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      ConditionsColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      CrossScopePrivilege: {
+        introduced: null,
+        deprecated: null,
+      },
+      CssInclude: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      Dashboard: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      DataPolicy: {
+        introduced: "4.7.0",
+        deprecated: null,
+      },
+      DateColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DateTimeColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DecimalColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      EmailNotification: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      FieldNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      HtmlColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ImportSet: {
+        introduced: "4.4.0",
+        deprecated: null,
+      },
+      InboundEmailAction: {
+        introduced: null,
+        deprecated: null,
+      },
+      IntegerColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      JsInclude: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      LinterCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      List: {
+        introduced: null,
+        deprecated: "4.1.0",
+      },
+      ListColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Property: {
+        introduced: null,
+        deprecated: null,
+      },
+      Record: {
+        introduced: null,
+        deprecated: null,
+      },
+      ReferenceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      RestApi: {
+        introduced: null,
+        deprecated: null,
+      },
+      RestMessage: {
+        introduced: "4.8.0",
+        deprecated: null,
+      },
+      RetryPolicy: {
+        introduced: "4.8.0",
+        deprecated: null,
+      },
+      Role: {
+        introduced: null,
+        deprecated: null,
+      },
+      SPAngularProvider: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      SPMenu: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      SPPageRouteMap: {
+        introduced: "4.6.0",
+        deprecated: null,
+      },
+      SPTheme: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      SPWidget: {
+        introduced: null,
+        deprecated: null,
+      },
+      SPWidgetDependency: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      ScheduledScript: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      ScriptAction: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptInclude: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptOnlyCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      ServicePortal: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      Sla: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      StateModel: {
+        introduced: "4.10.0",
+        deprecated: null,
+      },
+      StringColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Table: {
+        introduced: null,
+        deprecated: null,
+      },
+      TableCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      TableNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Test: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedFieldColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedTextColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      UiAction: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPage: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPolicy: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserPreference: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserRolesColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      UxListMenuConfig: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      Workspace: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+    },
   },
   "4.11.0": {
     capabilities: {
@@ -16021,5 +21637,291 @@ export const FLUENT_DECLARATION_SNAPSHOTS: Readonly<Record<string, DeclarationSn
       },
     },
     absent: ["DatabaseIndex", "Flow", "Module", "ScriptedRestApi", "UiFormatter"],
+    typos: {
+      "fluent-ignre": "fluent-ignore",
+      "fluent-igonre": "fluent-ignore",
+      "fluent-ignore-next-line": "fluent-ignore",
+      "fluent-ignore-sync": "fluent-disable-sync",
+      "fluent-disable": "fluent-disable-sync",
+      "fluent-disable-sync-next-line": "fluent-disable-sync",
+      "fluent-disable-sync-file": "fluent-disable-sync-for-file",
+      "fluent-disable-file": "fluent-disable-sync-for-file",
+      "fluent-skip": "fluent-ignore",
+      "fluent-nosync": "fluent-disable-sync",
+    },
+    lifecycle: {
+      Acl: {
+        introduced: null,
+        deprecated: null,
+      },
+      Alias: {
+        introduced: "4.8.0",
+        deprecated: null,
+      },
+      AliasTemplate: {
+        introduced: "4.8.0",
+        deprecated: null,
+      },
+      Applicability: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      ApplicationMenu: {
+        introduced: null,
+        deprecated: null,
+      },
+      BooleanColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      BusinessRule: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogClientScript: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogItem: {
+        introduced: null,
+        deprecated: null,
+      },
+      CatalogItemRecordProducer: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      ChoiceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ClientScript: {
+        introduced: null,
+        deprecated: null,
+      },
+      ColumnTypeCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      ConditionsColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      CrossScopePrivilege: {
+        introduced: null,
+        deprecated: null,
+      },
+      CssInclude: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      Dashboard: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      DataPolicy: {
+        introduced: "4.7.0",
+        deprecated: null,
+      },
+      DateColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DateTimeColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      DecimalColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      EmailNotification: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      FieldNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      GraphQLApi: {
+        introduced: "4.11.0",
+        deprecated: null,
+      },
+      HtmlColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ImportSet: {
+        introduced: "4.4.0",
+        deprecated: null,
+      },
+      InboundEmailAction: {
+        introduced: null,
+        deprecated: null,
+      },
+      IntegerColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      JsInclude: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      LinterCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      List: {
+        introduced: null,
+        deprecated: "4.1.0",
+      },
+      ListColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Property: {
+        introduced: null,
+        deprecated: null,
+      },
+      Record: {
+        introduced: null,
+        deprecated: null,
+      },
+      ReferenceColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      RestApi: {
+        introduced: null,
+        deprecated: null,
+      },
+      RestMessage: {
+        introduced: "4.8.0",
+        deprecated: null,
+      },
+      RetryPolicy: {
+        introduced: "4.8.0",
+        deprecated: null,
+      },
+      Role: {
+        introduced: null,
+        deprecated: null,
+      },
+      SPAngularProvider: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      SPMenu: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      SPPageRouteMap: {
+        introduced: "4.6.0",
+        deprecated: null,
+      },
+      SPTheme: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      SPWidget: {
+        introduced: null,
+        deprecated: null,
+      },
+      SPWidgetDependency: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      ScheduledScript: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      ScriptAction: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptInclude: {
+        introduced: null,
+        deprecated: null,
+      },
+      ScriptOnlyCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      ServicePortal: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      Sla: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      StateModel: {
+        introduced: "4.10.0",
+        deprecated: null,
+      },
+      StringColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Table: {
+        introduced: null,
+        deprecated: null,
+      },
+      TableCheck: {
+        introduced: "4.5.0",
+        deprecated: null,
+      },
+      TableNameColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      Test: {
+        introduced: null,
+        deprecated: null,
+      },
+      TestSuite: {
+        introduced: "4.11.0",
+        deprecated: null,
+      },
+      TranslatedFieldColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      TranslatedTextColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      UiAction: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPage: {
+        introduced: "4.0.0",
+        deprecated: null,
+      },
+      UiPolicy: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserPreference: {
+        introduced: null,
+        deprecated: null,
+      },
+      UserRolesColumn: {
+        introduced: null,
+        deprecated: null,
+      },
+      UxListMenuConfig: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+      Workspace: {
+        introduced: "4.3.0",
+        deprecated: null,
+      },
+    },
   },
 };

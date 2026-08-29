@@ -67,6 +67,92 @@ service.now();`,
       "no-br-current-update",
       FULL_SCRIPT,
     );
+    assertInvalid(
+      `(function executeRule(current, previous) {
+  var record = current;
+  record.update();
+})(current, previous);`,
+      "no-br-current-update",
+      { messageId: "update" },
+      FULL_SCRIPT,
+    );
+    assertValid(
+      `(function executeRule(current, previous) {
+  var record = current;
+  record.update();
+})(localCurrent, previous);`,
+      "no-br-current-update",
+      FULL_SCRIPT,
+    );
+    assertValid(
+      `(function executeRule(current, previous) {
+  var record = current;
+  prepare(record);
+  record.update();
+})(current, previous);`,
+      "no-br-current-update",
+      FULL_SCRIPT,
+    );
+  });
+
+  it("forgets a reassigned canonical current wrapper parameter", () => {
+    assertValid(
+      `(function executeRule(current, previous) {\n  current = getOtherRecord();\n  current.update();\n})(current, previous);`,
+      "no-br-current-update",
+      FULL_SCRIPT,
+    );
+  });
+
+  it("keeps canonical current authority temporal and method-specific", () => {
+    assertValid(
+      `(function executeRule(current, previous) {
+  prepare(current);
+  current.update();
+})(current, previous);`,
+      "no-br-current-update",
+      FULL_SCRIPT,
+    );
+    assertValid(
+      `(function executeRule(current, previous) {
+  current.update = localUpdate;
+  current.update();
+})(current, previous);`,
+      "no-br-current-update",
+      FULL_SCRIPT,
+    );
+    assertValid(
+      `(function executeRule(current, previous) {
+  globalThis.current.update = localUpdate;
+  current.update();
+})(current, previous);`,
+      "no-br-current-update",
+      FULL_SCRIPT,
+    );
+    assertValid(
+      `(function executeRule(current, previous) {
+  prepare(globalThis.current);
+  current.update();
+})(current, previous);`,
+      "no-br-current-update",
+      FULL_SCRIPT,
+    );
+    assertValid(
+      `(function executeRule(current, previous) {
+  GlideRecord.prototype.update = localUpdate;
+  current.update();
+})(current, previous);`,
+      "no-br-current-update",
+      FULL_SCRIPT,
+    );
+    assertInvalid(
+      `(function executeRule(current, previous) {
+  current.update();
+  prepare(current);
+})(current, previous);`,
+      "no-br-current-update",
+      { messageId: "update" },
+      FULL_SCRIPT,
+    );
   });
 });
 
@@ -111,6 +197,127 @@ rec.query();
 while (rec.next()) {
   function nested(rec) { values.push(rec.number); }
   nested(rec);
+}`,
+      "no-glideelement-in-collection",
+      SERVER,
+    );
+  });
+
+  it("tracks local GlideElement values through aliases and all-path joins", () => {
+    assertInvalid(
+      `var rec = new GlideRecord("incident");
+var values = [];
+rec.query();
+while (rec.next()) {
+  var field = rec.number;
+  var alias = field;
+  prepare(alias);
+  values.push({ field: alias });
+}`,
+      "no-glideelement-in-collection",
+      { messageId: "retained", includes: "alias" },
+      SERVER,
+    );
+    assertInvalid(
+      `var rec = new GlideRecord("incident");
+var values = [];
+rec.query();
+while (rec.next()) {
+  var field;
+  if (useNumber) field = rec.number;
+  else field = rec.short_description;
+  values.push(field);
+}`,
+      "no-glideelement-in-collection",
+      { messageId: "retained", includes: "field" },
+      SERVER,
+    );
+    assertInvalid(
+      `var rec = new GlideRecord("incident");
+var values = [];
+rec.query();
+while (rec.next()) {
+  (function (field) { values.push(field); })(rec.getElement("number"));
+}`,
+      "no-glideelement-in-collection",
+      { messageId: "retained", includes: "field" },
+      SERVER,
+    );
+  });
+
+  it("invalidates uncertain or converted GlideElement aliases", () => {
+    assertValid(
+      `var rec = new GlideRecord("incident");
+var values = [];
+var stale;
+rec.query();
+while (rec.next()) {
+  var fresh = rec.number;
+  if (capture) stale = fresh;
+  values.push(stale);
+}`,
+      "no-glideelement-in-collection",
+      SERVER,
+    );
+    assertValid(
+      `var rec = new GlideRecord("incident");
+var other = new GlideRecord("task");
+var values = [];
+rec.query();
+other.query();
+while (rec.next() && other.next()) {
+  var field;
+  if (useIncident) field = rec.number;
+  else field = other.number;
+  values.push(field);
+}`,
+      "no-glideelement-in-collection",
+      SERVER,
+    );
+    assertValid(
+      `var rec = new GlideRecord("incident");
+var values = [];
+rec.query();
+while (rec.next()) {
+  var field = rec.number;
+  field = field.toString();
+  values.push(field);
+}`,
+      "no-glideelement-in-collection",
+      SERVER,
+    );
+    assertValid(
+      `var rec = new GlideRecord("incident");
+var values = [];
+rec.query();
+while (rec.next()) {
+  var field;
+  if (includeField) field = rec.number;
+  else field = "safe";
+  values.push(field);
+}`,
+      "no-glideelement-in-collection",
+      SERVER,
+    );
+    assertValid(
+      `var rec = new GlideRecord("incident");
+var values = [];
+rec.query();
+while (rec.next()) {
+  var field = rec.number;
+  field++;
+  values.push(field);
+}`,
+      "no-glideelement-in-collection",
+      SERVER,
+    );
+    assertValid(
+      `var rec = new GlideRecord("incident");
+var values = [];
+rec.query();
+while (rec.next()) {
+  var field = rec.number;
+  { let field = "safe"; values.push(field); }
 }`,
       "no-glideelement-in-collection",
       SERVER,

@@ -4,32 +4,81 @@
 
 ### Deprecated
 
-- The `AnalysisProvenance` fields `queryState`, `windowed`, `sysparmName`, and `aggregates` on the `oxc-plugin-servicenow/analysis` export are deprecated and will be removed in 3.0. They were never computed and always report their defaults. Use the rules that compute cursor lifecycle facts instead.
 - `validate-gliderecord-calls` will be removed in 3.0. It stays available and `off` throughout 2.x for 1.x migrations. Use `require-query-before-next`, which covers the same query-before-`next` class with path-sensitive analysis (README migration step 4).
 
 ### Fixed
 
-- `no-hardcoded-sysid` with the default `ignoreHashNames: true` now suppresses a 32-character hex literal when a digest word (`md5`, `sha`, `hash`, `checksum`, `etag`, `digest`, with trailing digits as in `sha256`) is a whole component of the binding or property name, not only for the exact name `md5`. `fileHash` and `contentChecksum` suppress; a digest word inside a component (`sharedSysId`, `shardId`, `betaGroupId`, `shadowRecordId`) does not. Set `ignoreHashNames: false` to keep reporting digest-named values.
-- AST source offsets are read through portable accessors, so the Fluent rule family (`require-fluent-id`, `fluent-directives`, `fluent-proper-imports`, `fluent-naming-convention`) now behaves identically under the `typescript-eslint` parser, which exposes only `range`. Previously aliases resolved to stale targets and correctly placed `@fluent-ignore` directives were reported as dangling on typed Fluent files linted through ESLint.
-- A repeated `var` declarator now participates in Fluent alias resolution in execution order, removing a false positive and a false negative in `require-fluent-id` for files that redeclare an alias.
-- `no-glideelement-in-collection` and `no-gliderecord-query-in-loop` traverse nested `do…while` statements in linear time under a deterministic work budget. Deeply nested loops previously multiplied traversals exponentially, taking about 30 seconds for 600 bytes of input.
 - Fluent import aliases now follow execution order instead of source position. A reassignment inside a nested function makes the alias uncertain in every declaration order, and a builder use inside a function no longer trusts module-level reassignment ordering. Straight-line module-level code keeps positional resolution.
-- The shared path evaluator prunes branches behind statically constant conditions. `if (true) { gr.query(); }` no longer keeps the impossible false path alive, which produced false positives in path-sensitive rules such as `require-query-before-next`. Constant tests cover literal booleans, numbers, strings, `!` chains, ternaries, and `&&`/`||` short-circuits.
-- `analyzeProvenance` now analyzes the AST supplied as its second argument. Previously it always traversed `context.sourceCode.ast`, so an alternate tree had no effect. When an alternate AST is supplied, host scope-manager answers are ignored because they describe the other program.
-- `no-gliderecord-query-in-loop` and `no-glideelement-in-collection` now analyze the body of a synchronous IIFE with the enclosing loop context, so wrapping an operation in `(function () { ... })()` no longer bypasses the checks. Deferred callbacks stay excluded.
+- Surface directory conventions now match the project-relative path instead of the whole absolute path. A directory name above the project root no longer assigns or suppresses an execution surface, so diagnostics no longer depend on where the repository is cloned.
+- The generated SDK snapshot module is annotated with an interface instead of `as const`, shrinking the shipped `dist/fluent/declaration-snapshots.d.ts` from roughly 1 MB to under 1 KB. The release artifact check now enforces a 200 KB budget per shipped declaration file.
+- `no-hardcoded-sysid` with the default `ignoreHashNames: true` now suppresses a 32-character hex literal for every digest-like owner name (`md5`, `sha`, `hash`, `checksum`, `etag`, `digest`), not only names containing `md5`.
+- Release verification now decodes Fulcio DER UTF8String certificate fields and checks GitHub's immutable owner and repository IDs.
+- A recovery workflow can create a missing GitHub release after npm publication succeeds.
 
-- The generated SDK snapshot module is annotated with an interface instead of `as const`, shrinking the shipped `dist/fluent/declaration-snapshots.d.ts` from 939 KB to under 1 KB and the built `dist` tree from 2.8 MB to 1.9 MB. The release artifact check now enforces a 200 KB budget per shipped declaration file.
-- Surface directory conventions (`client/`, `br/`, `server/`, `script-include/`) now match the project-relative path instead of the whole absolute path. A directory name above the project root no longer assigns or suppresses an execution surface, so diagnostics no longer depend on where the repository is cloned.
+## 2.0.0 — 2026-08-27
+
+The 2.0.0 release includes the validated settings, context, rule, and release-governance changes documented below.
+
+### Added
+
+- First-class ACL script support: explicit and filename-derived `acl` surfaces, boundary-safe ESLint and oxfmt globs, and an opt-in `no-gliderecord-query-in-acl` performance review backed by Australian guidance, authoritative `current` handling, and immediate-path analysis that stops at async suspension.
+- Full Australia release support: release-keyed JavaScript-engine capabilities, an exact 102-method scoped/global GlideRecord inventory, pinned official source markers, Australia SDK 4.4 manifest-selection coverage, real Oxlint/ESLint release contracts, and generated compatibility metadata.
+- New `no-object-hasown` rule for Zurich and Compatibility/ES5 scripts. Australia ES2021 correctly permits `Object.hasOwn()`.
+- New `no-unsupported-static-methods` rule models the Australia ES2021 additions `Error.isError()`, `Promise.try()`, and `Promise.withResolvers()` with release-aware, binding-aware, guard-aware diagnostics.
+- New `no-unsupported-set-methods` rule covers all seven Set composition methods added in Australia ES2021, using path-sensitive receiver identity, platform-method authority, polyfill suppression, and receiver-specific availability guards.
+- New `no-unsupported-date-fraction` rule detects otherwise valid static ISO timestamps whose fractional-second length works in every Australia JavaScript mode but not Zurich.
+- New `no-map-set` rule reports binding-proven `Map` and `Set` calls in Compatibility and ES5 Standards mode, where both Zurich and Australia document their basic functionality as Not Supported.
+- New `no-incorrect-bigint-asuintn` rule identifies literal `BigInt.asUintN()` calls whose negative-result bug is fixed by Australia, while suppressing dynamic operands and non-native implementations.
+- New `no-incorrect-array-from-thisarg` rule detects stable native `Array.from()` mapper calls whose primitive or omitted `thisArg` behavior is corrected by Australia, while proving callable identity, strictness, and relevant `this` usage before reporting.
+- Australia engine metadata now records the `Function.prototype.call()` / `.apply()` nullish-`thisArg` correction without emitting an unsafe diagnostic for behavior that depended on Rhino's legacy interpreted-versus-compiled execution path.
+- New `no-unhoisted-block-function-use` rule detects binding-proven reads before nested block function declarations in pre-Australia releases across all instance JavaScript modes, while excluding deferred bodies, mutation, dynamic scope, and the upstream fix's unsupported switch boundary.
+- New `no-object-method-constructor` rule detects stable shorthand object methods used with `new` where Australia now enforces their non-constructible ECMAScript semantics; `no-unsupported-syntax` also covers shorthand methods in classic modes.
+- A generated Australia engine-update ledger now accounts for every official Rhino row and distinguishes diagnostic coverage, deliberate metadata-only behavior, and unresolved research without treating pending work as support.
+- `no-typed-arrays` now models Australia BigInt64 array support and the separate Australia addition of static `TypedArray.from()` / `.of()` factories, while retaining constructor, alias, method-guard, polyfill, and documented `DataView` BigInt-getter coverage.
+
+### Fixed
+
+- `no-at-method` now honors visible Array/String constructor and prototype replacements, dynamic-scope uncertainty, optional invocation, and structurally dominating prototype-availability guards while keeping the two built-in domains independent.
+- `no-unsupported-syntax` now resolves direct, namespace-qualified, and stable same-execution `RegExp` aliases for constructor-string lookbehind checks while staying silent after visible replacement, shadowing, mutation, or dynamic-scope uncertainty; literal diagnostics remain independent.
+- `no-bigint` now resolves stable same-execution call aliases, requires safe alias capture, honors dominating availability guards and visible callable polyfills, and invalidates guards after modeled writes.
+- `no-promise` and `no-proxy` now resolve stable same-execution constructor and static-method owner aliases, require safe bare-alias capture, honor dominating availability guards, invalidate guards after modeled built-in writes, and avoid attributing visible callable polyfills or dynamic-scope replacements to ServiceNow.
+- `no-weak-references` and `no-weak-collections` now resolve stable same-execution constructor aliases, require bare aliases to be captured inside an availability guard, invalidate guards after modeled built-in writes, and distinguish callable polyfills from object, array, and other non-callable replacements.
+- `no-weak-collections` documentation no longer recommends `Map` or `Set` as a Compatibility/ES5 replacement; its message and example now use an ES5-compatible representation.
+- Private instance fields, methods, and accessors now report the documented ES2021 Not Supported status for both Zurich and Australia; private static members remain Supported.
+- Omitting `settings.servicenow.release` now keeps release-dependent facts unknown instead of silently selecting Zurich.
+- Australia support is fail-closed: every catalog rule requires an explicit, release-keyed review basis before a new release can appear in generated applicability metadata.
+- Engine feature rules recognize safe availability guards and proven global aliases while conservatively suppressing diagnostics after relevant global, constructor, prototype, or instance mutations.
+- `no-client-gliderecord` now reports only in scoped client applications, matching the documented global/scoped API split, and stays silent for mixed client/server UI Actions.
+- `no-packages-calls` is now an opt-in server-side migration policy instead of a recommended correctness error because the Australia removal tool is narrower than every `Packages.*` call and records executing on a MID Server need separate review.
+- GlideElement collection analysis now treats all documented Australia GlideRecord methods as methods rather than possible fields, while query lifecycle rules continue to model only methods with proven roles.
+- Catalog verification IDs are now scoped to the rule-to-evidence assertion, so shared Australia source cells remain independently auditable without duplicate ledger identities.
+- Published README and rule `docs.url` links now target the immutable `v<package version>` repository tag instead of omitted tarball paths or mutable `main`; the documentation gate rejects new relative package links.
+- `fluent-directives` now describes ServiceNow SDK controls without falsely implying that `@fluent-ignore` suppresses Oxlint or ESLint diagnostics; real-host fixtures lock in that boundary.
+- Every rule's host-facing `meta.docs.recommended` flag now derives from catalog placements instead of stale per-file declarations.
+- `no-complex-fluent-logic` now applies its documented multi-statement threshold equally to ordinary function expressions and arrow functions.
+- Fluent SDK manifest auditing now accepts only exact `registry.npmjs.org` artifact URLs, rejects redirects, caps metadata and compressed-tarball response bytes, and times out stalled fetches before pinned-integrity and decompression checks.
+- `no-glideelement-in-collection` now follows path-proven local field aliases through reassignment, shadowing, all-path branch joins, nested literals, escapes, and immediately invoked function parameters; numeric update coercion also invalidates shared object aliases.
+- The public `analyzeProvenance(context, ast)` overload once again analyzes the supplied AST, partitions its cache by tree identity, and never applies the host parser's scope graph to foreign nodes.
+- Engine compatibility diagnostics now stay silent when a relevant namespace object escapes to an unknown helper that could install replacement methods, while passing the method value itself does not taint its owner.
+- Unknown JavaScript mode now conservatively records possible `globalThis` mutations, and cyclic destructured platform-global aliases terminate safely instead of overflowing the analysis stack.
+- `no-gliderecord-query-in-loop` now carries proven cursor depth through direct calls to stable one-call-site local helpers, while mutable, multiply called, generator, shadowed, dynamically scoped, and indirect helpers remain conservatively silent.
+- `no-client-gliderecord` now resolves stable, block-dominating constructor aliases and suppresses diagnostics whenever path-dependent assignments, dynamic scope, namespace escape, or visible platform replacement make constructor identity uncertain.
+- `no-hardcoded-sysid` now resolves hash-context owners from AST ancestry, preserving the correct owner around nested sibling expressions and preventing suppression from leaking into nested function or class bodies.
+- Shared per-file binding-write analysis now drives stable helper and constructor resolution; mutation analysis distinguishes callable replacements from lost platform authority, and `no-br-current-update` / `no-gs-now` stay silent whenever binding replacement, method mutation, namespace escape, or dynamic scope makes platform identity uncertain.
+- Client API rules now share platform-method authority checks: GlideAjax and `g_form.getReference()` diagnostics stay silent after constructor, prototype, instance-method, namespace, or dynamic-scope mutation, while immutable callback aliases are classified structurally.
+- GlideRecord, GlideRecordSecure, GlideAggregate, and GlideDateTime analyses now apply the same authority model across cursor lifecycle, bulk safety, aggregation, counting, N+1, GlideElement, and security-review diagnostics; domain-specific uncertainty remains path- and epoch-aware, and fresh host values are re-established on later loop evaluations.
+- Canonical full-script Business Rule wrappers preserve `current.update()` authority across their required synchronous `current` argument while remaining silent after a pre-call escape, parameter reassignment, receiver-method replacement, or GlideRecord prototype mutation.
+- Allocation-site refreshes detach stale aliases, instance-method authority remains scoped to stable receiver identities, and computed security review requires at least one still-authoritative bypass candidate.
+- Cursor-loop analysis evaluates defaults selected by explicit `undefined`, stops expanding immutable helper aliases under dynamic scope, and checks GlideElement retention on the first `while` iteration even when the body exits immediately.
+- Release validation now rejects tags that do not point to the exact current protected `main` tip.
+- GlideRecord lifecycle analysis now recognizes the documented `_query()`, `_next()`, and global-only `queryNoDomain()` APIs without guessing when application scope is unknown.
+- ESLint no longer suppresses same-offset query lifecycle diagnostics in later files through retained `createOnce` state.
 
 ### Validation
 
 - Rule options use one descriptor for host schema, runtime parsing, and generated docs. Invalid types throw a path-specific `ServiceNowConfigError`.
 - Shared validated settings defaults are deeply frozen, including nested `allowedSysIds` and `allowedTables`.
 - Generated rule pages include a structured applicability matrix, evidence records, false-positive and false-negative lists, overlaps, and fix safety. `npm run docs:check` fails on stale metadata.
-- `npm run bench` measures the real Oxlint executable (time, scale, and peak RSS) and compares recommended, one-rule, all, and plugin-disabled profiles.
-- Packed-consumer compatibility covers the declared oxlint, ESLint, oxfmt, TypeScript, and typescript-eslint boundaries. CI runs the five authoritative cells on Node 20.19.0, 22.14.0, 24.16.0, and 26.7.0.
-- `npm run release:check` cleans `dist`, builds, packs one tarball with `--ignore-scripts`, and records per-file metadata and hashes. `npm run validate:live` runs packed-consumer tests on that same file.
-- The protected-tag release workflow requires the exact changelog heading before it can publish. The release jobs remain unexecuted and live-pending.
 
 ### Analysis
 
@@ -45,7 +94,6 @@
 - `PACKAGE_VERSION` is read from `package.json`.
 - New `settings.servicenow.businessRuleWhen` metadata. Default `unknown`.
 - New strict/warn rule: `prefer-setnocount-with-choosewindow`.
-- Packed-package consumer tests run oxlint, ESLint, and oxfmt from `npm pack` output.
 - Example projects cover Compatibility, ES5, ES2021, client, Business Rule, UI Action, Fluent, and mixed repositories.
 - Phase 5 research notes record implement/hold/reject decisions for issues #35–#40.
 
@@ -56,7 +104,7 @@
 - Versioned Zurich GlideRecord method table in `src/glide/manifest.ts` drives filter, modifier, and ACL-bypass names.
 - Rule catalog placements now generate preset maps, README rule tables, and recommended oxlintrc copies. `npm run docs` deletes stale rule pages.
 - Packed-package consumer test installs `npm pack` output and runs oxlint against the published exports.
-- Contributor docs: `npm run validate`, rule-authoring guide, compatibility matrix, and non-goals policy.
+- Contributor docs: `npm run validate`, rule-authoring guide, and non-goals policy.
 - `npm test` lists `*.test.ts` files so Node 20 CI does not treat a quoted glob as a missing path.
 
 ### Breaking — 2.0.0 foundation

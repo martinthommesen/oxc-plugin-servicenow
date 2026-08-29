@@ -48,14 +48,6 @@ export function inspectInstalledPackageExports(
   name: string,
   expectedVersion: string,
 ): { pkg: Record<string, unknown>; packageRoot: string };
-export const OPERATION_TIMEOUT_MS: number;
-export function derUtf8(value: string): Buffer;
-export function enrichedOidcSubject(expected: {
-  repository: string;
-  environment: string;
-  repositoryId: string;
-  ownerId: string;
-}): string;
 export function importInstalledPackage(
   consumer: string,
   name: string,

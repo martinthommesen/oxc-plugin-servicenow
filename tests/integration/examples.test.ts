@@ -37,10 +37,6 @@ function withLocalConfig<T>(
   settings?: unknown,
 ): T {
   const directory = path.join(examplesDir, project);
-  // Write the derived config outside the repository so a crashed run cannot
-  // leave stray files inside examples/ (FINDINGS.md OPS-004).
-  const configDir = mkdtempSync(path.join(tmpdir(), "sn-oxc-example-config-"));
-  const configPath = path.join(configDir, ".local-test.oxlintrc.json");
   const config = JSON.parse(readFileSync(path.join(directory, ".oxlintrc.json"), "utf8")) as {
     jsPlugins: Array<{ name: string; specifier: string }>;
     settings?: unknown;
@@ -49,15 +45,29 @@ function withLocalConfig<T>(
   assert.ok(plugin);
   plugin.specifier = path.join(repoRoot, "dist/index.js");
   if (settings !== undefined) config.settings = settings;
-  writeFileSync(configPath, JSON.stringify(config));
+  const configDirectory = mkdtempSync(path.join(tmpdir(), "sn-oxc-example-config-"));
+  const configPath = path.join(configDirectory, ".oxlintrc.json");
   try {
+    writeFileSync(configPath, JSON.stringify(config));
     return run(configPath);
   } finally {
-    rmSync(configDir, { recursive: true, force: true });
+    rmSync(configDirectory, { recursive: true, force: true });
   }
 }
 
 describe("example projects", () => {
+  it("keeps generated configs outside the checkout", () => {
+    const configPath = withLocalConfig("classic-compatibility", (value) => value);
+    const relativeConfigPath = path.relative(repoRoot, configPath);
+    assert.ok(
+      relativeConfigPath === ".." ||
+        relativeConfigPath.startsWith(`..${path.sep}`) ||
+        path.isAbsolute(relativeConfigPath),
+      configPath,
+    );
+    assert.throws(() => readFileSync(configPath), { code: "ENOENT" });
+  });
+
   it("recommended oxlint is silent on every example valid tree", () => {
     for (const project of PROJECTS) {
       const valid = path.join(examplesDir, project, "valid");

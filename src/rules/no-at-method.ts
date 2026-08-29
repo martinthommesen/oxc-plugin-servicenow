@@ -1,24 +1,54 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
-import { staticPropertyName } from "../analysis/internal.js";
+import { isInvocationAvailabilityGuarded } from "../analysis/availability.js";
+import { resolvePlatformGlobalName } from "../analysis/globals.js";
+import {
+  hasAuthoritativeConstructedMethod,
+  resolveConstValue,
+  staticPropertyName,
+} from "../analysis/internal.js";
 import { beginRuleFile } from "./helpers.js";
 import { shouldDiagnoseFeature } from "../engine/index.js";
-import { isNode, unwrapExpression } from "../utils/ast.js";
+import { isNode } from "../utils/ast.js";
 
-function isBuiltInAtReceiver(
+type AtConstructor = "Array" | "String";
+
+function builtInAtReceiver(
   node: unknown,
   analysis: ReturnType<typeof beginRuleFile>["analysis"],
-): boolean {
-  const value = unwrapExpression(node);
-  if (!isNode(value)) return false;
-  if (value.type === "ArrayExpression") return true;
+): AtConstructor | null {
+  const value = resolveConstValue(node, analysis.bindings);
+  if (!isNode(value)) return null;
+  if (value.type === "ArrayExpression") return "Array";
   if (value.type === "Literal" && typeof (value as { value?: unknown }).value === "string")
-    return true;
-  if (value.type !== "Identifier") return false;
-  const binding = analysis.bindings.resolve((value as { name: string }).name, value);
-  if (binding?.kind !== "const" || binding.node.type !== "VariableDeclarator") return false;
-  return isBuiltInAtReceiver((binding.node as ESTree.VariableDeclarator).init, analysis);
+    return "String";
+  return null;
+}
+
+function isPrototypeAtAccess(
+  node: unknown,
+  constructorName: AtConstructor,
+  analysis: ReturnType<typeof beginRuleFile>["analysis"],
+): boolean {
+  const access = resolveConstValue(node, analysis.bindings);
+  if (!access || access.type !== "MemberExpression" || staticPropertyName(access) !== "at") {
+    return false;
+  }
+  return isBuiltInPrototype(access.object, constructorName, analysis);
+}
+
+function isBuiltInPrototype(
+  node: unknown,
+  constructorName: AtConstructor,
+  analysis: ReturnType<typeof beginRuleFile>["analysis"],
+): boolean {
+  const owner = resolveConstValue(node, analysis.bindings);
+  return Boolean(
+    owner?.type === "MemberExpression" &&
+    staticPropertyName(owner) === "prototype" &&
+    resolvePlatformGlobalName(owner.object, analysis.bindings) === constructorName,
+  );
 }
 
 export const noAtMethod = defineRule({
@@ -40,11 +70,32 @@ export const noAtMethod = defineRule({
         if (!shouldDiagnoseFeature(script, "at-method")) return false;
       },
       CallExpression(node) {
-        const { analysis } = beginRuleFile(context);
+        const { analysis, file } = beginRuleFile(context);
         const call = node as ESTree.CallExpression;
         if (call.callee.type !== "MemberExpression") return;
         if (staticPropertyName(call.callee) !== "at") return;
-        if (!isBuiltInAtReceiver(call.callee.object, analysis)) return;
+        const constructorName = builtInAtReceiver(call.callee.object, analysis);
+        if (!constructorName) return;
+        if (!hasAuthoritativeConstructedMethod(file, call.callee.object, constructorName, "at")) {
+          return;
+        }
+        if (
+          isInvocationAvailabilityGuarded(
+            context,
+            call,
+            analysis,
+            (candidate) => isPrototypeAtAccess(candidate, constructorName, analysis),
+            {
+              guardCacheKey: `no-at-method:${constructorName}`,
+              isPropertyExistenceTest: (property, object) =>
+                property === "at" && isBuiltInPrototype(object, constructorName, analysis),
+              isOptionalInvocation: (invocation) =>
+                invocation === call && invocation.type === "CallExpression" && invocation.optional,
+            },
+          )
+        ) {
+          return;
+        }
         context.report({ node, messageId: "at" });
       },
     };

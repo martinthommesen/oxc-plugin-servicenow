@@ -13,12 +13,11 @@ The command generates deterministic fixtures and times the real `oxlint` executa
 - small, medium, and large classic GlideRecord files
 - branch-heavy alias and try/catch analysis
 - nested scopes
-- 30 nested `do…while` loops (the FINDINGS.md PER-002 shape)
 - large Fluent metadata
 - skip-path client files
 - a mixed repository
 
-Each case records raw samples, median elapsed time, and peak RSS after one warm-up run and ten samples. A sample is rejected unless Oxlint exits successfully, emits one complete JSON document, and reports no diagnostics.
+Each case records raw samples, median elapsed time, and peak RSS after one warm-up run and ten samples. A sample is rejected unless Oxlint exits successfully, emits one complete JSON document, and reports no diagnostics. A missed raw RSS measurement is recorded as `null`. The case fails when every sample lacks RSS evidence.
 
 Profiles compared:
 
@@ -37,10 +36,13 @@ A performance change blocks release when:
 
 - `classic-large/recommended` exceeds 5,000 ms
 - the recommended large/small scale ratio exceeds 4
+
+CI also reports trend warnings when:
+
 - a fixture's median elapsed time exceeds `baseline * 1.5 + 100 ms`
 - a fixture's peak RSS exceeds `baseline * 1.25 + 25,000 KB`
 
-Those thresholds detect repeated full-file analysis and quadratic scans. They are not nanosecond budgets.
+Absolute measurements from uncontrolled public runners are trend evidence. The blocking limits detect repeated full-file analysis and quadratic scans.
 
 The path-sensitive interpreter also has a deterministic per-pass work budget and a maximum traversal depth. If either limit is reached, the pass stops and returns unknown facts. This fail-safe bounds adversarial machine-generated input without inventing a definite result.
 

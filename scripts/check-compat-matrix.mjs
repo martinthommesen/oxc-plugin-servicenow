@@ -24,6 +24,20 @@ export function checkCompatibilityMatrix() {
   if (!ids.includes(matrix.localSmokeCell))
     errors.push("compatibility matrix localSmokeCell does not name an exact cell");
 
+  const releases = matrix.serviceNowReleases;
+  if (!Array.isArray(releases) || releases.length === 0) {
+    errors.push("compatibility matrix has no ServiceNow releases");
+  } else {
+    if (new Set(releases).size !== releases.length) {
+      errors.push("compatibility matrix contains duplicate ServiceNow releases");
+    }
+    for (const release of releases) {
+      if (typeof release !== "string" || !/^[a-z][a-z0-9-]*$/.test(release)) {
+        errors.push(`invalid ServiceNow release ${JSON.stringify(release)}`);
+      }
+    }
+  }
+
   const requiredCellFields = ["node", "npm", "oxlint", "eslint", "oxfmt"];
   for (const cell of matrix.cells ?? []) {
     if (!/^[a-z0-9-]+$/.test(cell.id ?? ""))

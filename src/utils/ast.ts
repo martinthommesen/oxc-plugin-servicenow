@@ -1,8 +1,6 @@
 import type { ESTree } from "@oxlint/plugins";
 
 type AnyNode = ESTree.Node | Record<string, unknown>;
-const MAX_WALK_DEPTH = 512;
-
 export function isNode(value: unknown): value is ESTree.Node {
   return Boolean(
     value && typeof value === "object" && typeof (value as { type?: unknown }).type === "string",
@@ -101,21 +99,90 @@ export function unwrapExpression(node: unknown): unknown {
   return current;
 }
 
+const TYPE_ONLY_ANCESTORS = new Set([
+  "JSDocNonNullableType",
+  "JSDocNullableType",
+  "JSDocUnknownType",
+  "TSAnyKeyword",
+  "TSArrayType",
+  "TSBigIntKeyword",
+  "TSBooleanKeyword",
+  "TSCallSignatureDeclaration",
+  "TSClassImplements",
+  "TSConditionalType",
+  "TSConstructSignatureDeclaration",
+  "TSConstructorType",
+  "TSDeclareFunction",
+  "TSExpressionWithTypeArguments",
+  "TSFunctionType",
+  "TSImportType",
+  "TSIndexSignature",
+  "TSIndexedAccessType",
+  "TSInferType",
+  "TSInterfaceDeclaration",
+  "TSInterfaceHeritage",
+  "TSIntersectionType",
+  "TSIntrinsicKeyword",
+  "TSLiteralType",
+  "TSMappedType",
+  "TSMethodSignature",
+  "TSNamedTupleMember",
+  "TSNeverKeyword",
+  "TSNullKeyword",
+  "TSNumberKeyword",
+  "TSObjectKeyword",
+  "TSOptionalType",
+  "TSParenthesizedType",
+  "TSPropertySignature",
+  "TSQualifiedName",
+  "TSRestType",
+  "TSStringKeyword",
+  "TSSymbolKeyword",
+  "TSTemplateLiteralType",
+  "TSThisType",
+  "TSTupleType",
+  "TSTypeAliasDeclaration",
+  "TSTypeAnnotation",
+  "TSTypeLiteral",
+  "TSTypeOperator",
+  "TSTypeParameter",
+  "TSTypeParameterDeclaration",
+  "TSTypeParameterInstantiation",
+  "TSTypePredicate",
+  "TSTypeQuery",
+  "TSTypeReference",
+  "TSUndefinedKeyword",
+  "TSUnionType",
+  "TSUnknownKeyword",
+  "TSVoidKeyword",
+]);
+
+function hasTypeOnlyAncestor(ancestors: readonly ESTree.Node[]): boolean {
+  for (let index = ancestors.length - 2; index >= 0; index -= 1) {
+    if (TYPE_ONLY_ANCESTORS.has(ancestors[index]!.type)) return true;
+  }
+  return false;
+}
+
 /**
  * True when an Identifier is a value read, not a declaration, label, or static key.
  */
 export function isValueReference(node: ESTree.Node, ancestors: readonly ESTree.Node[]): boolean {
+  if (hasTypeOnlyAncestor(ancestors)) return false;
   const parent = ancestors.length >= 2 ? ancestors[ancestors.length - 2] : undefined;
   if (!parent) return true;
   switch (parent.type) {
+    case "VariableDeclarator":
+      return (parent as ESTree.VariableDeclarator).id !== node;
     case "MemberExpression": {
       const member = parent as ESTree.MemberExpression;
       return member.property !== node || member.computed === true;
     }
     case "Property":
-    case "PropertyDefinition": {
-      const prop = parent as { key?: unknown; computed?: boolean };
-      return prop.key !== node || prop.computed === true;
+    case "PropertyDefinition":
+    case "MethodDefinition": {
+      const prop = parent as { key?: unknown; computed?: boolean; shorthand?: boolean };
+      return prop.key !== node || prop.computed === true || prop.shorthand === true;
     }
     case "FunctionDeclaration":
     case "FunctionExpression":
@@ -266,7 +333,6 @@ export type CommentLike = {
   value: string;
   start?: number;
   end?: number;
-  range?: readonly number[];
   loc?: { start: { line: number; column: number }; end: { line: number; column: number } };
 };
 
@@ -274,15 +340,46 @@ export function commentText(comment: CommentLike): string {
   return comment.value.trim();
 }
 
-/**
- * Stable comment offsets across hosts: `typescript-eslint` comments carry
- * only `range`, never `start`/`end` (FINDINGS.md COR-007). Returns `null`
- * when the host provides no offsets, so callers decline instead of guessing.
- */
-export function commentOffsets(comment: CommentLike): { start: number; end: number } | null {
-  const start = comment.start ?? comment.range?.[0];
-  const end = comment.end ?? comment.range?.[1];
-  return typeof start === "number" && typeof end === "number" ? { start, end } : null;
+/** Extract comment bodies when the host does not expose `getAllComments()`. */
+export function fallbackComments(
+  text: string,
+): Array<{ value: string; start: number; end: number }> {
+  const comments: Array<{ value: string; start: number; end: number }> = [];
+  let index = 0;
+  let allowBlock = true;
+
+  while (index < text.length) {
+    if (text.charCodeAt(index) !== 47) {
+      index += 1;
+      continue;
+    }
+
+    const next = text.charCodeAt(index + 1);
+    if (next === 47) {
+      const start = index;
+      index += 2;
+      while (index < text.length && text.charCodeAt(index) !== 10) index += 1;
+      comments.push({ value: text.slice(start + 2, index), start, end: index });
+      continue;
+    }
+
+    if (next === 42 && allowBlock) {
+      const start = index;
+      const close = text.indexOf("*/", index + 2);
+      if (close === -1) {
+        allowBlock = false;
+        index += 1;
+        continue;
+      }
+      index = close + 2;
+      comments.push({ value: text.slice(start + 2, close), start, end: index });
+      continue;
+    }
+
+    index += 1;
+  }
+
+  return comments;
 }
 
 /** Stable source offset across ESTree, ESLint, and Oxlint node adapters. */
@@ -295,7 +392,7 @@ export function nodeStart(node: ESTree.Node): number {
   return compatible.start ?? compatible.range?.[0] ?? compatible.span?.start ?? -1;
 }
 
-/** Stable end offset across ESTree, ESLint, and Oxlint node adapters. */
+/** Stable source end offset across ESTree, ESLint, and Oxlint node adapters. */
 export function nodeEnd(node: ESTree.Node): number {
   const compatible = node as unknown as {
     end?: number;
@@ -333,27 +430,38 @@ export function walk(
   visitors: Record<string, ((node: ESTree.Node) => void) | undefined>,
   ancestors: ESTree.Node[] = [],
   seen: WeakSet<object> = new WeakSet(),
+  ancestorIndex?: WeakMap<object, readonly ESTree.Node[]>,
 ): void {
   if (!isNode(node)) return;
-  if (ancestors.length >= MAX_WALK_DEPTH) return;
-  if (seen.has(node)) return;
-  seen.add(node);
-  const typed = node as ESTree.Node;
-  ancestors.push(typed);
-  visitors[typed.type]?.(typed);
+  const stack: Array<{ node: ESTree.Node; exit: boolean }> = [
+    { node: node as ESTree.Node, exit: false },
+  ];
+  while (stack.length > 0) {
+    const frame = stack.pop()!;
+    if (frame.exit) {
+      visitors[`${frame.node.type}:exit`]?.(frame.node);
+      ancestors.pop();
+      continue;
+    }
+    if (seen.has(frame.node)) continue;
+    seen.add(frame.node);
+    ancestorIndex?.set(frame.node, ancestors.slice());
+    ancestors.push(frame.node);
+    visitors[frame.node.type]?.(frame.node);
+    stack.push({ node: frame.node, exit: true });
 
-  for (const key of Object.keys(node)) {
-    if (WALK_SKIP_KEYS.has(key)) continue;
-    const value = (node as unknown as Record<string, unknown>)[key];
-    if (Array.isArray(value)) {
-      for (const child of value) {
-        if (isNode(child)) walk(child, visitors, ancestors, seen);
+    const children: ESTree.Node[] = [];
+    for (const key of Object.keys(frame.node)) {
+      if (WALK_SKIP_KEYS.has(key)) continue;
+      const value = (frame.node as unknown as Record<string, unknown>)[key];
+      if (Array.isArray(value)) {
+        for (const child of value) if (isNode(child)) children.push(child);
+      } else if (isNode(value)) {
+        children.push(value);
       }
-    } else if (isNode(value)) {
-      walk(value, visitors, ancestors, seen);
+    }
+    for (let index = children.length - 1; index >= 0; index -= 1) {
+      stack.push({ node: children[index]!, exit: false });
     }
   }
-
-  visitors[`${typed.type}:exit`]?.(typed);
-  ancestors.pop();
 }

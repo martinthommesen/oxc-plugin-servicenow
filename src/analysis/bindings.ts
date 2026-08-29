@@ -1,5 +1,5 @@
 import type { Context, ESTree } from "@oxlint/plugins";
-import { getName, isNode, nodeEnd, nodeStart, walk } from "../utils/ast.js";
+import { getName, isNode, unwrapExpression, walk } from "../utils/ast.js";
 
 export type BindingKind =
   | "var"
@@ -115,17 +115,15 @@ export class ScopeTree {
   }
 
   private innermostScopeContaining(node: ESTree.Node): ScopeNode | null {
-    // Portable offsets: typescript-eslint nodes carry only `range`
-    // (FINDINGS.md COR-007). Unknown offsets decline to answer.
-    const start = nodeStart(node);
-    const end = nodeEnd(node);
-    if (start < 0 || end < 0) return null;
+    const start = (node as { start?: number }).start;
+    const end = (node as { end?: number }).end;
+    if (typeof start !== "number" || typeof end !== "number") return null;
     let best: ScopeNode | null = null;
     let bestSpan = Number.POSITIVE_INFINITY;
     for (const scope of this.byBlock.values()) {
-      const blockStart = nodeStart(scope.block);
-      const blockEnd = nodeEnd(scope.block);
-      if (blockStart < 0 || blockEnd < 0) continue;
+      const blockStart = (scope.block as { start?: number }).start;
+      const blockEnd = (scope.block as { end?: number }).end;
+      if (typeof blockStart !== "number" || typeof blockEnd !== "number") continue;
       if (start < blockStart || end > blockEnd) continue;
       const span = blockEnd - blockStart;
       if (span < bestSpan) {
@@ -187,6 +185,48 @@ export function collectPatternNames(node: unknown, names: string[]): void {
       return;
     default:
       return;
+  }
+}
+
+/** Visit every lexical binding written by an assignment-compatible pattern. */
+export function forEachResolvedPatternBinding(
+  target: unknown,
+  bindings: FileBindings,
+  ancestors: readonly ESTree.Node[],
+  visit: (binding: LexicalBinding) => void,
+): void {
+  const node = unwrapExpression(target);
+  if (!isNode(node)) return;
+  if (node.type === "Identifier") {
+    const binding = bindings.resolve(node.name, node, ancestors);
+    if (binding) visit(binding);
+    return;
+  }
+  if (node.type === "AssignmentPattern") {
+    forEachResolvedPatternBinding(node.left, bindings, ancestors, visit);
+    return;
+  }
+  if (node.type === "RestElement") {
+    forEachResolvedPatternBinding(node.argument, bindings, ancestors, visit);
+    return;
+  }
+  if (node.type === "ArrayPattern") {
+    for (const element of node.elements) {
+      forEachResolvedPatternBinding(element, bindings, ancestors, visit);
+    }
+    return;
+  }
+  if (node.type === "ObjectPattern") {
+    for (const property of node.properties) {
+      forEachResolvedPatternBinding(
+        property.type === "RestElement"
+          ? property.argument
+          : (property as ESTree.ObjectProperty).value,
+        bindings,
+        ancestors,
+        visit,
+      );
+    }
   }
 }
 
@@ -327,6 +367,11 @@ export interface FileBindings {
   isPlatformGlobal(node: ESTree.Node, ancestors?: readonly ESTree.Node[]): boolean;
 }
 
+interface FileBindingsOptions {
+  /** Host scope graphs are valid only for nodes from the host SourceCode AST. */
+  scopeSource: "host" | "tree";
+}
+
 interface HostScope {
   type?: string;
   set?: Map<string, { defs: ReadonlyArray<{ type?: string }> }>;
@@ -363,17 +408,16 @@ function hostHasDefinedBinding(
   }
 }
 
-export function createFileBindings(context: Context, ast?: ESTree.Node): FileBindings {
-  const hostAst = context.sourceCode?.ast as ESTree.Node | undefined;
-  const program = (ast ?? hostAst) as ESTree.Node | undefined;
-  // The host scope manager describes context.sourceCode.ast. For an
-  // explicitly supplied alternate AST its answers describe the wrong
-  // program, so only the locally built scope tree is consulted
-  // (FINDINGS.md API-001).
-  const useHostScope = program === undefined || hostAst === undefined || program === hostAst;
-  const hostBinding = (node: ESTree.Node, name: string) =>
-    useHostScope ? hostHasDefinedBinding(context, node, name) : undefined;
+export function createFileBindings(
+  context: Context,
+  ast?: ESTree.Node,
+  options: FileBindingsOptions = { scopeSource: "host" },
+): FileBindings {
+  const program = (ast ?? (context.sourceCode.ast as ESTree.Node | undefined)) as
+    | ESTree.Node
+    | undefined;
   const tree = program ? buildScopeTree(program) : new ScopeTree();
+  const useHostScope = options.scopeSource === "host";
 
   return {
     tree,
@@ -381,14 +425,14 @@ export function createFileBindings(context: Context, ast?: ESTree.Node): FileBin
       return tree.resolve(name, node, ancestors);
     },
     isLocalName(name, node, ancestors = []) {
-      const host = hostBinding(node, name);
+      const host = useHostScope ? hostHasDefinedBinding(context, node, name) : undefined;
       if (host === true) return true;
       return tree.hasLocalBinding(name, node, ancestors);
     },
     isPlatformGlobal(node, ancestors = []) {
       const name = getName(node);
       if (!name) return false;
-      const host = hostBinding(node, name);
+      const host = useHostScope ? hostHasDefinedBinding(context, node, name) : undefined;
       if (host === true) return false;
       if (tree.hasLocalBinding(name, node, ancestors)) return false;
       return true;

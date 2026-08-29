@@ -32,6 +32,15 @@ function eslintRecommended(code: string, filename: string) {
   );
 }
 
+function eslintClassicEs5(code: string, filename: string): string[] {
+  return new Linter({ configType: "flat" })
+    .verify(code, [configs.flat.classicEs5 as unknown as import("eslint").Linter.Config], {
+      filename,
+    })
+    .map((message) => message.ruleId)
+    .filter((id): id is string => Boolean(id));
+}
+
 describe("profile fixtures", () => {
   it("recommended oxlint is silent on every valid profile fixture", () => {
     const report = runOxlint(recommendedConfig, [validDir]);
@@ -82,11 +91,114 @@ describe("profile fixtures", () => {
     assert.ok(rules.includes("servicenow/no-promise"));
   });
 
+  it("classic-es5 assigns Promise.try to no-promise without duplicate diagnostics", () => {
+    const filename = "es5-promise-try.server.js";
+    const file = path.join(invalidDir, filename);
+    const oxlintRules = pluginRulesFor(runOxlint(classicEs5Config, [file]));
+    assert.deepEqual(oxlintRules, ["servicenow/no-promise"]);
+
+    assert.deepEqual(eslintClassicEs5(readFileSync(file, "utf8"), filename), [
+      "servicenow/no-promise",
+    ]);
+  });
+
+  it("classic-es5 Oxlint and ESLint resolve stable Promise aliases", () => {
+    const filename = "es5-promise-alias.server.js";
+    const file = path.join(invalidDir, filename);
+    const oxlintRules = pluginRulesFor(runOxlint(classicEs5Config, [file]));
+    assert.ok(oxlintRules.includes("servicenow/no-promise"));
+
+    const eslintRules = eslintClassicEs5(readFileSync(file, "utf8"), filename);
+    assert.ok(eslintRules.includes("servicenow/no-promise"));
+  });
+
+  it("classic-es5 Oxlint and ESLint accept an explicit Promise polyfill", () => {
+    const filename = "es5-polyfilled-promise.server.js";
+    const file = path.join(validDir, filename);
+    assert.deepEqual(pluginRulesFor(runOxlint(classicEs5Config, [file])), []);
+
+    assert.deepEqual(eslintClassicEs5(readFileSync(file, "utf8"), filename), []);
+  });
+
+  it("classic-es5 Oxlint and ESLint resolve stable Proxy aliases", () => {
+    const filename = "es5-proxy-alias.server.js";
+    const file = path.join(invalidDir, filename);
+    const oxlintRules = pluginRulesFor(runOxlint(classicEs5Config, [file]));
+    assert.ok(oxlintRules.includes("servicenow/no-proxy"));
+    assert.ok(
+      eslintClassicEs5(readFileSync(file, "utf8"), filename).includes("servicenow/no-proxy"),
+    );
+  });
+
+  it("classic-es5 Oxlint and ESLint accept an explicit Proxy polyfill", () => {
+    const filename = "es5-polyfilled-proxy.server.js";
+    const file = path.join(validDir, filename);
+    assert.deepEqual(pluginRulesFor(runOxlint(classicEs5Config, [file])), []);
+    assert.deepEqual(eslintClassicEs5(readFileSync(file, "utf8"), filename), []);
+  });
+
+  it("classic-es5 Oxlint and ESLint resolve stable BigInt aliases", () => {
+    const filename = "es5-bigint-alias.server.js";
+    const file = path.join(invalidDir, filename);
+    assert.ok(pluginRulesFor(runOxlint(classicEs5Config, [file])).includes("servicenow/no-bigint"));
+    assert.ok(
+      eslintClassicEs5(readFileSync(file, "utf8"), filename).includes("servicenow/no-bigint"),
+    );
+  });
+
+  it("classic-es5 Oxlint and ESLint accept an explicit BigInt polyfill", () => {
+    const filename = "es5-polyfilled-bigint.server.js";
+    const file = path.join(validDir, filename);
+    assert.deepEqual(pluginRulesFor(runOxlint(classicEs5Config, [file])), []);
+    assert.deepEqual(eslintClassicEs5(readFileSync(file, "utf8"), filename), []);
+  });
+
+  it("classic-es5 Oxlint and ESLint resolve stable RegExp aliases", () => {
+    const filename = "es5-regexp-alias.server.js";
+    const file = path.join(invalidDir, filename);
+    assert.ok(
+      pluginRulesFor(runOxlint(classicEs5Config, [file])).includes(
+        "servicenow/no-unsupported-syntax",
+      ),
+    );
+    assert.ok(
+      eslintClassicEs5(readFileSync(file, "utf8"), filename).includes(
+        "servicenow/no-unsupported-syntax",
+      ),
+    );
+  });
+
+  it("classic-es5 Oxlint and ESLint accept an explicit RegExp polyfill", () => {
+    const filename = "es5-polyfilled-regexp.server.js";
+    const file = path.join(validDir, filename);
+    assert.deepEqual(pluginRulesFor(runOxlint(classicEs5Config, [file])), []);
+    assert.deepEqual(eslintClassicEs5(readFileSync(file, "utf8"), filename), []);
+  });
+
+  it("classic-es5 Oxlint and ESLint accept an explicit Array.at polyfill", () => {
+    const filename = "es5-polyfilled-at.server.js";
+    const file = path.join(validDir, filename);
+    assert.deepEqual(pluginRulesFor(runOxlint(classicEs5Config, [file])), []);
+    assert.deepEqual(eslintClassicEs5(readFileSync(file, "utf8"), filename), []);
+  });
+
   it("recommended flags GlideRecord in a client fixture", () => {
     const rules = pluginRulesFor(
       runOxlint(recommendedConfig, [path.join(invalidDir, "client-gliderecord.client.js")]),
     );
     assert.ok(rules.includes("servicenow/no-client-gliderecord"));
+  });
+
+  it("recommended Oxlint and ESLint resolve stable WeakRef aliases", () => {
+    const filename = "weakref-alias.server.js";
+    const file = path.join(invalidDir, filename);
+    const oxlintRules = pluginRulesFor(runOxlint(recommendedConfig, [file]));
+    assert.ok(oxlintRules.includes("servicenow/no-weak-references"));
+
+    const eslintRules = eslintRecommended(readFileSync(file, "utf8"), filename)
+      .map((message) => message.ruleId)
+      .filter((id): id is string => Boolean(id));
+    assert.ok(eslintRules.includes("servicenow/no-weak-references"));
   });
 
   it("recommended flags Phase 2 server and client rules", () => {
@@ -195,6 +307,26 @@ describe("profile fixtures", () => {
     );
   });
 
+  it("does not treat Fluent SDK directives as lint-disable comments in either host", () => {
+    const filename = "fluent-ignore-does-not-disable-lint.now.ts";
+    const file = path.join(invalidDir, filename);
+    const oxlintRules = pluginRulesFor(runOxlint(recommendedConfig, [file]));
+    assert.ok(
+      oxlintRules.includes("servicenow/require-fluent-id"),
+      `Oxlint SDK ignore directive: ${oxlintRules.join(", ") || "(none)"}`,
+    );
+    assert.ok(!oxlintRules.includes("servicenow/fluent-directives"));
+
+    const eslintRules = eslintRecommended(readFileSync(file, "utf8"), filename)
+      .map((message) => message.ruleId)
+      .filter((id): id is string => Boolean(id));
+    assert.ok(
+      eslintRules.includes("servicenow/require-fluent-id"),
+      `ESLint SDK ignore directive: ${eslintRules.join(", ") || "(none)"}`,
+    );
+    assert.ok(!eslintRules.includes("servicenow/fluent-directives"));
+  });
+
   it("client rules do not leak onto a server UI Action", () => {
     const rules = pluginRulesFor(
       runOxlint(recommendedConfig, [path.join(validDir, "close.ui-action.js")]),
@@ -261,6 +393,25 @@ describe("profile fixtures", () => {
       security.includes("servicenow/no-system-query-bypass"),
       `system-query: ${security.join(", ") || "(none)"}`,
     );
+  });
+
+  it("ACL query review is opt-in and works through real Oxlint and ESLint", () => {
+    const file = path.join(invalidDir, "acl-query.acl.js");
+    const code = readFileSync(file, "utf8");
+    const recommended = pluginRulesFor(runOxlint(recommendedConfig, [file]));
+    const strict = pluginRulesFor(runOxlint(strictConfig, [file]));
+    const security = pluginRulesFor(runOxlint(securityConfig, [file]));
+    assert.ok(!recommended.includes("servicenow/no-gliderecord-query-in-acl"));
+    assert.ok(strict.includes("servicenow/no-gliderecord-query-in-acl"));
+    assert.ok(security.includes("servicenow/no-gliderecord-query-in-acl"));
+
+    const linter = new Linter({ configType: "flat" });
+    const eslintIds = linter
+      .verify(code, [configs.flat.acl as unknown as import("eslint").Linter.Config], {
+        filename: "acl-query.acl.js",
+      })
+      .map((message) => message.ruleId);
+    assert.ok(eslintIds.includes("servicenow/no-gliderecord-query-in-acl"));
   });
 
   it("recommended oxlint flags empty filters, late aggregates, and empty GlideAjax values", () => {

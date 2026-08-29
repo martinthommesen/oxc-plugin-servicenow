@@ -1,6 +1,10 @@
 import type { ESTree } from "@oxlint/plugins";
 import { nodeStart } from "../utils/ast.js";
 import { analyzePathBindings, mergeTri } from "./path-state.js";
+import {
+  hasAuthoritativeGlideRecordMethod,
+  type PlatformMethodAuthorityFacts,
+} from "./platform-method-authority.js";
 import type { ProvenanceQuery } from "./provenance.js";
 
 export interface WindowedDeleteFinding {
@@ -22,6 +26,7 @@ const WINDOW = new Set(["setLimit", "chooseWindow"]);
 export function findWindowedDeleteMultiple(
   program: ESTree.Node,
   analysis: ProvenanceQuery,
+  authority: PlatformMethodAuthorityFacts,
 ): WindowedDeleteFinding[] {
   const findings: WindowedDeleteFinding[] = [];
   const reported = new Set<number>();
@@ -33,8 +38,12 @@ export function findWindowedDeleteMultiple(
     cloneData: (data) => ({ ...data }),
     equalsData: (left, right) => left.windowed === right.windowed,
     mergeData: (left, right) => ({ windowed: mergeTri(left.windowed, right.windowed) }),
-    onCall({ call, rec, objectName, property }) {
-      if (!rec || !objectName || !property) return;
+    onCall({ call, rec, receiver, objectName, property }) {
+      if (!rec || !receiver || !objectName || !property) return;
+      if (!hasAuthoritativeGlideRecordMethod(authority, receiver, property)) {
+        rec.data.windowed = "unknown";
+        return;
+      }
       if (WINDOW.has(property)) rec.data.windowed = true;
       if (property === "deleteMultiple" && rec.data.windowed === true) {
         const key = nodeStart(call);
@@ -43,6 +52,10 @@ export function findWindowedDeleteMultiple(
           findings.push({ node: call, name: objectName, method: property });
         }
       }
+    },
+    onBudgetExceeded() {
+      findings.length = 0;
+      reported.clear();
     },
   });
   return findings;

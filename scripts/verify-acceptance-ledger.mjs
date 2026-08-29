@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { arch, platform, release } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -10,6 +10,9 @@ const goalPath = join(root, "PR51-REMEDIATION-GOAL.md");
 const mappingPath = join(root, "scripts/pr51-acceptance.json");
 const artifactsDir = join(root, "artifacts");
 const testReportPath = join(artifactsDir, "pr51-test-results.json");
+const ACCEPTANCE_GOAL_SHA256 = "22f9e1d3d370eaa88001d8c7587f2878b7955a8d9b80922de5848696096a2dc1";
+const ACCEPTANCE_AUTHORITY_DIGEST =
+  "6f9473920d9ffde625bcf68418da08cde196282c91661c2d40608c9bfff68d02";
 
 export function repoFilePath(path) {
   if (typeof path !== "string" || path === "" || path.includes("\0") || path.includes("\\")) {
@@ -22,11 +25,6 @@ export function repoFilePath(path) {
   }
   return resolved;
 }
-// Mirrors NETWORKED_TESTS in scripts/run-tests.mjs (that file spawns on
-// import, so the constant cannot be imported). In an --offline run the
-// criteria proven only by these files are recorded as Live-pending instead
-// of failing (FINDINGS.md OPS-004).
-const NETWORKED_TEST_FILES = new Set(["tests/integration/packed-consumer.test.ts"]);
 const allowedDispositions = new Set([
   "Pending",
   "Reproduced",
@@ -48,6 +46,22 @@ const dispositionLabels = new Set([
 
 function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
+}
+
+export function criteriaAuthorityDigest(criteria, goalSha256) {
+  return sha256(
+    `${goalSha256}\n` +
+      criteria
+        .map((item) =>
+          JSON.stringify({
+            id: item.id,
+            heading: item.source.heading,
+            text: item.source.text,
+            digest: item.source.digest,
+          }),
+        )
+        .join("\n"),
+  );
 }
 
 function normalize(value) {
@@ -191,6 +205,50 @@ export function validateMapping(parsed, mapping) {
   return errors;
 }
 
+export function validateSnapshot(mapping) {
+  const errors = [];
+  const seen = new Set();
+  const occurrences = new Map();
+  for (const item of mapping.criteria ?? []) {
+    if (seen.has(item.id)) errors.push(`duplicate mapping ${item.id}`);
+    seen.add(item.id);
+    if (item.source.digest !== sha256(item.source.text))
+      errors.push(`changed source mapping ${item.id}`);
+    const occurrenceKey = `${item.source.heading}\0${item.source.text}`;
+    const occurrence = (occurrences.get(occurrenceKey) ?? 0) + 1;
+    occurrences.set(occurrenceKey, occurrence);
+    const expectedId = `PR51-${sha256(`${occurrenceKey}\0${occurrence}`).slice(0, 12).toUpperCase()}`;
+    if (item.id !== expectedId) errors.push(`changed finding ID ${item.id}`);
+    if (!allowedDispositions.has(item.disposition))
+      errors.push(`${item.id} has invalid disposition ${item.disposition}`);
+  }
+  if (mapping.goal?.sha256 !== ACCEPTANCE_GOAL_SHA256) errors.push("goal authority changed");
+  if (
+    mapping.criteriaDigest !== ACCEPTANCE_AUTHORITY_DIGEST ||
+    mapping.criteriaDigest !== criteriaAuthorityDigest(mapping.criteria ?? [], mapping.goal?.sha256)
+  )
+    errors.push("criteria authority digest changed");
+  if (mapping.criteria?.length !== mapping.goal?.criteria)
+    errors.push("goal criterion count changed");
+  if (mapping.goal?.criteriaSha256 !== criteriaSha256(mapping.criteria ?? []))
+    errors.push("goal criteria digest changed");
+  return errors;
+}
+
+export function criteriaSha256(criteria) {
+  return sha256(
+    JSON.stringify(
+      criteria.map(({ id, source }) => ({
+        id,
+        heading: source.heading,
+        line: source.line,
+        text: source.text,
+        digest: source.digest,
+      })),
+    ),
+  );
+}
+
 function updateMapping(source, parsed) {
   let previous = { criteria: [] };
   try {
@@ -216,7 +274,13 @@ function updateMapping(source, parsed) {
   });
   const result = {
     schemaVersion: 1,
-    goal: { path: "PR51-REMEDIATION-GOAL.md", sha256: sha256(source), criteria: criteria.length },
+    goal: {
+      path: "PR51-REMEDIATION-GOAL.md",
+      sha256: sha256(source),
+      criteria: criteria.length,
+      criteriaSha256: criteriaSha256(criteria),
+    },
+    criteriaDigest: criteriaAuthorityDigest(criteria, sha256(source)),
     criteria,
   };
   writeFileSync(mappingPath, `${JSON.stringify(result, null, 2)}\n`);
@@ -275,20 +339,14 @@ export function worktreeIdentity() {
   };
 }
 
-function runTests(offline) {
+function runTests() {
   mkdirSync(artifactsDir, { recursive: true });
   const result = spawnSync(
     process.execPath,
     // The explicit "tests" root includes the networked packed-consumer test
-    // that the hermetic default run excludes; --offline stays on the
-    // hermetic default set so required validation never reaches the
-    // registry (FINDINGS.md OPS-004).
-    [
-      join(root, "scripts/run-tests.mjs"),
-      "--report-json",
-      testReportPath,
-      ...(offline ? [] : ["tests"]),
-    ],
+    // that the hermetic default run excludes (FINDINGS.md OPS-004): the
+    // acceptance capture is the complete evidence run.
+    [join(root, "scripts/run-tests.mjs"), "--report-json", testReportPath, "tests"],
     {
       cwd: root,
       encoding: "utf8",
@@ -300,7 +358,20 @@ function runTests(offline) {
   return JSON.parse(readFileSync(testReportPath, "utf8"));
 }
 
-function verifyProofs(mapping, report, deferred = null) {
+export function searchableRepoFiles() {
+  const files = [];
+  const visit = (directory) => {
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      const path = join(directory, entry.name);
+      if (entry.isDirectory()) visit(path);
+      else if (entry.isFile()) files.push(relative(root, path));
+    }
+  };
+  for (const directory of ["src", "scripts", "tests"]) visit(join(root, directory));
+  return files.filter((path) => path !== "scripts/pr51-acceptance.json");
+}
+
+function verifyProofs(mapping, report) {
   const errors = [];
   const byKey = new Map();
   for (const test of report.tests) {
@@ -309,26 +380,11 @@ function verifyProofs(mapping, report, deferred = null) {
     entries.push(test);
     byKey.set(key, entries);
   }
-  const searchableFiles = execFileSync("rg", ["--files", "src", "scripts", "tests"], {
-    cwd: root,
-    encoding: "utf8",
-  })
-    .trim()
-    .split("\n")
-    .filter(Boolean)
-    .filter((path) => path !== "scripts/pr51-acceptance.json");
+  const searchableFiles = searchableRepoFiles();
   for (const item of mapping.criteria) {
     if (item.disposition === "Verified at exact head") {
       if (!item.command || item.proofs.length === 0)
         errors.push(`${item.id} is verified without an exact command and proof`);
-      if (
-        deferred &&
-        item.proofs.length > 0 &&
-        item.proofs.every((proof) => NETWORKED_TEST_FILES.has(proof.file))
-      ) {
-        deferred.add(item.id);
-        continue;
-      }
       for (const proof of item.proofs) {
         const matches = byKey.get(`${proof.file}::${proof.fullName}`) ?? [];
         if (matches.length !== 1)
@@ -371,45 +427,43 @@ function proofLabel(item) {
   return item.proofs.map((proof) => `\`${proof.file}\` — ${proof.fullName}`).join("<br>") || "—";
 }
 
-function generateDocs(mapping, artifact, offline) {
+function generateDocs(mapping, artifact) {
   const rows = mapping.criteria.map(
     (item) =>
       `| ${item.id} | #${item.owner.pr} | ${markdownCell(item.source.heading)} | ${markdownCell(item.source.text)} | ${item.disposition} | ${proofLabel(item)} |`,
   );
   const ledger = `# PR #51 acceptance ledger\n\nThis file is generated from the authoritative goal and \`scripts/pr51-acceptance.json\`. The committed ledger maps requirements. It cannot prove the commit that contains itself. Current execution evidence is written to \`artifacts/pr51-acceptance.json\` and records either an exact clean commit or \`uncommitted\` with a diff digest.\n\n- Goal SHA-256: \`${mapping.goal.sha256}\`\n- Atomic requirements: ${mapping.criteria.length}\n- Verified at exact head: ${artifact.summary.verified}\n- Pending: ${artifact.summary.pending}\n- Live-pending: ${artifact.summary.livePending}\n\n| Finding ID | Owner | Source | Exact requirement | Disposition | Exact proof |\n| --- | ---: | --- | --- | --- | --- |\n${rows.join("\n")}\n`;
-  // An offline run leaves the committed ledger documents to the full
-  // capture so the two modes cannot flip-flop tracked files (FINDINGS.md
-  // OPS-004).
-  if (!offline) writeFileSync(join(root, "docs/pr-51-acceptance-ledger.md"), ledger);
+  writeFileSync(join(root, "docs/pr-51-acceptance-ledger.md"), ledger);
   const report = `# PR #51 remediation validation report\n\nThis generated report describes the latest local acceptance capture. It does not convert historical runs into current proof.\n\n## Evidence identity\n\n- Tested identity: \`${artifact.identity.testedIdentity}\`\n- HEAD: \`${artifact.identity.head}\`\n- Worktree: ${artifact.identity.clean ? "clean" : "uncommitted"}\n- Diff digest: ${artifact.identity.diffDigest ? `\`${artifact.identity.diffDigest}\`` : "not applicable"}\n- Node: \`${artifact.runtime.node}\`\n- npm: \`${artifact.runtime.npm}\`\n- Host: \`${artifact.runtime.platform} ${artifact.runtime.arch} ${artifact.runtime.release}\`\n- Captured: \`${artifact.capturedAt}\`\n\n## Result\n\n- Tests inventoried: ${artifact.testResults.total}\n- Passed: ${artifact.testResults.passed}\n- Failed: ${artifact.testResults.failed}\n- Verified criteria: ${artifact.summary.verified}\n- Pending criteria: ${artifact.summary.pending}\n- Live-pending criteria: ${artifact.summary.livePending}\n- Acceptance complete: ${artifact.complete ? "yes" : "no"}\n\nSee [the atomic ledger](pr-51-acceptance-ledger.md) for exact mappings.\n`;
-  if (!offline) writeFileSync(join(root, "docs/pr-51-validation-report.md"), report);
+  writeFileSync(join(root, "docs/pr-51-validation-report.md"), report);
   writeFileSync(join(artifactsDir, "pr51-acceptance.md"), report);
 }
 
 export async function main(argv = process.argv.slice(2)) {
-  const offline = argv.includes("--offline");
-  const source = readFileSync(goalPath, "utf8");
-  const parsed = parseCriteria(source);
-  const mapping = argv.includes("--update") ? updateMapping(source, parsed) : readMapping();
-  const errors = validateMapping(parsed, mapping);
-  if (mapping.goal.sha256 !== sha256(source) || mapping.goal.criteria !== parsed.length)
+  const update = argv.includes("--update");
+  if (update && !existsSync(goalPath))
+    throw new Error("--update requires PR51-REMEDIATION-GOAL.md from the tracking branch");
+  const source = update ? readFileSync(goalPath, "utf8") : null;
+  const parsed = source === null ? null : parseCriteria(source);
+  const mapping = update ? updateMapping(source, parsed) : readMapping();
+  const errors = update ? validateMapping(parsed, mapping) : validateSnapshot(mapping);
+  if (
+    source !== null &&
+    (mapping.goal.sha256 !== sha256(source) || mapping.goal.criteria !== parsed.length)
+  )
     errors.push("goal identity or criterion count changed");
-  const deferred = new Set();
-  const report = argv.includes("--update") ? { tests: [] } : runTests(offline);
-  if (!argv.includes("--update"))
-    errors.push(...verifyProofs(mapping, report, offline ? deferred : null));
+  const report = argv.includes("--update") ? { tests: [] } : runTests();
+  if (!argv.includes("--update")) errors.push(...verifyProofs(mapping, report));
   const identity = worktreeIdentity();
   if (process.env.CI && (!identity.clean || process.env.GITHUB_SHA !== identity.head))
     errors.push("CI acceptance evidence requires a clean exact GITHUB_SHA");
   const summary = {
-    verified:
-      mapping.criteria.filter((item) => item.disposition === "Verified at exact head").length -
-      deferred.size,
+    verified: mapping.criteria.filter((item) => item.disposition === "Verified at exact head")
+      .length,
     pending: mapping.criteria.filter((item) =>
       ["Pending", "Reproduced", "Implemented"].includes(item.disposition),
     ).length,
-    livePending:
-      mapping.criteria.filter((item) => item.disposition === "Live-pending").length + deferred.size,
+    livePending: mapping.criteria.filter((item) => item.disposition === "Live-pending").length,
   };
   const testResults = {
     total: report.tests.length,
@@ -433,16 +487,10 @@ export async function main(argv = process.argv.slice(2)) {
       arch: arch(),
       release: release(),
     },
-    mode: offline ? "offline" : "full",
-    commands: offline
-      ? [
-          "node scripts/run-tests.mjs --report-json artifacts/pr51-test-results.json",
-          "tsx scripts/verify-acceptance-ledger.mjs --offline",
-        ]
-      : [
-          "node scripts/run-tests.mjs --report-json artifacts/pr51-test-results.json tests",
-          "tsx scripts/verify-acceptance-ledger.mjs",
-        ],
+    commands: [
+      "node scripts/run-tests.mjs --report-json artifacts/pr51-test-results.json",
+      "node scripts/verify-acceptance-ledger.mjs",
+    ],
     testResults,
     summary,
     errors,
@@ -452,7 +500,7 @@ export async function main(argv = process.argv.slice(2)) {
     join(artifactsDir, "pr51-acceptance.json"),
     `${JSON.stringify(artifact, null, 2)}\n`,
   );
-  generateDocs(mapping, artifact, offline);
+  generateDocs(mapping, artifact);
   if (errors.length > 0) throw new Error(errors.join("\n"));
   console.log(
     JSON.stringify(

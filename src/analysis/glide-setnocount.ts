@@ -1,6 +1,9 @@
 import type { ESTree } from "@oxlint/plugins";
 import { analyzePathBindings } from "./path-state.js";
-import { nodeStart } from "../utils/ast.js";
+import {
+  hasAuthoritativeGlideRecordMethod,
+  type PlatformMethodAuthorityFacts,
+} from "./platform-method-authority.js";
 import type { ProvenanceQuery } from "./provenance.js";
 
 export interface ChooseWindowCountFinding {
@@ -18,6 +21,7 @@ interface CountAlternative {
   windowed: boolean;
   skippedCount: boolean;
   wantsCount: boolean | "unknown";
+  uncertain: boolean;
   result: CountCandidate | null;
 }
 
@@ -45,7 +49,8 @@ function alternativeKey(value: CountAlternative): string {
     windowed: value.windowed,
     skippedCount: value.skippedCount,
     wantsCount: value.wantsCount,
-    resultStart: value.result ? nodeStart(value.result.node) : null,
+    uncertain: value.uncertain,
+    resultStart: value.result?.node.start ?? null,
     resultUsed: value.result?.used ?? null,
   });
 }
@@ -65,6 +70,7 @@ function mergeCountData(left: CountData, right: CountData): CountData {
 export function findChooseWindowWithoutNoCount(
   program: ESTree.Node,
   analysis: ProvenanceQuery,
+  authority: PlatformMethodAuthorityFacts,
 ): ChooseWindowCountFinding[] {
   const finalized = new Map<ESTree.CallExpression, string>();
   const finalize = (alternative: CountAlternative): void => {
@@ -78,7 +84,15 @@ export function findChooseWindowWithoutNoCount(
     analysis,
     kinds: ["GlideRecord"],
     emptyData: () => ({
-      alternatives: [{ windowed: false, skippedCount: false, wantsCount: false, result: null }],
+      alternatives: [
+        {
+          windowed: false,
+          skippedCount: false,
+          wantsCount: false,
+          uncertain: false,
+          result: null,
+        },
+      ],
     }),
     cloneData: (data) => ({ alternatives: data.alternatives.map(cloneAlternative) }),
     equalsData: (left, right) =>
@@ -87,8 +101,15 @@ export function findChooseWindowWithoutNoCount(
         (value, index) => alternativeKey(value) === alternativeKey(right.alternatives[index]!),
       ),
     mergeData: mergeCountData,
-    onCall({ call, rec, objectName, property }) {
-      if (!rec || !property) return;
+    onCall({ call, rec, receiver, objectName, property }) {
+      if (!rec || !receiver || !property) return;
+      if (!hasAuthoritativeGlideRecordMethod(authority, receiver, property)) {
+        for (const value of rec.data.alternatives) {
+          if (value.result) value.result.used = true;
+          value.uncertain = true;
+        }
+        return;
+      }
       if (property === "chooseWindow") {
         for (const value of rec.data.alternatives) {
           value.windowed = true;
@@ -97,7 +118,10 @@ export function findChooseWindowWithoutNoCount(
         return;
       }
       if (property === "setNoCount" || property === "setLimit") {
-        for (const value of rec.data.alternatives) value.skippedCount = true;
+        for (const value of rec.data.alternatives) {
+          value.skippedCount = true;
+          value.uncertain = false;
+        }
         return;
       }
       if (property === "getRowCount") {
@@ -112,12 +136,13 @@ export function findChooseWindowWithoutNoCount(
       for (const value of rec.data.alternatives) {
         finalize(value);
         value.result =
-          value.windowed && !value.skippedCount && value.wantsCount === false
+          value.windowed && !value.skippedCount && value.wantsCount === false && !value.uncertain
             ? { node: call, name: objectName ?? "record", used: false }
             : null;
         value.windowed = false;
         value.skippedCount = false;
         value.wantsCount = false;
+        value.uncertain = false;
       }
     },
     onExit(states) {
@@ -126,6 +151,9 @@ export function findChooseWindowWithoutNoCount(
           for (const value of record.data.alternatives) finalize(value);
         }
       }
+    },
+    onBudgetExceeded() {
+      finalized.clear();
     },
   });
 

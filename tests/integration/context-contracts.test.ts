@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { Linter } from "eslint";
@@ -32,7 +33,7 @@ const cases: Array<{
     name: "unknown surface runs only the mode rule",
     fixture: "unknown.js",
     config: "auto-es5.oxlintrc.json",
-    settings: { javascriptMode: "es5" },
+    settings: { javascriptMode: "es5", scope: "scoped" },
     rules: AUTO_RULES,
     expected: [
       {
@@ -47,7 +48,7 @@ const cases: Array<{
     name: "known server runs server contracts",
     fixture: "known.server.js",
     config: "auto-es5.oxlintrc.json",
-    settings: { javascriptMode: "es5" },
+    settings: { javascriptMode: "es5", scope: "scoped" },
     rules: AUTO_RULES,
     expected: [
       {
@@ -60,7 +61,7 @@ const cases: Array<{
         ruleId: "servicenow/validate-gliderecord-calls",
         messageId: "unusedReturn",
         message:
-          "The return value of `record.insert()` is ignored. Check `insert`, `update`, `get`, and `next`. Bulk methods such as `updateMultiple` and `deleteMultiple` are not flagged.",
+          "The return value of `record.insert()` is ignored. Check `insert`, `update`, `deleteRecord`, `get`, `next`, and `_next`. Bulk methods such as `updateMultiple` and `deleteMultiple` are not flagged.",
       },
       {
         ruleId: "servicenow/no-system-query-bypass",
@@ -80,26 +81,26 @@ const cases: Array<{
     name: "known client runs client contracts",
     fixture: "known.client.js",
     config: "auto-es5.oxlintrc.json",
-    settings: { javascriptMode: "es5" },
+    settings: { javascriptMode: "es5", scope: "scoped" },
     rules: AUTO_RULES,
     expected: [
       {
         ruleId: "servicenow/no-client-gliderecord",
         messageId: "glideRecord",
         message:
-          "Do not use `GlideRecord` in client scripts — it is slow, poorly supported, and often blocked. Call a Script Include via `GlideAjax`, a Scripted REST API, or use `g_form.getReference()`.",
+          "Client GlideRecord is not supported in scoped applications. Query through a Script Include with `GlideAjax` or a Scripted REST API.",
       },
       {
         ruleId: "servicenow/no-client-gliderecord",
         messageId: "glideRecord",
         message:
-          "Do not use `GlideRecord` in client scripts — it is slow, poorly supported, and often blocked. Call a Script Include via `GlideAjax`, a Scripted REST API, or use `g_form.getReference()`.",
+          "Client GlideRecord is not supported in scoped applications. Query through a Script Include with `GlideAjax` or a Scripted REST API.",
       },
       {
         ruleId: "servicenow/no-client-gliderecord",
         messageId: "glideRecord",
         message:
-          "Do not use `GlideRecord` in client scripts — it is slow, poorly supported, and often blocked. Call a Script Include via `GlideAjax`, a Scripted REST API, or use `g_form.getReference()`.",
+          "Client GlideRecord is not supported in scoped applications. Query through a Script Include with `GlideAjax` or a Scripted REST API.",
       },
       {
         ruleId: "servicenow/no-gs-now",
@@ -113,7 +114,11 @@ const cases: Array<{
     name: "mixed UI Action suppresses the file-wide client rule",
     fixture: "mixed.ui-action.js",
     config: "mixed.oxlintrc.json",
-    settings: { authoring: "classic", surfaces: ["ui-action", "client", "server"] },
+    settings: {
+      authoring: "classic",
+      surfaces: ["ui-action", "client", "server"],
+      scope: "scoped",
+    },
     rules: { "servicenow/no-client-gliderecord": "error" },
     expected: [],
   },
@@ -138,6 +143,17 @@ const cases: Array<{
           "Do not call `current.update()` in a Business Rule. Assign fields on `current` and let the platform save the record (use a *before* rule). Calling `update()` retriggers other Business Rules and can recurse.",
       },
     ],
+  },
+  {
+    name: "mutated platform globals stay unknown",
+    fixture: "mutated-globals.br.js",
+    config: "auto-es5.oxlintrc.json",
+    settings: { authoring: "classic", surfaces: ["business-rule"] },
+    rules: {
+      "servicenow/no-br-current-update": "error",
+      "servicenow/no-gs-now": "error",
+    },
+    expected: [],
   },
 ];
 
@@ -190,4 +206,80 @@ describe("real-host context contracts", () => {
       assert.deepEqual(eslint, sorted(testCase.expected.map((item) => ({ ...item }))));
     });
   }
+
+  it("does not retain query-lifecycle offsets across ESLint files", () => {
+    const code = `var record = new GlideRecord("incident");
+record.next();`;
+    for (const testCase of [
+      {
+        rule: "servicenow/require-query-before-next",
+        expected: ["missingQuery"],
+      },
+      {
+        rule: "servicenow/validate-gliderecord-calls",
+        expected: ["missingQuery", "unusedReturn"],
+      },
+    ] as const) {
+      const linter = new Linter({ configType: "flat" });
+      const config: import("eslint").Linter.Config[] = [
+        {
+          files: ["**/*.js"],
+          plugins: { servicenow: plugin as never },
+          settings: { servicenow: { surfaces: ["server"] } },
+          rules: { [testCase.rule]: "error" },
+        },
+      ];
+      for (const filename of ["first.server.js", "second.server.js"]) {
+        assert.deepEqual(
+          linter.verify(code, config, { filename }).map((message) => message.messageId),
+          testCase.expected,
+        );
+      }
+    }
+  });
+
+  it("does not retain query-lifecycle offsets across Oxlint files", () => {
+    const directory = mkdtempSync(path.join(tmpdir(), "sn-create-once-"));
+    const files = ["first.server.js", "second.server.js"].map((name) => path.join(directory, name));
+    const config = path.join(directory, ".oxlintrc.json");
+    try {
+      for (const file of files) {
+        writeFileSync(
+          file,
+          `var record = new GlideRecord("incident");
+record.next();`,
+        );
+      }
+      writeFileSync(
+        config,
+        JSON.stringify({
+          jsPlugins: [{ name: "servicenow", specifier: path.join(repoRoot, "dist/index.js") }],
+          settings: { servicenow: { surfaces: ["server"] } },
+          rules: {
+            "servicenow/require-query-before-next": "error",
+            "servicenow/validate-gliderecord-calls": "error",
+          },
+        }),
+      );
+      const diagnostics = runOxlint(config, files)
+        .diagnostics.filter((diagnostic) => pluginRuleId(diagnostic.code))
+        .map((diagnostic) => ({
+          file: path.basename(diagnostic.filename),
+          rule: pluginRuleId(diagnostic.code),
+        }));
+      for (const file of files) {
+        const actual = diagnostics
+          .filter((diagnostic) => diagnostic.file === path.basename(file))
+          .map((diagnostic) => diagnostic.rule)
+          .sort();
+        assert.deepEqual(actual, [
+          "servicenow/require-query-before-next",
+          "servicenow/validate-gliderecord-calls",
+          "servicenow/validate-gliderecord-calls",
+        ]);
+      }
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
+  });
 });

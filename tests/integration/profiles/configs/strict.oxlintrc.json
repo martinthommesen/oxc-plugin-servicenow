@@ -8,7 +8,8 @@
   ],
   "settings": {
     "servicenow": {
-      "scopePrefix": "x_acme"
+      "scopePrefix": "x_acme",
+      "scope": "scoped"
     }
   },
   "rules": {
@@ -20,7 +21,6 @@
     "servicenow/fluent-proper-imports": "error",
     "servicenow/fluent-directives": "warn",
     "servicenow/require-fluent-id": "error",
-    "servicenow/no-packages-calls": "error",
     "servicenow/no-weak-references": "error",
     "servicenow/no-delete-multiple-with-windowing": "error",
     "servicenow/require-callback-for-getreference": "error",
@@ -39,6 +39,7 @@
     "servicenow/prefer-now-include": "warn",
     "servicenow/fluent-naming-convention": "warn",
     "servicenow/no-display-value-date-comparison": "warn",
+    "servicenow/no-gliderecord-query-in-acl": "warn",
     "servicenow/no-gliderecord-query-in-loop": "warn",
     "servicenow/prefer-setnocount-with-choosewindow": "warn"
   }
