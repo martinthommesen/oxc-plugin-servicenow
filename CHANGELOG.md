@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Deprecated
+
+- `validate-gliderecord-calls` will be removed in 3.0. It stays available and `off` throughout 2.x for 1.x migrations. Use `require-query-before-next`, which covers the same query-before-`next` class with path-sensitive analysis (README migration step 4).
+
 ### Fixed
 
 - The generated SDK snapshot module is annotated with an interface instead of `as const`, shrinking the shipped `dist/fluent/declaration-snapshots.d.ts` from 939 KB to under 1 KB and the built `dist` tree from 2.8 MB to 1.9 MB. The release artifact check now enforces a 200 KB budget per shipped declaration file.

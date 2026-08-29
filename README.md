@@ -313,7 +313,7 @@ Per-file `// @sn-es-latest` still maps to `es2021` with inferred confidence. Pre
 | [`no-client-gliderecord`](docs/rules/no-client-gliderecord.md) | recommended |  | Client-side GlideRecord is slow, often blocked, and a security smell |
 | [`no-gs-now`](docs/rules/no-gs-now.md) | recommended |  | `gs.now()` and `gs.nowDateTime()` return timezone-sensitive display strings |
 | [`require-query-before-next`](docs/rules/require-query-before-next.md) | recommended |  | Require a proven GlideRecord binding to call `.query()` or `.get()` before `.next()` |
-| [`validate-gliderecord-calls`](docs/rules/validate-gliderecord-calls.md) | off |  | Deprecated alias |
+| [`validate-gliderecord-calls`](docs/rules/validate-gliderecord-calls.md) | off |  | Deprecated alias, scheduled for removal in 3.0 |
 | [`no-br-current-update`](docs/rules/no-br-current-update.md) | recommended |  | `current.update()` retriggers other Business Rules and can recurse |
 | [`no-hardcoded-table-names`](docs/rules/no-hardcoded-table-names.md) | policy |  | Optional organizational policy |
 | [`no-packages-calls`](docs/rules/no-packages-calls.md) | recommended |  | The Rhino `Packages.*` Java bridge is unavailable in scoped apps and on the modern engine |

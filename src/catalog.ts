@@ -675,7 +675,7 @@ record.next();`,
     fixable: false,
     hasSuggestions: false,
     description:
-      "Deprecated alias. Prefer `require-query-before-next`. Still reports missing query-before-next and unused insert/update/get/next returns. `chooseWindow()` does not open a cursor.",
+      "Deprecated alias, scheduled for removal in 3.0. Prefer `require-query-before-next`. Still reports missing query-before-next and unused insert/update/get/next returns. `chooseWindow()` does not open a cursor.",
     bad: [
       {
         name: "next without query",
