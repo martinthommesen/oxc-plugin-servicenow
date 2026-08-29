@@ -133,6 +133,14 @@ describe("release automation gates", () => {
     assert.ok(compareReleaseVersions("2.0.0-rc-2", "2.0.0-rc-1") > 0);
     assert.ok(compareReleaseVersions("2.0.0-beta-hotfix", "2.0.0-beta") > 0);
     assert.equal(compareReleaseVersions("2.0.0-rc-1", "2.0.0-rc-1"), 0);
+    // SemVer 11.4.3 requires ASCII order across case: "B" (0x42) sorts
+    // before "a" (0x61) (FINDINGS.md REL-003).
+    assert.ok(compareReleaseVersions("1.0.0-B", "1.0.0-a") < 0);
+    assert.ok(compareReleaseVersions("1.0.0-alpha", "1.0.0-Beta") > 0);
+    assert.deepEqual(
+      ["1.0.0-alpha", "1.0.0-B", "1.0.0-a", "1.0.0-Beta"].sort(compareReleaseVersions),
+      ["1.0.0-B", "1.0.0-Beta", "1.0.0-a", "1.0.0-alpha"],
+    );
     assert.deepEqual(
       validateRegistryVersionOrder(
         { versions: ["2.0.0-rc-1"], "dist-tags": { next: "2.0.0-rc-1" } },
