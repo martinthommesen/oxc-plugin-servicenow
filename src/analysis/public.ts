@@ -9,7 +9,7 @@ import {
 import type { Provenance, ProvenanceKind, QueryState } from "./provenance.js";
 import { staticPropertyName } from "./members.js";
 
-type PublicProvenanceKind =
+export type PublicProvenanceKind =
   | "GlideRecord"
   | "GlideAggregate"
   | "GlideAjax"

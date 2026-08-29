@@ -11,7 +11,7 @@ import type { FileBindings, LexicalBinding, ScopeNode } from "./bindings.js";
 import { resolvePlatformGlobalName } from "./globals.js";
 import { isFunctionLike } from "./bindings.js";
 import { isDefinitelyUndefinedValue, resolveConstValue, staticPropertyName } from "./members.js";
-import type { ProvenanceKind, ProvenanceQuery } from "./provenance.js";
+import { ctorProvenanceKind, type ProvenanceKind, type ProvenanceQuery } from "./provenance.js";
 
 export type BindingId = number;
 export type ObjectId = number;
@@ -447,16 +447,7 @@ function ctorKind(
   if (!callee) return null;
   const name = resolvePlatformGlobalName(callee, analysis.bindings);
   if (!name) return null;
-  const map: Record<string, ProvenanceKind> = {
-    GlideRecord: "GlideRecord",
-    GlideRecordSecure: "GlideRecord",
-    GlideAggregate: "GlideAggregate",
-    GlideAjax: "GlideAjax",
-    GlideDateTime: "GlideDateTime",
-    DataView: "DataView",
-    Set: "Set",
-  };
-  const kind = map[name];
+  const kind = ctorProvenanceKind(name);
   if (!kind || !kinds.includes(kind)) return null;
   if (!analysis.isPlatformCtor(callee, [name])) return null;
   return kind;

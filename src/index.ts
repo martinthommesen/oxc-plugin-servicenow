@@ -124,9 +124,20 @@ plugin.meta = { name: PLUGIN_NAME, version: PACKAGE_VERSION };
 export default plugin;
 export { plugin };
 export type {
+  ApplicationScope,
+  BusinessRuleSourceFormat,
+  BusinessRuleWhen,
+  ContextConfidence,
+  ContextSourceMap,
+  JavaScriptMode,
   ReadonlyServiceNowSettings,
   RuleConfigMap,
+  ScriptAuthoring,
+  ScriptSurface,
   ServiceNowRelease,
+  ServiceNowScriptContext,
   ServiceNowSettings,
+  SettingsDeprecation,
+  ValidatedServiceNowSettings,
 } from "./types.js";
 export type { RuleName } from "./rules/index.js";
