@@ -6,6 +6,7 @@ import {
   iifeCallee,
   isFunctionLikeNode,
   isSynchronousIife,
+  runWithTraversalBudget,
   visitChildren,
 } from "../analysis/path-state.js";
 import { truthyPathRequiredCursorIds } from "../analysis/cursor-condition.js";
@@ -98,6 +99,11 @@ function findRetainedElements(
   analysis: ReturnType<typeof beginRuleFile>["analysis"],
 ): Array<{ node: ESTree.Node; name: string }> {
   const findings: Array<{ node: ESTree.Node; name: string }> = [];
+  // A repeated (node, cursor-set) pair re-walks an identical subtree and
+  // cannot add findings; without the memo the do/while double visit composes
+  // exponentially through nesting (FINDINGS.md PER-002).
+  const visited = new Map<ESTree.Node, Set<string>>();
+  let spendBudget: () => void = () => {};
 
   function retainedName(node: ESTree.Node): string {
     const expr = unwrapExpression(node);
@@ -150,6 +156,15 @@ function findRetainedElements(
 
   function visit(node: unknown, cursorIds: ReadonlySet<number>): void {
     if (!isNode(node)) return;
+    const memoKey = [...cursorIds].sort((left, right) => left - right).join(",");
+    let seenKeys = visited.get(node);
+    if (seenKeys?.has(memoKey)) return;
+    if (!seenKeys) {
+      seenKeys = new Set();
+      visited.set(node, seenKeys);
+    }
+    seenKeys.add(memoKey);
+    spendBudget();
     if (isSynchronousIife(node)) {
       // The IIFE body runs inside the loop right now: keep the cursor ids
       // (FINDINGS.md COR-004).
@@ -218,13 +233,16 @@ function findRetainedElements(
     visitChildren(node, (child) => visit(child, cursorIds));
   }
 
-  visit(program, new Set());
-  const seen = new Set<ESTree.Node>();
-  return findings.filter((finding) => {
-    if (seen.has(finding.node)) return false;
-    seen.add(finding.node);
-    return true;
-  });
+  return runWithTraversalBudget((spend) => {
+    spendBudget = spend;
+    visit(program, new Set());
+    const seen = new Set<ESTree.Node>();
+    return findings.filter((finding) => {
+      if (seen.has(finding.node)) return false;
+      seen.add(finding.node);
+      return true;
+    });
+  }, []);
 }
 
 export const noGlideelementInCollection = defineRule({

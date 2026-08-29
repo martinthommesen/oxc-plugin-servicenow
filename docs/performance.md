@@ -13,6 +13,7 @@ The command generates deterministic fixtures and times the real `oxlint` executa
 - small, medium, and large classic GlideRecord files
 - branch-heavy alias and try/catch analysis
 - nested scopes
+- 30 nested `do…while` loops (the FINDINGS.md PER-002 shape)
 - large Fluent metadata
 - skip-path client files
 - a mixed repository

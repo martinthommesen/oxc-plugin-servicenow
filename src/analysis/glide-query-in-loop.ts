@@ -2,7 +2,13 @@ import type { ESTree } from "@oxlint/plugins";
 import { getName, isNode } from "../utils/ast.js";
 import { staticPropertyName } from "./members.js";
 import type { ProvenanceQuery } from "./provenance.js";
-import { iifeCallee, isFunctionLikeNode, isSynchronousIife, visitChildren } from "./path-state.js";
+import {
+  iifeCallee,
+  isFunctionLikeNode,
+  isSynchronousIife,
+  runWithTraversalBudget,
+  visitChildren,
+} from "./path-state.js";
 import { truthyPathRequiresCursorNext } from "./cursor-condition.js";
 
 export interface QueryInLoopFinding {
@@ -52,83 +58,95 @@ export function findQueriesInCursorLoops(
   analysis: ProvenanceQuery,
 ): QueryInLoopFinding[] {
   const findings: QueryInLoopFinding[] = [];
-  visit(program, 0, analysis, findings);
-  const unique = new Set<ESTree.Node>();
-  return findings.filter((finding) => {
-    if (unique.has(finding.node)) return false;
-    unique.add(finding.node);
-    return true;
-  });
-}
+  // A repeated (node, cursor-depth) pair re-walks an identical subtree and
+  // cannot add findings; without the memo the do/while re-visit composes
+  // exponentially through nesting (FINDINGS.md PER-002).
+  const visited = new Map<ESTree.Node, Set<number>>();
+  let spendBudget: () => void = () => {};
 
-function visit(
-  node: unknown,
-  cursorDepth: number,
-  analysis: ProvenanceQuery,
-  findings: QueryInLoopFinding[],
-): void {
-  if (!isNode(node)) return;
-  if (isFunctionLikeNode(node)) {
-    visitChildren(node, (child) => visit(child, 0, analysis, findings));
-    return;
-  }
-
-  if (node.type === "WhileStatement") {
-    const stmt = node as ESTree.WhileStatement;
-    const nextDepth = loopBodyRequiresCursor(stmt.test, analysis) ? cursorDepth + 1 : cursorDepth;
-    visit(stmt.test, cursorDepth, analysis, findings);
-    visit(stmt.body, nextDepth, analysis, findings);
-    return;
-  }
-
-  if (node.type === "DoWhileStatement") {
-    const stmt = node as ESTree.DoWhileStatement;
-    // The first do/while body runs before its test; only the subsequent path
-    // is known to have passed a cursor condition.
-    visit(stmt.body, cursorDepth, analysis, findings);
-    visit(stmt.test, cursorDepth, analysis, findings);
-    if (loopBodyRequiresCursor(stmt.test, analysis)) {
-      visit(stmt.body, cursorDepth + 1, analysis, findings);
+  function visit(node: unknown, cursorDepth: number): void {
+    if (!isNode(node)) return;
+    let seenDepths = visited.get(node);
+    if (seenDepths?.has(cursorDepth)) return;
+    if (!seenDepths) {
+      seenDepths = new Set();
+      visited.set(node, seenDepths);
     }
-    return;
-  }
-
-  if (node.type === "ForStatement") {
-    const stmt = node as ESTree.ForStatement;
-    const nextDepth =
-      stmt.test && loopBodyRequiresCursor(stmt.test, analysis) ? cursorDepth + 1 : cursorDepth;
-    if (stmt.init) visit(stmt.init, cursorDepth, analysis, findings);
-    if (stmt.test) visit(stmt.test, cursorDepth, analysis, findings);
-    visit(stmt.body, nextDepth, analysis, findings);
-    if (stmt.update) visit(stmt.update, nextDepth, analysis, findings);
-    if (stmt.update && containsCursorNext(stmt.update, analysis)) {
-      visit(stmt.body, nextDepth + 1, analysis, findings);
+    seenDepths.add(cursorDepth);
+    spendBudget();
+    if (isFunctionLikeNode(node)) {
+      visitChildren(node, (child) => visit(child, 0));
+      return;
     }
-    return;
-  }
 
-  if (isSynchronousIife(node)) {
-    // The IIFE body runs inside the loop right now: keep the cursor depth.
-    const call = node as ESTree.CallExpression;
-    for (const argument of call.arguments) visit(argument, cursorDepth, analysis, findings);
-    visit(iifeCallee(call)!.body, cursorDepth, analysis, findings);
-    return;
-  }
+    if (node.type === "WhileStatement") {
+      const stmt = node as ESTree.WhileStatement;
+      const nextDepth = loopBodyRequiresCursor(stmt.test, analysis) ? cursorDepth + 1 : cursorDepth;
+      visit(stmt.test, cursorDepth);
+      visit(stmt.body, nextDepth);
+      return;
+    }
 
-  if (node.type === "CallExpression" && cursorDepth > 0) {
-    const call = node as ESTree.CallExpression;
-    const property = staticPropertyName(call.callee);
-    if (
-      property &&
-      analysis.glide.executors.has(property) &&
-      call.callee.type === "MemberExpression"
-    ) {
-      const object = (call.callee as ESTree.MemberExpression).object;
-      if (isProvenCursor(analysis, object)) {
-        findings.push({ node: call, name: getName(object) ?? "record", method: property });
+    if (node.type === "DoWhileStatement") {
+      const stmt = node as ESTree.DoWhileStatement;
+      // The first do/while body runs before its test; only the subsequent path
+      // is known to have passed a cursor condition.
+      visit(stmt.body, cursorDepth);
+      visit(stmt.test, cursorDepth);
+      if (loopBodyRequiresCursor(stmt.test, analysis)) {
+        visit(stmt.body, cursorDepth + 1);
+      }
+      return;
+    }
+
+    if (node.type === "ForStatement") {
+      const stmt = node as ESTree.ForStatement;
+      const nextDepth =
+        stmt.test && loopBodyRequiresCursor(stmt.test, analysis) ? cursorDepth + 1 : cursorDepth;
+      if (stmt.init) visit(stmt.init, cursorDepth);
+      if (stmt.test) visit(stmt.test, cursorDepth);
+      visit(stmt.body, nextDepth);
+      if (stmt.update) visit(stmt.update, nextDepth);
+      if (stmt.update && containsCursorNext(stmt.update, analysis)) {
+        visit(stmt.body, nextDepth + 1);
+      }
+      return;
+    }
+
+    if (isSynchronousIife(node)) {
+      // The IIFE body runs inside the loop right now: keep the cursor depth.
+      const call = node as ESTree.CallExpression;
+      for (const argument of call.arguments) visit(argument, cursorDepth);
+      visit(iifeCallee(call)!.body, cursorDepth);
+      return;
+    }
+
+    if (node.type === "CallExpression" && cursorDepth > 0) {
+      const call = node as ESTree.CallExpression;
+      const property = staticPropertyName(call.callee);
+      if (
+        property &&
+        analysis.glide.executors.has(property) &&
+        call.callee.type === "MemberExpression"
+      ) {
+        const object = (call.callee as ESTree.MemberExpression).object;
+        if (isProvenCursor(analysis, object)) {
+          findings.push({ node: call, name: getName(object) ?? "record", method: property });
+        }
       }
     }
+
+    visitChildren(node, (child) => visit(child, cursorDepth));
   }
 
-  visitChildren(node, (child) => visit(child, cursorDepth, analysis, findings));
+  return runWithTraversalBudget((spend) => {
+    spendBudget = spend;
+    visit(program, 0);
+    const unique = new Set<ESTree.Node>();
+    return findings.filter((finding) => {
+      if (unique.has(finding.node)) return false;
+      unique.add(finding.node);
+      return true;
+    });
+  }, []);
 }

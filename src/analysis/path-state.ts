@@ -62,6 +62,25 @@ function spendWork(budget: WorkBudget, amount = 1): void {
   if (budget.remaining < 0) throw BUDGET_EXCEEDED;
 }
 
+/**
+ * Run an AST traversal under the same deterministic work budget the path
+ * evaluator uses. Exceeding the budget degrades to `fallback` (no findings)
+ * and increments the shared exceeded counter instead of running unbounded
+ * (FINDINGS.md PER-002).
+ */
+export function runWithTraversalBudget<T>(run: (spend: () => void) => T, fallback: T): T {
+  const budget: WorkBudget = { remaining: DEFAULT_MAX_WORK };
+  try {
+    return run(() => spendWork(budget));
+  } catch (error) {
+    if (error === BUDGET_EXCEEDED) {
+      budgetExceededCount += 1;
+      return fallback;
+    }
+    throw error;
+  }
+}
+
 interface EnvState<T> {
   env: Map<BindingId, ObjectId | undefined>;
   objects: Map<ObjectId, SharedRecord<T>>;
@@ -103,13 +122,8 @@ export function isFunctionLikeNode(node: ESTree.Node): boolean {
 }
 
 /**
- * True for a call whose callee is a synchronous function or arrow expression:
- * an IIFE that runs at this program point. Its body inherits the enclosing
- * execution context; deferred callbacks do not (FINDINGS.md COR-004).
- */
-/**
  * Truthiness of a statically constant test expression: literal booleans,
- * numbers, strings, `null`, `undefined` at global scope, and `!` chains over
+ * numbers, strings, bigints, regex literals, `null`, and `!` chains over
  * them. Everything else is unknown. Used to prune branches a constant
  * condition makes unreachable (FINDINGS.md COR-003).
  */
@@ -137,6 +151,11 @@ export function constantTruthiness(node: unknown): boolean | undefined {
   return undefined;
 }
 
+/**
+ * True for a call whose callee is a synchronous function or arrow expression:
+ * an IIFE that runs at this program point. Its body inherits the enclosing
+ * execution context; deferred callbacks do not (FINDINGS.md COR-004).
+ */
 export function isSynchronousIife(node: unknown): boolean {
   if (!isNode(node) || node.type !== "CallExpression") return false;
   return iifeCallee(node as ESTree.CallExpression) !== null;

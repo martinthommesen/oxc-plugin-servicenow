@@ -65,6 +65,17 @@ function fluentRecords(count) {
   return `import { BusinessRule } from "@servicenow/sdk/core";\n\n${records.join("\n\n")}\n`;
 }
 
+function nestedDoWhile(depth) {
+  // The PER-002 reproduction shape: nesting once doubled the cursor-loop
+  // walkers' traversals per level, so this fixture keeps the exponential
+  // visible to the gate (FINDINGS.md PER-002).
+  let body = glideRecordBlock(0);
+  for (let index = 0; index < depth; index += 1) {
+    body = `do {\n${body}} while (flag${index});\n`;
+  }
+  return body;
+}
+
 function nestedScopes(depth) {
   let body = 'var rec = new GlideRecord("incident");\nrec.query();\nrec.next();\n';
   for (let index = 0; index < depth; index += 1) {
@@ -107,6 +118,7 @@ function generateFixtures(directory) {
     Array.from({ length: 80 }, (_, index) => branchHeavyBlock(index)).join("\n"),
   );
   writeFileSync(join(directory, "classic/nested.br.js"), nestedScopes(12));
+  writeFileSync(join(directory, "classic/nested-do-while.br.js"), nestedDoWhile(30));
   writeFileSync(join(directory, "fluent/large.now.ts"), fluentRecords(80));
   writeFileSync(join(directory, "client/skip.client.js"), 'g_form.setValue("priority", "1");\n');
   writeFileSync(join(directory, "mixed/src/server/list.br.js"), glideRecordBlock(1));
@@ -248,6 +260,12 @@ async function main() {
         "recommended",
         configs.recommended,
         [join(work, "classic/nested.br.js")],
+      ],
+      [
+        "nested-do-while/recommended",
+        "recommended",
+        configs.recommended,
+        [join(work, "classic/nested-do-while.br.js")],
       ],
       [
         "fluent-large/recommended",
