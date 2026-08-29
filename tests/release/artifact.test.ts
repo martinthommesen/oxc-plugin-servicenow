@@ -139,9 +139,18 @@ describe("release artifact gates", () => {
   it("wires validate and release scripts to one inspected tarball", () => {
     const releaseCheck = pkg.scripts["release:check"];
     const validate = pkg.scripts.validate;
+    const validateLive = pkg.scripts["validate:live"];
     assert.equal(releaseCheck, "node scripts/check-release-artifact.mjs");
     assert.ok(validate, "package.json is missing the validate script");
-    assert.match(validate, /release:check -- --consumer/);
+    // The aggregate gate must run offline; the networked packed-consumer
+    // steps live in validate:live (FINDINGS.md OPS-004).
+    assert.match(validate, /release:check$/);
+    assert.doesNotMatch(validate, /test:consumer|acceptance:capture|--consumer/);
+    assert.match(validate, /acceptance:check/);
+    assert.ok(validateLive, "package.json is missing the validate:live script");
+    assert.match(validateLive, /release:check -- --consumer/);
+    assert.match(validateLive, /test:consumer/);
+    assert.match(validateLive, /acceptance:capture/);
     assert.doesNotMatch(validate, /(?:^| )compat(?: |$)/);
 
     const workflow = readFileSync(path.join(repoRoot, ".github/workflows/release.yml"), "utf8");

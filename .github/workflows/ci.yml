@@ -34,6 +34,9 @@ jobs:
       - run: npm test
       - run: npm run evidence:check
         if: always()
+      # Offline acceptance verification: the required test job must not
+      # depend on the live registry (FINDINGS.md OPS-004). The consumer job
+      # below captures the full networked evidence.
       - run: npm run acceptance:check
         if: always()
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -59,7 +62,17 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      - run: npm run test:consumer
+      # The complete acceptance capture runs the full test tree including
+      # the networked packed-consumer proofs, so it lives in this networked
+      # job (FINDINGS.md OPS-004).
+      - run: npm run acceptance:capture
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: pr51-acceptance-full
+          path: |
+            artifacts/pr51-acceptance.json
+            artifacts/pr51-acceptance.md
+          if-no-files-found: error
 
   compat-matrix:
     timeout-minutes: 10

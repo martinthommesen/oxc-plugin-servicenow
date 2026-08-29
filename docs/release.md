@@ -10,7 +10,7 @@ Merge readiness uses repository-local checks:
 npm run validate
 ```
 
-This command does not publish, create a tag, or prove live governance. It cleans and inspects a package artifact, runs the packed consumer, and checks the implementation, tests, docs, manifest, benchmark, and workflows.
+This command runs offline (FINDINGS.md OPS-004). It does not publish, create a tag, or prove live governance. It cleans and inspects a package artifact and checks the implementation, tests, docs, manifest, benchmark, and workflows. `npm run validate:live` adds the networked steps: the packed-consumer test, the full acceptance capture, and the packed-consumer run against the inspected tarball.
 
 Release readiness also requires approved external actions:
 
@@ -65,7 +65,7 @@ The check performs these actions:
 
 The build does not ship JavaScript or declaration source maps because their source files are not in the package. This policy prevents dangling maps.
 
-Run the same packed-consumer path used by `npm run validate`:
+Run the same packed-consumer path used by `npm run validate:live`:
 
 ```bash
 npm run release:check -- --consumer

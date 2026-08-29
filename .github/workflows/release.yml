@@ -44,9 +44,10 @@ jobs:
       - run: npm run typecheck:fixtures
       - run: npm run build
       - run: npm test
-      - run: npm run test:consumer
       - run: npm run evidence:check
-      - run: npm run acceptance:check
+      # The full capture runs the complete test tree including the networked
+      # packed-consumer proofs (FINDINGS.md OPS-004).
+      - run: npm run acceptance:capture
       - run: npm run docs:check
       - run: npm run manifest:check
       - run: npm run bench
