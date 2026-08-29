@@ -4,14 +4,14 @@ This generated report describes the latest local acceptance capture. It does not
 
 ## Evidence identity
 
-- Tested identity: `uncommitted`
-- HEAD: `2c499becb19af913eaaddced19e077532c1c6812`
-- Worktree: uncommitted
-- Diff digest: `847e0d8a9266681fe293485341b41264740c1a3556b9d291960d0d119ae7e44c`
+- Tested identity: `5929ac2a9dde9f6c9289e46f816a52672723ad24`
+- HEAD: `5929ac2a9dde9f6c9289e46f816a52672723ad24`
+- Worktree: clean
+- Diff digest: not applicable
 - Node: `v26.7.0`
 - npm: `12.0.2`
 - Host: `darwin arm64 27.0.0`
-- Captured: `2026-08-29T22:42:29.862Z`
+- Captured: `2026-08-29T22:44:52.295Z`
 
 ## Result
 
