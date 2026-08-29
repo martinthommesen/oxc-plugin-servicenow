@@ -35,9 +35,14 @@ describe(RULE, () => {
 
   it("reports digest-named values when ignoreHashNames is false", () => {
     for (const name of ["md5", "checksum"]) {
-      assertInvalid(`var ${name} = "${ID}";`, RULE, { messageId: "hardcoded" }, {
-        options: { [RULE]: [{ ignoreHashNames: false }] },
-      });
+      assertInvalid(
+        `var ${name} = "${ID}";`,
+        RULE,
+        { messageId: "hardcoded" },
+        {
+          options: { [RULE]: [{ ignoreHashNames: false }] },
+        },
+      );
     }
   });
 

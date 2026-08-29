@@ -174,9 +174,7 @@ function resolveBindingOrigin(
     if (!binding || seen.has(binding.id)) return null;
     const imported = imports.get(binding.id);
     if (imported) return imported;
-    const useInsideFunction = ancestors.some((ancestor) =>
-      FUNCTION_ANCESTORS.has(ancestor.type),
-    );
+    const useInsideFunction = ancestors.some((ancestor) => FUNCTION_ANCESTORS.has(ancestor.type));
     const init = latestSimpleValue(
       binding,
       expr,

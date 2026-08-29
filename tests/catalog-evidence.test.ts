@@ -18,7 +18,15 @@ describe("catalog evidence", () => {
         // so evidence does not silently point at a superseded documentation
         // set after a release narrowing (FINDINGS.md DOC-002). The /r/ slot
         // also carries product areas, so only known release names count.
-        const RELEASE_NAMES = ["tokyo", "utah", "vancouver", "washingtondc", "xanadu", "yokohama", "zurich"];
+        const RELEASE_NAMES = [
+          "tokyo",
+          "utah",
+          "vancouver",
+          "washingtondc",
+          "xanadu",
+          "yokohama",
+          "zurich",
+        ];
         const segment = /\/docs\/r\/([a-z0-9-]+)\//.exec(evidence.url)?.[1];
         if (segment && RELEASE_NAMES.includes(segment)) {
           assert.ok(

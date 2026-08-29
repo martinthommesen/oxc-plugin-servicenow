@@ -252,10 +252,7 @@ describe("path identity and completion", () => {
     const SERVER = { filename: "a.br.js" };
     const forward = `var gr; if (c) { gr = new GlideRecord("a"); gr.query(); } else { gr = new GlideRecord("b"); gr.query(); } while (gr.next()) {}`;
     const reversed = `var gr; if (c) { gr = new GlideRecord("b"); gr.query(); } else { gr = new GlideRecord("a"); gr.query(); } while (gr.next()) {}`;
-    assert.equal(
-      lint(forward, RULE, SERVER).length,
-      lint(reversed, RULE, SERVER).length,
-    );
+    assert.equal(lint(forward, RULE, SERVER).length, lint(reversed, RULE, SERVER).length);
   });
 
   it("keeps the return completion through finally (FINDINGS.md COR-003)", () => {

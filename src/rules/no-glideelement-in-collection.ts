@@ -2,7 +2,12 @@ import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { getName, isNode, unwrapExpression } from "../utils/ast.js";
 import { staticPropertyName } from "../analysis/internal.js";
-import { iifeCallee, isFunctionLikeNode, isSynchronousIife, visitChildren } from "../analysis/path-state.js";
+import {
+  iifeCallee,
+  isFunctionLikeNode,
+  isSynchronousIife,
+  visitChildren,
+} from "../analysis/path-state.js";
 import { truthyPathRequiredCursorIds } from "../analysis/cursor-condition.js";
 import { isServerInstanceContext } from "../context/index.js";
 import { ruleDocsUrl } from "../constants.js";

@@ -153,7 +153,8 @@ interface IifeFunction {
 export function iifeCallee(call: ESTree.CallExpression): IifeFunction | null {
   const callee = unwrapExpression(call.callee);
   if (!isNode(callee)) return null;
-  if (callee.type !== "FunctionExpression" && callee.type !== "ArrowFunctionExpression") return null;
+  if (callee.type !== "FunctionExpression" && callee.type !== "ArrowFunctionExpression")
+    return null;
   const fn = callee as unknown as IifeFunction;
   if (fn.async || fn.generator) return null;
   return fn;

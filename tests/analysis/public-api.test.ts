@@ -45,10 +45,7 @@ describe("public analysis API", () => {
     assert.equal(standard.ofExpression(glideDecl), null);
 
     // Passing the context's own AST stays equivalent to omitting it.
-    const same = analyzeProvenance(
-      context,
-      (context.sourceCode as { ast: ESTree.Node }).ast,
-    );
+    const same = analyzeProvenance(context, (context.sourceCode as { ast: ESTree.Node }).ast);
     const ownDecl = (context.sourceCode as unknown as { ast: { body: any[] } }).ast.body[0]
       .declarations[0].init as ESTree.Node;
     assert.equal(same.ofExpression(ownDecl), standard.ofExpression(ownDecl));

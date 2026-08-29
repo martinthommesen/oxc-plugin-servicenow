@@ -6,7 +6,6 @@ import * as publicApi from "../src/index.js";
 import { ruleCatalog } from "../src/catalog.js";
 import { PACKAGE_NAME, PACKAGE_VERSION, PLUGIN_NAME } from "../src/constants.js";
 import { rules } from "../src/rules/index.js";
-import { lint } from "./helpers/rule-tester.js";
 
 describe("plugin export", () => {
   it("exports only the supported runtime API", () => {

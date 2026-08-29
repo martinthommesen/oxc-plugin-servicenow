@@ -29,7 +29,11 @@ while (incident.next()) {
       { messageId: "retained" },
       SERVER,
     );
-    assertValid(wrap(`setTimeout(function () { numbers.push(incident.number); }, 0);`), RULE, SERVER);
+    assertValid(
+      wrap(`setTimeout(function () { numbers.push(incident.number); }, 0);`),
+      RULE,
+      SERVER,
+    );
   });
 
   it("flags direct field push and unshift", () => {

@@ -90,7 +90,8 @@ export const noHardcodedSysid = defineRule({
       },
       Literal(node) {
         const value = getStringValue(node);
-        if (value) reportSysIds(context, node, value, allowed, bindingStack.at(-1) ?? null, ignoreHashNames);
+        if (value)
+          reportSysIds(context, node, value, allowed, bindingStack.at(-1) ?? null, ignoreHashNames);
       },
       TemplateLiteral(node) {
         const template = node as ESTree.TemplateLiteral;

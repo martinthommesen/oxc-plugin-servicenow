@@ -61,7 +61,13 @@ describe("classifyFile", () => {
       [],
     );
     assert.deepEqual(surfacesFromFilename("/opt/br/repo/src/thing.js", "/opt/br/repo"), []);
-    assert.deepEqual(surfacesFromFilename("C:\\Users\\dev\\client\\proj\\src\\list.js", "C:\\Users\\dev\\client\\proj"), []);
+    assert.deepEqual(
+      surfacesFromFilename(
+        "C:\\Users\\dev\\client\\proj\\src\\list.js",
+        "C:\\Users\\dev\\client\\proj",
+      ),
+      [],
+    );
     // Decoys must not collapse basename evidence either.
     assert.deepEqual(
       surfacesFromFilename("/Users/bob/server/app/src/onload.client.js", "/Users/bob/server/app"),

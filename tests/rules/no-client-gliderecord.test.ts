@@ -79,11 +79,6 @@ new GR("incident");`,
     });
     assertValid(code, RULE, { filename: "/srv/app/src/list.js", cwd: "/srv/app" });
     // A real project-relative client directory still applies the rule.
-    assertInvalid(
-      code,
-      RULE,
-      { count: 1 },
-      { filename: "/proj/src/client/list.js", cwd: "/proj" },
-    );
+    assertInvalid(code, RULE, { count: 1 }, { filename: "/proj/src/client/list.js", cwd: "/proj" });
   });
 });
