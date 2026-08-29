@@ -274,7 +274,10 @@ function runTests() {
   mkdirSync(artifactsDir, { recursive: true });
   const result = spawnSync(
     process.execPath,
-    [join(root, "scripts/run-tests.mjs"), "--report-json", testReportPath],
+    // The explicit "tests" root includes the networked packed-consumer test
+    // that the hermetic default run excludes (FINDINGS.md OPS-004): the
+    // acceptance capture is the complete evidence run.
+    [join(root, "scripts/run-tests.mjs"), "--report-json", testReportPath, "tests"],
     {
       cwd: root,
       encoding: "utf8",
@@ -404,7 +407,7 @@ export async function main(argv = process.argv.slice(2)) {
       release: release(),
     },
     commands: [
-      "node scripts/run-tests.mjs --report-json artifacts/pr51-test-results.json",
+      "node scripts/run-tests.mjs --report-json artifacts/pr51-test-results.json tests",
       "tsx scripts/verify-acceptance-ledger.mjs",
     ],
     testResults,
