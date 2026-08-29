@@ -176,6 +176,17 @@ describe("no-hardcoded-table-names", () => {
     });
   });
 
+  it("gates on known classic server-side surfaces (FINDINGS.md COR-015)", () => {
+    // The catalog and the generated page declare classic authoring and known
+    // instance surfaces; Fluent metadata and unclassified files stay silent.
+    assertValid(`var gr = new GlideRecord("incident");`, "no-hardcoded-table-names", {
+      filename: "table.now.ts",
+    });
+    assertValid(`var gr = new GlideRecord("incident");`, "no-hardcoded-table-names", {
+      filename: "foo.js",
+    });
+  });
+
   it("flags string table names on GlideRecordSecure", () => {
     assertInvalid('var gr = new GlideRecordSecure("incident");', "no-hardcoded-table-names", {
       messageId: "literal",

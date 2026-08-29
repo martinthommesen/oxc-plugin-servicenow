@@ -8,6 +8,7 @@ import {
   schemaFromDescriptor,
 } from "../options/index.js";
 import type { NoHardcodedTableNamesOptions } from "../options/index.js";
+import { isMixedUiActionContext, isServerInstanceContext } from "../context/index.js";
 import { beginRuleFile } from "./helpers.js";
 
 export type { NoHardcodedTableNamesOptions };
@@ -40,6 +41,12 @@ export const noHardcodedTableNames = defineRule({
 
     return {
       before() {
+        // The catalog declares this rule for known classic server-side
+        // surfaces; without this gate it reported inside Fluent metadata and
+        // unclassified files, outside its documented scope
+        // (FINDINGS.md COR-015).
+        const { context: script } = beginRuleFile(context);
+        if (!isServerInstanceContext(script) || isMixedUiActionContext(script)) return false;
         allow = allowed(context, parseRuleOptions(noHardcodedTableNamesOptions, context.options));
       },
       NewExpression(node) {
