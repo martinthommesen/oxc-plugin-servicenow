@@ -12,6 +12,8 @@ That command runs workflow, compatibility, lint, format, type, build, test, docu
 
 `npm test` runs `scripts/run-tests.mjs`. That script lists every `*.test.ts` file and passes the list to `tsx --test`. Do not use a quoted `tests/**/*.test.ts` glob. Node 20 treats that path as one missing file.
 
+`npm test` is hermetic: it does not reach the network. The packed-consumer test installs packages from the live npm registry, so it runs separately as `npm run test:consumer`. CI and the release workflow run it as their own jobs, and `npm run validate` includes it.
+
 ## Add a rule
 
 1. Create `src/rules/<name>.ts` with `defineRule` and `createOnce`.

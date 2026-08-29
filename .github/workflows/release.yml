@@ -43,6 +43,7 @@ jobs:
       - run: npm run typecheck:fixtures
       - run: npm run build
       - run: npm test
+      - run: npm run test:consumer
       - run: npm run evidence:check
       - run: npm run acceptance:check
       - run: npm run docs:check
