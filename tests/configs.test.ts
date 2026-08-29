@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
@@ -124,27 +123,15 @@ describe("configs", () => {
   });
 
   it("pins the immutable 1.1 preset source and documents every map difference", () => {
-    const cwd = new URL("..", import.meta.url).pathname;
-    const package110 = JSON.parse(
-      execFileSync("git", ["show", `${presets110.source.commit}:package.json`], {
-        cwd,
-        encoding: "utf8",
-      }),
-    ) as { version: string };
-    assert.equal(package110.version, presets110.version);
-    assert.equal(
-      execFileSync("git", ["show", "-s", "--format=%T", presets110.source.commit], {
-        cwd,
-        encoding: "utf8",
-      }).trim(),
-      presets110.source.tree,
-    );
+    // The 1.1.0 preset sources are vendored under fixtures/presets-1.1.0-source/
+    // so the digest check works in shallow clones and source tarballs.
+    // presets110.source.commit and .tree remain provenance metadata only.
     const source = presets110.source.paths
       .map((file) =>
-        execFileSync("git", ["show", `${presets110.source.commit}:${file}`], {
-          cwd,
-          encoding: "utf8",
-        }),
+        readFileSync(
+          new URL(`fixtures/presets-1.1.0-source/${file.split("/").pop()}`, import.meta.url),
+          "utf8",
+        ),
       )
       .join("");
     assert.equal(
