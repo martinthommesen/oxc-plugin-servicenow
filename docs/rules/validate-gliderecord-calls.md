@@ -1,6 +1,6 @@
 # servicenow/validate-gliderecord-calls
 
-Deprecated alias. Prefer `require-query-before-next`. Still reports missing query-before-cursor-advance and unused insert/update/deleteRecord/get/next/_next returns. `chooseWindow()` does not open a cursor.
+Deprecated alias, scheduled for removal in 3.0. Prefer `require-query-before-next`. Still reports missing query-before-cursor-advance and unused insert/update/deleteRecord/get/next/_next returns. `chooseWindow()` does not open a cursor.
 
 - **Family:** classic
 - **Preset:** off

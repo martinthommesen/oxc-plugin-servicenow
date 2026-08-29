@@ -1491,7 +1491,7 @@ record.update = localUpdate;`,
     fixable: false,
     hasSuggestions: false,
     description:
-      "Deprecated alias. Prefer `require-query-before-next`. Still reports missing query-before-cursor-advance and unused insert/update/deleteRecord/get/next/_next returns. `chooseWindow()` does not open a cursor.",
+      "Deprecated alias, scheduled for removal in 3.0. Prefer `require-query-before-next`. Still reports missing query-before-cursor-advance and unused insert/update/deleteRecord/get/next/_next returns. `chooseWindow()` does not open a cursor.",
     bad: [
       {
         name: "next without query",

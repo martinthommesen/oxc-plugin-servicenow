@@ -341,7 +341,7 @@ Per-file `// @sn-es-latest` still maps to `es2021` with inferred confidence. Pre
 | [`no-client-gliderecord`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-client-gliderecord.md) | recommended |  | Proven platform GlideRecord calls are unsupported in scoped client applications |
 | [`no-gs-now`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-gs-now.md) | recommended |  | `gs.now()` and `gs.nowDateTime()` return timezone-sensitive display strings |
 | [`require-query-before-next`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/require-query-before-next.md) | recommended |  | Require a documented, scope-supported GlideRecord query executor before `.next()` or `._next()` |
-| [`validate-gliderecord-calls`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/validate-gliderecord-calls.md) | off |  | Deprecated alias |
+| [`validate-gliderecord-calls`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/validate-gliderecord-calls.md) | off |  | Deprecated alias, scheduled for removal in 3.0 |
 | [`no-br-current-update`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-br-current-update.md) | recommended |  | `current.update()` retriggers other Business Rules and can recurse |
 | [`no-hardcoded-table-names`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-hardcoded-table-names.md) | policy |  | Optional organizational policy |
 | [`no-packages-calls`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-packages-calls.md) | policy |  | Optional migration policy |

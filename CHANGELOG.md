@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Deprecated
+
+- `validate-gliderecord-calls` will be removed in 3.0. It stays available and `off` throughout 2.x for 1.x migrations. Use `require-query-before-next`, which covers the same query-before-`next` class with path-sensitive analysis (README migration step 4).
+
 ### Fixed
 
 - Fluent import aliases now follow execution order instead of source position. A reassignment inside a nested function makes the alias uncertain in every declaration order, and a builder use inside a function no longer trusts module-level reassignment ordering. Straight-line module-level code keeps positional resolution.
