@@ -7,6 +7,7 @@ import {
   parseCriteria,
   repoFilePath,
   validateMapping,
+  worktreeIdentity,
 } from "../scripts/verify-acceptance-ledger.mjs";
 import { repoRoot } from "./integration/helpers.js";
 
@@ -79,5 +80,14 @@ describe("PR51 acceptance mapping", () => {
     );
     assert.doesNotMatch(layers, /\| `src\/analysis\/` \| 2 \|/);
     assert.doesNotMatch(layers, /\*\*Owns:\*\*[^\n]*`src\/catalog\.ts`[^\n]*\n[\s\S]*?## Layer 2/);
+  });
+});
+
+describe("worktree identity digest", () => {
+  it("is reproducible on an unchanged tree (FINDINGS.md DOC-001)", () => {
+    const first = worktreeIdentity();
+    const second = worktreeIdentity();
+    assert.equal(first.diffDigest, second.diffDigest);
+    assert.equal(first.testedIdentity, second.testedIdentity);
   });
 });

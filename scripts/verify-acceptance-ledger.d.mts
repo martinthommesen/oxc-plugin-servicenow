@@ -17,4 +17,10 @@ export function validateMapping(
   parsed: AcceptanceCriterion[],
   mapping: { criteria?: Array<AcceptanceCriterion & { disposition: string }> },
 ): string[];
+export function worktreeIdentity(): {
+  head: string;
+  clean: boolean;
+  diffDigest: string | null;
+  testedIdentity: string;
+};
 export function main(argv?: string[]): Promise<Record<string, unknown>>;
