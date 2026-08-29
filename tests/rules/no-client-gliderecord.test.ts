@@ -385,4 +385,26 @@ new GR("incident");`,
       { filename: "display-stuff.br.js" },
     );
   });
+
+  it("ignores decoy directory names above the project root (FINDINGS.md COR-001)", () => {
+    const code = `var gr = new GlideRecord("incident");\ngr.query();`;
+    // A checkout under ~/client/ must not make server code look client-side.
+    assertValid(code, RULE, {
+      filename: "/home/alice/client/app/src/list.js",
+      cwd: "/home/alice/client/app",
+      settings: { scope: "scoped" },
+    });
+    assertValid(code, RULE, {
+      filename: "/srv/app/src/list.js",
+      cwd: "/srv/app",
+      settings: { scope: "scoped" },
+    });
+    // A real project-relative client directory still applies the rule.
+    assertInvalid(
+      code,
+      RULE,
+      { count: 1 },
+      { filename: "/proj/src/client/list.js", cwd: "/proj", settings: { scope: "scoped" } },
+    );
+  });
 });

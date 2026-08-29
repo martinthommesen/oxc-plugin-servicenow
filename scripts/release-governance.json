@@ -48,6 +48,7 @@
     "bypassActors": [],
     "requiredStatusChecks": [
       "test",
+      "consumer",
       "bench",
       "compat (min-hosts, 20.19.0)",
       "compat (node22-host, 22.14.0)",
@@ -60,8 +61,14 @@
       "workflow"
     ],
     "ruleParameters": [
-      { "type": "deletion", "parameters": null },
-      { "type": "non_fast_forward", "parameters": null },
+      {
+        "type": "deletion",
+        "parameters": null
+      },
+      {
+        "type": "non_fast_forward",
+        "parameters": null
+      },
       {
         "type": "pull_request",
         "parameters": {
@@ -81,17 +88,42 @@
           "strict_required_status_checks_policy": true,
           "do_not_enforce_on_create": false,
           "required_status_checks": [
-            { "context": "test" },
-            { "context": "bench" },
-            { "context": "compat (min-hosts, 20.19.0)" },
-            { "context": "compat (node22-host, 22.14.0)" },
-            { "context": "compat (node24-host, 24.16.0)" },
-            { "context": "compat (node26-host, 26.7.0)" },
-            { "context": "compat (eslint9-current, 24.16.0)" },
-            { "context": "docs" },
-            { "context": "manifest" },
-            { "context": "artifact" },
-            { "context": "workflow" }
+            {
+              "context": "test"
+            },
+            {
+              "context": "consumer"
+            },
+            {
+              "context": "bench"
+            },
+            {
+              "context": "compat (min-hosts, 20.19.0)"
+            },
+            {
+              "context": "compat (node22-host, 22.14.0)"
+            },
+            {
+              "context": "compat (node24-host, 24.16.0)"
+            },
+            {
+              "context": "compat (node26-host, 26.7.0)"
+            },
+            {
+              "context": "compat (eslint9-current, 24.16.0)"
+            },
+            {
+              "context": "docs"
+            },
+            {
+              "context": "manifest"
+            },
+            {
+              "context": "artifact"
+            },
+            {
+              "context": "workflow"
+            }
           ]
         }
       },
@@ -99,16 +131,31 @@
         "type": "code_scanning",
         "parameters": {
           "code_scanning_tools": [
-            { "tool": "CodeQL", "security_alerts_threshold": "all", "alerts_threshold": "all" }
+            {
+              "tool": "CodeQL",
+              "security_alerts_threshold": "all",
+              "alerts_threshold": "all"
+            }
           ]
         }
       },
-      { "type": "code_quality", "parameters": { "severity": "all" } },
+      {
+        "type": "code_quality",
+        "parameters": {
+          "severity": "all"
+        }
+      },
       {
         "type": "code_coverage",
-        "parameters": { "minimum_coverage": 85, "max_coverage_drop": 3 }
+        "parameters": {
+          "minimum_coverage": 85,
+          "max_coverage_drop": 3
+        }
       },
-      { "type": "required_linear_history", "parameters": null }
+      {
+        "type": "required_linear_history",
+        "parameters": null
+      }
     ]
   },
   "releaseTagRulesets": {

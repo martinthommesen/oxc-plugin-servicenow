@@ -295,12 +295,29 @@ function git(args) {
   }).trim();
 }
 
-function worktreeIdentity() {
+// The ledger's own generated outputs are excluded from the digest scope.
+// Hashing files this run rewrites would make the recorded digest
+// unreproducible by construction (FINDINGS.md DOC-001).
+const GENERATED_LEDGER_OUTPUTS = [
+  "scripts/pr51-acceptance.json",
+  "docs/pr-51-acceptance-ledger.md",
+  "docs/pr-51-validation-report.md",
+];
+
+export function worktreeIdentity() {
   const head = git(["rev-parse", "HEAD"]);
-  const status = git(["status", "--porcelain=v1", "--untracked-files=all"]);
+  const excludePathspecs = GENERATED_LEDGER_OUTPUTS.map((path) => `:(exclude)${path}`);
+  const status = git([
+    "status",
+    "--porcelain=v1",
+    "--untracked-files=all",
+    "--",
+    ".",
+    ...excludePathspecs,
+  ]);
   const diff = execFileSync(
     "git",
-    ["-c", "core.fsmonitor=false", "diff", "--binary", "HEAD", "--", "."],
+    ["-c", "core.fsmonitor=false", "diff", "--binary", "HEAD", "--", ".", ...excludePathspecs],
     {
       cwd: root,
       maxBuffer: 50 * 1024 * 1024,
@@ -326,7 +343,10 @@ function runTests() {
   mkdirSync(artifactsDir, { recursive: true });
   const result = spawnSync(
     process.execPath,
-    [join(root, "scripts/run-tests.mjs"), "--report-json", testReportPath],
+    // The explicit "tests" root includes the networked packed-consumer test
+    // that the hermetic default run excludes (FINDINGS.md OPS-004): the
+    // acceptance capture is the complete evidence run.
+    [join(root, "scripts/run-tests.mjs"), "--report-json", testReportPath, "tests"],
     {
       cwd: root,
       encoding: "utf8",

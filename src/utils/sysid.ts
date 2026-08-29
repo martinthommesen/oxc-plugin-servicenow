@@ -10,13 +10,12 @@ export function findSysIds(value: string): string[] {
   return value.match(SYS_ID) ?? [];
 }
 
-export function looksLikeMd5Context(name: string | null, value: string): boolean {
+/**
+ * The sys_id pattern only ever matches 32 hex characters, so this predicate
+ * tests exactly that length for every digest-like name. Longer digest forms
+ * (sha1, sha256) can never produce a sys_id match and need no branch here.
+ */
+export function looksLikeDigestContext(name: string | null, value: string): boolean {
   if (!name) return false;
-  const compact = value.trim();
-  if (/md5/i.test(name)) return /^[0-9a-f]{32}$/i.test(compact);
-  if (/sha1/i.test(name)) return /^[0-9a-f]{40}$/i.test(compact);
-  if (/sha256/i.test(name)) return /^[0-9a-f]{64}$/i.test(compact);
-  return (
-    /(hash|checksum|etag|digest)/i.test(name) && /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/i.test(compact)
-  );
+  return /(md5|sha|hash|checksum|etag|digest)/i.test(name) && ALL_HEX.test(value.trim());
 }

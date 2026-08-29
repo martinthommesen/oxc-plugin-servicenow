@@ -74,6 +74,38 @@ describe("classifyFile", () => {
     assert.deepEqual(surfacesFromFilename("client-tools/thing.js"), []);
   });
 
+  it("bounds directory evidence to the project (FINDINGS.md COR-001)", () => {
+    // Decoy segments above the project root must not assign a surface.
+    assert.deepEqual(
+      surfacesFromFilename("/home/alice/client/app/src/list.js", "/home/alice/client/app"),
+      [],
+    );
+    assert.deepEqual(surfacesFromFilename("/opt/br/repo/src/thing.js", "/opt/br/repo"), []);
+    assert.deepEqual(
+      surfacesFromFilename(
+        "C:\\Users\\dev\\client\\proj\\src\\list.js",
+        "C:\\Users\\dev\\client\\proj",
+      ),
+      [],
+    );
+    // Decoys must not collapse basename evidence either.
+    assert.deepEqual(
+      surfacesFromFilename("/Users/bob/server/app/src/onload.client.js", "/Users/bob/server/app"),
+      ["client"],
+    );
+    // Project-relative directory conventions keep working.
+    assert.deepEqual(surfacesFromFilename("/proj/src/client/list.js", "/proj"), ["client"]);
+    assert.deepEqual(surfacesFromFilename("/proj/br/rule.js", "/proj"), ["business-rule"]);
+    assert.deepEqual(surfacesFromFilename("src/server/list.js"), ["server"]);
+    // A root base directory keeps every segment below it.
+    assert.deepEqual(surfacesFromFilename("/src/client/list.js", "/"), ["client"]);
+    assert.deepEqual(surfacesFromFilename("/proj/src/client/x.js", "/proj/"), ["client"]);
+    // Absolute paths outside the project keep only basename evidence.
+    assert.deepEqual(surfacesFromFilename("/elsewhere/client/x.js", "/proj"), []);
+    assert.deepEqual(surfacesFromFilename("/elsewhere/x.client.js", "/proj"), ["client"]);
+    assert.deepEqual(surfacesFromFilename("/home/alice/client/app/src/list.js"), []);
+  });
+
   it("lets a Script Include filename beat a g_form mention in a comment", () => {
     assert.equal(classifyFile("util.si.js", "// mirrors g_form.setValue", {}), "script-include");
   });

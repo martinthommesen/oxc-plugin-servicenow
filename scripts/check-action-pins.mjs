@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseDocument } from "yaml";
@@ -32,7 +32,17 @@ export function parseActionPinCatalog(source) {
 
 function collectUses(workflow) {
   const references = [];
-  const jobs = workflow && typeof workflow === "object" ? workflow.jobs : undefined;
+  if (!workflow || typeof workflow !== "object") return references;
+  // Composite actions put their steps under runs.steps instead of jobs.
+  const runsSteps = workflow.runs?.steps;
+  if (Array.isArray(runsSteps)) {
+    for (const step of runsSteps) {
+      if (step && typeof step === "object" && !Array.isArray(step) && Object.hasOwn(step, "uses")) {
+        references.push(step.uses);
+      }
+    }
+  }
+  const jobs = workflow.jobs;
   if (!jobs || typeof jobs !== "object" || Array.isArray(jobs)) return references;
   for (const job of Object.values(jobs)) {
     if (!job || typeof job !== "object" || Array.isArray(job)) continue;
@@ -117,6 +127,21 @@ export function checkActionPinSources(sources, reviewedPinEntries) {
   return { workflows: sources.length, actions: seen.size };
 }
 
+// Local composite actions (`uses: ./.github/actions/...`) are exempt from
+// SHA pinning, but their own action.yml steps can reference third-party
+// actions, so those files are scanned too (FINDINGS.md IMP-001).
+function compositeActionSources() {
+  const actionsRoot = join(root, ".github/actions");
+  if (!existsSync(actionsRoot)) return [];
+  return readdirSync(actionsRoot, { recursive: true, encoding: "utf8" })
+    .filter((name) => /(?:^|\/)action\.(?:yml|yaml)$/.test(name))
+    .sort()
+    .map((name) => ({
+      file: join(".github/actions", name),
+      text: readFileSync(join(actionsRoot, name), "utf8"),
+    }));
+}
+
 export function checkActionPins() {
   const workflows = readdirSync(join(root, ".github/workflows"))
     .filter((name) => /\.(?:yml|yaml)$/.test(name))
@@ -125,7 +150,7 @@ export function checkActionPins() {
     file,
     text: readFileSync(join(root, ".github/workflows", file), "utf8"),
   }));
-  return checkActionPinSources(sources, pinEntries);
+  return checkActionPinSources([...sources, ...compositeActionSources()], pinEntries);
 }
 
 export function main() {

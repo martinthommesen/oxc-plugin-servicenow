@@ -74,7 +74,15 @@ describe("packed package consumer", () => {
       );
       execFileSync(
         "npm",
-        ["install", tarball, "oxlint@1.79.0", "eslint@10.8.1", "oxfmt@0.64.0", "typescript@7.0.2"],
+        [
+          "install",
+          "--ignore-scripts",
+          tarball,
+          "oxlint@1.79.0",
+          "eslint@10.8.1",
+          "oxfmt@0.64.0",
+          "typescript@7.0.2",
+        ],
         { cwd: consumer, encoding: "utf8" },
       );
 
@@ -135,6 +143,15 @@ console.log(JSON.stringify({
       assert.equal(imports.hardcoded, "error");
       assert.equal(imports.bypass, undefined);
       assert.equal(imports.singleQuote, true);
+
+      // Contract test for the post-publish verifier: its consumer probe must
+      // pass against a packed version 2 install, so a stale assertion (such as
+      // the removed PACKAGE_VERSION root export) fails before publication
+      // instead of after it (FINDINGS.md OPS-006).
+      const { importInstalledPackage } = await import("../../scripts/verify-published-package.mjs");
+      const probed = await importInstalledPackage(consumer, "oxc-plugin-servicenow", pkg.version);
+      assert.equal(probed.result.metaName, "servicenow");
+      assert.equal(probed.result.version, pkg.version);
 
       const catalogError = execFileSync(
         process.execPath,

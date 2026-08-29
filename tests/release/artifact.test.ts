@@ -110,6 +110,11 @@ describe("release artifact gates", () => {
     };
     assert.deepEqual(inspectNpmPackRecord(record, ["package/package.json"]), []);
     assert.ok(
+      inspectNpmPackRecord({ files: [{ path: "dist/big.d.ts", size: 939_040, mode: 0o644 }] }, [
+        "package/dist/big.d.ts",
+      ]).some((error) => error.includes("200 KB budget")),
+    );
+    assert.ok(
       inspectNpmPackRecord({ files: [{ path: "../secret", size: 1, mode: 0o644 }] }, [
         "package/../secret",
       ]).some((error) => error.includes("unsafe npm pack path")),

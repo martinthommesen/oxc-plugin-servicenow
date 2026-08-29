@@ -103,22 +103,50 @@ export function looksLikeClientSource(sourceText: string): boolean {
   return CLIENT_GLOBAL_RE.test(sourceText);
 }
 
-export function surfacesFromFilename(filename: string): ScriptSurface[] {
+function isAbsolutePath(path: string): boolean {
+  return path.startsWith("/") || /^[A-Za-z]:\//.test(path);
+}
+
+/**
+ * The path the directory-convention patterns may inspect. Directory names
+ * above the project root (a checkout under `~/client/`, a `/srv/server/`
+ * volume) are not project layout, so an absolute filename contributes
+ * directory evidence only for its project-relative part, and only its
+ * basename when it lies outside the project.
+ */
+function directoryEvidencePath(path: string, baseDirectory: string | undefined): string {
+  if (!isAbsolutePath(path)) return path;
+  if (baseDirectory) {
+    let base = normalizeFilename(baseDirectory);
+    while (base.length > 1 && base.endsWith("/")) base = base.slice(0, -1);
+    // A root base directory ("/" or "C:/") keeps everything below it.
+    if (base.endsWith("/") && path.startsWith(base)) return path.slice(base.length);
+    if (!base.endsWith("/") && base.length > 0 && path.startsWith(`${base}/`)) {
+      return path.slice(base.length + 1);
+    }
+  }
+  return basename(path);
+}
+
+export function surfacesFromFilename(filename: string, baseDirectory?: string): ScriptSurface[] {
   const path = normalizeFilename(filename);
   const file = basename(path);
+  const directoryPath = directoryEvidencePath(path, baseDirectory);
   const surfaces = new Set<ScriptSurface>();
-  if (UI_ACTION_FILE.test(file) || UI_ACTION_DIR.test(path)) surfaces.add("ui-action");
-  if (CLIENT_FILE.test(file) || CLIENT_DIR.test(path)) surfaces.add("client");
-  if (ACL_FILE.test(file) || ACL_DIR.test(path)) surfaces.add("acl");
-  if (BR_FILE.test(file) || BR_DIR.test(path)) surfaces.add("business-rule");
-  if (SI_FILE.test(file) || SI_DIR.test(path)) surfaces.add("script-include");
-  if (SCHEDULED_FILE.test(file) || SCHEDULED_DIR.test(path)) surfaces.add("scheduled-script");
-  if (FIX_SCRIPT_FILE.test(file) || FIX_SCRIPT_DIR.test(path)) surfaces.add("fix-script");
+  if (UI_ACTION_FILE.test(file) || UI_ACTION_DIR.test(directoryPath)) surfaces.add("ui-action");
+  if (CLIENT_FILE.test(file) || CLIENT_DIR.test(directoryPath)) surfaces.add("client");
+  if (ACL_FILE.test(file) || ACL_DIR.test(directoryPath)) surfaces.add("acl");
+  if (BR_FILE.test(file) || BR_DIR.test(directoryPath)) surfaces.add("business-rule");
+  if (SI_FILE.test(file) || SI_DIR.test(directoryPath)) surfaces.add("script-include");
+  if (SCHEDULED_FILE.test(file) || SCHEDULED_DIR.test(directoryPath))
+    surfaces.add("scheduled-script");
+  if (FIX_SCRIPT_FILE.test(file) || FIX_SCRIPT_DIR.test(directoryPath)) surfaces.add("fix-script");
   // A generic server directory is weaker evidence than a specific script
   // subtype in the filename. Keep `src/server/helper.si.js` as a Script
   // Include rather than making the evidence contradictory and returning [].
   const specificSurface = [...surfaces].some((surface) => surface !== "server");
-  if (!specificSurface && (SERVER_DIR.test(path) || SERVER_FILE.test(file))) surfaces.add("server");
+  if (!specificSurface && (SERVER_DIR.test(directoryPath) || SERVER_FILE.test(file)))
+    surfaces.add("server");
 
   if (
     surfaces.has("server") &&

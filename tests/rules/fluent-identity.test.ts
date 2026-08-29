@@ -46,6 +46,37 @@ describe("fluentSdkVersion registry", () => {
     assertValid(table, "require-fluent-id", { ...NOW, settings: { fluentSdkVersion: "4.1.0" } });
   });
 
+  it("resolves aliases by execution order, not declaration order (FINDINGS.md COR-006)", () => {
+    const V3 = { ...NOW, settings: { fluentSdkVersion: "3.0.0" } };
+    const use = 'L({ table: "incident", columns: [], view: "Default" });';
+    const head = 'import { List } from "@servicenow/sdk/core";\nlet L = List;';
+    // Straight-line module code keeps positional resolution.
+    assertInvalid(
+      `${head}\n${use}\nL = console.log;`,
+      "require-fluent-id",
+      { messageId: "missing" },
+      V3,
+    );
+    // A reassignment inside a hoisted function makes the alias uncertain in
+    // both declaration orders: the function can run before the use.
+    assertValid(
+      `${head}\nmutate();\n${use}\nfunction mutate() { L = console.log; }`,
+      "require-fluent-id",
+      V3,
+    );
+    assertValid(
+      `${head}\nfunction mutate() { L = console.log; }\nmutate();\n${use}`,
+      "require-fluent-id",
+      V3,
+    );
+    // A use inside a function cannot trust module-level reassignments.
+    assertValid(
+      `${head}\nfunction go() { ${use} }\nL = console.log;\ngo();`,
+      "require-fluent-id",
+      V3,
+    );
+  });
+
   it("models the List ID transition from 3.0.0 to 4.1.0", () => {
     const list = `import { List } from "@servicenow/sdk/core";\nList({ table: "incident", columns: [], view: "Default" });`;
     assertInvalid(

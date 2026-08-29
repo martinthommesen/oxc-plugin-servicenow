@@ -17,7 +17,7 @@ import {
 import type { NoHardcodedSysIdOptions } from "../options/index.js";
 import { isInstanceScript } from "../context/index.js";
 import { beginRuleFile } from "./helpers.js";
-import { findSysIds, looksLikeMd5Context } from "../utils/sysid.js";
+import { findSysIds, looksLikeDigestContext } from "../utils/sysid.js";
 
 export type { NoHardcodedSysIdOptions };
 
@@ -40,7 +40,7 @@ function reportSysIds(
   const ids = findSysIds(value);
   if (ids.length === 0) return;
   const bindingName = ignoreHashNames ? valueOwnerName(context, node) : null;
-  if (ignoreHashNames && looksLikeMd5Context(bindingName, value)) return;
+  if (ignoreHashNames && looksLikeDigestContext(bindingName, value)) return;
 
   for (const id of ids) {
     if (allowed.has(id.toLowerCase())) continue;
@@ -112,7 +112,7 @@ function reportStaticSegments(
   const matches = [...value.matchAll(/\b[0-9a-f]{32}\b/gi)];
   if (matches.length === 0) return;
   const bindingName = ignoreHashNames ? valueOwnerName(context, node) : null;
-  if (ignoreHashNames && looksLikeMd5Context(bindingName, value)) return;
+  if (ignoreHashNames && looksLikeDigestContext(bindingName, value)) return;
 
   let offset = 0;
   const ranges = segments.map((segment) => {

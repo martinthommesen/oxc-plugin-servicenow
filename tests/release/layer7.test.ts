@@ -79,11 +79,22 @@ describe("release automation gates", () => {
     assert.equal(result.actions, 5);
   });
 
-  it("accepts only the pinned executable npm version", () => {
+  it("accepts only the supported executable npm range (FINDINGS.md IMP-002)", () => {
     assert.equal(parseNpmVersion("11.5.1\n"), "11.5.1");
-    assert.equal(assertTrustedPublishingNpm("11.5.1", "11.5.1"), "11.5.1");
     assert.throws(() => parseNpmVersion("v11.5.1\n"), /invalid/);
-    assert.throws(() => assertTrustedPublishingNpm("11.5.2", "11.5.1"), /requires npm/);
+    // Below minimum, at minimum, within range, at the exclusive upper bound.
+    assert.throws(() => assertTrustedPublishingNpm("11.5.0"), /requires npm/);
+    assert.equal(assertTrustedPublishingNpm("11.5.1"), "11.5.1");
+    assert.equal(assertTrustedPublishingNpm("11.9.3"), "11.9.3");
+    assert.throws(() => assertTrustedPublishingNpm("12.0.0"), /requires npm/);
+    // A prerelease precedes its release, and malformed bounds must throw
+    // instead of comparing as NaN.
+    assert.throws(() => assertTrustedPublishingNpm("11.5.1-rc.0"), /requires npm/);
+    assert.equal(assertTrustedPublishingNpm("11.6.0-beta.1"), "11.6.0-beta.1");
+    assert.throws(
+      () => assertTrustedPublishingNpm("11.5.1", "not-a-version"),
+      /invalid npm version bound/,
+    );
   });
 
   it("models stable and prerelease publication without moving latest", () => {
@@ -131,6 +142,18 @@ describe("release automation gates", () => {
     );
     assert.ok(compareReleaseVersions("2.0.0", "2.0.0-rc.1") > 0);
     assert.ok(compareReleaseVersions("2.0.0-rc.10", "2.0.0-rc.2") > 0);
+    // Hyphenated prerelease identifiers must not be truncated (FINDINGS.md
+    // REL-001). "rc-2" is one alphanumeric identifier compared as ASCII.
+    assert.ok(compareReleaseVersions("2.0.0-rc-2", "2.0.0-rc-1") > 0);
+    assert.ok(compareReleaseVersions("2.0.0-beta-hotfix", "2.0.0-beta") > 0);
+    assert.equal(compareReleaseVersions("2.0.0-rc-1", "2.0.0-rc-1"), 0);
+    assert.deepEqual(
+      validateRegistryVersionOrder(
+        { versions: ["2.0.0-rc-1"], "dist-tags": { next: "2.0.0-rc-1" } },
+        "2.0.0-rc-2",
+      ),
+      { existing: false, highest: "2.0.0-rc-1" },
+    );
     assert.deepEqual(
       validateRegistryVersionOrder(
         { versions: ["1.1.0", "2.0.0-rc.1"], "dist-tags": { latest: "1.1.0" } },
@@ -586,6 +609,64 @@ describe("release automation gates", () => {
     assert.deepEqual(validateDesiredGovernance(desired), []);
   });
 
+  it("requires only status checks that some CI job can produce", () => {
+    // Guards against hand-written required-check names drifting from the
+    // job names the workflows can emit (FINDINGS.md OPS-002).
+    const matrix = JSON.parse(
+      readFileSync(path.join(repoRoot, "scripts/compat-matrix.json"), "utf8"),
+    ) as { cells: Array<{ id: string; node: string }> };
+    const producible = new Set([
+      ...Object.keys(ciWorkflow.jobs).filter((job) => job !== "compat"),
+      ...matrix.cells.map((cell) => `compat (${cell.id}, ${cell.node})`),
+    ]);
+    const desired = JSON.parse(
+      readFileSync(path.join(repoRoot, "scripts/release-governance.json"), "utf8"),
+    );
+    for (const context of desired.mainRuleset.requiredStatusChecks) {
+      assert.ok(producible.has(context), `required check "${context}" is not producible`);
+    }
+  });
+
+  it("bounds every job and network operation (FINDINGS.md REL-002)", async () => {
+    // The retry deadline only stops scheduling; each job needs a final guard
+    // and each fetch its own abort signal so a hang cannot stall a release.
+    const { readdirSync } = await import("node:fs");
+    const workflowFiles = readdirSync(path.join(repoRoot, ".github/workflows")).filter((name) =>
+      /\.ya?ml$/.test(name),
+    );
+    for (const file of workflowFiles) {
+      const parsed = parse(
+        readFileSync(path.join(repoRoot, ".github/workflows", file), "utf8"),
+      ) as { jobs: Record<string, { "timeout-minutes"?: number }> };
+      for (const [name, job] of Object.entries(parsed.jobs)) {
+        assert.ok(
+          Number.isFinite(job["timeout-minutes"]) && (job["timeout-minutes"] ?? 0) > 0,
+          `${file} job ${name} has no timeout-minutes`,
+        );
+      }
+    }
+    let sawSignal: unknown;
+    const url = "https://registry.npmjs.org/-/npm/v1/attestations/pkg@2.0.0";
+    await assert.rejects(
+      fetchAttestations(
+        {
+          dist: {
+            attestations: [
+              { url, provenance: { predicateType: "https://slsa.dev/provenance/v1" } },
+            ],
+          },
+        },
+        "pkg",
+        "2.0.0",
+        (async (_target: string, init: { signal?: unknown }) => {
+          sawSignal = init.signal;
+          return { status: 500, ok: false, url, headers: { get: () => null } };
+        }) as any,
+      ),
+    );
+    assert.ok(sawSignal instanceof AbortSignal, "attestation fetch has no abort signal");
+  });
+
   it("parses the workflow graph and proves least-privilege job boundaries", () => {
     const jobs = workflow.jobs;
     assert.deepEqual(jobs.publish.needs, ["validate", "consumer", "publication-state"]);
@@ -851,7 +932,12 @@ describe("release automation gates", () => {
 });
 
 async function signedProvenanceFixture() {
-  const fixed = new Date();
+  // One minute ahead of the wall clock: @sigstore/mock anchors the root
+  // certificate's notBefore to Date.now() at creation, which happens after
+  // this line. X509 validity has second granularity, so a clock captured in
+  // the previous second can predate the root and fail chain verification —
+  // a boundary race that hit CI while passing locally.
+  const fixed = new Date(Date.now() + 60_000);
   const caKeys = generateKeyPairSync("ec", { namedCurve: "P-256" });
   const signerKeys = generateKeyPairSync("ec", { namedCurve: "P-256" });
   const ca = await initializeCA(caKeys, undefined, fixed);

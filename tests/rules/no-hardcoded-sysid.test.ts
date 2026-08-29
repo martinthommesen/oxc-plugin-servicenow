@@ -26,6 +26,17 @@ describe(RULE, () => {
     assertValid(`var md5 = "${ID}";`, RULE);
   });
 
+  it("ignores every digest-like binding name by default (FINDINGS.md COR-002)", () => {
+    for (const name of ["checksum", "digest", "etag", "fileHash", "sha1Value"]) {
+      assertValid(`var ${name} = "${ID}";`, RULE);
+    }
+    assertValid(`var payload = { checksum: "${ID}" };`, RULE);
+  });
+
+  it("does not suppress a sys_id for a name without a digest word", () => {
+    assertInvalid(`var groupId = "${ID}";`, RULE, { messageId: "hardcoded" });
+  });
+
   it("resolves hash owners structurally across nested sibling expressions", () => {
     assertValid(`var expectedMd5 = choose({ encoding: "hex" }, "${ID}");`, RULE);
     assertValid(`hashes.md5 = choose({ encoding: "hex" }, "${ID}");`, RULE);
@@ -138,8 +149,16 @@ class Configuration { [md5] = "${ID}"; }`,
     });
   });
 
-  it("does not suppress a sys_id for a generic hash-like name", () => {
-    assertInvalid(`var userHash = "${ID}";`, RULE, { messageId: "hardcoded" });
+  it("suppresses a generic hash-like name by default and reports when disabled", () => {
+    assertValid(`var userHash = "${ID}";`, RULE);
+    assertInvalid(
+      `var userHash = "${ID}";`,
+      RULE,
+      { messageId: "hardcoded" },
+      {
+        options: { [RULE]: [{ ignoreHashNames: false }] },
+      },
+    );
   });
 
   it("rejects an unknown rule option", () => {

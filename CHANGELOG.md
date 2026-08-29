@@ -2,8 +2,16 @@
 
 ## Unreleased
 
+### Deprecated
+
+- `validate-gliderecord-calls` will be removed in 3.0. It stays available and `off` throughout 2.x for 1.x migrations. Use `require-query-before-next`, which covers the same query-before-`next` class with path-sensitive analysis (README migration step 4).
+
 ### Fixed
 
+- Fluent import aliases now follow execution order instead of source position. A reassignment inside a nested function makes the alias uncertain in every declaration order, and a builder use inside a function no longer trusts module-level reassignment ordering. Straight-line module-level code keeps positional resolution.
+- Surface directory conventions now match the project-relative path instead of the whole absolute path. A directory name above the project root no longer assigns or suppresses an execution surface, so diagnostics no longer depend on where the repository is cloned.
+- The generated SDK snapshot module is annotated with an interface instead of `as const`, shrinking the shipped `dist/fluent/declaration-snapshots.d.ts` from roughly 1 MB to under 1 KB. The release artifact check now enforces a 200 KB budget per shipped declaration file.
+- `no-hardcoded-sysid` with the default `ignoreHashNames: true` now suppresses a 32-character hex literal for every digest-like owner name (`md5`, `sha`, `hash`, `checksum`, `etag`, `digest`), not only names containing `md5`.
 - Release verification now decodes Fulcio DER UTF8String certificate fields and checks GitHub's immutable owner and repository IDs.
 - A recovery workflow can create a missing GitHub release after npm publication succeeds.
 

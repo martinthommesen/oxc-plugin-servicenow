@@ -222,29 +222,7 @@ export const FLUENT_SDK_ARTIFACTS: Readonly<
   },
 });
 
-interface DeclarationCapability {
-  readonly module: "@servicenow/sdk/core";
-  readonly exportName: string;
-  readonly declarationPath: string;
-  readonly declarationSha256: string;
-  readonly sourceSha256: string;
-  readonly kind: string;
-  readonly idPolicy: "required" | "deprecated" | "unknown";
-}
-
-interface DeclarationSnapshot {
-  readonly capabilities: Readonly<Record<string, DeclarationCapability>>;
-  readonly discoveredCapabilities: Readonly<Record<string, DeclarationCapability>>;
-  readonly absent: readonly string[];
-  readonly typos: Readonly<Record<string, string>>;
-  readonly lifecycle: Readonly<
-    Record<string, { introduced: string | null; deprecated: string | null }>
-  >;
-}
-
-const DECLARATIONS = FLUENT_DECLARATION_SNAPSHOTS as unknown as Readonly<
-  Record<string, DeclarationSnapshot>
->;
+const DECLARATIONS = FLUENT_DECLARATION_SNAPSHOTS;
 
 function withSdkVersion(manifest: FluentSdkManifest, sdkVersion: string): FluentSdkManifest {
   return { ...manifest, version: `sdk-${sdkVersion}`, sdkVersion };
