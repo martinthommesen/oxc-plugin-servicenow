@@ -10,7 +10,7 @@ import {
 import { applyRules } from "../../src/runtime/apply-rules.js";
 import { walk } from "../../src/utils/ast.js";
 import { ctorProvenanceKind } from "../../src/analysis/provenance.js";
-import { assertInvalid, assertValid, parse } from "../helpers/rule-tester.js";
+import { assertInvalid, assertValid, lint, parse } from "../helpers/rule-tester.js";
 
 describe("shared file analysis", () => {
   it("returns no provenance kind for Object.prototype member names (FINDINGS.md MNT-003)", () => {
@@ -228,6 +228,55 @@ outer.next();`,
 });
 
 describe("path identity and completion", () => {
+  it("prunes branches behind constant conditions (FINDINGS.md COR-003)", () => {
+    const RULE = "require-query-before-next" as const;
+    const SERVER = { filename: "a.br.js" };
+    const gr = 'var gr = new GlideRecord("x");';
+    // Constant-true: the query always runs, the impossible false path is gone.
+    assertValid(`${gr} if (true) { gr.query(); } while (gr.next()) {}`, RULE, SERVER);
+    assertValid(`${gr} if (1) { gr.query(); } while (gr.next()) {}`, RULE, SERVER);
+    assertValid(`${gr} if (!false) { gr.query(); } while (gr.next()) {}`, RULE, SERVER);
+    assertValid(`${gr} true ? gr.query() : null; while (gr.next()) {}`, RULE, SERVER);
+    assertValid(`${gr} if (false) {} else { gr.query(); } while (gr.next()) {}`, RULE, SERVER);
+    assertValid(`${gr} true && gr.query(); while (gr.next()) {}`, RULE, SERVER);
+    assertValid(`${gr} false || gr.query(); while (gr.next()) {}`, RULE, SERVER);
+    // Constant-false: the query can never run.
+    assertInvalid(`${gr} if (false) { gr.query(); } while (gr.next()) {}`, RULE, {}, SERVER);
+    assertInvalid(`${gr} false && gr.query(); while (gr.next()) {}`, RULE, {}, SERVER);
+    // Unknown conditions keep the every-path contract.
+    assertInvalid(`${gr} if (c) { gr.query(); } while (gr.next()) {}`, RULE, {}, SERVER);
+  });
+
+  it("keeps diagnostics invariant under sibling-branch reordering (FINDINGS.md COR-003)", () => {
+    const RULE = "require-query-before-next" as const;
+    const SERVER = { filename: "a.br.js" };
+    const forward = `var gr; if (c) { gr = new GlideRecord("a"); gr.query(); } else { gr = new GlideRecord("b"); gr.query(); } while (gr.next()) {}`;
+    const reversed = `var gr; if (c) { gr = new GlideRecord("b"); gr.query(); } else { gr = new GlideRecord("a"); gr.query(); } while (gr.next()) {}`;
+    assert.equal(
+      lint(forward, RULE, SERVER).length,
+      lint(reversed, RULE, SERVER).length,
+    );
+  });
+
+  it("keeps the return completion through finally (FINDINGS.md COR-003)", () => {
+    const RULE = "require-query-before-next" as const;
+    const SERVER = { filename: "a.br.js" };
+    // The fallthrough path always queried; the return path never reaches next.
+    assertValid(
+      `function f(c) {
+  var gr = new GlideRecord("x");
+  try {
+    if (c) { return null; }
+    gr.query();
+  } finally { gs.info(1); }
+  while (gr.next()) {}
+}
+f(true);`,
+      RULE,
+      SERVER,
+    );
+  });
+
   it("caps generic AST traversal depth", () => {
     let node: Record<string, unknown> = { type: "Identifier", name: "value" };
     for (let depth = 0; depth < 1_000; depth += 1) {

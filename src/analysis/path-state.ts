@@ -107,6 +107,36 @@ export function isFunctionLikeNode(node: ESTree.Node): boolean {
  * an IIFE that runs at this program point. Its body inherits the enclosing
  * execution context; deferred callbacks do not (FINDINGS.md COR-004).
  */
+/**
+ * Truthiness of a statically constant test expression: literal booleans,
+ * numbers, strings, `null`, `undefined` at global scope, and `!` chains over
+ * them. Everything else is unknown. Used to prune branches a constant
+ * condition makes unreachable (FINDINGS.md COR-003).
+ */
+export function constantTruthiness(node: unknown): boolean | undefined {
+  const expr = unwrapExpression(node);
+  if (!isNode(expr)) return undefined;
+  if (expr.type === "Literal") {
+    const value = (expr as { value?: unknown; regex?: unknown }).value;
+    if ((expr as { regex?: unknown }).regex) return true;
+    if (value === null) return false;
+    if (
+      typeof value === "boolean" ||
+      typeof value === "number" ||
+      typeof value === "string" ||
+      typeof value === "bigint"
+    ) {
+      return Boolean(value);
+    }
+    return undefined;
+  }
+  if (expr.type === "UnaryExpression" && (expr as ESTree.UnaryExpression).operator === "!") {
+    const inner = constantTruthiness((expr as ESTree.UnaryExpression).argument);
+    return inner === undefined ? undefined : !inner;
+  }
+  return undefined;
+}
+
 export function isSynchronousIife(node: unknown): boolean {
   if (!isNode(node) || node.type !== "CallExpression") return false;
   return iifeCallee(node as ESTree.CallExpression) !== null;
@@ -946,6 +976,15 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
       case "IfStatement": {
         const stmt = node as ESTree.IfStatement;
         visit(stmt.test, state, false);
+        const known = constantTruthiness(stmt.test);
+        if (known === true) {
+          visit(stmt.consequent, state, false);
+          break;
+        }
+        if (known === false) {
+          if (stmt.alternate) visit(stmt.alternate, state, false);
+          break;
+        }
         const consequent = snapshotState(state, cloneData, budget);
         visit(stmt.consequent, consequent, false);
         const alternate = snapshotState(state, cloneData, budget);
@@ -956,6 +995,11 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
       case "ConditionalExpression": {
         const expr = node as ESTree.ConditionalExpression;
         visit(expr.test, state, false);
+        const known = constantTruthiness(expr.test);
+        if (known !== undefined) {
+          visit(known ? expr.consequent : expr.alternate, state, false);
+          break;
+        }
         const consequent = snapshotState(state, cloneData, budget);
         visit(expr.consequent, consequent, false);
         const alternate = snapshotState(state, cloneData, budget);
@@ -966,6 +1010,19 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
       case "LogicalExpression": {
         const expr = node as ESTree.LogicalExpression;
         visit(expr.left, state, false);
+        const left = constantTruthiness(expr.left);
+        const operator = expr.operator;
+        // Short-circuit with a constant left side: the right side either
+        // always or never evaluates (FINDINGS.md COR-003).
+        const rightAlways =
+          (operator === "&&" && left === true) || (operator === "||" && left === false);
+        const rightNever =
+          (operator === "&&" && left === false) || (operator === "||" && left === true);
+        if (rightNever) break;
+        if (rightAlways) {
+          visit(expr.right, state, false);
+          break;
+        }
         const afterLeft = snapshotState(state, cloneData, budget);
         visit(expr.right, state, false);
         joinInto(state, [afterLeft, snapshotState(state, cloneData, budget)]);
