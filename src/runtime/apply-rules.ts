@@ -22,6 +22,13 @@ export interface LintSourceOptions {
   ruleNames?: readonly RuleName[];
   settings?: ServiceNowSettings;
   options?: Partial<Record<RuleName, unknown[]>>;
+  /**
+   * Called when a rule's `before()` hook declines the file. Without this
+   * signal a valid-case assertion cannot distinguish a rule that ran and
+   * found nothing from a rule whose context gate skipped the file
+   * (FINDINGS.md TST-004).
+   */
+  onRuleSkipped?: (rule: RuleName) => void;
 }
 
 export interface ParsedSource {
@@ -169,7 +176,10 @@ export function applyRules(
     const visitors = createOnce ? createOnce.call(rule, context) : create!(context);
     if (!visitors) continue;
     const hooks = visitors as { before?: () => boolean | void; after?: () => void };
-    if (hooks.before?.() === false) continue;
+    if (hooks.before?.() === false) {
+      options.onRuleSkipped?.(name);
+      continue;
+    }
 
     walk(
       parsed.ast as ESTree.Node,

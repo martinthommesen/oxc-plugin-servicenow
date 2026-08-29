@@ -137,9 +137,13 @@ describe("rule catalog examples", () => {
 
       for (const example of entry.good) {
         it(`allows: ${example.name}`, () => {
+          let skipped = false;
           const messages = lint(example.code, entry.name, {
             filename: example.filename ?? "test.js",
             settings: example.settings,
+            onRuleSkipped: () => {
+              skipped = true;
+            },
           });
           assert.equal(
             messages.length,
@@ -148,6 +152,18 @@ describe("rule catalog examples", () => {
               .map((message) => `  - ${message.messageId ?? "?"} ${message.message}`)
               .join("\n")}`,
           );
+          // A good example without explicit settings must exercise the rule:
+          // if the context gate declined the file, the example proves nothing
+          // and the generated page shows code the rule never checked
+          // (FINDINGS.md TST-004). An example with explicit settings may skip
+          // deliberately, for example "allowed from the Australia release".
+          if (!example.settings) {
+            assert.equal(
+              skipped,
+              false,
+              `catalog good example "${example.name}" for ${entry.name} was skipped by the rule's before() gate; give it the settings its bad twin uses`,
+            );
+          }
         });
       }
     });
