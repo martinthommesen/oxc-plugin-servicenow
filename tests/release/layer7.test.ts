@@ -514,7 +514,11 @@ describe("release automation gates", () => {
 });
 
 async function signedProvenanceFixture() {
-  const fixed = new Date("2026-08-21T12:00:00Z");
+  // The clock must track wall time. @sigstore/mock passes this clock to the
+  // leaf certificate only; the root certificate is always anchored to
+  // Date.now(). A pinned date makes the chain expire once wall time passes
+  // the leaf validity window.
+  const fixed = new Date();
   const caKeys = generateKeyPairSync("ec", { namedCurve: "P-256" });
   const signerKeys = generateKeyPairSync("ec", { namedCurve: "P-256" });
   const ca = await initializeCA(caKeys, undefined, fixed);
