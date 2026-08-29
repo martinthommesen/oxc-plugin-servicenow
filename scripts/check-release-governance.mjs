@@ -14,10 +14,13 @@ const EXPECTED_MAIN_RULE_TYPES = [
   "code_coverage",
   "required_linear_history",
 ];
+// "bench" is deliberately absent: the benchmark job compares absolute
+// timings against a stored baseline, which varies with the runner hardware
+// a pull request happens to get, so it runs advisory rather than required
+// (FINDINGS.md REL-004).
 const EXPECTED_MAIN_STATUS_CHECKS = [
   "test",
   "consumer",
-  "bench",
   "compat (min-hosts, 20.19.0)",
   "compat (node22-host, 22.14.0)",
   "compat (node24-host, 24.16.0)",

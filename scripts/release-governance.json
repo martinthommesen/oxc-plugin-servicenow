@@ -49,7 +49,6 @@
     "requiredStatusChecks": [
       "test",
       "consumer",
-      "bench",
       "compat (min-hosts, 20.19.0)",
       "compat (node22-host, 22.14.0)",
       "compat (node24-host, 24.16.0)",
@@ -93,9 +92,6 @@
             },
             {
               "context": "consumer"
-            },
-            {
-              "context": "bench"
             },
             {
               "context": "compat (min-hosts, 20.19.0)"
