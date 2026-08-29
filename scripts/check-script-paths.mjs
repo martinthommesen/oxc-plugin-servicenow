@@ -25,7 +25,9 @@ for (const command of Object.values(pkg.scripts)) {
   }
 }
 
-const missing = [...referenced].filter((path) => !tracked.has(path));
+const missing = [...referenced]
+  .map((path) => path.replace(/^\.\//, ""))
+  .filter((path) => !tracked.has(path));
 if (missing.length > 0) {
   console.error("package.json scripts reference untracked paths:");
   for (const path of missing) console.error(`  ${path}`);

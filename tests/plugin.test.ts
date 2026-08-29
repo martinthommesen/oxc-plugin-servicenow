@@ -13,7 +13,6 @@ import {
   REPOSITORY_URL,
 } from "../src/constants.js";
 import { rules } from "../src/rules/index.js";
-import { lint } from "./helpers/rule-tester.js";
 
 describe("plugin export", () => {
   it("exports only the supported runtime API", () => {

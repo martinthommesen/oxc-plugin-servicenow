@@ -643,7 +643,9 @@ describe("release automation gates", () => {
       fetchAttestations(
         {
           dist: {
-            attestations: [{ url, provenance: { predicateType: "https://slsa.dev/provenance/v1" } }],
+            attestations: [
+              { url, provenance: { predicateType: "https://slsa.dev/provenance/v1" } },
+            ],
           },
         },
         "pkg",

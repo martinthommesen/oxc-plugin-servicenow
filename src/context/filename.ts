@@ -133,7 +133,8 @@ export function surfacesFromFilename(filename: string, baseDirectory?: string): 
   if (ACL_FILE.test(file) || ACL_DIR.test(directoryPath)) surfaces.add("acl");
   if (BR_FILE.test(file) || BR_DIR.test(directoryPath)) surfaces.add("business-rule");
   if (SI_FILE.test(file) || SI_DIR.test(directoryPath)) surfaces.add("script-include");
-  if (SCHEDULED_FILE.test(file) || SCHEDULED_DIR.test(directoryPath)) surfaces.add("scheduled-script");
+  if (SCHEDULED_FILE.test(file) || SCHEDULED_DIR.test(directoryPath))
+    surfaces.add("scheduled-script");
   if (FIX_SCRIPT_FILE.test(file) || FIX_SCRIPT_DIR.test(directoryPath)) surfaces.add("fix-script");
   // A generic server directory is weaker evidence than a specific script
   // subtype in the filename. Keep `src/server/helper.si.js` as a Script

@@ -51,13 +51,30 @@ describe("fluentSdkVersion registry", () => {
     const use = 'L({ table: "incident", columns: [], view: "Default" });';
     const head = 'import { List } from "@servicenow/sdk/core";\nlet L = List;';
     // Straight-line module code keeps positional resolution.
-    assertInvalid(`${head}\n${use}\nL = console.log;`, "require-fluent-id", { messageId: "missing" }, V3);
+    assertInvalid(
+      `${head}\n${use}\nL = console.log;`,
+      "require-fluent-id",
+      { messageId: "missing" },
+      V3,
+    );
     // A reassignment inside a hoisted function makes the alias uncertain in
     // both declaration orders: the function can run before the use.
-    assertValid(`${head}\nmutate();\n${use}\nfunction mutate() { L = console.log; }`, "require-fluent-id", V3);
-    assertValid(`${head}\nfunction mutate() { L = console.log; }\nmutate();\n${use}`, "require-fluent-id", V3);
+    assertValid(
+      `${head}\nmutate();\n${use}\nfunction mutate() { L = console.log; }`,
+      "require-fluent-id",
+      V3,
+    );
+    assertValid(
+      `${head}\nfunction mutate() { L = console.log; }\nmutate();\n${use}`,
+      "require-fluent-id",
+      V3,
+    );
     // A use inside a function cannot trust module-level reassignments.
-    assertValid(`${head}\nfunction go() { ${use} }\nL = console.log;\ngo();`, "require-fluent-id", V3);
+    assertValid(
+      `${head}\nfunction go() { ${use} }\nL = console.log;\ngo();`,
+      "require-fluent-id",
+      V3,
+    );
   });
 
   it("models the List ID transition from 3.0.0 to 4.1.0", () => {

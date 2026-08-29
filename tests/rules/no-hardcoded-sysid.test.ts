@@ -151,9 +151,14 @@ class Configuration { [md5] = "${ID}"; }`,
 
   it("suppresses a generic hash-like name by default and reports when disabled", () => {
     assertValid(`var userHash = "${ID}";`, RULE);
-    assertInvalid(`var userHash = "${ID}";`, RULE, { messageId: "hardcoded" }, {
-      options: { [RULE]: [{ ignoreHashNames: false }] },
-    });
+    assertInvalid(
+      `var userHash = "${ID}";`,
+      RULE,
+      { messageId: "hardcoded" },
+      {
+        options: { [RULE]: [{ ignoreHashNames: false }] },
+      },
+    );
   });
 
   it("rejects an unknown rule option", () => {
