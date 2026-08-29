@@ -27,4 +27,10 @@ export function validateSnapshot(mapping: {
   goal?: { criteria?: number; criteriaSha256?: string };
   criteria?: Array<AcceptanceCriterion & { disposition: string }>;
 }): string[];
+export function worktreeIdentity(): {
+  head: string;
+  clean: boolean;
+  diffDigest: string | null;
+  testedIdentity: string;
+};
 export function main(argv?: string[]): Promise<Record<string, unknown>>;

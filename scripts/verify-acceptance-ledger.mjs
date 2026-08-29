@@ -295,12 +295,29 @@ function git(args) {
   }).trim();
 }
 
-function worktreeIdentity() {
+// The ledger's own generated outputs are excluded from the digest scope.
+// Hashing files this run rewrites would make the recorded digest
+// unreproducible by construction (FINDINGS.md DOC-001).
+const GENERATED_LEDGER_OUTPUTS = [
+  "scripts/pr51-acceptance.json",
+  "docs/pr-51-acceptance-ledger.md",
+  "docs/pr-51-validation-report.md",
+];
+
+export function worktreeIdentity() {
   const head = git(["rev-parse", "HEAD"]);
-  const status = git(["status", "--porcelain=v1", "--untracked-files=all"]);
+  const excludePathspecs = GENERATED_LEDGER_OUTPUTS.map((path) => `:(exclude)${path}`);
+  const status = git([
+    "status",
+    "--porcelain=v1",
+    "--untracked-files=all",
+    "--",
+    ".",
+    ...excludePathspecs,
+  ]);
   const diff = execFileSync(
     "git",
-    ["-c", "core.fsmonitor=false", "diff", "--binary", "HEAD", "--", "."],
+    ["-c", "core.fsmonitor=false", "diff", "--binary", "HEAD", "--", ".", ...excludePathspecs],
     {
       cwd: root,
       maxBuffer: 50 * 1024 * 1024,

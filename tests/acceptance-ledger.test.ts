@@ -10,6 +10,7 @@ import {
   criteriaAuthorityDigest,
   validateMapping,
   validateSnapshot,
+  worktreeIdentity,
 } from "../scripts/verify-acceptance-ledger.mjs";
 import { repoRoot } from "./integration/helpers.js";
 
@@ -95,5 +96,14 @@ describe("PR51 acceptance mapping", () => {
     assert.ok(files.includes("tests/acceptance-ledger.test.ts"));
     assert.ok(files.includes("scripts/verify-acceptance-ledger.mjs"));
     assert.ok(!files.includes("scripts/pr51-acceptance.json"));
+  });
+});
+
+describe("worktree identity digest", () => {
+  it("is reproducible on an unchanged tree (FINDINGS.md DOC-001)", () => {
+    const first = worktreeIdentity();
+    const second = worktreeIdentity();
+    assert.equal(first.diffDigest, second.diffDigest);
+    assert.equal(first.testedIdentity, second.testedIdentity);
   });
 });
