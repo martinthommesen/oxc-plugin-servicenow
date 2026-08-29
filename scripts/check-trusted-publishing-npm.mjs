@@ -1,7 +1,23 @@
 import { execFileSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 
-export const TRUSTED_PUBLISHING_NPM_VERSION = "11.5.1";
+// Bounded range instead of exact equality (FINDINGS.md IMP-002): npm OIDC
+// trusted publishing needs at least the minimum, and the exclusive upper
+// bound keeps an untested major from running the publish step. The observed
+// version is printed in the result JSON for audit.
+export const TRUSTED_PUBLISHING_NPM_MINIMUM = "11.5.1";
+export const TRUSTED_PUBLISHING_NPM_BELOW = "12.0.0";
+/** @deprecated Use TRUSTED_PUBLISHING_NPM_MINIMUM. */
+export const TRUSTED_PUBLISHING_NPM_VERSION = TRUSTED_PUBLISHING_NPM_MINIMUM;
+
+function compareCoreVersions(left, right) {
+  const a = left.split(/[-+]/)[0].split(".").map(Number);
+  const b = right.split(/[-+]/)[0].split(".").map(Number);
+  for (let index = 0; index < 3; index += 1) {
+    if (a[index] !== b[index]) return a[index] - b[index];
+  }
+  return 0;
+}
 
 /** Parse only a single semver-like npm --version line; npm must not be guessed from Node metadata. */
 export function parseNpmVersion(output) {
@@ -16,11 +32,15 @@ export function parseNpmVersion(output) {
   return lines[0];
 }
 
-export function assertTrustedPublishingNpm(output, expected = TRUSTED_PUBLISHING_NPM_VERSION) {
+export function assertTrustedPublishingNpm(
+  output,
+  minimum = TRUSTED_PUBLISHING_NPM_MINIMUM,
+  below = TRUSTED_PUBLISHING_NPM_BELOW,
+) {
   const actual = parseNpmVersion(output);
-  if (actual !== expected) {
+  if (compareCoreVersions(actual, minimum) < 0 || compareCoreVersions(actual, below) >= 0) {
     throw new Error(
-      `trusted publishing requires npm ${expected}; executable npm reported ${actual}`,
+      `trusted publishing requires npm >=${minimum} <${below}; executable npm reported ${actual}`,
     );
   }
   return actual;
@@ -39,16 +59,16 @@ function argValue(argv, name) {
 }
 
 export function main(argv = process.argv) {
-  const expected = argValue(argv, "--expected") ?? TRUSTED_PUBLISHING_NPM_VERSION;
+  const minimum = argValue(argv, "--expected") ?? TRUSTED_PUBLISHING_NPM_MINIMUM;
   const output = argValue(argv, "--version-output");
   const actual =
     output === undefined
       ? assertTrustedPublishingNpm(
           execFileSync("npm", ["--version"], { encoding: "utf8" }),
-          expected,
+          minimum,
         )
-      : assertTrustedPublishingNpm(output, expected);
-  const result = { ok: true, expected, actual };
+      : assertTrustedPublishingNpm(output, minimum);
+  const result = { ok: true, minimum, below: TRUSTED_PUBLISHING_NPM_BELOW, actual };
   console.log(JSON.stringify(result, null, 2));
   return result;
 }

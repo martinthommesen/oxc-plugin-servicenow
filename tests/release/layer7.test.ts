@@ -79,11 +79,14 @@ describe("release automation gates", () => {
     assert.equal(result.actions, 5);
   });
 
-  it("accepts only the pinned executable npm version", () => {
+  it("accepts only the supported executable npm range (FINDINGS.md IMP-002)", () => {
     assert.equal(parseNpmVersion("11.5.1\n"), "11.5.1");
-    assert.equal(assertTrustedPublishingNpm("11.5.1", "11.5.1"), "11.5.1");
     assert.throws(() => parseNpmVersion("v11.5.1\n"), /invalid/);
-    assert.throws(() => assertTrustedPublishingNpm("11.5.2", "11.5.1"), /requires npm/);
+    // Below minimum, at minimum, within range, at the exclusive upper bound.
+    assert.throws(() => assertTrustedPublishingNpm("11.5.0"), /requires npm/);
+    assert.equal(assertTrustedPublishingNpm("11.5.1"), "11.5.1");
+    assert.equal(assertTrustedPublishingNpm("11.9.3"), "11.9.3");
+    assert.throws(() => assertTrustedPublishingNpm("12.0.0"), /requires npm/);
   });
 
   it("models stable and prerelease publication without moving latest", () => {
