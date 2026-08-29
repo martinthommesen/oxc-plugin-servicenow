@@ -89,6 +89,9 @@ const CONDITIONAL_WRITE_ANCESTORS = new Set([
   "CatchClause",
   "ConditionalExpression",
   "LogicalExpression",
+]);
+
+const FUNCTION_ANCESTORS = new Set([
   "FunctionDeclaration",
   "FunctionExpression",
   "ArrowFunctionExpression",
@@ -99,6 +102,7 @@ function latestSimpleValue(
   use: ESTree.Node,
   program: ESTree.Node | undefined,
   bindings: FileBindings,
+  useInsideFunction: boolean,
 ): ESTree.Node | null {
   const useStart = (use as { start?: number }).start ?? Number.POSITIVE_INFINITY;
   let value = declarationInit(binding);
@@ -111,12 +115,24 @@ function latestSimpleValue(
     {
       AssignmentExpression(node) {
         const assignment = node as ESTree.AssignmentExpression;
-        const start = (node as { start?: number }).start ?? Number.POSITIVE_INFINITY;
-        if (start >= useStart) return;
         const left = unwrapExpression(assignment.left);
         if (!isNode(left) || left.type !== "Identifier") return;
         const resolved = bindings.resolve(getName(left) ?? "", left, ancestors);
         if (resolved?.id !== binding.id) return;
+        // Source position is execution order only for straight-line
+        // module-level code. A write inside any function can run at any
+        // time relative to the use, and a use inside a function can run at
+        // any time relative to module-level writes, so both make the alias
+        // uncertain regardless of where they appear (FINDINGS.md COR-006).
+        const insideFunction = ancestors
+          .slice(0, -1)
+          .some((ancestor) => FUNCTION_ANCESTORS.has(ancestor.type));
+        if (insideFunction || useInsideFunction) {
+          uncertain = true;
+          return;
+        }
+        const start = (node as { start?: number }).start ?? Number.POSITIVE_INFINITY;
+        if (start >= useStart) return;
         if (
           assignment.operator !== "=" ||
           ancestors.slice(0, -1).some((ancestor) => CONDITIONAL_WRITE_ANCESTORS.has(ancestor.type))
@@ -130,8 +146,6 @@ function latestSimpleValue(
         }
       },
       UpdateExpression(node) {
-        const start = (node as { start?: number }).start ?? Number.POSITIVE_INFINITY;
-        if (start >= useStart) return;
         const argument = unwrapExpression((node as ESTree.UpdateExpression).argument);
         if (!isNode(argument) || argument.type !== "Identifier") return;
         const resolved = bindings.resolve(getName(argument) ?? "", argument, ancestors);
@@ -160,7 +174,16 @@ function resolveBindingOrigin(
     if (!binding || seen.has(binding.id)) return null;
     const imported = imports.get(binding.id);
     if (imported) return imported;
-    const init = latestSimpleValue(binding, expr, bindings.tree.root?.block, bindings);
+    const useInsideFunction = ancestors.some((ancestor) =>
+      FUNCTION_ANCESTORS.has(ancestor.type),
+    );
+    const init = latestSimpleValue(
+      binding,
+      expr,
+      bindings.tree.root?.block,
+      bindings,
+      useInsideFunction,
+    );
     if (!init) return null;
     seen.add(binding.id);
     // A declaration node has enough source/span information for ScopeTree to
