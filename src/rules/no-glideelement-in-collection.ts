@@ -2,7 +2,7 @@ import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { getName, isNode, unwrapExpression } from "../utils/ast.js";
 import { staticPropertyName } from "../analysis/internal.js";
-import { isFunctionLikeNode, visitChildren } from "../analysis/path-state.js";
+import { iifeCallee, isFunctionLikeNode, isSynchronousIife, visitChildren } from "../analysis/path-state.js";
 import { truthyPathRequiredCursorIds } from "../analysis/cursor-condition.js";
 import { isServerInstanceContext } from "../context/index.js";
 import { ruleDocsUrl } from "../constants.js";
@@ -145,6 +145,14 @@ function findRetainedElements(
 
   function visit(node: unknown, cursorIds: ReadonlySet<number>): void {
     if (!isNode(node)) return;
+    if (isSynchronousIife(node)) {
+      // The IIFE body runs inside the loop right now: keep the cursor ids
+      // (FINDINGS.md COR-004).
+      const call = node as ESTree.CallExpression;
+      for (const argument of call.arguments) visit(argument, cursorIds);
+      visit(iifeCallee(call)!.body, cursorIds);
+      return;
+    }
     if (isFunctionLikeNode(node)) {
       visitChildren(node, (child) => visit(child, new Set()));
       return;

@@ -3,7 +3,7 @@ import { getName, isNode } from "../utils/ast.js";
 import { GLIDE_VALUE_EXTRACTORS } from "../glide/query-methods.js";
 import { isComputedUnknown, staticPropertyName } from "./members.js";
 import type { ProvenanceQuery } from "./provenance.js";
-import { isFunctionLikeNode, visitChildren } from "./path-state.js";
+import { iifeCallee, isFunctionLikeNode, isSynchronousIife, visitChildren } from "./path-state.js";
 import { truthyPathRequiresCursorNext } from "./cursor-condition.js";
 
 export interface GlideElementCollectionFinding {
@@ -102,6 +102,13 @@ function visit(
   findings: GlideElementCollectionFinding[],
 ): void {
   if (!isNode(node)) return;
+  if (isSynchronousIife(node)) {
+    // The IIFE body runs inside the loop right now: keep the cursor names.
+    const call = node as ESTree.CallExpression;
+    for (const argument of call.arguments) visit(argument, cursors, analysis, findings);
+    visit(iifeCallee(call)!.body, cursors, analysis, findings);
+    return;
+  }
   if (isFunctionLikeNode(node)) {
     visitChildren(node, (child) => visit(child, new Set(), analysis, findings));
     return;

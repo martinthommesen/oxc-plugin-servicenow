@@ -8,6 +8,8 @@
 
 ### Fixed
 
+- `no-gliderecord-query-in-loop` and `no-glideelement-in-collection` now analyze the body of a synchronous IIFE with the enclosing loop context, so wrapping an operation in `(function () { ... })()` no longer bypasses the checks. Deferred callbacks stay excluded.
+
 - The generated SDK snapshot module is annotated with an interface instead of `as const`, shrinking the shipped `dist/fluent/declaration-snapshots.d.ts` from 939 KB to under 1 KB and the built `dist` tree from 2.8 MB to 1.9 MB. The release artifact check now enforces a 200 KB budget per shipped declaration file.
 - `no-hardcoded-sysid` with the default `ignoreHashNames: true` now suppresses a 32-character hex literal for every digest-like binding name (`md5`, `sha`, `hash`, `checksum`, `etag`, `digest`), not only names containing `md5`. Set `ignoreHashNames: false` to keep reporting these values.
 - Surface directory conventions (`client/`, `br/`, `server/`, `script-include/`) now match the project-relative path instead of the whole absolute path. A directory name above the project root no longer assigns or suppresses an execution surface, so diagnostics no longer depend on where the repository is cloned.

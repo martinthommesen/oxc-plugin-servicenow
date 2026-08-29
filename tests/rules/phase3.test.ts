@@ -10,6 +10,28 @@ const FULL = {
 describe("no-glideelement-in-collection", () => {
   const RULE = "no-glideelement-in-collection" as const;
 
+  it("keeps cursor context inside synchronous IIFEs (FINDINGS.md COR-004)", () => {
+    const wrap = (inner: string) => `var numbers = [];
+var incident = new GlideRecord("incident");
+incident.query();
+while (incident.next()) {
+  ${inner}
+}`;
+    assertInvalid(
+      wrap(`(function () { numbers.push(incident.number); })();`),
+      RULE,
+      { messageId: "retained" },
+      SERVER,
+    );
+    assertInvalid(
+      wrap(`(() => { numbers.push(incident.number); })();`),
+      RULE,
+      { messageId: "retained" },
+      SERVER,
+    );
+    assertValid(wrap(`setTimeout(function () { numbers.push(incident.number); }, 0);`), RULE, SERVER);
+  });
+
   it("flags direct field push and unshift", () => {
     assertInvalid(
       `var numbers = [];
@@ -715,6 +737,30 @@ task.deleteMultiple();`,
 
 describe("no-gliderecord-query-in-loop", () => {
   const RULE = "no-gliderecord-query-in-loop" as const;
+
+  it("keeps loop context inside synchronous IIFEs (FINDINGS.md COR-004)", () => {
+    const body = `var caller = new GlideRecord("sys_user");
+  caller.addQuery("id", incident.getValue("caller_id"));
+  caller.query();`;
+    const wrap = (inner: string) => `var incident = new GlideRecord("incident");
+incident.query();
+while (incident.next()) {
+  ${inner}
+}`;
+    assertInvalid(wrap(`(function () { ${body} })();`), RULE, { messageId: "nestedQuery" }, SERVER);
+    assertInvalid(wrap(`(() => { ${body} })();`), RULE, { messageId: "nestedQuery" }, SERVER);
+    // Deferred callbacks stay outside the loop context.
+    assertValid(wrap(`setTimeout(function () { ${body} }, 0);`), RULE, SERVER);
+    // A function declared in the loop but not invoked stays excluded.
+    assertValid(wrap(`var helper = function () { ${body} };`), RULE, SERVER);
+    // Nested mixed: an IIFE inside an IIFE still inherits the loop.
+    assertInvalid(
+      wrap(`(function () { (function () { ${body} })(); })();`),
+      RULE,
+      { messageId: "nestedQuery" },
+      SERVER,
+    );
+  });
 
   it("flags a nested cursor query", () => {
     assertInvalid(

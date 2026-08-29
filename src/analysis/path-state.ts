@@ -102,6 +102,31 @@ export function isFunctionLikeNode(node: ESTree.Node): boolean {
   return isFunctionLike(node);
 }
 
+/**
+ * True for a call whose callee is a synchronous function or arrow expression:
+ * an IIFE that runs at this program point. Its body inherits the enclosing
+ * execution context; deferred callbacks do not (FINDINGS.md COR-004).
+ */
+export function isSynchronousIife(node: unknown): node is ESTree.CallExpression {
+  if (!isNode(node) || node.type !== "CallExpression") return false;
+  const callee = iifeCallee(node as ESTree.CallExpression);
+  return callee !== null;
+}
+
+/** The invoked function body owner for a synchronous IIFE, unwrapping parens. */
+export function iifeCallee(
+  call: ESTree.CallExpression,
+): (ESTree.FunctionExpression | ESTree.ArrowFunctionExpression) | null {
+  const callee = unwrapExpression(call.callee) as ESTree.Node & {
+    async?: boolean;
+    generator?: boolean;
+  };
+  if (!isNode(callee)) return null;
+  if (callee.type !== "FunctionExpression" && callee.type !== "ArrowFunctionExpression") return null;
+  if (callee.async || callee.generator) return null;
+  return callee as ESTree.FunctionExpression | ESTree.ArrowFunctionExpression;
+}
+
 export function mergeTri(
   left: boolean | "unknown",
   right: boolean | "unknown",

@@ -2,7 +2,7 @@ import type { ESTree } from "@oxlint/plugins";
 import { getName, isNode } from "../utils/ast.js";
 import { staticPropertyName } from "./members.js";
 import type { ProvenanceQuery } from "./provenance.js";
-import { isFunctionLikeNode, visitChildren } from "./path-state.js";
+import { iifeCallee, isFunctionLikeNode, isSynchronousIife, visitChildren } from "./path-state.js";
 import { truthyPathRequiresCursorNext } from "./cursor-condition.js";
 
 export interface QueryInLoopFinding {
@@ -104,6 +104,14 @@ function visit(
     if (stmt.update && containsCursorNext(stmt.update, analysis)) {
       visit(stmt.body, nextDepth + 1, analysis, findings);
     }
+    return;
+  }
+
+  if (isSynchronousIife(node)) {
+    // The IIFE body runs inside the loop right now: keep the cursor depth.
+    const call = node as ESTree.CallExpression;
+    for (const argument of call.arguments) visit(argument, cursorDepth, analysis, findings);
+    visit(iifeCallee(call)!.body, cursorDepth, analysis, findings);
     return;
   }
 
