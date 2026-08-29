@@ -370,14 +370,14 @@ function ctorKind(
   const callee = (expr as ESTree.NewExpression).callee;
   const name = getName(callee);
   if (!name) return null;
-  const map: Record<string, ProvenanceKind> = {
-    GlideRecord: "GlideRecord",
-    GlideRecordSecure: "GlideRecord",
-    GlideAggregate: "GlideAggregate",
-    GlideAjax: "GlideAjax",
-    GlideDateTime: "GlideDateTime",
-  };
-  const kind = map[name];
+  const map: ReadonlyMap<string, ProvenanceKind> = new Map([
+    ["GlideRecord", "GlideRecord"],
+    ["GlideRecordSecure", "GlideRecord"],
+    ["GlideAggregate", "GlideAggregate"],
+    ["GlideAjax", "GlideAjax"],
+    ["GlideDateTime", "GlideDateTime"],
+  ]);
+  const kind = map.get(name);
   if (!kind || !kinds.includes(kind)) return null;
   if (!analysis.isPlatformCtor(callee, [name])) return null;
   return kind;

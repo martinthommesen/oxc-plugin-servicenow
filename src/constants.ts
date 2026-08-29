@@ -62,9 +62,11 @@ export const KNOWN_FLUENT_DIRECTIVES = DEFAULT_FLUENT_MANIFEST.directives.map(
   (directive) => directive.name,
 );
 
-export const FLUENT_DIRECTIVE_TYPOS: Record<string, string> = {
-  ...DEFAULT_FLUENT_MANIFEST.typos,
-};
+// Null prototype: the key comes from comment text (FINDINGS.md MNT-003).
+export const FLUENT_DIRECTIVE_TYPOS: Record<string, string> = Object.assign(
+  Object.create(null) as Record<string, string>,
+  DEFAULT_FLUENT_MANIFEST.typos,
+);
 
 /** Properties that typically hold large script / markup payloads in Fluent. */
 export const FLUENT_LARGE_CONTENT_KEYS: ReadonlySet<string> = new Set([

@@ -30,17 +30,19 @@ export interface Provenance {
   objectId?: number;
 }
 
-const CTOR_TO_KIND: Record<string, ProvenanceKind> = {
-  GlideRecord: "GlideRecord",
-  GlideRecordSecure: "GlideRecord",
-  GlideAggregate: "GlideAggregate",
-  GlideAjax: "GlideAjax",
-  GlideDateTime: "GlideDateTime",
-};
+// A Map so an identifier from user source (constructor, toString, __proto__)
+// cannot resolve through Object.prototype (FINDINGS.md MNT-003).
+const CTOR_TO_KIND: ReadonlyMap<string, ProvenanceKind> = new Map([
+  ["GlideRecord", "GlideRecord"],
+  ["GlideRecordSecure", "GlideRecord"],
+  ["GlideAggregate", "GlideAggregate"],
+  ["GlideAjax", "GlideAjax"],
+  ["GlideDateTime", "GlideDateTime"],
+]);
 
 export function ctorProvenanceKind(name: string | null): ProvenanceKind | null {
   if (!name) return null;
-  return CTOR_TO_KIND[name] ?? null;
+  return CTOR_TO_KIND.get(name) ?? null;
 }
 
 export interface ProvenanceQuery {

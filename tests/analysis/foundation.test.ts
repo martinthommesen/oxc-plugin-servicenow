@@ -9,9 +9,18 @@ import {
 } from "../../src/analysis/path-state.js";
 import { applyRules } from "../../src/runtime/apply-rules.js";
 import { walk } from "../../src/utils/ast.js";
+import { ctorProvenanceKind } from "../../src/analysis/provenance.js";
 import { assertInvalid, assertValid, parse } from "../helpers/rule-tester.js";
 
 describe("shared file analysis", () => {
+  it("returns no provenance kind for Object.prototype member names (FINDINGS.md MNT-003)", () => {
+    for (const name of ["constructor", "toString", "valueOf", "__proto__", "hasOwnProperty"]) {
+      assert.equal(ctorProvenanceKind(name), null);
+    }
+    assert.equal(ctorProvenanceKind("GlideRecord"), "GlideRecord");
+    assert.equal(ctorProvenanceKind("GlideRecordSecure"), "GlideRecord");
+  });
+
   it("coalesces duplicate var declarations into one ordered binding", () => {
     const parsed = parse("var rec; var rec = 1;", "duplicates.js");
     const binding = buildScopeTree(parsed.ast as unknown as ESTree.Node).root?.bindings.get("rec");
