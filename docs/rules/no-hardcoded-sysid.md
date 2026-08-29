@@ -31,7 +31,7 @@ Hardcoded 32-character sys_ids break when an app is installed on another instanc
 | Name | Type | Default | Description |
 | --- | --- | --- | --- |
 | `allowedSysIds` | string[] | `[]` | Additional sys_ids that this rule allows. Settings `allowedSysIds` are also allowed. |
-| `ignoreHashNames` | boolean | `true` | Ignore 32-character hex strings next to names that look like MD5 hashes. |
+| `ignoreHashNames` | boolean | `true` | Ignore 32-character hex strings next to names that look like digests (md5, sha, hash, checksum, etag, digest). |
 
 ## Incorrect
 

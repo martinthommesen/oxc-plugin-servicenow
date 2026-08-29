@@ -26,6 +26,25 @@ describe(RULE, () => {
     assertValid(`var md5 = "${ID}";`, RULE);
   });
 
+  it("ignores every digest-like binding name by default (FINDINGS.md COR-002)", () => {
+    for (const name of ["checksum", "digest", "etag", "fileHash", "sha1Value"]) {
+      assertValid(`var ${name} = "${ID}";`, RULE);
+    }
+    assertValid(`var payload = { checksum: "${ID}" };`, RULE);
+  });
+
+  it("reports digest-named values when ignoreHashNames is false", () => {
+    for (const name of ["md5", "checksum"]) {
+      assertInvalid(`var ${name} = "${ID}";`, RULE, { messageId: "hardcoded" }, {
+        options: { [RULE]: [{ ignoreHashNames: false }] },
+      });
+    }
+  });
+
+  it("keeps the enclosing digest name after a nested property exits", () => {
+    assertValid(`var checksum = [{ note: 1 }, "${ID}"];`, RULE);
+  });
+
   it("flags uppercase sys_ids", () => {
     assertInvalid('var f = "D41D8CD98F00B204E9800998ECF8427E";', RULE, {
       messageId: "hardcoded",
@@ -43,8 +62,8 @@ describe(RULE, () => {
     });
   });
 
-  it("does not suppress a sys_id for a generic hash-like name", () => {
-    assertInvalid(`var userHash = "${ID}";`, RULE, { messageId: "hardcoded" });
+  it("does not suppress a sys_id for a name without a digest word", () => {
+    assertInvalid(`var groupId = "${ID}";`, RULE, { messageId: "hardcoded" });
   });
 
   it("rejects an unknown rule option", () => {

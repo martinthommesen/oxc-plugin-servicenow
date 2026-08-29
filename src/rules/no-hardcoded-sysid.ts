@@ -10,7 +10,7 @@ import {
 import type { NoHardcodedSysIdOptions } from "../options/index.js";
 import { isInstanceScript } from "../context/index.js";
 import { beginRuleFile } from "./helpers.js";
-import { findSysIds, looksLikeMd5Context } from "../utils/sysid.js";
+import { findSysIds, looksLikeDigestContext } from "../utils/sysid.js";
 
 export type { NoHardcodedSysIdOptions };
 
@@ -31,7 +31,7 @@ function reportSysIds(
   bindingName: string | null,
   ignoreHashNames: boolean,
 ): void {
-  if (ignoreHashNames && looksLikeMd5Context(bindingName, value)) return;
+  if (ignoreHashNames && looksLikeDigestContext(bindingName, value)) return;
 
   for (const id of findSysIds(value)) {
     if (allowed.has(id.toLowerCase())) continue;
@@ -61,7 +61,7 @@ export const noHardcodedSysid = defineRule({
   createOnce(context) {
     let allowed: Set<string>;
     let ignoreHashNames: boolean;
-    let lastBinding: string | null;
+    let bindingStack: Array<string | null>;
 
     return {
       before() {
@@ -73,24 +73,24 @@ export const noHardcodedSysid = defineRule({
         const options = parseRuleOptions(noHardcodedSysidOptions, context.options);
         allowed = allowedSet(context, options);
         ignoreHashNames = options.ignoreHashNames;
-        lastBinding = null;
+        bindingStack = [];
       },
       VariableDeclarator(node) {
-        lastBinding = getName((node as ESTree.VariableDeclarator).id);
+        bindingStack.push(getName((node as ESTree.VariableDeclarator).id));
       },
       "VariableDeclarator:exit"() {
-        lastBinding = null;
+        bindingStack.pop();
       },
       Property(node) {
         const prop = node as unknown as ESTree.ObjectProperty;
-        lastBinding = getName(prop.key) ?? getStringValue(prop.key);
+        bindingStack.push(getName(prop.key) ?? getStringValue(prop.key));
       },
       "Property:exit"() {
-        lastBinding = null;
+        bindingStack.pop();
       },
       Literal(node) {
         const value = getStringValue(node);
-        if (value) reportSysIds(context, node, value, allowed, lastBinding, ignoreHashNames);
+        if (value) reportSysIds(context, node, value, allowed, bindingStack.at(-1) ?? null, ignoreHashNames);
       },
       TemplateLiteral(node) {
         const template = node as ESTree.TemplateLiteral;
@@ -101,7 +101,7 @@ export const noHardcodedSysid = defineRule({
           return childValue !== null && findSysIds(childValue).length > 0;
         });
         if (!childContainsId) {
-          reportSysIds(context, node, value, allowed, lastBinding, ignoreHashNames);
+          reportSysIds(context, node, value, allowed, bindingStack.at(-1) ?? null, ignoreHashNames);
         }
       },
       BinaryExpression(node) {
@@ -114,7 +114,7 @@ export const noHardcodedSysid = defineRule({
           return childValue !== null && findSysIds(childValue).length > 0;
         });
         if (!childContainsId) {
-          reportSysIds(context, node, value, allowed, lastBinding, ignoreHashNames);
+          reportSysIds(context, node, value, allowed, bindingStack.at(-1) ?? null, ignoreHashNames);
         }
       },
     };

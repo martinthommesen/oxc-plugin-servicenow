@@ -4,6 +4,7 @@
 
 ### Fixed
 
+- `no-hardcoded-sysid` with the default `ignoreHashNames: true` now suppresses a 32-character hex literal for every digest-like binding name (`md5`, `sha`, `hash`, `checksum`, `etag`, `digest`), not only names containing `md5`. Set `ignoreHashNames: false` to keep reporting these values.
 - Surface directory conventions (`client/`, `br/`, `server/`, `script-include/`) now match the project-relative path instead of the whole absolute path. A directory name above the project root no longer assigns or suppresses an execution surface, so diagnostics no longer depend on where the repository is cloned.
 
 ### Validation

@@ -38,7 +38,8 @@ export const noHardcodedSysidOptions: RuleOptionsDescriptor<NoHardcodedSysIdOpti
     ignoreHashNames: {
       kind: "boolean",
       default: true,
-      description: "Ignore 32-character hex strings next to names that look like MD5 hashes.",
+      description:
+        "Ignore 32-character hex strings next to names that look like digests (md5, sha, hash, checksum, etag, digest).",
     },
   },
 };
