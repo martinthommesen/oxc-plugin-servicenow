@@ -88,7 +88,7 @@ The publish input includes the tarball, normalized npm-pack manifest, and review
 
 ## Trusted publishing and retries
 
-The publish job uses Node `24.5.0` and requires its executable npm version to equal `11.5.1`. It publishes with `--ignore-scripts --provenance`. It does not use `NPM_TOKEN`.
+The publish job uses Node `24.16.0` and requires its executable npm version to satisfy `>=11.5.1 <12`. It publishes with `--ignore-scripts --provenance`. It does not use `NPM_TOKEN`.
 
 The workflow models these outcomes:
 
