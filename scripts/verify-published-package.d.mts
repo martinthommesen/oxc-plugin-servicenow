@@ -55,3 +55,4 @@ export function importInstalledPackage(
   version: string,
 ): Promise<{ pkg: Record<string, unknown>; result: { metaName: string; version: string } }>;
 export function main(argv?: string[]): Promise<Record<string, unknown>>;
+export const OPERATION_TIMEOUT_MS: number;

@@ -9,7 +9,13 @@
     "tests/integration/profiles/valid/**/*.ts",
     "tests/integration/profiles/valid/**/*.tsx",
     "examples/**/valid/**/*.ts",
-    "examples/**/valid/**/*.tsx"
+    "examples/**/valid/**/*.tsx",
+    "examples/oxlint.config.ts",
+    "examples/oxfmt.config.ts"
   ],
-  "exclude": ["dist", "node_modules", "**/invalid/**"]
+  "exclude": [
+    "dist",
+    "node_modules",
+    "**/invalid/**"
+  ]
 }

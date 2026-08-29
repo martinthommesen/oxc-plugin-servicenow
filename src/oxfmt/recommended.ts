@@ -13,6 +13,10 @@ export interface OxfmtOverride {
   files: string[];
   excludeFiles?: string[];
   options: Record<string, unknown>;
+  // oxfmt's own OxfmtOverrideConfig carries this open index signature; the
+  // preset must stay assignable to it so `defineConfig(recommendedOxfmtConfig)`
+  // type-checks (FINDINGS.md MNT-007).
+  [key: string]: unknown;
 }
 
 export interface OxfmtConfig {
@@ -25,6 +29,7 @@ export interface OxfmtConfig {
   trailingComma: "all" | "es5" | "none";
   ignorePatterns: string[];
   overrides: OxfmtOverride[];
+  [key: string]: unknown;
 }
 
 /**

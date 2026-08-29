@@ -27,3 +27,6 @@ export function moduleResolver(
 };
 export function generatedSource(snapshot: unknown): string;
 export function main(): Promise<void>;
+export function runtimeSnapshot(snapshot: {
+  versions: Record<string, unknown>;
+}): Record<string, unknown>;

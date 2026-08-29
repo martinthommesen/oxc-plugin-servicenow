@@ -42,3 +42,4 @@ export function main(argv?: string[]): {
   consumerAll?: boolean;
   changelog?: boolean;
 };
+export function isValidIsoDate(value: string): boolean;

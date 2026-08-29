@@ -7,8 +7,8 @@ Each folder is a small runnable profile. Copy the folder, install this package, 
 | [classic-compatibility](classic-compatibility/) | Compatibility-mode server scripts |
 | [classic-es5](classic-es5/) | ES5 Standards server scripts |
 | [es2021](es2021/) | ES2021 server scripts |
-| [client](client/) | Client Scripts and Catalog Client Scripts |
-| [business-rule](business-rule/) | Full-script and body-only Business Rules |
+| [client](client/) | Client Scripts |
+| [business-rule](business-rule/) | Full-script Business Rules |
 | [ui-action](ui-action/) | Client, server, and mixed UI Actions |
 | [fluent](fluent/) | Fluent `.now.ts` metadata |
 | [mixed](mixed/) | One repository with several surfaces |
