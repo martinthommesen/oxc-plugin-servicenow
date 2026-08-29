@@ -107,24 +107,26 @@ export function isFunctionLikeNode(node: ESTree.Node): boolean {
  * an IIFE that runs at this program point. Its body inherits the enclosing
  * execution context; deferred callbacks do not (FINDINGS.md COR-004).
  */
-export function isSynchronousIife(node: unknown): node is ESTree.CallExpression {
+export function isSynchronousIife(node: unknown): boolean {
   if (!isNode(node) || node.type !== "CallExpression") return false;
-  const callee = iifeCallee(node as ESTree.CallExpression);
-  return callee !== null;
+  return iifeCallee(node as ESTree.CallExpression) !== null;
+}
+
+interface IifeFunction {
+  type: string;
+  body: ESTree.Node;
+  async?: boolean;
+  generator?: boolean;
 }
 
 /** The invoked function body owner for a synchronous IIFE, unwrapping parens. */
-export function iifeCallee(
-  call: ESTree.CallExpression,
-): (ESTree.FunctionExpression | ESTree.ArrowFunctionExpression) | null {
-  const callee = unwrapExpression(call.callee) as ESTree.Node & {
-    async?: boolean;
-    generator?: boolean;
-  };
+export function iifeCallee(call: ESTree.CallExpression): IifeFunction | null {
+  const callee = unwrapExpression(call.callee);
   if (!isNode(callee)) return null;
   if (callee.type !== "FunctionExpression" && callee.type !== "ArrowFunctionExpression") return null;
-  if (callee.async || callee.generator) return null;
-  return callee as ESTree.FunctionExpression | ESTree.ArrowFunctionExpression;
+  const fn = callee as unknown as IifeFunction;
+  if (fn.async || fn.generator) return null;
+  return fn;
 }
 
 export function mergeTri(
