@@ -49,7 +49,7 @@ Read [Non-goals and rejected rule ideas](docs/non-goals.md) before you propose a
 
 ## Autofixes
 
-Add a fix only when the rewrite preserves semantics. Include exact output, syntax validity, idempotence, and comment-preservation tests. Otherwise use a diagnostic only.
+The plugin reports diagnostics only. No rule ships a fix or a suggestion, and the test harness has no fix application support. If a future rule needs a semantics-preserving rewrite, reintroduce the fix machinery from history together with exact output, syntax validity, idempotence, and comment-preservation tests.
 
 ## Changelog
 

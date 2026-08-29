@@ -601,6 +601,24 @@ describe("release automation gates", () => {
     assert.deepEqual(validateDesiredGovernance(desired), []);
   });
 
+  it("requires only status checks that some CI job can produce", () => {
+    // Guards against hand-written required-check names drifting from the
+    // job names the workflows can emit (FINDINGS.md OPS-002).
+    const matrix = JSON.parse(
+      readFileSync(path.join(repoRoot, "scripts/compat-matrix.json"), "utf8"),
+    ) as { cells: Array<{ id: string; node: string }> };
+    const producible = new Set([
+      ...Object.keys(ciWorkflow.jobs).filter((job) => job !== "compat"),
+      ...matrix.cells.map((cell) => `compat (${cell.id}, ${cell.node})`),
+    ]);
+    const desired = JSON.parse(
+      readFileSync(path.join(repoRoot, "scripts/release-governance.json"), "utf8"),
+    );
+    for (const context of desired.mainRuleset.requiredStatusChecks) {
+      assert.ok(producible.has(context), `required check "${context}" is not producible`);
+    }
+  });
+
   it("parses the workflow graph and proves least-privilege job boundaries", () => {
     const jobs = workflow.jobs;
     assert.deepEqual(jobs.publish.needs, ["validate", "consumer", "publication-state"]);
