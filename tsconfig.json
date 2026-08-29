@@ -20,5 +20,5 @@
     "types": ["node"]
   },
   "include": ["src", "tests"],
-  "exclude": ["dist", "node_modules", "tests/integration/profiles"]
+  "exclude": ["dist", "node_modules", "tests/integration/profiles", "tests/fixtures/presets-1.1.0-source"]
 }

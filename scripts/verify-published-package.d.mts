@@ -52,5 +52,5 @@ export function importInstalledPackage(
   consumer: string,
   name: string,
   version: string,
-): Promise<Record<string, unknown>>;
+): Promise<{ pkg: Record<string, unknown>; result: { metaName: string; version: string } }>;
 export function main(argv?: string[]): Promise<Record<string, unknown>>;
