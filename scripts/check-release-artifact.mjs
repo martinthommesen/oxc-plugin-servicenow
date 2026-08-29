@@ -141,6 +141,11 @@ export function inspectNpmPackRecord(record, tarballFiles) {
       errors.push(`unexpected executable ${file.path}`);
     }
     if (file.link != null) errors.push(`symlink is not allowed: ${file.path}`);
+    // Declaration-size budget: a stray `as const` on a generated data module
+    // once shipped a 939 KB .d.ts (FINDINGS.md PER-001).
+    if (file.path.endsWith(".d.ts") && file.size > 200_000) {
+      errors.push(`declaration ${file.path} exceeds the 200 KB budget (${file.size} bytes)`);
+    }
   }
   if (new Set(paths).size !== paths.length) errors.push("duplicate npm pack path");
   const normalizedTarPaths = tarballFiles.map((path) => path.replace(/^package\//, "")).sort();
