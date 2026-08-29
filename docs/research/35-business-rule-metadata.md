@@ -28,7 +28,7 @@ Fluent metadata can supply `when` only when the factory argument is a static str
 
 Official classic Business Rule documentation states that `previous` is not available on async operations, and that `changes()` / `changesTo()` / `changesFrom()` do not work in async scripts.
 
-Evidence: [Classic Business rules](https://www.servicenow.com/docs/r/xanadu/api-reference/business-rules-classic/c_BusinessRules.html)
+Evidence: [Classic Business rules](https://www.servicenow.com/docs/r/zurich/api-reference/business-rules-classic/c_BusinessRules.html)
 
 Do not implement an AST-only rule. A future rule may run only when `businessRuleWhen` is `async` or a Fluent `when: "async"` literal is in the same file as an inline `previous` read. `Now.include()` scripts stay out of scope.
 
