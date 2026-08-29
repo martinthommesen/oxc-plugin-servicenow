@@ -27,9 +27,7 @@
       "protectedBranches": false,
       "customBranchPolicies": true,
       "branches": [],
-      "tags": [
-        "v*"
-      ]
+      "tags": ["v*"]
     }
   },
   "mainRuleset": {
@@ -57,19 +55,14 @@
       "name": "PR51 immutable release tags",
       "enforcement": "active",
       "refPattern": "refs/tags/v**",
-      "rules": [
-        "deletion",
-        "non_fast_forward"
-      ],
+      "rules": ["deletion", "non_fast_forward"],
       "bypassActors": []
     },
     "creation": {
       "name": "PR51 controlled release tag creation",
       "enforcement": "active",
       "refPattern": "refs/tags/v**",
-      "rules": [
-        "creation"
-      ],
+      "rules": ["creation"],
       "bypassActors": [
         {
           "id": 4671202,

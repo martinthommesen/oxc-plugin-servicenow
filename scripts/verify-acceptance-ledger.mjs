@@ -409,8 +409,7 @@ export async function main(argv = process.argv.slice(2)) {
       ["Pending", "Reproduced", "Implemented"].includes(item.disposition),
     ).length,
     livePending:
-      mapping.criteria.filter((item) => item.disposition === "Live-pending").length +
-      deferred.size,
+      mapping.criteria.filter((item) => item.disposition === "Live-pending").length + deferred.size,
   };
   const testResults = {
     total: report.tests.length,
@@ -437,13 +436,13 @@ export async function main(argv = process.argv.slice(2)) {
     mode: offline ? "offline" : "full",
     commands: offline
       ? [
-        "node scripts/run-tests.mjs --report-json artifacts/pr51-test-results.json",
-        "tsx scripts/verify-acceptance-ledger.mjs --offline",
-      ]
+          "node scripts/run-tests.mjs --report-json artifacts/pr51-test-results.json",
+          "tsx scripts/verify-acceptance-ledger.mjs --offline",
+        ]
       : [
-        "node scripts/run-tests.mjs --report-json artifacts/pr51-test-results.json tests",
-        "tsx scripts/verify-acceptance-ledger.mjs",
-      ],
+          "node scripts/run-tests.mjs --report-json artifacts/pr51-test-results.json tests",
+          "tsx scripts/verify-acceptance-ledger.mjs",
+        ],
     testResults,
     summary,
     errors,

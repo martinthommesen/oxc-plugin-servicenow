@@ -11,7 +11,15 @@ import { repoRoot } from "./integration/helpers.js";
 // evidence does not silently point at a superseded documentation set after
 // a release narrowing (FINDINGS.md DOC-002). The /r/ slot also carries
 // product areas, so only known release names count.
-const RELEASE_NAMES = ["tokyo", "utah", "vancouver", "washingtondc", "xanadu", "yokohama", "zurich"];
+const RELEASE_NAMES = [
+  "tokyo",
+  "utah",
+  "vancouver",
+  "washingtondc",
+  "xanadu",
+  "yokohama",
+  "zurich",
+];
 
 function assertSupportedReleaseUrls(text: string, label: string): void {
   for (const match of text.matchAll(/\/docs\/r\/([a-z0-9-]+)\//g)) {
