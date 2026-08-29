@@ -58,11 +58,13 @@ async function collectTestFiles(dir, out, named = false) {
   }
 }
 
-const files = [];
+const collected = [];
 for (const searchRoot of searchRoots) {
-  await collectTestFiles(searchRoot, files, searchArgs.length > 0);
+  await collectTestFiles(searchRoot, collected, searchArgs.length > 0);
 }
-files.sort();
+// A file can be collected twice when it is both inside a directory argument
+// and named explicitly to opt back into the networked run.
+const files = [...new Set(collected)].sort();
 
 // The packed-consumer test resolves and installs packages from the live npm
 // registry, so the default suite excludes it to stay hermetic and offline
