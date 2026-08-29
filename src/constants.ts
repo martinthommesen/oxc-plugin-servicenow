@@ -1,3 +1,4 @@
+import { PACKAGE_VERSION } from "./version.js";
 import {
   DEFAULT_FLUENT_MANIFEST,
   FLUENT_CORE_MODULE as MANIFEST_CORE_MODULE,
@@ -14,7 +15,7 @@ export const PACKAGE_NAME = "oxc-plugin-servicenow";
  * has no load-time filesystem read and `"sideEffects": false` stays true
  * (FINDINGS.md MNT-002). A drift test asserts it matches `package.json`.
  */
-export { PACKAGE_VERSION } from "./version.js";
+export { PACKAGE_VERSION };
 
 export const REPOSITORY_URL = "https://github.com/martinthommesen/oxc-plugin-servicenow";
 
