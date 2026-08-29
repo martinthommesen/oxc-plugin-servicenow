@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Fixed
+
+- Surface directory conventions (`client/`, `br/`, `server/`, `script-include/`) now match the project-relative path instead of the whole absolute path. A directory name above the project root no longer assigns or suppresses an execution surface, so diagnostics no longer depend on where the repository is cloned.
+
 ### Validation
 
 - Rule options use one descriptor for host schema, runtime parsing, and generated docs. Invalid types throw a path-specific `ServiceNowConfigError`.
