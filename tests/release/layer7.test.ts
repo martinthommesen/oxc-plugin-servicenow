@@ -866,6 +866,9 @@ describe("exact Sigstore provenance", () => {
       },
       (_response, expected) => {
         expected.environment = "other";
+        // Keep the derived subject consistent so the failure exercises the
+        // certificate policy, not the MNT-004 subject cross-check.
+        expected.oidcSubject = "repo:martinthommesen/oxc-plugin-servicenow:environment:other";
       },
       (_response, expected) => {
         expected.repositoryId = "999";
@@ -875,6 +878,7 @@ describe("exact Sigstore provenance", () => {
       },
       (_response, expected) => {
         expected.repository = "https://github.com/other/repo";
+        expected.oidcSubject = "repo:other/repo:environment:release";
       },
       (_response, expected) => {
         expected.workflow = ".github/workflows/other.yml";
@@ -893,5 +897,17 @@ describe("exact Sigstore provenance", () => {
       if (index > 0 && index < 7) fixture.resign(response);
       await assert.rejects(verifyProvenanceAttestation(response, expected, fixture.verifyBundle));
     }
+  });
+
+  it("rejects a trusted-publisher subject naming another repository or environment (FINDINGS.md MNT-004)", async () => {
+    const fixture = await signedProvenanceFixture();
+    const expected = clone(fixture.expected);
+    expected.oidcSubject = "repo:martinthommesen/oxc-plugin-servicenow:environment:production";
+    await assert.rejects(
+      verifyProvenanceAttestation(fixture.response, expected, fixture.verifyBundle),
+      (error: unknown) =>
+        (error as { kind?: string }).kind === "provenance-expectation" &&
+        /trusted-publisher subject/.test((error as Error).message),
+    );
   });
 });

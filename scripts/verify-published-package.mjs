@@ -316,7 +316,25 @@ export function enrichedOidcSubject(expected) {
   return `repo:${owner}@${expected.ownerId}/${name}@${expected.repositoryId}:environment:${expected.environment}`;
 }
 
+/**
+ * The plain trusted-publisher subject `repo:<owner>/<name>:environment:<env>`
+ * never appears in the certificate (Fulcio embeds the ID-enriched form), so
+ * it is checked by derivation instead: the governance file's declared
+ * publisher must name the same repository and environment the certificate
+ * identity is verified against (FINDINGS.md MNT-004).
+ */
+export function plainOidcSubject(expected) {
+  const slug = expected.repository.replace(/^https:\/\/github\.com\//, "");
+  return `repo:${slug}:environment:${expected.environment}`;
+}
+
 function certificateIdentity(expected) {
+  if (expected.oidcSubject !== plainOidcSubject(expected)) {
+    fail(
+      `trusted-publisher subject ${expected.oidcSubject} does not match the verified identity ${plainOidcSubject(expected)}`,
+      "provenance-expectation",
+    );
+  }
   const workflowIdentity = `${expected.repository}/${expected.workflow}@${expected.ref}`;
   return {
     workflowIdentity,
