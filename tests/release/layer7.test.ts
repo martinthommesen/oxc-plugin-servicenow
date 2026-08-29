@@ -131,6 +131,18 @@ describe("release automation gates", () => {
     );
     assert.ok(compareReleaseVersions("2.0.0", "2.0.0-rc.1") > 0);
     assert.ok(compareReleaseVersions("2.0.0-rc.10", "2.0.0-rc.2") > 0);
+    // Hyphenated prerelease identifiers must not be truncated (FINDINGS.md
+    // REL-001). "rc-2" is one alphanumeric identifier compared as ASCII.
+    assert.ok(compareReleaseVersions("2.0.0-rc-2", "2.0.0-rc-1") > 0);
+    assert.ok(compareReleaseVersions("2.0.0-beta-hotfix", "2.0.0-beta") > 0);
+    assert.equal(compareReleaseVersions("2.0.0-rc-1", "2.0.0-rc-1"), 0);
+    assert.deepEqual(
+      validateRegistryVersionOrder(
+        { versions: ["2.0.0-rc-1"], "dist-tags": { next: "2.0.0-rc-1" } },
+        "2.0.0-rc-2",
+      ),
+      { existing: false, highest: "2.0.0-rc-1" },
+    );
     assert.deepEqual(
       validateRegistryVersionOrder(
         { versions: ["1.1.0", "2.0.0-rc.1"], "dist-tags": { latest: "1.1.0" } },

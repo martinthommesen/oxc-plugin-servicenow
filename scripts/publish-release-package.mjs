@@ -33,7 +33,11 @@ export function releaseDistTag(version) {
 
 function parsedVersion(version) {
   releaseDistTag(version);
-  const [core, prerelease] = version.split("-", 2);
+  // The prerelease is everything after the first hyphen. split("-", 2) would
+  // truncate hyphenated identifiers such as rc-2 (FINDINGS.md REL-001).
+  const separator = version.indexOf("-");
+  const core = separator < 0 ? version : version.slice(0, separator);
+  const prerelease = separator < 0 ? undefined : version.slice(separator + 1);
   return {
     core: core.split(".").map(Number),
     prerelease: prerelease?.split(".") ?? [],
