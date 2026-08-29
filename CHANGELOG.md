@@ -6,8 +6,25 @@
 
 - `validate-gliderecord-calls` will be removed in 3.0. It stays available and `off` throughout 2.x for 1.x migrations. Use `require-query-before-next`, which covers the same query-before-`next` class with path-sensitive analysis (README migration step 4).
 
+### Added
+
+- The `oxc-plugin-servicenow/analysis` entry point and the root now export every type their public signatures reference (`PublicProvenanceKind`, `QueryState`, `ServiceNowScriptContext` and its member types), so consumers can annotate the values they already receive.
+- A README troubleshooting section explains the three designed causes of a quiet run (unknown surface, unknown JavaScript mode, unproven receiver) with the filename-convention table and the settings that resolve each.
+- The example projects declare their dependencies and split the lint script into a clean `lint` run over `valid` and an expected-failure `lint:invalid` run, so they work as their READMEs describe.
+
+### Changed
+
+- The path-analysis work budget scales with program size instead of a fixed 50k units. Dense scripts up to roughly 1,200 lines are now analyzed completely, so large legacy files can gain diagnostics that were previously dropped silently when the budget ran out.
+- `AnalysisProvenance.queryState`, `windowed`, `sysparmName`, and `aggregates` are deprecated: they were never computed and always carry their defaults. They will be removed in 3.0; the per-domain rules carry the real lifecycle facts.
+
 ### Fixed
 
+- `no-hardcoded-sysid` anchors digest-name suppression to whole name components, so `sha` inside `sharedSysId` or `shadowRecordId` no longer hides a real hardcoded sys_id.
+- A `for (var name of …)` or `for (var name in …)` head that shadows a tracked GlideRecord no longer carries the record's identity into the loop body, removing a false positive from the path-sensitive rules.
+- `fluent-naming-convention` checks the filename convention only for `.now.ts`/`.now.tsx` filenames; explicit `authoring: "fluent"` settings no longer produce an unactionable name diagnostic on other extensions.
+- Nested cursor loops traverse in linear time; deeply nested `do…while` chains no longer multiply analysis work exponentially.
+- Analyzer findings de-duplicate on node identity instead of source offsets, so a host adapter without byte offsets reports every finding instead of the first.
+- Release verification binds the trusted-publisher subject to the repository and environment identity the certificate policy checks, and compares prerelease identifiers in ASCII order per SemVer 11.4.3.
 - Fluent import aliases now follow execution order instead of source position. A reassignment inside a nested function makes the alias uncertain in every declaration order, and a builder use inside a function no longer trusts module-level reassignment ordering. Straight-line module-level code keeps positional resolution.
 - Surface directory conventions now match the project-relative path instead of the whole absolute path. A directory name above the project root no longer assigns or suppresses an execution surface, so diagnostics no longer depend on where the repository is cloned.
 - The generated SDK snapshot module is annotated with an interface instead of `as const`, shrinking the shipped `dist/fluent/declaration-snapshots.d.ts` from roughly 1 MB to under 1 KB. The release artifact check now enforces a 200 KB budget per shipped declaration file.
