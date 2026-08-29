@@ -97,6 +97,9 @@ describe("classifyFile", () => {
     assert.deepEqual(surfacesFromFilename("/proj/src/client/list.js", "/proj"), ["client"]);
     assert.deepEqual(surfacesFromFilename("/proj/br/rule.js", "/proj"), ["business-rule"]);
     assert.deepEqual(surfacesFromFilename("src/server/list.js"), ["server"]);
+    // A root base directory keeps every segment below it.
+    assert.deepEqual(surfacesFromFilename("/src/client/list.js", "/"), ["client"]);
+    assert.deepEqual(surfacesFromFilename("/proj/src/client/x.js", "/proj/"), ["client"]);
     // Absolute paths outside the project keep only basename evidence.
     assert.deepEqual(surfacesFromFilename("/elsewhere/client/x.js", "/proj"), []);
     assert.deepEqual(surfacesFromFilename("/elsewhere/x.client.js", "/proj"), ["client"]);

@@ -87,6 +87,14 @@ describe("release automation gates", () => {
     assert.equal(assertTrustedPublishingNpm("11.5.1"), "11.5.1");
     assert.equal(assertTrustedPublishingNpm("11.9.3"), "11.9.3");
     assert.throws(() => assertTrustedPublishingNpm("12.0.0"), /requires npm/);
+    // A prerelease precedes its release, and malformed bounds must throw
+    // instead of comparing as NaN.
+    assert.throws(() => assertTrustedPublishingNpm("11.5.1-rc.0"), /requires npm/);
+    assert.equal(assertTrustedPublishingNpm("11.6.0-beta.1"), "11.6.0-beta.1");
+    assert.throws(
+      () => assertTrustedPublishingNpm("11.5.1", "not-a-version"),
+      /invalid npm version bound/,
+    );
   });
 
   it("models stable and prerelease publication without moving latest", () => {
@@ -924,7 +932,12 @@ describe("release automation gates", () => {
 });
 
 async function signedProvenanceFixture() {
-  const fixed = new Date();
+  // One minute ahead of the wall clock: @sigstore/mock anchors the root
+  // certificate's notBefore to Date.now() at creation, which happens after
+  // this line. X509 validity has second granularity, so a clock captured in
+  // the previous second can predate the root and fail chain verification —
+  // a boundary race that hit CI while passing locally.
+  const fixed = new Date(Date.now() + 60_000);
   const caKeys = generateKeyPairSync("ec", { namedCurve: "P-256" });
   const signerKeys = generateKeyPairSync("ec", { namedCurve: "P-256" });
   const ca = await initializeCA(caKeys, undefined, fixed);

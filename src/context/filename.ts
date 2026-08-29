@@ -117,8 +117,13 @@ function isAbsolutePath(path: string): boolean {
 function directoryEvidencePath(path: string, baseDirectory: string | undefined): string {
   if (!isAbsolutePath(path)) return path;
   if (baseDirectory) {
-    const base = normalizeFilename(baseDirectory).replace(/\/+$/, "");
-    if (base.length > 0 && path.startsWith(`${base}/`)) return path.slice(base.length + 1);
+    let base = normalizeFilename(baseDirectory);
+    while (base.length > 1 && base.endsWith("/")) base = base.slice(0, -1);
+    // A root base directory ("/" or "C:/") keeps everything below it.
+    if (base.endsWith("/") && path.startsWith(base)) return path.slice(base.length);
+    if (!base.endsWith("/") && base.length > 0 && path.startsWith(`${base}/`)) {
+      return path.slice(base.length + 1);
+    }
   }
   return basename(path);
 }
