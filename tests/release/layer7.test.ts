@@ -7,7 +7,11 @@ import { X509Certificate, crypto as sigstoreCrypto, dsse } from "@sigstore/core"
 import { initializeCA } from "@sigstore/mock";
 import { Verifier } from "@sigstore/verify";
 import { parse } from "yaml";
-import { checkActionPins } from "../../scripts/check-action-pins.mjs";
+import {
+  checkActionPins,
+  extractUsesReferences,
+  scanWorkflowText,
+} from "../../scripts/check-action-pins.mjs";
 import {
   collectLiveGovernance,
   compareGovernance,
@@ -374,6 +378,31 @@ describe("release automation gates", () => {
     for (const context of desired.mainRuleset.requiredStatusChecks) {
       assert.ok(producible.has(context), `required check "${context}" is not producible`);
     }
+  });
+
+  it("ignores uses: text inside block scalars and fails empty-owner references (FINDINGS.md IMP-001)", () => {
+    const sha = "a".repeat(40);
+    const text = [
+      "jobs:",
+      "  build:",
+      "    steps:",
+      "      - run: |",
+      "          echo 'uses: fake/action@" + sha + "'",
+      "          uses: also/fake@" + sha,
+      "",
+      "          uses: still/inside@" + sha,
+      "      - uses: actions/checkout@" + sha,
+      "      - run: >-",
+      "          folded uses: folded/fake@" + sha,
+      "      - uses: '@" + sha + "'",
+    ].join("\n");
+    assert.deepEqual(extractUsesReferences(text), [`actions/checkout@${sha}`, `@${sha}`]);
+    const errors = scanWorkflowText("fixture.yml", text);
+    assert.ok(errors.some((error) => /uses @\w+ is malformed/.test(error.replace(sha, "sha"))));
+    assert.ok(
+      !errors.some((error) => error.includes("fake")),
+      `block-scalar text must not be scanned: ${errors.join("; ")}`,
+    );
   });
 
   it("pins every uses: reference structurally, not just by regex (FINDINGS.md IMP-001)", () => {
