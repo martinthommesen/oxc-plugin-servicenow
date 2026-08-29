@@ -273,6 +273,37 @@ while (incident.next()) {
 describe("no-gliderecord-query-modifier-after-query", () => {
   const RULE = "no-gliderecord-query-modifier-after-query" as const;
 
+  it("keys receiver state by binding identity, not display name (FINDINGS.md COR-005)", () => {
+    // Two receivers named gr in sibling scopes: only the inner one has a
+    // late modifier. Display-name keying would collapse or double-report.
+    assertInvalid(
+      `var gr = new GlideRecord("x");
+gr.addQuery("f", 1);
+gr.query();
+while (gr.next()) {}
+function go() {
+  var gr = new GlideRecord("y");
+  gr.query();
+  gr.addQuery("f", 2);
+  while (gr.next()) {}
+}
+go();`,
+      RULE,
+      { messageId: "lateModifier", count: 1 },
+      SERVER,
+    );
+    // A computed-member receiver has no binding: conservative silence.
+    assertValid(
+      `var o = {};
+o.gr = new GlideRecord("x");
+o.gr.query();
+o.gr.addQuery("f", 1);
+while (o.gr.next()) {}`,
+      RULE,
+      SERVER,
+    );
+  });
+
   it("allows a modifier before query", () => {
     assertValid(
       `var incident = new GlideRecord("incident");

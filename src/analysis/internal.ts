@@ -32,8 +32,6 @@ export type { NowIdMisuse, DuplicateFluentId, NowIdFact } from "./now-id.js";
 export { collectFluentImports, resolveFluentFactory } from "./fluent-imports.js";
 export type { FluentImportBinding } from "./fluent-imports.js";
 export type { FluentFileFacts } from "./file-analysis.js";
-export { findGlideElementCollections } from "./glide-element-collection.js";
-export type { GlideElementCollectionFinding } from "./glide-element-collection.js";
 export { findQueryModifiersAfterQuery } from "./glide-query-lifecycle.js";
 export type { QueryModifierFinding } from "./glide-query-lifecycle.js";
 export { findUnfilteredBulkOperations } from "./glide-bulk-filter.js";
