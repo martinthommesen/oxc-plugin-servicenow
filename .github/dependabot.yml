@@ -8,6 +8,12 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    ignore:
+      # Pinned to the engines floor line: newer type majors let code
+      # type-check against Node APIs the supported floor does not provide
+      # (FINDINGS.md OPS-011). Raise together with engines.node.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
     groups:
       oxc:
         patterns:
