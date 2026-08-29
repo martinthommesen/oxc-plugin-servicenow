@@ -4,6 +4,7 @@
 
 ### Deprecated
 
+- The `AnalysisProvenance` fields `queryState`, `windowed`, `sysparmName`, and `aggregates` on the `oxc-plugin-servicenow/analysis` export are deprecated and will be removed in 3.0. They were never computed and always report their defaults. Use the rules that compute cursor lifecycle facts instead.
 - `validate-gliderecord-calls` will be removed in 3.0. It stays available and `off` throughout 2.x for 1.x migrations. Use `require-query-before-next`, which covers the same query-before-`next` class with path-sensitive analysis (README migration step 4).
 
 ### Fixed

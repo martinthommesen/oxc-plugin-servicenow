@@ -41,6 +41,24 @@ Announced in the changelog and in the generated rule page. The alias stays
 available and `off` throughout 2.x. `require-query-before-next` is the
 replacement (README migration step 4).
 
+## The provenance lifecycle fields are removed in 3.0 (API-002)
+
+`AnalysisProvenance.queryState`, `windowed`, `sysparmName`, and `aggregates`
+on the `oxc-plugin-servicenow/analysis` export are never computed: every
+value stays at its initial default whatever the source does. The real
+lifecycle facts live in the per-domain analyzers behind the rules. The four
+fields are annotated `@deprecated`, and a contract test pins their constant
+values so a future implementation change is visible.
+
+Decision: remove the four fields in 3.0.
+
+- Before removal, run the same npm dependents check the other 3.0 records
+  share. If a consumer that reads the fields is found, implement them from
+  the domain analyzers instead of removing them, and reassess severity.
+- Consumers that need lifecycle facts should use the rules that compute
+  them (`require-query-before-next` and the windowing, aggregate, and
+  GlideAjax rules).
+
 ## Autofixes are out of scope until a rule ships one (MNT-001)
 
 The plugin reports diagnostics only. The unused fix machinery was removed;
