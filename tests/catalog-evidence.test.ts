@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { ruleCatalog } from "../src/catalog.js";
+import { SUPPORTED_SERVICENOW_RELEASES } from "../src/settings/releases.js";
 import { lint } from "./helpers/rule-tester.js";
 import { repoRoot } from "./integration/helpers.js";
 
@@ -12,7 +13,30 @@ describe("catalog evidence", () => {
     for (const evidence of entry.evidence) {
       assert.equal(ids.has(evidence.verificationId), false, evidence.verificationId);
       ids.add(evidence.verificationId);
-      if (evidence.verifiedBy === "manual") continue;
+      if (evidence.verifiedBy === "manual") {
+        // A release-pinned documentation URL must cite a supported release,
+        // so evidence does not silently point at a superseded documentation
+        // set after a release narrowing (FINDINGS.md DOC-002). The /r/ slot
+        // also carries product areas, so only known release names count.
+        const RELEASE_NAMES = [
+          "australia",
+          "tokyo",
+          "utah",
+          "vancouver",
+          "washingtondc",
+          "xanadu",
+          "yokohama",
+          "zurich",
+        ];
+        const segment = /\/docs\/r\/([a-z0-9-]+)\//.exec(evidence.url)?.[1];
+        if (segment && RELEASE_NAMES.includes(segment)) {
+          assert.ok(
+            (SUPPORTED_SERVICENOW_RELEASES as readonly string[]).includes(segment),
+            `${evidence.verificationId} cites unsupported release "${segment}": ${evidence.url}`,
+          );
+        }
+        continue;
+      }
 
       it(`${entry.name}: ${evidence.verificationId}`, () => {
         assert.equal(evidence.url.startsWith("http"), false);
