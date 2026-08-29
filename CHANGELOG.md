@@ -9,7 +9,7 @@
 
 ### Fixed
 
-- `no-hardcoded-sysid` with the default `ignoreHashNames: true` now requires a digest word to be a whole name component. Names such as `sharedSysId`, `shardId`, `betaGroupId`, and `shadowRecordId` no longer suppress a hardcoded sys_id; `md5`, `fileHash`, `sha256Digest`, and `contentChecksum` still do. This can surface pre-existing hardcoded sys_ids that the substring match silently accepted.
+- `no-hardcoded-sysid` with the default `ignoreHashNames: true` now suppresses a 32-character hex literal when a digest word (`md5`, `sha`, `hash`, `checksum`, `etag`, `digest`, with trailing digits as in `sha256`) is a whole component of the binding or property name, not only for the exact name `md5`. `fileHash` and `contentChecksum` suppress; a digest word inside a component (`sharedSysId`, `shardId`, `betaGroupId`, `shadowRecordId`) does not. Set `ignoreHashNames: false` to keep reporting digest-named values.
 - AST source offsets are read through portable accessors, so the Fluent rule family (`require-fluent-id`, `fluent-directives`, `fluent-proper-imports`, `fluent-naming-convention`) now behaves identically under the `typescript-eslint` parser, which exposes only `range`. Previously aliases resolved to stale targets and correctly placed `@fluent-ignore` directives were reported as dangling on typed Fluent files linted through ESLint.
 - A repeated `var` declarator now participates in Fluent alias resolution in execution order, removing a false positive and a false negative in `require-fluent-id` for files that redeclare an alias.
 - `no-glideelement-in-collection` and `no-gliderecord-query-in-loop` traverse nested `do…while` statements in linear time under a deterministic work budget. Deeply nested loops previously multiplied traversals exponentially, taking about 30 seconds for 600 bytes of input.
@@ -19,7 +19,6 @@
 - `no-gliderecord-query-in-loop` and `no-glideelement-in-collection` now analyze the body of a synchronous IIFE with the enclosing loop context, so wrapping an operation in `(function () { ... })()` no longer bypasses the checks. Deferred callbacks stay excluded.
 
 - The generated SDK snapshot module is annotated with an interface instead of `as const`, shrinking the shipped `dist/fluent/declaration-snapshots.d.ts` from 939 KB to under 1 KB and the built `dist` tree from 2.8 MB to 1.9 MB. The release artifact check now enforces a 200 KB budget per shipped declaration file.
-- `no-hardcoded-sysid` with the default `ignoreHashNames: true` now suppresses a 32-character hex literal for every digest-like binding name (`md5`, `sha`, `hash`, `checksum`, `etag`, `digest`), not only names containing `md5`. Set `ignoreHashNames: false` to keep reporting these values.
 - Surface directory conventions (`client/`, `br/`, `server/`, `script-include/`) now match the project-relative path instead of the whole absolute path. A directory name above the project root no longer assigns or suppresses an execution surface, so diagnostics no longer depend on where the repository is cloned.
 
 ### Validation

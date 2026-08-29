@@ -6,14 +6,18 @@ Disposition of every active record in `FINDINGS.md` (super-review of
 
 ## Verification state
 
-- Hermetic `npm test`: 818/818, offline.
+- Hermetic `npm test`: 820/820.
 - `npm run validate` (workflow, compat, lint, format, typecheck, fixtures,
   build, test, evidence, offline acceptance, docs, manifest, bench,
-  release artifact): passes end to end with no network access points. The
-  networked steps moved to `npm run validate:live`.
+  release artifact): passes end to end. Every step is offline by
+  construction (hermetic test set, `--offline` acceptance mode, no
+  consumer install); a network-disabled end-to-end run was not executed
+  in this environment. The networked steps moved to `npm run
+  validate:live`, which also passes.
 - Offline `acceptance:check`: 533 criteria, 448 verified at exact head,
   53 pending or implemented, 32 live-pending (the 2 packed-consumer-backed
-  criteria defer to Live-pending offline).
+  criteria defer to Live-pending offline). The full capture verifies all
+  450 with 822/822 tests.
 - Red-before-green: the COR-007 parity fixtures (5 of 6 cases), the
   COR-008 name matrix (4 cases), the COR-009 alias cases, and the DOC-002
   widened guard all fail on the pre-fix tree.
