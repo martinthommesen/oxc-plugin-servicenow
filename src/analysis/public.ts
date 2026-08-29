@@ -32,9 +32,26 @@ export interface AnalysisProvenance {
   readonly kind: PublicProvenanceKind;
   readonly invalid: boolean;
   readonly escaped: boolean;
+  /**
+   * @deprecated Never computed: always `"unopened"`. Cursor lifecycle facts
+   * live in the per-domain analyzers behind the rules, not in this record.
+   * Removed in 3.0 (FINDINGS.md API-002, `docs/decisions.md`).
+   */
   readonly queryState: QueryState;
+  /**
+   * @deprecated Never computed: always `false`. Removed in 3.0
+   * (FINDINGS.md API-002, `docs/decisions.md`).
+   */
   readonly windowed: boolean;
+  /**
+   * @deprecated Never computed: always `false`. Removed in 3.0
+   * (FINDINGS.md API-002, `docs/decisions.md`).
+   */
   readonly sysparmName: boolean;
+  /**
+   * @deprecated Never computed: always empty. Removed in 3.0
+   * (FINDINGS.md API-002, `docs/decisions.md`).
+   */
   readonly aggregates: ReadonlySet<string>;
   readonly bindingId?: number;
   readonly objectId?: number;

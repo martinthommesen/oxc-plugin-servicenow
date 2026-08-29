@@ -147,6 +147,14 @@ describe("release automation gates", () => {
     assert.ok(compareReleaseVersions("2.0.0-rc-2", "2.0.0-rc-1") > 0);
     assert.ok(compareReleaseVersions("2.0.0-beta-hotfix", "2.0.0-beta") > 0);
     assert.equal(compareReleaseVersions("2.0.0-rc-1", "2.0.0-rc-1"), 0);
+    // SemVer 11.4.3 requires ASCII order across case: "B" (0x42) sorts
+    // before "a" (0x61) (FINDINGS.md REL-003).
+    assert.ok(compareReleaseVersions("1.0.0-B", "1.0.0-a") < 0);
+    assert.ok(compareReleaseVersions("1.0.0-alpha", "1.0.0-Beta") > 0);
+    assert.deepEqual(
+      ["1.0.0-alpha", "1.0.0-B", "1.0.0-a", "1.0.0-Beta"].sort(compareReleaseVersions),
+      ["1.0.0-B", "1.0.0-Beta", "1.0.0-a", "1.0.0-alpha"],
+    );
     assert.deepEqual(
       validateRegistryVersionOrder(
         { versions: ["2.0.0-rc-1"], "dist-tags": { next: "2.0.0-rc-1" } },
@@ -1171,12 +1179,17 @@ describe("exact Sigstore provenance", () => {
       },
       (_response, expected) => {
         expected.environment = "other";
+        // Keep the derived subject consistent so the failure exercises the
+        // certificate policy, not the MNT-004 subject cross-check.
+        expected.oidcSubject =
+          "repo:martinthommesen@267603464/oxc-plugin-servicenow@1339120262:environment:other";
       },
       (_response, expected) => {
         expected.oidcSubject = "repo:other@1/repo@2:environment:release";
       },
       (_response, expected) => {
         expected.repository = "https://github.com/other/repo";
+        expected.oidcSubject = "repo:other@267603464/repo@1339120262:environment:release";
       },
       (_response, expected) => {
         expected.workflow = ".github/workflows/other.yml";
@@ -1194,6 +1207,23 @@ describe("exact Sigstore provenance", () => {
       mutate(response, expected);
       if (index > 0 && index < 7) fixture.resign(response);
       await assert.rejects(verifyProvenanceAttestation(response, expected, fixture.verifyBundle));
+    }
+  });
+
+  it("rejects a trusted-publisher subject naming another repository or environment (FINDINGS.md MNT-004)", async () => {
+    const fixture = await signedProvenanceFixture();
+    for (const subject of [
+      "repo:other@1/repo@2:environment:release",
+      "repo:martinthommesen@267603464/oxc-plugin-servicenow@1339120262:environment:production",
+      "not-a-subject",
+    ]) {
+      const expected = clone(fixture.expected);
+      expected.oidcSubject = subject;
+      await assert.rejects(
+        verifyProvenanceAttestation(fixture.response, expected, fixture.verifyBundle),
+        (error: unknown) =>
+          error instanceof Error && /does not name the verified identity/.test(error.message),
+      );
     }
   });
 });

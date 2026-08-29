@@ -25,7 +25,11 @@ cycle"). Four of the five cross-field conflict checks in
 `src/settings/validate.ts` exist only for this layer.
 
 Decision: retire the layer in 3.0, after one full 2.x cycle with the
-deprecation messages visible at lint time.
+deprecation recorded in the type-level `@deprecated` markers and the
+validator's conflict messages. No message is emitted at lint time: the
+plugin deliberately performs no output of its own, so the migration signal
+is the documentation and the types, not a runtime warning
+(FINDINGS.md DOC-004).
 
 - Before removal, check npm download and dependents data for remaining 1.x
   usage. If usage is material, keep `scriptType` and `ecmaLatest` and retire
@@ -35,11 +39,68 @@ deprecation messages visible at lint time.
 - Removal is loud: unknown settings keys throw with a message that names the
   replacement (`surfaces`, `javascriptMode`).
 
+Evidence captured 2026-08-29: the npm downloads API reports 194 downloads
+for the last week; the npm dependents page rejects unauthenticated reads,
+so dependents cannot be measured from this environment. Per the threshold
+above ("cannot be measured"), the concrete 3.0 action is: retire only
+`@sn-es-latest`, keep `scriptType` and `ecmaLatest`. Re-run the check at
+the 3.0 boundary; a measured no-usage result upgrades the action to
+retiring all three. FEAT-001, REM-001, and API-002 share this dependents
+check and re-run it at the same boundary.
+
 ## `validate-gliderecord-calls` is removed in 3.0 (REM-001)
 
 Announced in the changelog and in the generated rule page. The alias stays
 available and `off` throughout 2.x. `require-query-before-next` is the
 replacement (README migration step 4).
+
+## The provenance lifecycle fields are removed in 3.0 (API-002)
+
+`AnalysisProvenance.queryState`, `windowed`, `sysparmName`, and `aggregates`
+on the `oxc-plugin-servicenow/analysis` export are never computed: every
+value stays at its initial default whatever the source does. The real
+lifecycle facts live in the per-domain analyzers behind the rules. The four
+fields are annotated `@deprecated`, and a contract test pins their constant
+values so a future implementation change is visible.
+
+Decision: remove the four fields in 3.0.
+
+- Before removal, run the same npm dependents check the other 3.0 records
+  share. If a consumer that reads the fields is found, implement them from
+  the domain analyzers instead of removing them, and reassess severity.
+- Consumers that need lifecycle facts should use the rules that compute
+  them (`require-query-before-next` and the windowing, aggregate, and
+  GlideAjax rules).
+
+## The PR #51 acceptance-ledger apparatus retires when the remediation merges (REM-002)
+
+The acceptance ledger (`scripts/pr51-acceptance.json`,
+`scripts/verify-acceptance-ledger.mjs`, the generated
+`docs/pr-51-acceptance-ledger.md` and `docs/pr-51-validation-report.md`,
+`PR51-REMEDIATION-GOAL.md`, `FINDINGS-REMEDIATION.md`, and the
+`acceptance:check` and `acceptance:capture` scripts with their CI steps)
+tracks one pull request's acceptance criteria. It is thousands of lines of
+one-off remediation tracking wired into required validation, and it must
+not outlive the remediation it tracks.
+
+Decision: retire the apparatus when the PR #51 remediation line merges into
+`main`.
+
+Trigger and conditions:
+
+- The PR #51 line is merged into `main`.
+- The remaining pending and live-pending criteria are satisfied or
+  explicitly abandoned here.
+- The same commit archives `PR51-REMEDIATION-GOAL.md`,
+  `FINDINGS-REMEDIATION.md`, and the generated ledger documents under a tag
+  or a `history/` directory so the evidence stays retrievable.
+- After removal, `npm run validate` still chains every durable gate, and
+  `workflow:check` and `check-script-paths.mjs` pass with no dangling
+  references.
+
+The durable gates (lint, format, typecheck, tests, docs regeneration,
+evidence, manifest, workflow, compat, benchmark, release artifact) are not
+part of the apparatus and stay required.
 
 ## Autofixes are out of scope until a rule ships one (MNT-001)
 

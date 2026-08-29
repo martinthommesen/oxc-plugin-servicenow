@@ -284,7 +284,28 @@ function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+/**
+ * The trusted-publisher subject is ID-enriched
+ * (`repo:<owner>@<id>/<name>@<id>:environment:<env>`), and Fulcio embeds the
+ * same string in OID 1.3.6.1.4.1.57264.1.24, so the equality check alone
+ * would accept a subject naming another repository whenever the certificate
+ * agreed with it. Bind the declared subject to the repository and
+ * environment the rest of the certificate policy verifies
+ * (FINDINGS.md MNT-004).
+ */
+export function assertSubjectMatchesIdentity(expected) {
+  const match = /^repo:([^@/]+)@\d+\/([^@:]+)@\d+:environment:(.+)$/.exec(expected.oidcSubject);
+  const slug = expected.repository.replace(/^https:\/\/github\.com\//, "");
+  if (!match || `${match[1]}/${match[2]}` !== slug || match[3] !== expected.environment) {
+    fail(
+      `trusted-publisher subject ${expected.oidcSubject} does not name the verified identity ${slug} environment ${expected.environment}`,
+      "provenance-expectation",
+    );
+  }
+}
+
 function certificateIdentity(expected) {
+  assertSubjectMatchesIdentity(expected);
   const workflowIdentity = `${expected.repository}/${expected.workflow}@${expected.ref}`;
   return {
     workflowIdentity,

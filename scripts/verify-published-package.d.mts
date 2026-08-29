@@ -33,6 +33,7 @@ export function fetchAttestations(
   fetchFn?: typeof fetch,
   now?: () => number,
 ): Promise<Record<string, unknown>>;
+export function assertSubjectMatchesIdentity(expected: Record<string, unknown>): void;
 export function verifyProvenanceAttestation(
   response: unknown,
   expected: Record<string, string>,

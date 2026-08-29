@@ -206,4 +206,38 @@ describe("public analysis API", () => {
     );
     assert.equal(getAnalysisPassCount(), 3);
   });
+
+  it("pins the constant deprecated lifecycle fields (FINDINGS.md API-002)", () => {
+    // This source would change every one of the four fields if they were
+    // computed: the query is opened, windowed, aggregated, and carries a
+    // sysparm_name. The fields are deprecated as never computed and are
+    // removed in 3.0; a future implementation change must surface here.
+    const code = [
+      'var rec = new GlideAggregate("incident");',
+      'rec.addAggregate("COUNT", "state");',
+      "rec.setLimit(10);",
+      "rec.query();",
+      "rec.next();",
+      'var ajax = new GlideAjax("Helper");',
+      'ajax.addParam("sysparm_name", "run");',
+      "ajax.getXMLAnswer(cb);",
+    ].join("\n");
+    const context = testContext(code, "incident.br.js");
+    const query = analyzeProvenance(context);
+    const uses = new Map<string, ESTree.Node>();
+    walk(context.sourceCode.ast as ESTree.Node, {
+      Identifier(node) {
+        const name = getName(node);
+        if (name === "rec" || name === "ajax") uses.set(name, node);
+      },
+    });
+    const rec = query.ofIdentifier(uses.get("rec")!);
+    assert.ok(rec);
+    assert.equal(rec.queryState, "unopened");
+    assert.equal(rec.windowed, false);
+    assert.equal(rec.aggregates.size, 0);
+    const ajax = query.ofIdentifier(uses.get("ajax")!);
+    assert.ok(ajax);
+    assert.equal(ajax.sysparmName, false);
+  });
 });
