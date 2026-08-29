@@ -18,6 +18,7 @@ export interface LintMessage {
 
 export interface LintSourceOptions {
   filename?: string;
+  cwd?: string;
   ruleNames?: readonly RuleName[];
   settings?: ServiceNowSettings;
   options?: Partial<Record<RuleName, unknown[]>>;
@@ -119,7 +120,7 @@ export function applyRules(
       id: `${PLUGIN_NAME}/${name}`,
       filename,
       physicalFilename: filename,
-      cwd: "/",
+      cwd: options.cwd ?? "/",
       options: options.options?.[name] ?? [],
       settings: { servicenow: options.settings ?? {} },
       sourceCode,

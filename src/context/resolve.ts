@@ -97,6 +97,7 @@ function resolveSurfaces(
   authoringConfidence: ContextConfidence,
   inferClient?: () => boolean,
   inferSurfaces?: () => { client: boolean; server: boolean },
+  baseDirectory?: string,
 ): { surfaces: Set<ScriptSurface>; confidence: ContextConfidence } {
   if (authoring === "fluent") {
     if (
@@ -125,7 +126,7 @@ function resolveSurfaces(
     return { surfaces: new Set(surface ? [surface] : []), confidence: "explicit" };
   }
 
-  const fromFile = surfacesFromFilename(filename);
+  const fromFile = surfacesFromFilename(filename, baseDirectory);
   if (fromFile.length > 0) {
     // A bare UI Action names the record type, not its execution surface. Keep
     // that evidence, then continue with AST evidence so a client UI Action is
@@ -202,6 +203,7 @@ export function resolveScriptContext(
     authoring.confidence,
     extras.inferClient,
     extras.inferSurfaces,
+    (context as Context & { cwd?: string }).cwd,
   );
   const localDeprecations = [...deprecations];
   const javascriptMode = resolveJavaScriptMode(

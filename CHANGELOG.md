@@ -4,6 +4,7 @@
 
 ### Fixed
 
+- Surface directory conventions now match the project-relative path instead of the whole absolute path. A directory name above the project root no longer assigns or suppresses an execution surface, so diagnostics no longer depend on where the repository is cloned.
 - The generated SDK snapshot module is annotated with an interface instead of `as const`, shrinking the shipped `dist/fluent/declaration-snapshots.d.ts` from roughly 1 MB to under 1 KB. The release artifact check now enforces a 200 KB budget per shipped declaration file.
 - `no-hardcoded-sysid` with the default `ignoreHashNames: true` now suppresses a 32-character hex literal for every digest-like owner name (`md5`, `sha`, `hash`, `checksum`, `etag`, `digest`), not only names containing `md5`.
 - Release verification now decodes Fulcio DER UTF8String certificate fields and checks GitHub's immutable owner and repository IDs.
