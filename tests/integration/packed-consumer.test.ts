@@ -128,6 +128,15 @@ console.log(JSON.stringify({
       assert.equal(imports.bypass, undefined);
       assert.equal(imports.singleQuote, true);
 
+      // Contract test for the post-publish verifier: its consumer probe must
+      // pass against a packed version 2 install, so a stale assertion (such as
+      // the removed PACKAGE_VERSION root export) fails before publication
+      // instead of after it (FINDINGS.md OPS-006).
+      const { importInstalledPackage } = await import("../../scripts/verify-published-package.mjs");
+      const probed = await importInstalledPackage(consumer, "oxc-plugin-servicenow", pkg.version);
+      assert.equal(probed.result.metaName, "servicenow");
+      assert.equal(probed.result.version, pkg.version);
+
       const catalogError = execFileSync(
         process.execPath,
         [

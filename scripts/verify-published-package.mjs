@@ -236,11 +236,13 @@ const oxfmt = await import(name + "/oxfmt");
 const require = createRequire(import.meta.url);
 const recommended = require(name + "/oxfmt.recommended.json");
 const exportedPackage = require(name + "/package.json");
-if (plugin.PACKAGE_VERSION !== version) throw new Error("PACKAGE_VERSION mismatch");
 if (exportedPackage.version !== version) throw new Error("package.json version mismatch");
 if (plugin.default?.meta?.name !== "servicenow") throw new Error("plugin meta.name mismatch");
+if (plugin.default?.meta?.version !== version) throw new Error("plugin meta.version mismatch");
 if (!oxfmt || !recommended) throw new Error("public export did not load");
-console.log(JSON.stringify({ metaName: plugin.default.meta.name, version: plugin.PACKAGE_VERSION }));`;
+console.log(
+  JSON.stringify({ metaName: plugin.default.meta.name, version: plugin.default.meta.version }),
+);`;
   let output;
   try {
     output = execFileSync(process.execPath, ["--input-type=module", "-e", importScript], {
