@@ -146,9 +146,10 @@ What the preset does:
 
 | Files | Style |
 | --- | --- |
-| `**/*.now.ts` | TypeScript / Fluent — single quotes, trailing commas, width 100 |
+| `**/*.now.ts`, `**/*.now.tsx` | TypeScript / Fluent — single quotes, trailing commas, width 100 |
 | `**/*.{server,client,br,si,acl}.js`, `**/*.ui-action.js`, `src/{server,client}/**`, ACL directories | Classic Studio style — double quotes, no trailing commas, width 120. Includes compound `.client.ui-action.js` and `.server.ui-action.js` suffixes. |
-| `**/.now/**`, `keys.ts` | Ignored (SDK sync artefacts) |
+| `**/now.config.json`, `**/.oxlintrc.json`, `**/.oxfmtrc.json` | Configuration files — width 80, no trailing commas |
+| `**/node_modules/**`, `**/dist/**`, `**/build/**`, `**/.now/**`, `**/keys.ts`, `**/*.min.js` | Ignored (build output and SDK sync artefacts) |
 
 Then:
 
@@ -271,6 +272,7 @@ Configure once. Invalid keys, types, or conflicting values throw a configuration
 | `release` | Optional release selector: `"zurich"` or `"australia"`. Omission uses only facts shared by every supported release. |
 | `fluentSdkVersion` | Fluent SDK semver the manifest should evaluate. This is independent from the instance `release`. |
 | `businessRuleSourceFormat` | `full-script`, `body-only`, or `unknown` |
+| `businessRuleWhen` | Business Rule timing: `before`, `after`, `async`, `display`, or `unknown` (default). Timing-specific Business Rule rules stay silent until it is set; it is never inferred from the filename. |
 | `scriptType` | **Deprecated.** Use `authoring` and `surfaces`. |
 | `ecmaLatest` | **Deprecated.** `true` maps to `javascriptMode: "es2021"`. `false` does not assume ES5. |
 
@@ -529,6 +531,52 @@ script: Now.include("../server/log-state-change.server.js"),
 - [oxfmt configuration](https://oxc.rs/docs/guide/usage/formatter/config.html)
 
 ---
+
+## Troubleshooting a quiet run
+
+The plugin deliberately stays silent when it cannot prove a rule applies:
+a wrong assumption produces a confident false positive on correct code, so
+absence of evidence never resolves to a default. Zero diagnostics on a
+fresh install usually means one of three things.
+
+**1. The file's surface is unknown.** Most rules gate on the execution
+surface (client, server, Business Rule, and so on), which is resolved from
+explicit settings first and filename conventions second. A file named
+`foo.js` has no surface, so surface-gated rules skip it. Recognized
+filename markers include:
+
+| Surface | Filename markers (case-insensitive; `.js`, `.cjs`, `.mjs`) |
+| --- | --- |
+| Client | `*.client.js`, `*.cs.js`, `*client-script*`, `*catalog-client*`, `*onload*`/`*onchange*`/`*onsubmit*`, `*ui-policy*`, `client/` or `src/client/` directories |
+| Business Rule | `*.br.js`, `*business-rule*`, `sys_script.js`, `br/` directories |
+| Script Include | `*.si.js`, `*script-include*`, `sys_script_include*`, `script-includes/` directories |
+| UI Action | `*.ui-action.js`, `*.ua.js`, `sys_ui_action*`, compound `*.client.ui-action.js` / `*.server.ui-action.js` |
+| ACL | `acl`/`access-control` names and directories, `sys_security_acl*` |
+| Scheduled / fix | `*scheduled-script*`, `*.ss.js`, `*fix-script*`, `*.fix.js`, `sysauto_script*`, `sys_script_fix*` |
+| Server (generic) | `*.server.js`, `server/` or `src/server/` directories |
+| Fluent | `*.now.ts`, `*.now.tsx` |
+
+Remedy: rename files to a convention, or set
+`settings.servicenow.surfaces` per file group with `files` overrides, as
+in the mixed-repository composition above.
+
+**2. The JavaScript mode is unknown.** Mode-specific rules (the ES5 and
+ES2021 engine restrictions) skip rather than guess when
+`settings.servicenow.javascriptMode` is unset. Restrictions that apply in
+every instance mode still run. Remedy: set `javascriptMode` for each file
+group. Business Rule timing rules likewise wait for `businessRuleWhen`.
+
+**3. The receiver is not proven.** Glide lifecycle rules report only on
+object identities the analyzer can prove; an aliased, escaped, or
+dynamically constructed receiver stays silent by design. On very large
+files the path analyzer can also exhaust its deterministic work budget
+and degrade to no findings for the affected rule; the budget scales with
+file size, so this indicates an unusually dense file. Splitting the file
+restores full analysis.
+
+If a rule you expected still stays silent, run one rule at a time against
+one file and compare with the rule page's examples; each generated page
+states the exact surfaces and modes the rule runs under.
 
 ## Current oxlint JS plugin limitations
 

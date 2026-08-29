@@ -21,8 +21,9 @@ Decision: reassess at the 3.0 boundary with npm dependents data.
 
 `scriptType`, `ecmaLatest`, and the `@sn-es-latest` pragma remain supported
 with deprecation messages, as `src/types.ts` promises ("for one major-release
-cycle"). Four of the five cross-field conflict checks in
-`src/settings/validate.ts` exist only for this layer.
+cycle"). Five of the six cross-field conflict checks in
+`src/settings/validate.ts` exist only for this layer; the sixth, Fluent
+authoring against instance surfaces, is current (FINDINGS.md DOC-004).
 
 Decision: retire the layer in 3.0, after one full 2.x cycle with the
 deprecation recorded in the type-level `@deprecated` markers and the
