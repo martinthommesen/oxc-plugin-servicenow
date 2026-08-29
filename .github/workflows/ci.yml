@@ -15,6 +15,7 @@ on:
 
 jobs:
   test:
+    timeout-minutes: 20
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -46,6 +47,7 @@ jobs:
           if-no-files-found: error
 
   consumer:
+    timeout-minutes: 20
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -60,6 +62,7 @@ jobs:
       - run: npm run test:consumer
 
   compat-matrix:
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.matrix.outputs.value }}
@@ -74,6 +77,7 @@ jobs:
         run: echo "value=$(node scripts/check-compat-matrix.mjs --github-matrix)" >> "$GITHUB_OUTPUT"
 
   bench:
+    timeout-minutes: 30
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -107,6 +111,7 @@ jobs:
           if-no-files-found: error
 
   compat:
+    timeout-minutes: 20
     needs: compat-matrix
     runs-on: ubuntu-latest
     strategy:
@@ -128,6 +133,7 @@ jobs:
         run: npx tsx scripts/compat-consumer.mjs --cell "$SN_COMPAT_CELL"
 
   docs:
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -141,6 +147,7 @@ jobs:
       - run: npm run docs:check
 
   manifest:
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -154,6 +161,7 @@ jobs:
       - run: npm run manifest:check
 
   artifact:
+    timeout-minutes: 15
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -167,6 +175,7 @@ jobs:
       - run: npm run release:check
 
   workflow:
+    timeout-minutes: 10
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -178,6 +187,7 @@ jobs:
       - run: npm run workflow:check
 
   manifest-drift:
+    timeout-minutes: 20
     # Networked upstream comparison; scheduled only, never a required check.
     if: github.event_name == 'schedule'
     runs-on: ubuntu-latest

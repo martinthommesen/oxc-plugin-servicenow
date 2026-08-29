@@ -125,9 +125,19 @@ export function parseNpmCommandResult(result, context) {
   });
 }
 
+// Per-operation bound: the retry deadline only stops scheduling new
+// attempts, so every child process and fetch needs its own timeout or a
+// single hang blocks the release job indefinitely (FINDINGS.md REL-002).
+export const OPERATION_TIMEOUT_MS = 120000;
+
 function runNpmJson(args, options = {}, runner = spawnSync) {
   return parseNpmCommandResult(
-    runner("npm", args, { ...options, encoding: "utf8" }),
+    runner("npm", args, {
+      timeout: OPERATION_TIMEOUT_MS,
+      killSignal: "SIGKILL",
+      ...options,
+      encoding: "utf8",
+    }),
     `npm ${args[0]}`,
   );
 }
@@ -247,6 +257,8 @@ console.log(
   try {
     output = execFileSync(process.execPath, ["--input-type=module", "-e", importScript], {
       cwd: consumer,
+      timeout: OPERATION_TIMEOUT_MS,
+      killSignal: "SIGKILL",
       encoding: "utf8",
       env: { ...process.env, RELEASE_PACKAGE_NAME: name, RELEASE_PACKAGE_VERSION: version },
     });
@@ -424,7 +436,11 @@ export async function fetchAttestations(view, name, version, fetchFn = fetch, no
   const url = canonicalAttestationUrl(view, name, version);
   let response;
   try {
-    response = await fetchFn(url, { redirect: "manual", headers: { accept: "application/json" } });
+    response = await fetchFn(url, {
+      redirect: "manual",
+      headers: { accept: "application/json" },
+      signal: AbortSignal.timeout(OPERATION_TIMEOUT_MS),
+    });
   } catch (error) {
     throw Object.assign(new Error("attestation fetch failed"), {
       code: error?.cause?.code ?? error?.code,
