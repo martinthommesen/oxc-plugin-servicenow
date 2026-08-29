@@ -74,7 +74,15 @@ describe("packed package consumer", () => {
       );
       execFileSync(
         "npm",
-        ["install", tarball, "oxlint@1.79.0", "eslint@10.8.1", "oxfmt@0.64.0", "typescript@7.0.2"],
+        [
+          "install",
+          "--ignore-scripts",
+          tarball,
+          "oxlint@1.79.0",
+          "eslint@10.8.1",
+          "oxfmt@0.64.0",
+          "typescript@7.0.2",
+        ],
         { cwd: consumer, encoding: "utf8" },
       );
 

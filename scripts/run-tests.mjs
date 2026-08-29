@@ -57,6 +57,18 @@ for (const searchRoot of searchRoots) {
 }
 files.sort();
 
+// The packed-consumer test resolves and installs packages from the live npm
+// registry, so the default suite excludes it to stay hermetic and offline
+// (FINDINGS.md OPS-004). Run it with `npm run test:consumer`; CI and the
+// release workflow run it as their own jobs.
+const NETWORKED_TESTS = [join(root, "tests/integration/packed-consumer.test.ts")];
+if (searchArgs.length === 0) {
+  for (const networked of NETWORKED_TESTS) {
+    const index = files.indexOf(networked);
+    if (index !== -1) files.splice(index, 1);
+  }
+}
+
 if (files.length === 0) {
   console.error(`No *.test.ts files found under ${searchRoots.join(", ")}`);
   process.exit(1);

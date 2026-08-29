@@ -67,6 +67,7 @@
     "test": "node scripts/run-tests.mjs && npm run fluent:check",
     "pretest:integration": "npm run build",
     "test:integration": "node scripts/run-tests.mjs tests/integration",
+    "test:consumer": "node scripts/run-tests.mjs tests/integration/packed-consumer.test.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "fluent:check": "node --import ./scripts/register-tsx.mjs scripts/check-fluent-manifest.mjs",
     "typecheck:fixtures": "tsc --noEmit -p tsconfig.valid-fixtures.json",
@@ -84,7 +85,7 @@
     "evidence:check": "node --import ./scripts/register-tsx.mjs scripts/verify-doc-evidence.mjs",
     "bench": "node scripts/benchmark.mjs",
     "release:check": "node scripts/check-release-artifact.mjs",
-    "validate": "npm run workflow:check && npm run compat:check && npm run lint:check && npm run format:check && npm run typecheck && npm run typecheck:fixtures && npm run build && npm test && npm run evidence:check && npm run acceptance:check && npm run docs:check && npm run manifest:check && npm run bench && npm run release:check -- --consumer",
+    "validate": "npm run workflow:check && npm run compat:check && npm run lint:check && npm run format:check && npm run typecheck && npm run typecheck:fixtures && npm run build && npm test && npm run test:consumer && npm run evidence:check && npm run acceptance:check && npm run docs:check && npm run manifest:check && npm run bench && npm run release:check -- --consumer",
     "workflow:check": "node scripts/check-action-pins.mjs && node scripts/check-script-paths.mjs",
     "compat:check": "node scripts/check-compat-matrix.mjs"
   },
