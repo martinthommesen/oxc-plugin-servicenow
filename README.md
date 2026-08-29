@@ -481,7 +481,7 @@ script: Now.include("../server/log-state-change.server.js"),
 
 - [ServiceNow Fluent](https://servicenow.github.io/sdk/guides/fluent-overview)
 - [ServiceNow SDK 3.0 / `Now.include`](https://www.servicenow.com/community/servicenow-ide-sdk-and-fluent/announcing-servicenow-sdk-3-0/ta-p/3216612)
-- [JavaScript modes](https://www.servicenow.com/docs/r/xanadu/api-reference/scripts/c_JS_modes.html)
+- [JavaScript modes](https://www.servicenow.com/docs/r/zurich/api-reference/scripts/c_JS_modes.html)
 - [JavaScript engine feature support (Zurich)](https://www.servicenow.com/docs/r/zurich/api-reference/scripts/javascript-engine-feature-support.html)
 - [Avoid `current.update()` in Business Rules (KB0715782)](https://support.servicenow.com/kb?id=kb_article_view&sysparm_article=KB0715782)
 - [oxlint JS plugins](https://oxc.rs/docs/guide/usage/linter/js-plugins.html)

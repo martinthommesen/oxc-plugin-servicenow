@@ -57,7 +57,7 @@ export const SN_GR =
 export const SN_GR_GLOBAL =
   "https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordAPI.html";
 export const SN_JS_MODES =
-  "https://www.servicenow.com/docs/r/xanadu/api-reference/scripts/c_JS_modes.html";
+  "https://www.servicenow.com/docs/r/zurich/api-reference/scripts/c_JS_modes.html";
 export const SN_JS_FEATURES =
   "https://www.servicenow.com/docs/r/zurich/api-reference/scripts/javascript-engine-feature-support.html";
 export const SN_FLUENT = "https://www.servicenow.com/docs/r/api-reference/servicenow-fluent.html";

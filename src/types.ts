@@ -6,7 +6,7 @@ import type { ServiceNowRelease } from "./settings/releases.js";
  *
  * Unknown means the plugin does not know the mode and must not assume ES5.
  *
- * @see https://www.servicenow.com/docs/r/xanadu/api-reference/scripts/c_JS_modes.html
+ * @see https://www.servicenow.com/docs/r/zurich/api-reference/scripts/c_JS_modes.html
  */
 export type JavaScriptMode = "compatibility" | "es5" | "es2021" | "unknown";
 
