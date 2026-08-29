@@ -25,6 +25,35 @@ function testContext(code: string, filename: string): Context {
 }
 
 describe("public analysis API", () => {
+  it("analyzes the explicitly supplied AST, not hidden context state (FINDINGS.md API-001)", () => {
+    const glideCode = 'var gr = new GlideRecord("incident");';
+    const otherCode = "var other = 1;";
+    const glideAst = parse(glideCode, "a.br.js").ast as unknown as ESTree.Node;
+    const context = testContext(otherCode, "a.br.js");
+    const glideDecl = (glideAst as unknown as { body: any[] }).body[0].declarations[0]
+      .init as ESTree.Node;
+
+    // The alternate AST is honored: the GlideRecord constructor from the
+    // supplied tree is proven even though context.sourceCode holds another
+    // program.
+    const alternate = analyzeProvenance(context, glideAst);
+    assert.equal(alternate.ofExpression(glideDecl)?.kind, "GlideRecord");
+
+    // The default analysis describes context.sourceCode and knows nothing
+    // about foreign nodes.
+    const standard = analyzeProvenance(context);
+    assert.equal(standard.ofExpression(glideDecl), null);
+
+    // Passing the context's own AST stays equivalent to omitting it.
+    const same = analyzeProvenance(
+      context,
+      (context.sourceCode as { ast: ESTree.Node }).ast,
+    );
+    const ownDecl = (context.sourceCode as unknown as { ast: { body: any[] } }).ast.body[0]
+      .declarations[0].init as ESTree.Node;
+    assert.equal(same.ofExpression(ownDecl), standard.ofExpression(ownDecl));
+  });
+
   it("exposes immutable context and provenance views without internal state", () => {
     const code = 'var rec = new GlideRecord("incident");\nrec.next();';
     const context = testContext(code, "incident.br.js");

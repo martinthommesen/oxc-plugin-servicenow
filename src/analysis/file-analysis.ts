@@ -119,9 +119,9 @@ function inferClientFromAst(program: ESTree.Node, bindings: FileBindings): boole
   return inferSurfacesFromAst(program, bindings).client;
 }
 
-function buildFileAnalysis(context: Context): FileAnalysis {
+function buildFileAnalysis(context: Context, ast?: ESTree.Node): FileAnalysis {
   analysisPasses += 1;
-  const program = context.sourceCode.ast as ESTree.Node | undefined;
+  const program = ast ?? (context.sourceCode.ast as ESTree.Node | undefined);
   const bindings = createFileBindings(context, program);
   const script = resolveScriptContext(context, {
     program,
@@ -277,7 +277,13 @@ function makeQuery(
  * Shared per-file analysis. Cache identity includes the host SourceCode object
  * and every setting that can change semantics.
  */
-export function getFileAnalysis(context: Context): FileAnalysis {
+export function getFileAnalysis(context: Context, ast?: ESTree.Node): FileAnalysis {
+  // An explicitly supplied alternate AST is analyzed fresh: the cache is
+  // keyed on context.sourceCode, which describes a different program
+  // (FINDINGS.md API-001).
+  if (ast !== undefined && ast !== (context.sourceCode.ast as unknown)) {
+    return buildFileAnalysis(context, ast);
+  }
   const source = context.sourceCode as object;
   let bucket = bySource.get(source);
   if (!bucket) {
@@ -306,6 +312,6 @@ export function getScriptContext(context: Context): ServiceNowScriptContext {
   return getFileAnalysis(context).script;
 }
 
-export function analyzeProvenance(context: Context, _ast?: ESTree.Node): ProvenanceQuery {
-  return getFileAnalysis(context).provenance;
+export function analyzeProvenance(context: Context, ast?: ESTree.Node): ProvenanceQuery {
+  return getFileAnalysis(context, ast).provenance;
 }

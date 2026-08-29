@@ -362,9 +362,15 @@ function hostHasDefinedBinding(
 }
 
 export function createFileBindings(context: Context, ast?: ESTree.Node): FileBindings {
-  const program = (ast ?? (context.sourceCode.ast as ESTree.Node | undefined)) as
-    | ESTree.Node
-    | undefined;
+  const hostAst = context.sourceCode?.ast as ESTree.Node | undefined;
+  const program = (ast ?? hostAst) as ESTree.Node | undefined;
+  // The host scope manager describes context.sourceCode.ast. For an
+  // explicitly supplied alternate AST its answers describe the wrong
+  // program, so only the locally built scope tree is consulted
+  // (FINDINGS.md API-001).
+  const useHostScope = program === undefined || hostAst === undefined || program === hostAst;
+  const hostBinding = (node: ESTree.Node, name: string) =>
+    useHostScope ? hostHasDefinedBinding(context, node, name) : undefined;
   const tree = program ? buildScopeTree(program) : new ScopeTree();
 
   return {
@@ -373,14 +379,14 @@ export function createFileBindings(context: Context, ast?: ESTree.Node): FileBin
       return tree.resolve(name, node, ancestors);
     },
     isLocalName(name, node, ancestors = []) {
-      const host = hostHasDefinedBinding(context, node, name);
+      const host = hostBinding(node, name);
       if (host === true) return true;
       return tree.hasLocalBinding(name, node, ancestors);
     },
     isPlatformGlobal(node, ancestors = []) {
       const name = getName(node);
       if (!name) return false;
-      const host = hostHasDefinedBinding(context, node, name);
+      const host = hostBinding(node, name);
       if (host === true) return false;
       if (tree.hasLocalBinding(name, node, ancestors)) return false;
       return true;

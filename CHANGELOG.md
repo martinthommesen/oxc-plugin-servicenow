@@ -8,6 +8,7 @@
 
 ### Fixed
 
+- `analyzeProvenance` now analyzes the AST supplied as its second argument. Previously it always traversed `context.sourceCode.ast`, so an alternate tree had no effect. When an alternate AST is supplied, host scope-manager answers are ignored because they describe the other program.
 - `no-gliderecord-query-in-loop` and `no-glideelement-in-collection` now analyze the body of a synchronous IIFE with the enclosing loop context, so wrapping an operation in `(function () { ... })()` no longer bypasses the checks. Deferred callbacks stay excluded.
 
 - The generated SDK snapshot module is annotated with an interface instead of `as const`, shrinking the shipped `dist/fluent/declaration-snapshots.d.ts` from 939 KB to under 1 KB and the built `dist` tree from 2.8 MB to 1.9 MB. The release artifact check now enforces a 200 KB budget per shipped declaration file.
