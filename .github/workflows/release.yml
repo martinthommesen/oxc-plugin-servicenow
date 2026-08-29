@@ -189,6 +189,8 @@ jobs:
           OIDC_SUBJECT: ${{ needs.validate.outputs.oidc_subject }}
           TARBALL: ${{ needs.validate.outputs.tarball }}
           VERSION: ${{ needs.validate.outputs.version }}
+          REPOSITORY_ID: ${{ github.repository_id }}
+          OWNER_ID: ${{ github.repository_owner_id }}
         run: |
           node scripts/verify-published-package.mjs \
             --tarball "./$TARBALL" \
@@ -198,7 +200,9 @@ jobs:
             --environment release \
             --ref "$GITHUB_REF" \
             --commit "$GITHUB_SHA" \
-            --oidc-subject "$OIDC_SUBJECT"
+            --oidc-subject "$OIDC_SUBJECT" \
+            --repository-id "$REPOSITORY_ID" \
+            --owner-id "$OWNER_ID"
 
   github-release:
     timeout-minutes: 15

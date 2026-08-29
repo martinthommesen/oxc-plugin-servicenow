@@ -282,6 +282,40 @@ function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+/**
+ * DER-encode a string as a UTF8String (tag 0x0c). Fulcio encodes every
+ * 1.3.6.1.4.1.57264.1.8+ extension value this way, and sigstore's policy
+ * check compares the extension's raw bytes, so the expected values must be
+ * DER-encoded too. Plain strings never match a real certificate - that is
+ * exactly how the v2.0.0 registry-verify job failed with
+ * "missing OID 1.3.6.1.4.1.57264.1.9" after a successful publish.
+ */
+export function derUtf8(value) {
+  const utf8 = Buffer.from(value, "utf8");
+  let lengthBytes;
+  if (utf8.length < 0x80) {
+    lengthBytes = Buffer.from([utf8.length]);
+  } else if (utf8.length < 0x100) {
+    lengthBytes = Buffer.from([0x81, utf8.length]);
+  } else {
+    lengthBytes = Buffer.from([0x82, utf8.length >> 8, utf8.length & 0xff]);
+  }
+  return Buffer.concat([Buffer.from([0x0c]), lengthBytes, utf8]);
+}
+
+/**
+ * Fulcio's 1.24 extension carries the ID-enriched OIDC subject
+ * `repo:<owner>@<ownerId>/<name>@<repoId>:environment:<env>`, which pins the
+ * numeric account and repository identities against renames. The plain
+ * subject `repo:<owner>/<name>:environment:<env>` names the npm trusted
+ * publisher and never appears in the certificate.
+ */
+export function enrichedOidcSubject(expected) {
+  const slug = expected.repository.replace(/^https:\/\/github\.com\//, "");
+  const [owner, name] = slug.split("/");
+  return `repo:${owner}@${expected.ownerId}/${name}@${expected.repositoryId}:environment:${expected.environment}`;
+}
+
 function certificateIdentity(expected) {
   const workflowIdentity = `${expected.repository}/${expected.workflow}@${expected.ref}`;
   return {
@@ -290,15 +324,15 @@ function certificateIdentity(expected) {
       certificateIssuer: FULCIO_ISSUER,
       certificateIdentityURI: `^${escapeRegex(workflowIdentity)}$`,
       certificateOIDs: {
-        "1.3.6.1.4.1.57264.1.9": workflowIdentity,
-        "1.3.6.1.4.1.57264.1.11": "github-hosted",
-        "1.3.6.1.4.1.57264.1.12": expected.repository,
-        "1.3.6.1.4.1.57264.1.13": expected.commit,
-        "1.3.6.1.4.1.57264.1.14": expected.ref,
-        "1.3.6.1.4.1.57264.1.18": workflowIdentity,
-        "1.3.6.1.4.1.57264.1.20": "push",
-        "1.3.6.1.4.1.57264.1.23": expected.environment,
-        "1.3.6.1.4.1.57264.1.24": expected.oidcSubject,
+        "1.3.6.1.4.1.57264.1.9": derUtf8(workflowIdentity),
+        "1.3.6.1.4.1.57264.1.11": derUtf8("github-hosted"),
+        "1.3.6.1.4.1.57264.1.12": derUtf8(expected.repository),
+        "1.3.6.1.4.1.57264.1.13": derUtf8(expected.commit),
+        "1.3.6.1.4.1.57264.1.14": derUtf8(expected.ref),
+        "1.3.6.1.4.1.57264.1.18": derUtf8(workflowIdentity),
+        "1.3.6.1.4.1.57264.1.20": derUtf8("push"),
+        "1.3.6.1.4.1.57264.1.23": derUtf8(expected.environment),
+        "1.3.6.1.4.1.57264.1.24": derUtf8(enrichedOidcSubject(expected)),
       },
     },
   };
@@ -517,12 +551,16 @@ export async function main(argv = process.argv) {
   const ref = argValue(argv, "--ref") ?? process.env.GITHUB_REF;
   const commit = argValue(argv, "--commit") ?? process.env.GITHUB_SHA;
   const oidcSubject = argValue(argv, "--oidc-subject");
+  const repositoryId = argValue(argv, "--repository-id");
+  const ownerId = argValue(argv, "--owner-id");
   if (!ref || !ref.startsWith("refs/tags/v"))
     fail("--ref or GITHUB_REF must be an exact release tag ref", "arguments");
   if (!commit || !/^[a-f0-9]{40}$/i.test(commit))
     fail("--commit or GITHUB_SHA must be a full commit", "arguments");
   if (!oidcSubject)
     fail("--oidc-subject is required for environment-bound provenance", "arguments");
+  if (!/^\d+$/.test(repositoryId ?? "") || !/^\d+$/.test(ownerId ?? ""))
+    fail("--repository-id and --owner-id must be the numeric GitHub identities", "arguments");
   const expected = {
     name,
     version,
@@ -533,6 +571,8 @@ export async function main(argv = process.argv) {
     ref,
     commit: commit.toLowerCase(),
     oidcSubject,
+    repositoryId,
+    ownerId,
   };
 
   const view = await waitForView(name, version, timeoutMs, intervalMs, hasCompleteRegistryMetadata);

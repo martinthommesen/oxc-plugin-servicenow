@@ -7,7 +7,11 @@ subject carries the record ID.
 ## Verification state
 
 - Full suite: 807/807 (including the networked consumer test).
-- Hermetic `npm test`: 805/805, no network, about 21 s.
+- The release provenance verifier validates the real published 2.0.0
+  attestation end to end (real Fulcio certificate, public Sigstore trust
+  root, all nine required OIDs including the environment and the ID-enriched
+  subject).
+- Hermetic `npm test`: 805/805, about 21 s; no network access points remain in the default suite (the consumer install moved to `test:consumer`).
 - Clean `git archive HEAD` checkout passes `lint:check`, `format:check`,
   `typecheck`, and `typecheck:fixtures`.
 - `docs:check`, `evidence:check`, `manifest:check`, `workflow:check`,
@@ -26,7 +30,7 @@ subject carries the record ID.
 | OPS-003 | Fixed | ddab1b1 | Whole tree committed and pushed. |
 | OPS-004 | Fixed | decbb29 | `npm test` hermetic; consumer test is its own script and CI/release job with `--ignore-scripts`. |
 | OPS-005 | Fixed | faf4855 | Real principals from live state: tag actor `release-sentinel-sn` (Integration 4671202), reviewer `martinthommesen` (User 267603464). Checker's reviewer normalization fixed. Audit passes live. |
-| OPS-006 | Fixed | f3ae736 | Verifier asserts `meta.version`, not the removed root export; packed-consumer contract test added. The v2.0.0 run on main failed registry-verify for a second reason (missing Fulcio OID 1.9) that lives in main's verifier configuration. |
+| OPS-006 | Fixed | f3ae736 + follow-up | Two failure modes. (1) The consumer probe asserted the removed `PACKAGE_VERSION` root export; fixed and contract-tested (this was latent, not the v2.0.0 incident). (2) The actual v2.0.0 incident: the OID policy compared raw bytes against DER-encoded Fulcio v2 extension values and expected a plain subject in extension 1.24 where Fulcio embeds the ID-enriched `repo:owner@id/name@id:environment:env` form. Fixed with DER-encoded policy values and the enriched subject; the mock fixture now uses real Fulcio encoding, and the fix is proven end to end against the live npm 2.0.0 attestation with the public Sigstore trust root. |
 | OPS-007 | Fixed | 37df16a | Nightly CI schedule plus scheduled `manifest-drift` job; offline `manifest:check` was already required. |
 | TST-001 | Fixed | fbb823c | Fixture clock tracks wall time; 16/16. |
 | TST-002 | Fixed | c757085 | Preset source vendored; digest asserted from bytes. |
@@ -60,6 +64,8 @@ subject carries the record ID.
    remediation.
 2. `npm trust list` in the governance audit needs an npm login; the GitHub
    half of the audit passes against live state.
-3. The new CI `consumer` job can be added to the required status checks of
-   ruleset 21081867 (administrative, optional; the producibility test covers
-   whatever list is chosen).
+3. Add the new CI `consumer` job to the required status checks of ruleset
+   21081867. This is recommended, not optional: the required `test` check no
+   longer covers the packed-consumer path after the hermetic split, so
+   enforcement is weaker until `consumer` is required. The producibility test
+   accepts whatever list is chosen.

@@ -36,6 +36,7 @@ import {
 } from "../../scripts/publish-release-package.mjs";
 import {
   canonicalAttestationUrl,
+  enrichedOidcSubject,
   fetchAttestations,
   isTransientRegistryError,
   parseNpmCommandResult,
@@ -624,6 +625,8 @@ async function signedProvenanceFixture() {
     ref: "refs/tags/v2.0.0-rc.1",
     commit: "a".repeat(40),
     oidcSubject: "repo:martinthommesen/oxc-plugin-servicenow:environment:release",
+    repositoryId: "1339120262",
+    ownerId: "267603464",
   };
   const workflowIdentity = `${expected.repository}/${expected.workflow}@${expected.ref}`;
   const oidValues: Record<string, string> = {
@@ -636,15 +639,22 @@ async function signedProvenanceFixture() {
     "1.3.6.1.4.1.57264.1.18": workflowIdentity,
     "1.3.6.1.4.1.57264.1.20": "push",
     "1.3.6.1.4.1.57264.1.23": expected.environment,
-    "1.3.6.1.4.1.57264.1.24": expected.oidcSubject,
+    // Fulcio's 1.24 subject is ID-enriched; the fixture mirrors the exact
+    // production formula used by the verifier.
+    "1.3.6.1.4.1.57264.1.24": enrichedOidcSubject(expected),
   };
   const leaf = await ca.issueCertificate({
     publicKey: signerKeys.publicKey.export({ format: "der", type: "spki" }),
     subjectAltName: workflowIdentity,
+    // legacy: false makes @sigstore/mock DER-encode every extension value as
+    // a UTF8String, matching real Fulcio v2 certificates. The earlier raw
+    // (legacy) encoding let the positive test pass against a policy that
+    // could never match a production certificate (see derUtf8 in
+    // scripts/verify-published-package.mjs).
     extensions: Object.entries(oidValues).map(([oid, value]) => ({
       oid,
       value,
-      legacy: oid !== "1.3.6.1.4.1.57264.1.8",
+      legacy: false,
     })),
   });
   const digestHex = Buffer.from(expected.integrity.slice("sha512-".length), "base64").toString(
@@ -850,7 +860,10 @@ describe("exact Sigstore provenance", () => {
         expected.environment = "other";
       },
       (_response, expected) => {
-        expected.oidcSubject = "repo:other/repo:environment:release";
+        expected.repositoryId = "999";
+      },
+      (_response, expected) => {
+        expected.ownerId = "999";
       },
       (_response, expected) => {
         expected.repository = "https://github.com/other/repo";

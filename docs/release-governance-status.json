@@ -4,7 +4,7 @@
   "liveVerification": "Live-pending",
   "warning": "This static capture is historical evidence. It is not current live proof.",
   "knownBlockers": [
-    "A protected-tag publication has not verified stable release provenance. The v2.0.0 run published but failed registry-verify on a stale root-export assertion (fixed, see FINDINGS.md OPS-006)."
+    "The v2.0.0 registry-verify job failed after a successful immutable publish because the verifier compared raw-byte OID policy values against DER-encoded Fulcio v2 extension values, and expected a plain OIDC subject in extension 1.24 where Fulcio embeds the ID-enriched form. Both fixed and proven against the live 2.0.0 attestation; the stale PACKAGE_VERSION root-export assertion (FINDINGS.md OPS-006) was a second, untriggered failure behind it."
   ],
   "capturedAt": "2026-08-29T12:29:00Z",
   "repository": "martinthommesen/oxc-plugin-servicenow",
