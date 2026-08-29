@@ -27,10 +27,26 @@ describe(RULE, () => {
   });
 
   it("ignores every digest-like binding name by default (FINDINGS.md COR-002)", () => {
-    for (const name of ["checksum", "digest", "etag", "fileHash", "sha1Value"]) {
+    for (const name of [
+      "checksum",
+      "digest",
+      "etag",
+      "fileHash",
+      "sha1Value",
+      "sha256Digest",
+      "contentChecksum",
+      "MD5_SUM",
+    ]) {
       assertValid(`var ${name} = "${ID}";`, RULE);
     }
     assertValid(`var payload = { checksum: "${ID}" };`, RULE);
+  });
+
+  it("does not treat a digest word inside a name component as a digest (FINDINGS.md COR-008)", () => {
+    for (const name of ["sharedSysId", "shardId", "betaGroupId", "shadowRecordId", "dashboardId"]) {
+      assertInvalid(`var ${name} = "${ID}";`, RULE, { messageId: "hardcoded" });
+      assertInvalid(`var payload = { ${name}: "${ID}" };`, RULE, { messageId: "hardcoded" });
+    }
   });
 
   it("reports digest-named values when ignoreHashNames is false", () => {
