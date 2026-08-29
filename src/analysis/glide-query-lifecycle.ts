@@ -1,5 +1,4 @@
 import type { ESTree } from "@oxlint/plugins";
-import { nodeStart } from "../utils/ast.js";
 import { analyzePathBindings } from "./path-state.js";
 import {
   hasAuthoritativeGlideRecordMethod,
@@ -24,7 +23,10 @@ export function findQueryModifiersAfterQuery(
   authority: PlatformMethodAuthorityFacts,
 ): QueryModifierFinding[] {
   const findings: QueryModifierFinding[] = [];
-  const reported = new Set<number>();
+  // Keyed on node identity: nodeStart() returns -1 on a host whose nodes
+  // carry no offset shape, which would collapse every finding in the file
+  // onto one key and silently drop all but the first (FINDINGS.md COR-016).
+  const reported = new Set<ESTree.Node>();
   analyzePathBindings<LifecycleData>({
     program,
     analysis,
@@ -59,9 +61,8 @@ export function findQueryModifiersAfterQuery(
         rec.data.pending = true;
       }
       if (analysis.glide.consumers.has(property) && rec.data.pending === true) {
-        const key = nodeStart(call);
-        if (!reported.has(key)) {
-          reported.add(key);
+        if (!reported.has(call)) {
+          reported.add(call);
           findings.push({ node: call, name: objectName ?? "record", method: property });
         }
       }

@@ -1271,8 +1271,17 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
           const bodyState = snapshotState(header, cloneData, budget);
           if (node.type === "ForInStatement" || node.type === "ForOfStatement") {
             const left = (node as ESTree.ForInStatement | ESTree.ForOfStatement).left;
-            if (left.type === "VariableDeclaration") visit(left, bodyState, false);
-            else invalidatePattern(bodyState, left);
+            if (left.type === "VariableDeclaration") {
+              visit(left, bodyState, false);
+              // A `var` head declarator has no initializer, so the declarator
+              // visit is a runtime no-op and a previously tracked object
+              // binding would survive into the body. The loop head rebinds
+              // the declared names on every iteration whatever the
+              // declaration kind (FINDINGS.md COR-013).
+              for (const declarator of (left as ESTree.VariableDeclaration).declarations) {
+                invalidatePattern(bodyState, declarator.id);
+              }
+            } else invalidatePattern(bodyState, left);
           }
           const body = isFor
             ? (node as ESTree.ForStatement).body
