@@ -331,8 +331,14 @@ describe("release automation gates", () => {
     );
   });
 
-  it("keeps the governance audit manual, read-only, and honest about live status", () => {
+  it("keeps the governance audit scheduled, read-only, and honest about live status", () => {
     assert.ok(Object.hasOwn(governanceWorkflow.on, "workflow_dispatch"));
+    // Drift-detection workflows must run without a human trigger
+    // (FINDINGS.md OPS-008). The CI manifest-drift job relies on the CI
+    // schedule; the governance audit declares its own.
+    assert.ok(Array.isArray(governanceWorkflow.on.schedule));
+    assert.ok(governanceWorkflow.on.schedule.length > 0);
+    assert.ok(Array.isArray(ciWorkflow.on.schedule));
     assert.deepEqual(governanceWorkflow.permissions, { contents: "read" });
     assert.deepEqual(governanceWorkflow.jobs.audit.permissions, { contents: "read" });
     const run = governanceWorkflow.jobs.audit.steps

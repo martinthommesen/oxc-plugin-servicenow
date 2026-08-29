@@ -2,6 +2,13 @@ name: Governance audit
 
 on:
   workflow_dispatch:
+  schedule:
+    # Nightly, offset from the CI cron: the audited state is mutable GitHub
+    # configuration that can drift without any repository event, so drift
+    # detection cannot rely on a human trigger (FINDINGS.md OPS-008). The
+    # job stays out of the required status checks so a transient API
+    # failure cannot block merges.
+    - cron: "47 4 * * *"
 
 permissions:
   contents: read

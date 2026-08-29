@@ -109,7 +109,7 @@ GitHub release retries compare the exact tag, target commit, title, draft state,
 
 The tagger and the environment reviewer are distinct principals. The App initiates tag-triggered deployments, so `preventSelfReview` does not block the single human reviewer.
 
-Use the read-only manual workflow `Governance audit` after the desired IDs are configured. The workflow compares live GitHub and npm data without changing controls. You can run the same checker locally:
+The read-only workflow `Governance audit` runs nightly and on manual dispatch. It compares live GitHub and npm data with the desired policy without changing controls, so governance drift is reported within a day instead of waiting for a human to ask. It is not a required status check, so a transient API failure cannot block merges. The npm trusted-publisher half still needs an npm login, so an unattended run reports the GitHub half only. You can run the same checker locally:
 
 ```bash
 node scripts/check-release-governance.mjs
