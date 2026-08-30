@@ -1,0 +1,104 @@
+{
+  "oxfmtConfig": "oxfmt.recommended.json",
+  "skillDir": ".agents/skills/verify-oxc-plugin-servicenow",
+  "projects": {
+    "fluent": {
+      "dir": "examples/fluent",
+      "feature": "fluent-metadata",
+      "invalidExpected": [
+        {
+          "rule": "servicenow/require-fluent-id",
+          "file": "missing-id.now.ts",
+          "minCount": 1
+        }
+      ]
+    },
+    "classic-es5": {
+      "dir": "examples/classic-es5",
+      "feature": "classic-es5",
+      "invalidExpected": [
+        {
+          "rule": "servicenow/no-unsupported-syntax",
+          "file": "optional.server.js",
+          "minCount": 2
+        }
+      ]
+    },
+    "classic-compatibility": {
+      "dir": "examples/classic-compatibility",
+      "feature": "classic-compatibility",
+      "invalidExpected": [
+        {
+          "rule": "servicenow/no-promise",
+          "file": "promise.server.js",
+          "minCount": 1
+        }
+      ]
+    },
+    "es2021": {
+      "dir": "examples/es2021",
+      "feature": "es2021",
+      "invalidExpected": [
+        {
+          "rule": "servicenow/no-async-iterators",
+          "file": "async-iter.server.js",
+          "minCount": 1
+        },
+        {
+          "rule": "servicenow/no-typed-arrays",
+          "file": "australia-engine.server.js",
+          "minCount": 1
+        },
+        {
+          "rule": "servicenow/no-unsupported-syntax",
+          "file": "australia-engine.server.js",
+          "minCount": 1
+        }
+      ]
+    },
+    "client": {
+      "dir": "examples/client",
+      "feature": "client-scripts",
+      "invalidExpected": [
+        {
+          "rule": "servicenow/require-callback-for-getreference",
+          "file": "sync.client.js",
+          "minCount": 1
+        }
+      ]
+    },
+    "business-rule": {
+      "dir": "examples/business-rule",
+      "feature": "business-rules",
+      "invalidExpected": [
+        {
+          "rule": "servicenow/require-business-rule-wrapper",
+          "file": "unwrapped.br.js",
+          "minCount": 1
+        }
+      ]
+    },
+    "ui-action": {
+      "dir": "examples/ui-action",
+      "feature": "ui-action",
+      "invalidExpected": [
+        {
+          "rule": "servicenow/no-client-gliderecord",
+          "file": "client-query.client.ui-action.js",
+          "minCount": 1
+        }
+      ]
+    },
+    "mixed": {
+      "dir": "examples/mixed",
+      "feature": "mixed",
+      "invalidExpected": [
+        {
+          "rule": "servicenow/no-client-gliderecord",
+          "file": "bad.client.js",
+          "minCount": 1
+        }
+      ]
+    }
+  }
+}

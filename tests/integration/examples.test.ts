@@ -4,19 +4,9 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { classicEs5Rules } from "../../src/configs/maps.js";
-import { pluginRulesFor, repoRoot, runOxlint } from "./helpers.js";
+import { exampleProjectNames, pluginRulesFor, repoRoot, runOxlint } from "./helpers.js";
 
 const examplesDir = path.join(repoRoot, "examples");
-const PROJECTS = [
-  "classic-compatibility",
-  "classic-es5",
-  "es2021",
-  "client",
-  "business-rule",
-  "ui-action",
-  "fluent",
-  "mixed",
-];
 
 function collectSources(dir: string): string[] {
   const out: string[] = [];
@@ -69,7 +59,7 @@ describe("example projects", () => {
   });
 
   it("recommended oxlint is silent on every example valid tree", () => {
-    for (const project of PROJECTS) {
+    for (const project of exampleProjectNames) {
       const valid = path.join(examplesDir, project, "valid");
       const report = withLocalConfig(project, (config) => runOxlint(config, collectSources(valid)));
       assert.deepEqual(
@@ -81,7 +71,7 @@ describe("example projects", () => {
   });
 
   it("example invalid trees produce plugin diagnostics", () => {
-    for (const project of PROJECTS) {
+    for (const project of exampleProjectNames) {
       const invalid = path.join(examplesDir, project, "invalid");
       const files = collectSources(invalid);
       if (files.length === 0) continue;
