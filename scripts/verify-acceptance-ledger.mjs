@@ -494,7 +494,7 @@ export async function main(argv = process.argv.slice(2)) {
       release: release(),
     },
     commands: [
-      "node scripts/run-tests.mjs --report-json artifacts/pr51-test-results.json",
+      "node scripts/run-tests.mjs --report-json artifacts/pr51-test-results.json tests tests/integration/packed-consumer.test.ts",
       "node scripts/verify-acceptance-ledger.mjs",
     ],
     testResults,

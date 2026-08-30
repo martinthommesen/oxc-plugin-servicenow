@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { assertInvalid, assertValid, lint } from "../helpers/rule-tester.js";
+import { assertInvalid, assertValid, assertValidActive, lint } from "../helpers/rule-tester.js";
 
 const NOW = "file.now.ts";
 
@@ -185,7 +185,7 @@ describe("fluent-naming-convention", () => {
   it("checks the filename convention only for Fluent filenames (FINDINGS.md COR-014)", () => {
     // Explicit Fluent authoring routes non-Fluent filenames into this rule;
     // their stems are outside the convention and must not report.
-    assertValid(`export const x = 1;`, "fluent-naming-convention", {
+    assertValidActive(`export const x = 1;`, "fluent-naming-convention", {
       filename: "app-module.ts",
       settings: { authoring: "fluent" },
     });

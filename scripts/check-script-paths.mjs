@@ -37,7 +37,9 @@ const untracked = [];
 for (const entry of readdirSync(scriptsDir, { withFileTypes: true, recursive: true })) {
   if (!entry.isFile()) continue;
   const absolute = join(entry.parentPath ?? entry.path, entry.name);
-  const relative = absolute.slice(scriptsDir.length - "scripts/".length);
+  // git ls-files always prints forward slashes; normalize Windows separators
+  // so tracked files are not reported as untracked on win32 hosts.
+  const relative = absolute.slice(scriptsDir.length - "scripts/".length).replaceAll("\\", "/");
   if (!tracked.has(relative)) untracked.push(relative);
 }
 if (untracked.length > 0) {
