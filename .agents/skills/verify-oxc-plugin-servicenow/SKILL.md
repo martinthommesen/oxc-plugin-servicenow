@@ -22,7 +22,7 @@ npm install
 npm run verify:examples -- --all
 ```
 
-`--all` builds the plugin, records source and `dist/index.js` hashes, runs doctor, then drives every project. Ready when that command exits 0.
+`--all` builds the plugin, records source and `dist/` hashes, runs doctor, then drives every project. Ready when that command exits 0.
 
 There is no process to keep alive. Each drive starts its own oxlint or oxfmt process.
 

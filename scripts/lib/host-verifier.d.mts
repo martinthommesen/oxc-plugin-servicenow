@@ -68,6 +68,10 @@ export function hostFaultCodeFor(diagnostic: OxlintDiagnostic): string | undefin
 export function hostFaultCodeForStdout(stdout: string | undefined): string | undefined;
 export function isHostFaultDiagnostic(diagnostic: OxlintDiagnostic): boolean;
 export function isErrorSeverity(diagnostic: OxlintDiagnostic): boolean;
+export function pluginRuleIdOccurrences(
+  report: OxlintReport | null | undefined,
+  filenamePart?: string,
+): string[];
 export function pluginRuleIds(
   report: OxlintReport | null | undefined,
   filenamePart?: string,

@@ -83,17 +83,17 @@ export function isErrorSeverity(diagnostic) {
   return severity === "error" || severity === "fatal";
 }
 
+export function pluginRuleIdOccurrences(report, filenamePart) {
+  return (report?.diagnostics ?? [])
+    .filter((diagnostic) =>
+      filenamePart ? String(diagnostic.filename ?? "").includes(filenamePart) : true,
+    )
+    .map((diagnostic) => unwrapServicenowRuleId(diagnostic.code))
+    .filter((id) => id !== undefined);
+}
+
 export function pluginRuleIds(report, filenamePart) {
-  return [
-    ...new Set(
-      (report?.diagnostics ?? [])
-        .filter((diagnostic) =>
-          filenamePart ? String(diagnostic.filename ?? "").includes(filenamePart) : true,
-        )
-        .map((diagnostic) => unwrapServicenowRuleId(diagnostic.code))
-        .filter((id) => id !== undefined),
-    ),
-  ].sort();
+  return [...new Set(pluginRuleIdOccurrences(report, filenamePart))].sort();
 }
 
 export function interpretGitStatus({ status, stdout, stderr, error, signal }) {

@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import {
   isHostFaultDiagnostic,
   parseOxlintStdout,
+  pluginRuleIdOccurrences,
   runHostProcess,
   unwrapServicenowRuleId,
 } from "../../scripts/lib/host-verifier.mjs";
@@ -86,10 +87,5 @@ export function pluginRuleId(code: string): string | undefined {
 }
 
 export function pluginRulesFor(report: OxlintReport, filenamePart?: string): string[] {
-  return (report.diagnostics ?? [])
-    .filter((diagnostic) =>
-      filenamePart ? String(diagnostic.filename ?? "").includes(filenamePart) : true,
-    )
-    .map((diagnostic) => unwrapServicenowRuleId(diagnostic.code))
-    .filter((id): id is string => id !== undefined);
+  return pluginRuleIdOccurrences(report, filenamePart);
 }
