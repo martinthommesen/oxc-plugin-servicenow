@@ -24,7 +24,7 @@ Preconditions:
 - **Valid tree.** Lint the clean Catalog Client Script. Run `npm run verify:examples -- --project client --tree valid --run-id <id>`. Exit 0. `pluginRules` is `[]`.
 - **Sync getReference.** Lint the invalid client script. Run `npm run verify:examples -- --project client --tree invalid --run-id <id>`. Exit 0. `pluginRules` is `["servicenow/require-callback-for-getreference"]`. `stdout.json` filename contains `sync.client.js`.
 - **Format check.** Run `npm run verify:examples -- --project client --tree oxfmt --run-id <id>`. Exit 0. `summary.json` has `"ok": true`.
-- **Proof.** Read `artifacts/verify-oxc-plugin-servicenow/$VERIFY_RUN_ID/client-invalid/summary.json` and `stdout.json`. Run `git status -- examples/client` and require a clean tree.
+- **Proof.** Open `run-summary.json` in the run directory. Use the attempt whose `project` is `client` and `tree` is `invalid`. Read that relative `dir` for `summary.json` and `stdout.json`. Run `git status -- examples/client` and require a clean tree.
 
 ## Gotchas
 

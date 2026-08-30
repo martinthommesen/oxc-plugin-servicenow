@@ -24,7 +24,7 @@ Preconditions:
 - **Valid tree.** Lint the wrapped full-script rule. Run `npm run verify:examples -- --project business-rule --tree valid --run-id <id>`. Exit 0. `pluginRules` is `[]`.
 - **Unwrapped body.** Lint the invalid Business Rule. Run `npm run verify:examples -- --project business-rule --tree invalid --run-id <id>`. Exit 0. `pluginRules` is `["servicenow/require-business-rule-wrapper"]`. `stdout.json` filename contains `unwrapped.br.js`.
 - **Format check.** Run `npm run verify:examples -- --project business-rule --tree oxfmt --run-id <id>`. Exit 0. `summary.json` has `"ok": true`.
-- **Proof.** Read `artifacts/verify-oxc-plugin-servicenow/$VERIFY_RUN_ID/business-rule-invalid/summary.json` and `stdout.json`. Run `git status -- examples/business-rule` and require a clean tree.
+- **Proof.** Open `run-summary.json` in the run directory. Use the attempt whose `project` is `business-rule` and `tree` is `invalid`. Read that relative `dir` for `summary.json` and `stdout.json`. Run `git status -- examples/business-rule` and require a clean tree.
 
 ## Gotchas
 

@@ -32,7 +32,7 @@ Preconditions:
 - **One project.** Check Fluent valid files. Run `npm run verify:examples -- --project fluent --tree oxfmt --run-id <id>`. Exit 0. `summary.json` has `"ok": true`.
 - **All valid trees.** Check every mapped valid tree. Run `npm run verify:examples -- --project all --tree oxfmt --run-id <id>`. Exit 0. `summary.json` has `"ok": true`.
 - **No writes.** Run `git status -- examples`. The tree stays clean.
-- **Proof.** Read the attempt `stdout.txt` and `summary.json`. Keep both.
+- **Proof.** Open `run-summary.json` in the run directory. Use the attempt whose `tree` is `oxfmt`. Read that relative `dir` for `stdout.txt` and `summary.json`.
 
 ## Gotchas
 

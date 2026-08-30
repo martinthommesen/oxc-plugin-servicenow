@@ -24,7 +24,7 @@ Preconditions:
 - **Valid tree.** Run `npm run verify:examples -- --project ui-action --tree valid --run-id <id>`. Exit 0. `pluginRules` is `[]`.
 - **Client query.** Run `npm run verify:examples -- --project ui-action --tree invalid --run-id <id>`. Exit 0. `pluginRules` is `["servicenow/no-client-gliderecord"]`.
 - **Format check.** Run `npm run verify:examples -- --project ui-action --tree oxfmt --run-id <id>`. Exit 0. `summary.json` has `"ok": true`.
-- **Proof.** Read the invalid attempt `summary.json` and `stdout.json`. Run `git status -- examples/ui-action` and require a clean tree.
+- **Proof.** Open `run-summary.json` in the run directory. Use the attempt whose `project` is `ui-action` and `tree` is `invalid`. Read that relative `dir` for `summary.json` and `stdout.json`. Run `git status -- examples/ui-action` and require a clean tree.
 
 ## Gotchas
 

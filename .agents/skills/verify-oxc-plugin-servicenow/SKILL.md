@@ -31,10 +31,14 @@ There is no process to keep alive. Each drive starts its own oxlint or oxfmt pro
 `--all` and `prepare` run doctor. To re-check an existing run:
 
 ```bash
-npm run verify:examples -- prepare --run-id <id>
+npm run verify:examples -- doctor --run-id <id>
 ```
 
-Doctor fails when `examples/` is dirty, git fails, `dist` is missing, or the source and dist fingerprints no longer match the run manifest. It also loads the plugin against `examples/fluent/valid` and writes that evidence under `doctor/`.
+`prepare` refuses an existing run id. Use `doctor` for a second check.
+
+Doctor fails when `examples/` is dirty, git fails, `dist` is missing, recorded host versions changed, or the source and dist fingerprints no longer match the run manifest. It also loads the plugin against `examples/fluent/valid` and writes that evidence under `doctor/`.
+
+A failed doctor run removes `doctor/COMPLETED` and sets `manifest.doctorCompleted` to `false` before it writes the new `doctor.txt`.
 
 Refuse to treat a drive as canonical when doctor did not write `doctor/COMPLETED`.
 
@@ -49,7 +53,9 @@ npm run verify:examples -- --project fluent --tree oxfmt
 npm run verify:examples -- --project all --tree oxfmt
 ```
 
-A later source edit or a stale `dist/index.js` fails the run. Rebuild with `prepare` or `--all`.
+A later source edit or a stale `dist/` tree fails the run. Rebuild with `prepare` or `--all`.
+
+`--noncanonical` skips the `examples/` cleanliness gates. It stamps `manifest.noncanonical` and the attempt summaries. Do not treat that output as canonical proof.
 
 Do not pass `--write` to oxfmt. The CLI uses `--check` only.
 
@@ -61,9 +67,11 @@ ESLint host tests and `npm run test:consumer` stay out of this skill.
 
 Proof goes to `artifacts/verify-oxc-plugin-servicenow/<run-id>/`. That path is gitignored. Cleanup must not delete it.
 
-Each attempt directory holds `argv.json`, `stdout.txt` or `stdout.json`, `stderr.txt`, `effective.oxlintrc.json` when oxlint ran, `execution.json`, `summary.json`, and `COMPLETED`. Failures write the same files.
+Each attempt directory is named `<project>-<tree>-<uuid>` and holds `label.txt`, `argv.json`, `stdout.txt` or `stdout.json`, `stderr.txt`, `effective.oxlintrc.json` when oxlint ran, `execution.json`, `summary.json`, and `COMPLETED`. Failures write the same files. `COMPLETED` is written last.
 
-`VERIFY_RUN_ID` must match `^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$`. The CLI rejects parent segments and refuses to reuse a run directory.
+`--all` writes `run-summary.json` with `project`, `tree`, `attemptId`, and a `dir` path relative to the run directory. Use that file to find an attempt. Do not guess `<project>-invalid` without the uuid suffix.
+
+`VERIFY_RUN_ID` must match `^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$`. The CLI rejects parent segments and refuses to reuse a run directory that already has a manifest.
 
 ## Cleanup
 
@@ -71,7 +79,7 @@ Each attempt directory holds `argv.json`, `stdout.txt` or `stdout.json`, `stderr
 npm run verify:examples -- cleanup --run-id <id>
 ```
 
-This removes only `live.pid` for that run. It refuses when that pid is still alive. It does not scan the operating-system temp directory. It does not delete evidence.
+This removes `live.pid` when that pid is dead. It refuses when that pid is still alive. If the run directory has no `manifest.json`, cleanup deletes the directory so a failed `prepare` can retry the same id. A completed run with a manifest keeps its evidence. It does not scan the operating-system temp directory.
 
 ## Helpers
 

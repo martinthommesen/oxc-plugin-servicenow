@@ -1,14 +1,15 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { describe, it } from "node:test";
+import { after, describe, it } from "node:test";
 import {
   classifyOxfmtProof,
   classifyOxlintProof,
   interpretGitStatus,
   isErrorSeverity,
   isHostFaultCode,
+  isHostFaultDiagnostic,
   parseOxlintStdout,
   pluginRuleIds,
   runHostProcess,
@@ -16,20 +17,31 @@ import {
 } from "../scripts/lib/host-verifier.mjs";
 import {
   containedPath,
+  distHash,
   loadAndValidateProjects,
   parseRunId,
   runDirFor,
   sha256,
+  sourceFingerprint,
 } from "../scripts/verify-examples.mjs";
-import { repoRoot } from "./integration/helpers.js";
+import { pluginRulesFor, repoRoot } from "./integration/helpers.js";
 
 const cli = path.join(repoRoot, "scripts", "verify-examples.mjs");
+
+const createdRunIds: string[] = [];
+
+function trackRunId(runId: string) {
+  createdRunIds.push(runId);
+  return runId;
+}
 
 function runCli(args: string[], env: NodeJS.ProcessEnv = {}) {
   return spawnSync(process.execPath, [cli, ...args], {
     encoding: "utf8",
     cwd: repoRoot,
     env: { ...process.env, ...env },
+    timeout: 120_000,
+    maxBuffer: 16 * 1024 * 1024,
   });
 }
 
@@ -159,6 +171,25 @@ describe("verify-examples host classification", () => {
     assert.equal(isHostFaultCode("parser"), true);
     assert.equal(isHostFaultCode("plugin-load"), true);
     assert.equal(isHostFaultCode(undefined), false);
+    assert.equal(
+      isHostFaultDiagnostic({ message: "Syntax Error", severity: "error", filename: "a.js" }),
+      true,
+    );
+  });
+
+  it("treats an uncoded error diagnostic as a host fault", () => {
+    const proof = classifyOxlintProof({
+      tree: "valid",
+      status: 1,
+      report: {
+        diagnostics: [{ message: "Syntax Error", severity: "error", filename: "a.js" }],
+      },
+      parseError: null,
+      expectations: [],
+    });
+    assert.equal(proof.ok, false);
+    assert.equal(proof.hostFaults.length, 1);
+    assert.ok(proof.reasons.some((reason) => /host fault: Syntax Error/.test(reason)));
   });
 
   it("does not invent error severity when the host omitted it", () => {
@@ -252,6 +283,66 @@ describe("verify-examples host classification", () => {
     );
   });
 
+  it("fails when an expected rule also fires on an unexpected file", () => {
+    const proof = classifyOxlintProof({
+      tree: "invalid",
+      status: 1,
+      report: {
+        diagnostics: [
+          {
+            code: "servicenow/no-async-iterators",
+            filename: "/examples/async-iter.server.js",
+            severity: "error",
+          },
+          {
+            code: "servicenow/no-async-iterators",
+            filename: "/examples/other.server.js",
+            severity: "error",
+          },
+        ],
+      },
+      parseError: null,
+      expectations: [{ rule: "servicenow/no-async-iterators", file: "async-iter.server.js" }],
+    });
+    assert.equal(proof.ok, false);
+    assert.ok(
+      proof.reasons.some((reason) => /unexpected servicenow\/no-async-iterators/.test(reason)),
+    );
+  });
+
+  it("rejects a zero minCount", () => {
+    const proof = classifyOxlintProof({
+      tree: "invalid",
+      status: 1,
+      report: { diagnostics: [] },
+      parseError: null,
+      expectations: [{ rule: "servicenow/require-fluent-id", minCount: 0 }],
+    });
+    assert.equal(proof.ok, false);
+    assert.ok(proof.reasons.some((reason) => /invalid minCount/.test(reason)));
+  });
+
+  it("keeps duplicate plugin rule ids in integration summaries", () => {
+    assert.deepEqual(
+      pluginRulesFor({
+        diagnostics: [
+          { message: "a", code: "servicenow/no-promise", filename: "one.js" },
+          { message: "b", code: "servicenow/no-promise", filename: "one.js" },
+        ],
+      }),
+      ["servicenow/no-promise", "servicenow/no-promise"],
+    );
+    assert.deepEqual(
+      pluginRuleIds({
+        diagnostics: [
+          { code: "servicenow/no-promise", filename: "one.js" },
+          { code: "servicenow/no-promise", filename: "one.js" },
+        ],
+      }),
+      ["servicenow/no-promise"],
+    );
+  });
+
   it("rejects invalid drives without expectations and unknown tree names", () => {
     const noExpectations = classifyOxlintProof({
       tree: "invalid",
@@ -298,6 +389,28 @@ describe("verify-examples host classification", () => {
       "timed out",
       "oxlint did not emit JSON",
     ]);
+    const withStdout = classifyOxlintProof({
+      tree: "valid",
+      status: 1,
+      report: null,
+      parseError: "oxlint did not emit JSON",
+      host: {
+        argv: ["oxlint"],
+        status: 1,
+        signal: null,
+        stdout: "Cannot find module 'oxc-plugin-servicenow'\n",
+        stderr: "",
+        error: null,
+        timedOut: false,
+        durationMs: 10,
+      },
+      expectations: [],
+    });
+    assert.ok(
+      withStdout.reasons.some((reason) =>
+        /oxlint did not emit JSON: Cannot find module/.test(reason),
+      ),
+    );
   });
 
   it("classifies formatter status and host failures", () => {
@@ -381,7 +494,16 @@ describe("verify-examples host classification", () => {
   });
 });
 
-describe("verify-examples CLI", () => {
+describe("verify-examples CLI", { concurrency: 1 }, () => {
+  after(() => {
+    for (const runId of createdRunIds) {
+      rmSync(path.join(repoRoot, "artifacts", "verify-oxc-plugin-servicenow", runId), {
+        recursive: true,
+        force: true,
+      });
+    }
+  });
+
   it("validates the skill and project manifest", () => {
     const result = runCli(["validate"]);
     assert.equal(result.status, 0, result.stderr);
@@ -390,10 +512,13 @@ describe("verify-examples CLI", () => {
     assert.equal(body.projects.length, 8);
     const projects = loadAndValidateProjects(repoRoot);
     assert.equal(projects.skillDir, ".agents/skills/verify-oxc-plugin-servicenow");
+    const skill = readFileSync(path.join(repoRoot, projects.skillDir, "SKILL.md"), "utf8");
+    assert.match(skill, /doctor --run-id/);
+    assert.doesNotMatch(skill, /To re-check an existing run:[\s\S]*prepare --run-id/);
   });
 
   it("runs the fluent invalid drive and keeps evidence", () => {
-    const runId = `test-fluent-${Date.now()}`;
+    const runId = trackRunId(`test-fluent-${Date.now()}`);
     const result = runCli(["--project", "fluent", "--tree", "invalid", "--run-id", runId]);
     assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
     const runDir = path.join(repoRoot, "artifacts", "verify-oxc-plugin-servicenow", runId);
@@ -414,7 +539,7 @@ describe("verify-examples CLI", () => {
   });
 
   it("fails when dist no longer matches the run fingerprint", () => {
-    const runId = `test-stale-${Date.now()}`;
+    const runId = trackRunId(`test-stale-${Date.now()}`);
     const prepare = runCli(["prepare", "--run-id", runId]);
     assert.equal(prepare.status, 0, `${prepare.stdout}\n${prepare.stderr}`);
     const manifestPath = path.join(
@@ -433,7 +558,7 @@ describe("verify-examples CLI", () => {
   });
 
   it("refuses to reuse an existing run id for prepare", () => {
-    const runId = `test-reuse-${Date.now()}`;
+    const runId = trackRunId(`test-reuse-${Date.now()}`);
     assert.equal(runCli(["prepare", "--run-id", runId]).status, 0);
     const second = runCli(["prepare", "--run-id", runId]);
     assert.notEqual(second.status, 0);
@@ -441,7 +566,7 @@ describe("verify-examples CLI", () => {
   });
 
   it("cleanup refuses a live pid and does not delete evidence", () => {
-    const runId = `test-clean-${Date.now()}`;
+    const runId = trackRunId(`test-clean-${Date.now()}`);
     assert.equal(runCli(["prepare", "--run-id", runId]).status, 0);
     const runDir = path.join(repoRoot, "artifacts", "verify-oxc-plugin-servicenow", runId);
     writeFileSync(path.join(runDir, "live.pid"), `${process.pid}\n`);
@@ -470,5 +595,65 @@ describe("verify-examples CLI", () => {
       { encoding: "utf8", cwd: repoRoot },
     );
     assert.equal(result.status, 0, result.stderr);
+  });
+
+  it("clears doctor success when a later doctor run fails", () => {
+    const runId = trackRunId(`test-doctor-stale-${Date.now()}`);
+    assert.equal(runCli(["prepare", "--run-id", runId]).status, 0);
+    const runDir = path.join(repoRoot, "artifacts", "verify-oxc-plugin-servicenow", runId);
+    const dirt = path.join(repoRoot, "examples", "fluent", "valid", ".review-dirt");
+    writeFileSync(dirt, "x\n");
+    try {
+      const doctor = runCli(["doctor", "--run-id", runId]);
+      assert.notEqual(doctor.status, 0);
+      assert.ok(!existsSync(path.join(runDir, "doctor", "COMPLETED")));
+      const manifest = JSON.parse(readFileSync(path.join(runDir, "manifest.json"), "utf8")) as {
+        doctorCompleted: boolean;
+      };
+      assert.equal(manifest.doctorCompleted, false);
+    } finally {
+      rmSync(dirt, { force: true });
+    }
+  });
+
+  it("lets prepare retry a run id that never wrote a manifest", () => {
+    const runId = trackRunId(`test-prepare-retry-${Date.now()}`);
+    const dirt = path.join(repoRoot, "examples", "fluent", "valid", ".review-dirt");
+    writeFileSync(dirt, "x\n");
+    try {
+      assert.notEqual(runCli(["prepare", "--run-id", runId]).status, 0);
+    } finally {
+      rmSync(dirt, { force: true });
+    }
+    assert.equal(runCli(["prepare", "--run-id", runId]).status, 0);
+  });
+
+  it("cleanup removes a run directory that has no manifest", () => {
+    const runId = trackRunId(`test-cleanup-incomplete-${Date.now()}`);
+    const runDir = path.join(repoRoot, "artifacts", "verify-oxc-plugin-servicenow", runId);
+    mkdirSync(runDir, { recursive: true });
+    writeFileSync(path.join(runDir, "build.execution.json"), "{}\n");
+    const cleanup = runCli(["cleanup", "--run-id", runId]);
+    assert.equal(cleanup.status, 0, cleanup.stderr);
+    const body = JSON.parse(cleanup.stdout) as { removed?: string };
+    assert.ok(body.removed);
+    assert.ok(!existsSync(runDir));
+  });
+
+  it("cleanup does not claim it cleared a missing live.pid", () => {
+    const runId = trackRunId(`test-cleanup-honest-${Date.now()}`);
+    assert.equal(runCli(["prepare", "--run-id", runId]).status, 0);
+    const cleanup = runCli(["cleanup", "--run-id", runId]);
+    assert.equal(cleanup.status, 0, cleanup.stderr);
+    const body = JSON.parse(cleanup.stdout) as { cleared: string | null };
+    assert.equal(body.cleared, null);
+  });
+
+  it("hashes the dist tree and verifier inputs", () => {
+    const distIndex = path.join(repoRoot, "dist", "index.js");
+    if (existsSync(distIndex)) {
+      assert.notEqual(distHash(repoRoot), sha256(readFileSync(distIndex)));
+    }
+    assert.equal(sourceFingerprint(repoRoot).length, 64);
   });
 });

@@ -7,11 +7,11 @@ import {
   readFileSync,
   readdirSync,
   rmSync,
-  statSync,
   writeFileSync,
 } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { parse as parseYaml } from "yaml";
 import {
   classifyOxfmtProof,
   classifyOxlintProof,
@@ -71,7 +71,18 @@ function listFiles(dir, acc = []) {
   if (!existsSync(dir)) return acc;
   for (const name of readdirSync(dir)) {
     const full = path.join(dir, name);
-    if (statSync(full).isDirectory()) listFiles(full, acc);
+    let meta;
+    try {
+      meta = lstatSync(full);
+    } catch (error) {
+      throw new Error(
+        `cannot stat ${full}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+    if (meta.isSymbolicLink()) {
+      throw new Error(`refusing symlink ${full}`);
+    }
+    if (meta.isDirectory()) listFiles(full, acc);
     else acc.push(full);
   }
   return acc;
@@ -139,9 +150,23 @@ export function loadAndValidateProjects(repoRoot = REPO_FROM_SCRIPT) {
     if (seenFeatures.has(spec.feature)) errors.push(`duplicate feature ${spec.feature}`);
     seenFeatures.add(spec.feature);
     const rules = new Set();
+    if (spec.invalidExpected.length === 0) {
+      errors.push(`${name} needs at least one invalidExpected entry`);
+    }
     for (const expectation of spec.invalidExpected) {
-      if (!expectation?.rule?.startsWith("servicenow/")) {
+      if (!expectation || typeof expectation !== "object") {
+        errors.push(`${name} has a malformed expectation`);
+        continue;
+      }
+      if (!expectation.rule?.startsWith("servicenow/")) {
         errors.push(`${name} expected rule must start with servicenow/`);
+      }
+      if (
+        expectation.minCount !== undefined &&
+        (!Number.isInteger(expectation.minCount) || expectation.minCount < 1)
+      ) {
+        errors.push(`${name} minCount must be a positive integer`);
+        continue;
       }
       const key = `${expectation.rule}\0${expectation.file ?? ""}\0${expectation.minCount ?? 1}`;
       if (rules.has(key)) errors.push(`${name} has a duplicate expectation`);
@@ -202,12 +227,21 @@ function hashTree(repoRoot, relDir, suffixes) {
   return hash.digest("hex");
 }
 
+function hashFile(abs) {
+  return sha256(readFileSync(abs));
+}
+
 export function sourceFingerprint(repoRoot) {
   return sha256(
     [
       hashTree(repoRoot, "src", [".ts"]),
-      sha256(readFileSync(path.join(repoRoot, "package.json"))),
-      sha256(readFileSync(PROJECTS_PATH)),
+      hashFile(path.join(repoRoot, "package.json")),
+      hashFile(path.join(repoRoot, "package-lock.json")),
+      hashFile(PROJECTS_PATH),
+      hashFile(path.join(repoRoot, "scripts", "verify-examples.mjs")),
+      hashFile(path.join(repoRoot, "scripts", "lib", "host-verifier.mjs")),
+      hashFile(path.join(repoRoot, "oxfmt.recommended.json")),
+      hashFile(path.join(repoRoot, "tsconfig.json")),
     ].join("\n"),
   );
 }
@@ -215,7 +249,7 @@ export function sourceFingerprint(repoRoot) {
 export function distHash(repoRoot) {
   const distIndex = path.join(repoRoot, "dist", "index.js");
   if (!existsSync(distIndex)) throw new Error("dist/index.js is missing. Run npm run build.");
-  return sha256(readFileSync(distIndex));
+  return hashTree(repoRoot, "dist", [".js", ".mjs", ".cjs", ".json"]);
 }
 
 function gitCommit(repoRoot) {
@@ -319,7 +353,23 @@ function requireFreshFingerprints(repoRoot, manifest) {
     throw new Error("source fingerprint changed. Run prepare again.");
   }
   if (dist !== manifest.distHash) {
-    throw new Error("dist/index.js hash changed. Run prepare again.");
+    throw new Error("dist hash changed. Run prepare again.");
+  }
+}
+
+function requireVersions(repoRoot, manifest) {
+  const recorded = manifest.versions ?? {};
+  const current = {
+    node: process.version,
+    oxlint: installedVersion(repoRoot, "oxlint"),
+    oxfmt: installedVersion(repoRoot, "oxfmt"),
+  };
+  for (const name of ["node", "oxlint", "oxfmt"]) {
+    if (recorded[name] !== current[name]) {
+      throw new Error(
+        `${name} version changed (${recorded[name]} -> ${current[name]}). Run prepare again.`,
+      );
+    }
   }
 }
 
@@ -347,8 +397,15 @@ function requireGitMatch(repoRoot, manifest, noncanonical) {
 
 function requireReadyRun(repoRoot, runDir, manifest, noncanonical) {
   requireDoctor(runDir, manifest);
+  requireVersions(repoRoot, manifest);
   requireFreshFingerprints(repoRoot, manifest);
   return requireGitMatch(repoRoot, manifest, noncanonical);
+}
+
+function markNoncanonical(runDir, manifest, noncanonical) {
+  if (!noncanonical || manifest.noncanonical) return;
+  manifest.noncanonical = true;
+  writeJson(path.join(runDir, "manifest.json"), manifest);
 }
 
 function recordExamplesMutation(repoRoot, before, proof, noncanonical) {
@@ -368,7 +425,7 @@ function persistAttempt(dir, files) {
   writeCompleted(dir);
 }
 
-function persistHostAttempt(dir, argv, host, summary) {
+function persistHostAttempt(dir, argv, host, summary, extras = {}) {
   persistAttempt(dir, {
     "argv.json": jsonBody(argv),
     "stdout.txt": host.stdout,
@@ -382,6 +439,7 @@ function persistHostAttempt(dir, argv, host, summary) {
       argv: host.argv,
     }),
     "summary.json": jsonBody(summary),
+    ...extras,
   });
 }
 
@@ -438,7 +496,8 @@ function doctorChecks(repoRoot, pkg, manifest, projects, doctorDir) {
     }
     const printed = runHostProcess({ bin, args: ["--version"], cwd: repoRoot, timeoutMs: 15_000 });
     const installed = installedVersion(repoRoot, tool);
-    if (printed.status !== 0 || !printed.stdout.includes(installed)) {
+    const token = (printed.stdout.match(/\d+\.\d+\.\d+/) || [])[0];
+    if (printed.status !== 0 || token !== installed) {
       fail(tool, `Expected ${installed}. Got ${printed.stdout.trim() || printed.stderr}`);
     } else {
       pass(tool, printed.stdout.trim());
@@ -473,7 +532,7 @@ function formatDoctorLine(check) {
 }
 
 function createAttemptDir(runDir, label) {
-  const attemptId = `attempt-${randomUUID()}`;
+  const attemptId = `${label}-${randomUUID()}`;
   const dir = containedPath(runDir, path.join(runDir, attemptId));
   mkdirExclusive(dir);
   writeFileSync(path.join(dir, "label.txt"), `${label}\n`);
@@ -485,6 +544,7 @@ function driveLint(repoRoot, projects, project, tree, runDir, manifest, argv, no
   if (!spec) throw new Error(`Unknown project ${project}`);
   if (tree !== "valid" && tree !== "invalid") throw new Error(`Tree must be valid or invalid`);
   const initialExamplesGit = requireReadyRun(repoRoot, runDir, manifest, noncanonical);
+  markNoncanonical(runDir, manifest, noncanonical);
   const { attemptId, dir } = createAttemptDir(runDir, `${project}-${tree}`);
   const host = {
     argv: [],
@@ -532,33 +592,38 @@ function driveLint(repoRoot, projects, project, tree, runDir, manifest, argv, no
     expectations: tree === "invalid" ? spec.invalidExpected : [],
   });
   recordExamplesMutation(repoRoot, initialExamplesGit, proof, noncanonical);
-  persistHostAttempt(dir, argv, host, {
-    project,
-    tree,
-    feature: spec.feature,
-    attemptId,
-    ok: proof.ok,
-    reasons: proof.reasons,
-    pluginRules: proof.pluginRules,
-    expectations: tree === "invalid" ? spec.invalidExpected : [],
-    noncanonical,
-    gitCommit: manifest.gitCommit,
-    distHash: manifest.distHash,
-    invocation: argv,
-  });
-  if (report) {
-    writeFileSync(
-      path.join(dir, "stdout.json"),
-      host.stdout.endsWith("\n") ? host.stdout : `${host.stdout}\n`,
-    );
-  }
-  return { ok: proof.ok, dir, attemptId, proof };
+  persistHostAttempt(
+    dir,
+    argv,
+    host,
+    {
+      project,
+      tree,
+      feature: spec.feature,
+      attemptId,
+      ok: proof.ok,
+      reasons: proof.reasons,
+      pluginRules: proof.pluginRules,
+      expectations: tree === "invalid" ? spec.invalidExpected : [],
+      noncanonical,
+      gitCommit: manifest.gitCommit,
+      distHash: manifest.distHash,
+      invocation: argv,
+    },
+    report
+      ? {
+          "stdout.json": host.stdout.endsWith("\n") ? host.stdout : `${host.stdout}\n`,
+        }
+      : {},
+  );
+  return { ok: proof.ok, dir, attemptId, proof, project, tree };
 }
 
 function driveOxfmt(repoRoot, projects, project, runDir, manifest, argv, noncanonical) {
   if (project !== "all" && !projects.projects[project])
     throw new Error(`Unknown project ${project}`);
   const initialExamplesGit = requireReadyRun(repoRoot, runDir, manifest, noncanonical);
+  markNoncanonical(runDir, manifest, noncanonical);
   const { attemptId, dir } = createAttemptDir(runDir, `${project}-oxfmt`);
   const targets =
     project === "all"
@@ -579,9 +644,11 @@ function driveOxfmt(repoRoot, projects, project, runDir, manifest, argv, noncano
     ok: proof.ok,
     reasons: proof.reasons,
     noncanonical,
+    gitCommit: manifest.gitCommit,
+    distHash: manifest.distHash,
     invocation: argv,
   });
-  return { ok: proof.ok, dir, attemptId, proof };
+  return { ok: proof.ok, dir, attemptId, proof, project, tree: "oxfmt" };
 }
 
 function prepareRun(repoRoot, runId) {
@@ -629,6 +696,9 @@ function prepareRun(repoRoot, runId) {
     return { runDir, manifest };
   } catch (error) {
     clearLivePid(runDir);
+    if (!existsSync(path.join(runDir, "manifest.json"))) {
+      rmSync(runDir, { recursive: true, force: true });
+    }
     throw error;
   }
 }
@@ -636,6 +706,12 @@ function prepareRun(repoRoot, runId) {
 function runDoctor(repoRoot, pkg, projects, runDir, manifest) {
   const doctorDir = path.join(runDir, "doctor");
   mkdirSync(doctorDir, { recursive: true });
+  manifest.doctorCompleted = false;
+  const completed = path.join(doctorDir, "COMPLETED");
+  if (existsSync(completed)) rmSync(completed);
+  if (existsSync(path.join(runDir, "manifest.json"))) {
+    writeJson(path.join(runDir, "manifest.json"), manifest);
+  }
   const checks = doctorChecks(repoRoot, pkg, manifest, projects, doctorDir);
   writeFileSync(path.join(doctorDir, "doctor.txt"), `${checks.map(formatDoctorLine).join("\n")}\n`);
   writeJson(path.join(doctorDir, "doctor.json"), checks);
@@ -655,7 +731,8 @@ function usage() {
   npm run verify:examples -- doctor --run-id <id>
   npm run verify:examples -- --project <name> --tree <valid|invalid|oxfmt> [--run-id <id>]
   npm run verify:examples -- validate
-  npm run verify:examples -- cleanup --run-id <id>`);
+  npm run verify:examples -- cleanup --run-id <id>
+  --noncanonical skips the examples/ cleanliness gates and stamps the run manifest`);
 }
 
 function parseArgs(argv) {
@@ -706,11 +783,24 @@ export function main(argv) {
     const projects = loadAndValidateProjects(root);
     const skillPath = path.join(root, projects.skillDir, "SKILL.md");
     const markdown = readFileSync(skillPath, "utf8");
-    if (!/^name:\s*verify-oxc-plugin-servicenow\s*$/m.test(markdown)) {
+    const fence = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(markdown);
+    if (!fence) throw new Error("SKILL.md is missing YAML frontmatter");
+    const data = parseYaml(fence[1]);
+    if (!data || typeof data !== "object") throw new Error("SKILL.md frontmatter is not a mapping");
+    if (data.name !== "verify-oxc-plugin-servicenow") {
       throw new Error("SKILL.md is missing name verify-oxc-plugin-servicenow");
     }
-    if (!/^description:\s+\S/m.test(markdown)) {
+    if (path.basename(path.dirname(skillPath)) !== data.name) {
+      throw new Error("SKILL.md name must match the skill directory");
+    }
+    if (typeof data.description !== "string" || data.description.trim() === "") {
       throw new Error("SKILL.md is missing description");
+    }
+    if (data.description.length > 1024) {
+      throw new Error("SKILL.md description exceeds 1024 characters");
+    }
+    if (typeof data.compatibility === "string" && data.compatibility.length > 500) {
+      throw new Error("SKILL.md compatibility exceeds 500 characters");
     }
     console.log(JSON.stringify({ ok: true, projects: projects.names }, null, 2));
     return 0;
@@ -718,6 +808,16 @@ export function main(argv) {
   const projects = loadAndValidateProjects(root);
   if (options.command === "cleanup") {
     const runDir = runDirFor(root, parseRunId(options.runId));
+    const manifestPath = path.join(runDir, "manifest.json");
+    if (!existsSync(runDir)) {
+      console.log(JSON.stringify({ ok: true, cleared: null, evidenceKept: null }, null, 2));
+      return 0;
+    }
+    if (!existsSync(manifestPath)) {
+      rmSync(runDir, { recursive: true, force: true });
+      console.log(JSON.stringify({ ok: true, removed: runDir }, null, 2));
+      return 0;
+    }
     const pidFile = path.join(runDir, "live.pid");
     if (existsSync(pidFile)) {
       const pid = Number(readFileSync(pidFile, "utf8").trim());
@@ -725,8 +825,10 @@ export function main(argv) {
         throw new Error(`run ${options.runId} has a live process ${pid}`);
       }
       rmSync(pidFile);
+      console.log(JSON.stringify({ ok: true, cleared: pidFile, evidenceKept: runDir }, null, 2));
+      return 0;
     }
-    console.log(JSON.stringify({ ok: true, cleared: pidFile, evidenceKept: runDir }, null, 2));
+    console.log(JSON.stringify({ ok: true, cleared: null, evidenceKept: runDir }, null, 2));
     return 0;
   }
 
@@ -749,17 +851,18 @@ export function main(argv) {
         results.push(
           driveLint(root, projects, name, "invalid", runDir, manifest, argv, options.noncanonical),
         );
-        results.push(
-          driveOxfmt(root, projects, name, runDir, manifest, argv, options.noncanonical),
-        );
       }
       results.push(driveOxfmt(root, projects, "all", runDir, manifest, argv, options.noncanonical));
       const ok = results.every((result) => result.ok);
       writeJson(path.join(runDir, "run-summary.json"), {
         runId,
         ok,
+        noncanonical: Boolean(manifest.noncanonical || options.noncanonical),
         attempts: results.map((result) => ({
-          dir: result.dir,
+          project: result.project,
+          tree: result.tree,
+          attemptId: result.attemptId,
+          dir: path.relative(runDir, result.dir).split(path.sep).join("/"),
           ok: result.ok,
           reasons: result.proof.reasons,
         })),

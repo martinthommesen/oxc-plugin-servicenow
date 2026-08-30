@@ -24,7 +24,7 @@ Preconditions:
 - **Valid tree.** Run `npm run verify:examples -- --project classic-compatibility --tree valid --run-id <id>`. Exit 0. `pluginRules` is `[]`.
 - **Promise.** Run `npm run verify:examples -- --project classic-compatibility --tree invalid --run-id <id>`. Exit 0. `pluginRules` is `["servicenow/no-promise"]`.
 - **Format check.** Run `npm run verify:examples -- --project classic-compatibility --tree oxfmt --run-id <id>`. Exit 0. `summary.json` has `"ok": true`.
-- **Proof.** Read the invalid attempt `summary.json` and `stdout.json`. Run `git status -- examples/classic-compatibility` and require a clean tree.
+- **Proof.** Open `run-summary.json` in the run directory. Use the attempt whose `project` is `classic-compatibility` and `tree` is `invalid`. Read that relative `dir` for `summary.json` and `stdout.json`. Run `git status -- examples/classic-compatibility` and require a clean tree.
 
 ## Gotchas
 

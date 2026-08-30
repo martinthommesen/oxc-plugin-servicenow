@@ -2,9 +2,8 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  isHostFaultCode,
+  isHostFaultDiagnostic,
   parseOxlintStdout,
-  pluginRuleIds,
   runHostProcess,
   unwrapServicenowRuleId,
 } from "../../scripts/lib/host-verifier.mjs";
@@ -50,6 +49,7 @@ export function runOxlintProcess(configPath: string, targets: string[]): OxlintP
     args: ["--format", "json", "-c", configPath, ...targets],
     cwd: repoRoot,
   });
+  if (result.timedOut) throw new Error(`oxlint timed out: ${result.error?.message ?? "ETIMEDOUT"}`);
   if (result.error) throw new Error(result.error.message);
   if (result.signal) throw new Error(`oxlint terminated by ${result.signal}`);
   if (result.status !== 0 && result.status !== 1) {
@@ -61,7 +61,7 @@ export function runOxlintProcess(configPath: string, targets: string[]): OxlintP
       `oxlint emitted malformed or truncated JSON:\n${result.stdout}\n${result.stderr}`,
     );
   }
-  const hostFailure = report.diagnostics.find((diagnostic) => isHostFaultCode(diagnostic.code));
+  const hostFailure = report.diagnostics.find((diagnostic) => isHostFaultDiagnostic(diagnostic));
   if (hostFailure) {
     throw new Error(`oxlint host diagnostic: ${hostFailure.code}: ${hostFailure.message}`);
   }
@@ -86,5 +86,10 @@ export function pluginRuleId(code: string): string | undefined {
 }
 
 export function pluginRulesFor(report: OxlintReport, filenamePart?: string): string[] {
-  return pluginRuleIds(report, filenamePart);
+  return (report.diagnostics ?? [])
+    .filter((diagnostic) =>
+      filenamePart ? String(diagnostic.filename ?? "").includes(filenamePart) : true,
+    )
+    .map((diagnostic) => unwrapServicenowRuleId(diagnostic.code))
+    .filter((id): id is string => id !== undefined);
 }

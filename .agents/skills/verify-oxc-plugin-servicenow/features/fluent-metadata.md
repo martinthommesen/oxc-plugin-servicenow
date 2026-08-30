@@ -24,7 +24,7 @@ Preconditions:
 - **Valid tree.** Lint the clean Fluent files. Run `npm run verify:examples -- --project fluent --tree valid --run-id <id>`. Exit 0. `summary.json` has `"pluginRules": []` and `"ok": true`.
 - **Missing $id.** Lint the invalid Fluent file. Run `npm run verify:examples -- --project fluent --tree invalid --run-id <id>`. Exit 0. `pluginRules` is `["servicenow/require-fluent-id"]`. `stdout.json` filename contains `missing-id.now.ts`.
 - **Format check.** Check Fluent valid formatting. Run `npm run verify:examples -- --project fluent --tree oxfmt --run-id <id>`. Exit 0. `summary.json` has `"ok": true`.
-- **Proof.** Read `artifacts/verify-oxc-plugin-servicenow/$VERIFY_RUN_ID/fluent-invalid/summary.json` and `stdout.json`. Keep both. Run `git status -- examples/fluent` and require a clean tree.
+- **Proof.** Open `run-summary.json` in the run directory. Use the attempt whose `project` is `fluent` and `tree` is `invalid`. Read that relative `dir` for `summary.json` and `stdout.json`. Run `git status -- examples/fluent` and require a clean tree.
 
 ## Gotchas
 
