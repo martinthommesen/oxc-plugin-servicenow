@@ -1,6 +1,12 @@
-import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  isHostFaultCode,
+  parseOxlintStdout,
+  pluginRuleIds,
+  runHostProcess,
+  unwrapServicenowRuleId,
+} from "../../scripts/lib/host-verifier.mjs";
 
 export const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
 export const oxlintBin = path.join(repoRoot, "node_modules", ".bin", "oxlint");
@@ -30,40 +36,35 @@ export type OxlintProcessResult = {
 };
 
 export function runOxlintProcess(configPath: string, targets: string[]): OxlintProcessResult {
-  const result = spawnSync(oxlintBin, ["--format", "json", "-c", configPath, ...targets], {
-    encoding: "utf8",
+  const result = runHostProcess({
+    bin: oxlintBin,
+    args: ["--format", "json", "-c", configPath, ...targets],
     cwd: repoRoot,
   });
-  if (result.error) throw result.error;
+  if (result.error) throw new Error(result.error.message);
   if (result.signal) throw new Error(`oxlint terminated by ${result.signal}`);
   if (result.status !== 0 && result.status !== 1) {
     throw new Error(`oxlint exited ${result.status}: ${result.stderr || result.stdout}`);
   }
-  let report: OxlintReport;
-  try {
-    report = JSON.parse(result.stdout) as OxlintReport;
-  } catch {
+  const { report, parseError } = parseOxlintStdout(result.stdout);
+  if (parseError || !report) {
     throw new Error(
       `oxlint emitted malformed or truncated JSON:\n${result.stdout}\n${result.stderr}`,
     );
   }
-  if (!report || !Array.isArray(report.diagnostics)) {
-    throw new Error("oxlint JSON has no diagnostics array");
-  }
-  const hostFailure = report.diagnostics.find((diagnostic) =>
-    /parse|parser|configuration|plugin-load/i.test(diagnostic.code),
-  );
-  if (hostFailure)
+  const hostFailure = report.diagnostics.find((diagnostic) => isHostFaultCode(diagnostic.code));
+  if (hostFailure) {
     throw new Error(`oxlint host diagnostic: ${hostFailure.code}: ${hostFailure.message}`);
+  }
   if (result.status === 1 && report.diagnostics.length === 0) {
     throw new Error("oxlint exited 1 without diagnostics");
   }
   return {
-    status: result.status,
+    status: result.status === 0 ? 0 : 1,
     signal: null,
     stdout: result.stdout,
     stderr: result.stderr,
-    report,
+    report: report as OxlintReport,
   };
 }
 
@@ -72,15 +73,9 @@ export function runOxlint(configPath: string, targets: string[]): OxlintReport {
 }
 
 export function pluginRuleId(code: string): string | undefined {
-  const wrapped = /^servicenow\((.+)\)$/.exec(code);
-  if (wrapped) return `servicenow/${wrapped[1]}`;
-  if (code.startsWith("servicenow/")) return code;
-  return undefined;
+  return unwrapServicenowRuleId(code);
 }
 
 export function pluginRulesFor(report: OxlintReport, filenamePart?: string): string[] {
-  return report.diagnostics
-    .filter((diagnostic) => (filenamePart ? diagnostic.filename.includes(filenamePart) : true))
-    .map((diagnostic) => pluginRuleId(diagnostic.code))
-    .filter((id): id is string => id !== undefined);
+  return pluginRuleIds(report, filenamePart);
 }

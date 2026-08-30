@@ -5,27 +5,34 @@ The shipped formatter preset checks Fluent and classic example files without rew
 ## Sub-features
 
 - `oxfmt-one-project` runs `--check` on one example `valid` tree.
-- `oxfmt-all-valid` runs `--check` on every example `valid` tree listed in `projects.json`.
+- `oxfmt-all-valid` runs `--check` on every example `valid` tree listed in `scripts/verify-projects.json`.
 - `oxfmt-readonly` leaves `examples/` unchanged.
 
 ## How to get to it (user POV)
 
-- Copy `oxfmt.recommended.json` from the package to `.oxfmtrc.json`.
-- Import `recommendedOxfmtConfig` from `oxc-plugin-servicenow/oxfmt` in `oxfmt.config.ts`.
-- Run `npx oxfmt -c oxfmt.config.ts --check valid` inside an example project after the package is installed.
+JSON path:
 
-## Driving it with verify.mjs
+1. Copy `oxfmt.recommended.json` from the package to `.oxfmtrc.json`.
+2. Run `npx oxfmt -c .oxfmtrc.json --check valid`.
+
+TypeScript path:
+
+1. Create `oxfmt.config.ts` that exports `recommendedOxfmtConfig` from `oxc-plugin-servicenow/oxfmt`.
+2. Run `npx oxfmt -c oxfmt.config.ts --check valid`.
+
+Do not mix those two setups in one command. This checkout proves the JSON path with `oxfmt.recommended.json`.
+
+## Driving it with verify-examples
 
 Preconditions:
 
-- Doctor exits 0 in this session.
-- `VERIFY_RUN_ID` is set.
+- `npm run verify:examples -- prepare --run-id <id>` exited 0.
 - `examples/` is unmodified.
 
-- **One project.** Check Fluent valid files. Run `node .cursor/skills/verify-oxc-plugin-servicenow/scripts/verify.mjs drive fluent oxfmt`. Exit 0. `summary.json` has `"ok": true`.
-- **All valid trees.** Check every mapped valid tree. Run `node .cursor/skills/verify-oxc-plugin-servicenow/scripts/verify.mjs drive all oxfmt`. Exit 0. `summary.json` has `"ok": true`.
+- **One project.** Check Fluent valid files. Run `npm run verify:examples -- --project fluent --tree oxfmt --run-id <id>`. Exit 0. `summary.json` has `"ok": true`.
+- **All valid trees.** Check every mapped valid tree. Run `npm run verify:examples -- --project all --tree oxfmt --run-id <id>`. Exit 0. `summary.json` has `"ok": true`.
 - **No writes.** Run `git status -- examples`. The tree stays clean.
-- **Proof.** Read `artifacts/verify-oxc-plugin-servicenow/$VERIFY_RUN_ID/all-oxfmt/stdout.txt` and `summary.json`. Keep both.
+- **Proof.** Read the attempt `stdout.txt` and `summary.json`. Keep both.
 
 ## Gotchas
 

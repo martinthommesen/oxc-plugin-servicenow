@@ -7,16 +7,13 @@ import { classicEs5Rules } from "../../src/configs/maps.js";
 import { pluginRulesFor, repoRoot, runOxlint } from "./helpers.js";
 
 const examplesDir = path.join(repoRoot, "examples");
-const PROJECTS = [
-  "classic-compatibility",
-  "classic-es5",
-  "es2021",
-  "client",
-  "business-rule",
-  "ui-action",
-  "fluent",
-  "mixed",
-];
+const PROJECTS = Object.keys(
+  (
+    JSON.parse(readFileSync(path.join(repoRoot, "scripts/verify-projects.json"), "utf8")) as {
+      projects: Record<string, unknown>;
+    }
+  ).projects,
+);
 
 function collectSources(dir: string): string[] {
   const out: string[] = [];

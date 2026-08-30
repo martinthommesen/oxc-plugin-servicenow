@@ -14,22 +14,21 @@ Fluent metadata lint loads the plugin with `authoring` set to `fluent` and check
 - Run `npx oxlint -c .oxlintrc.json invalid` and expect the documented Fluent rules.
 - Run `npx oxfmt -c oxfmt.config.ts --check valid` after the package is installed.
 
-## Driving it with verify.mjs
+## Driving it with verify-examples
 
 Preconditions:
 
-- Doctor exits 0 in this session.
-- `VERIFY_RUN_ID` is set.
+- `npm run verify:examples -- prepare --run-id <id>` exited 0.
 - `examples/fluent` is unmodified.
 
-- **Valid tree.** Lint the clean Fluent files. Run `node .cursor/skills/verify-oxc-plugin-servicenow/scripts/verify.mjs drive fluent valid`. Exit 0. `summary.json` has `"pluginRules": []` and `"ok": true`.
-- **Missing $id.** Lint the invalid Fluent file. Run `node .cursor/skills/verify-oxc-plugin-servicenow/scripts/verify.mjs drive fluent invalid`. Exit 0. `pluginRules` is `["servicenow/require-fluent-id"]`. `stdout.json` `diagnostics[0].filename` contains `missing-id.now.ts`.
-- **Format check.** Check Fluent valid formatting. Run `node .cursor/skills/verify-oxc-plugin-servicenow/scripts/verify.mjs drive fluent oxfmt`. Exit 0. `summary.json` has `"ok": true`.
+- **Valid tree.** Lint the clean Fluent files. Run `npm run verify:examples -- --project fluent --tree valid --run-id <id>`. Exit 0. `summary.json` has `"pluginRules": []` and `"ok": true`.
+- **Missing $id.** Lint the invalid Fluent file. Run `npm run verify:examples -- --project fluent --tree invalid --run-id <id>`. Exit 0. `pluginRules` is `["servicenow/require-fluent-id"]`. `stdout.json` filename contains `missing-id.now.ts`.
+- **Format check.** Check Fluent valid formatting. Run `npm run verify:examples -- --project fluent --tree oxfmt --run-id <id>`. Exit 0. `summary.json` has `"ok": true`.
 - **Proof.** Read `artifacts/verify-oxc-plugin-servicenow/$VERIFY_RUN_ID/fluent-invalid/summary.json` and `stdout.json`. Keep both. Run `git status -- examples/fluent` and require a clean tree.
 
 ## Gotchas
 
-- `npx oxlint -c examples/fluent/.oxlintrc.json` fails in this checkout with `Cannot find module 'oxc-plugin-servicenow'`. Use `verify.mjs`.
+- `npx oxlint -c examples/fluent/.oxlintrc.json` fails in this checkout with `Cannot find module 'oxc-plugin-servicenow'`. Use `verify:examples`.
 - `examples/fluent/oxfmt.config.ts` imports `oxc-plugin-servicenow/oxfmt` and fails the same way. Drive oxfmt through `oxfmt.recommended.json`.
 - `Now.ID` and `Now.include` in `valid/widget.now.ts` are ambient. oxlint is not type-aware. Do not expect a missing-declaration diagnostic.
 - A missing `$id` is `require-fluent-id`. Wrong-module imports are `fluent-proper-imports` and belong to other fixtures, not this example.

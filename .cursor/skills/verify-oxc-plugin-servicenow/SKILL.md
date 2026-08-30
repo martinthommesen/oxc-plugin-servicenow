@@ -7,9 +7,9 @@ description: Drives real oxlint and oxfmt against this plugin's example projects
 
 Primary user path is the oxlint CLI with this plugin loaded. Secondary path is oxfmt with `oxfmt.recommended.json`. There is no server and no browser UI.
 
-Do not treat `npm test` or `src/runtime/apply-rules.ts` as proof. Those paths do not load the plugin the way a consumer does.
+`npm test` is the comprehensive local real-host regression gate. It builds the plugin, then runs unit tests and integration tests that load real oxlint and oxfmt. `npm run verify:examples` is the focused per-project evidence CLI. `npm run test:consumer` checks the packed-package install path and needs the network.
 
-Read [features/README.md](features/README.md) before a drive. Use the matching feature file. Expected plugin rule IDs live in [projects.json](projects.json).
+Read [features/README.md](features/README.md) before a drive. Use the matching feature file. Expected diagnostics live in [`scripts/verify-projects.json`](../../../scripts/verify-projects.json).
 
 ## Launch
 
@@ -17,91 +17,73 @@ From the repo root:
 
 ```bash
 npm install
-npm run build
+npm run verify:examples -- --all
 ```
 
-Ready when `dist/index.js` exists and doctor exits 0.
+`--all` builds the plugin, records source and `dist/index.js` hashes, runs doctor, then drives every project. Ready when that command exits 0.
 
 There is no process to keep alive. Each drive starts its own oxlint or oxfmt process.
 
-Teardown is [Cleanup](#cleanup). Launch does not start a daemon.
-
 ## Doctor
 
-Run this first, and again after any failed drive:
+`--all` and `prepare` run doctor. To re-check an existing run:
 
 ```bash
-node .cursor/skills/verify-oxc-plugin-servicenow/scripts/verify.mjs doctor
+npm run verify:examples -- prepare --run-id <id>
 ```
 
-Doctor is read-only except for a temp oxlint config it deletes. It checks Node against `engines.node`, `dist/index.js`, the installed oxlint and oxfmt versions, and a real plugin load on `examples/fluent/valid`.
+Doctor fails when `examples/` is dirty, git fails, `dist` is missing, or the source and dist fingerprints no longer match the run manifest. It also loads the plugin against `examples/fluent/valid` and writes that evidence under `doctor/`.
 
-Refuse to drive when doctor prints `FAIL`. A `WARN` on dirty `examples/` means the proof may mix your edits with the fixture.
+Refuse to treat a drive as canonical when doctor did not write `doctor/COMPLETED`.
 
 ## Drive
 
-Checked-in example configs use `"specifier": "oxc-plugin-servicenow"`. That module name does not resolve in this checkout. Do not run `npx oxlint -c examples/<project>/.oxlintrc.json` and call that a local proof. The script copies the example config, points `jsPlugins[0].specifier` at `dist/index.js`, and runs repo-local `node_modules/.bin/oxlint`.
+Checked-in example configs name `oxc-plugin-servicenow`. That module does not resolve in this checkout. The CLI copies the example config into the attempt directory, finds the `servicenow` plugin by name, and points its specifier at `dist/index.js`.
 
 ```bash
-export VERIFY_RUN_ID=verify-$(date +%Y%m%d-%H%M%S)
-node .cursor/skills/verify-oxc-plugin-servicenow/scripts/verify.mjs drive fluent valid
-node .cursor/skills/verify-oxc-plugin-servicenow/scripts/verify.mjs drive fluent invalid
-node .cursor/skills/verify-oxc-plugin-servicenow/scripts/verify.mjs drive fluent oxfmt
-node .cursor/skills/verify-oxc-plugin-servicenow/scripts/verify.mjs drive all oxfmt
+npm run verify:examples -- --all
+npm run verify:examples -- --project fluent --tree invalid
+npm run verify:examples -- --project fluent --tree oxfmt
+npm run verify:examples -- --project all --tree oxfmt
 ```
 
-Replace `fluent` with a key from `projects.json` `lintProjects`.
+A later source edit or a stale `dist/index.js` fails the run. Rebuild with `prepare` or `--all`.
 
-The script exits 0 only when the observed plugin rule set matches `projects.json`. oxlint exit 1 on an invalid tree is the expected host status. It is not a failed proof.
-
-`summary.json` `pluginRules` already unwraps `servicenow(require-fluent-id)` to `servicenow/require-fluent-id`. Compare those IDs. Do not parse host codes by hand.
-
-Do not pass `--write` to oxfmt. Use `--check` only.
+Do not pass `--write` to oxfmt. The CLI uses `--check` only.
 
 Do not install packages inside `examples/`. Do not edit checked-in `.oxlintrc.json` files.
 
-ESLint host tests and `npm run test:consumer` are out of scope. They need a different recipe and, for the packed consumer, the network.
+ESLint host tests and `npm run test:consumer` stay out of this skill.
 
 ## Evidence
 
-Proof goes to `artifacts/verify-oxc-plugin-servicenow/<VERIFY_RUN_ID>/`. That path is gitignored. Cleanup must not delete it.
+Proof goes to `artifacts/verify-oxc-plugin-servicenow/<run-id>/`. That path is gitignored. Cleanup must not delete it.
 
-Each drive writes `command.txt`, `stdout.json` or `stdout.txt`, `stderr.txt`, and `summary.json`. Doctor writes `doctor/doctor.txt`.
+Each attempt directory holds `argv.json`, `stdout.txt` or `stdout.json`, `stderr.txt`, `effective.oxlintrc.json` when oxlint ran, `execution.json`, `summary.json`, and `COMPLETED`. Failures write the same files.
 
-Proof standards:
-
-- Run oxlint or oxfmt on the example tree the feature file names.
-- Keep the command and the resulting diagnostics, not only the final `ok` flag.
-- Confirm `examples/` is unchanged after the drive (`git status -- examples`).
-- A silent unit-test walker is not proof.
-- `--check` must not rewrite files. Confirm that with `git status`, not the flag name.
+`VERIFY_RUN_ID` must match `^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$`. The CLI rejects parent segments and refuses to reuse a run directory.
 
 ## Cleanup
 
 ```bash
-node .cursor/skills/verify-oxc-plugin-servicenow/scripts/verify.mjs cleanup
+npm run verify:examples -- cleanup --run-id <id>
 ```
 
-This removes leftover `sn-verify-oxlint-*` temp directories. It does not kill processes by name. It does not delete `artifacts/verify-oxc-plugin-servicenow/`.
-
-There is no long-lived instance to stop. If a drive process is still running, kill that pid only.
+This removes only `live.pid` for that run. It refuses when that pid is still alive. It does not scan the operating-system temp directory. It does not delete evidence.
 
 ## Helpers
 
-`scripts/verify.mjs` is executable. Run it with `node` from the repo root.
+The executable is `scripts/verify-examples.mjs`. The shared oxlint and oxfmt process runner is `scripts/lib/host-verifier.mjs`. Integration tests import that runner.
 
 ```bash
-node .cursor/skills/verify-oxc-plugin-servicenow/scripts/verify.mjs doctor
-node .cursor/skills/verify-oxc-plugin-servicenow/scripts/verify.mjs drive <project> <valid|invalid|oxfmt>
-node .cursor/skills/verify-oxc-plugin-servicenow/scripts/verify.mjs cleanup
-node .cursor/skills/verify-oxc-plugin-servicenow/scripts/verify.mjs validate-skill
+npm run verify:examples -- --all
+npm run verify:examples -- validate
+npm run verify:examples -- --project <name> --tree <valid|invalid|oxfmt>
 ```
 
 ## Isolate
 
-Two drives can run at the same time. Each drive creates its own temp config.
-
-Do not point two agents at one shared temp config. Do not reuse a `VERIFY_RUN_ID` that already holds a failed run you still need.
+Two runs need two run ids. Attempt directories are exclusive. Do not share one run id across agents.
 
 This checkout is the only instance that matters. Do not lint a user's ServiceNow instance or any other working tree.
 

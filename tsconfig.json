@@ -19,6 +19,6 @@
     "outDir": "dist",
     "types": ["node"]
   },
-  "include": ["src", "tests"],
+  "include": ["src", "tests", "scripts/lib/host-verifier.d.mts", "scripts/verify-examples.d.mts"],
   "exclude": ["dist", "node_modules", "tests/integration/profiles", "tests/fixtures/presets-1.1.0-source"]
 }

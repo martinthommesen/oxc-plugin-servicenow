@@ -14,17 +14,16 @@ Client lint loads the plugin with `surfaces` set to `client` and `scope` set to 
 - Run `npx oxlint -c .oxlintrc.json invalid` and expect the client API rules.
 - Run `npx oxfmt -c oxfmt.config.ts --check valid` after the package is installed.
 
-## Driving it with verify.mjs
+## Driving it with verify-examples
 
 Preconditions:
 
-- Doctor exits 0 in this session.
-- `VERIFY_RUN_ID` is set.
+- `npm run verify:examples -- prepare --run-id <id>` exited 0.
 - `examples/client` is unmodified.
 
-- **Valid tree.** Lint the clean Catalog Client Script. Run `node .cursor/skills/verify-oxc-plugin-servicenow/scripts/verify.mjs drive client valid`. Exit 0. `pluginRules` is `[]`.
-- **Sync getReference.** Lint the invalid client script. Run `node .cursor/skills/verify-oxc-plugin-servicenow/scripts/verify.mjs drive client invalid`. Exit 0. `pluginRules` is `["servicenow/require-callback-for-getreference"]`. `stdout.json` filename contains `sync.client.js`.
-- **Format check.** Run `node .cursor/skills/verify-oxc-plugin-servicenow/scripts/verify.mjs drive client oxfmt`. Exit 0. `summary.json` has `"ok": true`.
+- **Valid tree.** Lint the clean Catalog Client Script. Run `npm run verify:examples -- --project client --tree valid --run-id <id>`. Exit 0. `pluginRules` is `[]`.
+- **Sync getReference.** Lint the invalid client script. Run `npm run verify:examples -- --project client --tree invalid --run-id <id>`. Exit 0. `pluginRules` is `["servicenow/require-callback-for-getreference"]`. `stdout.json` filename contains `sync.client.js`.
+- **Format check.** Run `npm run verify:examples -- --project client --tree oxfmt --run-id <id>`. Exit 0. `summary.json` has `"ok": true`.
 - **Proof.** Read `artifacts/verify-oxc-plugin-servicenow/$VERIFY_RUN_ID/client-invalid/summary.json` and `stdout.json`. Run `git status -- examples/client` and require a clean tree.
 
 ## Gotchas

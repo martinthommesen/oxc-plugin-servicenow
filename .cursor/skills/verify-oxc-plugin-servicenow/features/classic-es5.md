@@ -14,17 +14,16 @@ Classic ES5 lint loads the plugin with `javascriptMode` set to `es5` and `surfac
 - Run `npx oxlint -c .oxlintrc.json invalid` and expect the ES5 engine bans.
 - Run `npx oxfmt -c oxfmt.config.ts --check valid` after the package is installed.
 
-## Driving it with verify.mjs
+## Driving it with verify-examples
 
 Preconditions:
 
-- Doctor exits 0 in this session.
-- `VERIFY_RUN_ID` is set.
+- `npm run verify:examples -- prepare --run-id <id>` exited 0.
 - `examples/classic-es5` is unmodified.
 
-- **Valid tree.** Lint the clean ES5 server script. Run `node .cursor/skills/verify-oxc-plugin-servicenow/scripts/verify.mjs drive classic-es5 valid`. Exit 0. `pluginRules` is `[]`.
-- **Unsupported syntax.** Lint the invalid server script. Run `node .cursor/skills/verify-oxc-plugin-servicenow/scripts/verify.mjs drive classic-es5 invalid`. Exit 0. `pluginRules` is `["servicenow/no-unsupported-syntax"]`. `stdout.json` mentions both `?.` and `??` on `optional.server.js`.
-- **Format check.** Run `node .cursor/skills/verify-oxc-plugin-servicenow/scripts/verify.mjs drive classic-es5 oxfmt`. Exit 0. `summary.json` has `"ok": true`.
+- **Valid tree.** Lint the clean ES5 server script. Run `npm run verify:examples -- --project classic-es5 --tree valid --run-id <id>`. Exit 0. `pluginRules` is `[]`.
+- **Unsupported syntax.** Lint the invalid server script. Run `npm run verify:examples -- --project classic-es5 --tree invalid --run-id <id>`. Exit 0. `summary.json` expects two `servicenow/no-unsupported-syntax` hits on `optional.server.js`.
+- **Format check.** Run `npm run verify:examples -- --project classic-es5 --tree oxfmt --run-id <id>`. Exit 0. `summary.json` has `"ok": true`.
 - **Proof.** Read `artifacts/verify-oxc-plugin-servicenow/$VERIFY_RUN_ID/classic-es5-invalid/summary.json` and `stdout.json`. Run `git status -- examples/classic-es5` and require a clean tree.
 
 ## Gotchas

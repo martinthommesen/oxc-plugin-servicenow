@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { repoRoot } from "./helpers.js";
@@ -15,16 +15,13 @@ const fixtures = [
   path.join(repoRoot, "tests/integration/profiles/oxfmt/accesscontroller.js"),
   path.join(repoRoot, "tests/integration/profiles/oxfmt/sys_security_aclanything.js"),
 ];
-const exampleProjects = [
-  "business-rule",
-  "classic-compatibility",
-  "classic-es5",
-  "client",
-  "es2021",
-  "fluent",
-  "mixed",
-  "ui-action",
-];
+const exampleProjects = Object.keys(
+  (
+    JSON.parse(readFileSync(path.join(repoRoot, "scripts/verify-projects.json"), "utf8")) as {
+      projects: Record<string, unknown>;
+    }
+  ).projects,
+);
 
 function sourceFiles(directory: string): string[] {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
