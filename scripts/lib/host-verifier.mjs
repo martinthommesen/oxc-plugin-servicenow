@@ -3,6 +3,16 @@ import { spawnSync } from "node:child_process";
 export const DEFAULT_TIMEOUT_MS = 60_000;
 export const DEFAULT_MAX_BUFFER = 16 * 1024 * 1024;
 
+/**
+ * Executes a host process synchronously and captures its execution result.
+ * @param {object} options - Process execution options.
+ * @param {string} options.bin - The executable to run.
+ * @param {string[]} options.args - Arguments passed to the executable.
+ * @param {string} [options.cwd] - Working directory for the process.
+ * @param {number} [options.timeoutMs] - Maximum execution time in milliseconds.
+ * @param {number} [options.maxBuffer] - Maximum output buffer size.
+ * @returns {object} The command arguments, exit status, signal, standard output and error, normalized error, timeout state, and elapsed time.
+ */
 export function runHostProcess({
   bin,
   args,
@@ -32,6 +42,11 @@ export function runHostProcess({
   };
 }
 
+/**
+ * Parses Oxlint JSON output and verifies that it contains diagnostics.
+ * @param {string} stdout - The Oxlint process output.
+ * @return {{report: object|null, parseError: string|null}} The parsed report and a parse error message when parsing fails or diagnostics are missing.
+ */
 export function parseOxlintStdout(stdout) {
   try {
     const report = JSON.parse(stdout);
@@ -44,6 +59,11 @@ export function parseOxlintStdout(stdout) {
   }
 }
 
+/**
+ * Converts a wrapped ServiceNow rule identifier to slash notation.
+ * @param {string} code - The rule identifier to normalize.
+ * @return {string|undefined} The normalized ServiceNow rule identifier, or `undefined` for unsupported values.
+ */
 export function unwrapServicenowRuleId(code) {
   if (typeof code !== "string") return undefined;
   const wrapped = /^servicenow\((.+)\)$/.exec(code);
@@ -54,16 +74,32 @@ export function unwrapServicenowRuleId(code) {
 
 export const HOST_FAULT_CODES = new Set(["parser", "plugin-load"]);
 
+/**
+ * Determines whether a code identifies a host fault.
+ * @param {*} code - The code to check.
+ * @return {boolean} `true` if the code identifies a host fault, `false` otherwise.
+ */
 export function isHostFaultCode(code) {
   return typeof code === "string" && HOST_FAULT_CODES.has(code);
 }
 
+/**
+ * Determines whether a diagnostic represents an error-level severity.
+ * @param {object} diagnostic - The diagnostic to inspect.
+ * @returns {boolean} `true` if the severity is `error` or `fatal`, `false` otherwise.
+ */
 export function isErrorSeverity(diagnostic) {
   if (typeof diagnostic?.severity !== "string") return false;
   const severity = diagnostic.severity.toLowerCase();
   return severity === "error" || severity === "fatal";
 }
 
+/**
+ * Extract unique ServiceNow rule identifiers from diagnostic entries.
+ * @param {Object} report - The diagnostic report.
+ * @param {string} [filenamePart] - Optional filename substring used to filter diagnostics.
+ * @returns {string[]} Sorted, unique ServiceNow rule identifiers.
+ */
 export function pluginRuleIds(report, filenamePart) {
   return [
     ...new Set(
@@ -77,6 +113,16 @@ export function pluginRuleIds(report, filenamePart) {
   ].sort();
 }
 
+/**
+ * Classifies Git execution as an error, dirty result, or clean result.
+ * @param {Object} result - Git execution result and captured output.
+ * @param {number|null} result.status - Process exit status.
+ * @param {*} result.stdout - Standard output from Git.
+ * @param {*} result.stderr - Standard error from Git.
+ * @param {Error|null} result.error - Process execution error, if any.
+ * @param {string|null} result.signal - Signal that terminated the process, if any.
+ * @returns {{kind: string, detail: string}} The classification and associated detail.
+ */
 export function interpretGitStatus({ status, stdout, stderr, error, signal }) {
   if (error || signal || status !== 0) {
     return {
@@ -91,6 +137,17 @@ export function interpretGitStatus({ status, stdout, stderr, error, signal }) {
   return { kind: "clean", detail: "" };
 }
 
+/**
+ * Classifies Oxlint verification results against the expected tree and diagnostics.
+ * @param {Object} options - Verification inputs.
+ * @param {"valid"|"invalid"} options.tree - Expected tree classification.
+ * @param {number|null} options.status - Oxlint exit status.
+ * @param {Object|null} options.report - Parsed Oxlint diagnostic report.
+ * @param {string|null} options.parseError - Error produced while parsing Oxlint output.
+ * @param {Object} options.host - Host process execution details.
+ * @param {Array<Object>} options.expectations - Expected plugin rules for an invalid tree.
+ * @returns {Object} The verification result, including success status, failure reasons, detected plugin rules, host faults, and unexpected errors.
+ */
 export function classifyOxlintProof({ tree, status, report, parseError, host, expectations }) {
   const reasons = [];
   if (host?.error) reasons.push(`spawn: ${host.error.message}`);
@@ -159,6 +216,11 @@ export function classifyOxlintProof({ tree, status, report, parseError, host, ex
   return { ok: reasons.length === 0, reasons, pluginRules, hostFaults, unexpectedErrors };
 }
 
+/**
+ * Classifies an Oxfmt execution result as successful or failed.
+ * @param {Object} host - The captured Oxfmt execution result.
+ * @returns {{ok: boolean, reasons: string[]}} The success status and any failure reasons.
+ */
 export function classifyOxfmtProof(host) {
   const reasons = [];
   if (host.error) reasons.push(`spawn: ${host.error.message}`);
