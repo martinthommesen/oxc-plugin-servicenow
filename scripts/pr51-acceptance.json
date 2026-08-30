@@ -1153,7 +1153,7 @@
       "proofs": [
         {
           "file": "tests/analysis/foundation.test.ts",
-          "fullName": "path identity and completion > analyzes one finally body across normal and return paths"
+          "fullName": "path identity and completion > propagates a throw out of a try statement without a catch handler"
         }
       ],
       "caseIds": [],

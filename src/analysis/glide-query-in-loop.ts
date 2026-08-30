@@ -30,7 +30,7 @@ interface CursorVisitState {
   readonly findings: QueryInLoopFinding[];
   readonly invocations: StableInvocationQuery;
   readonly activeFunctions: Set<ImmediateFunction>;
-  readonly visitedFunctionModes: WeakMap<ImmediateFunction, number>;
+  readonly visitedNodeModes: WeakMap<ESTree.Node, number>;
 }
 
 const OUTSIDE_CURSOR = 1;
@@ -119,7 +119,7 @@ export function findQueriesInCursorLoops(
     findings,
     invocations: analyzeStableInvocations(program, analysis.bindings, authority.bindingWrites),
     activeFunctions: new Set(),
-    visitedFunctionModes: new WeakMap(),
+    visitedNodeModes: new WeakMap(),
   };
   visit(program, 0, state);
   const unique = new Set<ESTree.Node>();
@@ -136,10 +136,6 @@ function visitFunctionBody(
   state: CursorVisitState,
 ): void {
   if (state.activeFunctions.has(fn)) return;
-  const mode = cursorDepth > 0 ? INSIDE_CURSOR : OUTSIDE_CURSOR;
-  const visited = state.visitedFunctionModes.get(fn) ?? 0;
-  if ((visited & mode) !== 0) return;
-  state.visitedFunctionModes.set(fn, visited | mode);
   state.activeFunctions.add(fn);
   try {
     visit(fn.body, cursorDepth, state);
@@ -167,6 +163,14 @@ function visitMissingParameterDefaults(
 
 function visit(node: unknown, cursorDepth: number, state: CursorVisitState): void {
   if (!isNode(node)) return;
+  // Findings depend on cursorDepth only through `> 0`, so each node needs at
+  // most one visit inside and one outside a cursor. Without this memo the
+  // do/while and for branches re-visit each loop body, which composes
+  // exponentially for nested loops (FINDINGS.md PER-002).
+  const mode = cursorDepth > 0 ? INSIDE_CURSOR : OUTSIDE_CURSOR;
+  const seen = state.visitedNodeModes.get(node) ?? 0;
+  if ((seen & mode) !== 0) return;
+  state.visitedNodeModes.set(node, seen | mode);
   if (node.type === "CallExpression") {
     const call = node as ESTree.CallExpression;
     const invoked = state.invocations.resolve(call.callee);

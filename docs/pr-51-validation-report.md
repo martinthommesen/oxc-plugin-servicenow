@@ -4,19 +4,19 @@ This generated report describes the latest local acceptance capture. It does not
 
 ## Evidence identity
 
-- Tested identity: `7ba254de116145e80a8afaf238e07a36ec3eacf0`
-- HEAD: `7ba254de116145e80a8afaf238e07a36ec3eacf0`
+- Tested identity: `421c6f1d6164b27f2b7294c2d6d92657420ad042`
+- HEAD: `421c6f1d6164b27f2b7294c2d6d92657420ad042`
 - Worktree: clean
 - Diff digest: not applicable
-- Node: `v24.19.0`
-- npm: `11.17.0`
-- Host: `darwin arm64 27.0.0`
-- Captured: `2026-08-21T13:24:22.689Z`
+- Node: `v22.22.2`
+- npm: `10.9.7`
+- Host: `linux x64 6.18.44-fc-v22`
+- Captured: `2026-08-30T17:30:36.737Z`
 
 ## Result
 
-- Tests inventoried: 794
-- Passed: 794
+- Tests inventoried: 1454
+- Passed: 1454
 - Failed: 0
 - Verified criteria: 450
 - Pending criteria: 53

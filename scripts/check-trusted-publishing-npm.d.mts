@@ -9,3 +9,4 @@ export function assertTrustedPublishingNpm(
   below?: string,
 ): string;
 export function main(argv?: string[]): Record<string, unknown>;
+export function readExecutableNpmVersion(command?: string): string;

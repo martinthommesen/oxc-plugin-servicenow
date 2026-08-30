@@ -9,13 +9,18 @@ import { ACL_FILE_GLOBS } from "../context/filename.js";
  *
  * @see https://oxc.rs/docs/guide/usage/formatter/config.html
  */
-export interface OxfmtOverride {
+// Type aliases, not interfaces, on purpose: oxfmt's own OxfmtOverrideConfig
+// carries an open index signature, and only a type alias gets the implicit
+// index signature that keeps the preset assignable to it. An interface would
+// need an explicit `[key: string]: unknown`, which silently accepts typos
+// (FINDINGS.md MNT-007).
+export type OxfmtOverride = {
   files: string[];
   excludeFiles?: string[];
   options: Record<string, unknown>;
-}
+};
 
-export interface OxfmtConfig {
+export type OxfmtConfig = {
   $schema?: string;
   printWidth: number;
   tabWidth: number;
@@ -25,7 +30,7 @@ export interface OxfmtConfig {
   trailingComma: "all" | "es5" | "none";
   ignorePatterns: string[];
   overrides: OxfmtOverride[];
-}
+};
 
 /**
  * Defaults tuned for mixed Fluent + classic ServiceNow repos:

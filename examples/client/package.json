@@ -3,7 +3,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "lint": "oxlint -c .oxlintrc.json valid invalid",
+    "lint": "oxlint -c .oxlintrc.json valid",
+    "lint:invalid": "oxlint -c .oxlintrc.json invalid",
     "format": "oxfmt -c oxfmt.config.ts --check valid"
+  },
+  "devDependencies": {
+    "oxc-plugin-servicenow": "^2.0.0",
+    "oxfmt": "^0.64.0",
+    "oxlint": "^1.79.0"
   }
 }

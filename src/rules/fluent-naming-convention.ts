@@ -10,7 +10,7 @@ import {
   schemaFromDescriptor,
 } from "../options/index.js";
 import type { FluentNamingOptions } from "../options/index.js";
-import { isFluentContext } from "../context/index.js";
+import { isFluentContext, isFluentFile } from "../context/index.js";
 import { beginRuleFile } from "./helpers.js";
 
 export type { FluentNamingOptions };
@@ -65,6 +65,12 @@ export const fluentNamingConvention = defineRule({
         scopePrefix = script.settings.scopePrefix;
       },
       Program() {
+        // The filename convention is defined for Fluent filenames only.
+        // Explicit `authoring: "fluent"` settings can route other filenames
+        // into this rule, and checking their stem with the extension attached
+        // reports a name the convention does not describe
+        // (FINDINGS.md COR-014).
+        if (!isFluentFile(context.filename)) return;
         const file = basename(context.filename);
         const stem = file.replace(/\.now\.tsx?$/i, "");
         if (stem !== "*" && !matches(fileStyle, stem)) {

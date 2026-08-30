@@ -1,4 +1,5 @@
 import { SUPPORTED_SERVICENOW_RELEASES, type ServiceNowRelease } from "../settings/releases.js";
+import { immutableSet } from "../utils/immutable.js";
 import type { ApplicationScope } from "../types.js";
 
 /**
@@ -303,45 +304,11 @@ export const GLIDE_KNOWN_METHODS = new Set(
   ]),
 );
 
-class ReadonlySetView<T> implements ReadonlySet<T> {
-  readonly #values: Set<T>;
-
-  constructor(values: Iterable<T>) {
-    this.#values = new Set(values);
-    Object.freeze(this);
-  }
-
-  get size(): number {
-    return this.#values.size;
-  }
-  has(value: T): boolean {
-    return this.#values.has(value);
-  }
-  forEach(callbackfn: (value: T, value2: T, set: ReadonlySet<T>) => void, thisArg?: unknown): void {
-    this.#values.forEach((value) => callbackfn.call(thisArg, value, value, this));
-  }
-  entries(): SetIterator<[T, T]> {
-    return this.#values.entries();
-  }
-  keys(): SetIterator<T> {
-    return this.#values.keys();
-  }
-  values(): SetIterator<T> {
-    return this.#values.values();
-  }
-  [Symbol.iterator](): SetIterator<T> {
-    return this.#values[Symbol.iterator]();
-  }
-  get [Symbol.toStringTag](): string {
-    return "Set";
-  }
-}
-
 function readonlyNames(
   entries: readonly GlideMethodCapability[],
   role?: GlideMethodRole,
 ): ReadonlySet<string> {
-  return new ReadonlySetView(
+  return immutableSet(
     entries
       .filter((entry) => role === undefined || entry.roles.includes(role))
       .map((entry) => entry.name),
@@ -411,7 +378,7 @@ export function resolveGlideCapabilities(input: {
     releases,
     methods,
     filters,
-    modifiers: new ReadonlySetView([...filters, ...shape]),
+    modifiers: immutableSet([...filters, ...shape]),
     systemBypass: readonlyNames(methods, "acl-bypass"),
     executors: readonlyNames(methods, "executor"),
     possibleExecutors: readonlyNames(possibleMethods, "executor"),
@@ -422,7 +389,7 @@ export function resolveGlideCapabilities(input: {
     modeledMethods: readonlyNames(possibleMethods),
     // A documented method in either API scope must not be mistaken for a
     // GlideElement field. Scope misuse belongs to a separate diagnostic.
-    knownMethods: new ReadonlySetView(
+    knownMethods: immutableSet(
       releases.flatMap((release) => [
         ...GLIDE_DOCUMENTED_METHODS[release].scoped,
         ...GLIDE_DOCUMENTED_METHODS[release].global,

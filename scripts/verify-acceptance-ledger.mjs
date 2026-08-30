@@ -343,10 +343,16 @@ function runTests() {
   mkdirSync(artifactsDir, { recursive: true });
   const result = spawnSync(
     process.execPath,
-    // The explicit "tests" root includes the networked packed-consumer test
-    // that the hermetic default run excludes (FINDINGS.md OPS-004): the
+    // Naming the networked packed-consumer test explicitly opts it back in
+    // (FINDINGS.md TST-003): directory arguments stay hermetic, and the
     // acceptance capture is the complete evidence run.
-    [join(root, "scripts/run-tests.mjs"), "--report-json", testReportPath, "tests"],
+    [
+      join(root, "scripts/run-tests.mjs"),
+      "--report-json",
+      testReportPath,
+      "tests",
+      "tests/integration/packed-consumer.test.ts",
+    ],
     {
       cwd: root,
       encoding: "utf8",
@@ -488,7 +494,7 @@ export async function main(argv = process.argv.slice(2)) {
       release: release(),
     },
     commands: [
-      "node scripts/run-tests.mjs --report-json artifacts/pr51-test-results.json",
+      "node scripts/run-tests.mjs --report-json artifacts/pr51-test-results.json tests tests/integration/packed-consumer.test.ts",
       "node scripts/verify-acceptance-ledger.mjs",
     ],
     testResults,

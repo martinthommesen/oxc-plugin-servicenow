@@ -18,3 +18,22 @@ readonlySettings.allowedTables?.push("incident");
 // @ts-expect-error The compatibility view is immutable at the top level too.
 readonlySettings.scope = "global";
 void getSettings;
+
+// Every type reachable through a public signature is nameable from the same
+// entry point (FINDINGS.md API-003).
+import type {
+  AnalysisProvenance,
+  PublicProvenanceKind,
+  QueryState,
+  ScriptSurface,
+  ServiceNowScriptContext,
+} from "../../src/analysis/index.js";
+
+declare const provenance: AnalysisProvenance;
+declare const scriptContext: ServiceNowScriptContext;
+const provenanceKind: PublicProvenanceKind = provenance.kind;
+const queryState: QueryState = provenance.queryState;
+const surfaces: ReadonlySet<ScriptSurface> = scriptContext.surfaces;
+void provenanceKind;
+void queryState;
+void surfaces;

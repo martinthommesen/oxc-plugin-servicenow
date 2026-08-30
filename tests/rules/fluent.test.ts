@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { assertInvalid, assertValid, lint } from "../helpers/rule-tester.js";
+import { assertInvalid, assertValid, assertValidActive, lint } from "../helpers/rule-tester.js";
 
 const NOW = "file.now.ts";
 
@@ -182,6 +182,15 @@ BusinessRule({ $id: SDK.ID["x"], script: (SDK.include("./x.server.js")) });`,
 });
 
 describe("fluent-naming-convention", () => {
+  it("checks the filename convention only for Fluent filenames (FINDINGS.md COR-014)", () => {
+    // Explicit Fluent authoring routes non-Fluent filenames into this rule;
+    // their stems are outside the convention and must not report.
+    assertValidActive(`export const x = 1;`, "fluent-naming-convention", {
+      filename: "app-module.ts",
+      settings: { authoring: "fluent" },
+    });
+  });
+
   it("flags a PascalCase filename", () => {
     assertInvalid(
       `import { BusinessRule } from "@servicenow/sdk/core";\nBusinessRule({ $id: Now.ID["ok-id"] });`,

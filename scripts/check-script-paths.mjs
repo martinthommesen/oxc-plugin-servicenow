@@ -3,7 +3,9 @@
 // required configuration files were left untracked (FINDINGS.md OPS-001).
 // Zero dependencies: the workflow CI job runs this without `npm ci`.
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
 const tracked = new Set(
@@ -23,6 +25,27 @@ for (const command of Object.values(pkg.scripts)) {
       referenced.add(part);
     }
   }
+}
+
+// Workflow-only helpers (publish, verify, benchmark gate) never appear in a
+// package.json script, so an untracked file under scripts/ would pass the
+// reference check and fail only at tag push, after the immutable tag exists.
+// Assert the whole directory is tracked instead of deriving the workflow
+// reference graph (FINDINGS.md OPS-010).
+const scriptsDir = fileURLToPath(new URL(".", import.meta.url));
+const untracked = [];
+for (const entry of readdirSync(scriptsDir, { withFileTypes: true, recursive: true })) {
+  if (!entry.isFile()) continue;
+  const absolute = join(entry.parentPath, entry.name);
+  // git ls-files always prints forward slashes; normalize Windows separators
+  // so tracked files are not reported as untracked on win32 hosts.
+  const relative = absolute.slice(scriptsDir.length - "scripts/".length).replaceAll("\\", "/");
+  if (!tracked.has(relative)) untracked.push(relative);
+}
+if (untracked.length > 0) {
+  console.error("scripts/ contains untracked files:");
+  for (const path of untracked) console.error(`  ${path}`);
+  process.exit(1);
 }
 
 const missing = [...referenced]

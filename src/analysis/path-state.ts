@@ -11,7 +11,7 @@ import type { FileBindings, LexicalBinding, ScopeNode } from "./bindings.js";
 import { resolvePlatformGlobalName } from "./globals.js";
 import { isFunctionLike } from "./bindings.js";
 import { isDefinitelyUndefinedValue, resolveConstValue, staticPropertyName } from "./members.js";
-import type { ProvenanceKind, ProvenanceQuery } from "./provenance.js";
+import { ctorProvenanceKind, type ProvenanceKind, type ProvenanceQuery } from "./provenance.js";
 
 export type BindingId = number;
 export type ObjectId = number;
@@ -44,6 +44,16 @@ export interface PathRefInput<T> {
 type AbruptCompletion = Exclude<InternalCompletion, "normal">;
 
 const DEFAULT_MAX_WORK = 50_000;
+// Snapshot cost grows with the number of live tracked objects, and top-level
+// `var` bindings in classic ServiceNow code stay live to the end of the file,
+// so total work grows faster than linearly with file length. A fixed budget
+// therefore truncated ordinary 300-line scripts while tiny fixtures passed.
+// The default budget scales with program size so an ordinary file is analyzed
+// completely, while `maxWork` remains an explicit override and the ceiling
+// still bounds adversarial input (FINDINGS.md PER-003).
+const WORK_PER_NODE = 128;
+const MAX_DEFAULT_WORK = 5_000_000;
+const programNodeBudgets = new WeakMap<ESTree.Node, number>();
 const MAX_PATH_DEPTH = 128;
 const BUDGET_EXCEEDED = Symbol("path-analysis-budget-exceeded");
 const EMPTY_OBJECT_IDS: ReadonlySet<ObjectId> = new Set();
@@ -437,16 +447,7 @@ function ctorKind(
   if (!callee) return null;
   const name = resolvePlatformGlobalName(callee, analysis.bindings);
   if (!name) return null;
-  const map: Record<string, ProvenanceKind> = {
-    GlideRecord: "GlideRecord",
-    GlideRecordSecure: "GlideRecord",
-    GlideAggregate: "GlideAggregate",
-    GlideAjax: "GlideAjax",
-    GlideDateTime: "GlideDateTime",
-    DataView: "DataView",
-    Set: "Set",
-  };
-  const kind = map[name];
+  const kind = ctorProvenanceKind(name);
   if (!kind || !kinds.includes(kind)) return null;
   if (!analysis.isPlatformCtor(callee, [name])) return null;
   return kind;
@@ -492,6 +493,30 @@ function capturedBindings(fn: ESTree.Node, bindings: FileBindings): BindingId[] 
   return [...found];
 }
 
+function countNodes(program: ESTree.Node): number {
+  let count = 0;
+  const pending: ESTree.Node[] = [program];
+  while (pending.length > 0) {
+    const node = pending.pop()!;
+    count += 1;
+    visitChildren(node, (child) => {
+      if (isNode(child)) pending.push(child);
+    });
+  }
+  return count;
+}
+
+function defaultMaxWork(program: ESTree.Node): number {
+  const cached = programNodeBudgets.get(program);
+  if (cached !== undefined) return cached;
+  const budget = Math.min(
+    MAX_DEFAULT_WORK,
+    Math.max(DEFAULT_MAX_WORK, countNodes(program) * WORK_PER_NODE),
+  );
+  programNodeBudgets.set(program, budget);
+  return budget;
+}
+
 /**
  * Path-sensitive tracker keyed by lexical binding identity and runtime object
  * identity. Abrupt completions do not join into later statements.
@@ -513,7 +538,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
     stopAtAwait = false,
     retainUnboundRecords = true,
     onExit,
-    maxWork = DEFAULT_MAX_WORK,
+    maxWork = defaultMaxWork(program),
     onBudgetExceeded,
   } = options;
   if (!Number.isSafeInteger(maxWork) || maxWork < 1) {
@@ -1271,8 +1296,17 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
           const bodyState = snapshotState(header, cloneData, budget);
           if (node.type === "ForInStatement" || node.type === "ForOfStatement") {
             const left = (node as ESTree.ForInStatement | ESTree.ForOfStatement).left;
-            if (left.type === "VariableDeclaration") visit(left, bodyState, false);
-            else invalidatePattern(bodyState, left);
+            if (left.type === "VariableDeclaration") {
+              visit(left, bodyState, false);
+              // A `var` head declarator has no initializer, so the declarator
+              // visit is a runtime no-op and a previously tracked object
+              // binding would survive into the body. The loop head rebinds
+              // the declared names on every iteration whatever the
+              // declaration kind (FINDINGS.md COR-013).
+              for (const declarator of (left as ESTree.VariableDeclaration).declarations) {
+                invalidatePattern(bodyState, declarator.id);
+              }
+            } else invalidatePattern(bodyState, left);
           }
           const body = isFor
             ? (node as ESTree.ForStatement).body

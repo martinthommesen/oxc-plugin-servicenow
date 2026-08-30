@@ -1,5 +1,5 @@
 import type { ESTree } from "@oxlint/plugins";
-import { getStringValue, nodeStart } from "../utils/ast.js";
+import { getStringValue } from "../utils/ast.js";
 import { classifyStaticArg } from "./static-args.js";
 import { analyzePathBindings, dedupePathFindings, mergeTri } from "./path-state.js";
 import {
@@ -70,7 +70,10 @@ export function findUnfilteredBulkOperations(
   authority: PlatformMethodAuthorityFacts,
 ): UnfilteredBulkFinding[] {
   const findings: UnfilteredBulkFinding[] = [];
-  const reported = new Set<number>();
+  // Keyed on node identity: nodeStart() returns -1 on a host whose nodes
+  // carry no offset shape, which would collapse every finding in the file
+  // onto one key and silently drop all but the first (FINDINGS.md COR-016).
+  const reported = new Set<ESTree.Node>();
   analyzePathBindings<FilterData>({
     program,
     analysis,
@@ -108,9 +111,8 @@ export function findUnfilteredBulkOperations(
         analysis.glide.bulk.has(property) &&
         (rec.data.filtered === false || (rec.data.filtered === "unknown" && !rec.data.uncertain))
       ) {
-        const key = nodeStart(call);
-        if (!reported.has(key)) {
-          reported.add(key);
+        if (!reported.has(call)) {
+          reported.add(call);
           findings.push({ node: call, name: objectName, method: property });
         }
         return;

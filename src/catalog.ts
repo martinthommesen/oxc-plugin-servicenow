@@ -449,6 +449,7 @@ resolve(1);`,
       {
         name: "synchronous Glide",
         filename: "script-include.js",
+        settings: ES5,
         code: `var gr = new GlideRecord("incident");\nif (gr.get(sysId)) {\n  gs.info(gr.number);\n}`,
       },
     ],
@@ -496,6 +497,7 @@ resolve(1);`,
       {
         name: "sync function",
         filename: "script-include.js",
+        settings: ES5,
         code: `function loadIncident(id) {\n  var gr = new GlideRecord("incident");\n  return gr.get(id) ? gr : null;\n}`,
       },
     ],
@@ -582,7 +584,14 @@ convert();`,
         code: `var n = 9007199254740993n;`,
       },
     ],
-    good: [{ name: "number", filename: "script-include.js", code: `var n = 9007199254740991;` }],
+    good: [
+      {
+        name: "number",
+        filename: "script-include.js",
+        settings: ES5,
+        code: `var n = 9007199254740991;`,
+      },
+    ],
   }),
   entry("no-incorrect-array-from-thisarg", noIncorrectArrayFromThisarg, {
     ...metadata.meta(
@@ -1285,6 +1294,7 @@ GlideRecord = LocalRecord;`,
       {
         name: "GlideAjax",
         filename: "incident.client.js",
+        settings: { scope: "scoped" },
         code: `function onChange() {\n  var ga = new GlideAjax("x_acme.UserUtils");\n  ga.addParam("sysparm_name", "getUser");\n  ga.getXMLAnswer(function (answer) {\n    g_form.setValue("caller_id", answer);\n  });\n}`,
       },
     ],
@@ -2025,7 +2035,12 @@ var last = [1, 2].at(-1);`,
       },
     ],
     good: [
-      { name: "index", filename: "script-include.js", code: `var last = list[list.length - 1];` },
+      {
+        name: "index",
+        filename: "script-include.js",
+        settings: ES5,
+        code: `var last = list[list.length - 1];`,
+      },
       {
         name: "guarded polyfill use",
         filename: "portable.server.js",
@@ -3061,7 +3076,12 @@ revocable(target, handler);`,
       },
     ],
     good: [
-      { name: "plain object", filename: "script-include.js", code: `var p = { prop: value };` },
+      {
+        name: "plain object",
+        filename: "script-include.js",
+        settings: ES5,
+        code: `var p = { prop: value };`,
+      },
     ],
   }),
   entry("no-unsupported-syntax", noUnsupportedSyntax, {

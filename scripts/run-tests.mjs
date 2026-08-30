@@ -27,11 +27,18 @@ const searchRoots =
  * Collect `*.test.ts` files without relying on Node 22 glob expansion.
  * Node 20's test runner treats a quoted `**` path as a literal filename.
  */
-async function collectTestFiles(dir, out) {
+async function collectTestFiles(dir, out, named = false) {
   let info;
   try {
     info = await stat(dir);
   } catch {
+    // A path named on the command line that does not resolve must fail the
+    // run: silently skipping it lets a script report green while testing
+    // less than it names (FINDINGS.md TST-003).
+    if (named) {
+      console.error(`Named test path does not exist: ${dir}`);
+      process.exit(1);
+    }
     return;
   }
   if (info.isFile()) {
@@ -51,22 +58,27 @@ async function collectTestFiles(dir, out) {
   }
 }
 
-const files = [];
+const collected = [];
 for (const searchRoot of searchRoots) {
-  await collectTestFiles(searchRoot, files);
+  await collectTestFiles(searchRoot, collected, searchArgs.length > 0);
 }
-files.sort();
+// A file can be collected twice when it is both inside a directory argument
+// and named explicitly to opt back into the networked run.
+const files = [...new Set(collected)].sort();
 
 // The packed-consumer test resolves and installs packages from the live npm
 // registry, so the default suite excludes it to stay hermetic and offline
 // (FINDINGS.md OPS-004). Run it with `npm run test:consumer`; CI and the
 // release workflow run it as their own jobs.
 const NETWORKED_TESTS = [join(root, "tests/integration/packed-consumer.test.ts")];
-if (searchArgs.length === 0) {
-  for (const networked of NETWORKED_TESTS) {
-    const index = files.indexOf(networked);
-    if (index !== -1) files.splice(index, 1);
-  }
+// The exclusion applies to the default suite and to directory arguments
+// alike, so `test:integration` stays offline as documented; only naming the
+// networked file itself opts in (FINDINGS.md TST-003).
+const explicitlyNamed = new Set(searchRoots);
+for (const networked of NETWORKED_TESTS) {
+  if (explicitlyNamed.has(networked)) continue;
+  const index = files.indexOf(networked);
+  if (index !== -1) files.splice(index, 1);
 }
 
 if (files.length === 0) {

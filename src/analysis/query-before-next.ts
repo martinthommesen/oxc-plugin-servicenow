@@ -1,5 +1,4 @@
 import type { ESTree } from "@oxlint/plugins";
-import { nodeStart } from "../utils/ast.js";
 import { analyzePathBindings } from "./path-state.js";
 import {
   hasAuthoritativeGlideRecordMethod,
@@ -33,7 +32,10 @@ export function findMissingQueryBeforeNext(
   authority: PlatformMethodAuthorityFacts,
 ): MissingQueryFinding[] {
   const findings: MissingQueryFinding[] = [];
-  const reported = new Set<number>();
+  // Keyed on node identity: nodeStart() returns -1 on a host whose nodes
+  // carry no offset shape, which would collapse every finding in the file
+  // onto one key and silently drop all but the first (FINDINGS.md COR-016).
+  const reported = new Set<ESTree.Node>();
   analyzePathBindings<QueryData>({
     program,
     analysis,
@@ -54,9 +56,8 @@ export function findMissingQueryBeforeNext(
         rec.data.unopened = false;
       }
       if (analysis.glide.cursorAdvancers.has(property) && rec.data.unopened) {
-        const key = nodeStart(call);
-        if (!reported.has(key)) {
-          reported.add(key);
+        if (!reported.has(call)) {
+          reported.add(call);
           findings.push({ node: call, name: objectName ?? "record", method: property });
         }
       }

@@ -66,6 +66,49 @@ export function assertValid(code: string, rule: RuleName, options: RunOptions = 
   );
 }
 
+/**
+ * Asserts the rule ran over the file and chose not to report. A plain
+ * `assertValid` passes equally when the rule's `before()` gate declined the
+ * file, so it cannot prove negative coverage (FINDINGS.md TST-004). Use this
+ * variant for a valid case whose value is "the rule saw this and stayed
+ * silent", and `assertSkipped` for a deliberate gate skip.
+ */
+export function assertValidActive(code: string, rule: RuleName, options: RunOptions = {}): void {
+  let skipped = false;
+  const messages = lint(code, rule, {
+    ...options,
+    onRuleSkipped: () => {
+      skipped = true;
+    },
+  });
+  assert.equal(
+    skipped,
+    false,
+    `Expected ${rule} to run over the file, but its before() gate declined it.\nSource:\n${code}`,
+  );
+  assert.equal(
+    messages.length,
+    0,
+    `Expected no diagnostics, got:\n${messages.map((m) => `  - ${m.messageId ?? "?"} ${m.message}`).join("\n")}\nSource:\n${code}`,
+  );
+}
+
+/** Asserts the rule's `before()` gate declined the file. */
+export function assertSkipped(code: string, rule: RuleName, options: RunOptions = {}): void {
+  let skipped = false;
+  lint(code, rule, {
+    ...options,
+    onRuleSkipped: () => {
+      skipped = true;
+    },
+  });
+  assert.equal(
+    skipped,
+    true,
+    `Expected ${rule}'s before() gate to decline the file, but the rule ran.\nSource:\n${code}`,
+  );
+}
+
 export function assertInvalid(
   code: string,
   rule: RuleName,

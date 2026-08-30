@@ -8,8 +8,9 @@
   ],
   "settings": {
     "servicenow": {
-      "scopePrefix": "x_acme",
-      "scope": "scoped"
+      "surfaces": "auto",
+      "scope": "scoped",
+      "scopePrefix": "x_acme"
     }
   },
   "rules": {

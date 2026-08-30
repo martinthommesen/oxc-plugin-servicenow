@@ -184,8 +184,36 @@ function findRetainedElements(
     return [];
   }
 
+  const visitedIdSets = new WeakMap<ESTree.Node, Set<string>>();
+
+  // The same Set instance threads unchanged through most of the traversal;
+  // new instances appear only at loop heads and function boundaries. Caching
+  // the canonical key per instance keeps the sort and join off the per-node
+  // hot path. The key stays content-based: do/while re-entry relies on a
+  // fresh set colliding with a content-equal earlier one.
+  const idSetKeys = new WeakMap<ReadonlySet<number>, string>();
+  const emptyIds: ReadonlySet<number> = new Set();
+
+  function idSetKey(ids: ReadonlySet<number>): string {
+    let key = idSetKeys.get(ids);
+    if (key === undefined) {
+      key = [...ids].sort((left, right) => left - right).join(",");
+      idSetKeys.set(ids, key);
+    }
+    return key;
+  }
+
   function visit(node: unknown, cursorIds: ReadonlySet<number>): void {
     if (!isNode(node)) return;
+    // The visit is deterministic for a given (node, cursor-id set), so each
+    // pair needs one traversal. Without this memo the do/while and for
+    // branches re-visit each loop body, which composes exponentially for
+    // nested loops (FINDINGS.md PER-002).
+    const key = idSetKey(cursorIds);
+    const seenKeys = visitedIdSets.get(node);
+    if (seenKeys?.has(key)) return;
+    if (seenKeys) seenKeys.add(key);
+    else visitedIdSets.set(node, new Set([key]));
     if (node.type === "CallExpression") {
       const call = node as ESTree.CallExpression;
       const callee = unwrapExpression(call.callee);
@@ -196,7 +224,7 @@ function findRetainedElements(
       }
     }
     if (isFunctionLikeNode(node)) {
-      visitChildren(node, (child) => visit(child, new Set()));
+      visitChildren(node, (child) => visit(child, emptyIds));
       return;
     }
     if (node.type === "WhileStatement") {
@@ -258,7 +286,7 @@ function findRetainedElements(
     visitChildren(node, (child) => visit(child, cursorIds));
   }
 
-  visit(program, new Set());
+  visit(program, emptyIds);
   const seen = new Set<ESTree.Node>();
   return findings.filter((finding) => {
     if (seen.has(finding.node)) return false;

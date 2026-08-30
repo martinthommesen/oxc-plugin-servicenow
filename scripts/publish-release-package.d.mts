@@ -42,3 +42,4 @@ export function publishReleasePackage(options: {
   spawn?: typeof import("node:child_process").spawnSync;
 }): Record<string, unknown>;
 export function main(argv?: string[]): Record<string, unknown>;
+export function parseNpmJson(text: unknown, label: string): unknown;
