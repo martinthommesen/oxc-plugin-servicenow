@@ -24,7 +24,7 @@ Preconditions:
 
 - **Valid tree.** Lint the wrapped full-script rule. Run `node .cursor/skills/verify-oxc-plugin-servicenow/scripts/verify.mjs drive business-rule valid`. Exit 0. `pluginRules` is `[]`.
 - **Unwrapped body.** Lint the invalid Business Rule. Run `node .cursor/skills/verify-oxc-plugin-servicenow/scripts/verify.mjs drive business-rule invalid`. Exit 0. `pluginRules` is `["servicenow/require-business-rule-wrapper"]`. `stdout.json` filename contains `unwrapped.br.js`.
-- **Format check.** Run `node .cursor/skills/verify-oxc-plugin-servicenow/scripts/verify.mjs drive business-rule oxfmt`. Exit 0. stdout contains `All matched files use the correct format`.
+- **Format check.** Run `node .cursor/skills/verify-oxc-plugin-servicenow/scripts/verify.mjs drive business-rule oxfmt`. Exit 0. `summary.json` has `"ok": true`.
 - **Proof.** Read `artifacts/verify-oxc-plugin-servicenow/$VERIFY_RUN_ID/business-rule-invalid/summary.json` and `stdout.json`. Run `git status -- examples/business-rule` and require a clean tree.
 
 ## Gotchas

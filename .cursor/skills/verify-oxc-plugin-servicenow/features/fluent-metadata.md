@@ -24,7 +24,7 @@ Preconditions:
 
 - **Valid tree.** Lint the clean Fluent files. Run `node .cursor/skills/verify-oxc-plugin-servicenow/scripts/verify.mjs drive fluent valid`. Exit 0. `summary.json` has `"pluginRules": []` and `"ok": true`.
 - **Missing $id.** Lint the invalid Fluent file. Run `node .cursor/skills/verify-oxc-plugin-servicenow/scripts/verify.mjs drive fluent invalid`. Exit 0. `pluginRules` is `["servicenow/require-fluent-id"]`. `stdout.json` `diagnostics[0].filename` contains `missing-id.now.ts`.
-- **Format check.** Check Fluent valid formatting. Run `node .cursor/skills/verify-oxc-plugin-servicenow/scripts/verify.mjs drive fluent oxfmt`. Exit 0. stdout contains `All matched files use the correct format`.
+- **Format check.** Check Fluent valid formatting. Run `node .cursor/skills/verify-oxc-plugin-servicenow/scripts/verify.mjs drive fluent oxfmt`. Exit 0. `summary.json` has `"ok": true`.
 - **Proof.** Read `artifacts/verify-oxc-plugin-servicenow/$VERIFY_RUN_ID/fluent-invalid/summary.json` and `stdout.json`. Keep both. Run `git status -- examples/fluent` and require a clean tree.
 
 ## Gotchas

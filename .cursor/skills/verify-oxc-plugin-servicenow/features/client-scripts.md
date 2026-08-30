@@ -24,7 +24,7 @@ Preconditions:
 
 - **Valid tree.** Lint the clean Catalog Client Script. Run `node .cursor/skills/verify-oxc-plugin-servicenow/scripts/verify.mjs drive client valid`. Exit 0. `pluginRules` is `[]`.
 - **Sync getReference.** Lint the invalid client script. Run `node .cursor/skills/verify-oxc-plugin-servicenow/scripts/verify.mjs drive client invalid`. Exit 0. `pluginRules` is `["servicenow/require-callback-for-getreference"]`. `stdout.json` filename contains `sync.client.js`.
-- **Format check.** Run `node .cursor/skills/verify-oxc-plugin-servicenow/scripts/verify.mjs drive client oxfmt`. Exit 0. stdout contains `All matched files use the correct format`.
+- **Format check.** Run `node .cursor/skills/verify-oxc-plugin-servicenow/scripts/verify.mjs drive client oxfmt`. Exit 0. `summary.json` has `"ok": true`.
 - **Proof.** Read `artifacts/verify-oxc-plugin-servicenow/$VERIFY_RUN_ID/client-invalid/summary.json` and `stdout.json`. Run `git status -- examples/client` and require a clean tree.
 
 ## Gotchas

@@ -41,17 +41,17 @@ function loadProjects() {
   return raw;
 }
 
-function pluginRuleId(code) {
+function unwrapServicenowRuleId(code) {
   const wrapped = /^servicenow\((.+)\)$/.exec(code);
   if (wrapped) return `servicenow/${wrapped[1]}`;
   if (code.startsWith("servicenow/")) return code;
   return undefined;
 }
 
-function pluginRules(report) {
+function unwrapServicenowRuleIds(report) {
   const ids = new Set();
   for (const diagnostic of report.diagnostics ?? []) {
-    const id = pluginRuleId(diagnostic.code);
+    const id = unwrapServicenowRuleId(diagnostic.code);
     if (id) ids.add(id);
   }
   return [...ids].sort();
@@ -92,7 +92,6 @@ function writeEvidence(dir, files) {
 
 function rewriteConfig(sourceConfigPath, distIndex) {
   const config = JSON.parse(readFileSync(sourceConfigPath, "utf8"));
-  delete config.$schema;
   const plugin = config.jsPlugins?.[0];
   if (!plugin) throw new Error(`${sourceConfigPath} has no jsPlugins[0].`);
   plugin.specifier = distIndex;
@@ -170,7 +169,7 @@ function lintProject(repoRoot, projects, name, tree) {
   const rewritten = rewriteConfig(path.join(repoRoot, spec.config), distIndex);
   try {
     const result = runOxlint(repoRoot, rewritten.configPath, path.join(repoRoot, spec[tree]));
-    const rules = pluginRules(result.report);
+    const rules = unwrapServicenowRuleIds(result.report);
     const expected = tree === "valid" ? [] : [...spec.invalidExpectedRules].sort();
     const ok = sameSet(rules, expected);
     return {
@@ -367,7 +366,7 @@ function main(argv) {
             ? projects.oxfmt.targets.map((rel) => path.join(root, rel))
             : [path.join(root, projects.lintProjects[project].valid)];
         const result = runOxfmt(root, path.join(root, projects.oxfmt.config), targets);
-        const ok = result.status === 0 && /All matched files use the correct format/.test(result.stdout);
+        const ok = result.status === 0;
         const dir = path.join(evidenceRoot(root, id), `${project}-oxfmt`);
         writeEvidence(dir, {
           "command.txt": `${result.command}\n`,

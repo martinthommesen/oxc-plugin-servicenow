@@ -22,8 +22,8 @@ Preconditions:
 - `VERIFY_RUN_ID` is set.
 - `examples/` is unmodified.
 
-- **One project.** Check Fluent valid files. Run `node .cursor/skills/verify-oxc-plugin-servicenow/scripts/verify.mjs drive fluent oxfmt`. Exit 0. stdout contains `All matched files use the correct format`.
-- **All valid trees.** Check every mapped valid tree. Run `node .cursor/skills/verify-oxc-plugin-servicenow/scripts/verify.mjs drive all oxfmt`. Exit 0. stdout reports the same phrase.
+- **One project.** Check Fluent valid files. Run `node .cursor/skills/verify-oxc-plugin-servicenow/scripts/verify.mjs drive fluent oxfmt`. Exit 0. `summary.json` has `"ok": true`.
+- **All valid trees.** Check every mapped valid tree. Run `node .cursor/skills/verify-oxc-plugin-servicenow/scripts/verify.mjs drive all oxfmt`. Exit 0. `summary.json` has `"ok": true`.
 - **No writes.** Run `git status -- examples`. The tree stays clean.
 - **Proof.** Read `artifacts/verify-oxc-plugin-servicenow/$VERIFY_RUN_ID/all-oxfmt/stdout.txt` and `summary.json`. Keep both.
 

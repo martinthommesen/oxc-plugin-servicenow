@@ -54,7 +54,7 @@ Replace `fluent` with a key from `projects.json` `lintProjects`.
 
 The script exits 0 only when the observed plugin rule set matches `projects.json`. oxlint exit 1 on an invalid tree is the expected host status. It is not a failed proof.
 
-Use `--format json`. Plugin codes look like `servicenow(require-fluent-id)`. Normalize them to `servicenow/require-fluent-id` before you compare.
+`summary.json` `pluginRules` already unwraps `servicenow(require-fluent-id)` to `servicenow/require-fluent-id`. Compare those IDs. Do not parse host codes by hand.
 
 Do not pass `--write` to oxfmt. Use `--check` only.
 

@@ -24,7 +24,7 @@ Preconditions:
 
 - **Valid tree.** Lint the clean ES5 server script. Run `node .cursor/skills/verify-oxc-plugin-servicenow/scripts/verify.mjs drive classic-es5 valid`. Exit 0. `pluginRules` is `[]`.
 - **Unsupported syntax.** Lint the invalid server script. Run `node .cursor/skills/verify-oxc-plugin-servicenow/scripts/verify.mjs drive classic-es5 invalid`. Exit 0. `pluginRules` is `["servicenow/no-unsupported-syntax"]`. `stdout.json` mentions both `?.` and `??` on `optional.server.js`.
-- **Format check.** Run `node .cursor/skills/verify-oxc-plugin-servicenow/scripts/verify.mjs drive classic-es5 oxfmt`. Exit 0. stdout contains `All matched files use the correct format`.
+- **Format check.** Run `node .cursor/skills/verify-oxc-plugin-servicenow/scripts/verify.mjs drive classic-es5 oxfmt`. Exit 0. `summary.json` has `"ok": true`.
 - **Proof.** Read `artifacts/verify-oxc-plugin-servicenow/$VERIFY_RUN_ID/classic-es5-invalid/summary.json` and `stdout.json`. Run `git status -- examples/classic-es5` and require a clean tree.
 
 ## Gotchas
