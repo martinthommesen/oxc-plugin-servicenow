@@ -137,6 +137,15 @@ export function interpretGitStatus({ status, stdout, stderr, error, signal }) {
   return { kind: "clean", detail: "" };
 }
 
+/** Returns failure reasons shared by all host-process proofs. */
+function hostFailureReasons(host) {
+  const reasons = [];
+  if (host?.error) reasons.push(`spawn: ${host.error.message}`);
+  if (host?.signal) reasons.push(`signal: ${host.signal}`);
+  if (host?.timedOut) reasons.push("timed out");
+  return reasons;
+}
+
 /**
  * Classifies Oxlint verification results against the expected tree and diagnostics.
  * @param {Object} options - Verification inputs.
@@ -149,10 +158,7 @@ export function interpretGitStatus({ status, stdout, stderr, error, signal }) {
  * @returns {Object} The verification result, including success status, failure reasons, detected plugin rules, host faults, and unexpected errors.
  */
 export function classifyOxlintProof({ tree, status, report, parseError, host, expectations }) {
-  const reasons = [];
-  if (host?.error) reasons.push(`spawn: ${host.error.message}`);
-  if (host?.signal) reasons.push(`signal: ${host.signal}`);
-  if (host?.timedOut) reasons.push("timed out");
+  const reasons = hostFailureReasons(host);
   if (status !== 0 && status !== 1 && status !== null) {
     reasons.push(`unexpected status ${status}`);
   }
@@ -189,10 +195,11 @@ export function classifyOxlintProof({ tree, status, report, parseError, host, ex
       reasons.push(`unexpected plugin rules: ${pluginRules.join(", ")}`);
     }
   } else if (tree === "invalid") {
+    const requiredExpectations = expectations ?? [];
     if (status !== 1) reasons.push("invalid tree requires status 1");
-    if (!expectations?.length) reasons.push("invalid drive has no expectations");
-    const expectedRules = new Set((expectations ?? []).map((item) => item.rule));
-    for (const expectation of expectations ?? []) {
+    if (requiredExpectations.length === 0) reasons.push("invalid drive has no expectations");
+    const expectedRules = new Set(requiredExpectations.map((item) => item.rule));
+    for (const expectation of requiredExpectations) {
       const hits = report.diagnostics.filter((diagnostic) => {
         if (unwrapServicenowRuleId(diagnostic.code) !== expectation.rule) return false;
         if (expectation.file && !String(diagnostic.filename ?? "").includes(expectation.file)) {
@@ -222,10 +229,7 @@ export function classifyOxlintProof({ tree, status, report, parseError, host, ex
  * @returns {{ok: boolean, reasons: string[]}} The success status and any failure reasons.
  */
 export function classifyOxfmtProof(host) {
-  const reasons = [];
-  if (host.error) reasons.push(`spawn: ${host.error.message}`);
-  if (host.signal) reasons.push(`signal: ${host.signal}`);
-  if (host.timedOut) reasons.push("timed out");
+  const reasons = hostFailureReasons(host);
   if (host.status !== 0) reasons.push(`oxfmt status ${host.status}`);
   return { ok: reasons.length === 0, reasons };
 }
