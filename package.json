@@ -115,7 +115,7 @@
     }
   },
   "devDependencies": {
-    "@sigstore/core": "3.2.1",
+    "@sigstore/core": "4.0.1",
     "@sigstore/mock": "0.12.1",
     "@sigstore/verify": "3.1.1",
     "@types/node": "^20.19.0",
