@@ -22,7 +22,7 @@ Run every local gate with one command:
 npm run validate
 ```
 
-That command checks workflow action pins and the compatibility matrix; runs lint, format, project and fixture typechecking, build, tests, and Fluent-manifest verification; then checks evidence, acceptance, generated-documentation consistency, benchmarks, and the release artifact with a packed consumer.
+That command checks workflow action pins and the compatibility matrix; runs lint, format, project and fixture typechecking, build, tests, `verify:examples -- --all`, and Fluent-manifest verification; then checks evidence, acceptance, generated-documentation consistency, benchmarks, and the release artifact with a packed consumer.
 
 `npm test` runs the serial TypeScript suite through `scripts/run-tests.mjs`, then runs `npm run fluent:check`. The test runner lists every `*.test.ts` file and passes the list to Node's test runner with the project-local `tsx` loader. Do not use a quoted `tests/**/*.test.ts` glob. Node 20 treats that path as one missing file.
 

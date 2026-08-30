@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { repoRoot } from "./helpers.js";
@@ -14,16 +14,6 @@ const fixtures = [
   path.join(repoRoot, "tests/integration/profiles/oxfmt/access_control/read.js"),
   path.join(repoRoot, "tests/integration/profiles/oxfmt/accesscontroller.js"),
   path.join(repoRoot, "tests/integration/profiles/oxfmt/sys_security_aclanything.js"),
-];
-const exampleProjects = [
-  "business-rule",
-  "classic-compatibility",
-  "classic-es5",
-  "client",
-  "es2021",
-  "fluent",
-  "mixed",
-  "ui-action",
 ];
 
 function sourceFiles(directory: string): string[] {
@@ -39,8 +29,11 @@ describe("oxfmt host integration", () => {
     if (!existsSync(oxfmtBin)) {
       assert.fail("oxfmt is not installed. Add it as a devDependency so host formatting can run.");
     }
-    const examples = exampleProjects.flatMap((project) =>
-      sourceFiles(path.join(repoRoot, "examples", project, "valid")),
+    const catalog = JSON.parse(
+      readFileSync(path.join(repoRoot, "scripts/verify-projects.json"), "utf8"),
+    ) as { projects: Record<string, { dir: string }> };
+    const examples = Object.values(catalog.projects).flatMap((spec) =>
+      sourceFiles(path.join(repoRoot, spec.dir, "valid")),
     );
     assert.ok(examples.some((file) => file.endsWith(".client.ui-action.js")));
     assert.ok(examples.some((file) => file.endsWith(".ui-action.js")));
