@@ -493,10 +493,6 @@ function capturedBindings(fn: ESTree.Node, bindings: FileBindings): BindingId[] 
   return [...found];
 }
 
-/**
- * Path-sensitive tracker keyed by lexical binding identity and runtime object
- * identity. Abrupt completions do not join into later statements.
- */
 function countNodes(program: ESTree.Node): number {
   let count = 0;
   const pending: ESTree.Node[] = [program];
@@ -521,6 +517,10 @@ function defaultMaxWork(program: ESTree.Node): number {
   return budget;
 }
 
+/**
+ * Path-sensitive tracker keyed by lexical binding identity and runtime object
+ * identity. Abrupt completions do not join into later statements.
+ */
 export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
   const {
     program,

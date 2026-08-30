@@ -14,6 +14,7 @@
 
 ### Changed
 
+- The `oxc-plugin-servicenow/oxfmt` types `OxfmtConfig` and `OxfmtOverride` are type aliases instead of interfaces, and they no longer carry an index signature. A misspelled option such as `printWith` is now a compile error. `defineConfig(recommendedOxfmtConfig)` still type-checks.
 - The path-analysis work budget scales with program size instead of a fixed 50k units. Dense scripts up to roughly 1,200 lines are now analyzed completely, so large legacy files can gain diagnostics that were previously dropped silently when the budget ran out.
 - `AnalysisProvenance.queryState`, `windowed`, `sysparmName`, and `aggregates` are deprecated: they were never computed and always carry their defaults. They will be removed in 3.0; the per-domain rules carry the real lifecycle facts.
 

@@ -196,6 +196,8 @@ const getContext: typeof getScriptContext = getScriptContext;
 let query: AnalysisProvenanceQuery | undefined;
 let provenance: AnalysisProvenance | undefined;
 let context: ServiceNowScriptContext | undefined;
+// @ts-expect-error the preset carries no index signature, so a typo must not resolve (FINDINGS.md MNT-007)
+void recommendedOxfmtConfig.printWith;
 void [plugin, configs, configs.flat.acl, settings, rules, analyze, getContext, query, provenance, context, recommendedOxfmtConfig];
 `,
       );

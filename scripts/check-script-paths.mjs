@@ -3,7 +3,9 @@
 // required configuration files were left untracked (FINDINGS.md OPS-001).
 // Zero dependencies: the workflow CI job runs this without `npm ci`.
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
 const tracked = new Set(
@@ -30,10 +32,6 @@ for (const command of Object.values(pkg.scripts)) {
 // reference check and fail only at tag push, after the immutable tag exists.
 // Assert the whole directory is tracked instead of deriving the workflow
 // reference graph (FINDINGS.md OPS-010).
-import { readdirSync } from "node:fs";
-import { join } from "node:path";
-import { fileURLToPath } from "node:url";
-
 const scriptsDir = fileURLToPath(new URL(".", import.meta.url));
 const untracked = [];
 for (const entry of readdirSync(scriptsDir, { withFileTypes: true, recursive: true })) {
