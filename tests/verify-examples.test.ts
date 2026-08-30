@@ -6,6 +6,8 @@ import { describe, it } from "node:test";
 import {
   classifyOxlintProof,
   interpretGitStatus,
+  isErrorSeverity,
+  isHostFaultCode,
   parseOxlintStdout,
 } from "../scripts/lib/host-verifier.mjs";
 import { parseRunId, runDirFor } from "../scripts/verify-examples.mjs";
@@ -58,6 +60,26 @@ describe("verify-examples host classification", () => {
     assert.ok(proof.reasons.some((reason) => /host fault/.test(reason)));
   });
 
+  it("does not treat a rule id that contains parser as a host fault", () => {
+    assert.equal(isHostFaultCode("eslint(no-parser-return)"), false);
+    assert.equal(isHostFaultCode("parser"), true);
+    assert.equal(isHostFaultCode("plugin-load"), true);
+    assert.equal(isHostFaultCode(undefined), false);
+  });
+
+  it("does not invent error severity when the host omitted it", () => {
+    assert.equal(isErrorSeverity({ code: "eslint(no-unused-vars)" }), false);
+    const proof = classifyOxlintProof({
+      tree: "invalid",
+      status: 1,
+      report: { diagnostics: [{ code: "eslint(no-unused-vars)" }] },
+      parseError: null,
+      expectations: [{ rule: "servicenow/require-fluent-id" }],
+    });
+    assert.equal(proof.ok, false);
+    assert.ok(proof.reasons.some((reason) => /non-plugin error/.test(reason)));
+  });
+
   it("rejects malformed JSON", () => {
     const parsed = parseOxlintStdout("not json");
     assert.equal(parsed.report, null);
@@ -93,12 +115,7 @@ describe("verify-examples CLI", () => {
     const runDir = path.join(repoRoot, "artifacts", "verify-oxc-plugin-servicenow", runId);
     assert.ok(existsSync(path.join(runDir, "manifest.json")));
     assert.ok(existsSync(path.join(runDir, "doctor", "COMPLETED")));
-    const start = result.stdout.lastIndexOf("\n{");
-    const payload =
-      start === -1
-        ? result.stdout.slice(result.stdout.indexOf("{"))
-        : result.stdout.slice(start + 1);
-    const attempts = JSON.parse(payload) as { evidence: string };
+    const attempts = JSON.parse(result.stdout) as { evidence: string };
     assert.ok(existsSync(path.join(attempts.evidence, "COMPLETED")));
     assert.ok(existsSync(path.join(attempts.evidence, "effective.oxlintrc.json")));
     assert.ok(existsSync(path.join(attempts.evidence, "summary.json")));

@@ -60,6 +60,7 @@ export function parseOxlintStdout(stdout: string): {
   parseError: string | null;
 };
 
+export const HOST_FAULT_CODES: ReadonlySet<string>;
 export function unwrapServicenowRuleId(code: string | undefined): string | undefined;
 export function isHostFaultCode(code: string | undefined): boolean;
 export function isErrorSeverity(diagnostic: OxlintDiagnostic): boolean;

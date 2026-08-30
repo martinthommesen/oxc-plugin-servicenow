@@ -52,12 +52,15 @@ export function unwrapServicenowRuleId(code) {
   return undefined;
 }
 
+export const HOST_FAULT_CODES = new Set(["parser", "plugin-load"]);
+
 export function isHostFaultCode(code) {
-  return /parse|parser|configuration|plugin-load|internal/i.test(String(code ?? ""));
+  return typeof code === "string" && HOST_FAULT_CODES.has(code);
 }
 
 export function isErrorSeverity(diagnostic) {
-  const severity = String(diagnostic?.severity ?? "error").toLowerCase();
+  if (typeof diagnostic?.severity !== "string") return false;
+  const severity = diagnostic.severity.toLowerCase();
   return severity === "error" || severity === "fatal";
 }
 
@@ -113,6 +116,7 @@ export function classifyOxlintProof({ tree, status, report, parseError, host, ex
     if (unwrapServicenowRuleId(diagnostic.code) || isHostFaultCode(diagnostic.code)) {
       return false;
     }
+    if (typeof diagnostic?.severity !== "string") return true;
     return isErrorSeverity(diagnostic);
   });
   if (unexpectedErrors.length > 0) {

@@ -531,7 +531,7 @@ function driveLint(repoRoot, projects, project, tree, runDir, manifest, argv, no
       2,
     )}\n`,
   });
-  if (host.stdout.trimStart().startsWith("{")) {
+  if (report) {
     writeFileSync(
       path.join(dir, "stdout.json"),
       host.stdout.endsWith("\n") ? host.stdout : `${host.stdout}\n`,
@@ -739,7 +739,7 @@ export function main(argv) {
     const { runDir, manifest } = prepareRun(root, pkg, runId);
     try {
       const doctor = runDoctor(root, pkg, projects, runDir, manifest);
-      for (const check of doctor.checks) console.log(formatDoctorLine(check));
+      for (const check of doctor.checks) console.error(formatDoctorLine(check));
       if (!doctor.ok) return 1;
       if (options.command === "prepare") {
         console.log(JSON.stringify({ ok: true, runId, runDir }, null, 2));
@@ -786,7 +786,7 @@ export function main(argv) {
     const runDir = runDirFor(root, parseRunId(options.runId));
     const manifest = readManifest(runDir);
     const doctor = runDoctor(root, pkg, projects, runDir, manifest);
-    for (const check of doctor.checks) console.log(formatDoctorLine(check));
+    for (const check of doctor.checks) console.error(formatDoctorLine(check));
     return doctor.ok ? 0 : 1;
   }
 
@@ -800,7 +800,7 @@ export function main(argv) {
     } else {
       ({ runDir, manifest } = prepareRun(root, pkg, runId));
       const doctor = runDoctor(root, pkg, projects, runDir, manifest);
-      for (const check of doctor.checks) console.log(formatDoctorLine(check));
+      for (const check of doctor.checks) console.error(formatDoctorLine(check));
       if (!doctor.ok) {
         clearLivePid(runDir);
         return 1;
