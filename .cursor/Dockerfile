@@ -14,4 +14,9 @@ RUN apt-get update \
         git \
     && rm -rf /var/lib/apt/lists/*
 
+# Bun is installed via its official npm package so the binary lands in the
+# global prefix (/usr/local/bin) and is on PATH for the node user.
+RUN npm install -g bun \
+    && bun --version
+
 USER node
