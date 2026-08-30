@@ -1,0 +1,8 @@
+{
+  "name": "oxc-plugin-servicenow",
+  "user": "node",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "install": "npm ci"
+}
