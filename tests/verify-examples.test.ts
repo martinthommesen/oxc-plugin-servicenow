@@ -191,16 +191,18 @@ describe("verify-examples host classification", () => {
     });
     assert.equal(proof.ok, false);
     assert.equal(proof.hostFaults.length, 1);
-    assert.equal(proof.hostFaults[0]?.code, "parser");
-    assert.ok(proof.reasons.some((reason) => /host fault: parser: Syntax Error/.test(reason)));
+    assert.equal(proof.hostFaults[0]?.code, undefined);
+    assert.ok(proof.reasons.some((reason) => /host fault: Syntax Error/.test(reason)));
   });
 
   it("labels stdout plugin-load failures as plugin-load", () => {
-    assert.equal(hostFaultCodeFor({ message: "Expected `}`", severity: "error" }), "parser");
+    assert.equal(hostFaultCodeFor({ message: "Expected `}`", severity: "error" }), undefined);
+    assert.equal(hostFaultCodeFor({ code: "parser", severity: "error" }), "parser");
     assert.equal(
       hostFaultCodeForStdout("Failed to load JS plugin: oxc-plugin-servicenow"),
       "plugin-load",
     );
+    assert.equal(hostFaultCodeForStdout("Failed to parse oxlint configuration file."), undefined);
     assert.equal(hostFaultCodeForStdout("ok"), undefined);
     const proof = classifyOxlintProof({
       tree: "valid",

@@ -54,19 +54,14 @@ export function unwrapServicenowRuleId(code) {
 
 export const HOST_FAULT_CODES = new Set(["parser", "plugin-load"]);
 
-const PLUGIN_LOAD_STDOUT =
-  /Failed to load JS plugin|Cannot find module|Failed to parse oxlint configuration/i;
+const PLUGIN_LOAD_STDOUT = /Failed to load JS plugin|Cannot find module/i;
 
 export function isHostFaultCode(code) {
   return typeof code === "string" && HOST_FAULT_CODES.has(code);
 }
 
 export function hostFaultCodeFor(diagnostic) {
-  if (isHostFaultCode(diagnostic?.code)) return diagnostic.code;
-  if (isErrorSeverity(diagnostic) && (diagnostic?.code === undefined || diagnostic.code === "")) {
-    return "parser";
-  }
-  return undefined;
+  return isHostFaultCode(diagnostic?.code) ? diagnostic.code : undefined;
 }
 
 export function hostFaultCodeForStdout(stdout) {
@@ -74,7 +69,8 @@ export function hostFaultCodeForStdout(stdout) {
 }
 
 export function isHostFaultDiagnostic(diagnostic) {
-  return hostFaultCodeFor(diagnostic) !== undefined;
+  if (hostFaultCodeFor(diagnostic) !== undefined) return true;
+  return isErrorSeverity(diagnostic) && (diagnostic?.code === undefined || diagnostic.code === "");
 }
 
 export function isErrorSeverity(diagnostic) {
@@ -143,11 +139,11 @@ export function classifyOxlintProof({
   }
   if (!report) {
     const hostFaults = [];
-    const invented = hostFaultCodeForStdout(host?.stdout);
-    if (invented) {
+    const stdoutCode = hostFaultCodeForStdout(host?.stdout);
+    if (stdoutCode) {
       hostFaults.push({
-        code: invented,
-        message: stdoutLine || parseError || invented,
+        code: stdoutCode,
+        message: stdoutLine || parseError || stdoutCode,
         severity: "error",
       });
     }
@@ -164,11 +160,7 @@ export function classifyOxlintProof({
     }
   }
 
-  const hostFaults = report.diagnostics.flatMap((diagnostic) => {
-    const code = hostFaultCodeFor(diagnostic);
-    if (!code) return [];
-    return [{ ...diagnostic, code }];
-  });
+  const hostFaults = report.diagnostics.filter((diagnostic) => isHostFaultDiagnostic(diagnostic));
   if (hostFaults.length > 0) {
     reasons.push(
       `host fault: ${hostFaults
