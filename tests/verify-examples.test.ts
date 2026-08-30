@@ -14,7 +14,13 @@ import {
   runHostProcess,
   unwrapServicenowRuleId,
 } from "../scripts/lib/host-verifier.mjs";
-import { containedPath, parseRunId, runDirFor, sha256 } from "../scripts/verify-examples.mjs";
+import {
+  containedPath,
+  loadAndValidateProjects,
+  parseRunId,
+  runDirFor,
+  sha256,
+} from "../scripts/verify-examples.mjs";
 import { repoRoot } from "./integration/helpers.js";
 
 const cli = path.join(repoRoot, "scripts", "verify-examples.mjs");
@@ -382,6 +388,8 @@ describe("verify-examples CLI", () => {
     const body = JSON.parse(result.stdout) as { ok: boolean; projects: string[] };
     assert.equal(body.ok, true);
     assert.equal(body.projects.length, 8);
+    const projects = loadAndValidateProjects(repoRoot);
+    assert.equal(projects.skillDir, ".agents/skills/verify-oxc-plugin-servicenow");
   });
 
   it("runs the fluent invalid drive and keeps evidence", () => {

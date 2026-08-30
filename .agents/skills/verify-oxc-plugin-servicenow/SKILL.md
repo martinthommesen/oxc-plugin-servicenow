@@ -1,6 +1,8 @@
 ---
 name: verify-oxc-plugin-servicenow
 description: Drives real oxlint and oxfmt against this plugin's example projects and captures JSON proof. Use when verifying oxc-plugin-servicenow behavior, proving a rule or preset change, checking Fluent or classic ServiceNow lint output, or when the user asks to verify, doctor, or exercise the plugin the way a consumer runs oxlint.
+license: MIT
+compatibility: Requires Node.js 20.19 or later, npm, and git. Run commands from the oxc-plugin-servicenow repository root.
 ---
 
 # Verify oxc-plugin-servicenow
@@ -9,7 +11,7 @@ Primary user path is the oxlint CLI with this plugin loaded. Secondary path is o
 
 `npm test` is the comprehensive local real-host regression gate. It builds the plugin, then runs unit tests and integration tests that load real oxlint and oxfmt. `npm run verify:examples` is the focused per-project evidence CLI. `npm run test:consumer` checks the packed-package install path and needs the network.
 
-Read [features/README.md](features/README.md) before a drive. Use the matching feature file. Expected diagnostics live in [`scripts/verify-projects.json`](../../../scripts/verify-projects.json).
+Read [features/README.md](features/README.md) before a drive. Use the matching feature file. Expected diagnostics live in `scripts/verify-projects.json` at the repository root.
 
 ## Launch
 

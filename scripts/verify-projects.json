@@ -1,6 +1,6 @@
 {
   "oxfmtConfig": "oxfmt.recommended.json",
-  "skillDir": ".cursor/skills/verify-oxc-plugin-servicenow",
+  "skillDir": ".agents/skills/verify-oxc-plugin-servicenow",
   "projects": {
     "fluent": {
       "dir": "examples/fluent",

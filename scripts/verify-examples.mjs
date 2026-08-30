@@ -100,6 +100,11 @@ export function loadAndValidateProjects(repoRoot = REPO_FROM_SCRIPT) {
     errors.push(`oxfmtConfig must be a contained relative path: ${raw.oxfmtConfig}`);
   }
   if (!existsSync(oxfmtConfig)) errors.push(`missing ${raw.oxfmtConfig}`);
+  if (path.isAbsolute(raw.skillDir) || raw.skillDir.includes("..")) {
+    errors.push(`skillDir must be a contained relative path: ${raw.skillDir}`);
+  } else if (!raw.skillDir.startsWith(".agents/skills/")) {
+    errors.push(`skillDir must live under .agents/skills/: ${raw.skillDir}`);
+  }
   const skillDir = path.join(repoRoot, raw.skillDir);
   const seenFeatures = new Set();
   const projects = {};
@@ -703,6 +708,9 @@ export function main(argv) {
     const markdown = readFileSync(skillPath, "utf8");
     if (!/^name:\s*verify-oxc-plugin-servicenow\s*$/m.test(markdown)) {
       throw new Error("SKILL.md is missing name verify-oxc-plugin-servicenow");
+    }
+    if (!/^description:\s+\S/m.test(markdown)) {
+      throw new Error("SKILL.md is missing description");
     }
     console.log(JSON.stringify({ ok: true, projects: projects.names }, null, 2));
     return 0;
