@@ -63,6 +63,10 @@ Do not install packages inside `examples/`. Do not edit checked-in `.oxlintrc.js
 
 ESLint host tests and `npm run test:consumer` stay out of this skill.
 
+## Skill location
+
+The skill directory is `.agents/skills/verify-oxc-plugin-servicenow/`. Claude Code loads project skills from `.claude/skills/`. This repository keeps a symlink at `.claude/skills/verify-oxc-plugin-servicenow` that points at the skill directory. `validate` fails when that symlink is missing or points elsewhere.
+
 ## Evidence
 
 Proof goes to `artifacts/verify-oxc-plugin-servicenow/<run-id>/`. That path is gitignored. Cleanup must not delete it.

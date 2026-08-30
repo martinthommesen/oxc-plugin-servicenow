@@ -54,13 +54,27 @@ export function unwrapServicenowRuleId(code) {
 
 export const HOST_FAULT_CODES = new Set(["parser", "plugin-load"]);
 
+const PLUGIN_LOAD_STDOUT =
+  /Failed to load JS plugin|Cannot find module|Failed to parse oxlint configuration/i;
+
 export function isHostFaultCode(code) {
   return typeof code === "string" && HOST_FAULT_CODES.has(code);
 }
 
+export function hostFaultCodeFor(diagnostic) {
+  if (isHostFaultCode(diagnostic?.code)) return diagnostic.code;
+  if (isErrorSeverity(diagnostic) && (diagnostic?.code === undefined || diagnostic.code === "")) {
+    return "parser";
+  }
+  return undefined;
+}
+
+export function hostFaultCodeForStdout(stdout) {
+  return PLUGIN_LOAD_STDOUT.test(String(stdout ?? "")) ? "plugin-load" : undefined;
+}
+
 export function isHostFaultDiagnostic(diagnostic) {
-  if (isHostFaultCode(diagnostic?.code)) return true;
-  return isErrorSeverity(diagnostic) && (diagnostic?.code === undefined || diagnostic.code === "");
+  return hostFaultCodeFor(diagnostic) !== undefined;
 }
 
 export function isErrorSeverity(diagnostic) {
@@ -104,29 +118,64 @@ function hostFailureReasons(host) {
   return reasons;
 }
 
-export function classifyOxlintProof({ tree, status, report, parseError, host, expectations }) {
+function firstStdoutLine(host) {
+  return String(host?.stdout ?? "")
+    .split(/\r?\n/)
+    .find((line) => line.trim());
+}
+
+export function classifyOxlintProof({
+  tree,
+  status,
+  report,
+  parseError,
+  host,
+  expectations,
+  expectedFileCount,
+}) {
   const reasons = hostFailureReasons(host);
   if (status !== 0 && status !== 1 && status !== null) {
     reasons.push(`unexpected status ${status}`);
   }
+  const stdoutLine = firstStdoutLine(host);
   if (parseError) {
-    const firstLine = String(host?.stdout ?? "")
-      .split(/\r?\n/)
-      .find((line) => line.trim());
-    reasons.push(firstLine ? `${parseError}: ${firstLine}` : parseError);
+    reasons.push(stdoutLine ? `${parseError}: ${stdoutLine}` : parseError);
   }
   if (!report) {
-    return { ok: false, reasons, pluginRules: [], hostFaults: [], unexpectedErrors: [] };
+    const hostFaults = [];
+    const invented = hostFaultCodeForStdout(host?.stdout);
+    if (invented) {
+      hostFaults.push({
+        code: invented,
+        message: stdoutLine || parseError || invented,
+        severity: "error",
+      });
+    }
+    return { ok: false, reasons, pluginRules: [], hostFaults, unexpectedErrors: [] };
   }
   if (status === 1 && report.diagnostics.length === 0) {
     reasons.push("status 1 with zero diagnostics");
   }
+  if (expectedFileCount !== undefined) {
+    if (typeof report.number_of_files !== "number") {
+      reasons.push("oxlint JSON is missing number_of_files");
+    } else if (report.number_of_files !== expectedFileCount) {
+      reasons.push(`number_of_files ${report.number_of_files}, expected ${expectedFileCount}`);
+    }
+  }
 
-  const hostFaults = report.diagnostics.filter((diagnostic) => isHostFaultDiagnostic(diagnostic));
+  const hostFaults = report.diagnostics.flatMap((diagnostic) => {
+    const code = hostFaultCodeFor(diagnostic);
+    if (!code) return [];
+    return [{ ...diagnostic, code }];
+  });
   if (hostFaults.length > 0) {
     reasons.push(
       `host fault: ${hostFaults
-        .map((diagnostic) => diagnostic.code || diagnostic.message || "uncoded error")
+        .map(
+          (diagnostic) =>
+            [diagnostic.code, diagnostic.message].filter(Boolean).join(": ") || "uncoded error",
+        )
         .join(", ")}`,
     );
   }

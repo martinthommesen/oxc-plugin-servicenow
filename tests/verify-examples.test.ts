@@ -8,6 +8,8 @@ import {
   classifyOxlintProof,
   interpretGitStatus,
   isErrorSeverity,
+  hostFaultCodeFor,
+  hostFaultCodeForStdout,
   isHostFaultCode,
   isHostFaultDiagnostic,
   parseOxlintStdout,
@@ -189,7 +191,67 @@ describe("verify-examples host classification", () => {
     });
     assert.equal(proof.ok, false);
     assert.equal(proof.hostFaults.length, 1);
-    assert.ok(proof.reasons.some((reason) => /host fault: Syntax Error/.test(reason)));
+    assert.equal(proof.hostFaults[0]?.code, "parser");
+    assert.ok(proof.reasons.some((reason) => /host fault: parser: Syntax Error/.test(reason)));
+  });
+
+  it("labels stdout plugin-load failures as plugin-load", () => {
+    assert.equal(hostFaultCodeFor({ message: "Expected `}`", severity: "error" }), "parser");
+    assert.equal(
+      hostFaultCodeForStdout("Failed to load JS plugin: oxc-plugin-servicenow"),
+      "plugin-load",
+    );
+    assert.equal(hostFaultCodeForStdout("ok"), undefined);
+    const proof = classifyOxlintProof({
+      tree: "valid",
+      status: 1,
+      report: null,
+      parseError: "oxlint did not emit JSON",
+      host: {
+        argv: ["oxlint"],
+        status: 1,
+        signal: null,
+        stdout:
+          "Failed to parse oxlint configuration file.\n\n  x Failed to load JS plugin: missing\n",
+        stderr: "",
+        error: null,
+        timedOut: false,
+        durationMs: 10,
+      },
+      expectations: [],
+    });
+    assert.equal(proof.hostFaults[0]?.code, "plugin-load");
+  });
+
+  it("fails when number_of_files does not match the tree", () => {
+    const mismatch = classifyOxlintProof({
+      tree: "valid",
+      status: 0,
+      report: { diagnostics: [], number_of_files: 1 },
+      parseError: null,
+      expectations: [],
+      expectedFileCount: 6,
+    });
+    assert.equal(mismatch.ok, false);
+    assert.ok(mismatch.reasons.some((reason) => /number_of_files 1, expected 6/.test(reason)));
+    const missing = classifyOxlintProof({
+      tree: "valid",
+      status: 0,
+      report: { diagnostics: [] },
+      parseError: null,
+      expectations: [],
+      expectedFileCount: 1,
+    });
+    assert.ok(missing.reasons.some((reason) => /missing number_of_files/.test(reason)));
+    const match = classifyOxlintProof({
+      tree: "valid",
+      status: 0,
+      report: { diagnostics: [], number_of_files: 6 },
+      parseError: null,
+      expectations: [],
+      expectedFileCount: 6,
+    });
+    assert.equal(match.ok, true);
   });
 
   it("does not invent error severity when the host omitted it", () => {
@@ -512,6 +574,11 @@ describe("verify-examples CLI", { concurrency: 1 }, () => {
     assert.equal(body.projects.length, 8);
     const projects = loadAndValidateProjects(repoRoot);
     assert.equal(projects.skillDir, ".agents/skills/verify-oxc-plugin-servicenow");
+    const claudeSkill = path.join(repoRoot, ".claude", "skills", "verify-oxc-plugin-servicenow");
+    assert.equal(
+      readFileSync(path.join(claudeSkill, "SKILL.md"), "utf8").includes("doctor --run-id"),
+      true,
+    );
     const skill = readFileSync(path.join(repoRoot, projects.skillDir, "SKILL.md"), "utf8");
     assert.match(skill, /doctor --run-id/);
     assert.doesNotMatch(skill, /To re-check an existing run:[\s\S]*prepare --run-id/);

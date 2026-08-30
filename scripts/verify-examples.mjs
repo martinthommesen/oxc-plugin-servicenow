@@ -5,6 +5,7 @@ import {
   lstatSync,
   mkdirSync,
   readFileSync,
+  readlinkSync,
   readdirSync,
   rmSync,
   writeFileSync,
@@ -88,8 +89,13 @@ function listFiles(dir, acc = []) {
   return acc;
 }
 
+function sourceFileCount(dir) {
+  return listFiles(dir).filter((file) => SOURCE_SUFFIXES.some((suffix) => file.endsWith(suffix)))
+    .length;
+}
+
 function hasSourceFile(dir) {
-  return listFiles(dir).some((file) => SOURCE_SUFFIXES.some((suffix) => file.endsWith(suffix)));
+  return sourceFileCount(dir) > 0;
 }
 
 function repoRelative(repoRoot, abs) {
@@ -117,6 +123,12 @@ export function loadAndValidateProjects(repoRoot = REPO_FROM_SCRIPT) {
     errors.push(`skillDir must live under .agents/skills/: ${raw.skillDir}`);
   }
   const skillDir = path.join(repoRoot, raw.skillDir);
+  const claudeSkill = path.join(repoRoot, ".claude", "skills", "verify-oxc-plugin-servicenow");
+  if (!existsSync(claudeSkill) || !lstatSync(claudeSkill).isSymbolicLink()) {
+    errors.push("missing .claude/skills/verify-oxc-plugin-servicenow symlink");
+  } else if (path.resolve(path.dirname(claudeSkill), readlinkSync(claudeSkill)) !== skillDir) {
+    errors.push(`Claude skill symlink must resolve to ${raw.skillDir}`);
+  }
   const seenFeatures = new Set();
   const projects = {};
   for (const [name, spec] of Object.entries(raw.projects)) {
@@ -471,6 +483,7 @@ function pluginLoadCheck(repoRoot, projects, doctorDir) {
     parseError: parsed.parseError,
     host,
     expectations: [],
+    expectedFileCount: sourceFileCount(path.join(repoRoot, spec.valid)),
   });
 }
 
@@ -590,6 +603,7 @@ function driveLint(repoRoot, projects, project, tree, runDir, manifest, argv, no
     parseError,
     host,
     expectations: tree === "invalid" ? spec.invalidExpected : [],
+    expectedFileCount: sourceFileCount(path.join(repoRoot, spec[tree])),
   });
   recordExamplesMutation(repoRoot, initialExamplesGit, proof, noncanonical);
   persistHostAttempt(

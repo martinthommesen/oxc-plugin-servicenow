@@ -26,6 +26,7 @@ export type OxlintDiagnostic = {
 
 export type OxlintReport = {
   diagnostics: OxlintDiagnostic[];
+  number_of_files?: number;
 };
 
 export type ProofExpectation = {
@@ -63,6 +64,8 @@ export function parseOxlintStdout(stdout: string): {
 export const HOST_FAULT_CODES: ReadonlySet<string>;
 export function unwrapServicenowRuleId(code: string | undefined): string | undefined;
 export function isHostFaultCode(code: string | undefined): boolean;
+export function hostFaultCodeFor(diagnostic: OxlintDiagnostic): string | undefined;
+export function hostFaultCodeForStdout(stdout: string | undefined): string | undefined;
 export function isHostFaultDiagnostic(diagnostic: OxlintDiagnostic): boolean;
 export function isErrorSeverity(diagnostic: OxlintDiagnostic): boolean;
 export function pluginRuleIds(
@@ -83,5 +86,6 @@ export function classifyOxlintProof(input: {
   parseError: string | null;
   host?: HostResult;
   expectations?: ProofExpectation[];
+  expectedFileCount?: number;
 }): OxlintProof;
 export function classifyOxfmtProof(host: HostResult): { ok: boolean; reasons: string[] };
