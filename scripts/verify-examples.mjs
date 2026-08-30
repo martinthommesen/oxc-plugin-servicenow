@@ -551,9 +551,9 @@ function driveLint(repoRoot, projects, project, tree, runDir, manifest, argv, no
 }
 
 function driveOxfmt(repoRoot, projects, project, runDir, manifest, argv, noncanonical) {
-  const initialExamplesGit = requireReadyRun(repoRoot, runDir, manifest, noncanonical);
   if (project !== "all" && !projects.projects[project])
     throw new Error(`Unknown project ${project}`);
+  const initialExamplesGit = requireReadyRun(repoRoot, runDir, manifest, noncanonical);
   const { attemptId, dir } = createAttemptDir(runDir, `${project}-oxfmt`);
   const targets =
     project === "all"
