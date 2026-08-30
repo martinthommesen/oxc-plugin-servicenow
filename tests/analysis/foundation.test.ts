@@ -674,6 +674,22 @@ rec.next();`,
       { messageId: "missingQuery", count: 1 },
     );
   });
+
+  it("propagates a throw out of a try statement without a catch handler", () => {
+    // The injected throw must exit the try statement: if the analysis
+    // wrongly completed the try normally, the unqueried next() call after
+    // it would report.
+    assertValid(
+      `var rec = new GlideRecord("incident");
+try {
+  throw new Error("boom");
+} finally {
+  gs.info("cleanup");
+}
+rec.next();`,
+      "require-query-before-next",
+    );
+  });
 });
 
 describe("unknown context", () => {

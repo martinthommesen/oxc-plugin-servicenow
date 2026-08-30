@@ -27,6 +27,13 @@ export function moduleResolver(
 };
 export function generatedSource(snapshot: unknown): string;
 export function main(): Promise<void>;
+export interface AuditRuntimeVersionEntry {
+  readonly capabilities?: unknown;
+  readonly discoveredCapabilities?: unknown;
+  readonly absent?: unknown;
+  readonly typos?: unknown;
+  readonly lifecycle?: unknown;
+}
 export function runtimeSnapshot(snapshot: {
-  versions: Record<string, unknown>;
+  versions: Record<string, AuditRuntimeVersionEntry>;
 }): Record<string, unknown>;

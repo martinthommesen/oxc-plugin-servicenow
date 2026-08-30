@@ -85,7 +85,8 @@ re-checked against the merged tree:
    binary itself was not driven.
 3. No offset-free host adapter is known; COR-016 is fixed regardless.
 4. The budget multiple was measured: 128 units/node completes dense scripts
-   to ~1,200 lines with branch-heavy at 468 ms, versus 1.5 s at 256.
+   to ~1,200 lines with branch-heavy at a 519 ms committed median
+   (`docs/performance-baseline.json`), versus 1.5 s at 256.
 5. The ESLint 10 + typescript-eslint pairing is treated as a range
    oversight and left to a maintainer range decision (OPS-011).
 6. The release version is deferred through the `Unreleased` changelog

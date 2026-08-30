@@ -70,6 +70,7 @@
     "test:consumer": "node scripts/run-tests.mjs tests/integration/packed-consumer.test.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "fluent:check": "node --import ./scripts/register-tsx.mjs scripts/check-fluent-manifest.mjs",
+    "pretypecheck:fixtures": "npm run build",
     "typecheck:fixtures": "tsc --noEmit -p tsconfig.valid-fixtures.json",
     "lint:check": "oxlint --disable-nested-config --deny-warnings --ignore-pattern 'tests/integration/profiles/**' src scripts tests",
     "format": "oxfmt -c .oxfmtrc.json --write src scripts tests",

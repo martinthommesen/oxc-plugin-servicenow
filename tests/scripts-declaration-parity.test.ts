@@ -29,6 +29,10 @@ function valueExports(source: string): Set<string> {
       if (name && !name.startsWith("type ")) names.add(name);
     }
   }
+  // Direct default exports carry no binding name; record them as "default"
+  // in both file forms so a default export missing from either side of a
+  // pair still fails the parity comparison.
+  if (/^export\s+default\b/m.test(source)) names.add("default");
   return names;
 }
 

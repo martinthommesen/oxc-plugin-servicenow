@@ -93,8 +93,9 @@ Trigger and conditions:
 - The remaining pending and live-pending criteria are satisfied or
   explicitly abandoned here.
 - The same commit archives `PR51-REMEDIATION-GOAL.md`,
-  `FINDINGS-REMEDIATION.md`, and the generated ledger documents under a tag
-  or a `history/` directory so the evidence stays retrievable.
+  `FINDINGS-REMEDIATION.md`, `scripts/pr51-acceptance.json`, and the
+  generated ledger documents under a tag or a `history/` directory so the
+  evidence stays retrievable.
 - After removal, `npm run validate` still chains every durable gate, and
   `workflow:check` and `check-script-paths.mjs` pass with no dangling
   references.

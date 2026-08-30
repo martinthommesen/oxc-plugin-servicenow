@@ -20,10 +20,20 @@ function lintFilesWithOneInstance(
     createOnce?: (context: unknown) => Record<string, unknown> | undefined;
     create?: (context: unknown) => Record<string, unknown> | undefined;
   };
-  let current: { filename: string; code: string; settings?: object; ast: unknown };
+  let current: {
+    filename: string;
+    code: string;
+    settings?: object;
+    ast: unknown;
+    comments: ReturnType<typeof parse>["comments"];
+    ancestorIndex: NonNullable<Parameters<typeof walk>[4]>;
+  };
   let count = 0;
   // The host supplies a fresh SourceCode object per file; the shared
-  // analysis cache keys on its identity, so the harness must too.
+  // analysis cache keys on its identity, so the harness must too. Comments
+  // and ancestors come from the parse, as in the real host: stubbing them
+  // empty blinds comment-driven rules and ancestor-gated diagnostics, which
+  // would make the per-file baseline assertion below vacuous.
   const freshSourceCode = () => ({
     get text() {
       return current.code;
@@ -35,8 +45,8 @@ function lintFilesWithOneInstance(
       return current.code.split("\n");
     },
     getText: () => current.code,
-    getAllComments: () => [],
-    getAncestors: () => [],
+    getAllComments: () => current.comments,
+    getAncestors: (node?: unknown) => [...(current.ancestorIndex.get(node as object) ?? [])],
   });
   let sourceCode = freshSourceCode();
   const context = {
@@ -69,7 +79,10 @@ function lintFilesWithOneInstance(
   assert.ok(visitors);
   const perFile: number[] = [];
   for (const file of files) {
-    current = { ...file, ast: parse(file.code, file.filename).ast };
+    const parsed = parse(file.code, file.filename);
+    const ancestorIndex: NonNullable<Parameters<typeof walk>[4]> = new WeakMap();
+    walk(parsed.ast as unknown as Parameters<typeof walk>[0], {}, [], new WeakSet(), ancestorIndex);
+    current = { ...file, ast: parsed.ast, comments: parsed.comments, ancestorIndex };
     sourceCode = freshSourceCode();
     count = 0;
     if (visitors.before?.() === false) {
@@ -95,6 +108,7 @@ describe("one rule instance across several files (FINDINGS.md COR-011)", () => {
         // Byte-identical files share every diagnostic offset, so state keyed
         // on offsets or nodes from a previous file surfaces as a count drop.
         const perFile = lintFilesWithOneInstance(entry.name, [file, file, file]);
+        assert.ok(perFile[0]! > 0, `${entry.name}: first file produced no diagnostics`);
         assert.equal(perFile[1], perFile[0], `${entry.name}: second file diverged`);
         assert.equal(perFile[2], perFile[0], `${entry.name}: third file diverged`);
       }
