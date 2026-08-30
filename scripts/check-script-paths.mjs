@@ -36,7 +36,7 @@ const scriptsDir = fileURLToPath(new URL(".", import.meta.url));
 const untracked = [];
 for (const entry of readdirSync(scriptsDir, { withFileTypes: true, recursive: true })) {
   if (!entry.isFile()) continue;
-  const absolute = join(entry.parentPath ?? entry.path, entry.name);
+  const absolute = join(entry.parentPath, entry.name);
   const relative = absolute.slice(scriptsDir.length - "scripts/".length);
   if (!tracked.has(relative)) untracked.push(relative);
 }

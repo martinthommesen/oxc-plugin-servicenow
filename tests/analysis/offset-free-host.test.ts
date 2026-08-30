@@ -47,4 +47,47 @@ describe("offset-free host nodes (FINDINGS.md COR-016)", () => {
       `expected both cursor advances to report, got:\n${messages.map((m) => `  - ${m.message}`).join("\n")}`,
     );
   });
+
+  it("keeps one GlideAjax finding per request when nodes carry no offsets", () => {
+    const code = [
+      'var a = new GlideAjax("x_acme.A");',
+      "a.getXMLAnswer(handleA);",
+      'var b = new GlideAjax("x_acme.B");',
+      "b.getXMLAnswer(handleB);",
+    ].join("\n");
+    const filename = "incident.client.js";
+    const parsed = parse(code, filename);
+    stripOffsets(parsed.ast);
+    const messages = applyRules(code, parsed, {
+      filename,
+      ruleNames: ["require-glideajax-sysparm-name"],
+    });
+    assert.equal(
+      messages.length,
+      2,
+      `expected both requests to report, got:\n${messages.map((m) => `  - ${m.message}`).join("\n")}`,
+    );
+  });
+
+  it("keeps one GlideAggregate finding per read when nodes carry no offsets", () => {
+    const code = [
+      'var count = new GlideAggregate("incident");',
+      'count.addAggregate("COUNT");',
+      "if (count.next()) {",
+      '  gs.info(count.getAggregate("COUNT"));',
+      "}",
+    ].join("\n");
+    const filename = "incident.br.js";
+    const parsed = parse(code, filename);
+    stripOffsets(parsed.ast);
+    const messages = applyRules(code, parsed, {
+      filename,
+      ruleNames: ["validate-glideaggregate-calls"],
+    });
+    assert.equal(
+      messages.length,
+      2,
+      `expected both unqueried reads to report, got:\n${messages.map((m) => `  - ${m.message}`).join("\n")}`,
+    );
+  });
 });

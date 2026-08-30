@@ -30,7 +30,6 @@ interface CursorVisitState {
   readonly findings: QueryInLoopFinding[];
   readonly invocations: StableInvocationQuery;
   readonly activeFunctions: Set<ImmediateFunction>;
-  readonly visitedFunctionModes: WeakMap<ImmediateFunction, number>;
   readonly visitedNodeModes: WeakMap<ESTree.Node, number>;
 }
 
@@ -120,7 +119,6 @@ export function findQueriesInCursorLoops(
     findings,
     invocations: analyzeStableInvocations(program, analysis.bindings, authority.bindingWrites),
     activeFunctions: new Set(),
-    visitedFunctionModes: new WeakMap(),
     visitedNodeModes: new WeakMap(),
   };
   visit(program, 0, state);
@@ -138,10 +136,6 @@ function visitFunctionBody(
   state: CursorVisitState,
 ): void {
   if (state.activeFunctions.has(fn)) return;
-  const mode = cursorDepth > 0 ? INSIDE_CURSOR : OUTSIDE_CURSOR;
-  const visited = state.visitedFunctionModes.get(fn) ?? 0;
-  if ((visited & mode) !== 0) return;
-  state.visitedFunctionModes.set(fn, visited | mode);
   state.activeFunctions.add(fn);
   try {
     visit(fn.body, cursorDepth, state);

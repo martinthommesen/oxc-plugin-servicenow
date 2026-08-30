@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { assertInvalid, assertValid, ES5, lint } from "../helpers/rule-tester.js";
+import { assertInvalid, assertSkipped, assertValid, ES5, lint } from "../helpers/rule-tester.js";
 
 describe("no-gs-now", () => {
   it("flags gs.now()", () => {
@@ -179,10 +179,10 @@ describe("no-hardcoded-table-names", () => {
   it("gates on known classic server-side surfaces (FINDINGS.md COR-015)", () => {
     // The catalog and the generated page declare classic authoring and known
     // instance surfaces; Fluent metadata and unclassified files stay silent.
-    assertValid(`var gr = new GlideRecord("incident");`, "no-hardcoded-table-names", {
+    assertSkipped(`var gr = new GlideRecord("incident");`, "no-hardcoded-table-names", {
       filename: "table.now.ts",
     });
-    assertValid(`var gr = new GlideRecord("incident");`, "no-hardcoded-table-names", {
+    assertSkipped(`var gr = new GlideRecord("incident");`, "no-hardcoded-table-names", {
       filename: "foo.js",
     });
   });

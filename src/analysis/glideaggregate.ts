@@ -1,5 +1,5 @@
 import type { ESTree } from "@oxlint/plugins";
-import { getStringValue, nodeStart } from "../utils/ast.js";
+import { getStringValue } from "../utils/ast.js";
 import { analyzePathBindings } from "./path-state.js";
 import {
   hasAuthoritativeConstructedMethod,
@@ -83,11 +83,18 @@ export function findGlideAggregateIssues(
   authority: PlatformMethodAuthorityFacts,
 ): AggregateFinding[] {
   const findings: AggregateFinding[] = [];
-  const reported = new Set<string>();
+  // Keyed on node identity: nodeStart() returns -1 on a host whose nodes
+  // carry no offset shape, which would collapse every finding in the file
+  // onto one key and silently drop all but the first (FINDINGS.md COR-016).
+  const reported = new Map<ESTree.Node, Set<string>>();
   const report = (finding: AggregateFinding): void => {
-    const key = `${nodeStart(finding.node)}:${finding.messageId}`;
-    if (reported.has(key)) return;
-    reported.add(key);
+    let ids = reported.get(finding.node);
+    if (!ids) {
+      ids = new Set();
+      reported.set(finding.node, ids);
+    }
+    if (ids.has(finding.messageId)) return;
+    ids.add(finding.messageId);
     findings.push(finding);
   };
   analyzePathBindings<AggData>({

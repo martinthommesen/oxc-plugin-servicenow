@@ -293,7 +293,7 @@ function escapeRegex(value) {
  * environment the rest of the certificate policy verifies
  * (FINDINGS.md MNT-004).
  */
-export function assertSubjectMatchesIdentity(expected) {
+function assertSubjectMatchesIdentity(expected) {
   const match = /^repo:([^@/]+)@\d+\/([^@:]+)@\d+:environment:(.+)$/.exec(expected.oidcSubject);
   const slug = expected.repository.replace(/^https:\/\/github\.com\//, "");
   if (!match || `${match[1]}/${match[2]}` !== slug || match[3] !== expected.environment) {
