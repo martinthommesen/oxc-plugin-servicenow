@@ -27,30 +27,18 @@ const ARTIFACT_REL = path.join("artifacts", "verify-oxc-plugin-servicenow");
 const RUN_ID_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 const SOURCE_SUFFIXES = [".js", ".ts"];
 
-/** Reads and parses a JSON file. */
 function readJson(file) {
   return JSON.parse(readFileSync(file, "utf8"));
 }
 
-/** Serializes a value as the repository's standard JSON file format. */
 function jsonBody(value) {
   return `${JSON.stringify(value, null, 2)}\n`;
 }
 
-/**
- * Computes a SHA-256 digest for a value.
- * @param {string|Buffer} value - The value to hash.
- * @return {string} The digest as a hexadecimal string.
- */
 export function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
 }
 
-/**
- * Validates a run identifier for use in artifact paths.
- * @param {string} value - The run identifier to validate.
- * @returns {string} The validated run identifier.
- */
 export function parseRunId(value) {
   if (!value || !RUN_ID_RE.test(value) || value === "." || value === ".." || value.includes("..")) {
     throw new Error(`invalid run id: ${value ?? "(empty)"}`);
@@ -58,13 +46,6 @@ export function parseRunId(value) {
   return value;
 }
 
-/**
- * Resolves a destination path and verifies that it remains within a base directory.
- * @param {string} base - The directory that contains the destination.
- * @param {string} dest - The destination path to resolve.
- * @returns {string} The resolved destination path.
- * @throws {Error} If the destination escapes the base directory.
- */
 export function containedPath(base, dest) {
   const resolvedBase = path.resolve(base);
   const resolvedDest = path.resolve(dest);
@@ -75,32 +56,17 @@ export function containedPath(base, dest) {
   return resolvedDest;
 }
 
-/**
- * Ensures that an existing path is not a symbolic link.
- * @param {string} target - The path to inspect.
- * @throws {Error} If the path exists and is a symbolic link.
- */
 function assertNotSymlink(target) {
   if (existsSync(target) && lstatSync(target).isSymbolicLink()) {
     throw new Error(`refusing symlink ${target}`);
   }
 }
 
-/**
- * Creates a directory only when the target does not already exist.
- * @param {string} dir - The directory path to create.
- */
 function mkdirExclusive(dir) {
   assertNotSymlink(dir);
   mkdirSync(dir, { recursive: false });
 }
 
-/**
- * Collects all files contained within a directory and its subdirectories.
- * @param {string} dir - The directory to search.
- * @param {string[]} [acc=[]] - The accumulator for collected file paths.
- * @return {string[]} The collected file paths, unchanged when the directory does not exist.
- */
 function listFiles(dir, acc = []) {
   if (!existsSync(dir)) return acc;
   for (const name of readdirSync(dir)) {
@@ -111,22 +77,10 @@ function listFiles(dir, acc = []) {
   return acc;
 }
 
-/**
- * Determines whether a directory contains a supported source file.
- * @param {string} dir - The directory to inspect.
- * @return {boolean} `true` if the directory contains a JavaScript, TypeScript, or Now TypeScript file, `false` otherwise.
- */
 function hasSourceFile(dir) {
   return listFiles(dir).some((file) => SOURCE_SUFFIXES.some((suffix) => file.endsWith(suffix)));
 }
 
-/**
- * Converts an absolute repository path to a normalized relative path.
- * @param {string} repoRoot - The repository root directory.
- * @param {string} abs - The absolute path to convert.
- * @return {string} The repository-relative path using forward slashes.
- * @throws {Error} If the path is outside the repository.
- */
 function repoRelative(repoRoot, abs) {
   const rel = path.relative(repoRoot, abs);
   if (rel.startsWith("..") || path.isAbsolute(rel)) {
@@ -135,11 +89,6 @@ function repoRelative(repoRoot, abs) {
   return rel.split(path.sep).join("/");
 }
 
-/**
- * Loads and validates the configured example projects and their verification metadata.
- * @param {string} repoRoot - The repository root containing the example projects and configuration.
- * @returns {{oxfmtConfig: string, skillDir: string, projects: Object, names: string[]}} Normalized formatting configuration, skill directory, project metadata, and project names.
- */
 export function loadAndValidateProjects(repoRoot = REPO_FROM_SCRIPT) {
   const raw = readJson(PROJECTS_PATH);
   if (!raw?.projects || typeof raw.projects !== "object" || !raw.oxfmtConfig || !raw.skillDir) {
@@ -220,12 +169,6 @@ export function loadAndValidateProjects(repoRoot = REPO_FROM_SCRIPT) {
   };
 }
 
-/**
- * Locate the OXC ServiceNow plugin repository by searching upward from a starting directory.
- * @param {string} [start=REPO_FROM_SCRIPT] - Directory from which to begin the search.
- * @return {{root: string, pkg: object}} The repository root and its parsed package metadata.
- * @throws {Error} If the repository cannot be found.
- */
 export function findRepo(start = REPO_FROM_SCRIPT) {
   let dir = start;
   while (true) {
@@ -240,13 +183,6 @@ export function findRepo(start = REPO_FROM_SCRIPT) {
   }
 }
 
-/**
- * Computes a deterministic SHA-256 fingerprint for matching files in a repository directory.
- * @param {string} repoRoot - The repository root directory.
- * @param {string} relDir - The directory path relative to the repository root.
- * @param {string[]} suffixes - File suffixes to include in the fingerprint.
- * @returns {string} The hexadecimal SHA-256 digest of the sorted file paths and contents.
- */
 function hashTree(repoRoot, relDir, suffixes) {
   const abs = path.join(repoRoot, relDir);
   const files = listFiles(abs)
@@ -261,11 +197,6 @@ function hashTree(repoRoot, relDir, suffixes) {
   return hash.digest("hex");
 }
 
-/**
- * Computes a fingerprint for the repository's source and project configuration.
- * @param {string} repoRoot - The repository root directory.
- * @return {string} A SHA-256 fingerprint of the source tree, package metadata, and project configuration.
- */
 export function sourceFingerprint(repoRoot) {
   return sha256(
     [
@@ -276,24 +207,12 @@ export function sourceFingerprint(repoRoot) {
   );
 }
 
-/**
- * Computes a fingerprint for the built plugin entry point.
- * @param {string} repoRoot - The repository root directory.
- * @return {string} The SHA-256 digest of `dist/index.js`.
- * @throws {Error} If `dist/index.js` is missing.
- */
 export function distHash(repoRoot) {
   const distIndex = path.join(repoRoot, "dist", "index.js");
   if (!existsSync(distIndex)) throw new Error("dist/index.js is missing. Run npm run build.");
   return sha256(readFileSync(distIndex));
 }
 
-/**
- * Retrieves the current Git commit for a repository.
- * @param {string} repoRoot - The repository root directory.
- * @return {string} The current commit hash.
- * @throws {Error} If Git cannot determine the current commit.
- */
 function gitCommit(repoRoot) {
   const result = runHostProcess({
     bin: "git",
@@ -307,11 +226,6 @@ function gitCommit(repoRoot) {
   return result.stdout.trim();
 }
 
-/**
- * Determines the Git state of the repository's examples directory.
- * @param {string} repoRoot - The repository root used for the Git status check.
- * @returns {{hash: string, [key: string]: *}} The interpreted Git state with a SHA-256 hash of its detail.
- */
 export function examplesGit(repoRoot) {
   const result = runHostProcess({
     bin: "git",
@@ -323,21 +237,10 @@ export function examplesGit(repoRoot) {
   return { ...state, hash: sha256(state.detail) };
 }
 
-/**
- * Gets the base directory for verification artifacts.
- * @param {string} repoRoot - The repository root directory.
- * @returns {string} The artifact directory path.
- */
 function artifactBase(repoRoot) {
   return path.join(repoRoot, ARTIFACT_REL);
 }
 
-/**
- * Resolves the artifact directory for a run.
- * @param {string} repoRoot - The repository root.
- * @param {string} runId - The run identifier.
- * @returns {string} The validated run artifact directory path.
- */
 export function runDirFor(repoRoot, runId) {
   return containedPath(
     artifactBase(repoRoot),
@@ -345,40 +248,20 @@ export function runDirFor(repoRoot, runId) {
   );
 }
 
-/**
- * Reads the manifest for a verification run.
- * @param {string} runDir - The verification run directory containing `manifest.json`.
- * @return {object} The parsed run manifest.
- */
 function readManifest(runDir) {
   const manifestPath = path.join(runDir, "manifest.json");
   if (!existsSync(manifestPath)) throw new Error(`missing run manifest: ${manifestPath}`);
   return readJson(manifestPath);
 }
 
-/**
- * Writes a value to a file as indented JSON followed by a newline.
- * @param {string} file - The path of the file to write.
- * @param {*} value - The value to serialize.
- */
 function writeJson(file, value) {
   writeFileSync(file, jsonBody(value));
 }
 
-/**
- * Marks an evidence directory as completed.
- * @param {string} dir - The directory in which to create the completion marker.
- */
 function writeCompleted(dir) {
   writeFileSync(path.join(dir, "COMPLETED"), "1\n");
 }
 
-/**
- * Retrieves the single ServiceNow plugin configuration from a project configuration.
- * @param {Object} config - The project configuration containing JavaScript plugins.
- * @returns {Object} The ServiceNow plugin configuration.
- * @throws {Error} If the configuration does not contain exactly one ServiceNow plugin.
- */
 function servicenowPlugin(config) {
   const plugins = Array.isArray(config.jsPlugins) ? config.jsPlugins : [];
   const matches = plugins.filter((plugin) => plugin?.name === "servicenow");
@@ -388,34 +271,16 @@ function servicenowPlugin(config) {
   return matches[0];
 }
 
-/**
- * Rewrites the ServiceNow plugin specifier in a project configuration.
- * @param {string} sourceConfigPath - Path to the source configuration file.
- * @param {string} distIndex - Path to the built plugin entry point.
- * @return {Object} The updated configuration object.
- */
 function rewriteConfig(sourceConfigPath, distIndex) {
   const config = readJson(sourceConfigPath);
   servicenowPlugin(config).specifier = distIndex;
   return config;
 }
 
-/**
- * Reads the installed version of a package from the repository's dependencies.
- * @param {string} repoRoot - The repository root directory.
- * @param {string} name - The package name.
- * @return {string} The installed package version.
- */
 function installedVersion(repoRoot, name) {
   return readJson(path.join(repoRoot, "node_modules", name, "package.json")).version;
 }
 
-/**
- * Determines whether a Node.js version satisfies a minimum engine requirement.
- * @param {string} nodeVersion - The Node.js version to evaluate.
- * @param {string} engine - The minimum version requirement in `>=major.minor.patch` format.
- * @returns {boolean} `true` if the version meets the requirement, `false` otherwise.
- */
 function meetsEngine(nodeVersion, engine) {
   const need = /^>=(\d+)\.(\d+)\.(\d+)$/.exec(engine);
   const have = /^v?(\d+)\.(\d+)\.(\d+)/.exec(nodeVersion);
@@ -424,11 +289,6 @@ function meetsEngine(nodeVersion, engine) {
   return cmp[0] !== 0 ? cmp[0] > 0 : cmp[1] !== 0 ? cmp[1] > 0 : cmp[2] >= 0;
 }
 
-/**
- * Determines whether a process with the specified ID exists.
- * @param {number} pid - The process ID to check.
- * @return {boolean} `true` if the process exists, `false` otherwise.
- */
 function processAlive(pid) {
   try {
     process.kill(pid, 0);
@@ -438,29 +298,15 @@ function processAlive(pid) {
   }
 }
 
-/**
- * Records the current process ID in the run directory.
- * @param {string} runDir - The directory where the live-process marker is written.
- */
 function writeLivePid(runDir) {
   writeFileSync(path.join(runDir, "live.pid"), `${process.pid}\n`);
 }
 
-/**
- * Removes the live-process marker from a run directory when present.
- * @param {string} runDir - The run directory containing the marker.
- */
 function clearLivePid(runDir) {
   const file = path.join(runDir, "live.pid");
   if (existsSync(file)) rmSync(file);
 }
 
-/**
- * Verifies that the repository source and built distribution match the manifest.
- * @param {string} repoRoot - The repository root directory.
- * @param {object} manifest - The manifest containing recorded source and distribution fingerprints.
- * @throws {Error} If either fingerprint differs from the manifest.
- */
 function requireFreshFingerprints(repoRoot, manifest) {
   const source = sourceFingerprint(repoRoot);
   const dist = distHash(repoRoot);
@@ -472,25 +318,12 @@ function requireFreshFingerprints(repoRoot, manifest) {
   }
 }
 
-/**
- * Ensure that the run completed its doctor checks.
- * @param {string} runDir - The directory containing the run artifacts.
- * @param {object} manifest - The run manifest to verify.
- * @throws {Error} If the manifest or doctor completion marker indicates that doctor checks are incomplete.
- */
 function requireDoctor(runDir, manifest) {
   if (!manifest.doctorCompleted || !existsSync(path.join(runDir, "doctor", "COMPLETED"))) {
     throw new Error("doctor has not completed for this run.");
   }
 }
 
-/**
- * Verifies that the repository and examples Git state match the run manifest.
- * @param {string} repoRoot - The repository root directory.
- * @param {Object} manifest - The run manifest containing recorded Git state.
- * @param {boolean} noncanonical - Whether to allow dirty or changed examples state.
- * @returns {Object} The current examples Git state.
- */
 function requireGitMatch(repoRoot, manifest, noncanonical) {
   const commit = gitCommit(repoRoot);
   const git = examplesGit(repoRoot);
@@ -507,14 +340,12 @@ function requireGitMatch(repoRoot, manifest, noncanonical) {
   return git;
 }
 
-/** Verifies all prerequisites shared by lint and format drives. */
 function requireReadyRun(repoRoot, runDir, manifest, noncanonical) {
   requireDoctor(runDir, manifest);
   requireFreshFingerprints(repoRoot, manifest);
   return requireGitMatch(repoRoot, manifest, noncanonical);
 }
 
-/** Adds a failed proof reason when a canonical drive mutates examples. */
 function recordExamplesMutation(repoRoot, before, proof, noncanonical) {
   if (!noncanonical && examplesGit(repoRoot).hash !== before.hash) {
     proof.ok = false;
@@ -522,11 +353,6 @@ function recordExamplesMutation(repoRoot, before, proof, noncanonical) {
   }
 }
 
-/**
- * Persists attempt evidence files and marks the attempt as completed.
- * @param {string} dir - The directory where the attempt evidence is stored.
- * @param {Object<string, string|Buffer>} files - Evidence file contents keyed by filename.
- */
 function persistAttempt(dir, files) {
   mkdirSync(dir, { recursive: true });
   for (const [name, body] of Object.entries(files)) {
@@ -537,7 +363,6 @@ function persistAttempt(dir, files) {
   writeCompleted(dir);
 }
 
-/** Persists the evidence files shared by all host-process attempts. */
 function persistHostAttempt(dir, argv, host, summary) {
   persistAttempt(dir, {
     "argv.json": jsonBody(argv),
@@ -555,13 +380,6 @@ function persistHostAttempt(dir, argv, host, summary) {
   });
 }
 
-/**
- * Verifies that Oxlint can load the built ServiceNow plugin against the fluent project's valid example tree.
- * @param {string} repoRoot - The repository root.
- * @param {object} projects - Validated project metadata containing the fluent project configuration.
- * @param {string} doctorDir - Directory for plugin-load configuration and execution evidence.
- * @return {object} The classified plugin-load verification result.
- */
 function pluginLoadCheck(repoRoot, projects, doctorDir) {
   const spec = projects.projects.fluent;
   const effective = rewriteConfig(
@@ -593,15 +411,6 @@ function pluginLoadCheck(repoRoot, projects, doctorDir) {
   });
 }
 
-/**
- * Runs diagnostic checks for the Node.js environment, build artifacts, required tools, repository state, run fingerprints, and plugin loading.
- * @param {string} repoRoot - The repository root directory.
- * @param {object} pkg - The repository package metadata.
- * @param {object|null} manifest - The run manifest used for fingerprint verification.
- * @param {object} projects - The validated project configuration.
- * @param {string} doctorDir - The directory for plugin-load diagnostic evidence.
- * @return {Array<object>} Diagnostic results containing each check's identifier, pass status, and detail.
- */
 function doctorChecks(repoRoot, pkg, manifest, projects, doctorDir) {
   const checks = [];
   const pass = (id, detail) => checks.push({ id, ok: true, detail });
@@ -654,24 +463,10 @@ function doctorChecks(repoRoot, pkg, manifest, projects, doctorDir) {
   return checks;
 }
 
-/**
- * Formats a doctor check result as a status line.
- * @param {Object} check - The check result to format.
- * @param {boolean} check.ok - Whether the check passed.
- * @param {string} check.id - The check identifier.
- * @param {string} check.detail - Details about the check result.
- * @return {string} A line containing the status, identifier, and details.
- */
 function formatDoctorLine(check) {
   return `${check.ok ? "OK" : "FAIL"} ${check.id}: ${check.detail}`;
 }
 
-/**
- * Creates an isolated evidence directory for a verification attempt.
- * @param {string} runDir - The run directory that contains the attempt directory.
- * @param {string} label - The label to record for the attempt.
- * @returns {{attemptId: string, dir: string}} The generated attempt identifier and directory path.
- */
 function createAttemptDir(runDir, label) {
   const attemptId = `attempt-${randomUUID()}`;
   const dir = containedPath(runDir, path.join(runDir, attemptId));
@@ -680,18 +475,6 @@ function createAttemptDir(runDir, label) {
   return { attemptId, dir };
 }
 
-/**
- * Runs Oxlint against a project's selected tree and records verification evidence.
- * @param {string} repoRoot - The repository root.
- * @param {Object} projects - Validated project metadata.
- * @param {string} project - The project name to verify.
- * @param {"valid"|"invalid"} tree - The project tree to lint.
- * @param {string} runDir - The directory for the verification run.
- * @param {Object} manifest - The run manifest used for consistency checks.
- * @param {string[]} argv - The command-line arguments associated with the run.
- * @param {boolean} noncanonical - Whether to allow changes to the examples directory during verification.
- * @returns {{ok: boolean, dir: string, attemptId: string, proof: Object}} The verification result and persisted attempt details.
- */
 function driveLint(repoRoot, projects, project, tree, runDir, manifest, argv, noncanonical) {
   const spec = projects.projects[project];
   if (!spec) throw new Error(`Unknown project ${project}`);
@@ -767,17 +550,6 @@ function driveLint(repoRoot, projects, project, tree, runDir, manifest, argv, no
   return { ok: proof.ok, dir, attemptId, proof };
 }
 
-/**
- * Runs Oxfmt in check mode against a project's valid tree or all configured valid trees and persists the verification evidence.
- * @param {string} repoRoot - The repository root.
- * @param {object} projects - Validated project configuration and metadata.
- * @param {string} project - The project name to check, or `all` for every project.
- * @param {string} runDir - The directory for the current verification run.
- * @param {object} manifest - The run manifest used to verify the repository state.
- * @param {string[]} argv - The command-line arguments used for the invocation.
- * @param {boolean} noncanonical - Whether to allow repository state changes during verification.
- * @returns {{ok: boolean, dir: string, attemptId: string, proof: object}} The verification result and persisted evidence location.
- */
 function driveOxfmt(repoRoot, projects, project, runDir, manifest, argv, noncanonical) {
   const initialExamplesGit = requireReadyRun(repoRoot, runDir, manifest, noncanonical);
   if (project !== "all" && !projects.projects[project])
@@ -807,65 +579,55 @@ function driveOxfmt(repoRoot, projects, project, runDir, manifest, argv, noncano
   return { ok: proof.ok, dir, attemptId, proof };
 }
 
-/**
- * Prepares an isolated verification run by building the repository and recording its initial state.
- * @param {string} repoRoot - The repository root directory.
- * @param {string} runId - Identifier for the verification run.
- * @return {{runDir: string, manifest: object}} The run artifact directory and its manifest.
- */
 function prepareRun(repoRoot, runId) {
   const base = artifactBase(repoRoot);
   mkdirSync(base, { recursive: true });
   const runDir = runDirFor(repoRoot, runId);
   mkdirExclusive(runDir);
   writeLivePid(runDir);
-  const build = runHostProcess({
-    bin: "npm",
-    args: ["run", "build"],
-    cwd: repoRoot,
-    timeoutMs: 120_000,
-  });
-  writeJson(path.join(runDir, "build.execution.json"), {
-    status: build.status,
-    signal: build.signal,
-    error: build.error,
-    stdout: build.stdout,
-    stderr: build.stderr,
-  });
-  if (build.status !== 0 || build.error) {
-    throw new Error(build.stderr || build.error?.message || "npm run build failed");
+  try {
+    const build = runHostProcess({
+      bin: "npm",
+      args: ["run", "build"],
+      cwd: repoRoot,
+      timeoutMs: 120_000,
+    });
+    writeJson(path.join(runDir, "build.execution.json"), {
+      status: build.status,
+      signal: build.signal,
+      error: build.error,
+      stdout: build.stdout,
+      stderr: build.stderr,
+    });
+    if (build.status !== 0 || build.error) {
+      throw new Error(build.stderr || build.error?.message || "npm run build failed");
+    }
+    const git = examplesGit(repoRoot);
+    if (git.kind === "error") throw new Error(`git status failed: ${git.detail}`);
+    if (git.kind === "dirty") throw new Error(`examples/ is dirty:\n${git.detail}`);
+    const manifest = {
+      runId,
+      repoRoot,
+      gitCommit: gitCommit(repoRoot),
+      examplesGit: git,
+      sourceFingerprint: sourceFingerprint(repoRoot),
+      distHash: distHash(repoRoot),
+      versions: {
+        node: process.version,
+        oxlint: installedVersion(repoRoot, "oxlint"),
+        oxfmt: installedVersion(repoRoot, "oxfmt"),
+      },
+      doctorCompleted: false,
+      createdAt: new Date().toISOString(),
+    };
+    writeJson(path.join(runDir, "manifest.json"), manifest);
+    return { runDir, manifest };
+  } catch (error) {
+    clearLivePid(runDir);
+    throw error;
   }
-  const git = examplesGit(repoRoot);
-  if (git.kind === "error") throw new Error(`git status failed: ${git.detail}`);
-  if (git.kind === "dirty") throw new Error(`examples/ is dirty:\n${git.detail}`);
-  const manifest = {
-    runId,
-    repoRoot,
-    gitCommit: gitCommit(repoRoot),
-    examplesGit: git,
-    sourceFingerprint: sourceFingerprint(repoRoot),
-    distHash: distHash(repoRoot),
-    versions: {
-      node: process.version,
-      oxlint: installedVersion(repoRoot, "oxlint"),
-      oxfmt: installedVersion(repoRoot, "oxfmt"),
-    },
-    doctorCompleted: false,
-    createdAt: new Date().toISOString(),
-  };
-  writeJson(path.join(runDir, "manifest.json"), manifest);
-  return { runDir, manifest };
 }
 
-/**
- * Runs repository diagnostics and persists the resulting doctor reports.
- * @param {string} repoRoot - The repository root to diagnose.
- * @param {object} pkg - The repository package metadata.
- * @param {Array<object>} projects - The projects to include in the diagnostics.
- * @param {string} runDir - The directory where diagnostic artifacts are stored.
- * @param {object} manifest - The run manifest to update when all checks pass.
- * @return {{ok: boolean, checks: Array<object>}} The overall diagnostic status and individual check results.
- */
 function runDoctor(repoRoot, pkg, projects, runDir, manifest) {
   const doctorDir = path.join(runDir, "doctor");
   mkdirSync(doctorDir, { recursive: true });
@@ -891,12 +653,6 @@ function usage() {
   npm run verify:examples -- cleanup --run-id <id>`);
 }
 
-/**
- * Parses command-line arguments into verification options.
- * @param {string[]} argv - The command-line arguments to parse.
- * @return {Object} The parsed command, project, tree, run ID, and execution mode options.
- * @throws {Error} If an argument is not recognized.
- */
 function parseArgs(argv) {
   const options = {
     all: false,
@@ -938,11 +694,6 @@ function parseArgs(argv) {
   return options;
 }
 
-/**
- * Executes the verification CLI command selected by the provided arguments.
- * @param {string[]} argv - Command-line arguments to parse.
- * @return {number} The process exit status: `0` for success, `1` for failed verification, or `2` for invalid or incomplete arguments.
- */
 export function main(argv) {
   const { root, pkg } = findRepo();
   const options = parseArgs(argv);
@@ -1031,11 +782,13 @@ export function main(argv) {
     const runId = parseRunId(options.runId ?? `run-${Date.now()}`);
     let runDir;
     let manifest;
+    let ownsLivePid = false;
     if (existsSync(path.join(runDirFor(root, runId), "manifest.json"))) {
       runDir = runDirFor(root, runId);
       manifest = readManifest(runDir);
     } else {
       ({ runDir, manifest } = prepareRun(root, runId));
+      ownsLivePid = true;
       const doctor = runDoctor(root, pkg, projects, runDir, manifest);
       for (const check of doctor.checks) console.error(formatDoctorLine(check));
       if (!doctor.ok) {
@@ -1074,7 +827,7 @@ export function main(argv) {
       );
       return result.ok ? 0 : 1;
     } finally {
-      clearLivePid(runDir);
+      if (ownsLivePid) clearLivePid(runDir);
     }
   }
 

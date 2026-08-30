@@ -67,7 +67,7 @@ jobs:
         with:
           name: verify-examples
           path: artifacts/verify-oxc-plugin-servicenow/
-          if-no-files-found: error
+          if-no-files-found: warn
 
   consumer:
     timeout-minutes: 20

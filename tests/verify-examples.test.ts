@@ -409,16 +409,19 @@ describe("verify-examples CLI", () => {
     const runId = `test-stale-${Date.now()}`;
     const prepare = runCli(["prepare", "--run-id", runId]);
     assert.equal(prepare.status, 0, `${prepare.stdout}\n${prepare.stderr}`);
-    const dist = path.join(repoRoot, "dist", "index.js");
-    const original = readFileSync(dist);
-    writeFileSync(dist, Buffer.concat([original, Buffer.from("\n")]));
-    try {
-      const drive = runCli(["--project", "fluent", "--tree", "valid", "--run-id", runId]);
-      assert.notEqual(drive.status, 0);
-      assert.match(`${drive.stdout}\n${drive.stderr}`, /hash changed|fingerprint/);
-    } finally {
-      writeFileSync(dist, original);
-    }
+    const manifestPath = path.join(
+      repoRoot,
+      "artifacts",
+      "verify-oxc-plugin-servicenow",
+      runId,
+      "manifest.json",
+    );
+    const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as { distHash: string };
+    manifest.distHash = "0".repeat(64);
+    writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+    const drive = runCli(["--project", "fluent", "--tree", "valid", "--run-id", runId]);
+    assert.notEqual(drive.status, 0);
+    assert.match(`${drive.stdout}\n${drive.stderr}`, /hash changed|fingerprint/);
   });
 
   it("refuses to reuse an existing run id for prepare", () => {
@@ -437,7 +440,10 @@ describe("verify-examples CLI", () => {
     const cleanup = runCli(["cleanup", "--run-id", runId]);
     assert.notEqual(cleanup.status, 0);
     assert.ok(existsSync(path.join(runDir, "manifest.json")));
-    writeFileSync(path.join(runDir, "live.pid"), "2147483647\n");
+    const dead = spawnSync(process.execPath, ["-e", ""]);
+    assert.equal(dead.status, 0);
+    assert.ok(Number.isInteger(dead.pid));
+    writeFileSync(path.join(runDir, "live.pid"), `${dead.pid}\n`);
     const stale = runCli(["cleanup", "--run-id", runId]);
     assert.equal(stale.status, 0, stale.stderr);
     assert.ok(existsSync(path.join(runDir, "manifest.json")));

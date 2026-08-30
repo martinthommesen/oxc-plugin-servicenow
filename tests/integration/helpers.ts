@@ -44,14 +44,6 @@ export type OxlintProcessResult = {
   report: OxlintReport;
 };
 
-/**
- * Runs Oxlint against the specified targets using the provided configuration.
- *
- * @param configPath - Path to the Oxlint configuration file
- * @param targets - Files or directories to lint
- * @returns The normalized process result and parsed Oxlint report
- * @throws If Oxlint fails to start, is terminated by a signal, exits with an unexpected status, emits malformed output, reports a host fault, or exits with status 1 without diagnostics
- */
 export function runOxlintProcess(configPath: string, targets: string[]): OxlintProcessResult {
   const result = runHostProcess({
     bin: oxlintBin,
@@ -85,34 +77,14 @@ export function runOxlintProcess(configPath: string, targets: string[]): OxlintP
   };
 }
 
-/**
- * Runs Oxlint against the specified targets using the provided configuration.
- *
- * @param configPath - Path to the Oxlint configuration file
- * @param targets - Files or directories to lint
- * @returns The parsed Oxlint report
- */
 export function runOxlint(configPath: string, targets: string[]): OxlintReport {
   return runOxlintProcess(configPath, targets).report;
 }
 
-/**
- * Converts a ServiceNow rule code to its underlying plugin rule identifier.
- *
- * @param code - The ServiceNow rule code
- * @returns The plugin rule identifier, or `undefined` when the code is not a ServiceNow rule code
- */
 export function pluginRuleId(code: string): string | undefined {
   return unwrapServicenowRuleId(code);
 }
 
-/**
- * Extracts plugin rule identifiers from an Oxlint report.
- *
- * @param report - The Oxlint report containing diagnostics
- * @param filenamePart - An optional filename fragment used to filter diagnostics
- * @returns The matching plugin rule identifiers
- */
 export function pluginRulesFor(report: OxlintReport, filenamePart?: string): string[] {
   return pluginRuleIds(report, filenamePart);
 }
