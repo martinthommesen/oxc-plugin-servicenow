@@ -1,0 +1,84 @@
+{
+  "lintProjects": {
+    "fluent": {
+      "dir": "examples/fluent",
+      "config": "examples/fluent/.oxlintrc.json",
+      "valid": "examples/fluent/valid",
+      "invalid": "examples/fluent/invalid",
+      "invalidExpectedRules": ["servicenow/require-fluent-id"]
+    },
+    "classic-es5": {
+      "dir": "examples/classic-es5",
+      "config": "examples/classic-es5/.oxlintrc.json",
+      "valid": "examples/classic-es5/valid",
+      "invalid": "examples/classic-es5/invalid",
+      "invalidExpectedRules": ["servicenow/no-unsupported-syntax"]
+    },
+    "classic-compatibility": {
+      "dir": "examples/classic-compatibility",
+      "config": "examples/classic-compatibility/.oxlintrc.json",
+      "valid": "examples/classic-compatibility/valid",
+      "invalid": "examples/classic-compatibility/invalid",
+      "invalidExpectedRules": ["servicenow/no-promise"]
+    },
+    "es2021": {
+      "dir": "examples/es2021",
+      "config": "examples/es2021/.oxlintrc.json",
+      "valid": "examples/es2021/valid",
+      "invalid": "examples/es2021/invalid",
+      "invalidExpectedRules": [
+        "servicenow/no-async-iterators",
+        "servicenow/no-typed-arrays",
+        "servicenow/no-unsupported-syntax"
+      ]
+    },
+    "client": {
+      "dir": "examples/client",
+      "config": "examples/client/.oxlintrc.json",
+      "valid": "examples/client/valid",
+      "invalid": "examples/client/invalid",
+      "invalidExpectedRules": ["servicenow/require-callback-for-getreference"]
+    },
+    "business-rule": {
+      "dir": "examples/business-rule",
+      "config": "examples/business-rule/.oxlintrc.json",
+      "valid": "examples/business-rule/valid",
+      "invalid": "examples/business-rule/invalid",
+      "invalidExpectedRules": ["servicenow/require-business-rule-wrapper"]
+    },
+    "ui-action": {
+      "dir": "examples/ui-action",
+      "config": "examples/ui-action/.oxlintrc.json",
+      "valid": "examples/ui-action/valid",
+      "invalid": "examples/ui-action/invalid",
+      "invalidExpectedRules": ["servicenow/no-client-gliderecord"]
+    },
+    "mixed": {
+      "dir": "examples/mixed",
+      "config": "examples/mixed/.oxlintrc.json",
+      "valid": "examples/mixed/valid",
+      "invalid": "examples/mixed/invalid",
+      "invalidExpectedRules": ["servicenow/no-client-gliderecord"]
+    }
+  },
+  "oxfmt": {
+    "config": "oxfmt.recommended.json",
+    "targets": [
+      "examples/fluent/valid",
+      "examples/classic-es5/valid",
+      "examples/classic-compatibility/valid",
+      "examples/es2021/valid",
+      "examples/client/valid",
+      "examples/business-rule/valid",
+      "examples/ui-action/valid",
+      "examples/mixed/valid"
+    ]
+  },
+  "mappedFeatures": [
+    "fluent-metadata",
+    "classic-es5",
+    "client-scripts",
+    "business-rules",
+    "oxfmt-recommended"
+  ]
+}
