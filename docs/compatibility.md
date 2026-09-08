@@ -26,10 +26,18 @@ CI runs every cell under its exact Node runtime. Local `npm run compat` uses the
 | `min-hosts` | 20.19.0 | 10.8.2 | 1.79.0 | 9.0.0 | 0.64.0 | 8.0.0 | 5.5.4 |
 | `node22-host` | 22.14.0 | 10.9.2 | 1.79.0 | 9.39.5 | 0.64.0 | 8.67.0 | 6.0.3 |
 | `node24-host` | 24.16.0 | 11.13.0 | 1.79.0 | 10.8.1 | 0.64.0 | not installed | not installed |
-| `node26-host` | 26.7.0 | 11.19.0 | 1.79.0 | 10.8.1 | 0.64.0 | not installed | not installed |
+| `node26-host` | 26.7.0 | 11.19.0 | 1.79.0 | 10.8.1 | 0.64.0 | 8.67.0 | 6.0.3 |
 | `eslint9-current` | 24.16.0 | 11.13.0 | 1.79.0 | 9.39.5 | 0.64.0 | 8.67.0 | 6.0.3 |
 
-A cell fails with one of these classes: `package`, `host-api`, `runtime`, `parser`, or `formatter`. Parser cells exercise the exported ESLint configuration on real `.now.ts` and `.now.tsx` files. ESLint 10 cells omit typescript-eslint because its current peer range does not accept ESLint 10. Every supported combination installs with normal npm peer resolution.
+A cell fails with one of these classes: `package`, `host-api`, `runtime`, `parser`, or `formatter`. Parser cells exercise the exported ESLint configuration on real `.now.ts` and `.now.tsx` files. Every supported combination installs with normal npm peer resolution.
+
+## Combinations the declared ranges do not support
+
+`scripts/check-compat-matrix.mjs` requires every declared peer floor and top major to be exercised by a cell, and requires each combination below to be rejected by an upstream peer range rather than by this package alone. npm peer resolution refuses these installs; no cell may exercise them.
+
+| Combination | Why it is unsupported | Blocked by |
+| --- | --- | --- |
+| eslint `>=10.0.0 <11` with typescriptEslint `>=8.0.0 <8.45.0` | typescript-eslint below 8.45.0 resolves an ESLint peer range of ^8.57.0 \|\| ^9.0.0, so npm peer resolution rejects the pairing before it can run. | `typescript-eslint` peer `eslint: ^8.57.0 \|\| ^9.0.0` |
 
 ## Contributors
 

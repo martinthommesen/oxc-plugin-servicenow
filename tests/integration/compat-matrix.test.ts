@@ -4,7 +4,11 @@ import path from "node:path";
 import { describe, it } from "node:test";
 import { parseNpmPackJson } from "../../scripts/parse-npm-pack.mjs";
 import { repoRoot, TSX_CLI_EXECUTION_PATTERN } from "./helpers.js";
-import { checkCompatibilityMatrix } from "../../scripts/check-compat-matrix.mjs";
+import {
+  checkCompatibilityMatrix,
+  checkSupportPolicy,
+} from "../../scripts/check-compat-matrix.mjs";
+import { rangeFloor, rangeTopMajor, satisfiesRange } from "../../scripts/lib/semver-range.mjs";
 import { SUPPORTED_SERVICENOW_RELEASES } from "../../src/settings/index.js";
 
 describe("compatibility matrix", () => {
@@ -94,6 +98,98 @@ describe("compatibility matrix", () => {
     for (const release of matrix.serviceNowReleases) {
       assert.ok(documentedReleases.has(release), `compatibility table is missing ${release}`);
     }
+  });
+
+  it("evaluates only the npm range forms the support policy declares", () => {
+    assert.equal(satisfiesRange("9.39.5", ">=9.0.0 <11"), true);
+    assert.equal(satisfiesRange("11.0.0", ">=9.0.0 <11"), false);
+    assert.equal(satisfiesRange("8.57.0", "^8.57.0 || ^9.0.0"), true);
+    assert.equal(satisfiesRange("10.8.1", "^8.57.0 || ^9.0.0"), false);
+    // ^0.x is minor-bounded in npm, unlike ^1.x and above.
+    assert.equal(satisfiesRange("0.64.9", "^0.64.0"), true);
+    assert.equal(satisfiesRange("0.65.0", "^0.64.0"), false);
+    assert.equal(rangeFloor(">=0.64.0 <1"), "0.64.0");
+    assert.equal(rangeTopMajor(">=9.0.0 <11"), 10);
+    assert.equal(rangeTopMajor(">=0.64.0 <1"), 0);
+    assert.throws(() => satisfiesRange("1.0.0", "~1.0.0"), /unsupported range comparator/);
+    assert.throws(() => rangeFloor("<11"), /no >= floor/);
+    assert.throws(() => rangeTopMajor(">=9.0.0"), /no < ceiling/);
+  });
+
+  it("keeps declared peer support equal to tested support (FINDINGS.md OPS-011)", () => {
+    const matrix = JSON.parse(
+      readFileSync(path.join(repoRoot, "scripts/compat-matrix.json"), "utf8"),
+    );
+    const pkg = JSON.parse(readFileSync(path.join(repoRoot, "package.json"), "utf8"));
+    assert.deepEqual(checkSupportPolicy(matrix, pkg), []);
+
+    // ESLint 10 is advertised by the peer range, so a cell must run it with the
+    // optional parser rather than leaving the pairing declared but untested.
+    const eslint10Parser = matrix.cells.filter(
+      (cell: any) => cell.eslint.startsWith("10.") && cell.typescriptEslint !== undefined,
+    );
+    assert.equal(eslint10Parser.length, 1, "no cell exercises ESLint 10 with typescript-eslint");
+
+    const clonePolicy = () => JSON.parse(JSON.stringify({ matrix, pkg }));
+    const expectError = (
+      mutate: (value: { matrix: any; pkg: any }) => void,
+      pattern: RegExp,
+      label: string,
+    ) => {
+      const value = clonePolicy();
+      mutate(value);
+      const errors = checkSupportPolicy(value.matrix, value.pkg);
+      assert.ok(
+        errors.some((error: string) => pattern.test(error)),
+        `${label}: expected ${pattern} in ${JSON.stringify(errors)}`,
+      );
+    };
+
+    expectError(
+      (value) => (value.pkg.peerDependencies.eslint = ">=9.0.0 <12"),
+      /peer is >=9\.0\.0 <12; support policy declares/,
+      "a peer range widened past the policy",
+    );
+    expectError(
+      (value) => {
+        value.matrix.supportPolicy.components.eslint.peer = ">=9.0.0 <12";
+        value.pkg.peerDependencies.eslint = ">=9.0.0 <12";
+      },
+      /advertises 11\.x but no cell tests it/,
+      "an advertised major nothing tests",
+    );
+    expectError(
+      (value) => (value.matrix.eslint.minimum = "9.1.0"),
+      /is not the peer floor 9\.0\.0/,
+      "a tested floor above the advertised floor",
+    );
+    expectError(
+      (value) => (value.matrix.oxfmt.highestCompatible = "0.99.0"),
+      /has no compatibility cell/,
+      "a tested version no cell runs",
+    );
+    expectError(
+      (value) => (value.matrix.supportPolicy.incompatibleCombinations[0].witness.eslint = "9.39.5"),
+      /accepts it/,
+      "a rejected pairing that upstream peers actually allow",
+    );
+    expectError(
+      (value) => delete value.matrix.supportPolicy.incompatibleCombinations[0].blockedBy,
+      /does not record the upstream peer range that blocks it/,
+      "a rejected pairing with no upstream enforcement",
+    );
+    expectError(
+      (value) =>
+        (value.matrix.supportPolicy.incompatibleCombinations[0].components.typescriptEslint =
+          ">=8.0.0 <9"),
+      /exercises the rejected combination/,
+      "a cell running a rejected pairing",
+    );
+    expectError(
+      (value) => (value.matrix.supportPolicy.components = {}),
+      /has no supportPolicy\.components/,
+      "a matrix with no declared support policy",
+    );
   });
 
   it("parses legacy npm pack arrays and npm 12 package-keyed output", () => {
