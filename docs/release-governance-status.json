@@ -3,7 +3,7 @@
   "evidenceStatus": "point-in-time-verified",
   "liveVerification": "partial",
   "warning": "This capture records verified controls at one point in time. Run the governance audit again before release.",
-  "capturedAt": "2026-08-29T14:45:00Z",
+  "capturedAt": "2026-09-08T09:45:45Z",
   "repository": "martinthommesen/oxc-plugin-servicenow",
   "verified": {
     "mainRuleset": {
@@ -14,7 +14,6 @@
       "requiredStatusChecks": [
         "test",
         "consumer",
-        "bench",
         "compat (min-hosts, 20.19.0)",
         "compat (node22-host, 22.14.0)",
         "compat (node24-host, 24.16.0)",
