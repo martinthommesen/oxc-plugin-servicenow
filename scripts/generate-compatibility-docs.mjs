@@ -16,6 +16,20 @@ function replaceMarkedSection(source, name, body) {
   return source.replace(pattern, `${start}\n${body.trim()}\n${end}`);
 }
 
+// npm ranges contain `||`, which would otherwise split a Markdown table cell.
+const cell = (text) => String(text).replaceAll("|", "\\|");
+
+const incompatibleRows = (matrix.supportPolicy?.incompatibleCombinations ?? [])
+  .map(
+    (item) =>
+      `| ${Object.entries(item.components)
+        .map(([name, range]) => `${name} \`${cell(range)}\``)
+        .join(
+          " with ",
+        )} | ${cell(item.reason)} | \`${item.blockedBy.package}\` peer \`${item.blockedBy.peer}: ${cell(item.blockedBy.range)}\` |`,
+  )
+  .join("\n");
+
 const cellRows = matrix.cells
   .map(
     (cell) =>
@@ -50,7 +64,15 @@ CI runs every cell under its exact Node runtime. Local \`npm run compat\` uses t
 | --- | --- | --- | --- | --- | --- | --- | --- |
 ${cellRows}
 
-A cell fails with one of these classes: \`package\`, \`host-api\`, \`runtime\`, \`parser\`, or \`formatter\`. Parser cells exercise the exported ESLint configuration on real \`.now.ts\` and \`.now.tsx\` files. ESLint 10 cells omit typescript-eslint because its current peer range does not accept ESLint 10. Every supported combination installs with normal npm peer resolution.
+A cell fails with one of these classes: \`package\`, \`host-api\`, \`runtime\`, \`parser\`, or \`formatter\`. Parser cells exercise the exported ESLint configuration on real \`.now.ts\` and \`.now.tsx\` files. Every supported combination installs with normal npm peer resolution.
+
+## Combinations the declared ranges do not support
+
+\`scripts/check-compat-matrix.mjs\` requires every declared peer floor and top major to be exercised by a cell, and requires each combination below to be rejected by an upstream peer range rather than by this package alone. npm peer resolution refuses these installs; no cell may exercise them.
+
+| Combination | Why it is unsupported | Blocked by |
+| --- | --- | --- |
+${incompatibleRows}
 
 ## Contributors
 

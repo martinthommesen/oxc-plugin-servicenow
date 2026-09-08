@@ -11,6 +11,7 @@ import { checkActionPins } from "../../scripts/check-action-pins.mjs";
 import {
   collectLiveGovernance,
   compareGovernance,
+  main as governanceMain,
   normalizeLiveGovernance,
   validateDesiredGovernance,
 } from "../../scripts/check-release-governance.mjs";
@@ -66,6 +67,12 @@ const authoritativeDesiredFixture = JSON.parse(
 );
 const liveFixture = JSON.parse(
   readFileSync(path.join(repoRoot, "tests/fixtures/release-governance/valid.json"), "utf8"),
+);
+const unobservableBypassFixture = JSON.parse(
+  readFileSync(
+    path.join(repoRoot, "tests/fixtures/release-governance/unobservable-bypass.json"),
+    "utf8",
+  ),
 );
 
 function clone<T>(value: T): T {
@@ -547,6 +554,87 @@ describe("release automation gates", () => {
     const normalized = normalizeLiveGovernance(raw, desiredFixture);
     assert.deepEqual(normalized.releaseTagRulesets.creation.refExcludes, ["refs/tags/v2**"]);
     assert.deepEqual(normalized.releaseTagRulesets.creation.refIncludes, [expected.refPattern]);
+  });
+
+  it("separates unobservable bypass actors from observed drift (FINDINGS.md OPS-012)", () => {
+    // GitHub returns bypass_actors only to callers with write access to the
+    // ruleset. The read-only audit token cannot see the field at all, and
+    // reading its absence as an empty list reported drift on every run.
+    const raw = {
+      rulesets: [
+        {
+          name: desiredFixture.releaseTagRulesets.creation.name,
+          enforcement: "active",
+          target: "tag",
+          conditions: { ref_name: { include: ["refs/tags/v**"], exclude: [] } },
+          rules: [{ type: "creation" }],
+        },
+      ],
+    };
+    const summary = normalizeLiveGovernance(raw, desiredFixture).releaseTagRulesets.creation;
+    assert.equal(summary.bypassActors, undefined);
+
+    const unobserved = compareGovernance(desiredFixture, unobservableBypassFixture);
+    assert.deepEqual(unobserved.unverifiable, [
+      "immutability tag bypass actors",
+      "creation tag bypass actors",
+      "main ruleset bypass actors",
+    ]);
+    assert.equal(
+      unobserved.errors.some((error: string) => error.includes("bypass actors")),
+      false,
+    );
+    assert.equal(unobserved.ok, true);
+
+    // An observed empty list is still drift when the policy requires an actor.
+    const observedEmpty = clone(liveFixture);
+    observedEmpty.releaseTagRulesets.creation.bypassActors = [];
+    const emptyResult = compareGovernance(desiredFixture, observedEmpty);
+    assert.ok(emptyResult.errors.includes("creation tag bypass actors drifted"));
+    assert.deepEqual(emptyResult.unverifiable, []);
+
+    // Confirmed drift is never masked by an unobservable field.
+    const drifted = clone(unobservableBypassFixture);
+    drifted.mainRuleset.requiredStatusChecks = [
+      ...drifted.mainRuleset.requiredStatusChecks,
+      "bench",
+    ];
+    const driftResult = compareGovernance(desiredFixture, drifted);
+    assert.equal(driftResult.ok, false);
+    assert.ok(
+      driftResult.errors.some((error: string) =>
+        error.startsWith('main required status checks drifted (remove "bench")'),
+      ),
+      `unexpected errors: ${JSON.stringify(driftResult.errors)}`,
+    );
+    assert.deepEqual(driftResult.unverifiable, unobserved.unverifiable);
+  });
+
+  it("fails unobservable fields only under --strict-observability", () => {
+    const argv = [
+      "node",
+      "check-release-governance.mjs",
+      "--desired",
+      path.join(repoRoot, "tests/fixtures/release-governance/desired.json"),
+      "--fixture",
+      path.join(repoRoot, "tests/fixtures/release-governance/unobservable-bypass.json"),
+    ];
+    const previousExitCode = process.exitCode;
+    try {
+      const lenient = governanceMain(argv) as { ok: boolean; unverifiable: string[] };
+      assert.equal(lenient.ok, true);
+      assert.equal(process.exitCode, previousExitCode);
+
+      const strict = governanceMain([...argv, "--strict-observability"]) as {
+        ok: boolean;
+        errors: string[];
+      };
+      assert.equal(strict.ok, false);
+      assert.ok(strict.errors.includes("main ruleset bypass actors could not be observed"));
+      assert.equal(process.exitCode, 1);
+    } finally {
+      process.exitCode = previousExitCode;
+    }
   });
 
   it("rejects an unsafe repository identity before calling external tools", () => {

@@ -6,6 +6,7 @@ export function compareGovernance(
 ): {
   ok: boolean;
   errors: string[];
+  unverifiable: string[];
   livePending: string[];
   repository: string;
   environment: string;

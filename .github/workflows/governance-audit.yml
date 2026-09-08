@@ -29,6 +29,11 @@ jobs:
           cache: npm
       - run: npm ci --ignore-scripts
       - run: npm run workflow:check
+      # The workflow token has no write access to the repository rulesets, so
+      # GitHub omits `bypass_actors` from every ruleset response. The audit
+      # reports those fields as `unverifiable` rather than as drift; add
+      # `--strict-observability` only once this step runs with a credential
+      # that can actually read them (FINDINGS.md OPS-012).
       - name: Compare read-only live governance with the desired policy
         env:
           GH_TOKEN: ${{ github.token }}

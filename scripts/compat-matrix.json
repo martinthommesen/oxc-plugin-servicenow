@@ -68,6 +68,50 @@
   "extensions": [".js", ".ts", ".tsx", ".now.ts", ".now.tsx"],
   "configurationModes": ["oxlint-json", "eslint-flat", "oxfmt-json"],
   "localSmokeCell": "node24-host",
+  "supportPolicy": {
+    "comment": "Declared peer ranges are checked against this policy by scripts/check-compat-matrix.mjs: every advertised floor and top major must be exercised by a cell, and every combination listed here must be both advertised by the peer ranges and rejected by an upstream peer range, so nothing installable is left untested (FINDINGS.md OPS-011).",
+    "components": {
+      "oxlint": {
+        "peer": ">=1.79.0 <2",
+        "cellField": "oxlint",
+        "tested": ["minimum", "highestCompatible"]
+      },
+      "eslint": {
+        "peer": ">=9.0.0 <11",
+        "cellField": "eslint",
+        "tested": ["minimum", "currentV9", "current"]
+      },
+      "oxfmt": {
+        "peer": ">=0.64.0 <1",
+        "cellField": "oxfmt",
+        "tested": ["minimum", "highestCompatible"]
+      },
+      "typescriptEslint": {
+        "peer": ">=8.0.0 <9",
+        "cellField": "typescriptEslint",
+        "tested": ["minimum", "current"]
+      }
+    },
+    "incompatibleCombinations": [
+      {
+        "id": "eslint10-with-typescript-eslint-below-8.45",
+        "components": {
+          "eslint": ">=10.0.0 <11",
+          "typescriptEslint": ">=8.0.0 <8.45.0"
+        },
+        "witness": {
+          "eslint": "10.8.1",
+          "typescriptEslint": "8.0.0"
+        },
+        "reason": "typescript-eslint below 8.45.0 resolves an ESLint peer range of ^8.57.0 || ^9.0.0, so npm peer resolution rejects the pairing before it can run.",
+        "blockedBy": {
+          "package": "typescript-eslint",
+          "peer": "eslint",
+          "range": "^8.57.0 || ^9.0.0"
+        }
+      }
+    ]
+  },
   "cells": [
     {
       "id": "min-hosts",
@@ -103,7 +147,9 @@
       "npm": "11.19.0",
       "oxlint": "1.79.0",
       "eslint": "10.8.1",
-      "oxfmt": "0.64.0"
+      "oxfmt": "0.64.0",
+      "typescriptEslint": "8.67.0",
+      "typescript": "6.0.3"
     },
     {
       "id": "eslint9-current",

@@ -141,6 +141,30 @@ Check that it names this repository, `release.yml`, and the `release` environmen
 
 Do not change repository or environment settings without explicit approval.
 
+### Reading the audit result
+
+The audit separates three states, and the difference matters (FINDINGS.md OPS-012):
+
+- `errors` — confirmed drift between live GitHub state and the desired policy. The audit exits non-zero.
+- `unverifiable` — a field the audit's credential is not allowed to read. GitHub returns `bypass_actors` only to a caller with write access to the ruleset, and the scheduled workflow token has none, so bypass actors are reported here rather than as drift. Absence of evidence is not evidence of drift.
+- `livePending` — state that has no read API available to automation at all.
+
+Run the checker with `--strict-observability` to turn `unverifiable` entries into failures. Only do that from a session or credential that can actually read those fields; verify bypass actors by hand otherwise:
+
+```bash
+gh api repos/martinthommesen/oxc-plugin-servicenow/rulesets/21143599 --jq '.bypass_actors'
+```
+
+### Reconciling a drifted ruleset
+
+The checker is read-only by design and never mutates GitHub. When it reports drift it names the exact change to make, for example:
+
+```text
+main required status checks drifted (remove "bench")
+```
+
+Apply that change by hand in the repository ruleset settings, with explicit maintainer approval, then rerun the audit and confirm the difference is gone. `bench` in particular must not be a required check: the benchmark job compares absolute timings against a baseline captured on different hardware, so it runs advisory (FINDINGS.md REL-004, OPS-013).
+
 ## Live release evidence
 
 A stable protected-tag run must still prove all of these items:

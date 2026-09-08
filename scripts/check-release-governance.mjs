@@ -68,6 +68,15 @@ const EXPECTED_MAIN_RULE_PARAMETERS = [
   { type: "required_linear_history", parameters: null },
 ];
 
+/** Render an add/remove plan for a drifted set so the audit output is directly actionable. */
+function describeSetDiff(missing, unexpected) {
+  const parts = [];
+  if (missing.length > 0) parts.push(`add ${missing.map((item) => `"${item}"`).join(", ")}`);
+  if (unexpected.length > 0)
+    parts.push(`remove ${unexpected.map((item) => `"${item}"`).join(", ")}`);
+  return parts.length > 0 ? ` (${parts.join("; ")})` : "";
+}
+
 function fail(message) {
   const error = new Error(message);
   error.kind = "release-governance";
@@ -204,11 +213,17 @@ function rulesetSummary(value) {
       type: item.type,
       parameters: canonical(item.parameters ?? null),
     })),
-    bypassActors: (value?.bypass_actors ?? []).map((item) => ({
-      id: item.actor_id,
-      type: item.actor_type,
-      mode: item.bypass_mode,
-    })),
+    // GitHub omits bypass_actors from a repository-ruleset response unless the
+    // caller has write access to the ruleset. Collapsing that omission into []
+    // reported a permanent false "bypass actors drifted" on every scheduled run
+    // of the read-only audit (FINDINGS.md OPS-012). undefined means unobserved.
+    bypassActors: Array.isArray(value?.bypass_actors)
+      ? value.bypass_actors.map((item) => ({
+          id: item.actor_id,
+          type: item.actor_type,
+          mode: item.bypass_mode,
+        }))
+      : undefined,
     requiredStatusChecks:
       (value?.rules ?? [])
         .find((item) => item.type === "required_status_checks")
@@ -270,9 +285,23 @@ export function normalizeLiveGovernance(raw, desired) {
 
 export function compareGovernance(desired, liveInput) {
   const errors = validateDesiredGovernance(desired);
+  const unverifiable = [];
   const live = normalizeLiveGovernance(liveInput, desired);
   const check = (condition, message) => {
     if (!condition) errors.push(message);
+  };
+  // Three states, not two: observed, observed-empty, and unobservable. A field
+  // the API refuses to disclose is not evidence of drift, and reporting it as
+  // drift buried a real required-status-check drift under permanent noise
+  // (FINDINGS.md OPS-012). Only a present ruleset with an absent field is
+  // unverifiable; a missing ruleset is real drift and is reported by the
+  // identity checks above.
+  const checkBypassActors = (actual, expected, subject) => {
+    if (actual !== undefined && actual.bypassActors === undefined) {
+      unverifiable.push(`${subject} bypass actors`);
+      return;
+    }
+    check(same(actual?.bypassActors ?? [], expected ?? []), `${subject} bypass actors drifted`);
   };
   check(live.environment?.name === desired.environment.name, "release environment name drifted");
   check(
@@ -313,10 +342,7 @@ export function compareGovernance(desired, liveInput) {
         same(actual?.ruleParameters ?? [], expected.ruleParameters),
         `${key} tag rule parameters drifted`,
       );
-    check(
-      same(actual?.bypassActors ?? [], expected.bypassActors),
-      `${key} tag bypass actors drifted`,
-    );
+    checkBypassActors(actual, expected.bypassActors, `${key} tag`);
   }
   check(
     live.mainRuleset?.name === desired.mainRuleset.name &&
@@ -330,18 +356,22 @@ export function compareGovernance(desired, liveInput) {
       same(live.mainRuleset?.refExcludes ?? [], desired.mainRuleset.refExcludes ?? []),
     "main ruleset identity drifted",
   );
+  const liveChecks = live.mainRuleset?.requiredStatusChecks ?? [];
+  const desiredChecks = desired.mainRuleset.requiredStatusChecks;
+  // Name the exact contexts to add and remove: the previous message said only
+  // that the set drifted, so reconciling the live ruleset meant re-deriving the
+  // diff by hand every time (FINDINGS.md OPS-013).
+  const unexpectedChecks = liveChecks.filter((context) => !desiredChecks.includes(context));
+  const missingChecks = desiredChecks.filter((context) => !liveChecks.includes(context));
   check(
-    same(live.mainRuleset?.requiredStatusChecks ?? [], desired.mainRuleset.requiredStatusChecks),
-    "main required status checks drifted",
+    same(liveChecks, desiredChecks),
+    `main required status checks drifted${describeSetDiff(missingChecks, unexpectedChecks)}`,
   );
   check(
     same(live.mainRuleset?.rules ?? [], desired.mainRuleset.rules ?? []),
     "main required protection rules drifted",
   );
-  check(
-    same(live.mainRuleset?.bypassActors ?? [], desired.mainRuleset.bypassActors ?? []),
-    "main ruleset bypass actors drifted",
-  );
+  checkBypassActors(live.mainRuleset, desired.mainRuleset.bypassActors, "main ruleset");
   if (desired.mainRuleset.ruleParameters)
     check(
       same(live.mainRuleset?.ruleParameters ?? [], desired.mainRuleset.ruleParameters),
@@ -357,6 +387,7 @@ export function compareGovernance(desired, liveInput) {
   return {
     ok: errors.length === 0,
     errors,
+    unverifiable,
     livePending: npmPublisherPending ? ["npm trusted-publisher identity"] : [],
     repository: `${desired.repository.owner}/${desired.repository.name}`,
     environment: desired.environment.name,
@@ -412,7 +443,22 @@ export function main(argv = process.argv) {
         "governance fixture",
       )
     : collectLiveGovernance(desired);
-  const result = compareGovernance(desired, live);
+  // Unobservable fields fail the audit only when the caller asserts it holds a
+  // credential that can read them. With the default workflow token they are
+  // reported as `unverifiable` and do not turn a green audit red, so confirmed
+  // drift stays legible (FINDINGS.md OPS-012).
+  const strict = argv.includes("--strict-observability");
+  const compared = compareGovernance(desired, live);
+  const result = strict
+    ? {
+        ...compared,
+        ok: compared.ok && compared.unverifiable.length === 0,
+        errors: [
+          ...compared.errors,
+          ...compared.unverifiable.map((item) => `${item} could not be observed`),
+        ],
+      }
+    : compared;
   console.log(JSON.stringify(result, null, 2));
   if (!result.ok) process.exitCode = 1;
   return result;
