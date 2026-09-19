@@ -67,8 +67,4 @@ export function usesClassicEngine(context: Context): boolean {
   );
 }
 
-export function hasEsLatestPragma(context: Context): boolean {
-  return getScriptContext(context).deprecations.some((item) => item.path === "@sn-es-latest");
-}
-
 export { BR_FILE, CLIENT_FILE, SI_FILE, UI_ACTION_FILE, getValidatedSettings };

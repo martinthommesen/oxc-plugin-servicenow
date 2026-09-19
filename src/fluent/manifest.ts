@@ -31,8 +31,8 @@ export interface FluentApiCapability {
   module: string | "unknown";
   kind: FluentApiKind;
   idRequirement: FluentIdRequirement;
-  introduced?: string;
-  deprecated?: string;
+  introduced?: string | undefined;
+  deprecated?: string | undefined;
   evidence: string;
   evidenceRecords: readonly FluentEvidenceRecord[];
 }

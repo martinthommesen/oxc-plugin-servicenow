@@ -1,34 +1,34 @@
 {
-  "resolvedAt": "2026-08-21",
+  "resolvedAt": "2026-09-19",
   "node": {
-    "engines": ">=20.19.0",
-    "minimum": "20.19.0",
-    "supported": ["20.19.0", "22.14.0", "24.16.0", "26.7.0"]
+    "engines": ">=22.12.0",
+    "minimum": "22.12.0",
+    "supported": ["22.12.0", "22.14.0", "24.16.0", "26.7.0"]
   },
   "oxlint": {
-    "peer": ">=1.79.0 <2",
-    "minimum": "1.79.0",
-    "highestCompatible": "1.79.0"
+    "peer": ">=1.83.0 <2",
+    "minimum": "1.83.0",
+    "highestCompatible": "1.83.0"
   },
   "eslint": {
     "peer": ">=9.0.0 <11",
     "minimum": "9.0.0",
     "currentV9": "9.39.5",
-    "current": "10.8.1"
+    "current": "10.11.0"
   },
   "oxfmt": {
-    "peer": ">=0.64.0 <1",
-    "minimum": "0.64.0",
-    "highestCompatible": "0.64.0"
+    "peer": ">=0.68.0 <1",
+    "minimum": "0.68.0",
+    "highestCompatible": "0.68.0"
   },
   "oxlintPlugins": {
-    "dependency": "^1.79.0",
-    "pinned": "1.79.0"
+    "dependency": "^1.83.0",
+    "pinned": "1.83.0"
   },
   "typescriptEslint": {
     "peer": ">=8.0.0 <9",
     "minimum": "8.0.0",
-    "current": "8.67.0"
+    "current": "8.70.0"
   },
   "typescript": {
     "minimum": "5.5.4",
@@ -71,11 +71,11 @@
   "cells": [
     {
       "id": "min-hosts",
-      "node": "20.19.0",
-      "npm": "10.8.2",
-      "oxlint": "1.79.0",
+      "node": "22.12.0",
+      "npm": "10.9.0",
+      "oxlint": "1.83.0",
       "eslint": "9.0.0",
-      "oxfmt": "0.64.0",
+      "oxfmt": "0.68.0",
       "typescriptEslint": "8.0.0",
       "typescript": "5.5.4"
     },
@@ -83,36 +83,38 @@
       "id": "node22-host",
       "node": "22.14.0",
       "npm": "10.9.2",
-      "oxlint": "1.79.0",
+      "oxlint": "1.83.0",
       "eslint": "9.39.5",
-      "oxfmt": "0.64.0",
-      "typescriptEslint": "8.67.0",
+      "oxfmt": "0.68.0",
+      "typescriptEslint": "8.70.0",
       "typescript": "6.0.3"
     },
     {
       "id": "node24-host",
       "node": "24.16.0",
       "npm": "11.13.0",
-      "oxlint": "1.79.0",
-      "eslint": "10.8.1",
-      "oxfmt": "0.64.0"
+      "oxlint": "1.83.0",
+      "eslint": "10.11.0",
+      "oxfmt": "0.68.0",
+      "typescriptEslint": "8.70.0",
+      "typescript": "6.0.3"
     },
     {
       "id": "node26-host",
       "node": "26.7.0",
       "npm": "11.19.0",
-      "oxlint": "1.79.0",
-      "eslint": "10.8.1",
-      "oxfmt": "0.64.0"
+      "oxlint": "1.83.0",
+      "eslint": "10.11.0",
+      "oxfmt": "0.68.0"
     },
     {
       "id": "eslint9-current",
       "node": "24.16.0",
       "npm": "11.13.0",
-      "oxlint": "1.79.0",
+      "oxlint": "1.83.0",
       "eslint": "9.39.5",
-      "oxfmt": "0.64.0",
-      "typescriptEslint": "8.67.0",
+      "oxfmt": "0.68.0",
+      "typescriptEslint": "8.70.0",
       "typescript": "6.0.3"
     }
   ]

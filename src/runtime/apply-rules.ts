@@ -8,19 +8,19 @@ import { fallbackComments, isNode, walk } from "../utils/ast.js";
 export interface LintMessage {
   ruleId: string;
   message: string;
-  messageId?: string;
+  messageId?: string | undefined;
   severity: "error" | "warn";
   line: number;
   column: number;
-  endLine?: number;
-  endColumn?: number;
+  endLine?: number | undefined;
+  endColumn?: number | undefined;
 }
 
 export interface LintSourceOptions {
   filename?: string;
   cwd?: string;
   ruleNames?: readonly RuleName[];
-  settings?: ServiceNowSettings;
+  settings?: ServiceNowSettings | undefined;
   options?: Partial<Record<RuleName, unknown[]>>;
   /**
    * Called when a rule's `before()` hook declines the file. Without this

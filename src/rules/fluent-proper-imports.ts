@@ -32,6 +32,7 @@ export const fluentProperImports = defineRule({
       before() {
         const { context: script } = beginRuleFile(context);
         if (!isFluentContext(script)) return false;
+        return undefined;
       },
       ImportDeclaration(node) {
         const { file } = beginRuleFile(context);

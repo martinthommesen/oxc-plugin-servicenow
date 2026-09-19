@@ -29,8 +29,8 @@ export interface RuleDocMetadata {
   applicability: StructuredApplicability;
   evidence: readonly RuleEvidenceRecord[];
   overlaps: readonly string[];
-  lifecycleAssumptions?: string;
-  limitationPreamble?: string;
+  lifecycleAssumptions?: string | undefined;
+  limitationPreamble?: string | undefined;
 }
 
 export const ALL_SCOPES = ["global", "scoped", "unknown"] as const;

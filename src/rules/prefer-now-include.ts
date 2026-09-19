@@ -43,6 +43,7 @@ export const preferNowInclude = defineRule({
         const options = parseRuleOptions(preferNowIncludeOptions, context.options);
         maxLines = options.maxLines;
         maxChars = options.maxChars;
+        return undefined;
       },
       Property(node) {
         const prop = node as unknown as ESTree.ObjectProperty;

@@ -49,6 +49,7 @@ export const noHardcodedTableNames = defineRule({
         const { context: script } = beginRuleFile(context);
         if (!isServerInstanceContext(script) || isMixedUiActionContext(script)) return false;
         allow = allowed(context, parseRuleOptions(noHardcodedTableNamesOptions, context.options));
+        return undefined;
       },
       NewExpression(node) {
         const { analysis } = beginRuleFile(context);

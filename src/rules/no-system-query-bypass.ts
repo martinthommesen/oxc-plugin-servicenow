@@ -29,6 +29,7 @@ export const noSystemQueryBypass = defineRule({
       before() {
         const { context: script } = beginRuleFile(context);
         if (!isServerInstanceContext(script)) return false;
+        return undefined;
       },
       MemberExpression(node) {
         const { analysis, file } = beginRuleFile(context);

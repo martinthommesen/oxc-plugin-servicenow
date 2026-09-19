@@ -111,6 +111,7 @@ export const noObjectHasown = defineRule({
       before() {
         const { context: script } = beginRuleFile(context);
         if (!shouldDiagnoseFeature(script, "object-hasown")) return false;
+        return undefined;
       },
       CallExpression(node) {
         const { analysis, context: script, file } = beginRuleFile(context);

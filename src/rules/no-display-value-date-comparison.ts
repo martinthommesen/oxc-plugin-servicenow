@@ -45,6 +45,7 @@ export const noDisplayValueDateComparison = defineRule({
       before() {
         const { context: script } = beginRuleFile(context);
         if (isFluentContext(script) || !isInstanceScript(script)) return false;
+        return undefined;
       },
       BinaryExpression(node) {
         const { analysis, file } = beginRuleFile(context);

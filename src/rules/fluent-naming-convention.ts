@@ -63,6 +63,7 @@ export const fluentNamingConvention = defineRule({
         idStyle = options.idStyle;
         fileStyle = options.fileStyle;
         scopePrefix = script.settings.scopePrefix;
+        return undefined;
       },
       Program() {
         // The filename convention is defined for Fluent filenames only.

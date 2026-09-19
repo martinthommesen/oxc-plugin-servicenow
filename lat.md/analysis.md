@@ -22,7 +22,7 @@ For a node it answers whether the value is a `GlideRecord`, `GlideAggregate`, `G
 
 Aliases are tracked: `const gr = new GlideRecord("incident")` makes `gr` a `GlideRecord` for as long as the binding survives. Reassignment invalidates it. Escape makes it untrustworthy. Rules use the trust-aware query instead of repeating this check.
 
-The published slice is `AnalysisProvenance` in [[src/analysis/public.ts#AnalysisProvenance]], exported from the `oxc-plugin-servicenow/analysis` entry point. Four of its fields — `queryState`, `windowed`, `sysparmName`, `aggregates` — are `@deprecated`, never computed, and hold constant defaults. The lifecycle facts they were meant to carry live in the per-domain finders instead. `docs/decisions.md` records their removal in 3.0.
+The published slice is `AnalysisProvenance` in [[src/analysis/public.ts#AnalysisProvenance]], exported from the `oxc-plugin-servicenow/analysis` entry point. It carries only `kind`, `invalid`, `escaped`, `bindingId`, and `objectId`: the never-computed lifecycle fields (`queryState`, `windowed`, `sysparmName`, `aggregates`) were removed in 3.0. The lifecycle facts they were meant to carry live in the per-domain finders instead.
 
 ## Mutation and authority
 

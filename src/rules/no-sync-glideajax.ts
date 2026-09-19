@@ -21,6 +21,7 @@ export const noSyncGlideajax = defineRule({
     return {
       before() {
         if (!isClientCapableContext(beginRuleFile(context).context)) return false;
+        return undefined;
       },
       CallExpression(node) {
         const { analysis, file } = beginRuleFile(context);

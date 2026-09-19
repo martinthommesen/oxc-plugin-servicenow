@@ -111,7 +111,7 @@ interface EnvState<T> {
   objects: Map<ObjectId, SharedRecord<T>>;
   completion: InternalCompletion;
   /** Label on break/continue completions, if any. */
-  completionLabel?: string | null;
+  completionLabel?: string | null | undefined;
   /** Alternative abrupt paths retained until their owning construct consumes them. */
   abrupt: Map<AbruptCompletion, EnvState<T>[]>;
 }

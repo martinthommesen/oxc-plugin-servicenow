@@ -88,7 +88,6 @@ export const AUSTRALIA_RULE_REVIEWS = Object.freeze({
   "no-display-value-date-comparison": { status: "reviewed", basis: ["direct"] },
   "no-sync-glideajax": { status: "reviewed", basis: ["direct"] },
   "require-query-before-next": { status: "reviewed", basis: ["glide-record"] },
-  "validate-gliderecord-calls": { status: "reviewed", basis: ["glide-record"] },
   "no-delete-multiple-with-windowing": { status: "reviewed", basis: ["glide-record"] },
   "no-glideelement-in-collection": { status: "reviewed", basis: ["glide-record"] },
   "no-gliderecord-query-modifier-after-query": {

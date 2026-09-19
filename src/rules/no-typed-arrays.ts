@@ -66,6 +66,7 @@ export const noTypedArrays = defineRule({
         const bigint = shouldDiagnoseFeature(script, "bigint64-arrays");
         const bigintGetter = shouldDiagnoseFeature(script, "dataview-bigint-getters");
         if (!es5 && !factories && !bigint && !bigintGetter) return false;
+        return undefined;
       },
       NewExpression: check,
       CallExpression(node) {

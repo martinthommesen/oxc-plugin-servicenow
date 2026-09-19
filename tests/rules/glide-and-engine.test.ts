@@ -64,39 +64,6 @@ describe("no-gs-now", () => {
   });
 });
 
-describe("validate-gliderecord-calls", () => {
-  it("flags next() without query()", () => {
-    assertInvalid(
-      `var gr = new GlideRecord("incident");\ngr.addActiveQuery();\ngr.next();`,
-      "validate-gliderecord-calls",
-      { messageId: "missingQuery", count: 2 },
-    );
-  });
-
-  it("flags next() without query() on GlideRecordSecure", () => {
-    assertInvalid(
-      'var gr = new GlideRecordSecure("incident"); gr.next();',
-      "validate-gliderecord-calls",
-      { messageId: "missingQuery", count: 2 },
-    );
-  });
-
-  it("flags unused insert() return", () => {
-    assertInvalid(
-      `var gr = new GlideRecord("incident");\ngr.initialize();\ngr.insert();`,
-      "validate-gliderecord-calls",
-      { messageId: "unusedReturn" },
-    );
-  });
-
-  it("allows checked next() after query()", () => {
-    assertValid(
-      `var gr = new GlideRecord("incident");\ngr.query();\nwhile (gr.next()) { gs.info(gr.number); }`,
-      "validate-gliderecord-calls",
-    );
-  });
-});
-
 describe("no-br-current-update", () => {
   it("flags current.update()", () => {
     assertInvalid(
@@ -313,8 +280,8 @@ describe("engine extras", () => {
     for (const scope of ["global", "scoped"] as const) {
       assertInvalid(
         `var gr = new GlideRecord("incident"); gr._next();`,
-        "validate-gliderecord-calls",
-        { count: 2, messageId: "missingQuery" },
+        "require-query-before-next",
+        { count: 1, messageId: "missingQuery" },
         { filename: "src/server/test.js", settings: { scope } },
       );
     }

@@ -13,7 +13,7 @@ describe("compatibility matrix", () => {
     assert.equal(result.cells, 5);
     assert.deepEqual(
       result.matrix.include.map((cell) => cell.node),
-      ["20.19.0", "22.14.0", "24.16.0", "26.7.0", "24.16.0"],
+      ["22.12.0", "22.14.0", "24.16.0", "26.7.0", "24.16.0"],
     );
     const workflow = readFileSync(path.join(repoRoot, ".github/workflows/ci.yml"), "utf8");
     assert.match(workflow, /node scripts\/run-tests\.mjs tests\/utils\/ast\.test\.ts/);
@@ -52,9 +52,9 @@ describe("compatibility matrix", () => {
       }>;
     };
     assert.equal(matrix.node.engines, pkg.engines.node);
-    assert.equal(matrix.oxlint.peer, pkg.peerDependencies.oxlint);
-    assert.equal(matrix.eslint.peer, pkg.peerDependencies.eslint);
-    assert.equal(matrix.oxfmt.peer, pkg.peerDependencies.oxfmt);
+    assert.equal(matrix.oxlint.peer, pkg.peerDependencies["oxlint"]);
+    assert.equal(matrix.eslint.peer, pkg.peerDependencies["eslint"]);
+    assert.equal(matrix.oxfmt.peer, pkg.peerDependencies["oxfmt"]);
     assert.equal(matrix.oxlintPlugins.dependency, pkg.dependencies["@oxlint/plugins"]);
     assert.ok(matrix.cells.some((cell) => cell.oxlint === matrix.oxlint.minimum));
     assert.ok(matrix.cells.some((cell) => cell.eslint === matrix.eslint.minimum));

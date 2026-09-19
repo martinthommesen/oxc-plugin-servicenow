@@ -380,7 +380,7 @@ const GLIDE_API_SCOPES: readonly GlideApiScope[] = ["scoped", "global"];
 /** Select documented methods for every admissible application scope and release. */
 export function resolveGlideCapabilities(input: {
   scope: ApplicationScope;
-  release?: ServiceNowRelease;
+  release?: ServiceNowRelease | undefined;
 }): GlideCapabilityView {
   const key = `${input.scope}:${input.release ?? "*"}`;
   const existing = CAPABILITY_CACHE.get(key);

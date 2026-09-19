@@ -50,7 +50,6 @@ describe("configs", () => {
     assert.equal(recommendedRules["servicenow/no-gliderecord-query-in-acl"], undefined);
     assert.equal(recommendedRules["servicenow/no-system-query-bypass"], undefined);
     assert.equal(recommendedRules["servicenow/no-hardcoded-table-names"], undefined);
-    assert.equal(recommendedRules["servicenow/validate-gliderecord-calls"], undefined);
     assert.equal(recommendedRules["servicenow/no-packages-calls"], undefined);
   });
 
@@ -144,17 +143,33 @@ describe("configs", () => {
       /<!-- generated:migration-1\.1-to-2\.0:start -->([\s\S]*?)<!-- generated:migration-1\.1-to-2\.0:end -->/,
     )?.[1];
     assert.ok(table);
+    // Rules removed after 2.0 have no current catalog entry by design. Each
+    // must still own a migration-table row that names its replacement
+    // (FINDINGS.md REM-001).
+    const removedRules: Record<string, string> = {
+      "servicenow/validate-gliderecord-calls": "servicenow/require-query-before-next",
+    };
     for (const [preset, oldMap, currentMap] of [
       ["recommended", presets110.recommended, recommendedRules],
       ["strict", presets110.strict, strictRules],
     ] as const) {
       for (const ruleId of new Set([...Object.keys(oldMap), ...Object.keys(currentMap)])) {
         if (oldMap[ruleId] === currentMap[ruleId]) continue;
+        const replacement = removedRules[ruleId];
         assert.ok(
-          ruleCatalog.some((entry) => entry.ruleId === ruleId),
-          `${ruleId} has no 2.0 catalog entry`,
+          replacement !== undefined || ruleCatalog.some((entry) => entry.ruleId === ruleId),
+          `${ruleId} has no current catalog entry`,
         );
         assert.match(table, new RegExp("\\| `" + ruleId + "` \\| " + preset + " \\|"));
+        if (replacement !== undefined) {
+          const row = table
+            .split("\n")
+            .find((line) => line.includes(`| \`${ruleId}\` | ${preset} |`));
+          assert.ok(
+            row?.includes(`\`${replacement}\``),
+            `${ruleId} migration row names no replacement`,
+          );
+        }
       }
     }
   });

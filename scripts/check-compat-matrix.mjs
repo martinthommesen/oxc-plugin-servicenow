@@ -56,7 +56,15 @@ export function checkCompatibilityMatrix() {
       );
     }
     if (cell.eslint.startsWith("10.") && hasParser) {
-      errors.push(`${cell.id} must not compose typescript-eslint with ESLint 10`);
+      // typescript-eslint added ESLint 10 to its peer range in 8.56.0; older
+      // parser lines must stay on the ESLint 9 cells.
+      const [parserMajor, parserMinor] = String(cell.typescriptEslint ?? "")
+        .split(".")
+        .map(Number);
+      const supportsEslint10 = parserMajor > 8 || (parserMajor === 8 && (parserMinor ?? 0) >= 56);
+      if (!supportsEslint10) {
+        errors.push(`${cell.id} must not compose typescript-eslint below 8.56.0 with ESLint 10`);
+      }
     }
   }
 

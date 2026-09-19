@@ -295,17 +295,4 @@ Promise.resolve(1);`,
       filename: "table.now.ts",
     });
   });
-
-  it("skips @sn-es-latest files", () => {
-    assertValid(`// @sn-es-latest\nconst p = Promise.resolve(1);\n`, RULE);
-  });
-
-  it("does not treat a pragma inside a template literal as enabling ES2021", () => {
-    assertInvalid(
-      "var s = `\n// @sn-es-latest\n`;\nvar p = new Promise(function(){});",
-      RULE,
-      { messageId: "construct" },
-      { settings: ES5 },
-    );
-  });
 });

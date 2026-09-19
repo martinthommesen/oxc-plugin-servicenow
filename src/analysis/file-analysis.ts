@@ -98,10 +98,6 @@ function emptyProvenance(kind: ProvenanceKind, extras?: Partial<Provenance>): Pr
     kind,
     invalid: false,
     escaped: false,
-    queryState: "unopened",
-    windowed: false,
-    sysparmName: false,
-    aggregates: new Set<string>(),
     ...extras,
   });
 }
@@ -189,7 +185,7 @@ function buildFileAnalysis(context: Context, tree: AnalysisTree): FileAnalysis {
         const snap = emptyProvenance(kind, {
           invalid: rec.invalid,
           escaped: rec.escaped,
-          bindingId: bindingId ?? undefined,
+          ...(bindingId == null ? {} : { bindingId }),
           objectId: rec.id,
         });
         if (node.type === "Identifier") identifierAtNode.set(node, snap);
@@ -222,7 +218,7 @@ function buildFileAnalysis(context: Context, tree: AnalysisTree): FileAnalysis {
           if (!kind) return;
           if (!bindings.isPlatformGlobal((node as ESTree.NewExpression).callee as ESTree.Node))
             return;
-          provenanceAtNode.set(node, emptyProvenance(kind, { objectId: undefined }));
+          provenanceAtNode.set(node, emptyProvenance(kind));
         },
       },
       ancestors,

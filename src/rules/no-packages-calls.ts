@@ -29,6 +29,7 @@ export const noPackagesCalls = defineRule({
         }
         analysis = file.analysis;
         script = file.context;
+        return undefined;
       },
       MemberExpression(node) {
         const member = node as ESTree.MemberExpression;

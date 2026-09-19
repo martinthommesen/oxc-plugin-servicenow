@@ -6,7 +6,6 @@
     "servicenow/no-client-gliderecord": "error",
     "servicenow/no-gs-now": "error",
     "servicenow/no-promise": "error",
-    "servicenow/no-system-query-bypass": "error",
-    "servicenow/validate-gliderecord-calls": "error"
+    "servicenow/no-system-query-bypass": "error"
   }
 }

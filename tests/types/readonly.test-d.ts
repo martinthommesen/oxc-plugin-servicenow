@@ -23,7 +23,6 @@ void getSettings;
 import type {
   AnalysisProvenance,
   PublicProvenanceKind,
-  QueryState,
   ScriptSurface,
   ServiceNowScriptContext,
 } from "../../src/analysis/index.js";
@@ -31,8 +30,12 @@ import type {
 declare const provenance: AnalysisProvenance;
 declare const scriptContext: ServiceNowScriptContext;
 const provenanceKind: PublicProvenanceKind = provenance.kind;
-const queryState: QueryState = provenance.queryState;
 const surfaces: ReadonlySet<ScriptSurface> = scriptContext.surfaces;
+// @ts-expect-error The never-computed lifecycle fields were removed in 3.0 (FINDINGS.md API-002).
+const removedA = [provenance.queryState, provenance.windowed];
+// @ts-expect-error See above.
+const removedB = [provenance.sysparmName, provenance.aggregates];
 void provenanceKind;
-void queryState;
 void surfaces;
+void removedA;
+void removedB;

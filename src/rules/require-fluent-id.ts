@@ -42,6 +42,7 @@ export const requireFluentId = defineRule({
         const { context: script } = beginRuleFile(context);
         if (!isFluentContext(script)) return false;
         preferNowId = parseRuleOptions(requireFluentIdOptions, context.options).preferNowId;
+        return undefined;
       },
       CallExpression(node) {
         const { file, analysis } = beginRuleFile(context);

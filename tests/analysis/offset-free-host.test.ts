@@ -16,10 +16,10 @@ function stripOffsets(value: unknown, seen = new Set<object>()): void {
     return;
   }
   const record = value as Record<string, unknown>;
-  delete record.start;
-  delete record.end;
-  delete record.range;
-  delete record.span;
+  delete record["start"];
+  delete record["end"];
+  delete record["range"];
+  delete record["span"];
   for (const key of Object.keys(record)) {
     if (key === "loc") continue;
     stripOffsets(record[key], seen);

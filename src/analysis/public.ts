@@ -1,6 +1,5 @@
 import type { Context, ESTree } from "@oxlint/plugins";
 import type { ServiceNowScriptContext } from "../types.js";
-import { immutableSet } from "../utils/immutable.js";
 import { getName, isNode } from "../utils/ast.js";
 import {
   analyzeProvenance as analyzeInternal,
@@ -49,7 +48,6 @@ function readonlyProvenance(value: Provenance | null): AnalysisProvenance | null
   const wrapped = Object.freeze({
     ...value,
     kind: value.kind as PublicProvenanceKind,
-    aggregates: immutableSet(value.aggregates),
   });
   publicProvenance.set(value, wrapped);
   return wrapped;

@@ -37,6 +37,7 @@ export const noComplexFluentLogic = defineRule({
       before() {
         const { context: script } = beginRuleFile(context);
         if (!isFluentContext(script)) return false;
+        return undefined;
       },
       FunctionDeclaration: banned,
       ClassDeclaration: banned,

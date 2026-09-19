@@ -33,6 +33,7 @@ export const noBrCurrentUpdate = defineRule({
         canonicalCurrentArgument = null;
         canonicalCurrentBindingId = null;
         canonicalCurrentObjectId = null;
+        return undefined;
       },
       Program(node) {
         const { analysis, context: script } = beginRuleFile(context);

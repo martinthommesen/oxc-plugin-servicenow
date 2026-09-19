@@ -210,6 +210,22 @@ describe("release and context resolution", () => {
     assert.equal(script.javascriptMode, "unknown");
     assert.equal(script.sources.javascriptMode, "unknown");
   });
+
+  it("ignores the retired @sn-es-latest pragma (FINDINGS.md FEAT-002)", () => {
+    const context = {
+      filename: "incident.br.js",
+      settings: {},
+      sourceCode: {
+        text: "// @sn-es-latest\nPromise.resolve(1);",
+        getAllComments: () => [{ value: " @sn-es-latest" }],
+      },
+      options: [],
+    } as unknown as Context;
+    const script = resolveScriptContext(context);
+    assert.equal(script.javascriptMode, "unknown");
+    assert.equal(script.sources.javascriptMode, "unknown");
+    assert.deepEqual([...script.deprecations], []);
+  });
 });
 
 describe("classifyFile compatibility", () => {
@@ -444,7 +460,7 @@ gr.next();`,
   it("keeps surface rules silent when only JavaScript mode is known", () => {
     const settings = { javascriptMode: "es5" as const };
     assertValid("gs.now();", "no-gs-now", { filename: "plain.js", settings });
-    assertValid('var gr = new GlideRecord("incident"); gr.next();', "validate-gliderecord-calls", {
+    assertValid('var gr = new GlideRecord("incident"); gr.next();', "require-query-before-next", {
       filename: "plain.js",
       settings,
     });

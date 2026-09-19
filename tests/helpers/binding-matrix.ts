@@ -5,9 +5,9 @@ export interface BindingMatrixCase {
   rule: RuleName;
   code: string;
   filename: string;
-  settings?: ServiceNowSettings;
+  settings?: ServiceNowSettings | undefined;
   expected: "report" | "silent";
-  messageId?: string;
+  messageId?: string | undefined;
   message: string;
   start: { line: number; column: number };
   end: { line: number; column: number };

@@ -21,7 +21,7 @@ const EXPECTED_MAIN_RULE_TYPES = [
 const EXPECTED_MAIN_STATUS_CHECKS = [
   "test",
   "consumer",
-  "compat (min-hosts, 20.19.0)",
+  "compat (min-hosts, 22.12.0)",
   "compat (node22-host, 22.14.0)",
   "compat (node24-host, 24.16.0)",
   "compat (node26-host, 26.7.0)",

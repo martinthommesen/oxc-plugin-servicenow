@@ -17,6 +17,12 @@ Decision: reassess at the 3.0 boundary with npm dependents data.
 - If the `security` or `policy` category grows to roughly five rules first,
   keep the presets: they earn their surface at that size.
 
+Outcome at the 3.0 boundary (2026-09-19): kept. No-usage cannot be proven
+— dependents are unmeasurable (see FEAT-002) — and the categories hold two
+(`security`) and three (`policy`) rules, below the keep threshold in the
+other direction. Neither removal nor growth condition fired, so the thin
+presets stay exported through 3.x and this record re-opens at 4.0.
+
 ## The 1.x settings compatibility layer stays through 2.x (FEAT-002)
 
 `scriptType`, `ecmaLatest`, and the `@sn-es-latest` pragma remain supported
@@ -49,11 +55,24 @@ the 3.0 boundary; a measured no-usage result upgrades the action to
 retiring all three. FEAT-001, REM-001, and API-002 share this dependents
 check and re-run it at the same boundary.
 
+Outcome at the 3.0 boundary (2026-09-19): usage is still unmeasurable —
+the npm downloads API and the npms.io mirror both return 404 for this
+package — so only `@sn-es-latest` is retired. The pragma no longer maps
+to `es2021`: pragma-only files now resolve `unknown` mode, the
+deprecation is gone, and a context test pins the retirement.
+`scriptType` and `ecmaLatest` stay with their deprecations. The 3.0
+migration guide names `settings.servicenow.javascriptMode` as the
+replacement.
+
 ## `validate-gliderecord-calls` is removed in 3.0 (REM-001)
 
-Announced in the changelog and in the generated rule page. The alias stays
+Removed in 3.0 as recorded: the rule file, catalog entry, release-review
+row, generated rule page, and dedicated tests are gone. The alias stays
 available and `off` throughout 2.x. `require-query-before-next` is the
-replacement (README migration step 4).
+replacement for cursor sequencing (README migration step 4); the
+`unusedReturn` half of the alias has no surviving rule and is an explicit
+documented drop in the 3.0 migration guide. The 1.1 migration table keeps its
+special-case row pointing at the replacement, pinned by the configs test.
 
 ## The provenance lifecycle fields are removed in 3.0 (API-002)
 
@@ -66,9 +85,17 @@ values so a future implementation change is visible.
 
 Decision: remove the four fields in 3.0.
 
+Removed in 3.0 as recorded, with the `QueryState` type: the fields are gone
+from `Provenance` and the `AnalysisProvenance` projection, the constant-value
+contract test now pins their absence at runtime and in the type fixture, and
+the 3.0 migration guide names the replacement rules.
+
 - Before removal, run the same npm dependents check the other 3.0 records
   share. If a consumer that reads the fields is found, implement them from
   the domain analyzers instead of removing them, and reassess severity.
+  (At the 3.0 boundary no consumer could be enumerated — the npm downloads
+  API and the npms.io mirror both return 404 for this package — so no
+  reading consumer was found and removal proceeded.)
 - Consumers that need lifecycle facts should use the rules that compute
   them (`require-query-before-next` and the windowing, aggregate, and
   GlideAjax rules).

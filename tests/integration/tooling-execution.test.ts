@@ -26,7 +26,7 @@ describe("tooling execution", () => {
   it("runs TypeScript tests and the JSON reporter without the tsx CLI", () => {
     const directory = mkdtempSync(path.join(tmpdir(), "sn-test-runner-"));
     const env = { ...process.env };
-    delete env.NODE_TEST_CONTEXT;
+    delete env["NODE_TEST_CONTEXT"];
     try {
       const result = spawnSync(
         process.execPath,
@@ -58,7 +58,7 @@ describe("tooling execution", () => {
     };
     const commands = Object.values(pkg.scripts).join("\n");
     assert.doesNotMatch(commands, TSX_CLI_EXECUTION_PATTERN);
-    assert.equal(pkg.scripts.compat, "node scripts/compat-consumer.mjs");
+    assert.equal(pkg.scripts["compat"], "node scripts/compat-consumer.mjs");
     assert.equal(pkg.scripts["acceptance:check"], "node scripts/verify-acceptance-ledger.mjs");
     assert.match(
       pkg.scripts["evidence:check"] ?? "",

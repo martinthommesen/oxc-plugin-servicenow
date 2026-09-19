@@ -29,7 +29,7 @@ describe("documentation evidence artifacts", () => {
     const base = mkdtempSync(path.join(tmpdir(), "documentation-evidence-run-test-"));
     try {
       const report = runEvidenceTests(base) as { tests: readonly unknown[] };
-      assert.equal(report.tests.length, 95);
+      assert.equal(report.tests.length, 93);
       assert.deepEqual(readdirSync(base), []);
     } finally {
       rmSync(base, { recursive: true, force: true });

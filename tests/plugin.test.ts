@@ -128,7 +128,7 @@ describe("plugin export", () => {
         "**/{access.control,access.controls,*[-_.]access.control,*[-_.]access.controls}.{js,cjs,mjs}",
       ),
     );
-    assert.equal(configs.flat.acl.settings.servicenow.surfaces, "auto");
+    assert.equal(configs.flat.acl.settings.servicenow["surfaces"], "auto");
   });
 
   it("catalog fixable and hasSuggestions match rule meta and real output", () => {

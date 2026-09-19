@@ -138,15 +138,15 @@ function jsonSchemaProperty(field: OptionField): Record<string, unknown> {
       return { type: "boolean" };
     case "integer": {
       const schema: Record<string, unknown> = { type: "integer" };
-      if (field.minimum !== undefined) schema.minimum = field.minimum;
-      if (field.maximum !== undefined) schema.maximum = field.maximum;
+      if (field.minimum !== undefined) schema["minimum"] = field.minimum;
+      if (field.maximum !== undefined) schema["maximum"] = field.maximum;
       return schema;
     }
     case "enum":
       return { enum: [...field.values] };
     case "string": {
       const schema: Record<string, unknown> = { type: "string" };
-      if (field.minLength !== undefined) schema.minLength = field.minLength;
+      if (field.minLength !== undefined) schema["minLength"] = field.minLength;
       return schema;
     }
     case "stringArray":

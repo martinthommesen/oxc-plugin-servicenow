@@ -13,7 +13,7 @@ export {
   resetAnalysisPassCount,
 } from "./file-analysis.js";
 export { ctorProvenanceKind, getAncestors } from "./provenance.js";
-export type { Provenance, ProvenanceKind, ProvenanceQuery, QueryState } from "./provenance.js";
+export type { Provenance, ProvenanceKind, ProvenanceQuery } from "./provenance.js";
 export type { FileAnalysis } from "./file-analysis.js";
 export type { BindingWriteQuery } from "./binding-writes.js";
 export { findUnhoistedBlockFunctionUses } from "./block-function-hoisting.js";

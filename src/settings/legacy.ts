@@ -116,17 +116,3 @@ export function legacyJavaScriptMode(
 ): JavaScriptMode | undefined {
   return settings.ecmaLatest === true ? "es2021" : undefined;
 }
-
-const ES_LATEST_IN_COMMENT = /(^|\s)@sn-es-latest\b/;
-
-export function hasEsLatestPragma(comments: readonly { value: string }[]): boolean {
-  return comments.some((comment) => ES_LATEST_IN_COMMENT.test(comment.value));
-}
-
-export function esLatestPragmaDeprecation(): SettingsDeprecation {
-  return {
-    path: "@sn-es-latest",
-    message:
-      "`@sn-es-latest` is a repository convention, not ServiceNow metadata. Set `settings.servicenow.javascriptMode` instead. The pragma maps to `es2021` for one major-release cycle.",
-  };
-}

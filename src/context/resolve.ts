@@ -1,5 +1,4 @@
 import type { Context } from "@oxlint/plugins";
-import { hostComments } from "../utils/ast.js";
 import { getValidatedSettingsResult } from "../settings/index.js";
 import type {
   ContextConfidence,
@@ -8,17 +7,10 @@ import type {
   ScriptAuthoring,
   ScriptSurface,
   ServiceNowScriptContext,
-  SettingsDeprecation,
   ValidatedServiceNowSettings,
 } from "../types.js";
 import { ServiceNowSettingsError } from "../settings/errors.js";
-import {
-  esLatestPragmaDeprecation,
-  hasEsLatestPragma,
-  legacyAuthoring,
-  legacyJavaScriptMode,
-  legacySurface,
-} from "../settings/legacy.js";
+import { legacyAuthoring, legacyJavaScriptMode, legacySurface } from "../settings/legacy.js";
 import { SERVER_ONLY_SURFACES } from "../surfaces.js";
 import { immutableSet } from "../utils/immutable.js";
 import { authoringFromFilename, isFluentFile, surfacesFromFilename } from "./filename.js";
@@ -128,7 +120,6 @@ function resolveJavaScriptMode(
   context: Context,
   settings: ValidatedServiceNowSettings,
   authoring: ScriptAuthoring,
-  deprecations: SettingsDeprecation[],
 ): { mode: JavaScriptMode; confidence: ContextConfidence } {
   if (settings.javascriptMode !== undefined) {
     return { mode: settings.javascriptMode, confidence: "explicit" };
@@ -138,16 +129,12 @@ function resolveJavaScriptMode(
   if (authoring === "fluent" || isFluentFile(context.filename)) {
     return { mode: "unknown", confidence: "filename" };
   }
-  if (hasEsLatestPragma(hostComments(context))) {
-    deprecations.push(esLatestPragmaDeprecation());
-    return { mode: "es2021", confidence: "inferred" };
-  }
   return { mode: "unknown", confidence: "unknown" };
 }
 
 export interface ScriptContextExtras {
   /** AST evidence for execution surfaces in an otherwise bare record file. */
-  inferSurfaces?: () => { client: boolean; server: boolean };
+  inferSurfaces?: (() => { client: boolean; server: boolean }) | undefined;
 }
 
 export function resolveScriptContext(
@@ -167,12 +154,7 @@ export function resolveScriptContext(
     (context as Context & { cwd?: string }).cwd,
   );
   const localDeprecations = [...deprecations];
-  const javascriptMode = resolveJavaScriptMode(
-    context,
-    settings,
-    authoring.authoring,
-    localDeprecations,
-  );
+  const javascriptMode = resolveJavaScriptMode(context, settings, authoring.authoring);
   const scopeConfidence: ContextConfidence = settings.scope === "unknown" ? "unknown" : "explicit";
 
   const sources: ContextSourceMap = Object.freeze({

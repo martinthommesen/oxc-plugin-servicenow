@@ -73,7 +73,6 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-b
 
 ## Overlaps
 
-- `servicenow/validate-gliderecord-calls`
 - `servicenow/validate-glideaggregate-calls`
 
 ## Fix safety

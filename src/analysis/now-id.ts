@@ -249,7 +249,7 @@ export function isProvenNowIdValue(
  */
 export function findNowIdMisuses(
   program: ESTree.Node,
-  analysis: ProvenanceQuery,
+  _analysis: ProvenanceQuery,
   facts: ReadonlyMap<ESTree.Node, NowIdFact>,
 ): NowIdMisuse[] {
   const findings: NowIdMisuse[] = [];
@@ -289,7 +289,7 @@ export function findNowIdMisuses(
  */
 export function findDuplicateFluentIds(
   program: ESTree.Node,
-  analysis: ProvenanceQuery,
+  _analysis: ProvenanceQuery,
   facts: ReadonlyMap<ESTree.Node, NowIdFact>,
 ): DuplicateFluentId[] {
   const first = new Map<string, ESTree.Node>();

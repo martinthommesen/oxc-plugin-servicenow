@@ -1,4 +1,4 @@
-Fifty-one rules ship in 2.0.0 across three families and ten profiles. This file describes registration, rule shape, and reference documentation.
+Fifty rules ship in 3.0.0 across three families and ten profiles. This file describes registration, rule shape, and reference documentation.
 
 Per-rule semantics, applicability, options, false positives and negatives, and evidence live in `docs/rules/*.md`. Those pages are generated from the catalog, so they cannot drift from the implementation. Do not restate their content here.
 

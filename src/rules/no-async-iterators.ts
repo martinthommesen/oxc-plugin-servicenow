@@ -24,6 +24,7 @@ export const noAsyncIterators = defineRule({
       before() {
         const { context: script } = beginRuleFile(context);
         if (!shouldDiagnoseFeature(script, "async-iterators")) return false;
+        return undefined;
       },
       ForOfStatement(node) {
         if ((node as ESTree.ForOfStatement).await) {

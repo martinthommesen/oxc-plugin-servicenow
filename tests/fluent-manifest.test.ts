@@ -93,7 +93,7 @@ describe("Fluent SDK manifest", () => {
   it("rejects deleted introduced and deprecated lifecycle fields", () => {
     const manifest = resolveFluentManifest("4.10.0");
     const api = manifest.apis.find((item) => item.name === "StateModel");
-    const expected = DECLARATION_EVIDENCE.versions["4.10.0"]?.lifecycle.StateModel;
+    const expected = DECLARATION_EVIDENCE.versions["4.10.0"]?.lifecycle["StateModel"];
     assert.ok(api);
     assert.ok(expected);
     const mutated = { ...api };
@@ -104,7 +104,7 @@ describe("Fluent SDK manifest", () => {
     );
 
     const list = resolveFluentManifest("4.11.0").apis.find((item) => item.name === "List");
-    const listExpected = DECLARATION_EVIDENCE.versions["4.11.0"]?.lifecycle.List;
+    const listExpected = DECLARATION_EVIDENCE.versions["4.11.0"]?.lifecycle["List"];
     assert.ok(list);
     assert.ok(listExpected);
     const deprecatedMutation = { ...list };

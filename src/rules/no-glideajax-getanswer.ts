@@ -23,6 +23,7 @@ export const noGlideajaxGetanswer = defineRule({
       before() {
         const { context: script } = beginRuleFile(context);
         if (!isClientCapableContext(script)) return false;
+        return undefined;
       },
       CallExpression(node) {
         const { analysis, file } = beginRuleFile(context);

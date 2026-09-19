@@ -99,6 +99,7 @@ export const noIncorrectBigintAsuintn = defineRule({
         ) {
           return false;
         }
+        return undefined;
       },
       Program(node) {
         const { analysis, file } = beginRuleFile(context);

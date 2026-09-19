@@ -50,8 +50,9 @@ AST inference (`inferSurfacesFromAst` in [[src/analysis/file-analysis.ts#inferSu
 1. An explicit `settings.servicenow.javascriptMode` — confidence `explicit`.
 2. Deprecated `ecmaLatest: true`, which maps to `es2021` — confidence `explicit`.
 3. A Fluent file, whose mode stays `unknown` at confidence `filename`.
-4. An `@sn-es-latest` comment pragma, which [[src/settings/legacy.ts#hasEsLatestPragma]] maps to `es2021` at confidence `inferred` and records as deprecated.
-5. Otherwise `unknown`, confidence `unknown`.
+4. Otherwise `unknown`, confidence `unknown`.
+
+The `@sn-es-latest` comment pragma was retired in 3.0 and is ignored; files that relied on it now resolve `unknown` unless settings name a mode.
 
 Unknown mode never falls back to ES5. `appliesInJavaScriptModes` in [[src/context/resolve.ts#appliesInJavaScriptModes]] returns false for it.
 

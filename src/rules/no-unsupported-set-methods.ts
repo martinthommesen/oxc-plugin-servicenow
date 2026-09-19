@@ -81,6 +81,7 @@ export const noUnsupportedSetMethods = defineRule({
         if (script.javascriptMode !== "es2021" || !shouldDiagnoseFeature(script, "set-methods")) {
           return false;
         }
+        return undefined;
       },
       CallExpression(node) {
         const call = node as ESTree.CallExpression;

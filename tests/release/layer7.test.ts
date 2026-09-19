@@ -1106,9 +1106,9 @@ describe("exact Sigstore provenance", () => {
       fixture.expected,
       fixture.verifyBundle,
     );
-    assert.equal(summary.commit, fixture.expected.commit);
-    assert.equal(summary.environment, "release");
-    assert.match(summary.bundleSha256 ?? "", /^[a-f0-9]{64}$/);
+    assert.equal(summary["commit"], fixture.expected.commit);
+    assert.equal(summary["environment"], "release");
+    assert.match(summary["bundleSha256"] ?? "", /^[a-f0-9]{64}$/);
   });
 
   it("rejects signature and every required statement or certificate identity mutation", async () => {

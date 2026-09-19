@@ -164,6 +164,7 @@ export const noHardcodedSysid = defineRule({
         const options = parseRuleOptions(noHardcodedSysidOptions, context.options);
         allowed = allowedSet(context, options);
         ignoreHashNames = options.ignoreHashNames;
+        return undefined;
       },
       Literal(node) {
         const value = getStringValue(node);

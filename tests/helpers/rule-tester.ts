@@ -113,7 +113,7 @@ export function assertInvalid(
   code: string,
   rule: RuleName,
   expected: {
-    messageId?: string;
+    messageId?: string | undefined;
     count?: number;
     includes?: string;
     range?: { line: number; column: number; endLine: number; endColumn: number };

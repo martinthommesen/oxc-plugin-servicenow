@@ -2,13 +2,21 @@
 
 ## Unreleased
 
-### Deprecated
+## 3.0.0 — 2026-09-19
 
-- `validate-gliderecord-calls` will be removed in 3.0. It stays available and `off` throughout 2.x for 1.x migrations. Use `require-query-before-next`, which covers the same query-before-`next` class with path-sensitive analysis (README migration step 4).
+3.0.0 is a major modernization release: dependency and language floors move to current versions, the three recorded 2.x deprecations are removed, and the toolchain runs under the strictest project type-check. No rule, preset, or formatter changes behavior except the removals listed below; follow `docs/migration-3.0.md` to upgrade.
+
+### Removed
+
+- Node.js 20 support. `engines` is now `>=22.12.0` (Node 20 reached end-of-life in April 2026); the compatibility matrix minimum host moves from 20.19.0 to 22.12.0.
+- `servicenow/validate-gliderecord-calls` (FINDINGS.md REM-001). The rule file, catalog entry, and generated rule page are gone. Use `servicenow/require-query-before-next` for cursor sequencing; the alias's unused-insert/update/deleteRecord/get/next return checking (`unusedReturn`) has no surviving rule and is dropped.
+- `AnalysisProvenance.queryState`, `windowed`, `sysparmName`, and `aggregates`, with the `QueryState` type (FINDINGS.md API-002). The fields were never computed and always carried their defaults. Use the rules that compute the real lifecycle facts (`require-query-before-next` and the windowing, aggregate, and GlideAjax rules).
+- The `// @sn-es-latest` pragma (FINDINGS.md FEAT-002). Pragma-only files now resolve `unknown` JavaScript mode instead of `es2021`. Set `settings.servicenow.javascriptMode` explicitly. `scriptType` and `ecmaLatest` stay supported with their deprecations.
+- The oxlint peer floor below 1.83.0 and the oxfmt peer floor below 0.68.0. Peers are now `oxlint >=1.83.0 <2` and `oxfmt >=0.68.0 <1`, matching the tested compatibility cells.
 
 ### Added
 
-- The `oxc-plugin-servicenow/analysis` entry point and the root now export every type their public signatures reference (`PublicProvenanceKind`, `QueryState`, `ServiceNowScriptContext` and its member types), so consumers can annotate the values they already receive.
+- The `oxc-plugin-servicenow/analysis` entry point and the root now export every type their public signatures reference (`PublicProvenanceKind`, `ServiceNowScriptContext` and its member types), so consumers can annotate the values they already receive.
 - A README troubleshooting section explains the three designed causes of a quiet run (unknown surface, unknown JavaScript mode, unproven receiver) with the filename-convention table and the settings that resolve each.
 - The example projects declare their dependencies and split the lint script into a clean `lint` run over `valid` and an expected-failure `lint:invalid` run, so they work as their READMEs describe.
 
@@ -16,7 +24,8 @@
 
 - The `oxc-plugin-servicenow/oxfmt` types `OxfmtConfig` and `OxfmtOverride` are type aliases instead of interfaces, and they no longer carry an index signature. A misspelled option such as `printWith` is now a compile error. `defineConfig(recommendedOxfmtConfig)` still type-checks.
 - The path-analysis work budget scales with program size instead of a fixed 50k units. Dense scripts up to roughly 1,200 lines are now analyzed completely, so large legacy files can gain diagnostics that were previously dropped silently when the budget ran out.
-- `AnalysisProvenance.queryState`, `windowed`, `sysparmName`, and `aggregates` are deprecated: they were never computed and always carry their defaults. They will be removed in 3.0; the per-domain rules carry the real lifecycle facts.
+- The TypeScript target and library move from ES2022 to ES2023, and the project enables `exactOptionalPropertyTypes`, `noImplicitReturns`, `noPropertyAccessFromIndexSignature`, `noFallthroughCasesInSwitch`, `noUnusedLocals`, and `noUnusedParameters`. Shipped declaration files spell optional properties with explicit `| undefined`.
+- The compatibility matrix tests typescript-eslint 8.70.0 against both ESLint 9.39.5 and ESLint 10.11.0; parser cells on ESLint 10 require typescript-eslint 8.56.0 or later, the first line whose peer range admits ESLint 10.
 
 ### Fixed
 

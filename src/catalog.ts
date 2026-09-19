@@ -49,7 +49,6 @@ import { requireFluentId } from "./rules/require-fluent-id.js";
 import { requireGlideajaxSysparmName } from "./rules/require-glideajax-sysparm-name.js";
 import { requireQueryBeforeNext } from "./rules/require-query-before-next.js";
 import { validateGlideaggregateCalls } from "./rules/validate-glideaggregate-calls.js";
-import { validateGliderecordCalls } from "./rules/validate-gliderecord-calls.js";
 import { PLUGIN_NAME, ruleDocsUrl } from "./constants.js";
 import type {
   ApplicationScope,
@@ -95,7 +94,7 @@ export interface RuleApplicability {
   javascriptModes: readonly JavaScriptMode[] | "n/a";
   scopes: readonly ApplicationScope[];
   serviceNowReleases: readonly ServiceNowRelease[];
-  fluentSdkRange?: string;
+  fluentSdkRange?: string | undefined;
 }
 
 const ES5: ServiceNowSettings = { javascriptMode: "es5" };
@@ -162,8 +161,8 @@ export interface RuleCatalogEntry {
   falseNegatives: readonly string[];
   scopeBoundaries: readonly string[];
   overlaps: readonly string[];
-  lifecycleAssumptions?: string;
-  limitationPreamble?: string;
+  lifecycleAssumptions?: string | undefined;
+  limitationPreamble?: string | undefined;
   fixKind: "none" | "safe-fix" | "suggestion";
   optionDescriptor: RuleOptionsDescriptor<object> | undefined;
   options: readonly RuleOptionDoc[];
@@ -1387,10 +1386,7 @@ gs.now = localNow;`,
         platformMethodAuthorityEvidence(),
       ],
       {
-        overlaps: [
-          "servicenow/validate-gliderecord-calls",
-          "servicenow/validate-glideaggregate-calls",
-        ],
+        overlaps: ["servicenow/validate-glideaggregate-calls"],
         lifecycleAssumptions:
           "Executors are selected by release and scope. A possible scope-specific executor suppresses a missing-query finding without becoming a definite fact for positive rules. chooseWindow does not execute a query.",
       },
@@ -1431,60 +1427,6 @@ record.next = localNext;`,
         name: "next without query",
         filename: "incident.br.js",
         code: `var gr = new GlideRecord("incident");\ngr.addActiveQuery();\ngr.next();`,
-      },
-    ],
-    good: [
-      {
-        name: "query + checked next",
-        filename: "incident.br.js",
-        code: `var gr = new GlideRecord("incident");\ngr.addActiveQuery();\ngr.query();\nwhile (gr.next()) {\n  gs.info(gr.number);\n}`,
-      },
-    ],
-  }),
-  entry("validate-gliderecord-calls", validateGliderecordCalls, {
-    ...metadata.meta(
-      metadata.classic(metadata.SERVER_SURFACES),
-      [
-        metadata.evidenceRecord(
-          metadata.SN_GR_GLOBAL,
-          "Deprecated compatibility rule. Prefer require-query-before-next for query lifecycle.",
-          "manual",
-          "2026-08-20",
-        ),
-        metadata.evidenceRecord(
-          "tests/catalog.test.ts",
-          "The rule remains exported and off by default.",
-          "fixture",
-          "2026-08-20",
-        ),
-        platformMethodAuthorityEvidence(),
-      ],
-      {
-        overlaps: ["servicenow/require-query-before-next"],
-      },
-    ),
-    placements: [] as const,
-    optionDescriptor: undefined,
-    limitationCases: [
-      platformMethodMutationLimitation(
-        "validate-gliderecord-file-wide-mutation",
-        `var record = new GlideRecord("incident");
-record.update();
-record.update = localUpdate;`,
-      ),
-    ],
-    title: "Validate GlideRecord calls",
-    family: "classic",
-    severity: "warn",
-    fixable: false,
-    hasSuggestions: false,
-    description:
-      "Deprecated alias, scheduled for removal in 3.0. Prefer `require-query-before-next`. Still reports missing query-before-cursor-advance and unused insert/update/deleteRecord/get/next/_next returns. `chooseWindow()` does not open a cursor.",
-    bad: [
-      {
-        name: "next without query",
-        filename: "incident.br.js",
-        code: `var gr = new GlideRecord("incident");\ngr.addActiveQuery();\ngr.next();\ngr.insert();`,
       },
     ],
     good: [
