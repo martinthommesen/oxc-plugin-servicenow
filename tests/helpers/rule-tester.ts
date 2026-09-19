@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { parseSync } from "oxc-parser";
+import { ruleCatalog } from "../../src/catalog.js";
 import {
   applyRules,
   type LintMessage,
@@ -11,6 +12,10 @@ import type { ServiceNowSettings } from "../../src/types.js";
 export const ES5: ServiceNowSettings = { javascriptMode: "es5" };
 export const ES2021: ServiceNowSettings = { javascriptMode: "es2021" };
 
+const FLUENT_RULES = new Set<RuleName>(
+  ruleCatalog.filter((entry) => entry.family === "fluent").map((entry) => entry.name),
+);
+
 const CLIENT_RULES = new Set<RuleName>([
   "no-client-gliderecord",
   "no-glideajax-getanswer",
@@ -20,16 +25,7 @@ const CLIENT_RULES = new Set<RuleName>([
 ]);
 
 function defaultFilename(rule: RuleName): string {
-  if (
-    rule.startsWith("fluent") ||
-    rule.startsWith("prefer-now") ||
-    rule.startsWith("require-fluent") ||
-    rule.startsWith("no-complex") ||
-    rule === "no-now-id-as-reference" ||
-    rule === "no-duplicate-fluent-id"
-  ) {
-    return "file.now.ts";
-  }
+  if (FLUENT_RULES.has(rule)) return "file.now.ts";
   if (CLIENT_RULES.has(rule)) return "test.client.js";
   return "src/server/test.js";
 }
@@ -57,13 +53,16 @@ export function lint(code: string, rule: RuleName, options: RunOptions = {}): Li
   return applyRules(code, parsed, { ...options, filename, ruleNames: [rule] });
 }
 
-export function assertValid(code: string, rule: RuleName, options: RunOptions = {}): void {
-  const messages = lint(code, rule, options);
+function assertNoMessages(messages: LintMessage[], code: string): void {
   assert.equal(
     messages.length,
     0,
     `Expected no diagnostics, got:\n${messages.map((m) => `  - ${m.messageId ?? "?"} ${m.message}`).join("\n")}\nSource:\n${code}`,
   );
+}
+
+export function assertValid(code: string, rule: RuleName, options: RunOptions = {}): void {
+  assertNoMessages(lint(code, rule, options), code);
 }
 
 /**
@@ -86,11 +85,7 @@ export function assertValidActive(code: string, rule: RuleName, options: RunOpti
     false,
     `Expected ${rule} to run over the file, but its before() gate declined it.\nSource:\n${code}`,
   );
-  assert.equal(
-    messages.length,
-    0,
-    `Expected no diagnostics, got:\n${messages.map((m) => `  - ${m.messageId ?? "?"} ${m.message}`).join("\n")}\nSource:\n${code}`,
-  );
+  assertNoMessages(messages, code);
 }
 
 /** Asserts the rule's `before()` gate declined the file. */
