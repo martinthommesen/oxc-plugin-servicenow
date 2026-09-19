@@ -24,7 +24,7 @@ This was a real defect (FINDINGS.md COR-011). `tests/rules/multi-file-lifecycle.
 
 ## One catalog descriptor per rule
 
-A rule exists only if it has a descriptor in `ruleCatalog` in [[src/catalog.ts#ruleCatalog]]. Its narrow projections supply runtime registration and configuration.
+A rule exists only if it has a descriptor module in `src/catalog/` assembled into `ruleCatalog` in [[src/catalog.ts#ruleCatalog]]. Its narrow projections supply runtime registration and configuration.
 
 Generated pages, README tables, and example configs derive from the same array.
 

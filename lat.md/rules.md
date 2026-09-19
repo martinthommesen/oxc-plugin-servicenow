@@ -4,11 +4,11 @@ Per-rule semantics, applicability, options, false positives and negatives, and e
 
 ## The catalog is the registry
 
-`ruleCatalog` in [[src/catalog.ts#ruleCatalog]] holds one descriptor per rule. It is the single registration point for the whole package.
+`ruleCatalog` in [[src/catalog.ts#ruleCatalog]] assembles one descriptor per rule from `src/catalog/<rule>.ts`. It is the single registration point for the whole package.
 
 `src/rules/index.ts` builds the rule record from `ruleImplementations`, a projection derived from the full catalog. `src/configs/maps.ts` reads the separate `rulePlacements` projection.
 
-The file's comment states the rule: add an implementation file and one catalog descriptor, never an export in the registry. `RuleName` is inferred from the catalog array, so an unregistered rule does not typecheck.
+The file's comment states the rule: add an implementation file and one descriptor module in `src/catalog/`, never an export in the registry. Shared assembly lives in `src/catalog/entry.ts` with types in `src/catalog/types.ts`. `RuleName` is inferred from the catalog array, so an unregistered rule does not typecheck.
 
 The catalog also drives the preset maps in `src/configs/maps.ts`, `docs/rules/*.md`, the rule tables in the README, and the checked-in example configs.
 
@@ -33,6 +33,8 @@ A rule can appear in several placements with different severities. `RuleProfile`
 Every rule is built with `defineRule` (from `@oxlint/plugins`) and implements `createOnce`, which runs once per file rather than once per node.
 
 A rule returns visitors from `createOnce`, and every visitor calls `beginRuleFile` from [[src/rules/helpers.ts#beginRuleFile]] before doing anything else. A representative minimal rule is `src/rules/no-gs-now.ts`.
+
+The calls stay inside the visitors on purpose: oxlint throws when a rule touches `context.sourceCode` during `createOnce` itself, so hoisting the call to the top of `createOnce` breaks the real host even though the unit harness tolerates it. Do not merge the per-visitor calls.
 
 The shape exists for three reasons. `createOnce` computes per-file work once. A `before()` hook returning `false` lets the host skip a file entirely, which is the cheapest possible outcome for a rule that does not apply. And whole-file concerns need a `Program` visitor, which cannot be expressed as a per-node visitor.
 
