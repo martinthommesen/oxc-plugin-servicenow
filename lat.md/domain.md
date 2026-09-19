@@ -38,7 +38,7 @@ The instance executes scripts under one of three modes. `JavaScriptMode` in [[sr
 | `es2021` | ES2021 mode, the modern default |
 | `unknown` | No evidence; the plugin must not assume ES5 |
 
-`unknown` is not a mode the instance has. It is the honest answer when nothing proves the mode, and it gates rules rather than being interpreted. `appliesInJavaScriptModes` in [[src/context/resolve.ts#appliesInJavaScriptModes]] refuses to run a mode-specific rule when the mode is unknown. See [[engine]] for what is known per mode.
+`unknown` is not a mode the instance has. It is the honest answer when nothing proves the mode, and it gates rules rather than being interpreted. `shouldDiagnoseFeature` in [[src/engine/features.ts#shouldDiagnoseFeature]] refuses to run a mode-specific rule when the mode is unknown. See [[engine]] for what is known per mode.
 
 ## Releases
 

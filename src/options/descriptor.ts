@@ -55,6 +55,10 @@ export interface RuleOptionDoc {
   description: string;
 }
 
+function unhandledOptionField(field: never, path: string): never {
+  throw new ServiceNowConfigError(path, `unhandled option field ${JSON.stringify(field)}`);
+}
+
 function descriptorDefaults<T extends object>(descriptor: RuleOptionsDescriptor<T>): T {
   const out: Record<string, unknown> = {};
   for (const [key, field] of Object.entries(descriptor.fields)) {
@@ -123,10 +127,8 @@ function parseField(field: OptionField, path: string, value: unknown): unknown {
         }
         return item;
       });
-    default: {
-      const unexpected: never = field;
-      throw new ServiceNowConfigError(path, `unhandled option field ${JSON.stringify(unexpected)}`);
-    }
+    default:
+      return unhandledOptionField(field, path);
   }
 }
 
@@ -149,13 +151,8 @@ function jsonSchemaProperty(field: OptionField): Record<string, unknown> {
     }
     case "stringArray":
       return { type: "array", items: { type: "string" } };
-    default: {
-      const unexpected: never = field;
-      throw new ServiceNowConfigError(
-        "options",
-        `unhandled option field ${JSON.stringify(unexpected)}`,
-      );
-    }
+    default:
+      return unhandledOptionField(field, "options");
   }
 }
 
@@ -171,13 +168,8 @@ function optionTypeLabel(field: OptionField): string {
       return "string";
     case "stringArray":
       return "string[]";
-    default: {
-      const unexpected: never = field;
-      throw new ServiceNowConfigError(
-        "options",
-        `unhandled option field ${JSON.stringify(unexpected)}`,
-      );
-    }
+    default:
+      return unhandledOptionField(field, "options");
   }
 }
 
@@ -190,13 +182,8 @@ function optionDefaultLabel(field: OptionField): string {
       return JSON.stringify(field.default);
     case "stringArray":
       return JSON.stringify([...field.default]);
-    default: {
-      const unexpected: never = field;
-      throw new ServiceNowConfigError(
-        "options",
-        `unhandled option field ${JSON.stringify(unexpected)}`,
-      );
-    }
+    default:
+      return unhandledOptionField(field, "options");
   }
 }
 

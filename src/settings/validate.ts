@@ -289,8 +289,4 @@ export function validateServiceNowSettings(raw: unknown): ValidatedSettingsResul
   });
 }
 
-export function emptyValidatedSettings(): ValidatedServiceNowSettings {
-  return EMPTY_SETTINGS;
-}
-
 export type { ServiceNowSettings };

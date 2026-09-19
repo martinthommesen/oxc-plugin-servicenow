@@ -301,5 +301,3 @@ export function importOwnedApis(
   }
   return owned;
 }
-
-export const FLUENT_CORE_MODULE = SDK_CORE;

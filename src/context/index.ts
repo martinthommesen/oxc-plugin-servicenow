@@ -1,14 +1,11 @@
 export {
-  appliesInJavaScriptModes,
   appliesOnSurface,
   appliesToInstanceScripts,
-  hasSurface,
   isClientCapableContext,
   isFluentContext,
   isInstanceScript,
   isMixedUiActionContext,
   isServerInstanceContext,
-  javascriptModeIs,
   resolveScriptContext,
   CONTEXT_CONFIDENCE_ORDER,
 } from "./resolve.js";
@@ -18,6 +15,5 @@ export {
   isFluentFile,
   looksLikeClientSource,
   normalizeFilename,
-  SERVER_FILE,
   surfacesFromFilename,
 } from "./filename.js";

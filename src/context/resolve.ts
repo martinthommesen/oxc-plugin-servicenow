@@ -174,10 +174,6 @@ export function resolveScriptContext(
   });
 }
 
-export function hasSurface(ctx: ServiceNowScriptContext, surface: ScriptSurface): boolean {
-  return ctx.surfaces.has(surface);
-}
-
 export function isFluentContext(ctx: ServiceNowScriptContext): boolean {
   return ctx.authoring === "fluent";
 }
@@ -185,26 +181,6 @@ export function isFluentContext(ctx: ServiceNowScriptContext): boolean {
 export function isInstanceScript(ctx: ServiceNowScriptContext): boolean {
   if (ctx.authoring === "fluent") return false;
   return ctx.sources.authoring !== "unknown" || ctx.sources.surfaces !== "unknown";
-}
-
-export function javascriptModeIs(
-  ctx: ServiceNowScriptContext,
-  ...modes: JavaScriptMode[]
-): boolean {
-  return modes.includes(ctx.javascriptMode);
-}
-
-/**
- * Mode-specific engine rules run only when the mode is known and is one of `modes`.
- * Unknown mode never assumes ES5.
- */
-export function appliesInJavaScriptModes(
-  ctx: ServiceNowScriptContext,
-  modes: readonly JavaScriptMode[],
-): boolean {
-  if (isFluentContext(ctx)) return false;
-  if (ctx.javascriptMode === "unknown") return false;
-  return modes.includes(ctx.javascriptMode);
 }
 
 /**

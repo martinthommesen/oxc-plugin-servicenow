@@ -54,7 +54,7 @@ AST inference (`inferSurfacesFromAst` in [[src/analysis/file-analysis.ts#inferSu
 
 The `@sn-es-latest` comment pragma was retired in 3.0 and is ignored; files that relied on it now resolve `unknown` unless settings name a mode.
 
-Unknown mode never falls back to ES5. `appliesInJavaScriptModes` in [[src/context/resolve.ts#appliesInJavaScriptModes]] returns false for it.
+Unknown mode never falls back to ES5. `shouldDiagnoseFeature` in [[src/engine/features.ts#shouldDiagnoseFeature]] withholds mode-gated diagnostics for it.
 
 ## Scope
 

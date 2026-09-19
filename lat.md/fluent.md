@@ -4,7 +4,7 @@ Fluent is the ServiceNow SDK's TypeScript authoring format for metadata. Its fil
 
 A `.now.ts` file declares ServiceNow metadata through TypeScript calls — a table, a column, an automation — rather than through records in an instance. The SDK compiles it.
 
-`FLUENT_CORE_MODULE` in `src/fluent/manifest.ts` names the module those calls come from, `@servicenow/sdk/core`.
+Those calls come from the `@servicenow/sdk/core` module.
 
 A Fluent file has no execution surface and no JavaScript mode; see [[context#Surfaces]]. The API surface is versioned by the SDK package, a different axis from the instance release — see [[domain#Two independent version axes]].
 
