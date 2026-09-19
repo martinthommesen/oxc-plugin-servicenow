@@ -10,7 +10,8 @@ import {
   analyzeGlideElementAliases,
   type GlideElementAliasFacts,
 } from "../analysis/glideelement-aliases.js";
-import { isFunctionLikeNode, visitChildren } from "../analysis/path-state.js";
+import { dedupePathFindings, visitChildren } from "../analysis/path-state.js";
+import { isFunctionLike } from "../analysis/bindings.js";
 import {
   definitelySkipsDoWhileTest,
   truthyPathRequiredCursorIds,
@@ -43,14 +44,8 @@ function objectIdOfCursor(
   analysis: ReturnType<typeof beginRuleFile>["analysis"],
   node: unknown,
 ): number | null {
-  const proven = analysis.ofExpression(node);
-  if (
-    !proven ||
-    proven.kind !== "GlideRecord" ||
-    proven.invalid ||
-    proven.escaped ||
-    proven.objectId === undefined
-  ) {
+  const proven = analysis.trustedExpression(node);
+  if (!proven || proven.kind !== "GlideRecord" || proven.objectId === undefined) {
     return null;
   }
   return proven.objectId;
@@ -63,13 +58,9 @@ function isCursorAdvanceCall(
 ): number | null {
   if (!isNode(node) || node.type !== "CallExpression") return null;
   const call = node as ESTree.CallExpression;
+  if (call.callee.type !== "MemberExpression") return null;
   const property = staticPropertyName(call.callee);
-  if (
-    !property ||
-    !analysis.glide.cursorAdvancers.has(property) ||
-    call.callee.type !== "MemberExpression"
-  )
-    return null;
+  if (!property || !analysis.glide.cursorAdvancers.has(property)) return null;
   if (!hasAuthoritativeGlideRecordMethod(authority, call.callee.object, property)) return null;
   return objectIdOfCursor(analysis, call.callee.object);
 }
@@ -92,12 +83,8 @@ function directGlideElementCursorId(
   if (!isNode(expr) || isExtracted(expr, analysis)) return null;
   if (expr.type === "CallExpression") {
     const call = expr as ESTree.CallExpression;
-    if (
-      staticPropertyName(call.callee) !== "getElement" ||
-      call.callee.type !== "MemberExpression"
-    ) {
-      return null;
-    }
+    if (call.callee.type !== "MemberExpression") return null;
+    if (staticPropertyName(call.callee) !== "getElement") return null;
     if (!hasAuthoritativeGlideRecordMethod(authority, call.callee.object, "getElement"))
       return null;
     const id = objectIdOfCursor(analysis, call.callee.object);
@@ -217,13 +204,13 @@ function findRetainedElements(
     if (node.type === "CallExpression") {
       const call = node as ESTree.CallExpression;
       const callee = unwrapExpression(call.callee);
-      if (isNode(callee) && isFunctionLikeNode(callee)) {
+      if (isNode(callee) && isFunctionLike(callee)) {
         for (const argument of call.arguments) visit(argument, cursorIds);
         visit((callee as unknown as { body: ESTree.Node }).body, cursorIds);
         return;
       }
     }
-    if (isFunctionLikeNode(node)) {
+    if (isFunctionLike(node)) {
       visitChildren(node, (child) => visit(child, emptyIds));
       return;
     }
@@ -269,7 +256,7 @@ function findRetainedElements(
     }
     if (node.type === "CallExpression" && cursorIds.size > 0) {
       const call = node as ESTree.CallExpression;
-      if (staticPropertyName(call.callee) && call.callee.type === "MemberExpression") {
+      if (call.callee.type === "MemberExpression") {
         const method = staticPropertyName(call.callee);
         if (method && COLLECTION_METHODS.has(method)) {
           for (const argument of call.arguments) {
@@ -287,12 +274,7 @@ function findRetainedElements(
   }
 
   visit(program, emptyIds);
-  const seen = new Set<ESTree.Node>();
-  return findings.filter((finding) => {
-    if (seen.has(finding.node)) return false;
-    seen.add(finding.node);
-    return true;
-  });
+  return dedupePathFindings(findings);
 }
 
 export const noGlideelementInCollection = defineRule({

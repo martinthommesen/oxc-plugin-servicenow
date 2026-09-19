@@ -1,53 +1,36 @@
 import { ServiceNowSettingsError } from "../settings/errors.js";
 import {
   DEFAULT_FLUENT_MANIFEST,
+  sdkCoreDeclarationEvidence,
   type FluentApiCapability,
+  type FluentIdRequirement,
   type FluentSdkManifest,
 } from "./manifest.js";
-import { FLUENT_DECLARATION_SNAPSHOTS } from "./declaration-snapshots.js";
+import {
+  declaredIdPolicy,
+  discoveredEntries,
+  firstPolicyIn,
+  hasDeclarationSnapshot,
+} from "./declaration-index.js";
 import { compareFluentVersions } from "./evidence.js";
+import {
+  DEFAULT_FLUENT_SDK_VERSION,
+  SUPPORTED_FLUENT_SDK_VERSIONS,
+  type SupportedFluentSdkVersion,
+} from "./sdk-versions.js";
+import type { DeclarationIdPolicy } from "./snapshot-types.js";
 
-/** Reviewed default used when `fluentSdkVersion` is omitted. */
-export const DEFAULT_FLUENT_SDK_VERSION = "4.11.0";
-/** @deprecated Use {@link DEFAULT_FLUENT_SDK_VERSION}. */
-export const CURRENT_FLUENT_SDK_VERSION = DEFAULT_FLUENT_SDK_VERSION;
-export const LEGACY_FLUENT_SDK_VERSION = "3.0.0";
-export const SDK_4_1_FLUENT_SDK_VERSION = "4.1.0";
-export const SDK_4_8_FLUENT_SDK_VERSION = "4.8.0";
-export const SDK_4_10_FLUENT_SDK_VERSION = "4.10.0";
-export const SDK_4_10_1_FLUENT_SDK_VERSION = "4.10.1";
-
-export const SUPPORTED_FLUENT_SDK_VERSIONS = [
-  "3.0.0",
-  "3.0.1",
-  "3.0.2",
-  "3.0.3",
-  "4.0.0",
-  "4.0.1",
-  "4.0.2",
-  "4.1.0",
-  "4.1.1",
-  "4.2.0",
-  "4.3.0",
-  "4.4.0",
-  "4.4.1",
-  "4.5.0",
-  "4.6.0",
-  "4.6.1",
-  "4.7.0",
-  "4.7.1",
-  "4.7.2",
-  "4.8.0",
-  "4.8.1",
-  "4.9.0",
-  "4.9.1",
-  "4.9.2",
-  "4.10.0",
-  "4.10.1",
-  "4.11.0",
-] as const;
-
-export type SupportedFluentSdkVersion = (typeof SUPPORTED_FLUENT_SDK_VERSIONS)[number];
+export {
+  CURRENT_FLUENT_SDK_VERSION,
+  DEFAULT_FLUENT_SDK_VERSION,
+  LEGACY_FLUENT_SDK_VERSION,
+  SDK_4_1_FLUENT_SDK_VERSION,
+  SDK_4_8_FLUENT_SDK_VERSION,
+  SDK_4_10_FLUENT_SDK_VERSION,
+  SDK_4_10_1_FLUENT_SDK_VERSION,
+  SUPPORTED_FLUENT_SDK_VERSIONS,
+} from "./sdk-versions.js";
+export type { SupportedFluentSdkVersion } from "./sdk-versions.js";
 
 export interface FluentSdkArtifactEvidence {
   readonly sdkIntegrity: `sha512-${string}`;
@@ -222,15 +205,36 @@ export const FLUENT_SDK_ARTIFACTS: Readonly<
   },
 });
 
-const DECLARATIONS = FLUENT_DECLARATION_SNAPSHOTS;
-
 function withSdkVersion(manifest: FluentSdkManifest, sdkVersion: string): FluentSdkManifest {
   return { ...manifest, version: `sdk-${sdkVersion}`, sdkVersion };
 }
 
+/**
+ * The declaration's id policy is authoritative when it states one.
+ *
+ * The declaration vocabulary cannot express `"forbidden"` or `"optional"`.
+ * `"unknown"` therefore preserves the hand-reviewed manifest requirement.
+ */
+function effectiveIdRequirement(
+  declaredPolicy: DeclarationIdPolicy | undefined,
+  manual: FluentIdRequirement,
+): FluentIdRequirement {
+  return declaredPolicy === undefined || declaredPolicy === "unknown" ? manual : declaredPolicy;
+}
+
+/** Resolve the first version where a declaration made the API deprecated. */
+function effectiveDeprecatedVersion(
+  api: FluentApiCapability,
+  declaredPolicy: DeclarationIdPolicy | undefined,
+): string | undefined {
+  if (declaredPolicy !== "deprecated") return undefined;
+  return api.deprecated ?? firstPolicyIn(api.name, "deprecated");
+}
+
 function manifestForVersion(sdkVersion: string): FluentSdkManifest {
-  const snapshot = DECLARATIONS[sdkVersion];
-  if (!snapshot) throw new Error(`missing declaration snapshot for ${sdkVersion}`);
+  if (!hasDeclarationSnapshot(sdkVersion)) {
+    throw new Error(`missing declaration snapshot for ${sdkVersion}`);
+  }
   const manual = new Map(DEFAULT_FLUENT_MANIFEST.apis.map((api) => [api.name, api]));
   const apis: FluentApiCapability[] = [];
   for (const api of DEFAULT_FLUENT_MANIFEST.apis) {
@@ -239,16 +243,9 @@ function manifestForVersion(sdkVersion: string): FluentSdkManifest {
       apis.push({ ...api });
       continue;
     }
-    const declaration = snapshot.capabilities[api.name];
-    if (!declaration) continue;
-    const declaredPolicy = declaration.idPolicy;
-    const deprecated =
-      declaredPolicy === "deprecated"
-        ? (api.deprecated ??
-          SUPPORTED_FLUENT_SDK_VERSIONS.find(
-            (version) => DECLARATIONS[version]?.capabilities[api.name]?.idPolicy === "deprecated",
-          ))
-        : undefined;
+    const declaredPolicy = declaredIdPolicy(sdkVersion, api.name);
+    if (declaredPolicy === undefined) continue;
+    const deprecated = effectiveDeprecatedVersion(api, declaredPolicy);
     const evidenceRecords =
       deprecated &&
       !api.evidenceRecords.some(
@@ -257,7 +254,7 @@ function manifestForVersion(sdkVersion: string): FluentSdkManifest {
         ? [
             ...api.evidenceRecords,
             {
-              url: `https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core-${deprecated}.tgz`,
+              url: sdkCoreDeclarationEvidence(deprecated),
               symbol: api.name,
               version: deprecated,
               transition: "deprecated" as const,
@@ -266,24 +263,22 @@ function manifestForVersion(sdkVersion: string): FluentSdkManifest {
         : api.evidenceRecords;
     apis.push({
       ...api,
-      idRequirement: declaredPolicy === "unknown" ? api.idRequirement : declaredPolicy,
+      idRequirement: effectiveIdRequirement(declaredPolicy, api.idRequirement),
       deprecated,
       evidenceRecords,
     });
   }
-  for (const [name, declaration] of Object.entries(snapshot.discoveredCapabilities)) {
+  for (const [name, declaration] of discoveredEntries(sdkVersion)) {
     if (manual.has(name)) continue;
-    const introduced = SUPPORTED_FLUENT_SDK_VERSIONS.find(
-      (version) => DECLARATIONS[version]?.discoveredCapabilities[name],
-    );
+    const { introduced, module } = declaration;
     const evidenceVersion = introduced ?? sdkVersion;
-    const evidence = `https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core-${evidenceVersion}.tgz`;
+    const evidence = sdkCoreDeclarationEvidence(evidenceVersion);
     apis.push({
       name,
-      module: declaration.module,
+      module,
       kind: "entity",
       idRequirement: "required",
-      introduced,
+      introduced: introduced ?? undefined,
       evidence,
       evidenceRecords: [
         {
@@ -299,9 +294,16 @@ function manifestForVersion(sdkVersion: string): FluentSdkManifest {
   return withSdkVersion({ ...DEFAULT_FLUENT_MANIFEST, apis }, sdkVersion);
 }
 
-const REGISTRY: Record<string, FluentSdkManifest> = Object.fromEntries(
-  SUPPORTED_FLUENT_SDK_VERSIONS.map((version) => [version, manifestForVersion(version)]),
-);
+const REGISTRY_CACHE = new Map<string, FluentSdkManifest>();
+
+function registryEntry(sdkVersion: string): FluentSdkManifest | undefined {
+  if (!hasDeclarationSnapshot(sdkVersion)) return undefined;
+  const cached = REGISTRY_CACHE.get(sdkVersion);
+  if (cached) return cached;
+  const manifest = manifestForVersion(sdkVersion);
+  REGISTRY_CACHE.set(sdkVersion, manifest);
+  return manifest;
+}
 
 export function supportedFluentSdkVersionList(): string {
   return SUPPORTED_FLUENT_SDK_VERSIONS.join(", ");
@@ -313,8 +315,8 @@ export function supportedFluentSdkVersionList(): string {
  * borrowing a nearby manifest.
  */
 export function resolveFluentManifest(version: string | undefined): FluentSdkManifest {
-  if (version === undefined) return REGISTRY[DEFAULT_FLUENT_SDK_VERSION]!;
-  const selected = REGISTRY[version];
+  if (version === undefined) return registryEntry(DEFAULT_FLUENT_SDK_VERSION)!;
+  const selected = registryEntry(version);
   if (!selected) {
     throw new ServiceNowSettingsError(
       ".fluentSdkVersion",
@@ -325,5 +327,5 @@ export function resolveFluentManifest(version: string | undefined): FluentSdkMan
 }
 
 export function fluentManifests(): readonly FluentSdkManifest[] {
-  return SUPPORTED_FLUENT_SDK_VERSIONS.map((version) => REGISTRY[version]!);
+  return SUPPORTED_FLUENT_SDK_VERSIONS.map((version) => registryEntry(version)!);
 }

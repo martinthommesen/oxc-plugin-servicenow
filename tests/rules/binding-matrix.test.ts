@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { lint } from "../helpers/rule-tester.js";
+import { assertInvalid, lint } from "../helpers/rule-tester.js";
 import { BINDING_MATRIX_CASES, STATEFUL_MATRIX_RULES } from "../helpers/binding-matrix.js";
 
+// @lat: [[tests#Silence on unknown facts#Identity decisions follow the binding matrix]]
 describe("rule-specific binding and lifecycle matrix", () => {
   for (const rule of STATEFUL_MATRIX_RULES) {
     const cases = BINDING_MATRIX_CASES.filter((testCase) => testCase.rule === rule);
@@ -20,12 +21,22 @@ describe("rule-specific binding and lifecycle matrix", () => {
           assert.deepEqual(messages, []);
           return;
         }
-        assert.equal(messages.length, 1);
-        const message = messages[0];
-        assert.equal(message?.messageId, testCase.messageId);
+        const [message] = assertInvalid(
+          testCase.code,
+          testCase.rule,
+          {
+            messageId: testCase.messageId,
+            count: 1,
+            range: {
+              line: testCase.start.line,
+              column: testCase.start.column,
+              endLine: testCase.end.line,
+              endColumn: testCase.end.column,
+            },
+          },
+          { filename: testCase.filename, settings: testCase.settings },
+        );
         assert.equal(message?.message, testCase.message);
-        assert.deepEqual({ line: message?.line, column: message?.column }, testCase.start);
-        assert.deepEqual({ line: message?.endLine, column: message?.endColumn }, testCase.end);
       });
     }
   }

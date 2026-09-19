@@ -1,7 +1,7 @@
 export {
   buildScopeTree,
-  createFileBindings,
   collectPatternNames,
+  createFileBindings,
   forEachResolvedPatternBinding,
 } from "./bindings.js";
 export type { FileBindings, LexicalBinding, ScopeTree } from "./bindings.js";
@@ -24,6 +24,7 @@ export { createEmptyArrayBindingQuery } from "./empty-array-bindings.js";
 export type { EmptyArrayBindingQuery } from "./empty-array-bindings.js";
 export type { MutationQuery } from "./mutations.js";
 export {
+  GLIDE_RECORD_CONSTRUCTORS,
   hasAuthoritativeConstructedMethod,
   hasAuthoritativeGlobalObjectMethod,
   hasAuthoritativeGlideRecordMethod,
@@ -72,10 +73,13 @@ export type { ChooseWindowCountFinding } from "./glide-setnocount.js";
 export {
   findStablePlatformConstructorCalls,
   findStablePlatformStaticMethodCalls,
+  isNewExpressionFinding,
 } from "./platform-constructor-calls.js";
 export type {
   PlatformConstructorCallFinding,
   PlatformGlobalAliasOrigin,
   PlatformStaticMethodCallFinding,
 } from "./platform-constructor-calls.js";
+export { isFunctionNode, resolveStableCallable } from "./stable-invocations.js";
+export type { ImmediateFunction, StableCallableOptions } from "./stable-invocations.js";
 export { builtInCallMayWritePlatformProperty } from "./builtin-property-writes.js";

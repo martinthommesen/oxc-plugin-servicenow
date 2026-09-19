@@ -22,23 +22,6 @@ export interface EmptyArrayBindingQueryOptions {
   readonly ignoredSubtrees?: ReadonlySet<ESTree.Node>;
 }
 
-function executionBoundary(
-  bindings: FileBindings,
-  node: ESTree.Node,
-  ancestors: readonly ESTree.Node[] = [],
-): ScopeNode | null {
-  let scope = bindings.tree.scopeForNode(node, ancestors);
-  while (
-    scope &&
-    scope.kind !== "module" &&
-    scope.kind !== "function" &&
-    scope.kind !== "static-block"
-  ) {
-    scope = scope.parent;
-  }
-  return scope;
-}
-
 function isInsideLoopInCurrentExecution(ancestors: readonly ESTree.Node[]): boolean {
   for (let index = ancestors.length - 2; index >= 0; index -= 1) {
     const ancestor = ancestors[index]!;
@@ -243,7 +226,7 @@ export function createEmptyArrayBindingQuery(
               const nodes = next.get(resolved.id) ?? [];
               nodes.push({
                 node,
-                boundary: executionBoundary(bindings, node, ancestors),
+                boundary: bindings.executionBoundaryForNode(node, ancestors),
                 inLoop: isInsideLoopInCurrentExecution(ancestors),
                 definitelyNonMutating:
                   options.knownNonMutatingReferences?.has(node) === true ||
@@ -263,7 +246,7 @@ export function createEmptyArrayBindingQuery(
       if (!useReference) return false;
       const useStart = (use as { start?: unknown }).start;
       const useBoundary = useReference.boundary;
-      const declarationBoundary = executionBoundary(bindings, binding.node);
+      const declarationBoundary = bindings.executionBoundaryForNode(binding.node);
       if (typeof useStart !== "number" || !useBoundary || !declarationBoundary) return false;
       const bindingIsRecreatedWithUse = declarationBoundary === useBoundary;
       const seen = new Set<number>();

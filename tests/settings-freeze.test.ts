@@ -17,6 +17,7 @@ function context(filename: string, servicenow?: unknown): Context {
   } as unknown as Context;
 }
 
+// @lat: [[tests#State and settings#Validated settings are deeply frozen]]
 describe("validated settings immutability", () => {
   it("freezes cyclic objects without recursive failure", () => {
     const value: { self?: unknown } = {};

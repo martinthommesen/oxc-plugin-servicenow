@@ -1,13 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { Context } from "@oxlint/plugins";
-import { parse } from "./helpers/rule-tester.js";
 import { applyRules } from "../src/runtime/apply-rules.js";
 import { resolveScriptContext } from "../src/context/resolve.js";
 import { validateServiceNowSettings, ServiceNowSettingsError } from "../src/settings/index.js";
 import { SUPPORTED_SERVICENOW_RELEASES } from "../src/settings/releases.js";
 import { classifyFile } from "../src/utils/filenames.js";
-import { assertInvalid, assertValid, ES2021, lint } from "./helpers/rule-tester.js";
+import { assertInvalid, assertValid, ES2021, lint, parse } from "./helpers/rule-tester.js";
 
 describe("settings validation", () => {
   it("accepts empty settings", () => {

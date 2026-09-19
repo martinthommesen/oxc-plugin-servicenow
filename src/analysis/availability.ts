@@ -1,5 +1,6 @@
 import type { Context, ESTree } from "@oxlint/plugins";
 import { getName, getStringValue, walk } from "../utils/ast.js";
+import { isFunctionLike } from "./bindings.js";
 import { resolveConstValue } from "./members.js";
 import { getAncestors, type ProvenanceQuery } from "./provenance.js";
 
@@ -155,11 +156,7 @@ function sameNode(left: ESTree.Node | null | undefined, right: ESTree.Node): boo
 }
 
 function isDeferredFunction(node: ESTree.Node): boolean {
-  return (
-    node.type === "FunctionDeclaration" ||
-    node.type === "FunctionExpression" ||
-    node.type === "ArrowFunctionExpression"
-  );
+  return isFunctionLike(node);
 }
 
 function isImmediatelyInvoked(node: ESTree.Node, ancestors: readonly ESTree.Node[]): boolean {

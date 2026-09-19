@@ -18,7 +18,6 @@ interface Data {
   queryState: "unopened" | "opened" | "unknown";
   counter: number;
   queryEvents: number;
-  budgetExceeded: boolean;
 }
 
 const UNCHANGED_METHODS: PlatformMethodAuthorityFacts = {
@@ -50,22 +49,26 @@ function analysisFor(program: any): ProvenanceQuery {
     glide: resolveGlideCapabilities({ scope: "global", release: "zurich" }),
     ofIdentifier: () => null,
     ofExpression: () => null,
+    trustedExpression: () => null,
     isPlatformGlobal: () => true,
     isPlatformCtor: (_node, names) => names.includes("GlideRecord") || names.includes("GlideAjax"),
     isPlatformMember: () => false,
   };
 }
 
-function run(code: string, maxWork = 50_000, nonConverging = false): Data {
+function run(
+  code: string,
+  maxWork = 50_000,
+  nonConverging = false,
+): Data & { outcome: "complete" | "exhausted" } {
   const program = parse(code).ast as any;
   const result: Data = {
     calls: [],
     queryState: "unopened",
     counter: 0,
     queryEvents: 0,
-    budgetExceeded: false,
   };
-  analyzePathBindings<Data>({
+  const outcome = analyzePathBindings<Data>({
     program,
     analysis: analysisFor(program),
     kinds: ["GlideRecord"],
@@ -74,21 +77,18 @@ function run(code: string, maxWork = 50_000, nonConverging = false): Data {
       queryState: "unopened",
       counter: 0,
       queryEvents: 0,
-      budgetExceeded: false,
     }),
     cloneData: (data) => ({
       calls: [...data.calls],
       queryState: data.queryState,
       counter: data.counter,
       queryEvents: data.queryEvents,
-      budgetExceeded: data.budgetExceeded,
     }),
     mergeData: (left, right) => ({
       calls: [...new Set([...left.calls, ...right.calls])],
       queryState: left.queryState === right.queryState ? left.queryState : "unknown",
       counter: Math.max(left.counter, right.counter),
       queryEvents: left.queryEvents,
-      budgetExceeded: left.budgetExceeded,
     }),
     equalsData: (left, right) =>
       left.queryState === right.queryState &&
@@ -108,14 +108,13 @@ function run(code: string, maxWork = 50_000, nonConverging = false): Data {
       }
       if (property === "next") result.calls.push(`${property}:${rec.data.queryState}`);
     },
-    onBudgetExceeded() {
-      result.calls.length = 0;
-      result.queryEvents = 0;
-      result.budgetExceeded = true;
-    },
     maxWork,
   });
-  return result;
+  if (outcome.outcome === "exhausted") {
+    result.calls.length = 0;
+    result.queryEvents = 0;
+  }
+  return { ...result, outcome: outcome.outcome };
 }
 
 describe("path-state evaluator", () => {
@@ -230,7 +229,7 @@ describe("path-state evaluator", () => {
       true,
     );
     assert.equal(result.calls.length, 0);
-    assert.equal(result.budgetExceeded, true);
+    assert.equal(result.outcome, "exhausted");
   });
 
   it("converges point-use value domains after joined values become unbound", () => {
@@ -243,14 +242,13 @@ describe("path-state evaluator", () => {
       }
     `).ast as any;
     let observed: "left" | "right" | "joined" | undefined;
-    let budgetExceeded = false;
 
     type JoinedValue = { value: "left" | "right" | "joined" };
     const mergeValue = (left: JoinedValue, right: JoinedValue): JoinedValue => ({
       value: left.value === right.value ? left.value : "joined",
     });
 
-    analyzePathBindings<JoinedValue>({
+    const outcome = analyzePathBindings<JoinedValue>({
       program,
       analysis: analysisFor(program),
       kinds: [],
@@ -274,14 +272,10 @@ describe("path-state evaluator", () => {
           observed = rec.data.value;
         }
       },
-      onBudgetExceeded() {
-        observed = undefined;
-        budgetExceeded = true;
-      },
     });
 
     assert.equal(observed, "joined");
-    assert.equal(budgetExceeded, false);
+    assert.equal(outcome.outcome, "complete");
   });
 
   it("escapes values captured through nested closures", () => {

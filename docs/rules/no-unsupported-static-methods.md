@@ -3,7 +3,7 @@
 Error.isError(), Promise.try(), and Promise.withResolvers() are available in Australia ES2021 but not Zurich ES2021. Error.isError() is also unavailable in classic modes; Promise calls there remain owned by no-promise to avoid duplicate diagnostics. Omitted releases and unknown modes stay silent.
 
 - **Family:** engine
-- **Preset:** es2021
+- **Preset:** classic-es5
 - **Placements:** classic-es5 (error), es2021 (error)
 - **Default severity:** error
 - **Fix safety:** diagnostic only

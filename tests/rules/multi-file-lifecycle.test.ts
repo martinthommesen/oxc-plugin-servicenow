@@ -96,6 +96,7 @@ function lintFilesWithOneInstance(
   return perFile;
 }
 
+// @lat: [[tests#State and settings#Rule state does not leak across files]]
 describe("one rule instance across several files (FINDINGS.md COR-011)", () => {
   for (const entry of ruleCatalog) {
     it(`${entry.name} reports each file independently`, () => {

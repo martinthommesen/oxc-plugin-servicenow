@@ -29,7 +29,7 @@ export function classifyStaticArg(arg: unknown, analysis?: ProvenanceQuery): Sta
   if (literalNode.type === "Literal" || literalNode.type === "StringLiteral") {
     const literal = literalNode.value;
     if (literal === "" || literal === null || literal === undefined) return "empty";
-    if (typeof literal === "string") return literal.length > 0 ? "present" : "empty";
+    if (typeof literal === "string") return "present";
     return "present";
   }
 

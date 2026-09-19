@@ -1,0 +1,18 @@
+{
+  "init_version": 1,
+  "file_hashes": {
+    "lat.md/lat.md": "a34148dd49ca326823af2b9faede22f462038a9b99740271a88ff3b46d4a735f",
+    "lat.md/domain.md": "7f6547be9dc54bd57989b608db0191b828f52876610716a39985d8d75e5a052e",
+    "lat.md/context.md": "7ffef9e57aeedfe75d8415a6ba41073a306cd5e1aa812d768407e2ab4bff6d27",
+    "lat.md/analysis.md": "2ae20add1344960980bc02de8a30f35a700c1480152e583fc3930380077849de",
+    "lat.md/rules.md": "de964f3e5034be059bd94274fa2d74b143a8189f9c44385b08012d23a9022a3c",
+    "lat.md/engine.md": "c68849cc1333f64678686216b9dfb9c2ecfdb85ccaa5d1a202658f9c64651e9d",
+    "lat.md/glide.md": "a006debecc0a47228af5ebfb8a0a637c0990f1194b5e8233b1107c2e620a4e7f",
+    "lat.md/fluent.md": "15d2c0a824dc60c05256e7c05bb176aa42175139356e8ebee3e39b56eb5d1039",
+    "lat.md/invariants.md": "713ac02dc9f7ae2b915d4ce32df6e07e5ff50ba60008bf83e31a9bbef708cbab",
+    "lat.md/tests.md": "f15f40e805e2df25cda72c10d906e14769146101ef180ac06785742afe9ff1a8",
+    "AGENTS.md": "5fd49383be7fd33deec07b4e7a6cbac441568611e392864c7474e5495c8ab0d3",
+    "CLAUDE.md": "5fd49383be7fd33deec07b4e7a6cbac441568611e392864c7474e5495c8ab0d3",
+    ".agents/skills/lat-md/SKILL.md": "0b45108a7fc406119f35e509240f19acc065296f4856b2052a359b481856917c"
+  }
+}

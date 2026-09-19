@@ -1,7 +1,7 @@
 import { mkdir, readdir, readFile, unlink, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { replaceMarkedSection } from "./lib/generated-artifacts.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -33,7 +33,6 @@ function markdownTableCell(value) {
 }
 
 function presetLabel(rule) {
-  if (rule.preset) return rule.preset;
   return rule.placements[0]?.profile ?? "off";
 }
 
@@ -54,16 +53,6 @@ function tableRow(rule, includeFix) {
     return `| ${link} | ${markdownTableCell(preset)} | ${markdownTableCell(fix)} | ${catchText} |`;
   }
   return `| ${link} | ${markdownTableCell(preset)} | ${catchText} |`;
-}
-
-function replaceMarkedSection(source, name, body) {
-  const start = `<!-- generated:${name}:start -->`;
-  const end = `<!-- generated:${name}:end -->`;
-  const pattern = new RegExp(`${start}[\\s\\S]*?${end}`);
-  if (!pattern.test(source)) {
-    throw new Error(`Missing ${start} / ${end} markers`);
-  }
-  return source.replace(pattern, `${start}\n${body.trim()}\n${end}`);
 }
 
 const profileExport = {

@@ -8,33 +8,19 @@ export interface DestructuredConstMember {
   readonly source: ESTree.Node;
 }
 
-function executionBoundaryForScope(
-  bindings: FileBindings,
-  scopeId: number,
-): ReturnType<FileBindings["tree"]["scopeById"]> {
-  let scope = bindings.tree.scopeById(scopeId);
-  while (
-    scope &&
-    scope.kind !== "module" &&
-    scope.kind !== "function" &&
-    scope.kind !== "static-block"
-  ) {
-    scope = scope.parent;
-  }
-  return scope;
-}
-
 function definitelyPrecedes(left: unknown, right: ESTree.Node): boolean {
   const leftEnd = isNode(left) ? (left as { end?: number }).end : undefined;
   const rightStart = (right as { start?: number }).start;
   return typeof leftEnd === "number" && typeof rightStart === "number" && leftEnd <= rightStart;
 }
 
-/** Follow immutable identifier aliases to their terminal initializer. */
-export function resolveConstValue(
+type AliasResolutionPolicy = "possible" | "dominating";
+
+function resolveAliasValue(
   node: unknown,
   bindings: FileBindings,
-  seen: ReadonlySet<number> = new Set(),
+  seen: ReadonlySet<number>,
+  policy: AliasResolutionPolicy,
 ): ESTree.Node | null {
   let value = unwrapExpression(node);
   const visited = new Set(seen);
@@ -50,11 +36,31 @@ export function resolveConstValue(
     if (declaration.id.type !== "Identifier" || getName(declaration.id) !== getName(value)) {
       return value;
     }
-    if (visited.has(binding.id)) return null;
+    if (visited.has(binding.id)) return policy === "possible" ? null : value;
+    if (policy === "dominating") {
+      if (!declaration.init || !definitelyPrecedes(declaration.init, value)) return value;
+      const useScope = bindings.scopeForNode(value);
+      if (
+        !useScope ||
+        bindings.executionBoundaryForScopeId(binding.scopeId) !==
+          bindings.executionBoundaryForScopeId(useScope.id)
+      ) {
+        return value;
+      }
+    }
     visited.add(binding.id);
     value = unwrapExpression(declaration.init);
   }
   return null;
+}
+
+/** Follow immutable identifier aliases to their terminal initializer. */
+export function resolveConstValue(
+  node: unknown,
+  bindings: FileBindings,
+  seen: ReadonlySet<number> = new Set(),
+): ESTree.Node | null {
+  return resolveAliasValue(node, bindings, seen, "possible");
 }
 
 /**
@@ -68,38 +74,7 @@ export function resolveDominatingConstValue(
   bindings: FileBindings,
   seen: ReadonlySet<number> = new Set(),
 ): ESTree.Node | null {
-  let value = unwrapExpression(node);
-  const visited = new Set(seen);
-  while (isNode(value)) {
-    if (value.type === "SequenceExpression") {
-      value = unwrapExpression(value.expressions.at(-1));
-      continue;
-    }
-    if (value.type !== "Identifier") return value;
-    const binding = bindings.resolve(getName(value) ?? "", value);
-    if (binding?.kind !== "const" || binding.node.type !== "VariableDeclarator") return value;
-    const declaration = binding.node as ESTree.VariableDeclarator;
-    if (
-      declaration.id.type !== "Identifier" ||
-      getName(declaration.id) !== getName(value) ||
-      !declaration.init ||
-      visited.has(binding.id) ||
-      !definitelyPrecedes(declaration.init, value)
-    ) {
-      return value;
-    }
-    const useScope = bindings.tree.scopeForNode(value);
-    if (
-      !useScope ||
-      executionBoundaryForScope(bindings, binding.scopeId) !==
-        executionBoundaryForScope(bindings, useScope.id)
-    ) {
-      return value;
-    }
-    visited.add(binding.id);
-    value = unwrapExpression(declaration.init);
-  }
-  return null;
+  return resolveAliasValue(node, bindings, seen, "dominating");
 }
 
 /** Whether this expression definitely evaluates to `undefined` if it completes. */
@@ -204,10 +179,6 @@ export function staticCalleeProperty(node: unknown): string | null {
     return staticPropertyName((node as ESTree.CallExpression | ESTree.NewExpression).callee);
   }
   return staticPropertyName(node);
-}
-
-export function identifierName(node: unknown): string | null {
-  return getName(node);
 }
 
 export function isComputedUnknown(node: unknown): boolean {

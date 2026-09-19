@@ -7,11 +7,20 @@ import {
   WALK_SKIP_KEYS,
   walk,
 } from "../utils/ast.js";
-import type { FileBindings, LexicalBinding, ScopeNode } from "./bindings.js";
+import {
+  isFunctionLike,
+  type FileBindings,
+  type LexicalBinding,
+  type ScopeNode,
+} from "./bindings.js";
 import { resolvePlatformGlobalName } from "./globals.js";
-import { isFunctionLike } from "./bindings.js";
 import { isDefinitelyUndefinedValue, resolveConstValue, staticPropertyName } from "./members.js";
-import { ctorProvenanceKind, type ProvenanceKind, type ProvenanceQuery } from "./provenance.js";
+import {
+  PLATFORM_ALIAS_GLOBALS,
+  ctorProvenanceKind,
+  type ProvenanceKind,
+  type ProvenanceQuery,
+} from "./provenance.js";
 
 export type BindingId = number;
 export type ObjectId = number;
@@ -67,6 +76,9 @@ export function resetPathBudgetExceededCount(): void {
   budgetExceededCount = 0;
 }
 
+// Keyed on node identity: nodeStart() returns -1 on a host whose nodes
+// carry no offset shape, which would collapse every finding in the file
+// onto one key and silently drop all but the first (FINDINGS.md COR-016).
 export function dedupePathFindings<T extends { node: ESTree.Node }>(
   findings: T[],
   keyOf?: (finding: T) => string,
@@ -104,6 +116,8 @@ interface EnvState<T> {
   abrupt: Map<AbruptCompletion, EnvState<T>[]>;
 }
 
+export type PathAnalysisOutcome = { outcome: "complete" } | { outcome: "exhausted" };
+
 export interface PathAnalysisOptions<T> {
   program: ESTree.Node;
   analysis: ProvenanceQuery;
@@ -134,18 +148,13 @@ export interface PathAnalysisOptions<T> {
   retainUnboundRecords?: boolean;
   /** Inspect every reachable program completion after the shared traversal. */
   onExit?: (states: readonly PathExitState<T>[]) => void;
-  /** Internal deterministic work cap. Exceeding it degrades this pass to unknown. */
+  /** Internal deterministic work cap. Exceeding it returns an exhausted outcome. */
   maxWork?: number;
-  onBudgetExceeded?: () => void;
 }
 
 export interface PathExitState<T> {
   completion: Completion | "unreachable";
   records: readonly SharedRecord<T>[];
-}
-
-export function isFunctionLikeNode(node: ESTree.Node): boolean {
-  return isFunctionLike(node);
 }
 
 export function mergeTri(
@@ -481,7 +490,7 @@ function capturedBindings(fn: ESTree.Node, bindings: FileBindings): BindingId[] 
     ancestors.push(node);
     if (node.type === "Identifier" && isValueReference(node, ancestors)) {
       const binding = bindings.resolve(getName(node) ?? "", node, ancestors);
-      const declared = binding ? bindings.tree.scopeById(binding.scopeId) : null;
+      const declared = binding ? bindings.scopeById(binding.scopeId) : null;
       if (binding && !scopeContains(declared, fn)) {
         found.add(binding.id);
       }
@@ -521,7 +530,7 @@ function defaultMaxWork(program: ESTree.Node): number {
  * Path-sensitive tracker keyed by lexical binding identity and runtime object
  * identity. Abrupt completions do not join into later statements.
  */
-export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
+export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAnalysisOutcome {
   const {
     program,
     analysis,
@@ -539,7 +548,6 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
     retainUnboundRecords = true,
     onExit,
     maxWork = defaultMaxWork(program),
-    onBudgetExceeded,
   } = options;
   if (!Number.isSafeInteger(maxWork) || maxWork < 1) {
     throw new RangeError("path analysis maxWork must be a positive safe integer");
@@ -561,7 +569,6 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
   const activeFunctions = new Set<ESTree.Node>();
   const functionCaptures = new WeakMap<ESTree.Node, readonly BindingId[]>();
   const tryThrowPaths: EnvState<T>[][] = [];
-  const PLATFORM_ALIASES = new Set(["g_form", "gs", "current"]);
 
   const recordPossibleThrow = (state: EnvState<T>): void => {
     const paths = tryThrowPaths[tryThrowPaths.length - 1];
@@ -646,7 +653,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
       const binding = resolveBinding(bindings, expr, ancestors);
       if (binding) return state.env.get(binding.id);
       const name = getName(expr);
-      if (name && PLATFORM_ALIASES.has(name) && analysis.isPlatformGlobal(expr)) {
+      if (name && PLATFORM_ALIAS_GLOBALS.has(name) && analysis.isPlatformGlobal(expr)) {
         let objectId = platformObjects.get(name);
         if (objectId === undefined) {
           objectId = alloc();
@@ -858,6 +865,14 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
         return;
       default:
         return;
+    }
+  };
+
+  const escapeCaptured = (state: EnvState<T>, fn: ESTree.Node): void => {
+    for (const capturedId of capturesOf(fn)) {
+      const objectId = state.env.get(capturedId);
+      const captured = objectId === undefined ? undefined : state.objects.get(objectId);
+      if (captured) captured.escaped = true;
     }
   };
 
@@ -1525,22 +1540,10 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
           const discarded =
             parent?.type === "ExpressionStatement" &&
             (parent as ESTree.ExpressionStatement).expression === call;
-          if (!discarded) {
-            for (const capturedId of capturesOf(fn)) {
-              const objectId = state.env.get(capturedId);
-              const captured = objectId === undefined ? undefined : state.objects.get(objectId);
-              if (captured) captured.escaped = true;
-            }
-          }
+          if (!discarded) escapeCaptured(state, fn);
           for (const arg of call.arguments) markEscape(state, arg);
         } else {
-          if (fn) {
-            for (const capturedId of capturesOf(fn)) {
-              const objectId = state.env.get(capturedId);
-              const captured = objectId === undefined ? undefined : state.objects.get(objectId);
-              if (captured) captured.escaped = true;
-            }
-          }
+          if (fn) escapeCaptured(state, fn);
           for (const arg of call.arguments) markEscape(state, arg);
         }
         break;
@@ -1624,9 +1627,10 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
         })),
       );
     }
+    return { outcome: "complete" };
   } catch (error) {
     if (error !== BUDGET_EXCEEDED) throw error;
     budgetExceededCount += 1;
-    onBudgetExceeded?.();
+    return { outcome: "exhausted" };
   }
 }

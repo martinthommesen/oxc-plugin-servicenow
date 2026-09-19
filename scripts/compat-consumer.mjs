@@ -4,7 +4,8 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { parseNpmPackJson } from "./parse-npm-pack.mjs";
+import { packTarball as buildTarball } from "./check-release-artifact.mjs";
+import { parseOxlintStdout, pluginRuleIds, runHostProcess } from "./lib/host-verifier.mjs";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const matrix = JSON.parse(readFileSync(path.join(root, "scripts/compat-matrix.json"), "utf8"));
@@ -28,26 +29,18 @@ function fail(kind, message) {
 
 function packTarball(destination) {
   const tarballFlag = argValue("--tarball", process.env.SN_COMPAT_TARBALL);
-  if (tarballFlag) {
-    return path.resolve(tarballFlag);
-  }
-  execFileSync("npm", ["run", "clean"], { cwd: root, encoding: "utf8" });
-  execFileSync("npm", ["run", "build"], { cwd: root, encoding: "utf8" });
-  const stdout = execFileSync(
-    "npm",
-    ["pack", "--json", "--ignore-scripts", `--pack-destination=${destination}`],
-    {
-      encoding: "utf8",
-      cwd: root,
-    },
-  );
-  let record;
-  try {
-    record = parseNpmPackJson(stdout);
-  } catch (error) {
-    fail("package", error instanceof Error ? error.message : String(error));
-  }
-  return path.join(destination, record.filename);
+  return tarballFlag ? path.resolve(tarballFlag) : buildTarball(destination).tarball;
+}
+
+function oxlintReport(consumer, args, errorKind, message) {
+  const host = runHostProcess({
+    bin: path.join(consumer, "node_modules", ".bin", "oxlint"),
+    args,
+    cwd: consumer,
+  });
+  const { report, parseError } = parseOxlintStdout(host.stdout);
+  if (!report) fail(errorKind, `${message}: ${parseError ?? host.stderr.slice(0, 400)}`);
+  return report;
 }
 
 async function runCell(tarball, cell, sameRuntimeSmoke) {
@@ -222,26 +215,13 @@ console.log(JSON.stringify({
       path.join(consumer, "bad.br.js"),
       'var assignmentGroup = "97c04b3b1b12100043ab85e5bd0713e2";\nvar rec = new GlideRecord("incident");\nrec.next();\n',
     );
-    let oxlintStdout = "";
-    try {
-      oxlintStdout = execFileSync(
-        path.join(consumer, "node_modules", ".bin", "oxlint"),
-        ["--format", "json", "bad.br.js"],
-        {
-          encoding: "utf8",
-          cwd: consumer,
-        },
-      );
-    } catch (error) {
-      oxlintStdout = error.stdout ?? "";
-    }
-    let report;
-    try {
-      report = JSON.parse(oxlintStdout);
-    } catch {
-      fail("host-api", `${cell.id} oxlint did not emit JSON: ${oxlintStdout.slice(0, 400)}`);
-    }
-    const codes = (report.diagnostics ?? []).map((diagnostic) => diagnostic.code);
+    const report = oxlintReport(
+      consumer,
+      ["--format", "json", "bad.br.js"],
+      "host-api",
+      `${cell.id} oxlint did not emit JSON`,
+    );
+    const codes = pluginRuleIds(report);
     if (!codes.some((code) => String(code).includes("no-hardcoded-sysid"))) {
       fail(
         "runtime",
@@ -356,23 +336,13 @@ export default [
           2,
         ),
       );
-      let fluentOutput = "";
-      try {
-        fluentOutput = execFileSync(
-          path.join(consumer, "node_modules", ".bin", "oxlint"),
-          ["--format", "json", "-c", fluentConfig, "sample.now.ts"],
-          { cwd: consumer, encoding: "utf8" },
-        );
-      } catch (error) {
-        fluentOutput = error.stdout ?? "";
-      }
-      let fluentReport;
-      try {
-        fluentReport = JSON.parse(fluentOutput);
-      } catch {
-        fail("runtime", `${cell.id} Fluent ${fluentSdkVersion} output was not JSON`);
-      }
-      const fluentCodes = (fluentReport.diagnostics ?? []).map((diagnostic) => diagnostic.code);
+      const fluentReport = oxlintReport(
+        consumer,
+        ["--format", "json", "-c", fluentConfig, "sample.now.ts"],
+        "runtime",
+        `${cell.id} Fluent ${fluentSdkVersion} output was not JSON`,
+      );
+      const fluentCodes = pluginRuleIds(fluentReport);
       const hasMissingId = fluentCodes.some((code) => String(code).includes("require-fluent-id"));
       const requiresListId =
         fluentEvidence.versions?.[fluentSdkVersion]?.capabilities?.List?.idPolicy === "required";
@@ -406,23 +376,13 @@ export default [
         path.join(consumer, `mode-${javascriptMode}.server.js`),
         "Promise.resolve(1);\n",
       );
-      let modeOutput = "";
-      try {
-        modeOutput = execFileSync(
-          path.join(consumer, "node_modules", ".bin", "oxlint"),
-          ["--format", "json", "-c", modeConfig, `mode-${javascriptMode}.server.js`],
-          { cwd: consumer, encoding: "utf8" },
-        );
-      } catch (error) {
-        modeOutput = error.stdout ?? "";
-      }
-      let modeReport;
-      try {
-        modeReport = JSON.parse(modeOutput);
-      } catch {
-        fail("runtime", `${cell.id} ${javascriptMode} mode output was not JSON`);
-      }
-      const modeCodes = (modeReport.diagnostics ?? []).map((diagnostic) => diagnostic.code);
+      const modeReport = oxlintReport(
+        consumer,
+        ["--format", "json", "-c", modeConfig, `mode-${javascriptMode}.server.js`],
+        "runtime",
+        `${cell.id} ${javascriptMode} mode output was not JSON`,
+      );
+      const modeCodes = pluginRuleIds(modeReport);
       const reportsPromise = javascriptMode === "compatibility" || javascriptMode === "es5";
       const hasPromiseDiagnostic = modeCodes.some((code) => String(code).includes("no-promise"));
       if (reportsPromise !== hasPromiseDiagnostic) {
@@ -474,25 +434,13 @@ export default [
           2,
         ),
       );
-      let releaseOutput = "";
-      try {
-        releaseOutput = execFileSync(
-          path.join(consumer, "node_modules", ".bin", "oxlint"),
-          ["--format", "json", "-c", releaseConfig, "release-engine.server.js"],
-          { cwd: consumer, encoding: "utf8" },
-        );
-      } catch (error) {
-        releaseOutput = error.stdout ?? "";
-      }
-      let releaseReport;
-      try {
-        releaseReport = JSON.parse(releaseOutput);
-      } catch {
-        fail("runtime", `${cell.id} ${releaseCase.name} release output was not JSON`);
-      }
-      const releaseCodes = (releaseReport.diagnostics ?? []).map((diagnostic) =>
-        String(diagnostic.code),
+      const releaseReport = oxlintReport(
+        consumer,
+        ["--format", "json", "-c", releaseConfig, "release-engine.server.js"],
+        "runtime",
+        `${cell.id} ${releaseCase.name} release output was not JSON`,
       );
+      const releaseCodes = pluginRuleIds(releaseReport);
       const actual = {
         bigint64Arrays: releaseCodes.some((code) => code.includes("no-typed-arrays")),
         objectHasOwn: releaseCodes.some((code) => code.includes("no-object-hasown")),

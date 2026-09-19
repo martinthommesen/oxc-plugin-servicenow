@@ -105,6 +105,30 @@ export class ScopeTree {
     return this.byId.get(id) ?? null;
   }
 
+  executionBoundaryForScope(scope: ScopeNode | null): ScopeNode | null {
+    let current = scope;
+    while (
+      current &&
+      current.kind !== "module" &&
+      current.kind !== "function" &&
+      current.kind !== "static-block"
+    ) {
+      current = current.parent;
+    }
+    return current;
+  }
+
+  executionBoundaryForScopeId(scopeId: number): ScopeNode | null {
+    return this.executionBoundaryForScope(this.scopeById(scopeId));
+  }
+
+  executionBoundaryForNode(
+    node: ESTree.Node,
+    ancestors: readonly ESTree.Node[] = [],
+  ): ScopeNode | null {
+    return this.executionBoundaryForScope(this.scopeForNode(node, ancestors));
+  }
+
   scopeForNode(node: ESTree.Node, ancestors: readonly ESTree.Node[] = []): ScopeNode | null {
     if (this.byBlock.has(node)) return this.byBlock.get(node) ?? null;
     for (let i = ancestors.length - 1; i >= 0; i--) {
@@ -357,13 +381,16 @@ export function buildScopeTree(ast: ESTree.Node): ScopeTree {
 }
 
 export interface FileBindings {
-  tree: ScopeTree;
+  readonly rootBlock: ESTree.Node | null;
   resolve(
     name: string,
     node: ESTree.Node,
     ancestors?: readonly ESTree.Node[],
   ): LexicalBinding | null;
-  isLocalName(name: string, node: ESTree.Node, ancestors?: readonly ESTree.Node[]): boolean;
+  scopeById(scopeId: number): ScopeNode | null;
+  scopeForNode(node: ESTree.Node, ancestors?: readonly ESTree.Node[]): ScopeNode | null;
+  executionBoundaryForScopeId(scopeId: number): ScopeNode | null;
+  executionBoundaryForNode(node: ESTree.Node, ancestors?: readonly ESTree.Node[]): ScopeNode | null;
   isPlatformGlobal(node: ESTree.Node, ancestors?: readonly ESTree.Node[]): boolean;
 }
 
@@ -420,14 +447,21 @@ export function createFileBindings(
   const useHostScope = options.scopeSource === "host";
 
   return {
-    tree,
+    rootBlock: tree.root?.block ?? null,
     resolve(name, node, ancestors = []) {
       return tree.resolve(name, node, ancestors);
     },
-    isLocalName(name, node, ancestors = []) {
-      const host = useHostScope ? hostHasDefinedBinding(context, node, name) : undefined;
-      if (host === true) return true;
-      return tree.hasLocalBinding(name, node, ancestors);
+    scopeById(scopeId) {
+      return tree.scopeById(scopeId);
+    },
+    scopeForNode(node, ancestors = []) {
+      return tree.scopeForNode(node, ancestors);
+    },
+    executionBoundaryForScopeId(scopeId) {
+      return tree.executionBoundaryForScopeId(scopeId);
+    },
+    executionBoundaryForNode(node, ancestors = []) {
+      return tree.executionBoundaryForNode(node, ancestors);
     },
     isPlatformGlobal(node, ancestors = []) {
       const name = getName(node);

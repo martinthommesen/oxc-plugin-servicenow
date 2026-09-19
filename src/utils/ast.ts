@@ -340,6 +340,19 @@ export function commentText(comment: CommentLike): string {
   return comment.value.trim();
 }
 
+/** A host comment with source offsets. */
+export interface HostComment {
+  value: string;
+  start: number;
+  end: number;
+}
+
+/** Host comment list, or empty when the host does not expose `getAllComments()`. */
+export function hostComments(host: { sourceCode: unknown }): HostComment[] {
+  const sourceCode = host.sourceCode as { getAllComments?: () => HostComment[] };
+  return typeof sourceCode.getAllComments === "function" ? sourceCode.getAllComments() : [];
+}
+
 /** Extract comment bodies when the host does not expose `getAllComments()`. */
 export function fallbackComments(
   text: string,

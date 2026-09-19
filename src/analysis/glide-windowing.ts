@@ -1,5 +1,5 @@
 import type { ESTree } from "@oxlint/plugins";
-import { analyzePathBindings, mergeTri } from "./path-state.js";
+import { analyzePathBindings, dedupePathFindings, mergeTri } from "./path-state.js";
 import {
   hasAuthoritativeGlideRecordMethod,
   type PlatformMethodAuthorityFacts,
@@ -28,11 +28,7 @@ export function findWindowedDeleteMultiple(
   authority: PlatformMethodAuthorityFacts,
 ): WindowedDeleteFinding[] {
   const findings: WindowedDeleteFinding[] = [];
-  // Keyed on node identity: nodeStart() returns -1 on a host whose nodes
-  // carry no offset shape, which would collapse every finding in the file
-  // onto one key and silently drop all but the first (FINDINGS.md COR-016).
-  const reported = new Set<ESTree.Node>();
-  analyzePathBindings<WindowData>({
+  const outcome = analyzePathBindings<WindowData>({
     program,
     analysis,
     kinds: ["GlideRecord"],
@@ -48,16 +44,9 @@ export function findWindowedDeleteMultiple(
       }
       if (WINDOW.has(property)) rec.data.windowed = true;
       if (property === "deleteMultiple" && rec.data.windowed === true) {
-        if (!reported.has(call)) {
-          reported.add(call);
-          findings.push({ node: call, name: objectName, method: property });
-        }
+        findings.push({ node: call, name: objectName, method: property });
       }
     },
-    onBudgetExceeded() {
-      findings.length = 0;
-      reported.clear();
-    },
   });
-  return findings;
+  return outcome.outcome === "complete" ? dedupePathFindings(findings) : [];
 }

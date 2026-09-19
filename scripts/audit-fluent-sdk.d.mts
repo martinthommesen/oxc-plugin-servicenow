@@ -26,12 +26,16 @@ export function moduleResolver(
   unresolvedBareExports: Set<string>;
 };
 export function generatedSource(snapshot: unknown): string;
+export function withLifecycle(
+  version: string,
+  item: Record<string, unknown>,
+  allVersions: Record<string, unknown>,
+): Record<string, unknown>;
 export function main(): Promise<void>;
 export interface AuditRuntimeVersionEntry {
   readonly capabilities?: unknown;
   readonly discoveredCapabilities?: unknown;
   readonly absent?: unknown;
-  readonly typos?: unknown;
   readonly lifecycle?: unknown;
 }
 export function runtimeSnapshot(snapshot: {

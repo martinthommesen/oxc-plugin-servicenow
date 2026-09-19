@@ -1,20 +1,11 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { replaceMarkedSection } from "./lib/generated-artifacts.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const matrix = JSON.parse(await readFile(join(root, "scripts/compat-matrix.json"), "utf8"));
 const packageManifest = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
-
-function replaceMarkedSection(source, name, body) {
-  const start = `<!-- generated:${name}:start -->`;
-  const end = `<!-- generated:${name}:end -->`;
-  const pattern = new RegExp(`${start}[\\s\\S]*?${end}`);
-  if (!pattern.test(source)) {
-    throw new Error(`Missing ${start} / ${end} markers`);
-  }
-  return source.replace(pattern, `${start}\n${body.trim()}\n${end}`);
-}
 
 const cellRows = matrix.cells
   .map(

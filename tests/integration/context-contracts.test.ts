@@ -163,6 +163,7 @@ function sorted<T extends { ruleId: string; message: string }>(items: T[]): T[] 
   );
 }
 
+// @lat: [[tests#Silence on unknown facts#Surface classification holds under real hosts]]
 describe("real-host context contracts", () => {
   for (const testCase of cases) {
     it(testCase.name, () => {
@@ -189,7 +190,7 @@ describe("real-host context contracts", () => {
             [
               {
                 files: ["**/*.js"],
-                plugins: { servicenow: plugin as never },
+                plugins: { servicenow: plugin as unknown as import("eslint").ESLint.Plugin },
                 settings: { servicenow: testCase.settings },
                 rules: testCase.rules,
               },
@@ -224,7 +225,7 @@ record.next();`;
       const config: import("eslint").Linter.Config[] = [
         {
           files: ["**/*.js"],
-          plugins: { servicenow: plugin as never },
+          plugins: { servicenow: plugin as unknown as import("eslint").ESLint.Plugin },
           settings: { servicenow: { surfaces: ["server"] } },
           rules: { [testCase.rule]: "error" },
         },

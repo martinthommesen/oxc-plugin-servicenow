@@ -112,7 +112,12 @@ export function assertSkipped(code: string, rule: RuleName, options: RunOptions 
 export function assertInvalid(
   code: string,
   rule: RuleName,
-  expected: { messageId?: string; count?: number; includes?: string } = {},
+  expected: {
+    messageId?: string;
+    count?: number;
+    includes?: string;
+    range?: { line: number; column: number; endLine: number; endColumn: number };
+  } = {},
   options: RunOptions = {},
 ): LintMessage[] {
   const messages = lint(code, rule, options);
@@ -122,16 +127,31 @@ export function assertInvalid(
     count,
     `Expected exactly ${count} diagnostic(s), got ${messages.length}:\n${messages.map((m) => `  - ${m.messageId ?? "?"} ${m.message}`).join("\n")}\nSource:\n${code}`,
   );
+  const selected = expected.messageId
+    ? messages.find((message) => message.messageId === expected.messageId)
+    : messages[0];
   if (expected.messageId) {
     assert.ok(
-      messages.some((m) => m.messageId === expected.messageId),
+      selected,
       `Expected messageId ${expected.messageId}, got ${messages.map((m) => m.messageId).join(", ")}`,
     );
   }
+  if (expected.range) {
+    assert.deepEqual(
+      {
+        line: selected?.line,
+        column: selected?.column,
+        endLine: selected?.endLine,
+        endColumn: selected?.endColumn,
+      },
+      expected.range,
+    );
+  }
   if (expected.includes) {
+    const needle = expected.includes;
     assert.ok(
-      messages.some((m) => m.message.includes(expected.includes!)),
-      `Expected a message containing ${JSON.stringify(expected.includes)}`,
+      messages.some((m) => m.message.includes(needle)),
+      `Expected a message containing ${JSON.stringify(needle)}`,
     );
   }
   return messages;

@@ -10,6 +10,15 @@ export function findSysIds(value: string): string[] {
   return value.match(SYS_ID) ?? [];
 }
 
+/**
+ * All sys_id matches with indices. Both `match` and a fully consumed
+ * `matchAll` leave the shared pattern's `lastIndex` at zero, so sharing one
+ * instance across the two call shapes is safe.
+ */
+export function matchSysIds(value: string): RegExpExecArray[] {
+  return [...value.matchAll(SYS_ID)];
+}
+
 const DIGEST_WORDS = new Set(["md5", "sha", "hash", "checksum", "etag", "digest"]);
 
 function isDigestComponent(component: string): boolean {

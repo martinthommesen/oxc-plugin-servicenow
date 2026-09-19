@@ -13,7 +13,7 @@ export interface FluentImportBinding {
 }
 
 /**
- * Resolve the origin of a factory/namespace value.  This intentionally keeps
+ * Resolve the origin of a factory/namespace value. This intentionally keeps
  * the source module in the result: a local alias does not make an import from
  * an unrelated module a ServiceNow factory.
  */
@@ -47,11 +47,7 @@ export function collectFluentImports(
       let exportedName = "*";
       if (spec.type === "ImportSpecifier") {
         const imported = spec.imported;
-        exportedName =
-          getName(imported) ??
-          getStringValue(imported) ??
-          (imported as { name?: string }).name ??
-          "*";
+        exportedName = getName(imported) ?? getStringValue(imported) ?? "*";
       } else if (spec.type === "ImportDefaultSpecifier") {
         exportedName = "default";
       }
@@ -69,7 +65,7 @@ function declarationInit(binding: LexicalBinding): ESTree.Node | null {
   if (binding.kind !== "const" && binding.kind !== "let" && binding.kind !== "var") return null;
   if (binding.node.type !== "VariableDeclarator") return null;
   const declaration = binding.node as ESTree.VariableDeclarator;
-  // Only simple aliases are accepted.  Destructuring can bind several values
+  // Only simple aliases are accepted. Destructuring can bind several values
   // and needs a property-sensitive assignment model; treating it as a factory
   // would turn an unrelated object property into a false positive.
   if (!isNode(declaration.id) || declaration.id.type !== "Identifier") return null;
@@ -178,14 +174,14 @@ function resolveBindingOrigin(
     const init = latestSimpleValue(
       binding,
       expr,
-      bindings.tree.root?.block,
+      bindings.rootBlock ?? undefined,
       bindings,
       useInsideFunction,
     );
     if (!init) return null;
     seen.add(binding.id);
     // A declaration node has enough source/span information for ScopeTree to
-    // resolve its initializer.  The caller's ancestors are retained for
+    // resolve its initializer. The caller's ancestors are retained for
     // hosts that provide richer lexical scope data.
     return resolveBindingOrigin(init, [...ancestors, binding.node], bindings, imports, seen);
   }

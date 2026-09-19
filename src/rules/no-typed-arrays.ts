@@ -15,7 +15,7 @@ import {
   resolveDestructuredConstMember,
   staticPropertyName,
 } from "../analysis/internal.js";
-import { ruleDocsUrl, TYPED_ARRAY_CTORS } from "../constants.js";
+import { INVOCATION_HELPERS, ruleDocsUrl, TYPED_ARRAY_CTORS } from "../constants.js";
 import { isFeatureAllowed, shouldDiagnoseFeature } from "../engine/index.js";
 import { isNode, unwrapExpression } from "../utils/ast.js";
 import { beginRuleFile } from "./helpers.js";
@@ -24,7 +24,6 @@ const ALL = new Set<string>(TYPED_ARRAY_CTORS);
 const BIGINT_ARRAYS = new Set(["BigInt64Array", "BigUint64Array"]);
 const BIGINT_GETTERS = new Set(["getBigInt64", "getBigUint64"]);
 const TYPED_ARRAY_FACTORIES = new Set(["from", "of"]);
-const INVOCATION_HELPERS = new Set(["apply", "bind", "call"]);
 
 function isPlatformStaticMember(
   node: unknown,
@@ -186,8 +185,8 @@ export const noTypedArrays = defineRule({
           ) {
             return null;
           }
-          const receiver = analysis.ofExpression(selected.source);
-          if (receiver?.kind === "DataView" && !receiver.invalid && !receiver.escaped) {
+          const receiver = analysis.trustedExpression(selected.source);
+          if (receiver?.kind === "DataView") {
             return {
               name: selected.property,
               object: selected.source,
@@ -207,8 +206,8 @@ export const noTypedArrays = defineRule({
         if (value.type !== "MemberExpression") return null;
         const name = staticPropertyName(value);
         if (!name || !BIGINT_GETTERS.has(name)) return null;
-        const receiver = analysis.ofExpression(value.object);
-        if (receiver?.kind === "DataView" && !receiver.invalid && !receiver.escaped) {
+        const receiver = analysis.trustedExpression(value.object);
+        if (receiver?.kind === "DataView") {
           return { name, object: value.object, receiver } as const;
         }
         const object = resolveConstValue(value.object, analysis.bindings);
@@ -250,8 +249,8 @@ export const noTypedArrays = defineRule({
         return isSameGetterAccess(rawCallee.object);
       };
       const isGetterOwner = (object: ESTree.Node): boolean => {
-        const receiver = analysis.ofExpression(object);
-        if (receiver?.kind === "DataView" && !receiver.invalid && !receiver.escaped) {
+        const receiver = analysis.trustedExpression(object);
+        if (receiver?.kind === "DataView") {
           return !file.mutations.isObjectPropertyWritten(object, name);
         }
         const value = resolveConstValue(object, analysis.bindings);

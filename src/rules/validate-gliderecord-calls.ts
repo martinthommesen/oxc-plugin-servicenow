@@ -61,8 +61,8 @@ export const validateGliderecordCalls = defineRule({
         const object = getName(member.object);
         const method = staticPropertyName(member);
         if (!object || !method || !UNUSED_RETURN.has(method)) return;
-        const proven = analysis.ofExpression(member.object);
-        if (!proven || proven.kind !== "GlideRecord" || proven.invalid || proven.escaped) return;
+        const proven = analysis.trustedExpression(member.object);
+        if (!proven || proven.kind !== "GlideRecord") return;
         if (!hasAuthoritativeGlideRecordMethod(file, member.object, method)) return;
         const ancestors = context.sourceCode.getAncestors(node);
         const parent = ancestors[ancestors.length - 1];

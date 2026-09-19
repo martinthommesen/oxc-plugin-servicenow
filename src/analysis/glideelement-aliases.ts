@@ -25,7 +25,7 @@ export function analyzeGlideElementAliases(
   analysis: ProvenanceQuery,
   identifyDirect: (node: ESTree.Node) => number | null,
 ): GlideElementAliasFacts {
-  let observed = new WeakMap<ESTree.Node, number | null>();
+  const observed = new WeakMap<ESTree.Node, number | null>();
 
   const observe = (node: ESTree.Node, cursorId: number | null): void => {
     if (!observed.has(node)) {
@@ -35,7 +35,7 @@ export function analyzeGlideElementAliases(
     if (observed.get(node) !== cursorId) observed.set(node, null);
   };
 
-  analyzePathBindings<GlideElementAliasData>({
+  const outcome = analyzePathBindings<GlideElementAliasData>({
     program,
     analysis,
     kinds: [],
@@ -61,13 +61,11 @@ export function analyzeGlideElementAliases(
     onRef({ node, rec }) {
       observe(node, rec && !rec.invalid ? rec.data.cursorId : null);
     },
-    onBudgetExceeded() {
-      observed = new WeakMap();
-    },
   });
 
   return Object.freeze({
     cursorIdAt(node: unknown): number | null {
+      if (outcome.outcome === "exhausted") return null;
       const value = unwrapExpression(node);
       return isNode(value) ? (observed.get(value) ?? null) : null;
     },

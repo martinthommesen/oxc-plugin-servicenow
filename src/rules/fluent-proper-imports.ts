@@ -1,7 +1,11 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { getAncestors } from "../analysis/internal.js";
-import { importedBindingFor, resolveFluentCandidate } from "../analysis/fluent-imports.js";
+import {
+  importedBindingFor,
+  resolveFluentCandidate,
+  type FluentImportBinding,
+} from "../analysis/fluent-imports.js";
 import { staticPropertyName } from "../analysis/members.js";
 import { importOwnedApis } from "../fluent/index.js";
 import { ruleDocsUrl } from "../constants.js";
@@ -81,13 +85,7 @@ export const fluentProperImports = defineRule({
             file.bindings,
             file.fluent.imports,
           );
-          if (imported && imported.exportedName === "*" && imported.sourceModule !== expected) {
-            context.report({
-              node: member.property as unknown as ESTree.Node,
-              messageId: "wrongModule",
-              data: { names: capability.name, source: imported.sourceModule, expected },
-            });
-          }
+          reportNamespaceModule(member, capability.name, expected, imported);
           return;
         }
 
@@ -112,14 +110,24 @@ export const fluentProperImports = defineRule({
         if (!exported || !expected) return;
         const object = member.object as ESTree.Node;
         const imported = importedBindingFor(object, ancestors, file.bindings, file.fluent.imports);
-        if (imported && imported.exportedName === "*" && imported.sourceModule !== expected) {
-          context.report({
-            node: member.property as unknown as ESTree.Node,
-            messageId: "wrongModule",
-            data: { names: exported, source: imported.sourceModule, expected },
-          });
-        }
+        reportNamespaceModule(member, exported, expected, imported);
       },
     };
+
+    function reportNamespaceModule(
+      member: ESTree.MemberExpression,
+      names: string,
+      expected: string,
+      imported: FluentImportBinding | null,
+    ): void {
+      if (!imported || imported.exportedName !== "*" || imported.sourceModule === expected) {
+        return;
+      }
+      context.report({
+        node: member.property as unknown as ESTree.Node,
+        messageId: "wrongModule",
+        data: { names, source: imported.sourceModule, expected },
+      });
+    }
   },
 });

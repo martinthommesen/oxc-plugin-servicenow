@@ -306,10 +306,9 @@ ajax.getXMLAnswer(handleAnswer);`,
 
   it("treats missing and non-string keys as definitely absent", () => {
     for (const key of ["", "null", "false", "42", "{}", "[]"]) {
-      const argument = key === "" ? "" : key;
       assertInvalid(
         `var ajax = new GlideAjax("x_acme.UserLookup");
-ajax.addParam(${argument});
+ajax.addParam(${key});
 ajax.getXMLAnswer(handleAnswer);`,
         RULE,
         { messageId: "missingName" },

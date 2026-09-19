@@ -35,6 +35,18 @@ describe(RULE, () => {
     }
   });
 
+  it("retains stable generator mappers for primitive thisArg checks", () => {
+    for (const code of [
+      `Array.from(source, function* (value) { return value; }, null);`,
+      `function* mapper(value) { return value; }
+Array.from(source, mapper, null);`,
+      `const mapper = function* (value) { return value; };
+Array.from(source, mapper, null);`,
+    ]) {
+      assertInvalid(code, RULE, { messageId: "primitive" }, { settings: ZURICH });
+    }
+  });
+
   it("reports omitted this arguments only for proven sloppy mappers that read their this", () => {
     for (const code of [
       `Array.from(source, function (value) { return this.normalize(value); });`,

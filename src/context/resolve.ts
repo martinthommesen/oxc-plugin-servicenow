@@ -1,24 +1,27 @@
 import type { Context } from "@oxlint/plugins";
+import { hostComments } from "../utils/ast.js";
 import { getValidatedSettingsResult } from "../settings/index.js";
 import type {
   ContextConfidence,
   ContextSourceMap,
   JavaScriptMode,
   ScriptAuthoring,
-  ScriptKind,
   ScriptSurface,
   ServiceNowScriptContext,
   SettingsDeprecation,
   ValidatedServiceNowSettings,
 } from "../types.js";
 import { ServiceNowSettingsError } from "../settings/errors.js";
-import { immutableSet } from "../utils/immutable.js";
 import {
-  ES_LATEST_IN_COMMENT,
-  authoringFromFilename,
-  isFluentFile,
-  surfacesFromFilename,
-} from "./filename.js";
+  esLatestPragmaDeprecation,
+  hasEsLatestPragma,
+  legacyAuthoring,
+  legacyJavaScriptMode,
+  legacySurface,
+} from "../settings/legacy.js";
+import { SERVER_ONLY_SURFACES } from "../surfaces.js";
+import { immutableSet } from "../utils/immutable.js";
+import { authoringFromFilename, isFluentFile, surfacesFromFilename } from "./filename.js";
 
 export const CONTEXT_CONFIDENCE_ORDER: Readonly<Record<ContextConfidence, number>> = {
   unknown: 0,
@@ -33,36 +36,6 @@ function weakest(sources: ContextSourceMap): ContextConfidence {
   );
 }
 
-function kindToSurface(kind: ScriptKind): ScriptSurface | undefined {
-  switch (kind) {
-    case "client":
-    case "business-rule":
-    case "script-include":
-    case "server":
-    case "ui-action":
-      return kind;
-    case "fluent":
-    case "unknown":
-      return undefined;
-    default: {
-      const _exhaustive: never = kind;
-      return _exhaustive;
-    }
-  }
-}
-
-function commentsOf(context: Context): Array<{ value: string }> {
-  const sourceCode = context.sourceCode as { getAllComments?: () => Array<{ value: string }> };
-  if (typeof sourceCode.getAllComments === "function") {
-    return sourceCode.getAllComments();
-  }
-  return [];
-}
-
-function hasEsLatestPragma(context: Context): boolean {
-  return commentsOf(context).some((comment) => ES_LATEST_IN_COMMENT.test(comment.value));
-}
-
 function resolveAuthoring(
   filename: string,
   settings: ValidatedServiceNowSettings,
@@ -74,12 +47,8 @@ function resolveAuthoring(
   // it remains supported, an explicit legacy value outranks filename hints;
   // otherwise a `client` script saved as `thing.now.ts` would silently become
   // Fluent and disable all of its relevant rules.
-  if (settings.scriptType !== "auto") {
-    return {
-      authoring: settings.scriptType === "fluent" ? "fluent" : "classic",
-      confidence: "explicit",
-    };
-  }
+  const legacy = legacyAuthoring(settings);
+  if (legacy) return { authoring: legacy, confidence: "explicit" };
   if (settings.surfaces !== "auto") {
     return { authoring: "classic", confidence: "explicit" };
   }
@@ -90,12 +59,18 @@ function resolveAuthoring(
   return { authoring: "classic", confidence: "unknown" };
 }
 
+function inferExecutionSurfaces(inferSurfaces?: () => { client: boolean; server: boolean }): {
+  client: boolean;
+  server: boolean;
+} {
+  return inferSurfaces?.() ?? { client: false, server: false };
+}
+
 function resolveSurfaces(
   filename: string,
   settings: ValidatedServiceNowSettings,
   authoring: ScriptAuthoring,
   authoringConfidence: ContextConfidence,
-  inferClient?: () => boolean,
   inferSurfaces?: () => { client: boolean; server: boolean },
   baseDirectory?: string,
 ): { surfaces: Set<ScriptSurface>; confidence: ContextConfidence } {
@@ -117,14 +92,8 @@ function resolveSurfaces(
     return { surfaces: new Set(settings.surfaces), confidence: "explicit" };
   }
 
-  if (
-    settings.scriptType !== "auto" &&
-    settings.scriptType !== "unknown" &&
-    settings.scriptType !== "fluent"
-  ) {
-    const surface = kindToSurface(settings.scriptType);
-    return { surfaces: new Set(surface ? [surface] : []), confidence: "explicit" };
-  }
+  const legacy = legacySurface(settings);
+  if (legacy) return { surfaces: new Set([legacy]), confidence: "explicit" };
 
   const fromFile = surfacesFromFilename(filename, baseDirectory);
   if (fromFile.length > 0) {
@@ -132,7 +101,7 @@ function resolveSurfaces(
     // that evidence, then continue with AST evidence so a client UI Action is
     // not mistaken for an unresolved/server script.
     if (fromFile.length === 1 && fromFile[0] === "ui-action") {
-      const inferred = inferSurfaces?.() ?? { client: Boolean(inferClient?.()), server: false };
+      const inferred = inferExecutionSurfaces(inferSurfaces);
       const surfaces = new Set<ScriptSurface>(["ui-action"]);
       if (inferred.client) surfaces.add("client");
       if (inferred.server) surfaces.add("server");
@@ -144,7 +113,7 @@ function resolveSurfaces(
     return { surfaces: new Set(fromFile), confidence: "filename" };
   }
 
-  const inferred = inferSurfaces?.() ?? { client: Boolean(inferClient?.()), server: false };
+  const inferred = inferExecutionSurfaces(inferSurfaces);
   if (inferred.client || inferred.server) {
     const surfaces = new Set<ScriptSurface>();
     if (inferred.client) surfaces.add("client");
@@ -164,26 +133,19 @@ function resolveJavaScriptMode(
   if (settings.javascriptMode !== undefined) {
     return { mode: settings.javascriptMode, confidence: "explicit" };
   }
-  if (settings.ecmaLatest === true) {
-    return { mode: "es2021", confidence: "explicit" };
-  }
+  const legacyMode = legacyJavaScriptMode(settings);
+  if (legacyMode) return { mode: legacyMode, confidence: "explicit" };
   if (authoring === "fluent" || isFluentFile(context.filename)) {
     return { mode: "unknown", confidence: "filename" };
   }
-  if (hasEsLatestPragma(context)) {
-    deprecations.push({
-      path: "@sn-es-latest",
-      message:
-        "`@sn-es-latest` is a repository convention, not ServiceNow metadata. Set `settings.servicenow.javascriptMode` instead. The pragma maps to `es2021` for one major-release cycle.",
-    });
+  if (hasEsLatestPragma(hostComments(context))) {
+    deprecations.push(esLatestPragmaDeprecation());
     return { mode: "es2021", confidence: "inferred" };
   }
   return { mode: "unknown", confidence: "unknown" };
 }
 
 export interface ScriptContextExtras {
-  program?: unknown;
-  inferClient?: () => boolean;
   /** AST evidence for execution surfaces in an otherwise bare record file. */
   inferSurfaces?: () => { client: boolean; server: boolean };
 }
@@ -201,7 +163,6 @@ export function resolveScriptContext(
     settings,
     authoring.authoring,
     authoring.confidence,
-    extras.inferClient,
     extras.inferSurfaces,
     (context as Context & { cwd?: string }).cwd,
   );
@@ -221,6 +182,7 @@ export function resolveScriptContext(
     scope: scopeConfidence,
   });
 
+  const confidence = weakest(sources);
   return Object.freeze({
     authoring: authoring.authoring,
     surfaces: immutableSet(surfaces.surfaces),
@@ -228,8 +190,11 @@ export function resolveScriptContext(
     scope: settings.scope,
     // Confidence is the weakest independent dimension. A strong filename or
     // authoring hint must not hide unknown mode, scope, or surface evidence.
-    confidence: weakest(sources),
+    confidence,
     sources,
+    confidenceAtLeast(source: keyof ContextSourceMap, minimum: ContextConfidence) {
+      return CONTEXT_CONFIDENCE_ORDER[sources[source]] >= CONTEXT_CONFIDENCE_ORDER[minimum];
+    },
     businessRuleSourceFormat: settings.businessRuleSourceFormat,
     businessRuleWhen: settings.businessRuleWhen,
     settings,
@@ -285,17 +250,8 @@ export function appliesOnSurface(
 ): boolean {
   if (isFluentContext(ctx)) return false;
   if (!ctx.surfaces.has(surface)) return false;
-  return CONTEXT_CONFIDENCE_ORDER[ctx.sources.surfaces] >= CONTEXT_CONFIDENCE_ORDER[minimum];
+  return ctx.confidenceAtLeast("surfaces", minimum);
 }
-
-const SERVER_ONLY_SURFACES: readonly ScriptSurface[] = [
-  "acl",
-  "business-rule",
-  "script-include",
-  "server",
-  "scheduled-script",
-  "fix-script",
-];
 
 /**
  * Client-capable files need an inferred or stronger client surface.

@@ -4,6 +4,7 @@ import { copyFileSync, mkdirSync, readFileSync, statSync, writeFileSync } from "
 import { basename, dirname, isAbsolute, join, posix } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseNpmPackJson } from "./parse-npm-pack.mjs";
+import { isValidIsoDate as sharedIsValidIsoDate } from "./lib/iso-date.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const RELEASE_VERSION =
@@ -42,14 +43,7 @@ export function changelogVersionHeadingPattern(version) {
   return new RegExp(`^## ${escaped} — (\\d{4}-\\d{2}-\\d{2})$`, "m");
 }
 
-export function isValidIsoDate(value) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-  const [year, month, day] = value.split("-").map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day));
-  return (
-    date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
-  );
-}
+export const isValidIsoDate = sharedIsValidIsoDate;
 
 export function changelogHasVersionHeading(text, version) {
   const unreleased = /^## Unreleased\s*$/m.exec(text);
@@ -353,7 +347,7 @@ function ensureBuiltDist() {
   }
 }
 
-function packTarball(destination) {
+export function packTarball(destination) {
   ensureBuiltDist();
   mkdirSync(destination, { recursive: true });
   const stdout = execFileSync(

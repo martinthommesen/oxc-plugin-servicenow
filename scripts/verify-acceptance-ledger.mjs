@@ -1,15 +1,24 @@
 import { createHash } from "node:crypto";
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { arch, platform, release } from "node:os";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { arch, platform, release, tmpdir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { exactProof, indexOutcomes, outcomeSummary } from "./lib/test-report.mjs";
+import { acceptanceLockPath, withAcceptanceLock } from "./lib/acceptance-lock.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const goalPath = join(root, "PR51-REMEDIATION-GOAL.md");
 const mappingPath = join(root, "scripts/pr51-acceptance.json");
 const artifactsDir = join(root, "artifacts");
-const testReportPath = join(artifactsDir, "pr51-test-results.json");
 const ACCEPTANCE_GOAL_SHA256 = "22f9e1d3d370eaa88001d8c7587f2878b7955a8d9b80922de5848696096a2dc1";
 const ACCEPTANCE_AUTHORITY_DIGEST =
   "6f9473920d9ffde625bcf68418da08cde196282c91661c2d40608c9bfff68d02";
@@ -339,29 +348,37 @@ export function worktreeIdentity() {
   };
 }
 
+export function acceptanceTestReportPath(base = tmpdir()) {
+  return join(mkdtempSync(join(base, "oxc-plugin-servicenow-acceptance-")), "test-results.json");
+}
+
 function runTests() {
-  mkdirSync(artifactsDir, { recursive: true });
-  const result = spawnSync(
-    process.execPath,
-    // Naming the networked packed-consumer test explicitly opts it back in
-    // (FINDINGS.md TST-003): directory arguments stay hermetic, and the
-    // acceptance capture is the complete evidence run.
-    [
-      join(root, "scripts/run-tests.mjs"),
-      "--report-json",
-      testReportPath,
-      "tests",
-      "tests/integration/packed-consumer.test.ts",
-    ],
-    {
-      cwd: root,
-      encoding: "utf8",
-      stdio: ["ignore", "inherit", "inherit"],
-    },
-  );
-  if (result.status !== 0)
-    throw new Error(`node:test inventory failed with status ${result.status}`);
-  return JSON.parse(readFileSync(testReportPath, "utf8"));
+  const testReportPath = acceptanceTestReportPath();
+  try {
+    const result = spawnSync(
+      process.execPath,
+      // Naming the networked packed-consumer test explicitly opts it back in
+      // (FINDINGS.md TST-003): directory arguments stay hermetic, and the
+      // acceptance capture is the complete evidence run.
+      [
+        join(root, "scripts/run-tests.mjs"),
+        "--report-json",
+        testReportPath,
+        "tests",
+        "tests/integration/packed-consumer.test.ts",
+      ],
+      {
+        cwd: root,
+        encoding: "utf8",
+        stdio: ["ignore", "inherit", "inherit"],
+      },
+    );
+    if (result.status !== 0)
+      throw new Error(`node:test inventory failed with status ${result.status}`);
+    return JSON.parse(readFileSync(testReportPath, "utf8"));
+  } finally {
+    rmSync(dirname(testReportPath), { recursive: true, force: true });
+  }
 }
 
 export function searchableRepoFiles() {
@@ -379,26 +396,21 @@ export function searchableRepoFiles() {
 
 function verifyProofs(mapping, report) {
   const errors = [];
-  const byKey = new Map();
-  for (const test of report.tests) {
-    const key = `${test.file}::${test.fullName}`;
-    const entries = byKey.get(key) ?? [];
-    entries.push(test);
-    byKey.set(key, entries);
-  }
+  const byKey = indexOutcomes(report);
   const searchableFiles = searchableRepoFiles();
   for (const item of mapping.criteria) {
     if (item.disposition === "Verified at exact head") {
       if (!item.command || item.proofs.length === 0)
         errors.push(`${item.id} is verified without an exact command and proof`);
       for (const proof of item.proofs) {
-        const matches = byKey.get(`${proof.file}::${proof.fullName}`) ?? [];
-        if (matches.length !== 1)
+        const result = exactProof(byKey, proof.file, proof.fullName);
+        if (result.status === "missing" || result.status === "ambiguous") {
           errors.push(
-            `${item.id} proof ${proof.file}::${proof.fullName} occurs ${matches.length} times`,
+            `${item.id} proof ${proof.file}::${proof.fullName} occurs ${result.count} times`,
           );
-        else if (matches[0].status !== "passed" || matches[0].skipped || matches[0].todo)
+        } else if (result.status === "not-clean") {
           errors.push(`${item.id} proof did not pass cleanly: ${proof.fullName}`);
+        }
       }
     }
     if (
@@ -445,7 +457,7 @@ function generateDocs(mapping, artifact) {
   writeFileSync(join(artifactsDir, "pr51-acceptance.md"), report);
 }
 
-export async function main(argv = process.argv.slice(2)) {
+async function runAcceptance(argv) {
   const update = argv.includes("--update");
   if (update && !existsSync(goalPath))
     throw new Error("--update requires PR51-REMEDIATION-GOAL.md from the tracking branch");
@@ -471,14 +483,7 @@ export async function main(argv = process.argv.slice(2)) {
     ).length,
     livePending: mapping.criteria.filter((item) => item.disposition === "Live-pending").length,
   };
-  const testResults = {
-    total: report.tests.length,
-    passed: report.tests.filter((item) => item.status === "passed" && !item.skipped && !item.todo)
-      .length,
-    failed: report.tests.filter((item) => item.status !== "passed").length,
-    skipped: report.tests.filter((item) => item.skipped).length,
-    todo: report.tests.filter((item) => item.todo).length,
-  };
+  const testResults = outcomeSummary(report);
   const artifact = {
     schemaVersion: 1,
     ok: errors.length === 0,
@@ -494,7 +499,7 @@ export async function main(argv = process.argv.slice(2)) {
       release: release(),
     },
     commands: [
-      "node scripts/run-tests.mjs --report-json artifacts/pr51-test-results.json tests tests/integration/packed-consumer.test.ts",
+      "node scripts/run-tests.mjs --report-json <unique-temporary-report> tests tests/integration/packed-consumer.test.ts",
       "node scripts/verify-acceptance-ledger.mjs",
     ],
     testResults,
@@ -522,6 +527,12 @@ export async function main(argv = process.argv.slice(2)) {
     ),
   );
   return artifact;
+}
+
+export async function main(argv = process.argv.slice(2)) {
+  return withAcceptanceLock(() => runAcceptance(argv), {
+    lockPath: acceptanceLockPath(root),
+  });
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

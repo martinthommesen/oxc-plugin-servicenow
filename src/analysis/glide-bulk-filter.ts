@@ -70,11 +70,7 @@ export function findUnfilteredBulkOperations(
   authority: PlatformMethodAuthorityFacts,
 ): UnfilteredBulkFinding[] {
   const findings: UnfilteredBulkFinding[] = [];
-  // Keyed on node identity: nodeStart() returns -1 on a host whose nodes
-  // carry no offset shape, which would collapse every finding in the file
-  // onto one key and silently drop all but the first (FINDINGS.md COR-016).
-  const reported = new Set<ESTree.Node>();
-  analyzePathBindings<FilterData>({
+  const outcome = analyzePathBindings<FilterData>({
     program,
     analysis,
     kinds: ["GlideRecord"],
@@ -111,10 +107,7 @@ export function findUnfilteredBulkOperations(
         analysis.glide.bulk.has(property) &&
         (rec.data.filtered === false || (rec.data.filtered === "unknown" && !rec.data.uncertain))
       ) {
-        if (!reported.has(call)) {
-          reported.add(call);
-          findings.push({ node: call, name: objectName, method: property });
-        }
+        findings.push({ node: call, name: objectName, method: property });
         return;
       }
       if (!analysis.glide.modeledMethods.has(property) && rec.data.filtered !== true) {
@@ -122,9 +115,6 @@ export function findUnfilteredBulkOperations(
         rec.data.uncertain = true;
       }
     },
-    onBudgetExceeded() {
-      findings.length = 0;
-    },
   });
-  return dedupePathFindings(findings);
+  return outcome.outcome === "complete" ? dedupePathFindings(findings) : [];
 }

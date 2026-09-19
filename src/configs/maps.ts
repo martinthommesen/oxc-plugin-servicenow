@@ -1,9 +1,9 @@
-import { ruleCatalog, type RuleProfile } from "../catalog.js";
+import { rulePlacements, type RuleProfile } from "../catalog.js";
 import type { RuleConfigMap } from "../types.js";
 
 function collect(profile: RuleProfile): RuleConfigMap {
   const rules: RuleConfigMap = {};
-  for (const entry of ruleCatalog) {
+  for (const entry of rulePlacements) {
     for (const placement of entry.placements) {
       if (placement.profile === profile) {
         rules[entry.ruleId] = placement.severity;

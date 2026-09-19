@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import {
   DEFAULT_FLUENT_MANIFEST,
@@ -6,9 +7,19 @@ import {
   knownDirectiveNames,
   resolveFluentManifest,
 } from "../src/fluent/index.js";
-import { FLUENT_DECLARATION_SNAPSHOTS } from "../src/fluent/declaration-snapshots.js";
 import { compareFluentVersions, isAllowedFluentEvidenceLocation } from "../src/fluent/evidence.js";
 import { assertFluentLifecycleMatches } from "../src/fluent/lifecycle.js";
+
+// Lifecycle and declaration evidence live in the fixture, which is the review
+// artifact. The shipped snapshot carries only what `registry.ts` reads.
+const DECLARATION_EVIDENCE = JSON.parse(
+  readFileSync(new URL("../tests/fixtures/fluent-sdk-declarations.json", import.meta.url), "utf8"),
+) as {
+  versions: Record<
+    string,
+    { lifecycle: Record<string, { introduced: string | null; deprecated: string | null }> }
+  >;
+};
 
 function isHttpsServiceNowDocsUrl(evidence: string): boolean {
   let parsed: URL;
@@ -20,6 +31,7 @@ function isHttpsServiceNowDocsUrl(evidence: string): boolean {
   return parsed.protocol === "https:" && parsed.hostname === "www.servicenow.com";
 }
 
+// @lat: [[tests#Fluent manifest#The manifest matches the pinned fixture]]
 describe("Fluent SDK manifest", () => {
   it("includes official directives", () => {
     const names = knownDirectiveNames();
@@ -81,7 +93,7 @@ describe("Fluent SDK manifest", () => {
   it("rejects deleted introduced and deprecated lifecycle fields", () => {
     const manifest = resolveFluentManifest("4.10.0");
     const api = manifest.apis.find((item) => item.name === "StateModel");
-    const expected = FLUENT_DECLARATION_SNAPSHOTS["4.10.0"]?.lifecycle.StateModel;
+    const expected = DECLARATION_EVIDENCE.versions["4.10.0"]?.lifecycle.StateModel;
     assert.ok(api);
     assert.ok(expected);
     const mutated = { ...api };
@@ -92,7 +104,7 @@ describe("Fluent SDK manifest", () => {
     );
 
     const list = resolveFluentManifest("4.11.0").apis.find((item) => item.name === "List");
-    const listExpected = FLUENT_DECLARATION_SNAPSHOTS["4.11.0"]?.lifecycle.List;
+    const listExpected = DECLARATION_EVIDENCE.versions["4.11.0"]?.lifecycle.List;
     assert.ok(list);
     assert.ok(listExpected);
     const deprecatedMutation = { ...list };

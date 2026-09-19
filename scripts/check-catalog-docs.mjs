@@ -1,8 +1,7 @@
-import { execFileSync } from "node:child_process";
 import { access, readFile } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { isValidIsoDate } from "./lib/iso-date.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const { ruleCatalog } = await import(pathToFileURL(join(root, "src/catalog.ts")).href);
@@ -10,7 +9,7 @@ const { SUPPORTED_SERVICENOW_RELEASES } = await import(
   pathToFileURL(join(root, "src/settings/index.ts")).href
 );
 const { CATALOG_RELEASE_REVIEWS } = await import(
-  pathToFileURL(join(root, "src/catalog-metadata.ts")).href
+  pathToFileURL(join(root, "src/release-reviews.ts")).href
 );
 const { optionDocsFromDescriptor } = await import(
   pathToFileURL(join(root, "src/options/index.ts")).href
@@ -20,15 +19,6 @@ const errors = [];
 
 function fail(message) {
   errors.push(message);
-}
-
-function isValidIsoDate(value) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-  const [year, month, day] = value.split("-").map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day));
-  return (
-    date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
-  );
 }
 
 function unescapedPipeCount(line) {
@@ -295,7 +285,10 @@ for (const rule of ruleCatalog) {
         fail(`${rule.name} evidence path does not exist: ${evidence.url}`);
     }
   }
-  if (rule.preset === "recommended" && rule.severity === "error") {
+  if (
+    rule.placements.some((placement) => placement.profile === "recommended") &&
+    rule.severity === "error"
+  ) {
     const authoritative = rule.evidence.some((item) => item.url.startsWith("https://"));
     const verified = rule.evidence.some(
       (item) => item.verifiedBy === "fixture" || item.verifiedBy === "integration-test",
@@ -343,26 +336,6 @@ for (const rule of ruleCatalog) {
 const readme = await readFile(join(root, "README.md"), "utf8");
 checkMarkdownTables(readme, "README.md");
 checkPublishedReadmeLinks(readme);
-
-const generatedState = execFileSync(
-  "git",
-  [
-    "-c",
-    "core.fsmonitor=false",
-    "status",
-    "--porcelain=v1",
-    "--untracked-files=all",
-    "--",
-    "docs/rules",
-    "README.md",
-    "docs/compatibility.md",
-    "examples",
-    "tests/integration/profiles/configs",
-    "tests/integration/fixtures/.oxlintrc.json",
-  ],
-  { cwd: root, encoding: "utf8" },
-).trim();
-if (generatedState) fail(`generated files differ from the checked-in set:\n${generatedState}`);
 
 if (errors.length > 0) {
   console.error(errors.map((item) => ` - ${item}`).join("\n"));

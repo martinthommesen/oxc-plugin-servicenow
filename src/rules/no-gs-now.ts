@@ -36,8 +36,8 @@ export const noGsNow = defineRule({
         const directGlobal =
           getName(member.object) === "gs" &&
           analysis.isPlatformGlobal(member.object as ESTree.Node);
-        const proven = analysis.ofExpression(member.object);
-        const alias = proven?.kind === "gs" && !proven.invalid && !proven.escaped;
+        const proven = analysis.trustedExpression(member.object);
+        const alias = proven?.kind === "gs";
         if (!directGlobal && !alias) return;
         const property = staticPropertyName(member);
         const isNow = property === "now";

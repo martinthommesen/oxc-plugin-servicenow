@@ -4,7 +4,6 @@ import type {
   BusinessRuleWhen,
   JavaScriptMode,
   ScriptAuthoring,
-  ScriptKind,
   ScriptSurface,
   ServiceNowSettings,
   SettingsDeprecation,
@@ -13,35 +12,17 @@ import type {
 import { resolveFluentManifest } from "../fluent/registry.js";
 import { isSupportedServiceNowRelease, SUPPORTED_SERVICENOW_RELEASES } from "./releases.js";
 import { ServiceNowSettingsError } from "./errors.js";
+import { expectEnum, typeName } from "./parse.js";
 import { deepFreeze } from "./freeze.js";
 import { immutableSet } from "../utils/immutable.js";
-
-const SCRIPT_KINDS = new Set<ScriptKind>([
-  "fluent",
-  "client",
-  "business-rule",
-  "script-include",
-  "server",
-  "ui-action",
-  "unknown",
-]);
-
-const SCRIPT_TYPE_VALUES = new Set<string>(["auto", ...SCRIPT_KINDS]);
+import { SURFACE_VALUES } from "../surfaces.js";
+import { checkLegacyConflicts, LEGACY_DESCRIPTOR_FIELDS } from "./legacy.js";
 
 const JAVASCRIPT_MODES = new Set<JavaScriptMode>(["compatibility", "es5", "es2021", "unknown"]);
 
 const AUTHORING_VALUES = new Set<ScriptAuthoring | "auto">(["auto", "classic", "fluent"]);
 
-const SURFACES = new Set<ScriptSurface>([
-  "client",
-  "server",
-  "acl",
-  "business-rule",
-  "script-include",
-  "ui-action",
-  "scheduled-script",
-  "fix-script",
-]);
+const SURFACES = new Set<ScriptSurface>(SURFACE_VALUES);
 
 const SCOPES = new Set<ApplicationScope>(["global", "scoped", "unknown"]);
 
@@ -95,22 +76,6 @@ function expectStringArray(path: string, value: unknown): string[] {
     }
     return item;
   });
-}
-
-function typeName(value: unknown): string {
-  if (value === null) return "null";
-  if (Array.isArray(value)) return "array";
-  return typeof value;
-}
-
-function expectEnum<T extends string>(path: string, value: unknown, allowed: ReadonlySet<T>): T {
-  if (typeof value !== "string" || !allowed.has(value as T)) {
-    throw new ServiceNowSettingsError(
-      path,
-      `expected one of ${[...allowed].join(", ")}, got ${JSON.stringify(value)}`,
-    );
-  }
-  return value as T;
 }
 
 export interface SettingsFieldDescriptor<T> {
@@ -186,34 +151,7 @@ const SETTINGS_DESCRIPTOR = {
       return tables;
     },
   },
-  scriptType: {
-    defaultValue: () => "auto" as const,
-    parse(path: string, value: unknown, deprecations: SettingsDeprecation[]) {
-      const scriptType = expectEnum(path, value, SCRIPT_TYPE_VALUES) as "auto" | ScriptKind;
-      if (scriptType !== "auto") {
-        deprecations.push({
-          path: "settings.servicenow.scriptType",
-          message:
-            "`scriptType` is deprecated. Set `authoring` and `surfaces` instead. `scriptType` remains mapped for one major-release cycle.",
-        });
-      }
-      return scriptType;
-    },
-  },
-  ecmaLatest: {
-    defaultValue: () => undefined as boolean | undefined,
-    parse(path: string, value: unknown, deprecations: SettingsDeprecation[]) {
-      if (typeof value !== "boolean") {
-        throw new ServiceNowSettingsError(path, `expected a boolean, got ${typeName(value)}`);
-      }
-      deprecations.push({
-        path: "settings.servicenow.ecmaLatest",
-        message:
-          "`ecmaLatest` is deprecated. Set `javascriptMode` to `es2021`, `es5`, `compatibility`, or `unknown`. `true` maps to `es2021`. `false` does not assume ES5.",
-      });
-      return value;
-    },
-  },
+  ...LEGACY_DESCRIPTOR_FIELDS,
   javascriptMode: {
     defaultValue: () => undefined as JavaScriptMode | undefined,
     parse: (path: string, value: unknown) => expectEnum(path, value, JAVASCRIPT_MODES),
@@ -331,54 +269,13 @@ export function validateServiceNowSettings(raw: unknown): ValidatedSettingsResul
 
   const deprecations: SettingsDeprecation[] = [];
   const settings = SETTINGS_PRODUCTS.validate(raw, deprecations) as ValidatedServiceNowSettings;
-  const { scriptType, ecmaLatest, javascriptMode, authoring, surfaces } = settings;
-
-  if (ecmaLatest === true && javascriptMode !== undefined && javascriptMode !== "es2021") {
-    throw new ServiceNowSettingsError(
-      ".ecmaLatest",
-      `conflicts with javascriptMode ${JSON.stringify(javascriptMode)}. Use javascriptMode only.`,
-    );
-  }
-
-  if (scriptType !== "auto" && scriptType !== "unknown" && scriptType !== "fluent") {
-    if (surfaces !== "auto" && (surfaces.length !== 1 || surfaces[0] !== scriptType)) {
-      throw new ServiceNowSettingsError(
-        ".scriptType",
-        `conflicts with surfaces ${JSON.stringify(surfaces)}. Omit deprecated scriptType and use surfaces only.`,
-      );
-    }
-  }
-
-  if (scriptType === "fluent" && authoring === "classic") {
-    throw new ServiceNowSettingsError(
-      ".scriptType",
-      'conflicts with authoring "classic". Use authoring only.',
-    );
-  }
-
-  if (
-    scriptType !== "auto" &&
-    scriptType !== "unknown" &&
-    scriptType !== "fluent" &&
-    authoring === "fluent"
-  ) {
-    throw new ServiceNowSettingsError(
-      ".scriptType",
-      `conflicts with authoring "fluent". Use authoring only.`,
-    );
-  }
+  checkLegacyConflicts(settings);
+  const { authoring, surfaces } = settings;
 
   if (authoring === "fluent" && surfaces !== "auto" && surfaces.length > 0) {
     throw new ServiceNowSettingsError(
       ".surfaces",
       "Fluent authoring cannot list instance execution surfaces",
-    );
-  }
-
-  if (scriptType === "fluent" && surfaces !== "auto" && surfaces.length > 0) {
-    throw new ServiceNowSettingsError(
-      ".scriptType",
-      "conflicts with instance execution surfaces. Use authoring only.",
     );
   }
 

@@ -56,7 +56,7 @@ export const noPackagesCalls = defineRule({
 });
 
 function rootIdentifier(node: ESTree.MemberExpression): ESTree.Node | null {
-  let current: ESTree.Node = node as unknown as ESTree.Node;
+  let current: ESTree.Node = node;
   while (current.type === "MemberExpression") {
     current = (current as ESTree.MemberExpression).object as ESTree.Node;
   }

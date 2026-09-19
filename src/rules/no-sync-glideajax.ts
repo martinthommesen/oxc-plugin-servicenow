@@ -29,14 +29,11 @@ export const noSyncGlideajax = defineRule({
         const member = call.callee as ESTree.MemberExpression;
         if (staticPropertyName(member) !== "getXMLWait") return;
         const object = member.object;
-        const proven = analysis.ofExpression(object);
-        if (proven?.kind === "GlideAjax" && !proven.invalid && !proven.escaped) {
-          if (
-            !hasAuthoritativeConstructedMethod(file, object, "GlideAjax", "getXMLWait", "browser")
-          )
-            return;
-          context.report({ node, messageId: "wait" });
-        }
+        const proven = analysis.trustedExpression(object);
+        if (proven?.kind !== "GlideAjax") return;
+        if (!hasAuthoritativeConstructedMethod(file, object, "GlideAjax", "getXMLWait", "browser"))
+          return;
+        context.report({ node, messageId: "wait" });
       },
     };
   },

@@ -27,7 +27,6 @@ export const CLIENT_FILE_GLOBS = scriptGlobs([
   "**/*onsubmit*",
   "**/*ui-policy*",
   "**/*ui_policy*",
-  "**/*.client.ui-action",
   "**/client/**/*",
   "**/src/client/**/*",
 ]);
@@ -83,7 +82,6 @@ const SCHEDULED_DIR = /(?:^|\/)(?:scheduled[-_]?scripts?|ss)(?:\/|$)/i;
 const FIX_SCRIPT_DIR = /(?:^|\/)(?:fix[-_]?scripts?|fix)(?:\/|$)/i;
 const SERVER_DIR = /(?:^|\/)server(?:\/|$)/i;
 const CLIENT_GLOBAL_RE = new RegExp(`\\b(?:${CLIENT_GLOBALS_STRONG.join("|")})\\b`);
-export const ES_LATEST_IN_COMMENT = /(^|\s)@sn-es-latest\b/;
 
 export function normalizeFilename(filename: string): string {
   return filename.replace(/\\/g, "/");
@@ -144,20 +142,8 @@ export function surfacesFromFilename(filename: string, baseDirectory?: string): 
   // A generic server directory is weaker evidence than a specific script
   // subtype in the filename. Keep `src/server/helper.si.js` as a Script
   // Include rather than making the evidence contradictory and returning [].
-  const specificSurface = [...surfaces].some((surface) => surface !== "server");
-  if (!specificSurface && (SERVER_DIR.test(directoryPath) || SERVER_FILE.test(file)))
+  if (surfaces.size === 0 && (SERVER_DIR.test(directoryPath) || SERVER_FILE.test(file)))
     surfaces.add("server");
-
-  if (
-    surfaces.has("server") &&
-    [...surfaces].some((surface) =>
-      ["acl", "business-rule", "script-include", "scheduled-script", "fix-script"].includes(
-        surface,
-      ),
-    )
-  ) {
-    surfaces.delete("server");
-  }
 
   if (surfaces.has("ui-action")) {
     if ([...surfaces].some((surface) => !["ui-action", "client", "server"].includes(surface)))

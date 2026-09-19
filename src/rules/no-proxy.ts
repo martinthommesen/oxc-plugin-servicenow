@@ -4,6 +4,7 @@ import { ruleDocsUrl } from "../constants.js";
 import {
   findStablePlatformConstructorCalls,
   findStablePlatformStaticMethodCalls,
+  isNewExpressionFinding,
 } from "../analysis/internal.js";
 import { beginRuleFile } from "./helpers.js";
 import { shouldDiagnoseFeature } from "../engine/index.js";
@@ -44,10 +45,7 @@ export const noProxy = defineRule({
           namespaces: ["globalThis"],
           mutationSemantics: "callable",
         })
-          .filter(
-            (finding): finding is typeof finding & { node: ESTree.NewExpression } =>
-              finding.node.type === "NewExpression",
-          )
+          .filter(isNewExpressionFinding)
           .map((finding) => ({ ...finding, kind: "construct" as const }));
         const revocable = findStablePlatformStaticMethodCalls({
           program: node as ESTree.Node,

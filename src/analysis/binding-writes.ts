@@ -29,18 +29,8 @@ function buildIndex(program: ESTree.Node | undefined, bindings: FileBindings): B
 
   const ancestors: ESTree.Node[] = [];
   let dynamicScope = false;
-  const executionBoundaryId = (node: ESTree.Node): number | null => {
-    let scope = bindings.tree.scopeForNode(node, ancestors);
-    while (
-      scope &&
-      scope.kind !== "module" &&
-      scope.kind !== "function" &&
-      scope.kind !== "static-block"
-    ) {
-      scope = scope.parent;
-    }
-    return scope?.id ?? null;
-  };
+  const executionBoundaryId = (node: ESTree.Node): number | null =>
+    bindings.executionBoundaryForNode(node, ancestors)?.id ?? null;
   const record = (target: unknown, offset: number, owner: ESTree.Node): void => {
     const boundaryId = executionBoundaryId(owner);
     forEachResolvedPatternBinding(target, bindings, ancestors, (binding) => {
@@ -113,16 +103,7 @@ export function createBindingWriteQuery(
       if (!entries) return false;
       const useOffset = nodeStart(use);
       if (useOffset < 0) return true;
-      let scope = bindings.tree.scopeForNode(use);
-      while (
-        scope &&
-        scope.kind !== "module" &&
-        scope.kind !== "function" &&
-        scope.kind !== "static-block"
-      ) {
-        scope = scope.parent;
-      }
-      const boundaryId = scope?.id;
+      const boundaryId = bindings.executionBoundaryForNode(use)?.id;
       if (boundaryId === undefined) return true;
       return entries.some(
         (entry) =>

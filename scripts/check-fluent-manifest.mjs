@@ -1,8 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import { pathToFileURL } from "node:url";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const {
@@ -218,21 +217,29 @@ for (const version of SUPPORTED_FLUENT_SDK_VERSIONS) {
     FLUENT_SDK_ARTIFACTS[version].coreIntegrity,
     `${version}: core integrity fixture`,
   );
-  assert.deepEqual(
-    runtime.capabilities,
-    detail.capabilities,
-    `${version}: runtime capability snapshot`,
+  // The shipped projection is the fixture's own fields narrowed to what
+  // registry.ts reads. Rebuild it here from the fixture, so a shipped snapshot
+  // that drifts from its evidence fails instead of matching a second copy.
+  const expectedIdPolicy = Object.fromEntries(
+    Object.entries(detail.capabilities).map(([name, capability]) => [name, capability.idPolicy]),
   );
-  assert.deepEqual(
-    runtime.discoveredCapabilities,
-    detail.discoveredCapabilities,
-    `${version}: discovered capability snapshot`,
+  const expectedDiscovered = Object.fromEntries(
+    Object.entries(detail.discoveredCapabilities).map(([name, capability]) => [
+      name,
+      {
+        module: capability.module,
+        introduced:
+          SUPPORTED_FLUENT_SDK_VERSIONS.find(
+            (candidate) => declarationFixture.versions[candidate]?.discoveredCapabilities[name],
+          ) ?? null,
+      },
+    ]),
   );
-  assert.deepEqual(runtime.absent, detail.absent, `${version}: negative capability snapshot`);
+  assert.deepEqual(runtime.idPolicy, expectedIdPolicy, `${version}: declaration id policies`);
+  assert.deepEqual(runtime.discovered, expectedDiscovered, `${version}: discovered declarations`);
   const manifest = fluentManifests().find((item) => item.sdkVersion === version);
   assert.ok(manifest, `${version}: runtime manifest missing`);
-  assert.deepEqual(runtime.typos, DEFAULT_FLUENT_MANIFEST.typos, `${version}: typo snapshot`);
-  for (const [name, lifecycle] of Object.entries(runtime.lifecycle)) {
+  for (const [name, lifecycle] of Object.entries(detail.lifecycle)) {
     const api = manifest.apis.find((item) => item.name === name);
     assert.ok(api, `${version}: lifecycle API ${name} missing from manifest`);
     const expectedLifecycle = {
@@ -252,10 +259,10 @@ for (const version of SUPPORTED_FLUENT_SDK_VERSIONS) {
   }
   const names = new Set(manifest.apis.map((api) => api.name));
   for (const name of Object.keys(detail.discoveredCapabilities)) {
-    if (!runtime.lifecycle[name]) continue;
+    if (!detail.lifecycle[name]) continue;
     assert.ok(names.has(name), `${version}: declaration-proven required factory ${name} missing`);
   }
-  for (const [name, lifecycle] of Object.entries(runtime.lifecycle)) {
+  for (const [name, lifecycle] of Object.entries(detail.lifecycle)) {
     if (!lifecycle.introduced) continue;
     for (const priorVersion of SUPPORTED_FLUENT_SDK_VERSIONS) {
       if (compareFluentVersions(priorVersion, lifecycle.introduced) >= 0) continue;

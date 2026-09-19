@@ -1,5 +1,5 @@
 import type { Rule } from "@oxlint/plugins";
-import { ruleCatalog, type RuleName } from "../catalog.js";
+import { ruleImplementations, type RuleName } from "../catalog.js";
 
 export type { RuleName };
 
@@ -8,5 +8,5 @@ export type { RuleName };
  * Add the implementation file and one catalog descriptor instead.
  */
 export const rules = Object.fromEntries(
-  ruleCatalog.map((entry) => [entry.name, entry.implementation]),
+  ruleImplementations.map((entry) => [entry.name, entry.implementation]),
 ) as { [K in RuleName]: Rule };

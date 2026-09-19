@@ -1,7 +1,6 @@
 import type { ValidatedSettingsResult } from "../../src/settings/validate.js";
-import type { ValidatedServiceNowSettings } from "../../src/types.js";
+import type { ReadonlyServiceNowSettings, ValidatedServiceNowSettings } from "../../src/types.js";
 import { getSettings } from "../../src/settings/index.js";
-import type { ReadonlyServiceNowSettings } from "../../src/types.js";
 
 declare const result: ValidatedSettingsResult;
 declare const settings: ValidatedServiceNowSettings;

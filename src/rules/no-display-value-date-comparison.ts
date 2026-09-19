@@ -19,13 +19,10 @@ function isDisplayValueCall(
   if (node.type !== "CallExpression") return false;
   const call = node as ESTree.CallExpression;
   if (staticPropertyName(call.callee) !== "getDisplayValue") return false;
-  if (call.callee.type !== "MemberExpression") return false;
   const object = (call.callee as ESTree.MemberExpression).object;
-  const proven = analysis.ofExpression(object);
+  const proven = analysis.trustedExpression(object);
   return (
     proven?.kind === "GlideDateTime" &&
-    !proven.invalid &&
-    !proven.escaped &&
     hasAuthoritativeConstructedMethod(authority, object, "GlideDateTime", "getDisplayValue")
   );
 }

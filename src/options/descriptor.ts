@@ -1,4 +1,7 @@
 import { ServiceNowConfigError } from "../settings/errors.js";
+import { typeName } from "../settings/parse.js";
+
+export { typeName };
 
 export type OptionFieldKind = "boolean" | "integer" | "enum" | "string" | "stringArray";
 
@@ -52,12 +55,6 @@ export interface RuleOptionDoc {
   type: string;
   default: string;
   description: string;
-}
-
-export function typeName(value: unknown): string {
-  if (value === null) return "null";
-  if (Array.isArray(value)) return "array";
-  return typeof value;
 }
 
 function descriptorDefaults<T extends object>(descriptor: RuleOptionsDescriptor<T>): T {

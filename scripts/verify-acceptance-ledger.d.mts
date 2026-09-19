@@ -27,6 +27,7 @@ export function validateSnapshot(mapping: {
   goal?: { criteria?: number; criteriaSha256?: string };
   criteria?: Array<AcceptanceCriterion & { disposition: string }>;
 }): string[];
+export function acceptanceTestReportPath(base?: string): string;
 export function worktreeIdentity(): {
   head: string;
   clean: boolean;

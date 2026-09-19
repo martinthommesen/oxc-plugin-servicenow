@@ -14,6 +14,7 @@ import {
 } from "../src/constants.js";
 import { rules } from "../src/rules/index.js";
 
+// @lat: [[tests#The catalog#The export surface is exactly the supported API]]
 describe("plugin export", () => {
   it("exports only the supported runtime API", () => {
     assert.deepEqual(Object.keys(publicApi).sort(), ["configs", "default", "plugin"]);
@@ -81,24 +82,6 @@ describe("plugin export", () => {
   it("catalog preset metadata matches exported maps", () => {
     for (const entry of ruleCatalog) {
       const inRecommended = entry.ruleId in configs.recommendedRules;
-      const inClassicEs5 = entry.ruleId in configs.classicEs5Rules;
-      const inEs2021 = entry.ruleId in configs.es2021Rules;
-      if (entry.preset === "recommended") {
-        assert.ok(inRecommended, `${entry.name} is catalogued as recommended`);
-      }
-      if (entry.preset === "classic-es5") {
-        assert.ok(inClassicEs5, `${entry.name} is catalogued as classic-es5`);
-      }
-      if (entry.preset === "es2021") {
-        assert.ok(inEs2021, `${entry.name} is catalogued as es2021`);
-      }
-      if (entry.preset === "strict") {
-        assert.ok(entry.ruleId in configs.strictRules, `${entry.name} is catalogued as strict`);
-        assert.equal(inRecommended, false, `${entry.name} should not be in recommended`);
-      }
-      if (entry.preset === false) {
-        assert.equal(inRecommended, false, `${entry.name} should stay off recommended`);
-      }
       const implementation = rules[entry.name] as {
         meta?: { docs?: { recommended?: unknown } };
       };

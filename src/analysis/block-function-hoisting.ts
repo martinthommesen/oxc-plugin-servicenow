@@ -2,6 +2,7 @@ import type { ESTree } from "@oxlint/plugins";
 import { getName, isValueReference, nodeStart, walk } from "../utils/ast.js";
 import type { FileBindings } from "./bindings.js";
 import type { BindingWriteQuery } from "./binding-writes.js";
+import { isFunctionNode } from "./stable-invocations.js";
 
 export interface UnhoistedBlockFunctionUse {
   readonly declaration: ESTree.Node;
@@ -22,16 +23,6 @@ const ABRUPT_STATEMENTS = new Set([
   "BreakStatement",
   "ContinueStatement",
 ]);
-
-function isFunctionNode(
-  node: ESTree.Node | undefined,
-): node is ESTree.Function | ESTree.ArrowFunctionExpression {
-  return (
-    node?.type === "FunctionDeclaration" ||
-    node?.type === "FunctionExpression" ||
-    node?.type === "ArrowFunctionExpression"
-  );
-}
 
 /** Nearest independently invoked script/function body, excluding the current node. */
 function executionBoundary(ancestors: readonly ESTree.Node[]): ESTree.Node | null {

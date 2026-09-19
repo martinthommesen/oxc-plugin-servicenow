@@ -79,7 +79,7 @@ export function findChooseWindowWithoutNoCount(
     }
   };
 
-  analyzePathBindings<CountData>({
+  const outcome = analyzePathBindings<CountData>({
     program,
     analysis,
     kinds: ["GlideRecord"],
@@ -152,10 +152,9 @@ export function findChooseWindowWithoutNoCount(
         }
       }
     },
-    onBudgetExceeded() {
-      finalized.clear();
-    },
   });
 
-  return [...finalized].map(([node, name]) => ({ node, name }));
+  return outcome.outcome === "complete"
+    ? [...finalized].map(([node, name]) => ({ node, name }))
+    : [];
 }

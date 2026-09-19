@@ -59,7 +59,7 @@ const SDK_EXAMPLES = "https://github.com/ServiceNow/sdk-examples";
 const SDK_CORE = "@servicenow/sdk/core";
 const SDK_CORE_TARBALL = "https://registry.npmjs.org/@servicenow%2fsdk-core/-/sdk-core";
 
-function sdkCoreDeclarationEvidence(version: string): string {
+export function sdkCoreDeclarationEvidence(version: string): string {
   return `${SDK_CORE_TARBALL}-${version}.tgz`;
 }
 
@@ -130,7 +130,7 @@ export const DEFAULT_FLUENT_MANIFEST: FluentSdkManifest = {
     entity("CrossScopePrivilege", "required"),
     entity("InboundEmailAction", "required"),
     // SDK 4.1 derives list IDs; the declaration keeps `$id` only as a
-    // deprecated compatibility property.  Keep that policy distinct from
+    // deprecated compatibility property. Keep that policy distinct from
     // entities whose WithID contract requires an explicit identity.
     entity("List", "deprecated", {
       deprecated: "4.1.0",
@@ -167,7 +167,7 @@ export const DEFAULT_FLUENT_MANIFEST: FluentSdkManifest = {
     }),
     entity("SPWidget", "required", { evidence: `${SDK_EXAMPLES}/service-portal-sample` }),
     entity("StateModel", "required", { introduced: "4.10.0" }),
-    // Table's published 4.1 declaration has no WithID contract.  Its ID is
+    // Table's published 4.1 declaration has no WithID contract. Its ID is
     // derived from the table metadata rather than supplied by callers.
     entity("Table", "forbidden", {
       evidence: `${FLUENT_OVERVIEW} and ${SDK_EXAMPLES}/table-sample`,

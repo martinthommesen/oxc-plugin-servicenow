@@ -48,16 +48,14 @@ import {
 import { repoRoot } from "../integration/helpers.js";
 
 const workflowText = readFileSync(path.join(repoRoot, ".github/workflows/release.yml"), "utf8");
-const workflow = parse(workflowText) as any;
-const ciWorkflow = parse(
-  readFileSync(path.join(repoRoot, ".github/workflows/ci.yml"), "utf8"),
-) as any;
+const workflow = parse(workflowText);
+const ciWorkflow = parse(readFileSync(path.join(repoRoot, ".github/workflows/ci.yml"), "utf8"));
 const governanceWorkflow = parse(
   readFileSync(path.join(repoRoot, ".github/workflows/governance-audit.yml"), "utf8"),
-) as any;
+);
 const recoveryWorkflow = parse(
   readFileSync(path.join(repoRoot, ".github/workflows/recover-release.yml"), "utf8"),
-) as any;
+);
 const desiredFixture = JSON.parse(
   readFileSync(path.join(repoRoot, "tests/fixtures/release-governance/desired.json"), "utf8"),
 );
@@ -82,7 +80,6 @@ describe("release automation gates", () => {
   it("accepts only the supported executable npm range (FINDINGS.md IMP-002)", () => {
     assert.equal(parseNpmVersion("11.5.1\n"), "11.5.1");
     assert.throws(() => parseNpmVersion("v11.5.1\n"), /invalid/);
-    // Below minimum, at minimum, within range, at the exclusive upper bound.
     assert.throws(() => assertTrustedPublishingNpm("11.5.0"), /requires npm/);
     assert.equal(assertTrustedPublishingNpm("11.5.1"), "11.5.1");
     assert.equal(assertTrustedPublishingNpm("11.9.3"), "11.9.3");

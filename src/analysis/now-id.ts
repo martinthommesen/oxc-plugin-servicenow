@@ -45,7 +45,7 @@ function unknownNowId(): UnknownNowIdFact {
 export function mergeNowIdFacts(left: NowIdFact, right: NowIdFact): NowIdFact {
   if (left === right) return left;
   if (left === null || right === null) return null;
-  if (left?.kind === "static" && right?.kind === "static" && left.key === right.key) {
+  if (left.kind === "static" && right.kind === "static" && left.key === right.key) {
     return staticNowId(left.key);
   }
   return unknownNowId();

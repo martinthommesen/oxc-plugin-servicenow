@@ -18,6 +18,12 @@ export interface PlatformConstructorCallFinding {
   readonly node: ESTree.CallExpression | ESTree.NewExpression;
 }
 
+export function isNewExpressionFinding(
+  finding: PlatformConstructorCallFinding,
+): finding is PlatformConstructorCallFinding & { node: ESTree.NewExpression } {
+  return finding.node.type === "NewExpression";
+}
+
 export interface PlatformStaticMethodCallFinding {
   readonly aliasOrigin: PlatformGlobalAliasOrigin | null;
   readonly method: string;

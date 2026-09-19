@@ -28,8 +28,6 @@ const TERMINAL = new Set(["getXML", "getXMLAnswer", "getXMLWait"]);
 
 function mergeSysparm(left: SysparmNameState, right: SysparmNameState): SysparmNameState {
   if (left === right) return left;
-  if (left === false || right === false) return "unknown";
-  if (left === "empty" || right === "empty") return "unknown";
   return "unknown";
 }
 
@@ -65,21 +63,7 @@ export function findGlideAjaxParamIssues(
   authority: PlatformMethodAuthorityFacts,
 ): GlideAjaxParamFinding[] {
   const findings: GlideAjaxParamFinding[] = [];
-  // Keyed on node identity: nodeStart() returns -1 on a host whose nodes
-  // carry no offset shape, which would collapse every finding in the file
-  // onto one key and silently drop all but the first (FINDINGS.md COR-016).
-  const reported = new Map<ESTree.Node, Set<string>>();
-  const report = (finding: GlideAjaxParamFinding): void => {
-    let ids = reported.get(finding.node);
-    if (!ids) {
-      ids = new Set();
-      reported.set(finding.node, ids);
-    }
-    if (ids.has(finding.messageId)) return;
-    ids.add(finding.messageId);
-    findings.push(finding);
-  };
-  analyzePathBindings<AjaxData>({
+  const outcome = analyzePathBindings<AjaxData>({
     program,
     analysis,
     kinds: ["GlideAjax"],
@@ -111,7 +95,7 @@ export function findGlideAjaxParamIssues(
       }
       if (property === "addParam") {
         if (rec.data.terminal === true) {
-          report({ node: call, name: objectName, messageId: "afterTerminal" });
+          findings.push({ node: call, name: objectName, messageId: "afterTerminal" });
         }
         const key = getStringValue(call.arguments[0]);
         const keyEvidence = classifyStaticArg(call.arguments[0], analysis);
@@ -121,7 +105,7 @@ export function findGlideAjaxParamIssues(
         } else if (key === "sysparm_name") {
           const valueState = sysparmValueState(call, analysis);
           if (valueState === "invalid") {
-            report({ node: call, name: objectName, messageId: "invalidValue" });
+            findings.push({ node: call, name: objectName, messageId: "invalidValue" });
             rec.data.sysparmName = "unknown";
             rec.data.uncertain = true;
           } else {
@@ -129,7 +113,7 @@ export function findGlideAjaxParamIssues(
           }
           if (rec.data.sysparmName === "unknown") rec.data.uncertain = true;
         } else if (key !== null && key.length > 0 && !key.startsWith("sysparm_")) {
-          report({ node: call, name: objectName, messageId: "badPrefix", param: key });
+          findings.push({ node: call, name: objectName, messageId: "badPrefix", param: key });
         }
       }
       if (TERMINAL.has(property)) {
@@ -137,18 +121,17 @@ export function findGlideAjaxParamIssues(
           rec.data.sysparmName === false ||
           (rec.data.sysparmName === "unknown" && !rec.data.uncertain)
         ) {
-          report({ node: call, name: objectName, messageId: "missingName" });
+          findings.push({ node: call, name: objectName, messageId: "missingName" });
         } else if (rec.data.sysparmName === "empty") {
-          report({ node: call, name: objectName, messageId: "emptyValue" });
+          findings.push({ node: call, name: objectName, messageId: "emptyValue" });
         }
         rec.data.terminal = true;
         rec.data.sysparmName = false;
         rec.data.uncertain = false;
       }
     },
-    onBudgetExceeded() {
-      findings.length = 0;
-    },
   });
-  return dedupePathFindings(findings, (finding) => finding.messageId);
+  return outcome.outcome === "complete"
+    ? dedupePathFindings(findings, (finding) => finding.messageId)
+    : [];
 }

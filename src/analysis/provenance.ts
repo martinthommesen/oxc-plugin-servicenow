@@ -53,9 +53,14 @@ export function ctorProvenanceKind(name: string | null): ProvenanceKind | null {
   return Object.prototype.hasOwnProperty.call(CTOR_TO_KIND, name) ? CTOR_TO_KIND[name]! : null;
 }
 
+/** Platform globals that denote ambient namespaces rather than constructors. */
+export const PLATFORM_ALIAS_GLOBALS: ReadonlySet<string> = new Set(["g_form", "gs", "current"]);
+
 export interface ProvenanceQuery {
   ofIdentifier(node: ESTree.Node): Provenance | null;
   ofExpression(node: unknown): Provenance | null;
+  /** Return provenance only while the value remains a proven, unescaped identity. */
+  trustedExpression(node: unknown): Provenance | null;
   isPlatformGlobal(node: ESTree.Node): boolean;
   isPlatformCtor(node: unknown, names: readonly string[]): boolean;
   isPlatformMember(node: unknown, object: string, property?: string): boolean;

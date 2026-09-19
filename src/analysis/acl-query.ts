@@ -46,7 +46,7 @@ export function findAclQueries(
 ): AclQueryFinding[] {
   const findings: AclQueryFinding[] = [];
 
-  analyzePathBindings<AclQueryData>({
+  const outcome = analyzePathBindings<AclQueryData>({
     program,
     analysis,
     kinds: ["GlideRecord", "GlideAggregate"],
@@ -75,7 +75,7 @@ export function findAclQueries(
           break;
         case "GlideAggregate":
           authoritative =
-            property === "query" &&
+            analysis.glide.byKind.GlideAggregate.executors.has(property) &&
             hasAuthoritativeConstructedMethod(authority, receiver, "GlideAggregate", property);
           break;
         case "current":
@@ -100,10 +100,9 @@ export function findAclQueries(
         kind: kind === "current" ? "GlideRecord" : kind,
       });
     },
-    onBudgetExceeded() {
-      findings.length = 0;
-    },
   });
 
-  return dedupePathFindings(findings, (finding) => `${finding.kind}:${finding.method}`);
+  return outcome.outcome === "complete"
+    ? dedupePathFindings(findings, (finding) => `${finding.kind}:${finding.method}`)
+    : [];
 }

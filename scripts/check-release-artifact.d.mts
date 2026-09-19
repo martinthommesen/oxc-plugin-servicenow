@@ -19,6 +19,10 @@ export function inspectPackageExports(
 ): string[];
 export function sha256File(filePath: string): string;
 export function tarballIntegrity(buffer: Uint8Array): string;
+export function packTarball(destination: string): {
+  tarball: string;
+  record: Record<string, unknown>;
+};
 export function normalizeNpmPackManifest(
   record: Record<string, unknown>,
   tarball: string,

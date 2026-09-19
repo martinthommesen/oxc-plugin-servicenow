@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync, readdirSync, existsSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 
@@ -36,15 +36,31 @@ function valueExports(source: string): Set<string> {
   return names;
 }
 
+function declarationFiles(directory: string): string[] {
+  const files: string[] = [];
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    const entryPath = path.join(directory, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...declarationFiles(entryPath));
+    } else if (entry.isFile() && entry.name.endsWith(".d.mts")) {
+      files.push(entryPath);
+    }
+  }
+  return files.sort();
+}
+
+// @lat: [[tests#Scripts and tooling#Script declarations match their implementations]]
 describe("script declaration parity (FINDINGS.md MNT-005)", () => {
-  const declarations = readdirSync(scriptsDir).filter((entry) => entry.endsWith(".d.mts"));
+  const declarations = declarationFiles(scriptsDir);
   assert.ok(declarations.length > 0);
-  for (const declaration of declarations) {
-    const implementation = declaration.replace(/\.d\.mts$/, ".mjs");
+  assert.ok(declarations.some((file) => file.endsWith(path.join("lib", "test-report.d.mts"))));
+  for (const declarationPath of declarations) {
+    const implementationPath = declarationPath.replace(/\.d\.mts$/, ".mjs");
+    const declaration = path.relative(scriptsDir, declarationPath);
+    const implementation = path.relative(scriptsDir, implementationPath);
     it(`${implementation} matches ${declaration}`, () => {
-      const implementationPath = path.join(scriptsDir, implementation);
       assert.ok(existsSync(implementationPath), `${declaration} has no implementation`);
-      const declared = valueExports(readFileSync(path.join(scriptsDir, declaration), "utf8"));
+      const declared = valueExports(readFileSync(declarationPath, "utf8"));
       const implemented = valueExports(readFileSync(implementationPath, "utf8"));
       const undeclared = [...implemented].filter((name) => !declared.has(name));
       const stale = [...declared].filter((name) => !implemented.has(name));

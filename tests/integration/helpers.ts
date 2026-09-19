@@ -1,4 +1,5 @@
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -35,6 +36,58 @@ export type OxlintDiagnostic = {
 export type OxlintReport = {
   diagnostics: OxlintDiagnostic[];
 };
+
+export interface TemporaryProject {
+  readonly directory: string;
+  readonly source: string;
+  readonly config: string;
+  cleanup(): void;
+}
+
+export function createTemporaryProject(options: {
+  readonly prefix: string;
+  readonly filename: string;
+  readonly code: string;
+  readonly settings?: unknown;
+  readonly rules: Record<string, unknown>;
+}): TemporaryProject {
+  const directory = mkdtempSync(path.join(tmpdir(), options.prefix));
+  const source = path.join(directory, options.filename);
+  const config = path.join(directory, ".oxlintrc.json");
+  writeFileSync(source, options.code);
+  writeFileSync(
+    config,
+    JSON.stringify({
+      jsPlugins: [{ name: "servicenow", specifier: path.join(repoRoot, "dist/index.js") }],
+      settings: { servicenow: options.settings ?? {} },
+      rules: options.rules,
+    }),
+  );
+  return {
+    directory,
+    source,
+    config,
+    cleanup() {
+      rmSync(directory, { recursive: true, force: true });
+    },
+  };
+}
+
+export function eslintFlatConfig(options: {
+  readonly plugin: import("eslint").ESLint.Plugin;
+  readonly files: readonly string[];
+  readonly rule: string;
+  readonly settings?: unknown;
+}): import("eslint").Linter.Config[] {
+  return [
+    {
+      files: [...options.files],
+      plugins: { servicenow: options.plugin },
+      settings: { servicenow: options.settings ?? {} },
+      rules: { [options.rule]: "error" },
+    },
+  ];
+}
 
 export type OxlintProcessResult = {
   status: 0 | 1;

@@ -768,9 +768,7 @@ export function createMutationQuery(
       return getIndex().globals.has(name) || getIndex().globals.has("*");
     },
     isGlobalPathWritten(path: readonly string[]) {
-      return (
-        getIndex().globalPaths.has(pathKey(["*"])) || pathWasWritten(getIndex().globalPaths, path)
-      );
+      return pathWasWritten(getIndex().globalPaths, path);
     },
     isObjectPropertyWritten(object: unknown, property: string) {
       const objectId = provenance.ofExpression(object)?.objectId;

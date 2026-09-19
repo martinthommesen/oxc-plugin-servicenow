@@ -192,7 +192,3 @@ export function applyRules(
 
   return messages;
 }
-
-export function isEstreeNode(value: unknown): value is ESTree.Node {
-  return isNode(value);
-}

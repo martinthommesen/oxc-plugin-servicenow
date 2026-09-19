@@ -9,6 +9,7 @@ import {
 } from "../options/index.js";
 import type { NoHardcodedTableNamesOptions } from "../options/index.js";
 import { isMixedUiActionContext, isServerInstanceContext } from "../context/index.js";
+import { GLIDE_RECORD_CONSTRUCTORS } from "../analysis/internal.js";
 import { beginRuleFile } from "./helpers.js";
 
 export type { NoHardcodedTableNamesOptions };
@@ -20,7 +21,7 @@ function allowed(context: Context, options: NoHardcodedTableNamesOptions): Set<s
   return new Set(names);
 }
 
-const CTORS = ["GlideRecord", "GlideRecordSecure", "GlideAggregate"] as const;
+const CTORS = [...GLIDE_RECORD_CONSTRUCTORS, "GlideAggregate"] as const;
 
 export const noHardcodedTableNames = defineRule({
   meta: {

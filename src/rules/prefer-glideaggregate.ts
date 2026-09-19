@@ -54,14 +54,8 @@ export const preferGlideaggregate = defineRule({
       analysis: ReturnType<typeof beginRuleFile>["analysis"],
       node: unknown,
     ): { id: number; name: string } | null {
-      const proven = analysis.ofExpression(node);
-      if (
-        !proven ||
-        proven.kind !== "GlideRecord" ||
-        proven.invalid ||
-        proven.escaped ||
-        proven.objectId === undefined
-      ) {
+      const proven = analysis.trustedExpression(node);
+      if (!proven || proven.kind !== "GlideRecord" || proven.objectId === undefined) {
         return null;
       }
       return { id: proven.objectId, name: getName(node) ?? "record" };

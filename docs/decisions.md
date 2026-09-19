@@ -79,7 +79,7 @@ The acceptance ledger (`scripts/pr51-acceptance.json`,
 `scripts/verify-acceptance-ledger.mjs`, the generated
 `docs/pr-51-acceptance-ledger.md` and `docs/pr-51-validation-report.md`,
 `PR51-REMEDIATION-GOAL.md`, `FINDINGS-REMEDIATION.md`, and the
-`acceptance:check` and `acceptance:capture` scripts with their CI steps)
+`acceptance:check` script with its CI steps)
 tracks one pull request's acceptance criteria. It is thousands of lines of
 one-off remediation tracking wired into required validation, and it must
 not outlive the remediation it tracks.

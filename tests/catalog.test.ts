@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { ruleCatalog } from "../src/catalog.js";
-import { AUSTRALIA_RULE_REVIEWS } from "../src/catalog-metadata.js";
+import { AUSTRALIA_RULE_REVIEWS } from "../src/release-reviews.js";
 import {
   aclRules,
   businessRuleRules,
@@ -32,6 +32,7 @@ const profileMaps = {
   security: securityRules,
 };
 
+// @lat: [[tests#The catalog#The catalog is the only registry]]
 describe("catalog authority", () => {
   it("owns every unique implementation, name, rule ID, placement, and option descriptor", () => {
     assert.equal(new Set(ruleCatalog.map((entry) => entry.name)).size, ruleCatalog.length);

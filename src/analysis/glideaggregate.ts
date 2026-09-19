@@ -1,6 +1,6 @@
 import type { ESTree } from "@oxlint/plugins";
 import { getStringValue } from "../utils/ast.js";
-import { analyzePathBindings } from "./path-state.js";
+import { analyzePathBindings, dedupePathFindings } from "./path-state.js";
 import {
   hasAuthoritativeConstructedMethod,
   type PlatformMethodAuthorityFacts,
@@ -83,21 +83,7 @@ export function findGlideAggregateIssues(
   authority: PlatformMethodAuthorityFacts,
 ): AggregateFinding[] {
   const findings: AggregateFinding[] = [];
-  // Keyed on node identity: nodeStart() returns -1 on a host whose nodes
-  // carry no offset shape, which would collapse every finding in the file
-  // onto one key and silently drop all but the first (FINDINGS.md COR-016).
-  const reported = new Map<ESTree.Node, Set<string>>();
-  const report = (finding: AggregateFinding): void => {
-    let ids = reported.get(finding.node);
-    if (!ids) {
-      ids = new Set();
-      reported.set(finding.node, ids);
-    }
-    if (ids.has(finding.messageId)) return;
-    ids.add(finding.messageId);
-    findings.push(finding);
-  };
-  analyzePathBindings<AggData>({
+  const outcome = analyzePathBindings<AggData>({
     program,
     analysis,
     kinds: ["GlideAggregate"],
@@ -138,7 +124,7 @@ export function findGlideAggregateIssues(
         }
         for (const value of rec.data.alternatives) value.pending.add(tupleKey(type, field || null));
       }
-      if (property === "query") {
+      if (analysis.glide.byKind.GlideAggregate.executors.has(property)) {
         for (const value of rec.data.alternatives) {
           value.committed = cloneSet(value.pending);
           value.committedDynamic = value.pendingDynamic || value.uncertain;
@@ -148,7 +134,7 @@ export function findGlideAggregateIssues(
       }
       if (property === "next" || property === "getAggregate") {
         if (rec.data.alternatives.some((value) => !value.queried && !value.uncertain)) {
-          report({
+          findings.push({
             node: call,
             name: objectName ?? "aggregate",
             messageId: "missingQuery",
@@ -170,7 +156,7 @@ export function findGlideAggregateIssues(
                 !value.committed.has(key),
             )
           ) {
-            report({
+            findings.push({
               node: call,
               name: objectName ?? "aggregate",
               messageId: "unknownAggregate",
@@ -181,10 +167,8 @@ export function findGlideAggregateIssues(
         }
       }
     },
-    onBudgetExceeded() {
-      findings.length = 0;
-      reported.clear();
-    },
   });
-  return findings;
+  return outcome.outcome === "complete"
+    ? dedupePathFindings(findings, (finding) => finding.messageId)
+    : [];
 }

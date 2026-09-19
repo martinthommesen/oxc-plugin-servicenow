@@ -15,12 +15,10 @@ import {
   resolveDestructuredConstMember,
   staticPropertyName,
 } from "../analysis/internal.js";
-import { ruleDocsUrl } from "../constants.js";
+import { INVOCATION_HELPERS, ruleDocsUrl } from "../constants.js";
 import { isFeatureAllowed, shouldDiagnoseFeature } from "../engine/index.js";
 import { isNode, unwrapExpression } from "../utils/ast.js";
 import { beginRuleFile } from "./helpers.js";
-
-const INVOCATION_HELPERS = new Set(["apply", "bind", "call"]);
 
 function destructuredObjectHasOwnSource(
   node: ESTree.Node,

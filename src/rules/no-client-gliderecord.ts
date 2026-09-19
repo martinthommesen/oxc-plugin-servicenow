@@ -1,11 +1,12 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
-import { findStablePlatformConstructorCalls } from "../analysis/internal.js";
+import {
+  findStablePlatformConstructorCalls,
+  GLIDE_RECORD_CONSTRUCTORS,
+} from "../analysis/internal.js";
 import { appliesOnSurface, isMixedUiActionContext } from "../context/index.js";
 import { beginRuleFile } from "./helpers.js";
-
-const CTORS = ["GlideRecord", "GlideRecordSecure"] as const;
 
 export const noClientGliderecord = defineRule({
   meta: {
@@ -39,7 +40,7 @@ export const noClientGliderecord = defineRule({
           analysis,
           bindingWrites: file.bindingWrites,
           mutations: file.mutations,
-          names: CTORS,
+          names: GLIDE_RECORD_CONSTRUCTORS,
           namespaces: ["global"],
         })) {
           context.report({ node: finding.node, messageId: "glideRecord" });

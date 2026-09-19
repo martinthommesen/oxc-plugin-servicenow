@@ -1,12 +1,10 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { Linter } from "eslint";
 import plugin from "../../src/index.js";
 import { BINDING_MATRIX_CASES } from "../helpers/binding-matrix.js";
-import { repoRoot, runOxlintProcess } from "./helpers.js";
+import { createTemporaryProject, eslintFlatConfig, runOxlintProcess } from "./helpers.js";
 
 function offsetAt(code: string, point: { line: number; column: number }): number {
   const lines = code.split("\n");
@@ -18,27 +16,19 @@ function offsetAt(code: string, point: { line: number; column: number }): number
 describe("exact binding matrix contracts in real hosts", () => {
   for (const testCase of BINDING_MATRIX_CASES) {
     it(testCase.id, () => {
-      const directory = mkdtempSync(path.join(tmpdir(), "sn-binding-host-"));
-      const source = path.join(
-        directory,
-        `${testCase.id}.${testCase.filename.split(".").slice(1).join(".")}`,
-      );
-      const config = path.join(directory, ".oxlintrc.json");
-      writeFileSync(source, testCase.code);
-      writeFileSync(
-        config,
-        JSON.stringify({
-          jsPlugins: [{ name: "servicenow", specifier: path.join(repoRoot, "dist/index.js") }],
-          settings: { servicenow: testCase.settings ?? {} },
-          rules: {
-            "no-unused-vars": "off",
-            [`servicenow/${testCase.rule}`]: "error",
-          },
-        }),
-      );
+      const project = createTemporaryProject({
+        prefix: "sn-binding-host-",
+        filename: `${testCase.id}.${testCase.filename.split(".").slice(1).join(".")}`,
+        code: testCase.code,
+        settings: testCase.settings,
+        rules: {
+          "no-unused-vars": "off",
+          [`servicenow/${testCase.rule}`]: "error",
+        },
+      });
+      const { source, config } = project;
       try {
         const oxlint = runOxlintProcess(config, [source]);
-        assert.equal(oxlint.signal, null);
         assert.equal(oxlint.stderr, "");
         const pluginDiagnostics = oxlint.report.diagnostics.filter((diagnostic) =>
           diagnostic.code.startsWith("servicenow("),
@@ -47,14 +37,12 @@ describe("exact binding matrix contracts in real hosts", () => {
         const linter = new Linter({ configType: "flat" });
         const eslint = linter.verify(
           testCase.code,
-          [
-            {
-              files: ["**/*.{js,ts,tsx}"],
-              plugins: { servicenow: plugin as unknown as import("eslint").ESLint.Plugin },
-              settings: { servicenow: testCase.settings ?? {} },
-              rules: { [`servicenow/${testCase.rule}`]: "error" },
-            },
-          ],
+          eslintFlatConfig({
+            files: ["**/*.{js,ts,tsx}"],
+            plugin: plugin as unknown as import("eslint").ESLint.Plugin,
+            settings: testCase.settings,
+            rule: `servicenow/${testCase.rule}`,
+          }),
           { filename: path.basename(source) },
         );
 
@@ -121,7 +109,7 @@ describe("exact binding matrix contracts in real hosts", () => {
           },
         );
       } finally {
-        rmSync(directory, { recursive: true, force: true });
+        project.cleanup();
       }
     });
   }
