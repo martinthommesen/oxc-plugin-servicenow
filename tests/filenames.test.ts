@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { classifyFile } from "../src/utils/filenames.js";
-import { surfacesFromFilename } from "../src/context/filename.js";
+import { classifyFile, surfacesFromFilename } from "../src/context/filename.js";
 
 // @lat: [[tests#Context evidence#Filename classification is deterministic]]
 describe("classifyFile", () => {

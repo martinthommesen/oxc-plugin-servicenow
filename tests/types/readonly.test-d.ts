@@ -1,6 +1,6 @@
 import type { ValidatedSettingsResult } from "../../src/settings/validate.js";
 import type { ReadonlyServiceNowSettings, ValidatedServiceNowSettings } from "../../src/types.js";
-import { getSettings } from "../../src/settings/index.js";
+import { getValidatedSettings } from "../../src/settings/index.js";
 
 declare const result: ValidatedSettingsResult;
 declare const settings: ValidatedServiceNowSettings;
@@ -16,7 +16,7 @@ settings.scope = "global";
 readonlySettings.allowedTables?.push("incident");
 // @ts-expect-error The compatibility view is immutable at the top level too.
 readonlySettings.scope = "global";
-void getSettings;
+void getValidatedSettings;
 
 // Every type reachable through a public signature is nameable from the same
 // entry point (FINDINGS.md API-003).

@@ -3,7 +3,7 @@ import type { ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
 import { getAncestors } from "../analysis/internal.js";
 import { getName, getStringValue, objectPropertyValue } from "../utils/ast.js";
-import { basename } from "../utils/filenames.js";
+import { basename } from "../context/filename.js";
 import {
   parseRuleOptions,
   fluentNamingConventionOptions,
@@ -72,13 +72,13 @@ export const fluentNamingConvention = defineRule({
         // reports a name the convention does not describe
         // (FINDINGS.md COR-014).
         if (!isFluentFile(context.filename)) return;
-        const file = basename(context.filename);
-        const stem = file.replace(/\.now\.tsx?$/i, "");
+        const filename = basename(context.filename);
+        const stem = filename.replace(/\.now\.tsx?$/i, "");
         if (stem !== "*" && !matches(fileStyle, stem)) {
           context.report({
             loc: { start: { line: 1, column: 0 } },
             messageId: "file",
-            data: { file, style: fileStyle },
+            data: { file: filename, style: fileStyle },
           });
         }
       },

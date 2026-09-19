@@ -1,5 +1,5 @@
 import { CLIENT_GLOBALS_STRONG } from "../constants.js";
-import type { ScriptAuthoring, ScriptSurface } from "../types.js";
+import type { ScriptAuthoring, ScriptKind, ScriptSurface, ServiceNowSettings } from "../types.js";
 
 const SCRIPT_EXTENSIONS = ["js", "cjs", "mjs"] as const;
 
@@ -155,4 +155,27 @@ export function surfacesFromFilename(filename: string, baseDirectory?: string): 
 
 export function authoringFromFilename(filename: string): ScriptAuthoring | undefined {
   return isFluentFile(filename) ? "fluent" : undefined;
+}
+
+/**
+ * @deprecated Use `getScriptContext`. Maps the new context model onto the
+ * historical single ScriptKind value for callers that have not migrated.
+ */
+export function classifyFile(
+  filename: string,
+  sourceText: string,
+  settings: ServiceNowSettings,
+): ScriptKind {
+  if (settings.scriptType && settings.scriptType !== "auto") {
+    return settings.scriptType;
+  }
+  if (isFluentFile(filename) || settings.authoring === "fluent") return "fluent";
+  const surfaces = surfacesFromFilename(filename);
+  if (surfaces.includes("ui-action")) return "ui-action";
+  if (surfaces.includes("client")) return "client";
+  if (surfaces.includes("business-rule")) return "business-rule";
+  if (surfaces.includes("script-include")) return "script-include";
+  if (looksLikeClientSource(sourceText)) return "client";
+  if (surfaces.includes("server")) return "server";
+  return "unknown";
 }
