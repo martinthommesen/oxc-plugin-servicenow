@@ -173,6 +173,13 @@ The planning journal called R3 `C9` and R6 `E3`. Those labels refer to the same 
 | R5 | Refuted, no change | Glide and Fluent evidence records have incompatible cardinality and fields. One union registry would expose all variants to every caller. |
 | R6 | Refuted, no change | PR #51 has not merged, so REM-002 has not fired and the acceptance apparatus remains required. The planning journal labels this item E3. |
 
+### Follow-up (2026-09-19)
+
+Two candidates recorded above as not implemented were later landed in variant form. The verdicts and reasons in the table describe the 2026-09-13 campaign and are left unchanged.
+
+- C1 landed as commit 328ed61: the 50 descriptors moved to `src/catalog/<rule>.ts` with shared assembly in `entry.ts`. The authored registry array in `src/catalog.ts` was retained, so this is not the proposed next-to-implementation layout.
+- C4 landed partially as commit ffb4fdf: the test harness derives Fluent defaults from the catalog family field instead of name-prefix matching. Full placement-to-filename derivation remains open under the recorded exception-list objection.
+
 ### Final validation
 
 Validation was run on the uncommitted campaign tree on 2026-09-13.

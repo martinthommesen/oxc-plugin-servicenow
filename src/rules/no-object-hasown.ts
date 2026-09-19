@@ -18,7 +18,7 @@ import {
 import { INVOCATION_HELPERS, ruleDocsUrl } from "../constants.js";
 import { isFeatureAllowed, shouldDiagnoseFeature } from "../engine/index.js";
 import { isNode, unwrapExpression } from "../utils/ast.js";
-import { beginRuleFile } from "./helpers.js";
+import { beginRuleFile, isPlatformStaticMember } from "./helpers.js";
 
 function destructuredObjectHasOwnSource(
   node: ESTree.Node,
@@ -62,11 +62,7 @@ function invokedObjectHasOwn(
   analysis: ReturnType<typeof beginRuleFile>["analysis"],
 ): ESTree.Node | null {
   const rawCallee = resolveConstValue(call.callee, analysis.bindings);
-  const reflectApply = Boolean(
-    rawCallee?.type === "MemberExpression" &&
-    staticPropertyName(rawCallee) === "apply" &&
-    resolvePlatformGlobalName(rawCallee.object, analysis.bindings) === "Reflect",
-  );
+  const reflectApply = isPlatformStaticMember(call.callee, "Reflect", "apply", analysis);
   let value = reflectApply ? resolveConstValue(call.arguments[0], analysis.bindings) : rawCallee;
   if (value?.type === "SequenceExpression") {
     const last = value.expressions.at(-1);

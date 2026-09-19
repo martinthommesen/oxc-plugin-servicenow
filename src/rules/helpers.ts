@@ -1,5 +1,12 @@
 import type { Context } from "@oxlint/plugins";
-import { getFileAnalysis, type FileAnalysis, type ProvenanceQuery } from "../analysis/internal.js";
+import { resolvePlatformGlobalName } from "../analysis/globals.js";
+import {
+  getFileAnalysis,
+  resolveConstValue,
+  staticPropertyName,
+  type FileAnalysis,
+  type ProvenanceQuery,
+} from "../analysis/internal.js";
 import type { ServiceNowScriptContext } from "../types.js";
 
 export interface RuleFileState {
@@ -17,4 +24,22 @@ export interface RuleFileState {
 export function beginRuleFile(context: Context): RuleFileState {
   const file = getFileAnalysis(context);
   return { context: file.script, analysis: file.provenance, file };
+}
+
+/**
+ * Whether `node` resolves to the `property` member of the platform global
+ * `owner` (for example `Reflect.apply`), through const aliases.
+ */
+export function isPlatformStaticMember(
+  node: unknown,
+  owner: string,
+  property: string,
+  analysis: ProvenanceQuery,
+): boolean {
+  const value = resolveConstValue(node, analysis.bindings);
+  return Boolean(
+    value?.type === "MemberExpression" &&
+    staticPropertyName(value) === property &&
+    resolvePlatformGlobalName(value.object, analysis.bindings) === owner,
+  );
 }

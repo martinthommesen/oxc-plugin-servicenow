@@ -18,26 +18,12 @@ import {
 import { INVOCATION_HELPERS, ruleDocsUrl, TYPED_ARRAY_CTORS } from "../constants.js";
 import { isFeatureAllowed, shouldDiagnoseFeature } from "../engine/index.js";
 import { isNode, unwrapExpression } from "../utils/ast.js";
-import { beginRuleFile } from "./helpers.js";
+import { beginRuleFile, isPlatformStaticMember } from "./helpers.js";
 
 const ALL = new Set<string>(TYPED_ARRAY_CTORS);
 const BIGINT_ARRAYS = new Set(["BigInt64Array", "BigUint64Array"]);
 const BIGINT_GETTERS = new Set(["getBigInt64", "getBigUint64"]);
 const TYPED_ARRAY_FACTORIES = new Set(["from", "of"]);
-
-function isPlatformStaticMember(
-  node: unknown,
-  owner: string,
-  property: string,
-  analysis: ReturnType<typeof beginRuleFile>["analysis"],
-): boolean {
-  const value = resolveConstValue(node, analysis.bindings);
-  return Boolean(
-    value?.type === "MemberExpression" &&
-    staticPropertyName(value) === property &&
-    resolvePlatformGlobalName(value.object, analysis.bindings) === owner,
-  );
-}
 
 export const noTypedArrays = defineRule({
   meta: {

@@ -1,8 +1,6 @@
 import { ServiceNowConfigError } from "../settings/errors.js";
 import { typeName } from "../settings/parse.js";
 
-export { typeName };
-
 export type OptionFieldKind = "boolean" | "integer" | "enum" | "string" | "stringArray";
 
 interface OptionFieldBase {
