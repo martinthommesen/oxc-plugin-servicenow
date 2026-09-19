@@ -43,6 +43,23 @@ function oxlintReport(consumer, args, errorKind, message) {
   return report;
 }
 
+function runEslintJson(consumer, args, message) {
+  let stdout = "";
+  try {
+    stdout = execFileSync(path.join(consumer, "node_modules", ".bin", "eslint"), args, {
+      encoding: "utf8",
+      cwd: consumer,
+    });
+  } catch (error) {
+    stdout = error.stdout ?? "";
+  }
+  try {
+    return JSON.parse(stdout);
+  } catch {
+    fail("parser", `${message}: ${stdout.slice(0, 400)}`);
+  }
+}
+
 async function runCell(tarball, cell, sameRuntimeSmoke) {
   const consumer = mkdtempSync(path.join(tmpdir(), `sn-oxc-compat-${cell.id}-`));
   try {
@@ -250,22 +267,11 @@ export default [
 `
         : `import plugin from "oxc-plugin-servicenow";\nexport default [plugin.configs.flat.recommended];\n`,
     );
-    let eslintStdout = "";
-    try {
-      eslintStdout = execFileSync(
-        path.join(consumer, "node_modules", ".bin", "eslint"),
-        ["--format", "json", "bad.br.js"],
-        { encoding: "utf8", cwd: consumer },
-      );
-    } catch (error) {
-      eslintStdout = error.stdout ?? "";
-    }
-    let eslintReport;
-    try {
-      eslintReport = JSON.parse(eslintStdout);
-    } catch {
-      fail("parser", `${cell.id} eslint did not emit JSON: ${eslintStdout.slice(0, 400)}`);
-    }
+    const eslintReport = runEslintJson(
+      consumer,
+      ["--format", "json", "bad.br.js"],
+      `${cell.id} eslint did not emit JSON`,
+    );
     const eslintRules = eslintReport.flatMap((file) =>
       file.messages.map((message) => message.ruleId),
     );
@@ -296,22 +302,11 @@ export default [
       "const Component = () => <div />;\nexport default Component;\n",
     );
     if (cell.typescriptEslint) {
-      let typedStdout = "";
-      try {
-        typedStdout = execFileSync(
-          path.join(consumer, "node_modules", ".bin", "eslint"),
-          ["--format", "json", "sample.now.ts", "sample.now.tsx"],
-          { encoding: "utf8", cwd: consumer },
-        );
-      } catch (error) {
-        typedStdout = error.stdout ?? "";
-      }
-      let typedReport;
-      try {
-        typedReport = JSON.parse(typedStdout);
-      } catch {
-        fail("parser", `${cell.id} typed ESLint output was not JSON: ${typedStdout.slice(0, 400)}`);
-      }
+      const typedReport = runEslintJson(
+        consumer,
+        ["--format", "json", "sample.now.ts", "sample.now.tsx"],
+        `${cell.id} typed ESLint output was not JSON`,
+      );
       if (typedReport.some((file) => file.messages.some((message) => message.fatal))) {
         fail("parser", `${cell.id} typed ESLint reported a fatal parser diagnostic`);
       }

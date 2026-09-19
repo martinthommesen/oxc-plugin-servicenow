@@ -205,6 +205,7 @@ for (const release of SUPPORTED_SERVICENOW_RELEASES) {
   }
 }
 
+const today = new Date().toISOString().slice(0, 10);
 for (const rule of ruleCatalog) {
   const latest = rule.evidence.reduce(
     (max, item) => (item.verifiedAt > max ? item.verifiedAt : max),
@@ -274,7 +275,7 @@ for (const rule of ruleCatalog) {
       fail(`${rule.name} evidence has invalid verifiedAt ${evidence.verifiedAt}`);
     } else if (!isValidIsoDate(evidence.verifiedAt)) {
       fail(`${rule.name} evidence has impossible verifiedAt ${evidence.verifiedAt}`);
-    } else if (evidence.verifiedAt > new Date().toISOString().slice(0, 10)) {
+    } else if (evidence.verifiedAt > today) {
       fail(`${rule.name} evidence date is in the future: ${evidence.verifiedAt}`);
     }
     if (/^https?:\/\/example\.(?:com|org)|^https?:\/\/placeholder/i.test(evidence.url)) {

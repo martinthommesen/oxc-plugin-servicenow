@@ -3,7 +3,7 @@
 async/await is not implemented in Compatibility or ES5 Standards mode.
 
 - **Family:** engine
-- **Preset:** classic-es5
+- **Profile:** classic-es5
 - **Placements:** classic-es5 (error)
 - **Default severity:** error
 - **Fix safety:** diagnostic only

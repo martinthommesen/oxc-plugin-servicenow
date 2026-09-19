@@ -1,9 +1,9 @@
 # oxc-plugin-servicenow
 
-First-class **[oxlint](https://oxc.rs/docs/guide/usage/linter.html)** + **[oxfmt](https://oxc.rs/docs/guide/usage/formatter.html)** tooling for:
+**[oxlint](https://oxc.rs/docs/guide/usage/linter.html)** + **[oxfmt](https://oxc.rs/docs/guide/usage/formatter.html)** tooling for:
 
 1. **ServiceNow Fluent** — TypeScript DSL in `.now.ts` files, powered by [`@servicenow/sdk`](https://servicenow.github.io/sdk/guides/fluent-overview)
-2. **Classic ServiceNow JavaScript** — Business Rules, Client Scripts, Script Includes, UI Actions, and everything else still running on the restricted platform engine
+2. **Classic ServiceNow JavaScript** — Business Rules, Client Scripts, Script Includes, UI Actions, ACLs, and scheduled and fix scripts running on the restricted platform engine
 
 The plugin is written against the official [`@oxlint/plugins`](https://www.npmjs.com/package/@oxlint/plugins) API (`definePlugin` + `defineRule` + `createOnce`) and is wrapped with `eslintCompatPlugin`, so the same package works in **oxlint** and **ESLint 9+**.
 
@@ -29,11 +29,11 @@ Other source and `dist` paths are internal. Do not import them.
 
 ## Why this exists
 
-ServiceNow apps now live in two worlds at once.
+ServiceNow apps mix two script kinds: Fluent metadata and classic instance scripts.
 
 Fluent `.now.ts` files are **declarative metadata**. They should import from `@servicenow/sdk/core`, declare `$id: Now.ID['…']`, and keep business logic out of the metadata object.
 
-Classic scripts still run on a **restricted, mode-dependent engine**. Compatibility and ES5 Standards reject many modern features. ES2021 supports Promise, async/await, and optional chaining, but still disallows async iteration, WeakRef, and FinalizationRegistry. `current.update()` in a Business Rule retriggers the rule engine. Client-side `GlideRecord` is slow and often blocked. Hardcoded sys_ids rot the moment the app is installed on another instance.
+Classic scripts still run on a **restricted, mode-dependent engine**. Compatibility and ES5 Standards reject many modern features. ES2021 supports Promise, async/await, and optional chaining, but still disallows async iteration, WeakRef, and FinalizationRegistry. `current.update()` in a Business Rule retriggers the rule engine. Client-side `GlideRecord` retrieves all fields and is unsupported in scoped applications. Hardcoded sys_ids no longer match after the app is installed on another instance.
 
 This package does **not** treat every non-Fluent file as ES5. Unknown JavaScript mode stays unknown. Mode-specific rules skip rather than guess.
 
@@ -157,7 +157,7 @@ Then:
 npx oxfmt --write .
 ```
 
-`.now.ts` is TypeScript. oxfmt already knows how to format it; the preset just picks Fluent-friendly options.
+`.now.ts` is TypeScript. oxfmt already knows how to format it; the preset selects Fluent-friendly options.
 
 ---
 
@@ -276,7 +276,7 @@ Configure once. Invalid keys, types, or conflicting values throw a configuration
 | `scriptType` | **Deprecated.** Use `authoring` and `surfaces`. |
 | `ecmaLatest` | **Deprecated.** `true` maps to `javascriptMode: "es2021"`. `false` does not assume ES5. |
 
-Australia support is release-aware rather than a renamed Zurich default:
+Australia support reads release-specific capability cells:
 
 The generated [Australia JavaScript engine update ledger](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/australia-engine-updates.md) maps every official Rhino update row to an implemented diagnostic, a deliberate metadata-only disposition, or explicit pending research. Pending rows are not counted as supported.
 
@@ -336,7 +336,7 @@ The `// @sn-es-latest` pragma was retired in 3.0.0 and is ignored; pragma-only f
 ### Classic ServiceNow
 
 <!-- generated:classic-rules:start -->
-| Rule | Preset | Fix | What it catches |
+| Rule | Profile | Fix | What it catches |
 | --- | --- | --- | --- |
 | [`no-hardcoded-sysid`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/no-hardcoded-sysid.md) | recommended |  | Hardcoded 32-character sys_ids break when an app is installed on another instance |
 | [`prefer-glideaggregate`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/prefer-glideaggregate.md) | strict |  | `GlideRecord.getRowCount()` (and iterate-to-count loops) load every matching row |
@@ -368,7 +368,7 @@ The `// @sn-es-latest` pragma was retired in 3.0.0 and is ignored; pragma-only f
 These rules run only when `javascriptMode` is known, except features that ServiceNow documents as unavailable in every instance mode for the selected release.
 
 <!-- generated:engine-rules:start -->
-| Rule | Preset | What it catches |
+| Rule | Profile | What it catches |
 | --- | --- | --- |
 | [`no-promise`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/no-promise.md) | classic-es5 | Compatibility and ES5 Standards modes do not implement Promises |
 | [`no-async-await`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/no-async-await.md) | classic-es5 | async/await is not implemented in Compatibility or ES5 Standards mode |
@@ -394,7 +394,7 @@ These rules run only when `javascriptMode` is known, except features that Servic
 ### Fluent (`.now.ts`)
 
 <!-- generated:fluent-rules:start -->
-| Rule | Preset | Fix | What it catches |
+| Rule | Profile | Fix | What it catches |
 | --- | --- | --- | --- |
 | [`fluent-proper-imports`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/fluent-proper-imports.md) | recommended |  | Fluent entity and column APIs must be imported from the module recorded in the selected SDK manifest |
 | [`fluent-directives`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/fluent-directives.md) | recommended |  | Validate documented ServiceNow Fluent SDK directive names and placement |
@@ -567,9 +567,9 @@ group. Business Rule timing rules likewise wait for `businessRuleWhen`.
 
 **3. The receiver is not proven.** Glide lifecycle rules report only on
 object identities the analyzer can prove; an aliased, escaped, or
-dynamically constructed receiver stays silent by design. On very large
-files the path analyzer can also exhaust its deterministic work budget
-and degrade to no findings for the affected rule; the budget scales with
+dynamically constructed receiver stays silent by design. On files dense
+enough to reach the deterministic work budget, the path analyzer can also
+degrade to no findings for the affected rule; the budget scales with
 file size, so this indicates an unusually dense file. Splitting the file
 restores full analysis.
 

@@ -3,7 +3,7 @@
 Filters and result-shaping calls after a documented query executor do not change the open cursor. Report when a consumer uses that cursor before another execution.
 
 - **Family:** classic
-- **Preset:** recommended
+- **Profile:** recommended
 - **Placements:** recommended (error), business-rule (error)
 - **Default severity:** error
 - **Fix safety:** diagnostic only

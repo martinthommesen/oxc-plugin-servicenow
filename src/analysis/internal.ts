@@ -1,9 +1,4 @@
-export {
-  buildScopeTree,
-  collectPatternNames,
-  createFileBindings,
-  forEachResolvedPatternBinding,
-} from "./bindings.js";
+export { buildScopeTree, createFileBindings, forEachResolvedPatternBinding } from "./bindings.js";
 export type { FileBindings, LexicalBinding, ScopeTree } from "./bindings.js";
 export {
   analyzeProvenance,
@@ -30,13 +25,11 @@ export {
   hasAuthoritativeGlideRecordMethod,
 } from "./platform-method-authority.js";
 export type { PlatformMethodAuthorityFacts } from "./platform-method-authority.js";
-export type { BindingId, ObjectId, Completion } from "./path-state.js";
 export {
   isDefinitelyNonCallable,
   isDefinitelyNullishValue,
   isDefinitelyUndefinedValue,
   staticPropertyName,
-  staticCalleeProperty,
   isComputedUnknown,
   resolveConstValue,
   resolveDominatingConstValue,

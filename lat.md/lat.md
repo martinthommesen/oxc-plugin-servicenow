@@ -4,7 +4,7 @@ This directory is the knowledge graph for `oxc-plugin-servicenow`: the domain co
 
 The graph answers "what does this plugin model, and why". Consumer instructions and per-rule reference stay where they are.
 
-- `README.md` — setup, settings schema, presets, migration.
+- `README.md` — setup, settings schema, profiles, migration.
 - `docs/rules/*.md` — one generated page per rule, with applicability, false-positive and false-negative ledgers, and evidence. Authoritative for rule-level detail.
 - `docs/decisions.md` — lifecycle decisions with their 3.0 reassessment triggers.
 - `docs/non-goals.md` — rejected rule ideas and the conditions that would reopen them.

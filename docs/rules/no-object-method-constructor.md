@@ -3,7 +3,7 @@
 ServiceNow Australia enforces ECMAScript's non-constructible shorthand object methods, while Zurich's ES2021 engine incorrectly permits them. This rule reports direct `new` calls through a stable object or method alias only when method identity cannot have changed.
 
 - **Family:** engine
-- **Preset:** es2021
+- **Profile:** es2021
 - **Placements:** es2021 (error)
 - **Default severity:** error
 - **Fix safety:** diagnostic only

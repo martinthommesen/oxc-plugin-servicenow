@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { it } from "node:test";
-import { applyRules } from "../src/runtime/apply-rules.js";
+import { applyRules } from "./helpers/apply-rules.js";
 import { parse } from "./helpers/rule-tester.js";
 
 it("falls back to source comments when parsed comments are omitted", () => {

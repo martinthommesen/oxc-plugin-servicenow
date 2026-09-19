@@ -165,6 +165,20 @@ export function mergeTri(
   return "unknown";
 }
 
+/** Key-deduped union of branch alternatives; later duplicates replace earlier ones. */
+export function mergeKeyedUnion<T>(
+  left: readonly T[],
+  right: readonly T[],
+  key: (value: T) => string,
+  clone: (value: T) => T,
+): T[] {
+  const merged = new Map<string, T>();
+  for (const value of [...left, ...right]) {
+    merged.set(key(value), clone(value));
+  }
+  return [...merged.values()];
+}
+
 function cloneAbrupt<T>(
   abrupt: Map<AbruptCompletion, EnvState<T>[]>,
   cloneData: (data: T) => T,

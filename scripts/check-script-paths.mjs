@@ -20,7 +20,7 @@ for (const command of Object.values(pkg.scripts)) {
   for (let i = 0; i < parts.length; i += 1) {
     const part = parts[i];
     if ((part === "-c" || part === "-p") && parts[i + 1]) {
-      referenced.add(parts[i + 1].replace(/^['"]|['"]$/g, ""));
+      referenced.add(parts[i + 1]);
     } else if (/\.(mjs|json|ts)$/.test(part) && !part.includes("*") && !part.startsWith("-")) {
       referenced.add(part);
     }

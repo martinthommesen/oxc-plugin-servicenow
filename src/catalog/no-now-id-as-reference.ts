@@ -45,7 +45,7 @@ const value = Now.ID.task;`,
   fixable: false,
   hasSuggestions: false,
   description:
-    "`Now.ID[...]` is a metadata identity, not a reference. Alias meaning is read at the use site from lexical binding identity. Use the factory object in-app or `Now.ref()` for external records. Evidence: https://www.servicenow.com/docs/r/application-development/servicenow-sdk/fluent-constructs.html",
+    "`Now.ID[...]` is a metadata identity, not a reference. Alias meaning is read at the use site from lexical binding identity. Use the factory object in-app or `Now.ref()` for external records.",
   bad: [
     {
       name: "Now.ID in another property",

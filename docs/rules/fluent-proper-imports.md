@@ -3,7 +3,7 @@
 Fluent entity and column APIs must be imported from the module recorded in the selected SDK manifest. Aliases and namespace imports resolve by lexical binding identity.
 
 - **Family:** fluent
-- **Preset:** recommended
+- **Profile:** recommended
 - **Placements:** recommended (error), fluent (error)
 - **Default severity:** error
 - **Fix safety:** diagnostic only

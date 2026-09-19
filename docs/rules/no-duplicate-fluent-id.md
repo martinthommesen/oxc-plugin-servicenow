@@ -3,7 +3,7 @@
 Two Fluent definitions that share the same static `Now.ID` key as `$id` collide. Cross-file uniqueness is out of scope.
 
 - **Family:** fluent
-- **Preset:** recommended
+- **Profile:** recommended
 - **Placements:** recommended (error), fluent (error)
 - **Default severity:** error
 - **Fix safety:** diagnostic only

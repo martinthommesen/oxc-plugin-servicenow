@@ -77,9 +77,7 @@ export function resolveDominatingConstValue(
   return resolveAliasValue(node, bindings, seen, "dominating");
 }
 
-/** Whether this expression definitely evaluates to `undefined` if it completes. */
-export function isDefinitelyUndefinedValue(node: unknown, bindings: FileBindings): boolean {
-  const value = resolveDominatingConstValue(node, bindings);
+function isUndefinedValue(value: ESTree.Node | null, bindings: FileBindings): boolean {
   if (!value) return false;
   if (value.type === "UnaryExpression" && value.operator === "void") return true;
   return (
@@ -87,12 +85,17 @@ export function isDefinitelyUndefinedValue(node: unknown, bindings: FileBindings
   );
 }
 
+/** Whether this expression definitely evaluates to `undefined` if it completes. */
+export function isDefinitelyUndefinedValue(node: unknown, bindings: FileBindings): boolean {
+  return isUndefinedValue(resolveDominatingConstValue(node, bindings), bindings);
+}
+
 /** Whether this expression definitely evaluates to null or undefined if it completes. */
 export function isDefinitelyNullishValue(node: unknown, bindings: FileBindings): boolean {
   const value = resolveDominatingConstValue(node, bindings);
   return (
     (value?.type === "Literal" && (value as { value?: unknown }).value == null) ||
-    isDefinitelyUndefinedValue(node, bindings)
+    isUndefinedValue(value, bindings)
   );
 }
 
@@ -171,14 +174,6 @@ export function staticPropertyName(node: unknown): string | null {
   const member = node as unknown as ESTree.MemberExpression;
   if (member.computed) return getStaticStringValue(member.property);
   return getName(member.property);
-}
-
-export function staticCalleeProperty(node: unknown): string | null {
-  if (!isNode(node)) return null;
-  if (node.type === "CallExpression" || node.type === "NewExpression") {
-    return staticPropertyName((node as ESTree.CallExpression | ESTree.NewExpression).callee);
-  }
-  return staticPropertyName(node);
 }
 
 export function isComputedUnknown(node: unknown): boolean {

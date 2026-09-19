@@ -11,6 +11,7 @@ import {
   SUPPORTED_FLUENT_SDK_VERSIONS,
 } from "../src/fluent/registry.js";
 import { FLUENT_DECLARATION_SNAPSHOTS } from "../src/fluent/declaration-snapshots.js";
+import { compareFluentVersions } from "../src/fluent/evidence.js";
 import { DEFAULT_FLUENT_MANIFEST } from "../src/fluent/manifest.js";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -40,11 +41,7 @@ function sha256(value) {
  * generator independent of the module it emits.
  */
 function lifecycleSnapshot(version, capabilities, discoveredCapabilities, allVersions) {
-  const atOrAfter = (left, right) => {
-    const a = left.split(".").map(Number);
-    const b = right.split(".").map(Number);
-    return a[0] > b[0] || (a[0] === b[0] && (a[1] > b[1] || (a[1] === b[1] && a[2] >= b[2])));
-  };
+  const atOrAfter = (left, right) => compareFluentVersions(left, right) >= 0;
   return Object.fromEntries(
     [...new Set([...Object.keys(capabilities), ...Object.keys(discoveredCapabilities)])]
       .sort()
@@ -127,6 +124,7 @@ export async function readResponseBytes(response, label, maxBytes) {
       if (done) break;
       total += value.byteLength;
       if (total > maxBytes) {
+        // Best-effort cancel; the size error below is the real failure.
         await reader.cancel().catch(() => undefined);
         throw new Error(`${label}: response exceeds ${maxBytes} bytes`);
       }
@@ -600,15 +598,7 @@ export async function main() {
     /^\d+\.\d+\.\d+$/u.test(version),
   );
   assert.ok(
-    !published.some((version) => {
-      const left = version.split(".").map(Number);
-      const right = CURRENT_FLUENT_SDK_VERSION.split(".").map(Number);
-      return (
-        left[0] > right[0] ||
-        (left[0] === right[0] &&
-          (left[1] > right[1] || (left[1] === right[1] && left[2] > right[2])))
-      );
-    }),
+    !published.some((version) => compareFluentVersions(version, CURRENT_FLUENT_SDK_VERSION) > 0),
     `new stable @servicenow/sdk version published above ${CURRENT_FLUENT_SDK_VERSION}`,
   );
 

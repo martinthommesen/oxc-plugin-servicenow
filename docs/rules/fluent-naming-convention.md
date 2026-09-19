@@ -3,7 +3,7 @@
 `.now.ts` files and `Now.ID` keys should be kebab-case. Exported `Table` bindings should match the table `name`.
 
 - **Family:** fluent
-- **Preset:** strict
+- **Profile:** strict
 - **Placements:** strict (warn)
 - **Default severity:** warn
 - **Fix safety:** diagnostic only

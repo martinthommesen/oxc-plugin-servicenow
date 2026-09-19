@@ -181,7 +181,7 @@ export class ScopeTree {
   }
 }
 
-export function collectPatternNames(node: unknown, names: string[]): void {
+function collectPatternNames(node: unknown, names: string[]): void {
   if (!isNode(node)) return;
   switch (node.type) {
     case "Identifier":

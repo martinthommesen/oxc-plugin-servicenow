@@ -3,7 +3,7 @@
 Zurich can return a negative input unchanged from BigInt.asUintN() when the requested width exceeds the input's signed byte representation; Australia corrects the ES2021 behavior. The rule reports only direct literal pairs that prove the two results differ.
 
 - **Family:** engine
-- **Preset:** es2021
+- **Profile:** es2021
 - **Placements:** es2021 (error)
 - **Default severity:** error
 - **Fix safety:** diagnostic only

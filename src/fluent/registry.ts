@@ -233,7 +233,10 @@ function effectiveDeprecatedVersion(
 
 function manifestForVersion(sdkVersion: string): FluentSdkManifest {
   if (!hasDeclarationSnapshot(sdkVersion)) {
-    throw new Error(`missing declaration snapshot for ${sdkVersion}`);
+    throw new ServiceNowSettingsError(
+      ".fluentSdkVersion",
+      `missing declaration snapshot for ${sdkVersion}`,
+    );
   }
   const manual = new Map(DEFAULT_FLUENT_MANIFEST.apis.map((api) => [api.name, api]));
   const apis: FluentApiCapability[] = [];

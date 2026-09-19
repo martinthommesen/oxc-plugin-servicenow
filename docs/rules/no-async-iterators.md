@@ -3,7 +3,7 @@
 `for await…of` and async generators are disallowed in every instance JavaScript mode, including ES2021.
 
 - **Family:** engine
-- **Preset:** recommended
+- **Profile:** recommended
 - **Placements:** recommended (error), classic-es5 (error), es2021 (error)
 - **Default severity:** error
 - **Fix safety:** diagnostic only
@@ -88,8 +88,8 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
   - URL: https://www.servicenow.com/docs/r/zurich/api-reference/scripts/javascript-engine-feature-support.html
   - Verified by: manual
   - Verified at: 2026-08-20
-- **es2021 Oxlint still flags async iteration.**
-  - Verification ID: `rule-evidence-743648b4`
+- **Oxlint with es2021 still flags async iteration.**
+  - Verification ID: `rule-evidence-3c42e622`
   - URL: tests/integration/profiles/invalid/es2021-async-iter.server.js
   - Verified by: integration-test
   - Verified at: 2026-08-20

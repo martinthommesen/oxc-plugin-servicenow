@@ -7,8 +7,6 @@ import { pathToFileURL } from "node:url";
 // version is printed in the result JSON for audit.
 export const TRUSTED_PUBLISHING_NPM_MINIMUM = "11.5.1";
 export const TRUSTED_PUBLISHING_NPM_BELOW = "12.0.0";
-/** @deprecated Use TRUSTED_PUBLISHING_NPM_MINIMUM. */
-export const TRUSTED_PUBLISHING_NPM_VERSION = TRUSTED_PUBLISHING_NPM_MINIMUM;
 
 function parseCore(version) {
   const match = /^(\d+)\.(\d+)\.(\d+)((?:[-+]).*)?$/.exec(version);

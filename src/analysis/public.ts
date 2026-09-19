@@ -1,10 +1,6 @@
 import type { Context, ESTree } from "@oxlint/plugins";
-import type { ServiceNowScriptContext } from "../types.js";
 import { getName, isNode } from "../utils/ast.js";
-import {
-  analyzeProvenance as analyzeInternal,
-  getScriptContext as getInternalContext,
-} from "./file-analysis.js";
+import { analyzeProvenance as analyzeInternal } from "./file-analysis.js";
 import type { Provenance, ProvenanceKind } from "./provenance.js";
 import { staticPropertyName } from "./members.js";
 
@@ -53,9 +49,7 @@ function readonlyProvenance(value: Provenance | null): AnalysisProvenance | null
   return wrapped;
 }
 
-export function getScriptContext(context: Context): ServiceNowScriptContext {
-  return getInternalContext(context);
-}
+export { getScriptContext } from "./file-analysis.js";
 
 /** Analyze the host source tree, or an explicitly supplied tree whose nodes will be queried. */
 export function analyzeProvenance(context: Context, ast?: ESTree.Node): AnalysisProvenanceQuery {

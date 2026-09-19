@@ -3,7 +3,7 @@
 A query inside a proven record cursor loop is an N+1 pattern. Direct IIFEs and stable one-call-site local helpers inherit cursor depth. GlideRecord uses release-keyed executors and `.next()` / `._next()`; GlideAggregate uses its directly documented `query()` / `.next()` lifecycle. Unrelated iterators stay silent.
 
 - **Family:** classic
-- **Preset:** strict
+- **Profile:** strict
 - **Placements:** strict (warn)
 - **Default severity:** warn
 - **Fix safety:** diagnostic only

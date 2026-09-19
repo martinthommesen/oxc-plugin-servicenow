@@ -9,8 +9,10 @@ export function assertBenchmarkFixtureSet(results, baselineRows) {
     throw new Error("benchmark produced duplicate fixture/profile keys");
   if (new Set(baseline).size !== baseline.length)
     throw new Error("performance baseline contains duplicate fixture/profile keys");
-  const missing = actual.filter((key) => !baseline.includes(key));
-  const extra = baseline.filter((key) => !actual.includes(key));
+  const actualKeys = new Set(actual);
+  const baselineKeys = new Set(baseline);
+  const missing = baseline.filter((key) => !actualKeys.has(key));
+  const extra = actual.filter((key) => !baselineKeys.has(key));
   if (missing.length || extra.length) {
     throw new Error(
       `benchmark fixture set mismatch (missing: ${missing.join(", ") || "none"}; extra: ${extra.join(", ") || "none"})`,

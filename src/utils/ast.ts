@@ -73,10 +73,6 @@ export function getStaticStringValue(node: unknown, depth = 0): string | null {
   return null;
 }
 
-export function isIdentifier(node: unknown, name: string): boolean {
-  return getName(node) === name;
-}
-
 /**
  * Strip grouping and TypeScript wrappers so identity looks at the inner value.
  */
@@ -205,16 +201,6 @@ export function isValueReference(node: ESTree.Node, ancestors: readonly ESTree.N
   }
 }
 
-export function memberName(node: unknown): { object: string; property: string } | null {
-  if (!isNode(node) || node.type !== "MemberExpression") return null;
-  const member = node as unknown as ESTree.MemberExpression;
-  if (member.computed && member.property.type !== "Literal") return null;
-  const object = getName(member.object);
-  const property = member.computed ? getStringValue(member.property) : getName(member.property);
-  if (!object || !property) return null;
-  return { object, property };
-}
-
 export function staticMemberChain(node: unknown): string[] | null {
   const parts: string[] = [];
   let current: unknown = unwrapExpression(node);
@@ -233,34 +219,10 @@ export function staticMemberChain(node: unknown): string[] | null {
   return parts;
 }
 
-export function calleeName(node: unknown): string | null {
-  if (!isNode(node)) return null;
-  if (node.type === "CallExpression" || node.type === "NewExpression") {
-    const expr = node as unknown as ESTree.CallExpression | ESTree.NewExpression;
-    return getName(expr.callee) ?? staticMemberChain(expr.callee)?.join(".") ?? null;
-  }
-  return getName(node);
-}
-
 export function propertyName(node: unknown): string | null {
   if (!isNode(node) || node.type !== "MemberExpression") return null;
   const member = node as unknown as ESTree.MemberExpression;
   return member.computed ? getStringValue(member.property) : getName(member.property);
-}
-
-export function isCallTo(
-  node: unknown,
-  object: string,
-  method: string,
-): node is ESTree.CallExpression {
-  if (!isNode(node) || node.type !== "CallExpression") return false;
-  const member = memberName((node as unknown as ESTree.CallExpression).callee);
-  return member?.object === object && member.property === method;
-}
-
-export function isNewNamed(node: unknown, name: string): node is ESTree.NewExpression {
-  if (!isNode(node) || node.type !== "NewExpression") return false;
-  return getName((node as unknown as ESTree.NewExpression).callee) === name;
 }
 
 export function propertyKeyName(property: ESTree.ObjectProperty): string | null {
@@ -286,30 +248,6 @@ export function objectPropertyValue(object: unknown, key: string): ESTree.Node |
   return (prop?.value as ESTree.Node | undefined) ?? null;
 }
 
-/** Structural `Now.include()` shape. Use `isCanonicalNowInclude` for SDK proof. */
-export function isNowIncludeCall(node: unknown): boolean {
-  const chain = staticMemberChain(
-    isNode(node) && (node.type === "CallExpression" || node.type === "NewExpression")
-      ? (node as unknown as ESTree.CallExpression).callee
-      : node,
-  );
-  return Boolean(chain && chain[0] === "Now" && chain[1] === "include");
-}
-
-/** Structural `Now.ID` shape. Use `isCanonicalNowId` for SDK proof. */
-export function isNowIdAccess(node: unknown): boolean {
-  const chain = staticMemberChain(node);
-  if (chain && chain[0] === "Now" && chain[1] === "ID") return true;
-
-  if (isNode(node) && node.type === "MemberExpression") {
-    const member = node as unknown as ESTree.MemberExpression;
-    const objectChain = staticMemberChain(member.object);
-    if (objectChain && objectChain[0] === "Now" && objectChain[1] === "ID") return true;
-  }
-
-  return false;
-}
-
 export function nowIdKey(node: unknown): string | null {
   if (!isNode(node) || node.type !== "MemberExpression") return null;
   const member = node as unknown as ESTree.MemberExpression;
@@ -317,27 +255,6 @@ export function nowIdKey(node: unknown): string | null {
   if (!objectChain || objectChain[0] !== "Now" || objectChain[1] !== "ID") return null;
   if (member.computed) return getStringValue(member.property);
   return getName(member.property);
-}
-
-export function declaredName(node: unknown): string | null {
-  if (!isNode(node) || node.type !== "VariableDeclarator") return null;
-  return getName((node as unknown as ESTree.VariableDeclarator).id);
-}
-
-export function isExpressionStatementCall(parent: unknown): boolean {
-  return isNode(parent) && parent.type === "ExpressionStatement";
-}
-
-export type CommentLike = {
-  type?: string;
-  value: string;
-  start?: number;
-  end?: number;
-  loc?: { start: { line: number; column: number }; end: { line: number; column: number } };
-};
-
-export function commentText(comment: CommentLike): string {
-  return comment.value.trim();
 }
 
 /** A host comment with source offsets. */

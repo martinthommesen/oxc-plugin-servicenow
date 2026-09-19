@@ -1,9 +1,9 @@
 # servicenow/no-glideajax-getanswer
 
-`getAnswer()` belongs to synchronous GlideAjax. Use `getXMLAnswer(callback)` instead. Evidence: https://www.servicenow.com/docs/r/api-reference/c_GlideAjaxAPI.html
+`getAnswer()` belongs to synchronous GlideAjax. Use `getXMLAnswer(callback)` instead.
 
 - **Family:** classic
-- **Preset:** recommended
+- **Profile:** recommended
 - **Placements:** recommended (error), client (error)
 - **Default severity:** error
 - **Fix safety:** diagnostic only

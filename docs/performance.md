@@ -1,6 +1,6 @@
 # Performance benchmarks
 
-Stateful GlideRecord analysis must stay approximately linear for local provenance.
+Stateful GlideRecord analysis must keep the recommended large/small scale ratio at or below 4 (see Release gate).
 
 ## Command
 

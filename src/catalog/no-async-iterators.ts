@@ -14,7 +14,7 @@ export const noAsyncIteratorsEntry = entry("no-async-iterators", noAsyncIterator
       ),
       metadata.evidenceRecord(
         "tests/integration/profiles/invalid/es2021-async-iter.server.js",
-        "es2021 Oxlint still flags async iteration.",
+        "Oxlint with es2021 still flags async iteration.",
         "integration-test",
         "2026-08-20",
       ),

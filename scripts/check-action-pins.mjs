@@ -30,29 +30,27 @@ export function parseActionPinCatalog(source) {
   return catalog;
 }
 
+function pushStepUses(steps, references) {
+  for (const step of steps) {
+    if (step && typeof step === "object" && !Array.isArray(step) && Object.hasOwn(step, "uses")) {
+      references.push(step.uses);
+    }
+  }
+}
+
 function collectUses(workflow) {
   const references = [];
   if (!workflow || typeof workflow !== "object") return references;
   // Composite actions put their steps under runs.steps instead of jobs.
   const runsSteps = workflow.runs?.steps;
-  if (Array.isArray(runsSteps)) {
-    for (const step of runsSteps) {
-      if (step && typeof step === "object" && !Array.isArray(step) && Object.hasOwn(step, "uses")) {
-        references.push(step.uses);
-      }
-    }
-  }
+  if (Array.isArray(runsSteps)) pushStepUses(runsSteps, references);
   const jobs = workflow.jobs;
   if (!jobs || typeof jobs !== "object" || Array.isArray(jobs)) return references;
   for (const job of Object.values(jobs)) {
     if (!job || typeof job !== "object" || Array.isArray(job)) continue;
     if (Object.hasOwn(job, "uses")) references.push(job.uses);
     if (!Array.isArray(job.steps)) continue;
-    for (const step of job.steps) {
-      if (step && typeof step === "object" && !Array.isArray(step) && Object.hasOwn(step, "uses")) {
-        references.push(step.uses);
-      }
-    }
+    pushStepUses(job.steps, references);
   }
   return references;
 }

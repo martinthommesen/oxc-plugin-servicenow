@@ -58,7 +58,7 @@ ajax.getXMLAnswer = localRequest;`,
     fixable: false,
     hasSuggestions: false,
     description:
-      'GlideAjax requires a non-empty `addParam("sysparm_name", method)` before `getXML` / `getXMLAnswer` / `getXMLWait`. Extra static keys must start with `sysparm_`. Evidence: https://www.servicenow.com/docs/r/api-reference/scripts/p_AJAX.html',
+      'GlideAjax requires a non-empty `addParam("sysparm_name", method)` before `getXML` / `getXMLAnswer` / `getXMLWait`. Extra static keys must start with `sysparm_`.',
     bad: [
       {
         name: "missing sysparm_name",

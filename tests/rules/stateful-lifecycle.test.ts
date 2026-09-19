@@ -713,4 +713,11 @@ gr.next();`,
       { ...SERVER, settings: { scope: "scoped", release: "zurich" } },
     );
   });
+
+  it("lets an unconditional query restore the cursor state", () => {
+    assertValid(
+      `var gr = new GlideRecord("incident"); if (ready) gr.query(); gr.query(); gr.next();`,
+      RULE,
+    );
+  });
 });

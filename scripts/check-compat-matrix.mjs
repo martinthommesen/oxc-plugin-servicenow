@@ -15,7 +15,7 @@ export function checkCompatibilityMatrix() {
   const errors = [];
   const ids = matrix.cells?.map((cell) => cell.id) ?? [];
 
-  if (!exactVersion.test(matrix.resolvedAt?.replaceAll("-", ".") ?? "")) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(matrix.resolvedAt ?? "")) {
     errors.push("resolvedAt must be an exact YYYY-MM-DD date");
   }
   if (new Set(ids).size !== ids.length)

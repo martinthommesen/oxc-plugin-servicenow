@@ -1,6 +1,6 @@
 import type { ESTree } from "@oxlint/plugins";
 import { getStringValue } from "../utils/ast.js";
-import { analyzePathBindings, dedupePathFindings } from "./path-state.js";
+import { analyzePathBindings, dedupePathFindings, mergeKeyedUnion } from "./path-state.js";
 import {
   hasAuthoritativeConstructedMethod,
   type PlatformMethodAuthorityFacts,
@@ -63,11 +63,14 @@ function alternativeKey(value: AggregateAlternative): string {
 }
 
 function mergeAlternatives(left: AggData, right: AggData): AggData {
-  const alternatives = new Map<string, AggregateAlternative>();
-  for (const value of [...left.alternatives, ...right.alternatives]) {
-    alternatives.set(alternativeKey(value), cloneAlternative(value));
-  }
-  return { alternatives: [...alternatives.values()] };
+  return {
+    alternatives: mergeKeyedUnion(
+      left.alternatives,
+      right.alternatives,
+      alternativeKey,
+      cloneAlternative,
+    ),
+  };
 }
 
 /**

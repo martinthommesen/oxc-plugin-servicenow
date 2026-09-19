@@ -98,21 +98,31 @@ export function checkLegacyConflicts(settings: ValidatedServiceNowSettings): voi
   }
 }
 
-export function legacyAuthoring(
+/**
+ * Copy legacy `scriptType` / `ecmaLatest` values onto their modern fields when
+ * those are unset, so context resolution reads one shape. Legacy fields keep
+ * their raw values for deprecation reporting. Callers must run
+ * {@link checkLegacyConflicts} first; conflicting explicit values throw there.
+ */
+export function normalizeLegacySettings(
   settings: ValidatedServiceNowSettings,
-): ScriptAuthoring | undefined {
-  if (settings.scriptType === "auto") return undefined;
-  return settings.scriptType === "fluent" ? "fluent" : "classic";
-}
-
-export function legacySurface(settings: ValidatedServiceNowSettings): ScriptSurface | undefined {
-  const kind = settings.scriptType;
-  if (kind === "auto" || kind === "unknown" || kind === "fluent") return undefined;
-  return kind;
-}
-
-export function legacyJavaScriptMode(
-  settings: ValidatedServiceNowSettings,
-): JavaScriptMode | undefined {
-  return settings.ecmaLatest === true ? "es2021" : undefined;
+): ValidatedServiceNowSettings {
+  const patch: {
+    authoring?: ScriptAuthoring | "auto";
+    surfaces?: "auto" | ScriptSurface[];
+    javascriptMode?: JavaScriptMode | undefined;
+  } = {};
+  const { scriptType, ecmaLatest } = settings;
+  if (scriptType === "fluent") {
+    if (settings.authoring === "auto") patch.authoring = "fluent";
+  } else if (scriptType !== "auto") {
+    if (settings.authoring === "auto") patch.authoring = "classic";
+    if (settings.surfaces === "auto" && scriptType !== "unknown") {
+      patch.surfaces = [scriptType];
+    }
+  }
+  if (ecmaLatest === true && settings.javascriptMode === undefined) {
+    patch.javascriptMode = "es2021";
+  }
+  return Object.keys(patch).length === 0 ? settings : { ...settings, ...patch };
 }

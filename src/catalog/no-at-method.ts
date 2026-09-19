@@ -26,7 +26,7 @@ export const noAtMethodEntry = entry("no-at-method", noAtMethod, {
       ),
       metadata.evidenceRecord(
         "tests/integration/profiles.test.ts",
-        "Real Oxlint and ESLint classic-ES5 profiles accept an explicit Array.prototype.at polyfill.",
+        "Real Oxlint and ESLint classic-es5 profiles accept an explicit Array.prototype.at polyfill.",
         "integration-test",
         "2026-08-24",
       ),

@@ -552,13 +552,24 @@ function createAttemptDir(runDir, label) {
   return { attemptId, dir };
 }
 
+function beginDriveAttempt(repoRoot, runDir, manifest, noncanonical, label) {
+  const initialExamplesGit = requireReadyRun(repoRoot, runDir, manifest, noncanonical);
+  markNoncanonical(runDir, manifest, noncanonical);
+  const { attemptId, dir } = createAttemptDir(runDir, label);
+  return { initialExamplesGit, attemptId, dir };
+}
+
 function driveLint(repoRoot, projects, project, tree, runDir, manifest, argv, noncanonical) {
   const spec = projects.projects[project];
   if (!spec) throw new Error(`Unknown project ${project}`);
   if (tree !== "valid" && tree !== "invalid") throw new Error(`Tree must be valid or invalid`);
-  const initialExamplesGit = requireReadyRun(repoRoot, runDir, manifest, noncanonical);
-  markNoncanonical(runDir, manifest, noncanonical);
-  const { attemptId, dir } = createAttemptDir(runDir, `${project}-${tree}`);
+  const { initialExamplesGit, attemptId, dir } = beginDriveAttempt(
+    repoRoot,
+    runDir,
+    manifest,
+    noncanonical,
+    `${project}-${tree}`,
+  );
   const host = {
     argv: [],
     status: null,
@@ -636,9 +647,13 @@ function driveLint(repoRoot, projects, project, tree, runDir, manifest, argv, no
 function driveOxfmt(repoRoot, projects, project, runDir, manifest, argv, noncanonical) {
   if (project !== "all" && !projects.projects[project])
     throw new Error(`Unknown project ${project}`);
-  const initialExamplesGit = requireReadyRun(repoRoot, runDir, manifest, noncanonical);
-  markNoncanonical(runDir, manifest, noncanonical);
-  const { attemptId, dir } = createAttemptDir(runDir, `${project}-oxfmt`);
+  const { initialExamplesGit, attemptId, dir } = beginDriveAttempt(
+    repoRoot,
+    runDir,
+    manifest,
+    noncanonical,
+    `${project}-oxfmt`,
+  );
   const targets =
     project === "all"
       ? projects.names.map((name) => path.join(repoRoot, projects.projects[name].valid))
@@ -760,19 +775,25 @@ function parseArgs(argv) {
     argv,
   };
   for (let index = 0; index < argv.length; index += 1) {
+    const takeValue = (flag) => {
+      const value = argv[index + 1];
+      if (value === undefined || value.startsWith("-")) throw new Error(`${flag} requires a value`);
+      index += 1;
+      return value;
+    };
     const part = argv[index];
     switch (part) {
       case "--all":
         options.all = true;
         break;
       case "--project":
-        options.project = argv[++index];
+        options.project = takeValue(part);
         break;
       case "--tree":
-        options.tree = argv[++index];
+        options.tree = takeValue(part);
         break;
       case "--run-id":
-        options.runId = argv[++index];
+        options.runId = takeValue(part);
         break;
       case "--noncanonical":
         options.noncanonical = true;

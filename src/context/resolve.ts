@@ -10,7 +10,6 @@ import type {
   ValidatedServiceNowSettings,
 } from "../types.js";
 import { ServiceNowSettingsError } from "../settings/errors.js";
-import { legacyAuthoring, legacyJavaScriptMode, legacySurface } from "../settings/legacy.js";
 import { SERVER_ONLY_SURFACES } from "../surfaces.js";
 import { immutableSet } from "../utils/immutable.js";
 import { authoringFromFilename, isFluentFile, surfacesFromFilename } from "./filename.js";
@@ -35,12 +34,8 @@ function resolveAuthoring(
   if (settings.authoring !== "auto") {
     return { authoring: settings.authoring, confidence: "explicit" };
   }
-  // `scriptType` predates the independent authoring/surface dimensions. While
-  // it remains supported, an explicit legacy value outranks filename hints;
-  // otherwise a `client` script saved as `thing.now.ts` would silently become
-  // Fluent and disable all of its relevant rules.
-  const legacy = legacyAuthoring(settings);
-  if (legacy) return { authoring: legacy, confidence: "explicit" };
+  // Legacy `scriptType` / `ecmaLatest` arrive here already normalized onto the
+  // modern fields by validateServiceNowSettings.
   if (settings.surfaces !== "auto") {
     return { authoring: "classic", confidence: "explicit" };
   }
@@ -84,9 +79,6 @@ function resolveSurfaces(
     return { surfaces: new Set(settings.surfaces), confidence: "explicit" };
   }
 
-  const legacy = legacySurface(settings);
-  if (legacy) return { surfaces: new Set([legacy]), confidence: "explicit" };
-
   const fromFile = surfacesFromFilename(filename, baseDirectory);
   if (fromFile.length > 0) {
     // A bare UI Action names the record type, not its execution surface. Keep
@@ -124,8 +116,6 @@ function resolveJavaScriptMode(
   if (settings.javascriptMode !== undefined) {
     return { mode: settings.javascriptMode, confidence: "explicit" };
   }
-  const legacyMode = legacyJavaScriptMode(settings);
-  if (legacyMode) return { mode: legacyMode, confidence: "explicit" };
   if (authoring === "fluent" || isFluentFile(context.filename)) {
     return { mode: "unknown", confidence: "filename" };
   }

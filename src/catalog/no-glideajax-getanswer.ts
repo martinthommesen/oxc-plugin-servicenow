@@ -53,7 +53,7 @@ ajax.getAnswer = localAnswer;`,
   fixable: false,
   hasSuggestions: false,
   description:
-    "`getAnswer()` belongs to synchronous GlideAjax. Use `getXMLAnswer(callback)` instead. Evidence: https://www.servicenow.com/docs/r/api-reference/c_GlideAjaxAPI.html",
+    "`getAnswer()` belongs to synchronous GlideAjax. Use `getXMLAnswer(callback)` instead.",
   bad: [
     {
       name: "getAnswer after getXML",

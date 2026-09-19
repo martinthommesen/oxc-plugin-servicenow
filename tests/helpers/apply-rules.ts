@@ -1,9 +1,9 @@
 import type { Context, ESTree, Rule } from "@oxlint/plugins";
-import { PLUGIN_NAME } from "../constants.js";
-import { rules as allRules } from "../rules/index.js";
-import type { RuleName } from "../rules/index.js";
-import type { ServiceNowSettings } from "../types.js";
-import { fallbackComments, isNode, walk } from "../utils/ast.js";
+import { PLUGIN_NAME } from "../../src/constants.js";
+import { rules as allRules } from "../../src/rules/index.js";
+import type { RuleName } from "../../src/rules/index.js";
+import type { ServiceNowSettings } from "../../src/types.js";
+import { fallbackComments, isNode, walk } from "../../src/utils/ast.js";
 
 export interface LintMessage {
   ruleId: string;

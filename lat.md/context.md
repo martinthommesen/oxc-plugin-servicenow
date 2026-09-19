@@ -15,7 +15,7 @@ The context's overall `confidence` is the *weakest* of the four dimensions, not 
 `resolveAuthoring` decides `"classic"` or `"fluent"` in this order:
 
 1. An explicit `settings.servicenow.authoring` other than `"auto"` — confidence `explicit`.
-2. A deprecated `settings.servicenow.scriptType` other than `"auto"` — confidence `explicit`. [[src/settings/legacy.ts#legacyAuthoring]] owns this translation. The legacy field outranks the filename, so a client script named `thing.now.ts` stays classic.
+2. A deprecated `settings.servicenow.scriptType` other than `"auto"`, normalized onto `authoring` by [[src/settings/legacy.ts#normalizeLegacySettings]] — confidence `explicit`. The legacy field outranks the filename, so a client script named `thing.now.ts` stays classic.
 3. An explicit `settings.servicenow.surfaces` — confidence `explicit`.
 4. The filename, via `authoringFromFilename` in [[src/context/filename.ts#authoringFromFilename]] — `fluent` when the name matches `/\.now\.tsx?$/i`, confidence `filename`.
 5. Otherwise `classic`, confidence `unknown`.
@@ -29,7 +29,7 @@ For a Fluent file the set is empty and the confidence is `filename`. Explicit Fl
 For classic files, in order:
 
 1. An explicit `settings.servicenow.surfaces` array — confidence `explicit`.
-2. A legacy `scriptType` that names an execution surface, mapped by [[src/settings/legacy.ts#legacySurface]] — confidence `explicit`.
+2. A legacy `scriptType` that names an execution surface, normalized onto `surfaces` by [[src/settings/legacy.ts#normalizeLegacySettings]] — confidence `explicit`.
 3. `surfacesFromFilename` — confidence `filename`, with one special case below.
 4. AST inference — confidence `inferred`.
 5. Otherwise the set is empty, confidence `unknown`.
@@ -48,7 +48,7 @@ AST inference (`inferSurfacesFromAst` in [[src/analysis/file-analysis.ts#inferSu
 `resolveJavaScriptMode` resolves in this order:
 
 1. An explicit `settings.servicenow.javascriptMode` — confidence `explicit`.
-2. Deprecated `ecmaLatest: true`, which maps to `es2021` — confidence `explicit`.
+2. Deprecated `ecmaLatest: true`, normalized onto `javascriptMode` as `es2021` by [[src/settings/legacy.ts#normalizeLegacySettings]] — confidence `explicit`.
 3. A Fluent file, whose mode stays `unknown` at confidence `filename`.
 4. Otherwise `unknown`, confidence `unknown`.
 

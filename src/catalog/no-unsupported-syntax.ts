@@ -38,7 +38,7 @@ export const noUnsupportedSyntaxEntry = entry("no-unsupported-syntax", noUnsuppo
       ),
       metadata.evidenceRecord(
         "tests/integration/profiles.test.ts",
-        "Real Oxlint and ESLint classic-ES5 profiles resolve stable RegExp aliases and accept explicit constructor replacements.",
+        "Real Oxlint and ESLint classic-es5 profiles resolve stable RegExp aliases and accept explicit constructor replacements.",
         "integration-test",
         "2026-08-24",
       ),

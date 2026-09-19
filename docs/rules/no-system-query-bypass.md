@@ -3,7 +3,7 @@
 Opt-in security review for documented ACL-bypass query APIs. Unknown computed GlideRecord access also reports for review.
 
 - **Family:** classic
-- **Preset:** security
+- **Profile:** security
 - **Placements:** security (warn)
 - **Default severity:** warn
 - **Fix safety:** diagnostic only

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { Context } from "@oxlint/plugins";
-import { applyRules } from "../src/runtime/apply-rules.js";
+import { applyRules } from "./helpers/apply-rules.js";
 import { resolveScriptContext } from "../src/context/resolve.js";
 import { validateServiceNowSettings, ServiceNowSettingsError } from "../src/settings/index.js";
 import { SUPPORTED_SERVICENOW_RELEASES } from "../src/settings/releases.js";

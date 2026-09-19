@@ -3,7 +3,7 @@
 Do not relationally compare `GlideDateTime.getDisplayValue()` strings. Use `getNumericValue()` or a date-aware API.
 
 - **Family:** classic
-- **Preset:** strict
+- **Profile:** strict
 - **Placements:** strict (warn)
 - **Default severity:** warn
 - **Fix safety:** diagnostic only

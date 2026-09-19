@@ -32,7 +32,7 @@ function markdownTableCell(value) {
   return String(value).replaceAll("\\", "\\\\").replaceAll("|", "\\|").replaceAll("\n", "<br>");
 }
 
-function presetLabel(rule) {
+function profileLabel(rule) {
   return rule.placements[0]?.profile ?? "off";
 }
 
@@ -46,13 +46,13 @@ function fenceLang(filename) {
 
 function tableRow(rule, includeFix) {
   const link = `[\`${rule.name}\`](${rule.docsUrl})`;
-  const preset = presetLabel(rule);
+  const profile = profileLabel(rule);
   const fix = rule.fixable ? "fix" : rule.hasSuggestions ? "suggest" : "";
   const catchText = markdownTableCell(summary(rule));
   if (includeFix) {
-    return `| ${link} | ${markdownTableCell(preset)} | ${markdownTableCell(fix)} | ${catchText} |`;
+    return `| ${link} | ${markdownTableCell(profile)} | ${markdownTableCell(fix)} | ${catchText} |`;
   }
-  return `| ${link} | ${markdownTableCell(preset)} | ${catchText} |`;
+  return `| ${link} | ${markdownTableCell(profile)} | ${catchText} |`;
 }
 
 const profileExport = {
@@ -193,7 +193,7 @@ async function writeRuleDocs() {
 ${rule.description}
 
 - **Family:** ${rule.family}
-- **Preset:** ${presetLabel(rule)}
+- **Profile:** ${profileLabel(rule)}
 - **Placements:** ${placements || "off"}
 - **Default severity:** ${rule.severity}
 - **Fix safety:** ${rule.fixKind === "none" ? "diagnostic only" : rule.fixKind}
@@ -283,17 +283,17 @@ async function writeReadmeTables() {
   const readmePath = join(root, "README.md");
   let readme = await readFile(readmePath, "utf8");
   const classic = [
-    "| Rule | Preset | Fix | What it catches |",
+    "| Rule | Profile | Fix | What it catches |",
     "| --- | --- | --- | --- |",
     ...ruleCatalog.filter((rule) => rule.family === "classic").map((rule) => tableRow(rule, true)),
   ].join("\n");
   const engine = [
-    "| Rule | Preset | What it catches |",
+    "| Rule | Profile | What it catches |",
     "| --- | --- | --- |",
     ...ruleCatalog.filter((rule) => rule.family === "engine").map((rule) => tableRow(rule, false)),
   ].join("\n");
   const fluent = [
-    "| Rule | Preset | Fix | What it catches |",
+    "| Rule | Profile | Fix | What it catches |",
     "| --- | --- | --- | --- |",
     ...ruleCatalog.filter((rule) => rule.family === "fluent").map((rule) => tableRow(rule, true)),
   ].join("\n");

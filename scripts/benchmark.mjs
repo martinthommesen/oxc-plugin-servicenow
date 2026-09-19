@@ -299,6 +299,9 @@ async function main() {
     for (const benchmarkCase of cases) results.push(await runCase(...benchmarkCase));
     const small = results.find((row) => row.fixture === "classic-small/recommended");
     const large = results.find((row) => row.fixture === "classic-large/recommended");
+    if (!small || !large) {
+      throw new Error("benchmark results lack the classic-small/classic-large pair");
+    }
     const baseline = validateBenchmarkSummary(JSON.parse(readFileSync(baselinePath, "utf8")));
     const summary = {
       date: new Date().toISOString().slice(0, 10),
@@ -331,6 +334,9 @@ async function main() {
       console.warn(`performance trend: ${trend}`);
     }
     if (writeBaseline) {
+      // Self-compare on purpose: dup-guard the reviewed baseline before
+      // overwriting it. A two-set compare would be wrong here since baseline
+      // updates legitimately change fixtures.
       assertBenchmarkFixtureSet(results, results);
       writeFileSync(
         join(root, "docs/performance-baseline.json"),

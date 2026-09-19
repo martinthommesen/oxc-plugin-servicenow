@@ -155,10 +155,6 @@ function sameNode(left: ESTree.Node | null | undefined, right: ESTree.Node): boo
   );
 }
 
-function isDeferredFunction(node: ESTree.Node): boolean {
-  return isFunctionLike(node);
-}
-
 function isImmediatelyInvoked(node: ESTree.Node, ancestors: readonly ESTree.Node[]): boolean {
   if (node.type === "FunctionDeclaration") return false;
   const index = ancestors.findIndex((ancestor) => sameNode(ancestor, node));
@@ -203,7 +199,7 @@ function containsAccessInvalidation(
   const isDeferred = (): boolean =>
     ancestors
       .slice(0, -1)
-      .some((node) => isDeferredFunction(node) && !isImmediatelyInvoked(node, ancestors));
+      .some((node) => isFunctionLike(node) && !isImmediatelyInvoked(node, ancestors));
   walk(
     root,
     {

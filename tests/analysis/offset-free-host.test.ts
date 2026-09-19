@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { applyRules } from "../../src/runtime/apply-rules.js";
+import { applyRules } from "../helpers/apply-rules.js";
 import { parse } from "../helpers/rule-tester.js";
 
 // Strips every offset shape nodeStart() understands while keeping `loc`, so

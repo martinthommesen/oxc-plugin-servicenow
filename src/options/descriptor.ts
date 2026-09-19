@@ -153,7 +153,10 @@ function jsonSchemaProperty(field: OptionField): Record<string, unknown> {
       return { type: "array", items: { type: "string" } };
     default: {
       const unexpected: never = field;
-      throw new Error(`unhandled option field ${JSON.stringify(unexpected)}`);
+      throw new ServiceNowConfigError(
+        "options",
+        `unhandled option field ${JSON.stringify(unexpected)}`,
+      );
     }
   }
 }
@@ -172,7 +175,10 @@ function optionTypeLabel(field: OptionField): string {
       return "string[]";
     default: {
       const unexpected: never = field;
-      throw new Error(`unhandled option field ${JSON.stringify(unexpected)}`);
+      throw new ServiceNowConfigError(
+        "options",
+        `unhandled option field ${JSON.stringify(unexpected)}`,
+      );
     }
   }
 }
@@ -188,7 +194,10 @@ function optionDefaultLabel(field: OptionField): string {
       return JSON.stringify([...field.default]);
     default: {
       const unexpected: never = field;
-      throw new Error(`unhandled option field ${JSON.stringify(unexpected)}`);
+      throw new ServiceNowConfigError(
+        "options",
+        `unhandled option field ${JSON.stringify(unexpected)}`,
+      );
     }
   }
 }

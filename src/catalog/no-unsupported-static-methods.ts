@@ -95,7 +95,7 @@ check(value);`,
     fixable: false,
     hasSuggestions: false,
     description:
-      "Error.isError(), Promise.try(), and Promise.withResolvers() are available in Australia ES2021 but not Zurich ES2021. Error.isError() is also unavailable in classic modes; Promise calls there remain owned by no-promise to avoid duplicate diagnostics. Omitted releases and unknown modes stay silent.",
+      "Error.isError(), Promise.try(), and Promise.withResolvers() are available in Australia ES2021 but not Zurich ES2021. Error.isError() is also unavailable in Compatibility and ES5 modes; Promise calls there remain owned by no-promise to avoid duplicate diagnostics. Omitted releases and unknown modes stay silent.",
     bad: [
       {
         name: "Error.isError in Zurich ES2021",

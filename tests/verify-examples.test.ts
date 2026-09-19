@@ -586,6 +586,14 @@ describe("verify-examples CLI", { concurrency: 1 }, () => {
     assert.doesNotMatch(skill, /To re-check an existing run:[\s\S]*prepare --run-id/);
   });
 
+  it("rejects value flags without a value", () => {
+    for (const flag of ["--project", "--tree", "--run-id"]) {
+      const result = runCli([flag]);
+      assert.equal(result.status, 1, result.stdout);
+      assert.match(result.stderr, new RegExp(`${flag} requires a value`));
+    }
+  });
+
   it("runs the fluent invalid drive and keeps evidence", () => {
     const runId = trackRunId(`test-fluent-${Date.now()}`);
     const result = runCli(["--project", "fluent", "--tree", "invalid", "--run-id", runId]);

@@ -27,4 +27,4 @@ Writing `getDisplayValue()` into a date/time field needs schema. The plugin has 
 
 ## Additional string comparisons — hold
 
-Equality on display strings is often intentional UI logic. Do not generalize #24 beyond relational operators on proven display values.
+Equality on display strings can be intentional UI logic. Do not generalize #24 beyond relational operators on proven display values.

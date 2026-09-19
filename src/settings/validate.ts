@@ -16,7 +16,11 @@ import { expectEnum, typeName } from "./parse.js";
 import { deepFreeze } from "./freeze.js";
 import { immutableSet } from "../utils/immutable.js";
 import { SURFACE_VALUES } from "../surfaces.js";
-import { checkLegacyConflicts, LEGACY_DESCRIPTOR_FIELDS } from "./legacy.js";
+import {
+  checkLegacyConflicts,
+  LEGACY_DESCRIPTOR_FIELDS,
+  normalizeLegacySettings,
+} from "./legacy.js";
 
 const JAVASCRIPT_MODES = new Set<JavaScriptMode>(["compatibility", "es5", "es2021", "unknown"]);
 
@@ -30,7 +34,6 @@ const BR_FORMATS = new Set<BusinessRuleSourceFormat>(["full-script", "body-only"
 
 const BR_WHEN = new Set<BusinessRuleWhen>(["before", "after", "async", "display", "unknown"]);
 
-const IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/;
 const SCOPE_PREFIX = /^[a-z][a-z0-9_]*$/;
 const SDK_VERSION = /^\d+\.\d+\.\d+(?:-[A-Za-z0-9.-]+)?$/;
 const SYS_ID = /^[0-9a-f]{32}$/;
@@ -78,6 +81,21 @@ function expectStringArray(path: string, value: unknown): string[] {
   });
 }
 
+function expectPatternArray(
+  path: string,
+  value: unknown,
+  pattern: RegExp,
+  expected: string,
+): string[] {
+  const items = expectStringArray(path, value);
+  for (const [index, item] of items.entries()) {
+    if (!pattern.test(item)) {
+      throw new ServiceNowSettingsError(`${path}[${index}]`, expected);
+    }
+  }
+  return items;
+}
+
 export interface SettingsFieldDescriptor<T> {
   readonly defaultValue: () => T;
   readonly parse: (path: string, value: unknown, deprecations: SettingsDeprecation[]) => T;
@@ -123,33 +141,18 @@ export function deriveSettingsDescriptorProducts<
 const SETTINGS_DESCRIPTOR = {
   allowedSysIds: {
     defaultValue: () => [] as string[],
-    parse(path: string, value: unknown) {
-      const ids = expectStringArray(path, value);
-      for (const [index, id] of ids.entries()) {
-        if (!SYS_ID.test(id)) {
-          throw new ServiceNowSettingsError(
-            `${path}[${index}]`,
-            "expected a 32-character lowercase hexadecimal sys_id",
-          );
-        }
-      }
-      return ids;
-    },
+    parse: (path: string, value: unknown) =>
+      expectPatternArray(
+        path,
+        value,
+        SYS_ID,
+        "expected a 32-character lowercase hexadecimal sys_id",
+      ),
   },
   allowedTables: {
     defaultValue: () => [] as string[],
-    parse(path: string, value: unknown) {
-      const tables = expectStringArray(path, value);
-      for (const [index, table] of tables.entries()) {
-        if (!TABLE_NAME.test(table)) {
-          throw new ServiceNowSettingsError(
-            `${path}[${index}]`,
-            "expected a lowercase ServiceNow table name",
-          );
-        }
-      }
-      return tables;
-    },
+    parse: (path: string, value: unknown) =>
+      expectPatternArray(path, value, TABLE_NAME, "expected a lowercase ServiceNow table name"),
   },
   ...LEGACY_DESCRIPTOR_FIELDS,
   javascriptMode: {
@@ -268,8 +271,9 @@ export function validateServiceNowSettings(raw: unknown): ValidatedSettingsResul
   }
 
   const deprecations: SettingsDeprecation[] = [];
-  const settings = SETTINGS_PRODUCTS.validate(raw, deprecations) as ValidatedServiceNowSettings;
-  checkLegacyConflicts(settings);
+  const parsed = SETTINGS_PRODUCTS.validate(raw, deprecations) as ValidatedServiceNowSettings;
+  checkLegacyConflicts(parsed);
+  const settings = normalizeLegacySettings(parsed);
   const { authoring, surfaces } = settings;
 
   if (authoring === "fluent" && surfaces !== "auto" && surfaces.length > 0) {
@@ -287,10 +291,6 @@ export function validateServiceNowSettings(raw: unknown): ValidatedSettingsResul
 
 export function emptyValidatedSettings(): ValidatedServiceNowSettings {
   return EMPTY_SETTINGS;
-}
-
-export function isIdentifierLike(value: string): boolean {
-  return IDENTIFIER.test(value);
 }
 
 export type { ServiceNowSettings };

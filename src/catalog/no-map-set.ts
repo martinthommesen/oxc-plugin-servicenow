@@ -20,7 +20,7 @@ export const noMapSetEntry = entry("no-map-set", noMapSet, {
       ),
       metadata.evidenceRecord(
         "tests/rules/no-map-set.test.ts",
-        "Fixtures cover both constructors, both classic modes and releases, aliases, guards, polyfills, shadowing, dynamic scope, and unsupported contexts.",
+        "Fixtures cover both constructors, Compatibility and ES5 modes, both releases, aliases, guards, polyfills, shadowing, dynamic scope, and unsupported contexts.",
         "fixture",
         "2026-08-24",
       ),

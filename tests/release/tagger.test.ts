@@ -2,11 +2,10 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { createReleaseTag } from "../../scripts/create-release-tag.mjs";
+import { repoRoot } from "../integration/helpers.js";
 
 const COMMIT = "1".repeat(40);
-const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
 const pkg = JSON.parse(readFileSync(path.join(repoRoot, "package.json"), "utf8")) as {
   version: string;
 };

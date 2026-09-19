@@ -126,7 +126,7 @@ user.query = localQuery;`,
     fixable: false,
     hasSuggestions: false,
     description:
-      "Review proven GlideRecord, GlideRecordSecure, and GlideAggregate query executions on an ACL's immediate evaluation path. ServiceNow advises limiting GlideRecord queries in access control scripts because they can affect performance. This advisory rule is opt-in through strict, ACL, or security profiles and does not claim that every query is incorrect.",
+      "Review proven GlideRecord, GlideRecordSecure, and GlideAggregate query executions on an ACL's immediate evaluation path. ServiceNow advises limiting GlideRecord queries in access control scripts because they can affect performance. This advisory rule is opt-in through strict, acl, or security profiles and does not claim that every query is incorrect.",
     bad: [
       {
         name: "query during ACL evaluation",

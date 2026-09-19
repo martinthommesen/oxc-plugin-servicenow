@@ -3,7 +3,7 @@
 `gs.now()` and `gs.nowDateTime()` return timezone-sensitive display strings. `gs.now()` is also gone from client scripts since London. Prefer `new GlideDateTime()`.
 
 - **Family:** classic
-- **Preset:** recommended
+- **Profile:** recommended
 - **Placements:** recommended (error), client (error)
 - **Default severity:** error
 - **Fix safety:** diagnostic only

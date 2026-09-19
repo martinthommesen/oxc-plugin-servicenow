@@ -22,7 +22,12 @@ async function githubRequest(fetchImpl, token, repository, path, init = {}) {
       ...init.headers,
     },
   });
-  if (!response.ok) fail(`GitHub ${init.method ?? "GET"} ${path} failed with ${response.status}`);
+  if (!response.ok) {
+    const detail = await response.text().catch(() => "");
+    fail(
+      `GitHub ${init.method ?? "GET"} ${path} failed with ${response.status}${detail ? `: ${detail.slice(0, 500)}` : ""}`,
+    );
+  }
   return response.json();
 }
 

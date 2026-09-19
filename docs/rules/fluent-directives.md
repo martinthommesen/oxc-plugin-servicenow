@@ -3,7 +3,7 @@
 Validate documented ServiceNow Fluent SDK directive names and placement. SDK directives are not Oxlint or ESLint disable comments.
 
 - **Family:** fluent
-- **Preset:** recommended
+- **Profile:** recommended
 - **Placements:** recommended (warn), fluent (warn)
 - **Default severity:** warn
 - **Fix safety:** diagnostic only

@@ -262,7 +262,9 @@ function updateMapping(source, parsed) {
   let previous = { criteria: [] };
   try {
     previous = readMapping();
-  } catch {}
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
+  }
   const byId = new Map(previous.criteria.map((item) => [item.id, item]));
   const criteria = parsed.map((item) => {
     const old = byId.get(item.id);
@@ -397,7 +399,9 @@ export function searchableRepoFiles() {
 function verifyProofs(mapping, report) {
   const errors = [];
   const byKey = indexOutcomes(report);
-  const searchableFiles = searchableRepoFiles();
+  const searchableContents = searchableRepoFiles().map((path) =>
+    readFileSync(join(root, path), "utf8"),
+  );
   for (const item of mapping.criteria) {
     if (item.disposition === "Verified at exact head") {
       if (!item.command || item.proofs.length === 0)
@@ -420,8 +424,8 @@ function verifyProofs(mapping, report) {
       errors.push(`${item.id} ${item.disposition} requires evidence`);
     }
     for (const caseId of item.caseIds) {
-      const occurrences = searchableFiles.reduce(
-        (count, path) => count + (readFileSync(join(root, path), "utf8").includes(caseId) ? 1 : 0),
+      const occurrences = searchableContents.reduce(
+        (count, contents) => count + (contents.includes(caseId) ? 1 : 0),
         0,
       );
       if (occurrences === 0) errors.push(`${item.id} references absent case ID ${caseId}`);

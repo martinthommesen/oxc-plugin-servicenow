@@ -53,6 +53,7 @@ export interface ProvenanceQuery {
   glide: GlideCapabilityView;
 }
 
+/** Host ancestor chain, or empty when the host omits ancestors or the query fails. */
 export function getAncestors(context: Context, node: ESTree.Node): ESTree.Node[] {
   const sourceCode = context.sourceCode as unknown as {
     getAncestors?: (node: ESTree.Node) => ESTree.Node[];

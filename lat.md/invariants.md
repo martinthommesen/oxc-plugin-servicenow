@@ -14,7 +14,7 @@ The interfaces enforce this decision. `appliesOnSurface` requires membership and
 
 A rule that returns `false` from `before()` has declined the file. A rule whose visitors ran and reported nothing has passed. These are different outcomes and the test harness distinguishes them.
 
-`RuleFileState` from [[src/rules/helpers.ts#beginRuleFile]] and the `onRuleSkipped` hook in `src/runtime/apply-rules.ts` make the distinction observable; `tests/helpers/rule-tester.ts` exposes it as `assertValidActive` (ran, found nothing) versus `assertSkipped` (declined). A test that only asserted "no diagnostics" would pass for a rule that silently stopped applying to everything.
+`RuleFileState` from [[src/rules/helpers.ts#beginRuleFile]] and the `onRuleSkipped` hook in `tests/helpers/apply-rules.ts` make the distinction observable; `tests/helpers/rule-tester.ts` exposes it as `assertValidActive` (ran, found nothing) versus `assertSkipped` (declined). A test that only asserted "no diagnostics" would pass for a rule that silently stopped applying to everything.
 
 ## Per-file state is reset in `before()`
 
@@ -28,7 +28,7 @@ A rule exists only if it has a descriptor module in `src/catalog/` assembled int
 
 Generated pages, README tables, and example configs derive from the same array.
 
-There is no hand-maintained preset map or export list. `RuleName` is inferred from the array, so a rule with an implementation file but no descriptor does not typecheck.
+There is no hand-maintained profile map or export list. `RuleName` is inferred from the array, so a rule with an implementation file but no descriptor does not typecheck.
 
 ## Version and documentation URLs are coupled
 
@@ -48,7 +48,7 @@ Editing generated output or changing its source without regeneration fails the c
 
 Every evidence record in `src/catalog-metadata.ts` carries a verification id, and every id must resolve to exactly one passing test.
 
-`npm run evidence:check` runs `tests/catalog-evidence.test.ts` with a unique temporary report directory, removes that directory, and atomically replaces `artifacts/doc-evidence.json`, binding each id to its test. An `error`-severity rule in a recommended preset must cite normative external evidence *and* an automated in-repo proof — `scripts/check-catalog-docs.mjs` enforces the pair. This is what makes the generated rule pages auditable rather than decorative.
+`npm run evidence:check` runs `tests/catalog-evidence.test.ts` with a unique temporary report directory, removes that directory, and atomically replaces `artifacts/doc-evidence.json`, binding each id to its test. An `error`-severity rule in a recommended profile must cite normative external evidence *and* an automated in-repo proof — `scripts/check-catalog-docs.mjs` enforces the pair. This is what makes the generated rule pages auditable rather than decorative.
 
 ## Release reviews are complete
 

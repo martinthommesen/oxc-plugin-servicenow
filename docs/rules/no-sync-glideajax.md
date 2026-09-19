@@ -3,7 +3,7 @@
 `getXMLWait()` blocks the browser and does not work in Service Portal. Use `getXML()` / `getXMLAnswer()`.
 
 - **Family:** classic
-- **Preset:** recommended
+- **Profile:** recommended
 - **Placements:** recommended (error), client (error)
 - **Default severity:** error
 - **Fix safety:** diagnostic only

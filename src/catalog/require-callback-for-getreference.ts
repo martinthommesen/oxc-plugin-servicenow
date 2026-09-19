@@ -64,7 +64,7 @@ g_form.getReference = localReference;`,
     fixable: false,
     hasSuggestions: false,
     description:
-      "`g_form.getReference(field)` without a callback is a synchronous server request. Pass a callback. Evidence: https://www.servicenow.com/docs/r/api-reference/c_GlideFormAPI.html",
+      "`g_form.getReference(field)` without a callback is a synchronous server request. Pass a callback.",
     bad: [
       {
         name: "sync getReference",

@@ -16,9 +16,11 @@ Client scripts execute in the browser and Fluent files are not instance-executed
 
 The distinction matters because a rule's message differs. "Not supported" describes something that will not work; "disallowed" describes something that works and is not permitted. `README.md` explains the same distinction for users.
 
+Lowercase `supported`, `unsupported`, and `disallowed` are plugin `FeatureSupport` values. Capitalized "Supported" and "Not Supported" quote ServiceNow's official capability table. Never mix the two casings for one claim.
+
 ## Where the cells come from
 
-Each cell carries a `supportBasis`, one of `official-table`, `official-release-update`, or `es5-compatibility-policy`. The third is not a citation, and saying so is the point.
+Each cell carries a `supportBasis`, one of `official-table`, `official-release-update`, or `es5-compatibility-policy`. The third value records an inference, not a citation.
 
 ServiceNow's official capability table publishes only ES2021 and ES5-Standards columns; there is no Compatibility-mode column. The plugin applies each ES5 cell to Compatibility mode and records that it inferred the value rather than read it. Rows ServiceNow documents as applying to all modes are built by `australiaAllModesUpdateFeature` and do not use the inference — see `src/engine/features.ts`.
 

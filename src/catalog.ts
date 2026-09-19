@@ -152,10 +152,6 @@ for (const item of ruleCatalog) {
   catalogImplementations.add(item.implementation);
 }
 
-export function getRuleCatalogEntry(name: string): RuleCatalogEntry | undefined {
-  return ruleCatalog.find((rule) => rule.name === name || rule.ruleId === name);
-}
-
 export type RuleName = (typeof ruleCatalog)[number]["name"];
 
 export const ruleImplementations = ruleCatalog.map(({ name, implementation }) => ({

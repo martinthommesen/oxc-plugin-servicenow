@@ -1,9 +1,9 @@
 # servicenow/require-callback-for-getreference
 
-`g_form.getReference(field)` without a callback is a synchronous server request. Pass a callback. Evidence: https://www.servicenow.com/docs/r/api-reference/c_GlideFormAPI.html
+`g_form.getReference(field)` without a callback is a synchronous server request. Pass a callback.
 
 - **Family:** classic
-- **Preset:** recommended
+- **Profile:** recommended
 - **Placements:** recommended (error), client (error)
 - **Default severity:** error
 - **Fix safety:** diagnostic only

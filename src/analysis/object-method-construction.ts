@@ -91,8 +91,8 @@ function finalObjectMethod(object: ESTree.ObjectExpression, name: string): ESTre
  * Find `new` calls whose callee is proven to be shorthand object-method
  * syntax. Object aliases are accepted only when every value reference is part
  * of the proven constructor access or another immutable alias declaration.
- * This deliberately trades coverage for a very low false-positive rate when
- * an object may have escaped or had its property replaced.
+ * This deliberately trades coverage for a low false-positive rate on escaped
+ * or mutated objects.
  */
 export function findObjectMethodConstructions(
   program: ESTree.Node,

@@ -3,7 +3,7 @@
 Optional migration policy. Review Rhino `Packages.*` bridge calls; Australia's removal tool specifically targets ServiceNow Java classes and distinguishes MID Server execution.
 
 - **Family:** classic
-- **Preset:** policy
+- **Profile:** policy
 - **Placements:** policy (warn)
 - **Default severity:** warn
 - **Fix safety:** diagnostic only

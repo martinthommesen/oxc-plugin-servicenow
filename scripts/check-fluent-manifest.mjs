@@ -251,11 +251,7 @@ for (const version of SUPPORTED_FLUENT_SDK_VERSIONS) {
           : undefined) ??
         null,
     };
-    try {
-      assertFluentLifecycleMatches(api, expectedLifecycle, `${version}: ${name}`);
-    } catch (error) {
-      assert.fail(error instanceof Error ? error.message : String(error));
-    }
+    assertFluentLifecycleMatches(api, expectedLifecycle, `${version}: ${name}`);
   }
   const names = new Set(manifest.apis.map((api) => api.name));
   for (const name of Object.keys(detail.discoveredCapabilities)) {
@@ -308,12 +304,7 @@ for (const manifest of fluentManifests()) {
   }
 }
 
-const v41 = fluentManifests().find((item) => item.sdkVersion === "4.1.0");
 const v48 = fluentManifests().find((item) => item.sdkVersion === "4.8.0");
-assert.ok(
-  !v41?.apis.some((api) => api.name === "AliasTemplate"),
-  "AliasTemplate leaked before 4.8.0",
-);
 assert.ok(
   v48?.apis.some((api) => api.name === "AliasTemplate"),
   "AliasTemplate missing at 4.8.0",

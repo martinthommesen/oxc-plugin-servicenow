@@ -56,6 +56,7 @@ export async function verifyDocEvidence(catalog, report) {
   const ids = new Set();
   const tests = indexOutcomes(report);
   const records = [];
+  const today = new Date().toISOString().slice(0, 10);
   for (const rule of catalog) {
     const dates = [];
     let normative = 0;
@@ -67,8 +68,7 @@ export async function verifyDocEvidence(catalog, report) {
       ids.add(evidence.verificationId);
       if (!isValidIsoDate(evidence.verifiedAt))
         errors.push(`${evidence.verificationId} has an invalid date`);
-      if (evidence.verifiedAt > new Date().toISOString().slice(0, 10))
-        errors.push(`${evidence.verificationId} has a future date`);
+      if (evidence.verifiedAt > today) errors.push(`${evidence.verificationId} has a future date`);
       if (evidence.verifiedBy === "manual") {
         let url;
         try {

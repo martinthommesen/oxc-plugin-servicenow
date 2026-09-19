@@ -10,7 +10,7 @@ Per-rule semantics, applicability, options, false positives and negatives, and e
 
 The file's comment states the rule: add an implementation file and one descriptor module in `src/catalog/`, never an export in the registry. Shared assembly lives in `src/catalog/entry.ts` with types in `src/catalog/types.ts`. `RuleName` is inferred from the catalog array, so an unregistered rule does not typecheck.
 
-The catalog also drives the preset maps in `src/configs/maps.ts`, `docs/rules/*.md`, the rule tables in the README, and the checked-in example configs.
+The catalog also drives the profile maps in `src/configs/maps.ts`, `docs/rules/*.md`, the rule tables in the README, and the checked-in example configs.
 
 ## Three catalog axes
 
@@ -23,6 +23,8 @@ The catalog distinguishes three concepts that the README tables present together
 | `severity` | `"error" \| "warn"` | The rule's own default |
 
 The old single `preset` field was removed. The README's legacy label is derived from the first placement.
+
+Family `classic` groups rules about classic scripts; it is not the same concept as classic authoring in [[domain#Authoring: classic or Fluent]]. Never shorten either to "classic rule": write "classic-family rule" for the documentation group and "classic-authored file" for the script kind.
 
 A rule can appear in several placements with different severities. `RuleProfile` covers ten profiles: `recommended`, `strict`, `classic-es5`, `es2021`, `client`, `acl`, `business-rule`, `fluent`, `policy`, `security`.
 
@@ -38,7 +40,7 @@ The calls stay inside the visitors on purpose: oxlint throws when a rule touches
 
 The shape exists for three reasons. `createOnce` computes per-file work once. A `before()` hook returning `false` lets the host skip a file entirely, which is the cheapest possible outcome for a rule that does not apply. And whole-file concerns need a `Program` visitor, which cannot be expressed as a per-node visitor.
 
-The `before()` hook is where applicability is decided, using the predicates in [[context#How rules consume the context]]. Returning `false` is a first-class outcome, not an optimization bolted on: it is how a rule declines a file, and the test harness distinguishes it from finding nothing — see [[invariants#Declining is not the same as passing]].
+The `before()` hook is where applicability is decided, using the predicates in [[context#How rules consume the context]]. Returning `false` is how a rule declines a file; it is part of the rule contract, and the test harness distinguishes it from finding nothing — see [[invariants#Declining is not the same as passing]].
 
 ## Options come from one descriptor
 
