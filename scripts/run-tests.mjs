@@ -2,9 +2,8 @@ import { spawn } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import { readdir, stat } from "node:fs/promises";
 import { dirname, isAbsolute, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { root } from "./lib/repo.mjs";
 
-const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const tsxRegistration = new URL("./register-tsx.mjs", import.meta.url).href;
 const args = process.argv.slice(2);
 const reportIndex = args.indexOf("--report-json");

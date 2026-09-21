@@ -1,10 +1,9 @@
 import { readFile, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 import { replaceMarkedSection } from "./lib/generated-artifacts.mjs";
 import { MIN_TYPESCRIPT_ESLINT_FOR_ESLINT_10 } from "./check-compat-matrix.mjs";
+import { root } from "./lib/repo.mjs";
 
-const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const matrix = JSON.parse(await readFile(join(root, "scripts/compat-matrix.json"), "utf8"));
 const packageManifest = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
 

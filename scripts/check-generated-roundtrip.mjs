@@ -1,9 +1,6 @@
 import { execFileSync } from "node:child_process";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { GENERATED_ARTIFACT_PATHS } from "./lib/generated-artifacts.mjs";
-
-const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+import { root } from "./lib/repo.mjs";
 
 export function generatedArtifactStatus() {
   return execFileSync(

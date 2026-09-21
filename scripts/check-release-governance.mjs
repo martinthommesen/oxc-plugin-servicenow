@@ -1,9 +1,9 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import { dirname, isAbsolute, join } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { isAbsolute, join } from "node:path";
+import { pathToFileURL } from "node:url";
+import { root } from "./lib/repo.mjs";
 
-const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const EXPECTED_MAIN_RULE_TYPES = [
   "deletion",
   "non_fast_forward",

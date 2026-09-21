@@ -11,11 +11,11 @@ import {
 } from "node:fs";
 import { arch, platform, release, tmpdir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { pathToFileURL } from "node:url";
 import { exactProof, indexOutcomes, outcomeSummary } from "./lib/test-report.mjs";
 import { acceptanceLockPath, withAcceptanceLock } from "./lib/acceptance-lock.mjs";
+import { root } from "./lib/repo.mjs";
 
-const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const goalPath = join(root, "PR51-REMEDIATION-GOAL.md");
 const mappingPath = join(root, "scripts/pr51-acceptance.json");
 const artifactsDir = join(root, "artifacts");

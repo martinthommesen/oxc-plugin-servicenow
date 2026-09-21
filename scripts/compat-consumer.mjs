@@ -3,11 +3,10 @@ import { createHash } from "node:crypto";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { packTarball as buildTarball } from "./check-release-artifact.mjs";
 import { parseOxlintStdout, pluginRuleIds, runHostProcess } from "./lib/host-verifier.mjs";
+import { root } from "./lib/repo.mjs";
 
-const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 /**
  * @typedef {object} CompatCell
  * @property {string} id

@@ -20,9 +20,9 @@ import {
   parseOxlintStdout,
   runHostProcess,
 } from "./lib/host-verifier.mjs";
+import { root } from "./lib/repo.mjs";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
-const REPO_FROM_SCRIPT = path.resolve(SCRIPT_DIR, "..");
 const PROJECTS_PATH = path.join(SCRIPT_DIR, "verify-projects.json");
 const ARTIFACT_REL = path.join("artifacts", "verify-oxc-plugin-servicenow");
 const RUN_ID_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
@@ -194,7 +194,7 @@ function repoRelative(repoRoot, abs) {
  * @param {string} [repoRoot]
  * @returns {VerifyProjectSet}
  */
-export function loadAndValidateProjects(repoRoot = REPO_FROM_SCRIPT) {
+export function loadAndValidateProjects(repoRoot = root) {
   const raw = readJson(PROJECTS_PATH);
   if (!raw?.projects || typeof raw.projects !== "object" || !raw.oxfmtConfig || !raw.skillDir) {
     throw new Error("verify-projects.json is missing projects, oxfmtConfig, or skillDir");
@@ -306,7 +306,7 @@ export function loadAndValidateProjects(repoRoot = REPO_FROM_SCRIPT) {
  * @param {string} [start]
  * @returns {{ root: string, pkg: Record<string, unknown> }}
  */
-export function findRepo(start = REPO_FROM_SCRIPT) {
+export function findRepo(start = root) {
   let dir = start;
   while (true) {
     const pkgPath = path.join(dir, "package.json");

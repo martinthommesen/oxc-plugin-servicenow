@@ -1,11 +1,10 @@
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { basename, dirname, isAbsolute, join } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { basename, isAbsolute, join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { sha256File, tarballIntegrity } from "./check-release-artifact.mjs";
-
-const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+import { root } from "./lib/repo.mjs";
 
 /**
  * @typedef {object} ReleaseAsset

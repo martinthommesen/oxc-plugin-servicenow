@@ -2,15 +2,14 @@ import { execFileSync, spawn } from "node:child_process";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { arch, cpus, platform, tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 import {
   assertBenchmarkFixtureSet,
   checkBenchmarkRegression,
   validateBenchmarkSummary,
   validateOxlintProcessResult,
 } from "./benchmark-gate.mjs";
+import { root } from "./lib/repo.mjs";
 
-const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const oxlintBin = join(root, "node_modules", ".bin", "oxlint");
 const writeBaseline = process.argv.includes("--write");
 const warmup = 1;

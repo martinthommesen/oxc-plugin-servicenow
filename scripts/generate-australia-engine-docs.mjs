@@ -1,12 +1,10 @@
 import { writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 import {
   AUSTRALIA_ENGINE_UPDATES,
   AUSTRALIA_ENGINE_UPDATE_EVIDENCE,
 } from "../src/engine/australia-updates.ts";
-
-const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+import { root } from "./lib/repo.mjs";
 
 const modeLabel = {
   all: "All modes",

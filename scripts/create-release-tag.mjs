@@ -1,9 +1,8 @@
 import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { isReleaseVersion } from "./check-release-artifact.mjs";
-
-const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+import { root } from "./lib/repo.mjs";
 
 /**
  * @param {string} message

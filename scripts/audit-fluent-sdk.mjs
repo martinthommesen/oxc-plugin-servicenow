@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { gunzipSync } from "node:zlib";
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { pathToFileURL } from "node:url";
 import { parseSync } from "oxc-parser";
 import {
   CURRENT_FLUENT_SDK_VERSION,
@@ -13,8 +13,8 @@ import {
 import { FLUENT_DECLARATION_SNAPSHOTS } from "../src/fluent/declaration-snapshots.js";
 import { compareFluentVersions } from "../src/fluent/evidence.js";
 import { DEFAULT_FLUENT_MANIFEST } from "../src/fluent/manifest.js";
+import { root } from "./lib/repo.mjs";
 
-const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const fixturePath = path.join(root, "tests/fixtures/fluent-sdk-declarations.json");
 const generatedPath = path.join(root, "src/fluent/declaration-snapshots.ts");
 const registryBase = "https://registry.npmjs.org";

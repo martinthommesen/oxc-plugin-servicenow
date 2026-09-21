@@ -1,9 +1,9 @@
 import { access, readFile } from "node:fs/promises";
-import { dirname, isAbsolute, join, relative, resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { isAbsolute, join, relative, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { isValidIsoDate } from "./lib/iso-date.mjs";
+import { root } from "./lib/repo.mjs";
 
-const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 /** @type {{ ruleCatalog: typeof import("../src/catalog.js").ruleCatalog }} */
 const { ruleCatalog } = await import(pathToFileURL(join(root, "src/catalog.ts")).href);
 /** @type {{ SUPPORTED_SERVICENOW_RELEASES: typeof import("../src/settings/index.js").SUPPORTED_SERVICENOW_RELEASES }} */

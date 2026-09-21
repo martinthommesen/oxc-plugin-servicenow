@@ -4,7 +4,7 @@ import { createRequire } from "node:module";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, isAbsolute, join } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { pathToFileURL } from "node:url";
 import { ASN1Obj } from "@sigstore/core";
 import { verify as sigstoreVerify } from "sigstore";
 import {
@@ -12,8 +12,8 @@ import {
   packageTargetPath,
   tarballIntegrity,
 } from "./check-release-artifact.mjs";
+import { root } from "./lib/repo.mjs";
 
-const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const TRANSIENT_CODES = new Set(["EAI_AGAIN", "ECONNRESET", "ECONNREFUSED", "EPIPE", "ETIMEDOUT"]);
 const TRANSIENT_STATUSES = new Set([404, 429, 502, 503, 504]);
 const STATEMENT_TYPE = "https://in-toto.io/Statement/v1";

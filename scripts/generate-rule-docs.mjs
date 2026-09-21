@@ -1,9 +1,8 @@
 import { mkdir, readdir, readFile, unlink, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { replaceMarkedSection } from "./lib/generated-artifacts.mjs";
-
-const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+import { root } from "./lib/repo.mjs";
 
 /** @typedef {typeof import("../src/catalog.js").ruleCatalog[number]} CatalogRule */
 /** @type {{ ruleCatalog: typeof import("../src/catalog.js").ruleCatalog }} */
