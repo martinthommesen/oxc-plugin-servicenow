@@ -28,7 +28,8 @@ export const preferGlideaggregate = defineRule({
   createOnce(context) {
     return {
       before() {
-        if (!isServerInstanceContext(beginRuleFile(context).context)) return false;
+        const { context: script } = beginRuleFile(context);
+        if (!isServerInstanceContext(script)) return false;
         return undefined;
       },
       CallExpression(node) {

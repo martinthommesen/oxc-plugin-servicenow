@@ -10,8 +10,12 @@ export function isNode(value: unknown): value is ESTree.Node {
 export function getName(node: unknown): string | null {
   if (!node || typeof node !== "object") return null;
   const rec = node as { type?: string; name?: unknown };
-  if (rec.type === "Identifier" && typeof rec.name === "string") return rec.name;
-  if (rec.type === "PrivateIdentifier" && typeof rec.name === "string") return rec.name;
+  if (
+    (rec.type === "Identifier" || rec.type === "PrivateIdentifier") &&
+    typeof rec.name === "string"
+  ) {
+    return rec.name;
+  }
   return null;
 }
 

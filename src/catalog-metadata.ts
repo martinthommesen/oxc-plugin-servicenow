@@ -42,8 +42,8 @@ export const SN_GR = GLIDE_RECORD_EVIDENCE.zurich.scoped;
 export const SN_GR_GLOBAL = GLIDE_RECORD_EVIDENCE.zurich.global;
 export const SN_GR_AUSTRALIA = GLIDE_RECORD_EVIDENCE.australia.scoped;
 export const SN_GR_GLOBAL_AUSTRALIA = GLIDE_RECORD_EVIDENCE.australia.global;
-// Derived from the manifest so registered evidence and manifest evidence are the
-// same string by construction. There is no reviewed Zurich global aggregate page.
+// Derived from the manifest so both evidence strings match by construction.
+// There is no reviewed Zurich global aggregate page.
 export const SN_GA = GLIDE_AGGREGATE_EVIDENCE.zurich.scoped as string;
 export const SN_GA_AUSTRALIA = GLIDE_AGGREGATE_EVIDENCE.australia.scoped as string;
 export const SN_GA_GLOBAL_AUSTRALIA = GLIDE_AGGREGATE_EVIDENCE.australia.global as string;

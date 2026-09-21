@@ -27,11 +27,9 @@ function isDigestComponent(component: string): boolean {
 }
 
 /**
- * The sys_id pattern only ever matches 32 hex characters, so this predicate
- * tests exactly that length for every digest-like name. A digest word must
- * be a whole name component (`fileHash`, `sha256Digest`, `MD5_SUM`): `sha`
- * inside `shared` or `shadow` is not evidence of a digest, and an unanchored
- * match silently hid real sys_ids under such names (FINDINGS.md COR-008).
+ * A digest word must be a whole name component (`fileHash`, `sha256Digest`):
+ * `sha` inside `shared` is not evidence of a digest, and an unanchored match
+ * silently hid real sys_ids under such names (FINDINGS.md COR-008).
  */
 export function looksLikeDigestContext(name: string | null, value: string): boolean {
   if (!name || !ALL_HEX.test(value.trim())) return false;

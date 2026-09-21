@@ -416,8 +416,7 @@ function escapeRegex(value) {
  * agreed with it. Bind the declared subject to the repository and
  * environment the rest of the certificate policy verifies
  * (FINDINGS.md MNT-004).
- */
-/**
+ *
  * @param {{ oidcSubject: string, repository: string, environment: string }} expected
  * @returns {void}
  */

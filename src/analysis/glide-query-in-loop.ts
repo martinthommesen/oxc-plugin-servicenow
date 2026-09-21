@@ -150,10 +150,8 @@ function visitMissingParameterDefaults(
 
 function visit(node: unknown, cursorDepth: number, state: CursorVisitState): void {
   if (!isNode(node)) return;
-  // Findings depend on cursorDepth only through `> 0`, so each node needs at
-  // most one visit inside and one outside a cursor. Without this memo the
-  // do/while and for branches re-visit each loop body, which composes
-  // exponentially for nested loops (FINDINGS.md PER-002).
+  // Findings depend on cursorDepth only through `> 0`, so one visit per
+  // node inside and outside a cursor suffices (FINDINGS.md PER-002).
   const mode = cursorDepth > 0 ? INSIDE_CURSOR : OUTSIDE_CURSOR;
   const seen = state.visitedNodeModes.get(node) ?? 0;
   if ((seen & mode) !== 0) return;

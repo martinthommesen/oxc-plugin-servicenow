@@ -61,7 +61,7 @@ The three dispositions differ in what they claim:
 
 The one metadata-only row is Rhino #1860 on `Function.prototype.call`/`apply` `thisArg`. Its rationale is recorded in `src/engine/australia-updates.ts`: the legacy behavior depends on strictness and on whether Rhino takes the interpreted or compiled path, which source analysis cannot select reliably. Modeling it would mean guessing.
 
-Separately, `AUSTRALIA_RULE_REVIEWS` in `src/catalog-metadata.ts` gives all 50 rules a release review — `reviewed` with bases, `invariant` with a rationale, or `not-applicable` on the Fluent SDK axis. Zurich is the legacy baseline and passes everything.
+Separately, [[src/release-reviews.ts#AUSTRALIA_RULE_REVIEWS]] gives all 50 rules a release review — `reviewed` with bases, `invariant` with a rationale, or `not-applicable` on the Fluent SDK axis. Zurich is the legacy baseline and passes everything.
 
 ## Where this is documented
 

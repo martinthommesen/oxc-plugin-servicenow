@@ -53,12 +53,9 @@ export interface PathRefInput<T> {
 type AbruptCompletion = Exclude<InternalCompletion, "normal">;
 
 const DEFAULT_MAX_WORK = 50_000;
-// Snapshot cost grows with the number of live tracked objects, and top-level
-// `var` bindings in classic ServiceNow code stay live to the end of the file,
-// so total work grows faster than linearly with file length. A fixed budget
-// therefore truncated ordinary 300-line scripts while tiny fixtures passed.
-// The default budget scales with program size so an ordinary file is analyzed
-// completely, while `maxWork` remains an explicit override and the ceiling
+// Snapshot cost grows superlinearly with file length (top-level `var`
+// bindings stay live to end of file), so the default budget scales with
+// program size while `maxWork` stays an explicit override and the ceiling
 // still bounds adversarial input (FINDINGS.md PER-003).
 const WORK_PER_NODE = 128;
 const MAX_DEFAULT_WORK = 5_000_000;
@@ -76,9 +73,8 @@ export function resetPathBudgetExceededCount(): void {
   budgetExceededCount = 0;
 }
 
-// Keyed on node identity: nodeStart() returns -1 on a host whose nodes
-// carry no offset shape, which would collapse every finding in the file
-// onto one key and silently drop all but the first (FINDINGS.md COR-016).
+// Keyed on node identity: nodeStart() returns -1 on hosts without offset
+// shapes, which would collapse every finding onto one key (FINDINGS.md COR-016).
 export function dedupePathFindings<T extends { node: ESTree.Node }>(
   findings: T[],
   keyOf?: (finding: T) => string,
@@ -1327,11 +1323,9 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
             const left = (node as ESTree.ForInStatement | ESTree.ForOfStatement).left;
             if (left.type === "VariableDeclaration") {
               visit(left, bodyState, false);
-              // A `var` head declarator has no initializer, so the declarator
-              // visit is a runtime no-op and a previously tracked object
-              // binding would survive into the body. The loop head rebinds
-              // the declared names on every iteration whatever the
-              // declaration kind (FINDINGS.md COR-013).
+              // A `var` head declarator has no initializer, so the visit is a
+              // runtime no-op; the head still rebinds its names on every
+              // iteration whatever the declaration kind (FINDINGS.md COR-013).
               for (const declarator of (left as ESTree.VariableDeclaration).declarations) {
                 invalidatePattern(bodyState, declarator.id);
               }

@@ -1,7 +1,6 @@
 /**
  * Example classic Business Rule — the good version.
- * The plugin flags hardcoded sys_ids, gs.now(), current.update(),
- * and unused GlideRecord returns.
+ * The plugin flags hardcoded sys_ids, gs.now(), and current.update().
  */
 (function executeRule(current /* , previous */) {
   current.assignment_group = gs.getProperty("x_acme.default_assignment_group");

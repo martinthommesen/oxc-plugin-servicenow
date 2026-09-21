@@ -27,10 +27,7 @@ describe("scripts type gate (FINDINGS.md MNT-005)", () => {
       pkg.scripts["validate"]?.includes("npm run typecheck:scripts"),
       "validate must run the scripts type gate",
     );
-    assert.match(
-      pkg.scripts["typecheck:scripts"] ?? "",
-      /tsc --noEmit -p tsconfig\.scripts\.json/,
-    );
+    assert.match(pkg.scripts["typecheck:scripts"] ?? "", /tsc --noEmit -p tsconfig\.scripts\.json/);
     const project = JSON.parse(
       readFileSync(path.join(repoRoot, "tsconfig.scripts.json"), "utf8"),
     ) as { compilerOptions: { checkJs: boolean }; include: string[] };

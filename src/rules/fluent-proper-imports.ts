@@ -28,15 +28,17 @@ export const fluentProperImports = defineRule({
     },
   },
   createOnce(context) {
+    let owned: ReadonlyMap<string, string>;
+
     return {
       before() {
-        const { context: script } = beginRuleFile(context);
+        const { context: script, file } = beginRuleFile(context);
         if (!isFluentContext(script)) return false;
+        owned = importOwnedApis(file.fluent.manifest);
         return undefined;
       },
       ImportDeclaration(node) {
         const { file } = beginRuleFile(context);
-        const owned = importOwnedApis(file.fluent.manifest);
         const decl = node as ESTree.ImportDeclaration;
         for (const spec of decl.specifiers) {
           if (spec.type !== "ImportSpecifier") continue;
@@ -65,7 +67,6 @@ export const fluentProperImports = defineRule({
       },
       CallExpression(node) {
         const { file } = beginRuleFile(context);
-        const owned = importOwnedApis(file.fluent.manifest);
         const call = node as ESTree.CallExpression;
         const ancestors = getAncestors(context, call);
         const resolved = resolveFluentCandidate(

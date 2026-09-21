@@ -112,28 +112,24 @@ export function checkCompatibilityMatrix() {
       errors.push(`TypeScript ${published} has no compatibility cell`);
     }
   }
-  for (const [name, expected] of [
-    ["node engines", matrix.node.engines],
-    ["oxlint peer", matrix.oxlint.peer],
-    ["ESLint peer", matrix.eslint.peer],
-    ["oxfmt peer", matrix.oxfmt.peer],
-    ["typescript-eslint peer", matrix.typescriptEslint.peer],
-    ["@oxlint/plugins dependency", matrix.oxlintPlugins.dependency],
-  ]) {
-    const actual =
-      name === "node engines"
-        ? pkg.engines?.node
-        : name === "@oxlint/plugins dependency"
-          ? pkg.dependencies?.["@oxlint/plugins"]
-          : pkg.peerDependencies?.[
-              name === "oxlint peer"
-                ? "oxlint"
-                : name === "ESLint peer"
-                  ? "eslint"
-                  : name === "oxfmt peer"
-                    ? "oxfmt"
-                    : "typescript-eslint"
-            ];
+  /** @type {Array<[string, unknown, unknown]>} */
+  const versionPins = [
+    ["node engines", pkg.engines?.node, matrix.node.engines],
+    ["oxlint peer", pkg.peerDependencies?.["oxlint"], matrix.oxlint.peer],
+    ["ESLint peer", pkg.peerDependencies?.["eslint"], matrix.eslint.peer],
+    ["oxfmt peer", pkg.peerDependencies?.["oxfmt"], matrix.oxfmt.peer],
+    [
+      "typescript-eslint peer",
+      pkg.peerDependencies?.["typescript-eslint"],
+      matrix.typescriptEslint.peer,
+    ],
+    [
+      "@oxlint/plugins dependency",
+      pkg.dependencies?.["@oxlint/plugins"],
+      matrix.oxlintPlugins.dependency,
+    ],
+  ];
+  for (const [name, actual, expected] of versionPins) {
     if (actual !== expected)
       errors.push(`${name} is ${actual ?? "missing"}; matrix requires ${expected}`);
   }

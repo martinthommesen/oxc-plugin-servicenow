@@ -44,8 +44,6 @@ export const noDisplayValueDateComparison = defineRule({
     return {
       before() {
         const { context: script } = beginRuleFile(context);
-        // Server-only applicability: GlideDateTime comparisons are instance
-        // server scripts, never client or Fluent files (FINDINGS.md COR-015).
         if (!isServerInstanceContext(script)) return false;
         return undefined;
       },

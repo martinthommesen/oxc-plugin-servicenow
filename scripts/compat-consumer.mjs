@@ -118,6 +118,16 @@ function runEslintJson(consumer, args, message) {
 }
 
 /**
+ * @param {string} consumer
+ * @param {string} name
+ * @returns {string}
+ */
+function installedPackageVersion(consumer, name) {
+  return JSON.parse(readFileSync(path.join(consumer, "node_modules", name, "package.json"), "utf8"))
+    .version;
+}
+
+/**
  * @param {string} tarball
  * @param {CompatCell} cell
  * @param {boolean} sameRuntimeSmoke
@@ -162,26 +172,13 @@ async function runCell(tarball, cell, sameRuntimeSmoke) {
     const installedVersions = {
       node: process.versions.node,
       npm: execFileSync("npm", ["--version"], { cwd: consumer, encoding: "utf8" }).trim(),
-      oxlint: JSON.parse(
-        readFileSync(path.join(consumer, "node_modules/oxlint/package.json"), "utf8"),
-      ).version,
-      eslint: JSON.parse(
-        readFileSync(path.join(consumer, "node_modules/eslint/package.json"), "utf8"),
-      ).version,
-      oxfmt: JSON.parse(
-        readFileSync(path.join(consumer, "node_modules/oxfmt/package.json"), "utf8"),
-      ).version,
+      oxlint: installedPackageVersion(consumer, "oxlint"),
+      eslint: installedPackageVersion(consumer, "eslint"),
+      oxfmt: installedPackageVersion(consumer, "oxfmt"),
       ...(cell.typescriptEslint
         ? {
-            typescriptEslint: JSON.parse(
-              readFileSync(
-                path.join(consumer, "node_modules/typescript-eslint/package.json"),
-                "utf8",
-              ),
-            ).version,
-            typescript: JSON.parse(
-              readFileSync(path.join(consumer, "node_modules/typescript/package.json"), "utf8"),
-            ).version,
+            typescriptEslint: installedPackageVersion(consumer, "typescript-eslint"),
+            typescript: installedPackageVersion(consumer, "typescript"),
           }
         : {}),
     };

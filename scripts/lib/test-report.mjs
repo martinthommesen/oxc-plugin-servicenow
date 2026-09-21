@@ -36,12 +36,13 @@ export function exactProof(index, file, fullName) {
  * @returns {{ total: number, passed: number, failed: number, skipped: number, todo: number }}
  */
 export function outcomeSummary(report) {
-  const tests = report.tests ?? [];
-  return {
-    total: tests.length,
-    passed: tests.filter((item) => item.status === "passed" && !item.skipped && !item.todo).length,
-    failed: tests.filter((item) => item.status !== "passed").length,
-    skipped: tests.filter((item) => item.skipped).length,
-    todo: tests.filter((item) => item.todo).length,
-  };
+  const summary = { total: 0, passed: 0, failed: 0, skipped: 0, todo: 0 };
+  for (const item of report.tests ?? []) {
+    summary.total += 1;
+    if (item.status === "passed" && !item.skipped && !item.todo) summary.passed += 1;
+    if (item.status !== "passed") summary.failed += 1;
+    if (item.skipped) summary.skipped += 1;
+    if (item.todo) summary.todo += 1;
+  }
+  return summary;
 }

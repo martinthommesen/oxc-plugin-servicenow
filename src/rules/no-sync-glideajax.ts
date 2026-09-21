@@ -20,7 +20,8 @@ export const noSyncGlideajax = defineRule({
   createOnce(context) {
     return {
       before() {
-        if (!isClientCapableContext(beginRuleFile(context).context)) return false;
+        const { context: script } = beginRuleFile(context);
+        if (!isClientCapableContext(script)) return false;
         return undefined;
       },
       CallExpression(node) {

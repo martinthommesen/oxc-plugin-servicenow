@@ -66,6 +66,44 @@ function fenceLang(filename) {
 }
 
 /**
+ * @param {CatalogRule["bad"]} examples
+ * @param {string} heading
+ * @returns {string}
+ */
+function renderExamples(examples, heading) {
+  return examples
+    .map(
+      (example) =>
+        `### ${heading}: ${example.name}\n\n\`\`\`${fenceLang(example.filename)}\n${example.code}\n\`\`\`\n`,
+    )
+    .join("\n");
+}
+
+/**
+ * @param {readonly string[]} items
+ * @param {(item: string) => string} [render]
+ * @returns {string}
+ */
+function bulletList(items, render = (item) => `- ${item}`) {
+  return items.length > 0 ? items.map(render).join("\n") : "- None recorded.";
+}
+
+/**
+ * @param {string} family
+ * @param {boolean} includeFix
+ * @returns {string}
+ */
+function familyTable(family, includeFix) {
+  const header = includeFix
+    ? "| Rule | Profile | Fix | What it catches |\n| --- | --- | --- | --- |"
+    : "| Rule | Profile | What it catches |\n| --- | --- | --- |";
+  const rows = ruleCatalog
+    .filter((rule) => rule.family === family)
+    .map((rule) => tableRow(rule, includeFix));
+  return [header, ...rows].join("\n");
+}
+
+/**
  * @param {CatalogRule} rule
  * @param {boolean} includeFix
  * @returns {string}
@@ -170,17 +208,8 @@ async function writeRuleDocs() {
   const keep = new Set();
   for (const rule of ruleCatalog) {
     keep.add(`${rule.name}.md`);
-    const bad = rule.bad
-      .map(
-        (ex) =>
-          `### Incorrect: ${ex.name}\n\n\`\`\`${fenceLang(ex.filename)}\n${ex.code}\n\`\`\`\n`,
-      )
-      .join("\n");
-    const good = rule.good
-      .map(
-        (ex) => `### Correct: ${ex.name}\n\n\`\`\`${fenceLang(ex.filename)}\n${ex.code}\n\`\`\`\n`,
-      )
-      .join("\n");
+    const bad = renderExamples(rule.bad, "Incorrect");
+    const good = renderExamples(rule.good, "Correct");
     const evidence =
       rule.evidence.length > 0
         ? rule.evidence
@@ -190,22 +219,10 @@ async function writeRuleDocs() {
             )
             .join("\n")
         : "- None recorded. Add an authoritative ServiceNow or Oxc link before expanding this rule.";
-    const falsePositives =
-      rule.falsePositives.length > 0
-        ? rule.falsePositives.map((item) => `- ${item}`).join("\n")
-        : "- None recorded.";
-    const falseNegatives =
-      rule.falseNegatives.length > 0
-        ? rule.falseNegatives.map((item) => `- ${item}`).join("\n")
-        : "- None recorded.";
-    const scopeBoundaries =
-      rule.scopeBoundaries.length > 0
-        ? rule.scopeBoundaries.map((item) => `- ${item}`).join("\n")
-        : "- None recorded.";
-    const overlaps =
-      rule.overlaps.length > 0
-        ? rule.overlaps.map((item) => `- \`${item}\``).join("\n")
-        : "- None recorded.";
+    const falsePositives = bulletList(rule.falsePositives);
+    const falseNegatives = bulletList(rule.falseNegatives);
+    const scopeBoundaries = bulletList(rule.scopeBoundaries);
+    const overlaps = bulletList(rule.overlaps, (item) => `- \`${item}\``);
     const modes =
       rule.applicability.javascriptModes === "n/a"
         ? "n/a"
@@ -325,24 +342,9 @@ ${evidence}
 async function writeReadmeTables() {
   const readmePath = join(root, "README.md");
   let readme = await readFile(readmePath, "utf8");
-  const classic = [
-    "| Rule | Profile | Fix | What it catches |",
-    "| --- | --- | --- | --- |",
-    ...ruleCatalog.filter((rule) => rule.family === "classic").map((rule) => tableRow(rule, true)),
-  ].join("\n");
-  const engine = [
-    "| Rule | Profile | What it catches |",
-    "| --- | --- | --- |",
-    ...ruleCatalog.filter((rule) => rule.family === "engine").map((rule) => tableRow(rule, false)),
-  ].join("\n");
-  const fluent = [
-    "| Rule | Profile | Fix | What it catches |",
-    "| --- | --- | --- | --- |",
-    ...ruleCatalog.filter((rule) => rule.family === "fluent").map((rule) => tableRow(rule, true)),
-  ].join("\n");
-  readme = replaceMarkedSection(readme, "classic-rules", classic);
-  readme = replaceMarkedSection(readme, "engine-rules", engine);
-  readme = replaceMarkedSection(readme, "fluent-rules", fluent);
+  readme = replaceMarkedSection(readme, "classic-rules", familyTable("classic", true));
+  readme = replaceMarkedSection(readme, "engine-rules", familyTable("engine", false));
+  readme = replaceMarkedSection(readme, "fluent-rules", familyTable("fluent", true));
   readme = replaceMarkedSection(readme, "migration-1.1-to-2.0", migrationTable());
   readme = replaceMarkedSection(readme, "repository-links", repositoryLinks());
   await writeFile(readmePath, readme);
@@ -360,8 +362,6 @@ function rulesForGeneratedConfig(path) {
   if (relative.endsWith("examples/client/.oxlintrc.json")) return clientRules;
   if (relative.endsWith("examples/business-rule/.oxlintrc.json")) return businessRuleRules;
   if (relative.endsWith("examples/fluent/.oxlintrc.json")) return fluentRules;
-  if (relative.endsWith("examples/mixed/.oxlintrc.json")) return recommendedRules;
-  if (relative.endsWith("examples/ui-action/.oxlintrc.json")) return recommendedRules;
   return recommendedRules;
 }
 

@@ -111,7 +111,6 @@ export const noObjectHasown = defineRule({
       },
       CallExpression(node) {
         const { analysis, context: script, file } = beginRuleFile(context);
-        if (!shouldDiagnoseFeature(script, "object-hasown")) return;
         const call = node as ESTree.CallExpression;
         const invokedAccess = invokedObjectHasOwn(call, analysis);
         if (!invokedAccess) return;

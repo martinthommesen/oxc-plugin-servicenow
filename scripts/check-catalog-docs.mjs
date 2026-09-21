@@ -162,6 +162,7 @@ async function sourceExists(relativePath) {
   }
 }
 
+/** @type {string[]} */
 const catalogNames = ruleCatalog.map((rule) => rule.name).sort();
 const reviewReleaseNames = Object.keys(CATALOG_RELEASE_REVIEWS).sort();
 if (
@@ -212,10 +213,8 @@ for (const release of SUPPORTED_SERVICENOW_RELEASES) {
   }
   const reviewedNames = Object.keys(releaseReview.rules).sort();
   if (JSON.stringify(reviewedNames) !== JSON.stringify(catalogNames)) {
-    /** @type {string[]} */
-    const catalogNameList = catalogNames;
     const missing = catalogNames.filter((name) => !reviewedNames.includes(name));
-    const extra = reviewedNames.filter((name) => !catalogNameList.includes(name));
+    const extra = reviewedNames.filter((name) => !catalogNames.includes(name));
     fail(
       `${release} per-rule review keys differ from catalog (missing: ${missing.join(", ") || "none"}; extra: ${extra.join(", ") || "none"})`,
     );

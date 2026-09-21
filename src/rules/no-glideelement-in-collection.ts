@@ -87,8 +87,7 @@ function directGlideElementCursorId(
     if (staticPropertyName(call.callee) !== "getElement") return null;
     if (!hasAuthoritativeGlideRecordMethod(authority, call.callee.object, "getElement"))
       return null;
-    const id = objectIdOfCursor(analysis, call.callee.object);
-    return id;
+    return objectIdOfCursor(analysis, call.callee.object);
   }
   if (expr.type !== "MemberExpression") return null;
   const member = expr as ESTree.MemberExpression;

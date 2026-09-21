@@ -66,11 +66,8 @@ export const fluentNamingConvention = defineRule({
         return undefined;
       },
       Program() {
-        // The filename convention is defined for Fluent filenames only.
-        // Explicit `authoring: "fluent"` settings can route other filenames
-        // into this rule, and checking their stem with the extension attached
-        // reports a name the convention does not describe
-        // (FINDINGS.md COR-014).
+        // The convention covers Fluent filenames only. Explicit
+        // `authoring: "fluent"` settings can route other filenames here.
         if (!isFluentFile(context.filename)) return;
         const filename = basename(context.filename);
         const stem = filename.replace(/\.now\.tsx?$/i, "");

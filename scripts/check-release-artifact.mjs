@@ -238,8 +238,7 @@ export function packageTargetPath(target) {
  * Verify package entry points and declaration targets against a tar listing.
  * This is deliberately independent of the package's source tree: publish and
  * consumer jobs must prove the exact inspected bytes, not the checkout.
- */
-/**
+ *
  * @param {Record<string, unknown>} pkg
  * @param {readonly string[]} files
  * @returns {string[]}

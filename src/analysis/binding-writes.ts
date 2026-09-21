@@ -54,8 +54,7 @@ function buildIndex(program: ESTree.Node | undefined, bindings: FileBindings): B
     detail: Pick<BindingWrite, "kind" | "operator" | "right">,
   ): void => {
     const boundaryId = executionBoundaryId(owner);
-    // The walk leaves the current node last in `ancestors`; drop it so the
-    // snapshot holds the write's parent chain.
+    // Drop the current node so the snapshot holds the write's parent chain.
     const ancestorTypes = ancestors.slice(0, -1).map((ancestor) => ancestor.type);
     const start = (owner as { start?: number }).start ?? Number.POSITIVE_INFINITY;
     const unwrapped = unwrapExpression(target);

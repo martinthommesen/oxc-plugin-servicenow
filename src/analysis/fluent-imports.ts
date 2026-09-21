@@ -94,6 +94,18 @@ const FUNCTION_ANCESTORS = new Set([
   "ArrowFunctionExpression",
 ]);
 
+// Source position is execution order only for straight-line module-level
+// code. A write inside any function can run at any time relative to the use,
+// and a use inside a function at any time relative to module-level writes,
+// so both make the alias uncertain wherever they appear (FINDINGS.md COR-006).
+function isFunctionScopedWrite(ancestorTypes: readonly string[]): boolean {
+  return ancestorTypes.some((ancestor) => FUNCTION_ANCESTORS.has(ancestor));
+}
+
+function isConditionalWrite(ancestorTypes: readonly string[]): boolean {
+  return ancestorTypes.some((ancestor) => CONDITIONAL_WRITE_ANCESTORS.has(ancestor));
+}
+
 function latestSimpleValue(
   binding: LexicalBinding,
   use: ESTree.Node,
@@ -107,9 +119,8 @@ function latestSimpleValue(
   let valueOffset = (binding.node as { start?: number }).start ?? -1;
   let uncertain = false;
   if (!program || binding.kind === "const") return value;
-  // The per-file index answers from one shared walk instead of re-walking the
-  // program per call site. The predicates below mirror the fallback walk
-  // exactly: same order, same outcomes (FINDINGS.md PER-005).
+  // The per-file index avoids re-walking the program per call site. Both
+  // branches below apply the same predicates in the same order (FINDINGS.md PER-005).
   const indexed = writes?.writesFor(binding.id);
   if (indexed) {
     for (const write of indexed) {
@@ -118,23 +129,12 @@ function latestSimpleValue(
         uncertain = true;
         continue;
       }
-      // Source position is execution order only for straight-line
-      // module-level code. A write inside any function can run at any
-      // time relative to the use, and a use inside a function can run at
-      // any time relative to module-level writes, so both make the alias
-      // uncertain regardless of where they appear (FINDINGS.md COR-006).
-      const insideFunction = write.ancestorTypes.some((ancestor) =>
-        FUNCTION_ANCESTORS.has(ancestor),
-      );
-      if (insideFunction || useInsideFunction) {
+      if (isFunctionScopedWrite(write.ancestorTypes) || useInsideFunction) {
         uncertain = true;
         continue;
       }
       if (write.start >= useStart) continue;
-      if (
-        write.operator !== "=" ||
-        write.ancestorTypes.some((ancestor) => CONDITIONAL_WRITE_ANCESTORS.has(ancestor))
-      ) {
+      if (write.operator !== "=" || isConditionalWrite(write.ancestorTypes)) {
         uncertain = true;
         continue;
       }
@@ -155,24 +155,14 @@ function latestSimpleValue(
         if (!isNode(left) || left.type !== "Identifier") return;
         const resolved = bindings.resolve(getName(left) ?? "", left, ancestors);
         if (resolved?.id !== binding.id) return;
-        // Source position is execution order only for straight-line
-        // module-level code. A write inside any function can run at any
-        // time relative to the use, and a use inside a function can run at
-        // any time relative to module-level writes, so both make the alias
-        // uncertain regardless of where they appear (FINDINGS.md COR-006).
-        const insideFunction = ancestors
-          .slice(0, -1)
-          .some((ancestor) => FUNCTION_ANCESTORS.has(ancestor.type));
-        if (insideFunction || useInsideFunction) {
+        const ancestorTypes = ancestors.slice(0, -1).map((ancestor) => ancestor.type);
+        if (isFunctionScopedWrite(ancestorTypes) || useInsideFunction) {
           uncertain = true;
           return;
         }
         const start = (node as { start?: number }).start ?? Number.POSITIVE_INFINITY;
         if (start >= useStart) return;
-        if (
-          assignment.operator !== "=" ||
-          ancestors.slice(0, -1).some((ancestor) => CONDITIONAL_WRITE_ANCESTORS.has(ancestor.type))
-        ) {
+        if (assignment.operator !== "=" || isConditionalWrite(ancestorTypes)) {
           uncertain = true;
           return;
         }
@@ -222,9 +212,8 @@ function resolveBindingOrigin(
     );
     if (!init) return null;
     seen.add(binding.id);
-    // A declaration node has enough source/span information for ScopeTree to
-    // resolve its initializer. The caller's ancestors are retained for
-    // hosts that provide richer lexical scope data.
+    // The declaration node has enough source/span data for ScopeTree; the
+    // caller's ancestors are retained for hosts with richer scope data.
     return resolveBindingOrigin(
       init,
       [...ancestors, binding.node],

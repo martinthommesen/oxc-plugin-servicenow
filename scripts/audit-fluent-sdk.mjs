@@ -67,8 +67,7 @@ function sha256(value) {
  * is why this runs after every version has been audited rather than inside
  * `auditVersion`. Reading that scan from the audited objects keeps the
  * generator independent of the module it emits.
- */
-/**
+ *
  * @param {string} version
  * @param {any} capabilities
  * @param {any} discoveredCapabilities
@@ -643,8 +642,7 @@ async function auditVersion(version, metadataByName) {
  * Introduction is a cross-version fact: a name's introduction is the first
  * reviewed version that exported it. Deriving it after the loop is what lets
  * the generator read only the objects it just built.
- */
-/**
+ *
  * @param {string} version
  * @param {Record<string, unknown>} item
  * @param {Record<string, unknown>} allVersions
@@ -673,8 +671,7 @@ export function withLifecycle(version, item, allVersions) {
  * produces -- declaration paths and hashes, `absent`, `typos`, `lifecycle` --
  * is review evidence: it stays in the fixture so the drift check can compare
  * against it, but it is not package input.
- */
-/**
+ *
  * @param {{ versions: Record<string, AuditRuntimeVersionEntry> }} snapshot
  * @returns {Record<string, unknown>}
  */

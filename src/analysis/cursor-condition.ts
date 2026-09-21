@@ -11,8 +11,9 @@ interface TruthProof {
 function intersect(sets: readonly Set<number>[]): Set<number> {
   if (sets.length === 0) return new Set();
   const result = new Set(sets[0]);
+  const rest = sets.slice(1);
   for (const value of result) {
-    if (sets.slice(1).some((set) => !set.has(value))) result.delete(value);
+    if (rest.some((set) => !set.has(value))) result.delete(value);
   }
   return result;
 }
