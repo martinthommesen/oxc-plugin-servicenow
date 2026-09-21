@@ -4,8 +4,10 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { packTarball as buildTarball } from "./check-release-artifact.mjs";
+import { argValue as readArgValue } from "./lib/argv.mjs";
 import { parseOxlintStdout, pluginRuleIds, runHostProcess } from "./lib/host-verifier.mjs";
-import { root } from "./lib/repo.mjs";
+import { readJson } from "./lib/json-artifact.mjs";
+import { isMainModule, root } from "./lib/repo.mjs";
 
 /**
  * @typedef {object} CompatCell
@@ -32,22 +34,15 @@ import { root } from "./lib/repo.mjs";
  * @property {string[]} [serviceNowReleases]
  */
 /** @type {CompatMatrix} */
-const matrix = JSON.parse(readFileSync(path.join(root, "scripts/compat-matrix.json"), "utf8"));
-const fluentEvidence = JSON.parse(
-  readFileSync(path.join(root, "tests/fixtures/fluent-sdk-declarations.json"), "utf8"),
-);
+const matrix = readJson(path.join(root, "scripts/compat-matrix.json"));
+const fluentEvidence = readJson(path.join(root, "tests/fixtures/fluent-sdk-declarations.json"));
 
 /**
  * @param {string} name
- * @param {string | undefined} fallback
  * @returns {string | undefined}
  */
-function argValue(name, fallback) {
-  const index = process.argv.indexOf(name);
-  if (index < 0) return fallback;
-  const value = process.argv[index + 1];
-  if (!value || value.startsWith("-")) fail("runtime", `${name} requires a value`);
-  return value;
+function argValue(name) {
+  return readArgValue(process.argv, name, (message) => fail("runtime", message));
 }
 
 /**
@@ -66,7 +61,7 @@ function fail(kind, message) {
  * @returns {string}
  */
 function packTarball(destination) {
-  const tarballFlag = argValue("--tarball", process.env["SN_COMPAT_TARBALL"]);
+  const tarballFlag = argValue("--tarball") ?? process.env["SN_COMPAT_TARBALL"];
   return tarballFlag ? path.resolve(tarballFlag) : buildTarball(destination).tarball;
 }
 
@@ -83,7 +78,12 @@ function oxlintReport(consumer, args, errorKind, message) {
     cwd: consumer,
   });
   const { report, parseError } = parseOxlintStdout(host.stdout);
-  if (!report) fail(errorKind, `${message}: ${parseError ?? host.stderr.slice(0, 400)}`);
+  if (!report) {
+    const detail = [parseError, host.error?.message, host.stderr.slice(0, 400)]
+      .filter(Boolean)
+      .join("; ");
+    fail(errorKind, `${message}: ${detail}`);
+  }
   return report;
 }
 
@@ -100,19 +100,26 @@ function oxlintReport(consumer, args, errorKind, message) {
  */
 function runEslintJson(consumer, args, message) {
   let stdout = "";
+  // eslint exits non-zero for ordinary lint errors, so a throw here is only a
+  // failure once its stdout turns out not to be the JSON report.
+  /** @type {{ stdout?: unknown, status?: unknown, message?: unknown } | undefined} */
+  let failure;
   try {
     stdout = execFileSync(path.join(consumer, "node_modules", ".bin", "eslint"), args, {
       encoding: "utf8",
       cwd: consumer,
     });
   } catch (error) {
-    const stdoutProp = /** @type {{ stdout?: unknown }} */ (error).stdout;
-    stdout = typeof stdoutProp === "string" ? stdoutProp : "";
+    failure = /** @type {{ stdout?: unknown, status?: unknown, message?: unknown }} */ (error);
+    stdout = typeof failure.stdout === "string" ? failure.stdout : "";
   }
   try {
     return JSON.parse(stdout);
   } catch {
-    fail("parser", `${message}: ${stdout.slice(0, 400)}`);
+    const detail = failure
+      ? `exited ${String(failure.status)}: ${String(failure.message)}: ${stdout.slice(0, 400)}`
+      : stdout.slice(0, 400);
+    fail("parser", `${message}: ${detail}`);
   }
 }
 
@@ -122,8 +129,7 @@ function runEslintJson(consumer, args, message) {
  * @returns {string}
  */
 function installedPackageVersion(consumer, name) {
-  return JSON.parse(readFileSync(path.join(consumer, "node_modules", name, "package.json"), "utf8"))
-    .version;
+  return readJson(path.join(consumer, "node_modules", name, "package.json")).version;
 }
 
 /**
@@ -604,44 +610,52 @@ function topOfRangeCell() {
   };
 }
 
-const cellFlag = argValue("--cell", process.env["SN_COMPAT_CELL"]);
-const expectedSha256 = argValue("--sha256", process.env["SN_COMPAT_SHA256"]);
-if (expectedSha256 && !/^[0-9a-f]{64}$/.test(expectedSha256)) {
-  fail("package", "expected tarball SHA-256 must be 64 lowercase hexadecimal characters");
-}
-const topFlag = process.argv.includes("--top");
-const sameRuntimeSmoke = topFlag || process.argv.includes("--all") || !cellFlag;
-const cells = topFlag
-  ? [topOfRangeCell()]
-  : matrix.cells.filter((cell) => {
-      if (cellFlag) return cell.id === cellFlag;
-      if (process.argv.includes("--all")) return true;
-      return cell.id === matrix.localSmokeCell;
-    });
-if (cells.length === 0) {
-  fail("runtime", `no compatibility cells selected (cell=${cellFlag ?? "auto"})`);
+async function main() {
+  const cellFlag = argValue("--cell") ?? process.env["SN_COMPAT_CELL"];
+  const expectedSha256 = argValue("--sha256") ?? process.env["SN_COMPAT_SHA256"];
+  if (expectedSha256 && !/^[0-9a-f]{64}$/.test(expectedSha256)) {
+    fail("package", "expected tarball SHA-256 must be 64 lowercase hexadecimal characters");
+  }
+  const topFlag = process.argv.includes("--top");
+  const sameRuntimeSmoke = topFlag || process.argv.includes("--all") || !cellFlag;
+  const cells = topFlag
+    ? [topOfRangeCell()]
+    : matrix.cells.filter((cell) => {
+        if (cellFlag) return cell.id === cellFlag;
+        if (process.argv.includes("--all")) return true;
+        return cell.id === matrix.localSmokeCell;
+      });
+  if (cells.length === 0) {
+    fail("runtime", `no compatibility cells selected (cell=${cellFlag ?? "auto"})`);
+  }
+
+  const staging = mkdtempSync(path.join(tmpdir(), "sn-oxc-compat-pack-"));
+  const results = [];
+  try {
+    const tarball = packTarball(staging);
+    const tarballSha256 = createHash("sha256").update(readFileSync(tarball)).digest("hex");
+    if (expectedSha256 && tarballSha256 !== expectedSha256) {
+      fail("package", `tarball SHA-256 is ${tarballSha256}; expected ${expectedSha256}`);
+    }
+    console.log(JSON.stringify({ tarball: path.basename(tarball), sha256: tarballSha256 }));
+    for (const cell of cells) {
+      console.log(
+        `compat cell ${cell.id} oxlint@${cell.oxlint} eslint@${cell.eslint} oxfmt@${cell.oxfmt} typescript-eslint@${cell.typescriptEslint}`,
+      );
+      results.push(await runCell(tarball, cell, sameRuntimeSmoke));
+    }
+  } finally {
+    // process.exit() in a catch here skipped this cleanup and left the
+    // staging directory behind on every failed run.
+    rmSync(staging, { recursive: true, force: true });
+  }
+
+  console.log(JSON.stringify({ cells: results }, null, 2));
 }
 
-const staging = mkdtempSync(path.join(tmpdir(), "sn-oxc-compat-pack-"));
-const results = [];
-try {
-  const tarball = packTarball(staging);
-  const tarballSha256 = createHash("sha256").update(readFileSync(tarball)).digest("hex");
-  if (expectedSha256 && tarballSha256 !== expectedSha256) {
-    fail("package", `tarball SHA-256 is ${tarballSha256}; expected ${expectedSha256}`);
-  }
-  console.log(JSON.stringify({ tarball: path.basename(tarball), sha256: tarballSha256 }));
-  for (const cell of cells) {
-    console.log(
-      `compat cell ${cell.id} oxlint@${cell.oxlint} eslint@${cell.eslint} oxfmt@${cell.oxfmt} typescript-eslint@${cell.typescriptEslint}`,
-    );
-    results.push(await runCell(tarball, cell, sameRuntimeSmoke));
-  }
-} catch (error) {
-  console.error(error instanceof Error ? error.message : error);
-  process.exit(1);
-} finally {
-  rmSync(staging, { recursive: true, force: true });
+if (isMainModule(import.meta.url)) {
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.message : error);
+    process.exitCode = 1;
+  });
 }
-
-console.log(JSON.stringify({ cells: results }, null, 2));

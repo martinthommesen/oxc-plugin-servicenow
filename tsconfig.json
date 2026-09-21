@@ -26,6 +26,6 @@
     "outDir": "dist",
     "types": ["node"]
   },
-  "include": ["src", "tests"],
+  "include": ["src", "tests", "scripts"],
   "exclude": ["dist", "node_modules", "tests/integration/profiles", "tests/fixtures/presets-1.1.0-source"]
 }

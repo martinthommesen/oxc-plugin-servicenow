@@ -1,8 +1,7 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { pathToFileURL } from "node:url";
 import { parseDocument } from "yaml";
-import { root } from "./lib/repo.mjs";
+import { isMainModule, root } from "./lib/repo.mjs";
 
 const pinEntries = parseActionPinCatalog(
   readFileSync(join(root, "scripts/action-pins.json"), "utf8"),
@@ -200,4 +199,4 @@ export function main() {
   return result;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();
+if (isMainModule(import.meta.url)) main();

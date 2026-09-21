@@ -9,7 +9,7 @@ import { root } from "./lib/repo.mjs";
  *   DEFAULT_FLUENT_MANIFEST: import("../src/fluent/index.js").FluentSdkManifest,
  *   fluentManifests: typeof import("../src/fluent/index.js").fluentManifests,
  *   SUPPORTED_FLUENT_SDK_VERSIONS: typeof import("../src/fluent/index.js").SUPPORTED_FLUENT_SDK_VERSIONS,
- *   CURRENT_FLUENT_SDK_VERSION: typeof import("../src/fluent/index.js").CURRENT_FLUENT_SDK_VERSION,
+ *   DEFAULT_FLUENT_SDK_VERSION: typeof import("../src/fluent/index.js").DEFAULT_FLUENT_SDK_VERSION,
  *   FLUENT_SDK_ARTIFACTS: typeof import("../src/fluent/index.js").FLUENT_SDK_ARTIFACTS,
  * }}
  */
@@ -17,7 +17,7 @@ const {
   DEFAULT_FLUENT_MANIFEST,
   fluentManifests,
   SUPPORTED_FLUENT_SDK_VERSIONS,
-  CURRENT_FLUENT_SDK_VERSION,
+  DEFAULT_FLUENT_SDK_VERSION,
   FLUENT_SDK_ARTIFACTS,
 } = await import(pathToFileURL(join(root, "src/fluent/index.ts")).href);
 const { FLUENT_DECLARATION_SNAPSHOTS } = await import(
@@ -195,7 +195,7 @@ assert.deepEqual(
     "4.11.0",
   ],
 );
-assert.equal(CURRENT_FLUENT_SDK_VERSION, "4.11.0");
+assert.equal(DEFAULT_FLUENT_SDK_VERSION, "4.11.0");
 assert.deepEqual(Object.keys(FLUENT_SDK_ARTIFACTS), [...SUPPORTED_FLUENT_SDK_VERSIONS]);
 for (const [version, evidence] of Object.entries(FLUENT_SDK_ARTIFACTS)) {
   assert.match(evidence.sdkIntegrity, /^sha512-[A-Za-z0-9+/]+=*$/, `${version} SDK integrity`);
@@ -205,7 +205,7 @@ for (const [version, evidence] of Object.entries(FLUENT_SDK_ARTIFACTS)) {
 const fixturePath = join(root, "tests/fixtures/fluent-manifest-current.json");
 const fixture = JSON.parse(await readFile(fixturePath, "utf8"));
 const current = fluentManifests().find(
-  (manifest) => manifest.sdkVersion === CURRENT_FLUENT_SDK_VERSION,
+  (manifest) => manifest.sdkVersion === DEFAULT_FLUENT_SDK_VERSION,
 );
 assert.ok(current);
 const currentSummary = summarize(current);
@@ -219,7 +219,7 @@ const declarationFixture = JSON.parse(
   await readFile(join(root, "tests/fixtures/fluent-sdk-declarations.json"), "utf8"),
 );
 assert.deepEqual(declarationFixture.reviewedVersions, [...SUPPORTED_FLUENT_SDK_VERSIONS]);
-assert.equal(declarationFixture.defaultVersion, CURRENT_FLUENT_SDK_VERSION);
+assert.equal(declarationFixture.defaultVersion, DEFAULT_FLUENT_SDK_VERSION);
 for (const version of SUPPORTED_FLUENT_SDK_VERSIONS) {
   const detail = declarationFixture.versions[version];
   const runtime = FLUENT_DECLARATION_SNAPSHOTS[version];

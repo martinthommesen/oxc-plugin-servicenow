@@ -15,13 +15,9 @@ import {
   tarballIntegrity,
 } from "../../scripts/check-release-artifact.mjs";
 import { inspectPublishInput } from "../../scripts/publish-release-package.mjs";
-import { repoRoot, TSX_CLI_EXECUTION_PATTERN } from "../integration/helpers.js";
+import { readPackageJson, repoRoot, TSX_CLI_EXECUTION_PATTERN } from "../integration/helpers.js";
 
-const pkg = JSON.parse(readFileSync(path.join(repoRoot, "package.json"), "utf8")) as {
-  name: string;
-  version: string;
-  scripts: Record<string, string>;
-};
+const pkg = readPackageJson();
 
 describe("release artifact gates", () => {
   it("requires an exact changelog version heading", () => {

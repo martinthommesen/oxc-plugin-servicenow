@@ -11,10 +11,11 @@ import {
 } from "node:fs";
 import { arch, platform, release, tmpdir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
-import { pathToFileURL } from "node:url";
 import { exactProof, indexOutcomes, outcomeSummary } from "./lib/test-report.mjs";
 import { acceptanceLockPath, withAcceptanceLock } from "./lib/acceptance-lock.mjs";
-import { root } from "./lib/repo.mjs";
+import { git as runGit } from "./lib/git.mjs";
+import { readJson, writeJsonArtifact } from "./lib/json-artifact.mjs";
+import { isMainModule, root } from "./lib/repo.mjs";
 
 const goalPath = join(root, "PR51-REMEDIATION-GOAL.md");
 const mappingPath = join(root, "scripts/pr51-acceptance.json");
@@ -230,59 +231,78 @@ export function parseCriteria(source) {
  * @returns {any}
  */
 function readMapping() {
-  return JSON.parse(readFileSync(mappingPath, "utf8"));
+  return readJson(mappingPath);
 }
 
 /**
- * @param {AcceptanceCriterion[]} parsed
- * @param {{ criteria?: Array<AcceptanceCriterion & { disposition: string }> }} mapping
+ * @typedef {AcceptanceCriterion & { disposition: string }} MappedCriterion
+ */
+
+/**
+ * Error classes both mapping checks share: one record per finding ID, a
+ * source that still matches its authority, and a known disposition.
+ * `sourceErrors` supplies the authority comparison, which differs between
+ * the parsed goal and the committed snapshot.
+ *
+ * @param {readonly MappedCriterion[]} criteria
+ * @param {(item: MappedCriterion) => string[]} sourceErrors
  * @returns {string[]}
  */
-export function validateMapping(parsed, mapping) {
+function validateCriterionRecords(criteria, sourceErrors) {
   const errors = [];
-  const sourceById = new Map(parsed.map((item) => [item.id, item]));
-  const mappedById = new Map();
-  for (const item of mapping.criteria ?? []) {
-    if (mappedById.has(item.id)) errors.push(`duplicate mapping ${item.id}`);
-    mappedById.set(item.id, item);
-    const source = sourceById.get(item.id);
-    if (!source) errors.push(`orphaned mapping ${item.id}`);
-    else if (
-      item.source.digest !== source.source.digest ||
-      item.source.heading !== source.source.heading ||
-      item.source.text !== source.source.text
-    ) {
-      errors.push(`changed source mapping ${item.id}`);
-    }
+  const seen = new Set();
+  for (const item of criteria) {
+    if (seen.has(item.id)) errors.push(`duplicate mapping ${item.id}`);
+    seen.add(item.id);
+    errors.push(...sourceErrors(item));
     if (!allowedDispositions.has(item.disposition))
       errors.push(`${item.id} has invalid disposition ${item.disposition}`);
   }
-  for (const item of parsed)
-    if (!mappedById.has(item.id)) errors.push(`missing mapping ${item.id}`);
   return errors;
 }
 
 /**
- * @param {{ goal?: { sha256?: string, criteria?: number, criteriaSha256?: string }, criteriaDigest?: string, criteria?: Array<AcceptanceCriterion & { disposition: string }> }} mapping
+ * @param {AcceptanceCriterion[]} parsed
+ * @param {{ criteria?: Array<MappedCriterion> }} mapping
+ * @returns {string[]}
+ */
+export function validateMapping(parsed, mapping) {
+  const sourceById = new Map(parsed.map((item) => [item.id, item]));
+  const criteria = mapping.criteria ?? [];
+  const errors = validateCriterionRecords(criteria, (item) => {
+    const source = sourceById.get(item.id);
+    if (!source) return [`orphaned mapping ${item.id}`];
+    if (
+      item.source.digest !== source.source.digest ||
+      item.source.heading !== source.source.heading ||
+      item.source.text !== source.source.text
+    ) {
+      return [`changed source mapping ${item.id}`];
+    }
+    return [];
+  });
+  const mapped = new Set(criteria.map((item) => item.id));
+  for (const item of parsed) if (!mapped.has(item.id)) errors.push(`missing mapping ${item.id}`);
+  return errors;
+}
+
+/**
+ * @param {{ goal?: { sha256?: string, criteria?: number, criteriaSha256?: string }, criteriaDigest?: string, criteria?: Array<MappedCriterion> }} mapping
  * @returns {string[]}
  */
 export function validateSnapshot(mapping) {
-  const errors = [];
-  const seen = new Set();
   const occurrences = new Map();
-  for (const item of mapping.criteria ?? []) {
-    if (seen.has(item.id)) errors.push(`duplicate mapping ${item.id}`);
-    seen.add(item.id);
+  const errors = validateCriterionRecords(mapping.criteria ?? [], (item) => {
+    const itemErrors = [];
     if (item.source.digest !== sha256(item.source.text))
-      errors.push(`changed source mapping ${item.id}`);
+      itemErrors.push(`changed source mapping ${item.id}`);
     const occurrenceKey = `${item.source.heading}\0${item.source.text}`;
     const occurrence = (occurrences.get(occurrenceKey) ?? 0) + 1;
     occurrences.set(occurrenceKey, occurrence);
     const expectedId = `PR51-${sha256(`${occurrenceKey}\0${occurrence}`).slice(0, 12).toUpperCase()}`;
-    if (item.id !== expectedId) errors.push(`changed finding ID ${item.id}`);
-    if (!allowedDispositions.has(item.disposition))
-      errors.push(`${item.id} has invalid disposition ${item.disposition}`);
-  }
+    if (item.id !== expectedId) itemErrors.push(`changed finding ID ${item.id}`);
+    return itemErrors;
+  });
   if (mapping.goal?.sha256 !== ACCEPTANCE_GOAL_SHA256) errors.push("goal authority changed");
   if (
     mapping.criteriaDigest !== ACCEPTANCE_AUTHORITY_DIGEST ||
@@ -360,16 +380,15 @@ function updateMapping(source, parsed) {
   return result;
 }
 
+// A full worktree diff is far larger than execFileSync's 1 MB default.
+const LARGE_GIT_BUFFER = 50 * 1024 * 1024;
+
 /**
  * @param {string[]} args
  * @returns {string}
  */
 function git(args) {
-  return execFileSync("git", ["-c", "core.fsmonitor=false", ...args], {
-    cwd: root,
-    encoding: "utf8",
-    maxBuffer: 50 * 1024 * 1024,
-  }).trim();
+  return runGit(args, { maxBuffer: LARGE_GIT_BUFFER }).trim();
 }
 
 // The ledger's own generated outputs are excluded from the digest scope.
@@ -398,10 +417,7 @@ export function worktreeIdentity() {
   const diff = execFileSync(
     "git",
     ["-c", "core.fsmonitor=false", "diff", "--binary", "HEAD", "--", ".", ...excludePathspecs],
-    {
-      cwd: root,
-      maxBuffer: 50 * 1024 * 1024,
-    },
+    { cwd: root, maxBuffer: LARGE_GIT_BUFFER },
   );
   const untracked = status
     .split("\n")
@@ -453,7 +469,7 @@ function runTests() {
     );
     if (result.status !== 0)
       throw new Error(`node:test inventory failed with status ${result.status}`);
-    return JSON.parse(readFileSync(testReportPath, "utf8"));
+    return readJson(testReportPath);
   } finally {
     rmSync(dirname(testReportPath), { recursive: true, force: true });
   }
@@ -485,9 +501,10 @@ export function searchableRepoFiles() {
 function verifyProofs(mapping, report) {
   const errors = [];
   const byKey = indexOutcomes(report);
-  const searchableContents = searchableRepoFiles().map((path) =>
-    readFileSync(join(root, path), "utf8"),
-  );
+  // Reading every file under src/, scripts/ and tests/ is only needed when a
+  // criterion claims a case ID, so the scan waits for the first one.
+  /** @type {string[] | undefined} */
+  let searchableContents;
   for (const item of mapping.criteria) {
     if (item.disposition === "Verified at exact head") {
       if (!item.command || item.proofs.length === 0)
@@ -510,11 +527,11 @@ function verifyProofs(mapping, report) {
       errors.push(`${item.id} ${item.disposition} requires evidence`);
     }
     for (const caseId of item.caseIds) {
-      const occurrences = searchableContents.reduce(
-        (count, contents) => count + (contents.includes(caseId) ? 1 : 0),
-        0,
+      searchableContents ??= searchableRepoFiles().map((path) =>
+        readFileSync(join(root, path), "utf8"),
       );
-      if (occurrences === 0) errors.push(`${item.id} references absent case ID ${caseId}`);
+      if (!searchableContents.some((contents) => contents.includes(caseId)))
+        errors.push(`${item.id} references absent case ID ${caseId}`);
     }
     for (const fixture of item.fixtures) {
       const actual = sha256(readFileSync(repoFilePath(fixture.path)));
@@ -585,8 +602,8 @@ async function runAcceptance(argv) {
     (mapping.goal.sha256 !== sha256(source) || mapping.goal.criteria !== parsed?.length)
   )
     errors.push("goal identity or criterion count changed");
-  const report = argv.includes("--update") ? { tests: [] } : runTests();
-  if (!argv.includes("--update")) errors.push(...verifyProofs(mapping, report));
+  const report = update ? { tests: [] } : runTests();
+  if (!update) errors.push(...verifyProofs(mapping, report));
   const identity = worktreeIdentity();
   if (process.env["CI"] && (!identity.clean || process.env["GITHUB_SHA"] !== identity.head))
     errors.push("CI acceptance evidence requires a clean exact GITHUB_SHA");
@@ -626,10 +643,7 @@ async function runAcceptance(argv) {
     errors,
   };
   mkdirSync(artifactsDir, { recursive: true });
-  writeFileSync(
-    join(artifactsDir, "pr51-acceptance.json"),
-    `${JSON.stringify(artifact, null, 2)}\n`,
-  );
+  writeJsonArtifact(join(artifactsDir, "pr51-acceptance.json"), artifact);
   generateDocs(mapping, artifact);
   if (errors.length > 0) throw new Error(errors.join("\n"));
   console.log(
@@ -658,12 +672,7 @@ export async function main(argv = process.argv.slice(2)) {
   });
 }
 
-const invokedScript = process.argv[1];
-if (
-  invokedScript !== undefined &&
-  invokedScript !== "" &&
-  import.meta.url === pathToFileURL(invokedScript).href
-) {
+if (isMainModule(import.meta.url)) {
   main().catch((error) => {
     console.error(error instanceof Error ? error.message : String(error));
     process.exit(1);

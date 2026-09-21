@@ -1,4 +1,58 @@
 /**
+ * Paths whose untracked content can change what a benchmark measures. A
+ * tracked change anywhere else still counts; only untracked noise outside
+ * these prefixes is ignored.
+ */
+const SOURCE_PATHS = ["src/", "scripts/", "tests/", "package.json"];
+
+/**
+ * @typedef {object} SourceState
+ * @property {"clean" | "dirty"} sourceState
+ * @property {string[]} [dirtyFiles]
+ */
+
+/**
+ * Classify the measured worktree against HEAD from
+ * `git status --porcelain -z`.
+ *
+ * Two rules keep the classification simple and keep a run from marking
+ * itself dirty (FINDINGS.md DX-001):
+ *
+ * 1. `ignorePaths` — the run's own current-result and baseline files — never
+ *    count, because the benchmark writes them itself.
+ * 2. An untracked file counts only under `SOURCE_PATHS`; every tracked
+ *    difference from HEAD counts wherever it is.
+ *
+ * The NUL-terminated format carries every path verbatim. The line format
+ * quotes a non-ASCII path with octal byte escapes (`"src/caf\303\251.ts"`),
+ * which is not JSON and cannot be decoded here.
+ *
+ * @param {string} porcelain
+ * @param {{ ignorePaths?: readonly string[] }} [options]
+ * @returns {SourceState}
+ */
+export function classifySourceState(porcelain, options = {}) {
+  const ignored = new Set(options.ignorePaths ?? []);
+  /** @type {string[]} */
+  const dirtyFiles = [];
+  const records = porcelain.split("\0");
+  for (let index = 0; index < records.length; index += 1) {
+    const record = records[index] ?? "";
+    if (record.length < 4) continue;
+    const status = record.slice(0, 2);
+    const file = record.slice(3);
+    // A rename or copy emits the destination, then the original as its own
+    // record. The destination is the file present in the measured worktree.
+    if (status.includes("R") || status.includes("C")) index += 1;
+    if (ignored.has(file)) continue;
+    if (status === "??" && !SOURCE_PATHS.some((prefix) => file.startsWith(prefix))) continue;
+    if (!dirtyFiles.includes(file)) dirtyFiles.push(file);
+  }
+  if (dirtyFiles.length === 0) return { sourceState: "clean" };
+  return { sourceState: "dirty", dirtyFiles: dirtyFiles.sort() };
+}
+
+/**
  * @typedef {object} BenchmarkRow
  * @property {string} fixture
  * @property {string} profile
@@ -92,9 +146,43 @@ function validateThresholds(regression) {
 }
 
 /**
+ * Validate the worktree provenance a run records beside its commit.
+ *
+ * The field is additive: a reviewed baseline written before it existed still
+ * validates, so old readers and `docs/performance-baseline.json` keep working
+ * (FINDINGS.md DX-001).
+ *
+ * @param {Record<string, unknown>} record
+ * @param {boolean} required
+ * @returns {void}
+ */
+function validateSourceState(record, required) {
+  const state = record["sourceState"];
+  if (state === undefined) {
+    if (required) throw new Error("benchmark summary sourceState is missing");
+    return;
+  }
+  if (state !== "clean" && state !== "dirty")
+    throw new Error("benchmark summary sourceState is malformed");
+  const dirtyFiles = record["dirtyFiles"];
+  if (state === "clean") {
+    if (dirtyFiles !== undefined)
+      throw new Error("benchmark summary reports a clean source with dirtyFiles");
+    return;
+  }
+  if (
+    !Array.isArray(dirtyFiles) ||
+    dirtyFiles.length === 0 ||
+    dirtyFiles.some((file) => typeof file !== "string" || !file)
+  ) {
+    throw new Error("benchmark summary reports a dirty source without dirtyFiles");
+  }
+}
+
+/**
  * @template {{ scale: number, results: BenchmarkRow[] }} T
  * @param {T} summary
- * @param {{ requireRawSamples?: boolean }} [options]
+ * @param {{ requireRawSamples?: boolean, requireSourceState?: boolean }} [options]
  * @returns {T}
  */
 export function validateBenchmarkSummary(summary, options = {}) {
@@ -123,6 +211,7 @@ export function validateBenchmarkSummary(summary, options = {}) {
       throw new Error(`benchmark summary ${field} is malformed`);
     }
   }
+  validateSourceState(record, options.requireSourceState === true);
   validateThresholds(record["regression"]);
   for (const row of summary.results) {
     if (

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
-import { repoRoot } from "./integration/helpers.js";
+import { readPackageJson, repoRoot } from "./integration/helpers.js";
 
 function declarationFiles(directory: string): string[] {
   const files: string[] = [];
@@ -20,9 +20,7 @@ function declarationFiles(directory: string): string[] {
 // @lat: [[tests#Scripts and tooling#Scripts are checked JavaScript with no separate declarations]]
 describe("scripts type gate (FINDINGS.md MNT-005)", () => {
   it("keeps JSDoc-typed scripts as the single source of truth", () => {
-    const pkg = JSON.parse(readFileSync(path.join(repoRoot, "package.json"), "utf8")) as {
-      scripts: Record<string, string>;
-    };
+    const pkg = readPackageJson();
     assert.ok(
       pkg.scripts["validate"]?.includes("npm run typecheck:scripts"),
       "validate must run the scripts type gate",

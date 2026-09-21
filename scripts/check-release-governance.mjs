@@ -1,8 +1,8 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import { isAbsolute, join } from "node:path";
-import { pathToFileURL } from "node:url";
-import { root } from "./lib/repo.mjs";
+import { join, resolve } from "node:path";
+import { argValue as readArgValue } from "./lib/argv.mjs";
+import { isMainModule, root } from "./lib/repo.mjs";
 
 const EXPECTED_MAIN_RULE_TYPES = [
   "deletion",
@@ -84,11 +84,7 @@ function fail(message) {
  * @returns {string | undefined}
  */
 function argValue(argv, name) {
-  const index = argv.indexOf(name);
-  if (index < 0) return undefined;
-  const value = argv[index + 1];
-  if (!value || value.startsWith("-")) fail(`${name} requires a value`);
-  return value;
+  return readArgValue(argv, name, fail);
 }
 
 /**
@@ -340,8 +336,7 @@ export function compareGovernance(desired, liveInput) {
     "release environment permits administrator bypass",
   );
   check(
-    JSON.stringify(live.environment?.deploymentPolicy) ===
-      JSON.stringify(desired.environment.deploymentPolicy),
+    same(live.environment?.deploymentPolicy, desired.environment.deploymentPolicy),
     "release environment deployment policy drifted",
   );
   check(
@@ -425,15 +420,14 @@ export function compareGovernance(desired, liveInput) {
  * @returns {any}
  */
 function parseJson(raw, label) {
+  let parsed;
   try {
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object") fail(`${label} returned no JSON object`);
-    return parsed;
+    parsed = JSON.parse(raw);
   } catch (error) {
-    const kind = /** @type {{ kind?: unknown }} */ (error)?.kind;
-    if (kind === "release-governance") throw error;
-    fail(`${label} returned malformed JSON`);
+    fail(`${label} returned malformed JSON: ${error instanceof Error ? error.message : error}`);
   }
+  if (!parsed || typeof parsed !== "object") fail(`${label} returned no JSON object`);
+  return parsed;
 }
 
 /**
@@ -475,16 +469,10 @@ export function collectLiveGovernance(desired, command = execFileSync) {
  */
 export function main(argv = process.argv) {
   const desiredPath = argValue(argv, "--desired") ?? join(root, "scripts/release-governance.json");
-  const desired = parseJson(
-    readFileSync(isAbsolute(desiredPath) ? desiredPath : join(process.cwd(), desiredPath), "utf8"),
-    "desired governance",
-  );
+  const desired = parseJson(readFileSync(resolve(desiredPath), "utf8"), "desired governance");
   const fixture = argValue(argv, "--fixture");
   const live = fixture
-    ? parseJson(
-        readFileSync(isAbsolute(fixture) ? fixture : join(process.cwd(), fixture), "utf8"),
-        "governance fixture",
-      )
+    ? parseJson(readFileSync(resolve(fixture), "utf8"), "governance fixture")
     : collectLiveGovernance(desired);
   const result = compareGovernance(desired, live);
   console.log(JSON.stringify(result, null, 2));
@@ -492,7 +480,7 @@ export function main(argv = process.argv) {
   return result;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (isMainModule(import.meta.url)) {
   try {
     main();
   } catch (error) {

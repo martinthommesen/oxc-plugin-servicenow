@@ -1,13 +1,17 @@
-import { execFileSync, spawn } from "node:child_process";
+import { execFile, execFileSync, spawn } from "node:child_process";
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { arch, cpus, platform, tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { join, relative, resolve, sep } from "node:path";
 import {
   assertBenchmarkFixtureSet,
   checkBenchmarkRegression,
+  classifySourceState,
   validateBenchmarkSummary,
   validateOxlintProcessResult,
 } from "./benchmark-gate.mjs";
+import { argValue } from "./lib/argv.mjs";
+import { git } from "./lib/git.mjs";
+import { readJson, writeJsonArtifact } from "./lib/json-artifact.mjs";
 import { root } from "./lib/repo.mjs";
 
 const oxlintBin = join(root, "node_modules", ".bin", "oxlint");
@@ -21,11 +25,10 @@ const samples = 10;
  * @returns {string}
  */
 function argument(name, fallback) {
-  const index = process.argv.indexOf(name);
-  if (index < 0) return fallback;
-  const value = process.argv[index + 1];
-  if (value === undefined) throw new Error(`missing value for ${name}`);
-  return resolve(value);
+  const value = argValue(process.argv, name, () => {
+    throw new Error(`missing value for ${name}`);
+  });
+  return value === undefined ? fallback : resolve(value);
 }
 
 /**
@@ -221,26 +224,28 @@ function generateFixtures(directory) {
 }
 
 /**
+ * Sample one process's resident memory without blocking the event loop: a
+ * synchronous `ps` every poll interval delays the child's stdout and inflates
+ * the elapsed time this run is measuring.
+ *
  * @param {number} pid
- * @returns {number}
+ * @returns {Promise<number>}
  */
 function readPeakRssKb(pid) {
-  try {
-    if (platform() === "linux") {
+  if (platform() === "linux") {
+    try {
       const match = /^VmHWM:\s+(\d+)\s+kB$/m.exec(readFileSync(`/proc/${pid}/status`, "utf8"));
-      return match ? Number(match[1]) : 0;
+      return Promise.resolve(match ? Number(match[1]) : 0);
+    } catch {
+      return Promise.resolve(0);
     }
-    if (platform() === "darwin") {
-      return (
-        Number(
-          execFileSync("ps", ["-o", "rss=", "-p", String(pid)], { encoding: "utf8" }).trim(),
-        ) || 0
-      );
-    }
-  } catch {
-    return 0;
   }
-  return 0;
+  if (platform() !== "darwin") return Promise.resolve(0);
+  return new Promise((resolveSample) => {
+    execFile("ps", ["-o", "rss=", "-p", String(pid)], { encoding: "utf8" }, (error, stdout) => {
+      resolveSample(error ? 0 : Number(stdout.trim()) || 0);
+    });
+  });
 }
 
 /**
@@ -256,8 +261,15 @@ function measure(configPath, targets) {
     let stdout = "";
     let stderr = "";
     let peakRssKb = 0;
+    let elapsedMs = 0;
+    let sampling = false;
     const sampleRss = () => {
-      if (child.pid) peakRssKb = Math.max(peakRssKb, readPeakRssKb(child.pid));
+      if (sampling || !child.pid) return;
+      sampling = true;
+      void readPeakRssKb(child.pid).then((sample) => {
+        peakRssKb = Math.max(peakRssKb, sample);
+        sampling = false;
+      });
     };
     sampleRss();
     child.once("spawn", sampleRss);
@@ -270,15 +282,16 @@ function measure(configPath, targets) {
       clearInterval(poll);
       reject(error);
     });
-    child.on("close", (status, signal) => {
+    // The child is done working at "exit"; "close" waits for its stdio to
+    // drain, which is this process reading, not oxlint running.
+    child.on("exit", () => {
       clearInterval(poll);
-      if (child.pid) peakRssKb = Math.max(peakRssKb, readPeakRssKb(child.pid));
+      elapsedMs = Number(process.hrtime.bigint() - started) / 1e6;
+    });
+    child.on("close", (status, signal) => {
       try {
         validateOxlintProcessResult({ status, signal, stdout, stderr });
-        resolvePromise({
-          elapsedMs: Number(process.hrtime.bigint() - started) / 1e6,
-          peakRssKb: peakRssKb || null,
-        });
+        resolvePromise({ elapsedMs, peakRssKb: peakRssKb || null });
       } catch (error) {
         reject(error);
       }
@@ -320,23 +333,37 @@ async function runCase(fixture, profile, configPath, targets) {
   };
 }
 
+/**
+ * `git status --porcelain` reports repository-relative POSIX paths, so the
+ * run's own artifacts have to be named the same way to be excluded.
+ *
+ * @param {string} target
+ * @returns {string}
+ */
+function repoRelative(target) {
+  return relative(root, target).split(sep).join("/");
+}
+
 async function main() {
   const baselinePath = argument("--baseline", join(root, "docs/performance-baseline.json"));
   const outputPath = argument("--output", join(root, "artifacts/performance-current.json"));
+  // Captured before the build and the measurements so the run's own outputs,
+  // and a `dist` rebuild, cannot change the answer (FINDINGS.md DX-001).
+  const source = classifySourceState(
+    git(["status", "--porcelain", "-z", "--untracked-files=all"]),
+    { ignorePaths: [repoRelative(outputPath), repoRelative(baselinePath)] },
+  );
   const work = join(tmpdir(), `sn-oxc-bench-${process.pid}`);
   rmSync(work, { recursive: true, force: true });
   mkdirSync(work, { recursive: true });
   try {
     execFileSync("npm", ["run", "build"], { cwd: root, encoding: "utf8", stdio: "inherit" });
     generateFixtures(work);
-    const recommended = JSON.parse(
-      readFileSync(
-        join(root, "tests/integration/profiles/configs/recommended.oxlintrc.json"),
-        "utf8",
-      ),
+    const recommended = readJson(
+      join(root, "tests/integration/profiles/configs/recommended.oxlintrc.json"),
     ).rules;
-    const strict = JSON.parse(
-      readFileSync(join(root, "tests/integration/profiles/configs/strict.oxlintrc.json"), "utf8"),
+    const strict = readJson(
+      join(root, "tests/integration/profiles/configs/strict.oxlintrc.json"),
     ).rules;
     const configs = {
       disabled: writeConfig(join(work, "disabled"), {}, false),
@@ -416,20 +443,23 @@ async function main() {
     if (!small || !large) {
       throw new Error("benchmark results lack the classic-small/classic-large pair");
     }
-    const baseline = validateBenchmarkSummary(JSON.parse(readFileSync(baselinePath, "utf8")));
+    const baseline = validateBenchmarkSummary(readJson(baselinePath));
     const summary = {
       date: new Date().toISOString().slice(0, 10),
       node: process.version,
       npm: execFileSync("npm", ["--version"], { cwd: root, encoding: "utf8" }).trim(),
-      oxlint: JSON.parse(readFileSync(join(root, "node_modules/oxlint/package.json"), "utf8"))
-        .version,
-      plugin: JSON.parse(readFileSync(join(root, "package.json"), "utf8")).version,
+      oxlint: readJson(join(root, "node_modules/oxlint/package.json")).version,
+      plugin: readJson(join(root, "package.json")).version,
       cpu: cpus()[0]?.model ?? "unknown",
       platform: platform(),
       arch: arch(),
-      commit: execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim(),
-      command: `npm run bench -- --baseline ${baselinePath} --output ${outputPath}`,
-      baseline: baselinePath,
+      commit: git(["rev-parse", "HEAD"]).trim(),
+      ...source,
+      command: `npm run bench -- --baseline ${repoRelative(baselinePath)} --output ${repoRelative(outputPath)}`,
+      // Repo-relative: an absolute path records the author's home directory
+      // in a reviewed, committed artifact and is meaningless on any other
+      // machine.
+      baseline: repoRelative(baselinePath),
       warmup,
       samples,
       statistic: "median",
@@ -437,9 +467,8 @@ async function main() {
       scale: Number((large.elapsedMs / small.elapsedMs).toFixed(2)),
       results,
     };
-    validateBenchmarkSummary(summary, { requireRawSamples: true });
-    mkdirSync(dirname(outputPath), { recursive: true });
-    writeFileSync(outputPath, `${JSON.stringify(summary, null, 2)}\n`);
+    validateBenchmarkSummary(summary, { requireRawSamples: true, requireSourceState: true });
+    writeJsonArtifact(outputPath, summary);
     for (const row of results)
       console.log(`${row.fixture} ${row.profile} ${row.elapsedMs}ms rss=${row.peakRssKb}KB`);
     console.log(`scale small->large recommended: ${summary.scale}x`);
@@ -466,11 +495,9 @@ async function main() {
 try {
   await main();
 } catch (error) {
-  const failurePath = join(root, "artifacts/performance-failure.json");
-  mkdirSync(dirname(failurePath), { recursive: true });
-  writeFileSync(
-    failurePath,
-    `${JSON.stringify({ date: new Date().toISOString(), error: error instanceof Error ? error.message : String(error) }, null, 2)}\n`,
-  );
+  writeJsonArtifact(join(root, "artifacts/performance-failure.json"), {
+    date: new Date().toISOString(),
+    error: error instanceof Error ? error.message : String(error),
+  });
   throw error;
 }

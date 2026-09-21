@@ -51,6 +51,7 @@ jobs:
       - run: npm run format:check
       - run: npm run typecheck
       - run: npm run typecheck:fixtures
+      - run: npm run typecheck:scripts
       - run: npm test
       - run: npm run evidence:check
       - run: npm run acceptance:check
