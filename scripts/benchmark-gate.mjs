@@ -18,9 +18,12 @@ function caseKey(row) {
 /**
  * @param {BenchmarkRow[]} results
  * @param {BenchmarkRow[]} baselineRows
+ * @param {{ allowNew?: boolean }} [options] `allowNew` accepts fixtures the
+ *   baseline lacks, which is how a pull request introduces a fixture before
+ *   the target branch has a row for it.
  * @returns {void}
  */
-export function assertBenchmarkFixtureSet(results, baselineRows) {
+export function assertBenchmarkFixtureSet(results, baselineRows, { allowNew = false } = {}) {
   const actual = results.map(caseKey);
   const baseline = baselineRows.map(caseKey);
   if (new Set(actual).size !== actual.length)
@@ -30,7 +33,7 @@ export function assertBenchmarkFixtureSet(results, baselineRows) {
   const actualKeys = new Set(actual);
   const baselineKeys = new Set(baseline);
   const missing = baseline.filter((key) => !actualKeys.has(key));
-  const extra = actual.filter((key) => !baselineKeys.has(key));
+  const extra = allowNew ? [] : actual.filter((key) => !baselineKeys.has(key));
   if (missing.length || extra.length) {
     throw new Error(
       `benchmark fixture set mismatch (missing: ${missing.join(", ") || "none"}; extra: ${extra.join(", ") || "none"})`,
@@ -161,11 +164,13 @@ export function validateBenchmarkSummary(summary, options = {}) {
 export function checkBenchmarkRegression(results, baseline) {
   validateThresholds(baseline.regression);
   const baselineRows = baseline.results ?? [];
-  assertBenchmarkFixtureSet(results, baselineRows);
+  assertBenchmarkFixtureSet(results, baselineRows, { allowNew: true });
   const trends = [];
   for (const row of results) {
     const previous = baselineRows.find((item) => caseKey(item) === caseKey(row));
-    if (!previous) throw new Error(`benchmark baseline lacks ${caseKey(row)}`);
+    // A fixture the target-branch baseline lacks was added by this change, so
+    // it has no trend yet; the absolute ceilings below still apply to it.
+    if (!previous) continue;
     const elapsedLimit =
       previous.elapsedMs * baseline.regression.elapsedMultiplier +
       baseline.regression.elapsedFloorMs;

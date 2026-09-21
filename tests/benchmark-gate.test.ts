@@ -52,6 +52,17 @@ describe("benchmark regression gate", () => {
     );
   });
 
+  it("accepts a fixture the target baseline lacks as new, without a trend", () => {
+    assert.doesNotThrow(() =>
+      assertBenchmarkFixtureSet([row("a", 1), row("b", 1)], [row("a", 1)], { allowNew: true }),
+    );
+    assert.throws(
+      () =>
+        assertBenchmarkFixtureSet([row("a", 1)], [row("a", 1), row("b", 1)], { allowNew: true }),
+      /missing: b/,
+    );
+  });
+
   it("validates the emitted benchmark JSON shape", () => {
     assert.equal(validateBenchmarkSummary(summary()).results.length, 1);
     assert.throws(() => validateBenchmarkSummary({ ...summary(), scale: Number.NaN }), /scale/);
