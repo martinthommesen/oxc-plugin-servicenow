@@ -8,8 +8,6 @@
 
 /** Reviewed default used when `fluentSdkVersion` is omitted. */
 export const DEFAULT_FLUENT_SDK_VERSION = "4.11.0";
-/** @deprecated Use {@link DEFAULT_FLUENT_SDK_VERSION}. */
-export const CURRENT_FLUENT_SDK_VERSION = DEFAULT_FLUENT_SDK_VERSION;
 export const LEGACY_FLUENT_SDK_VERSION = "3.0.0";
 export const SDK_4_1_FLUENT_SDK_VERSION = "4.1.0";
 export const SDK_4_8_FLUENT_SDK_VERSION = "4.8.0";

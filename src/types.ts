@@ -1,4 +1,3 @@
-import type { Rule } from "@oxlint/plugins";
 import type { ServiceNowRelease } from "./settings/releases.js";
 import type { SURFACE_VALUES } from "./surfaces.js";
 
@@ -130,7 +129,7 @@ export interface ServiceNowSettings {
   fluentSdkVersion?: string;
 }
 
-/** Read-only view returned by the deprecated `getSettings` compatibility API. */
+/** Read-only projection of the authored `ServiceNowSettings` shape. */
 export type ReadonlyServiceNowSettings = Readonly<
   Omit<ServiceNowSettings, "allowedSysIds" | "allowedTables" | "surfaces">
 > & {
@@ -173,8 +172,6 @@ export type ScriptKind =
   | "unknown";
 
 export type { ServiceNowRelease };
-
-export type RuleModule = Rule;
 
 export type Severity = "error" | "warn" | "off";
 

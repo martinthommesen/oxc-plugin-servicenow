@@ -1,5 +1,5 @@
 import type { ServiceNowRelease } from "../settings/releases.js";
-import { SUPPORTED_SERVICENOW_RELEASES } from "../settings/releases.js";
+import { admissibleReleases } from "../settings/releases.js";
 import type { JavaScriptMode, ServiceNowScriptContext } from "../types.js";
 import {
   appliesToInstanceScripts,
@@ -8,16 +8,6 @@ import {
   isServerInstanceContext,
 } from "../context/index.js";
 
-/**
- * ServiceNow JavaScript engine capabilities, keyed by the documentation
- * release whose support table establishes each value.
- *
- * The official feature tables publish ES2021 and ES5 Standards columns, not a
- * Compatibility column. The plugin deliberately applies each ES5 cell to
- * Compatibility mode as package policy and records that basis separately.
- * Release-update entries explicitly documented for all modes are recorded
- * directly and do not use that inference.
- */
 export type FeatureSupport = "supported" | "unsupported" | "disallowed";
 
 export type EngineFeatureId =
@@ -110,16 +100,11 @@ export const ENGINE_FEATURE_EVIDENCE: Readonly<
   }),
 });
 
-export const ENGINE_FEATURE_RELEASES: Readonly<Record<ServiceNowRelease, string>> = Object.freeze({
-  zurich: ENGINE_FEATURE_EVIDENCE.zurich.url,
-  australia: ENGINE_FEATURE_EVIDENCE.australia.url,
-});
-
 function releaseFeature(
   evidence: string,
   es2021: FeatureSupport,
   es5: FeatureSupport,
-  documentedBy: "official-table" | "official-release-update" = "official-table",
+  documentedBy: "official-table" | "official-release-update",
 ): EngineFeatureRelease {
   return Object.freeze({
     evidence,
@@ -128,28 +113,6 @@ function releaseFeature(
       compatibility: "es5-compatibility-policy",
       es5: documentedBy,
       es2021: documentedBy,
-    }),
-  });
-}
-
-function australiaUpdateFeature(
-  id: EngineFeatureId,
-  title: string,
-  input: {
-    readonly zurich: readonly [es2021: FeatureSupport, es5: FeatureSupport];
-    readonly australia: readonly [es2021: FeatureSupport, es5: FeatureSupport];
-  },
-): EngineFeature {
-  return Object.freeze({
-    id,
-    title,
-    releases: Object.freeze({
-      zurich: releaseFeature(AUSTRALIA_ENGINE_UPDATES, ...input.zurich, "official-release-update"),
-      australia: releaseFeature(
-        AUSTRALIA_ENGINE_UPDATES,
-        ...input.australia,
-        "official-release-update",
-      ),
     }),
   });
 }
@@ -188,22 +151,51 @@ function australiaAllModesUpdateFeature(
   });
 }
 
-function feature(
+/** The ES2021 and ES5 Standards cells a release documents for one feature. */
+type FeatureModeCells = {
+  readonly zurich: readonly [es2021: FeatureSupport, es5: FeatureSupport];
+  readonly australia: readonly [es2021: FeatureSupport, es5: FeatureSupport];
+};
+
+function buildFeature(
+  evidence: Readonly<Record<ServiceNowRelease, string>>,
+  documentedBy: "official-table" | "official-release-update",
   id: EngineFeatureId,
   title: string,
-  input: {
-    readonly zurich: readonly [es2021: FeatureSupport, es5: FeatureSupport];
-    readonly australia: readonly [es2021: FeatureSupport, es5: FeatureSupport];
-  },
+  input: FeatureModeCells,
 ): EngineFeature {
   return Object.freeze({
     id,
     title,
     releases: Object.freeze({
-      zurich: releaseFeature(ZURICH, ...input.zurich),
-      australia: releaseFeature(AUSTRALIA, ...input.australia),
+      zurich: releaseFeature(evidence.zurich, ...input.zurich, documentedBy),
+      australia: releaseFeature(evidence.australia, ...input.australia, documentedBy),
     }),
   });
+}
+
+const FEATURE_TABLE_EVIDENCE: Readonly<Record<ServiceNowRelease, string>> = {
+  zurich: ZURICH,
+  australia: AUSTRALIA,
+};
+
+const ENGINE_UPDATE_EVIDENCE: Readonly<Record<ServiceNowRelease, string>> = {
+  zurich: AUSTRALIA_ENGINE_UPDATES,
+  australia: AUSTRALIA_ENGINE_UPDATES,
+};
+
+/** A feature whose cells come from the official capability table. */
+function feature(id: EngineFeatureId, title: string, input: FeatureModeCells): EngineFeature {
+  return buildFeature(FEATURE_TABLE_EVIDENCE, "official-table", id, title, input);
+}
+
+/** A feature whose cells come from the Australia engine-update page. */
+function australiaUpdateFeature(
+  id: EngineFeatureId,
+  title: string,
+  input: FeatureModeCells,
+): EngineFeature {
+  return buildFeature(ENGINE_UPDATE_EVIDENCE, "official-release-update", id, title, input);
 }
 
 function unchanged(
@@ -218,6 +210,16 @@ function unchanged(
   });
 }
 
+/**
+ * ServiceNow JavaScript engine capabilities, keyed by the documentation
+ * release whose support table establishes each value.
+ *
+ * The official feature tables publish ES2021 and ES5 Standards columns, not a
+ * Compatibility column. The plugin deliberately applies each ES5 cell to
+ * Compatibility mode as package policy and records that basis separately.
+ * Release-update entries explicitly documented for all modes are recorded
+ * directly and do not use that inference.
+ */
 export const ENGINE_FEATURES: Readonly<Record<EngineFeatureId, EngineFeature>> = Object.freeze({
   promise: unchanged("promise", "Promise", "supported", "disallowed"),
   "async-await": unchanged("async-await", "async/await", "supported", "disallowed"),
@@ -386,10 +388,6 @@ export const ENGINE_FEATURES: Readonly<Record<EngineFeatureId, EngineFeature>> =
   ),
   "async-iterators": unchanged("async-iterators", "async iteration", "disallowed", "disallowed"),
 });
-
-function admissibleReleases(release: ServiceNowRelease | undefined): readonly ServiceNowRelease[] {
-  return release === undefined ? SUPPORTED_SERVICENOW_RELEASES : [release];
-}
 
 /**
  * Resolve one capability. An omitted release returns a value only when every

@@ -1,50 +1,37 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { classifyFile, surfacesFromFilename } from "../src/context/filename.js";
+import { authoringFromFilename, surfacesFromFilename } from "../src/context/filename.js";
 
 // @lat: [[tests#Context evidence#Filename classification is deterministic]]
-describe("classifyFile", () => {
-  it("classifies Fluent metadata", () => {
-    assert.equal(classifyFile("src/fluent/incident.now.ts", "", {}), "fluent");
+describe("surfacesFromFilename", () => {
+  it("recognizes Fluent metadata as authoring, not a surface", () => {
+    assert.equal(authoringFromFilename("src/fluent/incident.now.ts"), "fluent");
+    assert.equal(authoringFromFilename("incident.br.js"), undefined);
   });
 
-  it("classifies UI Actions before client heuristics", () => {
-    assert.equal(
-      classifyFile("src/ui-actions/close.ui-action.js", "g_form.setValue('x', 1);", {}),
-      "ui-action",
-    );
+  it("keeps a UI Action bare rather than guessing a client surface", () => {
+    assert.deepEqual(surfacesFromFilename("src/ui-actions/close.ui-action.js"), ["ui-action"]);
   });
 
-  it("classifies client scripts from filename or g_form", () => {
-    assert.equal(classifyFile("incident.client.js", "", {}), "client");
-    assert.equal(classifyFile("misc.js", "g_form.setValue('x', 1);", {}), "client");
+  it("recognizes client scripts from the filename", () => {
+    assert.deepEqual(surfacesFromFilename("incident.client.js"), ["client"]);
   });
 
-  it("classifies business rules", () => {
-    assert.equal(classifyFile("incident.br.js", "", {}), "business-rule");
+  it("recognizes business rules", () => {
+    assert.deepEqual(surfacesFromFilename("incident.br.js"), ["business-rule"]);
+    assert.deepEqual(surfacesFromFilename("display-stuff.br.js"), ["business-rule"]);
   });
 
-  it("honours settings.scriptType", () => {
-    assert.equal(classifyFile("misc.js", "", { scriptType: "server" }), "server");
+  it("returns no surface for a name that carries no evidence", () => {
+    assert.deepEqual(surfacesFromFilename("misc.js"), []);
   });
 
-  it("classifies a display Business Rule by filename, not g_scratchpad", () => {
-    assert.equal(
-      classifyFile("display-stuff.br.js", "g_scratchpad.count = 1;", {}),
-      "business-rule",
-    );
-  });
-
-  it("does not treat g_scratchpad alone as a client script", () => {
-    assert.equal(classifyFile("misc.js", "g_scratchpad.x = 1;", {}), "unknown");
-  });
-
-  it("classifies ServiceNow client-script export filenames", () => {
-    assert.equal(classifyFile("sys_script_client_onchange.js", "", {}), "client");
+  it("recognizes ServiceNow client-script export filenames", () => {
+    assert.deepEqual(surfacesFromFilename("sys_script_client_onchange.js"), ["client"]);
   });
 
   it("classifies sys_script.js as a Business Rule", () => {
-    assert.equal(classifyFile("export/sys_script.js", "", {}), "business-rule");
+    assert.deepEqual(surfacesFromFilename("export/sys_script.js"), ["business-rule"]);
     assert.deepEqual(surfacesFromFilename("export/sys_script2.js"), []);
   });
 
@@ -106,17 +93,66 @@ describe("classifyFile", () => {
     assert.deepEqual(surfacesFromFilename("/home/alice/client/app/src/list.js"), []);
   });
 
-  it("lets a Script Include filename beat a g_form mention in a comment", () => {
-    assert.equal(classifyFile("util.si.js", "// mirrors g_form.setValue", {}), "script-include");
+  it("recognizes Script Include filenames", () => {
+    assert.deepEqual(surfacesFromFilename("util.si.js"), ["script-include"]);
   });
 
   it("classifies Windows server paths", () => {
-    assert.equal(classifyFile("src\\server\\thing.js", "", {}), "server");
+    assert.deepEqual(surfacesFromFilename("src\\server\\thing.js"), ["server"]);
   });
 
   it("prefers a specific subtype over a generic server directory", () => {
     assert.deepEqual(surfacesFromFilename("src/server/incident.br.js"), ["business-rule"]);
     assert.deepEqual(surfacesFromFilename("src/server/helper.si.js"), ["script-include"]);
     assert.deepEqual(surfacesFromFilename("src/server/read.acl.js"), ["acl"]);
+    assert.deepEqual(surfacesFromFilename("src/server/nightly.ss.js"), ["scheduled-script"]);
+    assert.deepEqual(surfacesFromFilename("src/server/repair.fix.js"), ["fix-script"]);
+  });
+
+  it("keeps server evidence on a UI Action (FINDINGS.md COR-017)", () => {
+    // The UI Action subtype names a record type, not an execution surface, so
+    // the documented compound suffix composes instead of displacing `server`.
+    for (const filename of [
+      "approve.server.ui-action.js",
+      "approve.server.ui-action.cjs",
+      "approve.server.ui-action.mjs",
+      "approve.server.ui_action.js",
+      "approve.server.ua.js",
+      "approve.ui-action.server.js",
+    ]) {
+      assert.deepEqual(surfacesFromFilename(filename), ["ui-action", "server"], filename);
+    }
+    for (const filename of [
+      "src/server/approve.ui-action.js",
+      "server/approve.ui_action.cjs",
+      "src/server/ui-actions/approve.mjs",
+      "src\\server\\approve.ui-action.js",
+    ]) {
+      assert.deepEqual(surfacesFromFilename(filename), ["ui-action", "server"], filename);
+    }
+    assert.deepEqual(surfacesFromFilename("/proj/src/server/approve.ui-action.js", "/proj"), [
+      "ui-action",
+      "server",
+    ]);
+    // Bare UI Actions stay bare; the mixed client/server form is preserved.
+    assert.deepEqual(surfacesFromFilename("approve.ui-action.js"), ["ui-action"]);
+    assert.deepEqual(surfacesFromFilename("src/ui-actions/approve.js"), ["ui-action"]);
+    assert.deepEqual(surfacesFromFilename("src/server/close.client.ui-action.js"), [
+      "ui-action",
+      "client",
+      "server",
+    ]);
+    // A subtype that cannot compose with a UI Action still refuses.
+    assert.deepEqual(surfacesFromFilename("src/server/approve.ui-action.br.js"), []);
+    assert.deepEqual(surfacesFromFilename("approve.server.ui-action.acl.js"), []);
+    // Outside the project only the basename counts, so the decoy `server/`
+    // segment contributes nothing while the compound suffix still does.
+    assert.deepEqual(surfacesFromFilename("/elsewhere/server/approve.ui-action.js", "/proj"), [
+      "ui-action",
+    ]);
+    assert.deepEqual(surfacesFromFilename("/elsewhere/approve.server.ui-action.js", "/proj"), [
+      "ui-action",
+      "server",
+    ]);
   });
 });

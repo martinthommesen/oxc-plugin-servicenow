@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import {
+  apisByName,
   DEFAULT_FLUENT_MANIFEST,
-  entitiesRequiringId,
   knownDirectiveNames,
   resolveFluentManifest,
 } from "../src/fluent/index.js";
@@ -21,16 +21,6 @@ const DECLARATION_EVIDENCE = JSON.parse(
   >;
 };
 
-function isHttpsServiceNowDocsUrl(evidence: string): boolean {
-  let parsed: URL;
-  try {
-    parsed = new URL(evidence);
-  } catch {
-    return false;
-  }
-  return parsed.protocol === "https:" && parsed.hostname === "www.servicenow.com";
-}
-
 // @lat: [[tests#Fluent manifest#The manifest matches the pinned fixture]]
 describe("Fluent SDK manifest", () => {
   it("includes official directives", () => {
@@ -40,21 +30,18 @@ describe("Fluent SDK manifest", () => {
     assert.ok(names.has("fluent-disable-sync-for-file"));
   });
 
-  it("requires evidence on every API and directive", () => {
+  it("requires evidence and an id requirement on every API and directive", () => {
     for (const api of DEFAULT_FLUENT_MANIFEST.apis) {
       assert.ok(api.evidence.length > 8, `${api.name} is missing evidence`);
       assert.ok(api.name.length > 0);
     }
     for (const directive of DEFAULT_FLUENT_MANIFEST.directives) {
-      assert.ok(isHttpsServiceNowDocsUrl(directive.evidence), `${directive.name} evidence`);
+      assert.ok(isAllowedFluentEvidenceLocation(directive.evidence), `${directive.name} evidence`);
     }
-  });
-
-  it("requires $id on BusinessRule and not on Table", () => {
-    const required = entitiesRequiringId();
-    assert.ok(required.has("BusinessRule"));
-    assert.ok(required.has("ClientScript"));
-    assert.equal(required.has("Table"), false);
+    const apis = apisByName();
+    assert.equal(apis.get("BusinessRule")?.idRequirement, "required");
+    assert.equal(apis.get("ClientScript")?.idRequirement, "required");
+    assert.notEqual(apis.get("Table")?.idRequirement, "required");
   });
 
   it("does not force Flow onto @servicenow/sdk/core", () => {

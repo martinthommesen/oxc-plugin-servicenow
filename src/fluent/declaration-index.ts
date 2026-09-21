@@ -1,7 +1,3 @@
-import { FLUENT_DECLARATION_SNAPSHOTS } from "./declaration-snapshots.js";
-import { SUPPORTED_FLUENT_SDK_VERSIONS } from "./sdk-versions.js";
-import type { DeclarationSnapshot } from "./snapshot-types.js";
-
 /**
  * Queries over the declaration snapshots.
  *
@@ -9,9 +5,12 @@ import type { DeclarationSnapshot } from "./snapshot-types.js";
  * registry needs, so callers do not depend on the generated record shape.
  */
 
+import { FLUENT_DECLARATION_SNAPSHOTS } from "./declaration-snapshots.js";
+import { SUPPORTED_FLUENT_SDK_VERSIONS } from "./sdk-versions.js";
+import type { DeclarationIdPolicy, DeclarationSnapshot } from "./snapshot-types.js";
+
 const snapshots: Readonly<Record<string, DeclarationSnapshot>> = FLUENT_DECLARATION_SNAPSHOTS;
 
-/** Whether a declaration snapshot exists for `sdkVersion`. */
 export function hasDeclarationSnapshot(sdkVersion: string): boolean {
   return snapshots[sdkVersion] !== undefined;
 }
@@ -20,15 +19,12 @@ export function hasDeclarationSnapshot(sdkVersion: string): boolean {
 export function declaredIdPolicy(
   sdkVersion: string,
   name: string,
-): DeclarationSnapshot["idPolicy"][string] | undefined {
+): DeclarationIdPolicy | undefined {
   return snapshots[sdkVersion]?.idPolicy[name];
 }
 
 /** The first reviewed version whose declarations assign `name` this id policy. */
-export function firstPolicyIn(
-  name: string,
-  policy: DeclarationSnapshot["idPolicy"][string],
-): string | undefined {
+export function firstPolicyIn(name: string, policy: DeclarationIdPolicy): string | undefined {
   return SUPPORTED_FLUENT_SDK_VERSIONS.find(
     (version) => snapshots[version]?.idPolicy[name] === policy,
   );

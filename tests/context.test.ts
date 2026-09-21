@@ -1,12 +1,31 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { Context } from "@oxlint/plugins";
-import { applyRules } from "./helpers/apply-rules.js";
 import { resolveScriptContext } from "../src/context/resolve.js";
 import { validateServiceNowSettings, ServiceNowSettingsError } from "../src/settings/index.js";
 import { SUPPORTED_SERVICENOW_RELEASES } from "../src/settings/releases.js";
-import { classifyFile } from "../src/context/filename.js";
-import { assertInvalid, assertValid, ES2021, lint, parse } from "./helpers/rule-tester.js";
+import { assertInvalid, assertSkipped, assertValid, ES2021, lint } from "./helpers/rule-tester.js";
+
+/**
+ * A minimal host context for `resolveScriptContext`. `sourceCode` is passed
+ * through unchanged so a case can model a host that supplies no comment
+ * tokens at all by omitting `getAllComments`.
+ */
+function fakeContext(
+  filename: string,
+  settings?: Record<string, unknown>,
+  sourceCode: { text: string; getAllComments?: () => Array<{ value: string }> } = {
+    text: "",
+    getAllComments: () => [],
+  },
+): Context {
+  return {
+    filename,
+    settings: settings ? { servicenow: settings } : {},
+    sourceCode,
+    options: [],
+  } as unknown as Context;
+}
 
 describe("settings validation", () => {
   it("accepts empty settings", () => {
@@ -154,12 +173,7 @@ describe("settings validation", () => {
 
 describe("release and context resolution", () => {
   it("does not reject filename-derived Fluent authoring with classic surfaces", () => {
-    const context = {
-      filename: "client.now.ts",
-      settings: { servicenow: { surfaces: ["client"] } },
-      sourceCode: { text: "", getAllComments: () => [] },
-      options: [],
-    } as unknown as Context;
+    const context = fakeContext("client.now.ts", { surfaces: ["client"] });
     const script = resolveScriptContext(context);
     assert.equal(script.authoring, "classic");
     assert.deepEqual([...script.surfaces], ["client"]);
@@ -185,12 +199,7 @@ describe("release and context resolution", () => {
   });
 
   it("reports the weakest independent context confidence", () => {
-    const context = {
-      filename: "incident.br.js",
-      settings: { servicenow: { javascriptMode: "es2021" } },
-      sourceCode: { text: "", getAllComments: () => [] },
-      options: [],
-    } as unknown as Context;
+    const context = fakeContext("incident.br.js", { javascriptMode: "es2021" });
     const script = resolveScriptContext(context);
     assert.equal(script.sources.surfaces, "filename");
     assert.equal(script.sources.javascriptMode, "explicit");
@@ -200,27 +209,19 @@ describe("release and context resolution", () => {
   });
 
   it("does not infer a pragma without parser comment tokens", () => {
-    const context = {
-      filename: "incident.br.js",
-      settings: {},
-      sourceCode: { text: "// @servicenow-es-latest" },
-      options: [],
-    } as unknown as Context;
+    const context = fakeContext("incident.br.js", undefined, {
+      text: "// @servicenow-es-latest",
+    });
     const script = resolveScriptContext(context);
     assert.equal(script.javascriptMode, "unknown");
     assert.equal(script.sources.javascriptMode, "unknown");
   });
 
   it("ignores the retired @sn-es-latest pragma (FINDINGS.md FEAT-002)", () => {
-    const context = {
-      filename: "incident.br.js",
-      settings: {},
-      sourceCode: {
-        text: "// @sn-es-latest\nPromise.resolve(1);",
-        getAllComments: () => [{ value: " @sn-es-latest" }],
-      },
-      options: [],
-    } as unknown as Context;
+    const context = fakeContext("incident.br.js", undefined, {
+      text: "// @sn-es-latest\nPromise.resolve(1);",
+      getAllComments: () => [{ value: " @sn-es-latest" }],
+    });
     const script = resolveScriptContext(context);
     assert.equal(script.javascriptMode, "unknown");
     assert.equal(script.sources.javascriptMode, "unknown");
@@ -228,12 +229,13 @@ describe("release and context resolution", () => {
   });
 });
 
-describe("classifyFile compatibility", () => {
-  it("still classifies UI Actions before client heuristics", () => {
-    assert.equal(
-      classifyFile("src/ui-actions/close.ui-action.js", "g_form.setValue('x', 1);", {}),
-      "ui-action",
-    );
+describe("filename surface evidence", () => {
+  it("keeps a UI Action bare before client AST evidence is available", () => {
+    const context = fakeContext("src/ui-actions/close.ui-action.js", undefined, {
+      text: "g_form.setValue('x', 1);",
+      getAllComments: () => [],
+    });
+    assert.deepEqual([...resolveScriptContext(context).surfaces], ["ui-action"]);
   });
 
   it("recognizes record-type directories", () => {
@@ -246,13 +248,7 @@ describe("classifyFile compatibility", () => {
       ["src/access-controls/read.js", "acl"],
     ] as const;
     for (const [filename, expected] of cases) {
-      const context = {
-        filename,
-        settings: {},
-        sourceCode: { text: "", getAllComments: () => [] },
-        options: [],
-      } as unknown as Context;
-      assert.deepEqual([...resolveScriptContext(context).surfaces], [expected]);
+      assert.deepEqual([...resolveScriptContext(fakeContext(filename)).surfaces], [expected]);
     }
   });
 
@@ -262,14 +258,30 @@ describe("classifyFile compatibility", () => {
       ["src/server/helper.si.js", "script-include"],
       ["src/server/read.acl.js", "acl"],
     ] as const) {
-      const context = {
-        filename,
-        settings: {},
-        sourceCode: { text: "", getAllComments: () => [] },
-        options: [],
-      } as unknown as Context;
-      assert.deepEqual([...resolveScriptContext(context).surfaces], [expected]);
+      assert.deepEqual([...resolveScriptContext(fakeContext(filename)).surfaces], [expected]);
     }
+  });
+
+  // @lat: [[tests#Context evidence#Explicit server naming survives for UI Actions]]
+  it("resolves a server UI Action to both surfaces (FINDINGS.md COR-017)", () => {
+    for (const filename of [
+      "approve.server.ui-action.js",
+      "approve.server.ui_action.cjs",
+      "src/server/approve.ui-action.mjs",
+    ]) {
+      const script = resolveScriptContext(fakeContext(filename));
+      assert.deepEqual([...script.surfaces], ["ui-action", "server"], filename);
+      assert.equal(script.sources.surfaces, "filename", filename);
+    }
+  });
+
+  it("lets explicit surfaces override a server UI Action filename", () => {
+    const context = fakeContext("approve.server.ui-action.js", {
+      surfaces: ["ui-action", "client"],
+    });
+    const script = resolveScriptContext(context);
+    assert.deepEqual([...script.surfaces], ["ui-action", "client"]);
+    assert.equal(script.sources.surfaces, "explicit");
   });
 });
 
@@ -459,7 +471,7 @@ gr.next();`,
 
   it("keeps surface rules silent when only JavaScript mode is known", () => {
     const settings = { javascriptMode: "es5" as const };
-    assertValid("gs.now();", "no-gs-now", { filename: "plain.js", settings });
+    assertSkipped("gs.now();", "no-gs-now", { filename: "plain.js", settings });
     assertValid('var gr = new GlideRecord("incident"); gr.next();', "require-query-before-next", {
       filename: "plain.js",
       settings,
@@ -470,13 +482,5 @@ gr.next();`,
       { messageId: "staticMethod" },
       { filename: "plain.js", settings },
     );
-  });
-});
-
-describe("applyRules still loads the plugin", () => {
-  it("runs a rule against parsed source", () => {
-    const parsed = parse("var x = 1;", "test.js");
-    const messages = applyRules("var x = 1;", parsed, { ruleNames: ["no-hardcoded-sysid"] });
-    assert.equal(messages.length, 0);
   });
 });

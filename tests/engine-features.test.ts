@@ -1,11 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import {
-  ENGINE_FEATURES,
-  ENGINE_FEATURE_EVIDENCE,
-  ENGINE_FEATURE_RELEASES,
-  featureSupport,
-} from "../src/engine/index.js";
+import { ENGINE_FEATURES, ENGINE_FEATURE_EVIDENCE, featureSupport } from "../src/engine/index.js";
 import { SUPPORTED_SERVICENOW_RELEASES } from "../src/settings/index.js";
 
 describe("ServiceNow engine feature matrix", () => {
@@ -28,7 +23,7 @@ describe("ServiceNow engine feature matrix", () => {
       "date-fraction-digits",
     ]);
     assert.deepEqual(SUPPORTED_SERVICENOW_RELEASES, ["zurich", "australia"]);
-    assert.deepEqual(Object.keys(ENGINE_FEATURE_RELEASES), SUPPORTED_SERVICENOW_RELEASES);
+    assert.deepEqual(Object.keys(ENGINE_FEATURE_EVIDENCE), SUPPORTED_SERVICENOW_RELEASES);
     for (const spec of Object.values(ENGINE_FEATURES)) {
       assert.deepEqual(Object.keys(spec.releases), SUPPORTED_SERVICENOW_RELEASES, spec.id);
       for (const cell of Object.values(spec.releases)) {
@@ -47,7 +42,7 @@ describe("ServiceNow engine feature matrix", () => {
       }
     }
     assert.deepEqual(ENGINE_FEATURE_EVIDENCE.australia, {
-      url: ENGINE_FEATURE_RELEASES.australia,
+      url: "https://www.servicenow.com/docs/r/api-reference/scripts/javascript-engine-feature-support.html",
       officialReleaseLabel: "Australia",
       officialUpdatedAt: "2026-03-12",
       reviewedAt: "2026-08-22",

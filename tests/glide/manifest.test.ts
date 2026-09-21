@@ -50,35 +50,35 @@ describe("GlideRecord method manifest", () => {
       GLIDE_RECORD_METHODS.some((entry) => entry.name === "getAsync"),
       false,
     );
-    assert.equal(anyScope.possibleExecutors.has("getAsync"), false);
-    assert.equal(anyScope.possibleExecutors.has("query"), true);
-    assert.equal(anyScope.possibleExecutors.has("_query"), true);
-    assert.equal(anyScope.possibleExecutors.has("queryNoDomain"), true);
-    assert.equal(anyScope.possibleExecutors.has("get"), true);
-    assert.equal(anyScope.cursorAdvancers.has("next"), true);
-    assert.equal(anyScope.cursorAdvancers.has("_next"), true);
+    assert.equal(anyScope.byKind.GlideRecord.possibleExecutors.has("getAsync"), false);
+    assert.equal(anyScope.byKind.GlideRecord.possibleExecutors.has("query"), true);
+    assert.equal(anyScope.byKind.GlideRecord.possibleExecutors.has("_query"), true);
+    assert.equal(anyScope.byKind.GlideRecord.possibleExecutors.has("queryNoDomain"), true);
+    assert.equal(anyScope.byKind.GlideRecord.possibleExecutors.has("get"), true);
+    assert.equal(anyScope.byKind.GlideRecord.cursorAdvancers.has("next"), true);
+    assert.equal(anyScope.byKind.GlideRecord.cursorAdvancers.has("_next"), true);
   });
 
   it("selects capabilities by exact scope and release", () => {
     const scoped = resolveGlideCapabilities({ scope: "scoped", release: "zurich" });
     const global = resolveGlideCapabilities({ scope: "global", release: "zurich" });
     const unknown = resolveGlideCapabilities({ scope: "unknown", release: "zurich" });
-    assert.equal(scoped.executors.has("query"), true);
-    assert.equal(scoped.executors.has("_query"), true);
-    assert.equal(scoped.executors.has("queryNoDomain"), false);
-    assert.equal(scoped.executors.has("getAsync"), false);
-    assert.equal(global.executors.has("_query"), true);
-    assert.equal(global.executors.has("queryNoDomain"), true);
-    assert.equal(global.executors.has("getAsync"), false);
-    assert.equal(unknown.executors.has("_query"), true);
-    assert.equal(unknown.executors.has("queryNoDomain"), false);
-    assert.equal(unknown.possibleExecutors.has("queryNoDomain"), true);
-    assert.equal(unknown.executors.has("getAsync"), false);
+    assert.equal(scoped.byKind.GlideRecord.executors.has("query"), true);
+    assert.equal(scoped.byKind.GlideRecord.executors.has("_query"), true);
+    assert.equal(scoped.byKind.GlideRecord.executors.has("queryNoDomain"), false);
+    assert.equal(scoped.byKind.GlideRecord.executors.has("getAsync"), false);
+    assert.equal(global.byKind.GlideRecord.executors.has("_query"), true);
+    assert.equal(global.byKind.GlideRecord.executors.has("queryNoDomain"), true);
+    assert.equal(global.byKind.GlideRecord.executors.has("getAsync"), false);
+    assert.equal(unknown.byKind.GlideRecord.executors.has("_query"), true);
+    assert.equal(unknown.byKind.GlideRecord.executors.has("queryNoDomain"), false);
+    assert.equal(unknown.byKind.GlideRecord.possibleExecutors.has("queryNoDomain"), true);
+    assert.equal(unknown.byKind.GlideRecord.executors.has("getAsync"), false);
     assert.equal(unknown.knownMethods.has("queryNoDomain"), true);
-    assert.equal(scoped.cursorAdvancers.has("_next"), true);
-    assert.equal(global.cursorAdvancers.has("_next"), true);
+    assert.equal(scoped.byKind.GlideRecord.cursorAdvancers.has("_next"), true);
+    assert.equal(global.byKind.GlideRecord.cursorAdvancers.has("_next"), true);
     assert.equal(resolveGlideCapabilities({ scope: "scoped", release: "zurich" }), scoped);
-    assert.equal("add" in scoped.executors, false);
+    assert.equal("add" in scoped.byKind.GlideRecord.executors, false);
   });
 
   it("keeps Australia capabilities exact and omission release-conservative", () => {
@@ -87,12 +87,12 @@ describe("GlideRecord method manifest", () => {
     const omitted = resolveGlideCapabilities({ scope: "unknown" });
     assert.equal(australiaGlobal.release, "australia");
     assert.deepEqual(australiaGlobal.releases, ["australia"]);
-    assert.equal(australiaGlobal.executors.has("queryNoDomain"), true);
-    assert.equal(australiaScoped.executors.has("queryNoDomain"), false);
+    assert.equal(australiaGlobal.byKind.GlideRecord.executors.has("queryNoDomain"), true);
+    assert.equal(australiaScoped.byKind.GlideRecord.executors.has("queryNoDomain"), false);
     assert.equal(omitted.release, undefined);
     assert.deepEqual(omitted.releases, ["zurich", "australia"]);
-    assert.equal(omitted.executors.has("queryNoDomain"), false);
-    assert.equal(omitted.possibleExecutors.has("queryNoDomain"), true);
+    assert.equal(omitted.byKind.GlideRecord.executors.has("queryNoDomain"), false);
+    assert.equal(omitted.byKind.GlideRecord.possibleExecutors.has("queryNoDomain"), true);
   });
 
   it("pins the complete Australia method-name firewall without inventing semantic roles", () => {
@@ -177,29 +177,29 @@ describe("GlideRecord method manifest", () => {
       supportedScopes: ["global"],
       releases: ["zurich", "australia"],
     });
-    assert.equal(anyScope.systemBypass.has("queryNoDomain"), false);
+    assert.equal(anyScope.byKind.GlideRecord.systemBypass.has("queryNoDomain"), false);
   });
 
   it("lists only documented ACL-bypass methods", () => {
-    assert.deepEqual([...anyScope.systemBypass].sort(), [
+    assert.deepEqual([...anyScope.byKind.GlideRecord.systemBypass].sort(), [
       "addSystemEncodedQuery",
       "addSystemOrderBy",
       "addSystemOrderByDesc",
       "addSystemQuery",
     ]);
-    assert.equal(anyScope.systemBypass.has("addSystemFoo"), false);
-    assert.equal(anyScope.systemBypass.has("addQuery"), false);
+    assert.equal(anyScope.byKind.GlideRecord.systemBypass.has("addSystemFoo"), false);
+    assert.equal(anyScope.byKind.GlideRecord.systemBypass.has("addQuery"), false);
   });
 
   it("treats user and system query builders as filters", () => {
-    assert.equal(anyScope.filters.has("addUserQuery"), true);
-    assert.equal(anyScope.filters.has("addUserEncodedQuery"), true);
-    assert.equal(anyScope.filters.has("addSystemQuery"), true);
-    assert.equal(anyScope.filters.has("query"), false);
-    assert.equal(anyScope.filters.has("orderBy"), false);
-    assert.equal(anyScope.filters.has("setLimit"), false);
-    assert.equal(anyScope.filters.has("chooseWindow"), false);
-    assert.equal(anyScope.filters.has("addInactiveQuery"), false);
+    assert.equal(anyScope.byKind.GlideRecord.filters.has("addUserQuery"), true);
+    assert.equal(anyScope.byKind.GlideRecord.filters.has("addUserEncodedQuery"), true);
+    assert.equal(anyScope.byKind.GlideRecord.filters.has("addSystemQuery"), true);
+    assert.equal(anyScope.byKind.GlideRecord.filters.has("query"), false);
+    assert.equal(anyScope.byKind.GlideRecord.filters.has("orderBy"), false);
+    assert.equal(anyScope.byKind.GlideRecord.filters.has("setLimit"), false);
+    assert.equal(anyScope.byKind.GlideRecord.filters.has("chooseWindow"), false);
+    assert.equal(anyScope.byKind.GlideRecord.filters.has("addInactiveQuery"), false);
   });
 
   it("resolves GlideAggregate query roles by receiver kind, not by string literal", () => {
@@ -211,10 +211,10 @@ describe("GlideRecord method manifest", () => {
     assert.equal(aggregate.executors.has("addAggregate"), false);
     assert.equal(aggregate.executors.has("getAggregate"), false);
     assert.deepEqual([...aggregate.filters], []);
-    // The GlideRecord answer is unchanged and still the flat sets' source.
-    assert.equal(anyScope.executors.has("query"), true);
-    assert.equal(anyScope.executors.has("get"), true);
-    assert.equal(anyScope.executors.has("next"), false);
+    // The GlideRecord answer is unchanged.
+    assert.equal(anyScope.byKind.GlideRecord.executors.has("query"), true);
+    assert.equal(anyScope.byKind.GlideRecord.executors.has("get"), true);
+    assert.equal(anyScope.byKind.GlideRecord.executors.has("next"), false);
   });
 
   it("cites only reviewed GlideAggregate pages", () => {
