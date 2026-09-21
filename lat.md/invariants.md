@@ -62,7 +62,7 @@ The engine rows are pinned separately: `tests/australia-engine-updates.test.ts` 
 
 Release artifacts are frozen before validation executes registry-installed package code, and privileged jobs consume only artifacts from the earlier trusted job.
 
-The release workflow builds and uploads one tarball before the consumer matrix runs. Recovery fetches and uploads the npm tarball in a read-only job, verifies package installation and imports in a separate read-only job, and lets the contents-write job consume only the original artifact.
+The release workflow builds and uploads one tarball before the consumer matrix runs. Recovery fetches and uploads the npm tarball in a read-only job, verifies package installation and imports in a separate read-only job that runs the verifier from the default branch and treats the released commit as an input, and lets the contents-write job consume only the original artifact.
 
 ## The release and SDK axes never mix
 
