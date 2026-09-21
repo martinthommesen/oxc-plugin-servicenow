@@ -8,7 +8,6 @@
 
 ### Changed
 
-- The `oxlint` peer range narrows from `>=1.83.0 <2` to `>=1.83.0 <1.84.0` and the `oxfmt` peer range from `>=0.68.0 <1` to `>=0.68.0 <0.69.0`, matching the tested compatibility cells (FINDINGS.md OPS-011). Consumers on untested versions now get a resolution warning instead of silent behavior drift; ranges widen again as the nightly top-of-range advisory proves each version.
 - The compatibility page states that parser cells on ESLint 10 require `typescript-eslint` 8.56.0 or later; peer ranges cannot express the conditional, so the matrix check enforces it per cell.
 
 ### Fixed
@@ -29,7 +28,7 @@
 - `servicenow/validate-gliderecord-calls` (FINDINGS.md REM-001). The rule file, catalog entry, and generated rule page are gone. Use `servicenow/require-query-before-next` for cursor sequencing; the alias's unused-insert/update/deleteRecord/get/next return checking (`unusedReturn`) has no surviving rule and is dropped.
 - `AnalysisProvenance.queryState`, `windowed`, `sysparmName`, and `aggregates`, with the `QueryState` type (FINDINGS.md API-002). The fields were never computed and always carried their defaults. Use the rules that compute the real lifecycle facts (`require-query-before-next` and the windowing, aggregate, and GlideAjax rules).
 - The `// @sn-es-latest` pragma (FINDINGS.md FEAT-002). Pragma-only files now resolve `unknown` JavaScript mode instead of `es2021`. Set `settings.servicenow.javascriptMode` explicitly. `scriptType` and `ecmaLatest` stay supported with their deprecations.
-- The oxlint peer floor below 1.83.0 and the oxfmt peer floor below 0.68.0. Peers are now `oxlint >=1.83.0 <2` and `oxfmt >=0.68.0 <1`, matching the tested compatibility cells.
+- The oxlint peer floor below 1.83.0 and the oxfmt peer floor below 0.68.0. Peers are now `oxlint >=1.83.0 <1.84.0` and `oxfmt >=0.68.0 <0.69.0`, exactly the tested compatibility cells (FINDINGS.md OPS-011). A consumer on an untested minor line gets a peer-resolution warning instead of silent behavior drift; ranges widen as the nightly top-of-range advisory proves each version.
 
 ### Added
 

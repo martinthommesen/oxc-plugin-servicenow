@@ -18,14 +18,17 @@ end-of-life in April 2026. The lowest tested host moves from 20.19.0 to
 
 ## 2. Upgrade the oxlint and oxfmt peers
 
-- `oxlint` peer: `>=1.79.0 <2` becomes `>=1.83.0 <2`.
-- `oxfmt` peer: `>=0.64.0 <1` becomes `>=0.68.0 <1`.
+- `oxlint` peer: `>=1.79.0 <2` becomes `>=1.83.0 <1.84.0`.
+- `oxfmt` peer: `>=0.64.0 <1` becomes `>=0.68.0 <0.69.0`.
 - `eslint` (`>=9.0.0 <11`) and `typescript-eslint` (`>=8.0.0 <9`) ranges
   are unchanged.
 
-Run `npm install oxlint@^1.83.0 oxfmt@^0.68.0` (or the equivalent for your
-package manager) in every consumer. The 1.83/0.68 pair is the tested
-minimum; newer 1.x/0.x releases stay accepted.
+Run `npm install oxlint@~1.83.0 oxfmt@~0.68.0` (or the equivalent for your
+package manager) in every consumer. The peer ranges admit only the tested
+minor lines: oxlint 1.83.x and oxfmt 0.68.x. A newer minor resolves as a
+peer conflict until its cell is tested and the range is widened in a later
+release. [docs/compatibility.md](./compatibility.md) is the maintained list
+of declared ranges and tested cells.
 
 ## 3. Drop `servicenow/validate-gliderecord-calls` from configs
 

@@ -598,7 +598,7 @@ These are platform limits, not bugs in this package:
 3.0.0 raises the supported toolchains and removes the three deprecations announced through 2.x. Follow [docs/migration-3.0.md](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/migration-3.0.md):
 
 1. Run on Node.js 22.12.0 or later (Node.js 20 is end-of-life).
-2. Upgrade the `oxlint` peer to `>=1.83.0` and the `oxfmt` peer to `>=0.68.0`.
+2. Upgrade the `oxlint` peer to `>=1.83.0 <1.84.0` and the `oxfmt` peer to `>=0.68.0 <0.69.0`.
 3. Replace `servicenow/validate-gliderecord-calls` with `servicenow/require-query-before-next`; unused-return checking is dropped.
 4. Stop reading `AnalysisProvenance.queryState`, `windowed`, `sysparmName`, `aggregates`, and the `QueryState` type.
 5. Replace `// @sn-es-latest` comments with explicit `settings.servicenow.javascriptMode`.
