@@ -74,7 +74,7 @@ Freezing covers cyclic objects, and the shared empty default is never mutable. K
 
 `scripts/**/*.mjs` modules carry JSDoc types and no separate declaration file may exist. `tsconfig.scripts.json` runs the strict `checkJs` project over them, and `npm run typecheck:scripts` sits in the validate chain (FINDINGS.md MNT-005).
 
-TypeScript imports of script helpers resolve the JSDoc types directly. `scripts/check-script-paths.mjs` separately requires every script under `scripts/` to be tracked in Git. Scripts share [[scripts/lib/repo.mjs#root]] instead of re-deriving the repository root from `import.meta.url`.
+TypeScript imports of script helpers resolve the JSDoc types directly. `scripts/check-script-paths.mjs` separately requires every script under `scripts/` to be tracked in Git. Scripts share the `root` export of `scripts/lib/repo.mjs` instead of re-deriving the repository root from `import.meta.url`.
 
 ## Declared ranges match tested cells
 
