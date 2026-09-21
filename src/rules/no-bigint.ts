@@ -1,10 +1,9 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
-import { findStablePlatformConstructorCalls } from "../analysis/internal.js";
 import { beginRuleFile } from "./helpers.js";
 import { shouldDiagnoseFeature } from "../engine/index.js";
-import { isUnsupportedGlobalInvocationProtected } from "./unsupported-constructor-rule.js";
+import { findUnprotectedGlobalInvocations } from "./unsupported-constructor-rule.js";
 
 const NAMES = ["BigInt"] as const;
 
@@ -25,7 +24,7 @@ export const noBigint = defineRule({
   createOnce(context) {
     return {
       before() {
-        const { context: script } = beginRuleFile(context);
+        const { script } = beginRuleFile(context);
         if (!shouldDiagnoseFeature(script, "bigint")) return false;
         return undefined;
       },
@@ -40,17 +39,9 @@ export const noBigint = defineRule({
         }
       },
       Program(node) {
-        const { analysis, file } = beginRuleFile(context);
-        for (const finding of findStablePlatformConstructorCalls({
-          program: node as ESTree.Node,
-          analysis,
-          bindingWrites: file.bindingWrites,
-          mutations: file.mutations,
+        for (const finding of findUnprotectedGlobalInvocations(context, node as ESTree.Node, {
           names: NAMES,
-          namespaces: ["globalThis"],
-          mutationSemantics: "callable",
         })) {
-          if (isUnsupportedGlobalInvocationProtected(context, finding)) continue;
           context.report({ node: finding.node, messageId: "ctor" });
         }
       },

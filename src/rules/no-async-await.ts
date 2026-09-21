@@ -22,7 +22,7 @@ export const noAsyncAwait = defineRule({
   createOnce(context) {
     return {
       before() {
-        const { context: script } = beginRuleFile(context);
+        const { script } = beginRuleFile(context);
         if (!shouldDiagnoseFeature(script, "async-await")) return false;
         return undefined;
       },

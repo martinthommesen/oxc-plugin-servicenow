@@ -1,7 +1,6 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
-import { getAncestors } from "../analysis/internal.js";
-import { isProvenNowIdValue } from "../analysis/now-id.js";
+import { getAncestors, isProvenNowIdValue } from "../analysis/internal.js";
 import { ruleDocsUrl } from "../constants.js";
 import { getStringValue, objectProperty } from "../utils/ast.js";
 import { isFluentContext } from "../context/index.js";
@@ -39,13 +38,13 @@ export const requireFluentId = defineRule({
 
     return {
       before() {
-        const { context: script } = beginRuleFile(context);
+        const { script } = beginRuleFile(context);
         if (!isFluentContext(script)) return false;
         preferNowId = parseRuleOptions(requireFluentIdOptions, context.options).preferNowId;
         return undefined;
       },
       CallExpression(node) {
-        const { file, analysis } = beginRuleFile(context);
+        const file = beginRuleFile(context);
         const call = node as ESTree.CallExpression;
         const ancestors = getAncestors(context, call);
         const capability = file.fluent.resolveFactory(call.callee, ancestors);
@@ -71,7 +70,7 @@ export const requireFluentId = defineRule({
         }
 
         if (!preferNowId) return;
-        if (isProvenNowIdValue(value, analysis, file.nowIdAt)) return;
+        if (isProvenNowIdValue(value, file.provenance, file.nowIdAt)) return;
         const kind = literal != null ? "string" : value.type === "Literal" ? "literal" : "value";
         context.report({ node: value, messageId: "preferNowId", data: { kind } });
       },

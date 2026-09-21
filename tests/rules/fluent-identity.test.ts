@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { assertInvalid, assertValid } from "../helpers/rule-tester.js";
+import { assertInvalid, assertValid, assertValidActive } from "../helpers/rule-tester.js";
 import { ServiceNowSettingsError, validateServiceNowSettings } from "../../src/settings/index.js";
 
 const NOW = { filename: "file.now.ts" };
@@ -163,12 +163,12 @@ describe("Fluent factory binding identity", () => {
   });
 
   it("ignores a local function with the same name", () => {
-    assertValid(
+    assertValidActive(
       `function BusinessRule(config) { return config; }\nBusinessRule({ name: "Local helper" });`,
       "require-fluent-id",
       NOW,
     );
-    assertValid(
+    assertValidActive(
       `function BusinessRule(config) { return config; }\nBusinessRule({ name: "Local helper" });`,
       "fluent-proper-imports",
       NOW,
@@ -207,6 +207,55 @@ alias = { BusinessRule(config) { return config; } };
 alias.BusinessRule({ name: "local" });`,
       "require-fluent-id",
       { messageId: "missing", count: 1 },
+      NOW,
+    );
+  });
+
+  // @lat: [[tests#Analysis behavior#Initialized var redeclarations are alias writes]]
+  it("treats an initialized var redeclaration as an alias write (FINDINGS.md COR-009)", () => {
+    const head = 'import { BusinessRule } from "@servicenow/sdk/core";\nfunction local() {}';
+    const call = 'T({ name: "x_test", table: "incident" });';
+    const missing = { messageId: "missing" };
+    assertValid(
+      `${head}\nvar T = BusinessRule;\nvar T = local;\n${call}`,
+      "require-fluent-id",
+      NOW,
+    );
+    assertInvalid(
+      `${head}\nvar T = local;\nvar T = BusinessRule;\n${call}`,
+      "require-fluent-id",
+      missing,
+      NOW,
+    );
+    // A bare redeclaration is a runtime no-op in either position.
+    assertInvalid(
+      `${head}\nvar T = BusinessRule;\nvar T;\n${call}`,
+      "require-fluent-id",
+      missing,
+      NOW,
+    );
+    assertInvalid(
+      `${head}\nvar T;\nvar T = BusinessRule;\n${call}`,
+      "require-fluent-id",
+      missing,
+      NOW,
+    );
+    // Conditional and function-scoped redeclarations stay uncertain.
+    assertValid(
+      `${head}\nvar T = BusinessRule;\nif (condition) var T = local;\n${call}`,
+      "require-fluent-id",
+      NOW,
+    );
+    assertValid(
+      `${head}\nvar T = BusinessRule;\nfunction swap() { T = local; }\nswap();\n${call}`,
+      "require-fluent-id",
+      NOW,
+    );
+    // A var inside another function is a different binding, not a redeclaration.
+    assertInvalid(
+      `${head}\nvar T = BusinessRule;\nfunction other() { var T = local; }\n${call}`,
+      "require-fluent-id",
+      missing,
       NOW,
     );
   });
@@ -259,7 +308,7 @@ Record({ $id: id });`,
   });
 
   it("ignores a local Now object", () => {
-    assertValid(
+    assertValidActive(
       `import { BusinessRule } from "@servicenow/sdk/core";
 const Now = { ID: { fake: "local" }, include: function (path) { return path; } };
 BusinessRule({ $id: Now.ID.fake, script: Now.include("./not-sdk.js") });`,
@@ -318,7 +367,7 @@ BusinessRule({ $id: id, name: "dynamic" });`,
   });
 
   it("ignores type-only Now.ID references", () => {
-    assertValid(
+    assertValidActive(
       `const id = Now.ID["type-only"];
 type IdType = typeof id;`,
       "no-now-id-as-reference",

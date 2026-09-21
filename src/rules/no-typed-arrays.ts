@@ -1,24 +1,20 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import {
-  isAvailabilityGuarded,
-  isInvocationAvailabilityGuarded,
-} from "../analysis/availability.js";
-import {
   directPlatformGlobalName,
-  platformGlobalNamespaceAccess,
-  resolvePlatformGlobalName,
-} from "../analysis/globals.js";
-import {
+  isAvailabilityGuarded,
   isDefinitelyNonCallable,
+  isInvocationAvailabilityGuarded,
+  platformGlobalNamespaceAccess,
   resolveConstValue,
   resolveDestructuredConstMember,
+  resolvePlatformGlobalName,
   staticPropertyName,
 } from "../analysis/internal.js";
 import { INVOCATION_HELPERS, ruleDocsUrl, TYPED_ARRAY_CTORS } from "../constants.js";
-import { isFeatureAllowed, shouldDiagnoseFeature } from "../engine/index.js";
+import { shouldDiagnoseFeature } from "../engine/index.js";
 import { isNode, unwrapExpression } from "../utils/ast.js";
-import { beginRuleFile, isPlatformStaticMember } from "./helpers.js";
+import { beginRuleFile, isPlatformStaticMember, platformNamespaceIsSafe } from "./helpers.js";
 
 const ALL = new Set<string>(TYPED_ARRAY_CTORS);
 const BIGINT_ARRAYS = new Set(["BigInt64Array", "BigUint64Array"]);
@@ -46,7 +42,7 @@ export const noTypedArrays = defineRule({
   createOnce(context) {
     return {
       before() {
-        const { context: script } = beginRuleFile(context);
+        const { script } = beginRuleFile(context);
         const es5 = shouldDiagnoseFeature(script, "typed-arrays");
         const factories = shouldDiagnoseFeature(script, "typed-array-factories");
         const bigint = shouldDiagnoseFeature(script, "bigint64-arrays");
@@ -62,70 +58,55 @@ export const noTypedArrays = defineRule({
       },
     };
 
-    function constructorOriginIsSafe(
-      callee: unknown,
-      name: string,
-      cacheKeyPrefix: string,
-    ): boolean {
-      const { analysis, context: script } = beginRuleFile(context);
-      const namespaceAccess = platformGlobalNamespaceAccess(callee, analysis.bindings);
+    function constructorOriginIsSafe(callee: unknown, name: string): boolean {
+      const file = beginRuleFile(context);
+      const { provenance } = file;
+      const namespaceAccess = platformGlobalNamespaceAccess(callee, provenance.bindings);
       const namespaceIsSafe =
-        namespaceAccess === null ||
-        isFeatureAllowed("global-this", script.javascriptMode, script.settings.release) ||
-        isAvailabilityGuarded(
-          context,
-          namespaceAccess,
-          analysis,
-          (node) => directPlatformGlobalName(node, analysis.bindings) === "globalThis",
-          {
-            allowDirectAccessGuard: false,
-            guardCacheKey: "global-this",
-          },
-        );
-      const origin = resolveConstValue(callee, analysis.bindings);
+        namespaceAccess === null || platformNamespaceIsSafe(context, namespaceAccess, file);
+      const origin = resolveConstValue(callee, provenance.bindings);
       const bareOriginIsSafe =
         origin?.type !== "Identifier" ||
-        directPlatformGlobalName(origin, analysis.bindings) !== name ||
+        directPlatformGlobalName(origin, provenance.bindings) !== name ||
         isAvailabilityGuarded(
           context,
           origin,
-          analysis,
-          (node) => directPlatformGlobalName(node, analysis.bindings) === name,
+          provenance,
+          (node) => directPlatformGlobalName(node, provenance.bindings) === name,
           {
             allowDirectAccessGuard: false,
-            guardCacheKey: `no-typed-arrays:${cacheKeyPrefix}:${name}`,
           },
         );
       return namespaceIsSafe && bareOriginIsSafe;
     }
 
     function check(node: ESTree.NewExpression | ESTree.CallExpression) {
-      const { analysis, context: script, file } = beginRuleFile(context);
-      const name = resolvePlatformGlobalName(node.callee, analysis.bindings);
+      const file = beginRuleFile(context);
+      const { provenance } = file;
+      const name = resolvePlatformGlobalName(node.callee, provenance.bindings);
       if (!name || !ALL.has(name)) return;
       if (file.mutations.isGlobalWritten(name)) return;
       const isCtorGuardAccess = (candidate: unknown): boolean => {
-        if (directPlatformGlobalName(candidate, analysis.bindings) === name) return true;
-        const terminal = resolveConstValue(candidate, analysis.bindings);
+        if (directPlatformGlobalName(candidate, provenance.bindings) === name) return true;
+        const terminal = resolveConstValue(candidate, provenance.bindings);
         return Boolean(
           terminal?.type === "MemberExpression" &&
-          resolvePlatformGlobalName(terminal, analysis.bindings) === name,
+          resolvePlatformGlobalName(terminal, provenance.bindings) === name,
         );
       };
       const hasSafeQualifiedOrigin = (candidate: unknown): boolean => {
         return Boolean(
-          resolvePlatformGlobalName(candidate, analysis.bindings) === name &&
-          platformGlobalNamespaceAccess(candidate, analysis.bindings),
+          resolvePlatformGlobalName(candidate, provenance.bindings) === name &&
+          platformGlobalNamespaceAccess(candidate, provenance.bindings),
         );
       };
       if (
-        constructorOriginIsSafe(node.callee, name, "origin") &&
-        isInvocationAvailabilityGuarded(context, node, analysis, isCtorGuardAccess, {
+        constructorOriginIsSafe(node.callee, name) &&
+        isInvocationAvailabilityGuarded(context, node, provenance, isCtorGuardAccess, {
           allowDirectAccessGuard: hasSafeQualifiedOrigin,
-          guardCacheKey: `no-typed-arrays:constructor:${name}`,
           isPropertyExistenceTest: (property, object) =>
             property === name &&
-            resolvePlatformGlobalName(object, analysis.bindings) === "globalThis",
+            resolvePlatformGlobalName(object, provenance.bindings) === "globalThis",
           isOptionalInvocation: (invocation) => {
             if (invocation.type !== "CallExpression" || !invocation.optional) return false;
             return hasSafeQualifiedOrigin(invocation.callee);
@@ -134,56 +115,57 @@ export const noTypedArrays = defineRule({
       ) {
         return;
       }
-      if (BIGINT_ARRAYS.has(name) && shouldDiagnoseFeature(script, "bigint64-arrays")) {
+      if (BIGINT_ARRAYS.has(name) && shouldDiagnoseFeature(file.script, "bigint64-arrays")) {
         context.report({ node, messageId: "bigintCtor", data: { name } });
         return;
       }
-      if (shouldDiagnoseFeature(script, "typed-arrays")) {
+      if (shouldDiagnoseFeature(file.script, "typed-arrays")) {
         context.report({ node, messageId: "ctor", data: { name } });
       }
     }
 
     function checkDataViewGetter(node: ESTree.CallExpression) {
-      const { analysis, context: script, file } = beginRuleFile(context);
-      if (!shouldDiagnoseFeature(script, "dataview-bigint-getters")) return;
+      const file = beginRuleFile(context);
+      const { provenance } = file;
+      if (!shouldDiagnoseFeature(file.script, "dataview-bigint-getters")) return;
       // ES5 already reports the proven DataView constructor. Avoid a second
       // diagnostic for a method on the same unsupported object.
-      if (shouldDiagnoseFeature(script, "typed-arrays")) return;
+      if (shouldDiagnoseFeature(file.script, "typed-arrays")) return;
 
-      let callee = isPlatformStaticMember(node.callee, "Reflect", "apply", analysis)
-        ? resolveConstValue(node.arguments[0], analysis.bindings)
-        : resolveConstValue(node.callee, analysis.bindings);
+      let callee = isPlatformStaticMember(node.callee, "Reflect", "apply", provenance)
+        ? resolveConstValue(node.arguments[0], provenance.bindings)
+        : resolveConstValue(node.callee, provenance.bindings);
       if (
         callee?.type === "MemberExpression" &&
         INVOCATION_HELPERS.has(staticPropertyName(callee) ?? "")
       ) {
-        callee = resolveConstValue(callee.object, analysis.bindings);
+        callee = resolveConstValue(callee.object, provenance.bindings);
       }
 
       const classifyDataViewGetter = (target: unknown, getterName: string) => {
-        const receiver = analysis.trustedExpression(target);
+        const receiver = provenance.trustedExpression(target);
         if (receiver?.kind === "DataView") {
           return { name: getterName, object: target, receiver } as const;
         }
-        const resolved = resolveConstValue(target, analysis.bindings);
+        const resolved = resolveConstValue(target, provenance.bindings);
         if (
           resolved?.type === "MemberExpression" &&
           staticPropertyName(resolved) === "prototype" &&
-          resolvePlatformGlobalName(resolved.object, analysis.bindings) === "DataView"
+          resolvePlatformGlobalName(resolved.object, provenance.bindings) === "DataView"
         ) {
           return { name: getterName, object: resolved, receiver: null } as const;
         }
         return null;
       };
       const getterAccess = (candidate: unknown) => {
-        const value = resolveConstValue(candidate, analysis.bindings);
+        const value = resolveConstValue(candidate, provenance.bindings);
         if (!value) return null;
-        const selected = resolveDestructuredConstMember(value, analysis.bindings);
+        const selected = resolveDestructuredConstMember(value, provenance.bindings);
         if (selected) {
           if (
             !BIGINT_GETTERS.has(selected.property) ||
             (selected.fallback !== null &&
-              !isDefinitelyNonCallable(selected.fallback, analysis.bindings))
+              !isDefinitelyNonCallable(selected.fallback, provenance.bindings))
           ) {
             return null;
           }
@@ -229,8 +211,7 @@ export const noTypedArrays = defineRule({
         return !file.mutations.isObjectPropertyWritten(object, name);
       };
       if (
-        isInvocationAvailabilityGuarded(context, node, analysis, isSameGetterAccess, {
-          guardCacheKey: `no-typed-arrays:getter:${name}`,
+        isInvocationAvailabilityGuarded(context, node, provenance, isSameGetterAccess, {
           isPropertyExistenceTest: (property, object) => property === name && isGetterOwner(object),
           isOptionalInvocation: isOptionalGetterInvocation,
         })
@@ -249,16 +230,17 @@ export const noTypedArrays = defineRule({
     }
 
     function checkStaticFactory(node: ESTree.CallExpression) {
-      const { analysis, context: script, file } = beginRuleFile(context);
-      const callee = resolveConstValue(node.callee, analysis.bindings);
+      const file = beginRuleFile(context);
+      const { provenance } = file;
+      const callee = resolveConstValue(node.callee, provenance.bindings);
       if (callee?.type !== "MemberExpression") return;
       const method = staticPropertyName(callee);
       if (!method || !TYPED_ARRAY_FACTORIES.has(method)) return;
-      const name = resolvePlatformGlobalName(callee.object, analysis.bindings);
+      const name = resolvePlatformGlobalName(callee.object, provenance.bindings);
       if (!name || name === "DataView" || !ALL.has(name)) return;
-      const factoryUnavailable = shouldDiagnoseFeature(script, "typed-array-factories");
+      const factoryUnavailable = shouldDiagnoseFeature(file.script, "typed-array-factories");
       const constructorUnavailable = shouldDiagnoseFeature(
-        script,
+        file.script,
         BIGINT_ARRAYS.has(name) ? "bigint64-arrays" : "typed-arrays",
       );
       if (!factoryUnavailable && !constructorUnavailable) return;
@@ -270,15 +252,14 @@ export const noTypedArrays = defineRule({
       }
 
       const isConstructorAccess = (candidate: unknown): boolean =>
-        resolvePlatformGlobalName(candidate, analysis.bindings) === name;
+        resolvePlatformGlobalName(candidate, provenance.bindings) === name;
       const isFactoryAccess = (candidate: unknown): boolean =>
-        isPlatformStaticMember(candidate, name, method, analysis);
+        isPlatformStaticMember(candidate, name, method, provenance);
       const factoryMethodIsProtected = (): boolean =>
-        isInvocationAvailabilityGuarded(context, node, analysis, isFactoryAccess, {
+        isInvocationAvailabilityGuarded(context, node, provenance, isFactoryAccess, {
           allowDirectAccessGuard: isFactoryAccess,
-          guardCacheKey: `no-typed-arrays:factory-method:${name}:${method}`,
           isPropertyExistenceTest: (property, object) =>
-            property === method && resolvePlatformGlobalName(object, analysis.bindings) === name,
+            property === method && resolvePlatformGlobalName(object, provenance.bindings) === name,
           isOptionalInvocation: (invocation) =>
             invocation.type === "CallExpression" &&
             invocation.optional === true &&
@@ -289,14 +270,13 @@ export const noTypedArrays = defineRule({
       }
       if (
         constructorUnavailable &&
-        constructorOriginIsSafe(callee.object, name, "factory-origin") &&
-        isInvocationAvailabilityGuarded(context, node, analysis, isConstructorAccess, {
+        constructorOriginIsSafe(callee.object, name) &&
+        isInvocationAvailabilityGuarded(context, node, provenance, isConstructorAccess, {
           allowDirectAccessGuard: (candidate) =>
-            platformGlobalNamespaceAccess(candidate, analysis.bindings) !== null,
-          guardCacheKey: `no-typed-arrays:factory:${name}`,
+            platformGlobalNamespaceAccess(candidate, provenance.bindings) !== null,
           isPropertyExistenceTest: (property, object) =>
             property === name &&
-            resolvePlatformGlobalName(object, analysis.bindings) === "globalThis",
+            resolvePlatformGlobalName(object, provenance.bindings) === "globalThis",
         })
       ) {
         return;

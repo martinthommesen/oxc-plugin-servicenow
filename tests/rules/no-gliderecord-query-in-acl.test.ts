@@ -1,8 +1,13 @@
 import { describe, it } from "node:test";
-import { assertInvalid, assertValid } from "../helpers/rule-tester.js";
+import {
+  ACL,
+  assertInvalid,
+  assertSkipped,
+  assertValid,
+  assertValidActive,
+} from "../helpers/rule-tester.js";
 
 const RULE = "no-gliderecord-query-in-acl" as const;
-const ACL = { filename: "incident.acl.js" } as const;
 
 describe("no-gliderecord-query-in-acl", () => {
   it("reports documented GlideRecord query executors", () => {
@@ -128,21 +133,21 @@ load(user);`,
 
   it("stays silent outside a known ACL surface", () => {
     const code = `var user = new GlideRecord("sys_user"); user.query();`;
-    assertValid(code, RULE, { filename: "helper.server.js" });
-    assertValid(code, RULE, { filename: "unknown.js" });
-    assertValid(code, RULE, { filename: "table.now.ts" });
+    assertSkipped(code, RULE, { filename: "helper.server.js" });
+    assertSkipped(code, RULE, { filename: "unknown.js" });
+    assertSkipped(code, RULE, { filename: "table.now.ts" });
   });
 
   it("ignores unrelated and shadowed constructors", () => {
-    assertValid(`var user = { query: function () {} }; user.query();`, RULE, ACL);
-    assertValid(
+    assertValidActive(`var user = { query: function () {} }; user.query();`, RULE, ACL);
+    assertValidActive(
       `function GlideRecord() { this.query = function () {}; }
 var user = new GlideRecord("sys_user");
 user.query();`,
       RULE,
       ACL,
     );
-    assertValid(
+    assertValidActive(
       `function check(GlideAggregate) {
   var count = new GlideAggregate("incident");
   count.query();
@@ -154,21 +159,21 @@ check(LocalAggregate);`,
   });
 
   it("stays silent after reassignment or escape", () => {
-    assertValid(
+    assertValidActive(
       `var user = new GlideRecord("sys_user");
 user = customRecord;
 user.query();`,
       RULE,
       ACL,
     );
-    assertValid(
+    assertValidActive(
       `var user = new GlideRecord("sys_user");
 prepare(user);
 user.query();`,
       RULE,
       ACL,
     );
-    assertValid(
+    assertValidActive(
       `var user = new GlideRecord("sys_user");
 holder.record = user;
 user.query();`,
@@ -178,7 +183,7 @@ user.query();`,
   });
 
   it("skips uncalled, generator, and deferred helper bodies", () => {
-    assertValid(
+    assertValidActive(
       `function load() {
   var user = new GlideRecord("sys_user");
   user.query();
@@ -186,7 +191,7 @@ user.query();`,
       RULE,
       ACL,
     );
-    assertValid(
+    assertValidActive(
       `function* load() {
   var user = new GlideRecord("sys_user");
   user.query();
@@ -195,7 +200,7 @@ load();`,
       RULE,
       ACL,
     );
-    assertValid(
+    assertValidActive(
       `scheduleLater(function () {
   var user = new GlideRecord("sys_user");
   user.query();
@@ -348,25 +353,6 @@ user.getAsync("abc");`,
       RULE,
       ACL,
     );
-  });
-
-  it("suppresses diagnostics after relevant method authority is lost", () => {
-    for (const code of [
-      `GlideRecord = LocalRecord;
-var user = new GlideRecord("sys_user");
-user.query();`,
-      `GlideRecord.prototype.query = localQuery;
-var user = new GlideRecord("sys_user");
-user.query();`,
-      `var user = new GlideRecord("sys_user");
-user.query = localQuery;
-user.query();`,
-      `eval("GlideRecord = LocalRecord");
-var user = new GlideRecord("sys_user");
-user.query();`,
-    ]) {
-      assertValid(code, RULE, ACL);
-    }
   });
 
   it("suppresses current diagnostics after its method authority is lost", () => {

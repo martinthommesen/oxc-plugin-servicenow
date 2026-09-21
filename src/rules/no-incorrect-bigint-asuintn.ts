@@ -92,7 +92,7 @@ export const noIncorrectBigintAsuintn = defineRule({
   createOnce(context) {
     return {
       before() {
-        const { context: script } = beginRuleFile(context);
+        const { script } = beginRuleFile(context);
         if (
           script.javascriptMode !== "es2021" ||
           !shouldDiagnoseFeature(script, "bigint-narrowing")
@@ -102,12 +102,10 @@ export const noIncorrectBigintAsuintn = defineRule({
         return undefined;
       },
       Program(node) {
-        const { analysis, file } = beginRuleFile(context);
+        const file = beginRuleFile(context);
         for (const finding of findStablePlatformStaticMethodCalls({
           program: node as ESTree.Node,
-          analysis,
-          bindingWrites: file.bindingWrites,
-          mutations: file.mutations,
+          file,
           methods: METHODS,
           namespaces: ["globalThis"],
           mutationSemantics: "authority",

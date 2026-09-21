@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { assertInvalid, assertValid, lint } from "../helpers/rule-tester.js";
+import { assertInvalid, assertValidActive, lint } from "../helpers/rule-tester.js";
 
 const RULE = "prefer-glideaggregate" as const;
 
@@ -22,7 +22,7 @@ describe(RULE, () => {
   });
 
   it("allows GlideAggregate", () => {
-    assertValid(
+    assertValidActive(
       `var ga = new GlideAggregate("incident");\nga.addAggregate("COUNT");\nga.query();`,
       RULE,
     );
@@ -45,32 +45,32 @@ while (gr["_next"]()) { n++; }`,
   });
 
   it("does not treat if (gr.next()) as iterate-to-count", () => {
-    assertValid(
+    assertValidActive(
       `var gr = new GlideRecord("incident");\ngr.query();\nif (gr.next()) {\n  gs.info(gr.number);\n}`,
       RULE,
     );
   });
 
   it("requires an actual stable numeric counter proof", () => {
-    assertValid(
+    assertValidActive(
       `var gr = new GlideRecord("incident");
 var n = 0;
 while (gr.next()) {}`,
       RULE,
     );
-    assertValid(
+    assertValidActive(
       `var gr = new GlideRecord("incident");
 var n = 0;
 while (gr.next()) { n += calculateRisk(gr); }`,
       RULE,
     );
-    assertValid(
+    assertValidActive(
       `var gr = new GlideRecord("incident");
 var n = 0;
 while (gr.next()) { n++; gs.info(gr.number); }`,
       RULE,
     );
-    assertValid(
+    assertValidActive(
       `var gr = new GlideRecord("incident");
 var n = 0;
 log(n);
@@ -94,7 +94,7 @@ while (gr.next()) { n += 1; }`,
   });
 
   it("does not flag a loop that reads fields", () => {
-    assertValid(
+    assertValidActive(
       `var gr = new GlideRecord("incident");\ngr.query();\nwhile (gr.next()) {\n  gs.info(gr.number);\n}`,
       RULE,
     );

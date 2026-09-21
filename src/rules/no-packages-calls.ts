@@ -1,5 +1,6 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
+import { getAncestors } from "../analysis/internal.js";
 import { ruleDocsUrl } from "../constants.js";
 import { isMixedUiActionContext, isServerInstanceContext } from "../context/index.js";
 import { getName, isValueReference } from "../utils/ast.js";
@@ -21,25 +22,22 @@ export const noPackagesCalls = defineRule({
   createOnce(context) {
     return {
       before() {
-        const { context: script } = beginRuleFile(context);
+        const { script } = beginRuleFile(context);
         if (!isServerInstanceContext(script) || isMixedUiActionContext(script)) {
           return false;
         }
+        // Per-file facts, so they decline the file rather than re-deciding
+        // per node: the Rhino bridge only exists in classic server scripts,
+        // and an unknown surface is not evidence of one.
+        if (script.authoring !== "classic" || script.sources.surfaces === "unknown") return false;
         return undefined;
       },
       MemberExpression(node) {
-        const { analysis, context: script } = beginRuleFile(context);
+        const { provenance } = beginRuleFile(context);
         const member = node as ESTree.MemberExpression;
         const root = rootIdentifier(member);
-        if (
-          !root ||
-          getName(root) !== "Packages" ||
-          !analysis.isPlatformGlobal(root) ||
-          script.authoring !== "classic" ||
-          script.sources.surfaces === "unknown"
-        )
-          return;
-        const ancestors = context.sourceCode.getAncestors(node as ESTree.Node);
+        if (!root || getName(root) !== "Packages" || !provenance.isPlatformGlobal(root)) return;
+        const ancestors = getAncestors(context, node as ESTree.Node);
         const parent = ancestors[ancestors.length - 1] as ESTree.Node | undefined;
         if (
           parent?.type === "MemberExpression" &&
@@ -50,16 +48,11 @@ export const noPackagesCalls = defineRule({
         context.report({ node, messageId: "packages" });
       },
       Identifier(node) {
-        const { analysis, context: script } = beginRuleFile(context);
-        if (
-          getName(node) !== "Packages" ||
-          !analysis.isPlatformGlobal(node as ESTree.Node) ||
-          script.authoring !== "classic" ||
-          script.sources.surfaces === "unknown"
-        ) {
+        const { provenance } = beginRuleFile(context);
+        if (getName(node) !== "Packages" || !provenance.isPlatformGlobal(node as ESTree.Node)) {
           return;
         }
-        const ancestors = context.sourceCode.getAncestors(node) as ESTree.Node[];
+        const ancestors = getAncestors(context, node as ESTree.Node);
         if (!isValueReference(node as ESTree.Node, [...ancestors, node as ESTree.Node])) return;
         const parent = ancestors[ancestors.length - 1] as ESTree.Node | undefined;
         if (

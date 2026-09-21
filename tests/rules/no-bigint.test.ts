@@ -161,7 +161,7 @@ BigInt(10);`,
   });
 
   it("stays silent under direct-eval uncertainty", () => {
-    assertValid(
+    assertValidActive(
       `eval(source);
 BigInt(10);`,
       RULE,

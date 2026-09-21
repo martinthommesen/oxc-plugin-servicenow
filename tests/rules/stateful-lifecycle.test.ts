@@ -1,9 +1,8 @@
 import { describe, it } from "node:test";
 import { SUPPORTED_SERVICENOW_RELEASES } from "../../src/settings/releases.js";
-import { assertInvalid, assertValid } from "../helpers/rule-tester.js";
+import { assertInvalid, assertValid, assertValidActive } from "../helpers/rule-tester.js";
 
 const SERVER = { filename: "incident.br.js" };
-const CLIENT = { filename: "incident.client.js" };
 
 describe("validate-glideaggregate-calls lifecycle", () => {
   const RULE = "validate-glideaggregate-calls" as const;
@@ -122,7 +121,7 @@ alias.next();`,
   });
 
   it("stays silent after helper escape", () => {
-    assertValid(
+    assertValidActive(
       `var ga = new GlideAggregate("incident");
 prepare(ga);
 ga.getAggregate("COUNT");`,
@@ -178,8 +177,21 @@ gr.deleteMultiple();`,
     );
   });
 
-  it("stays silent for a shadowed undefined filter", () => {
+  it("counts a filter applied through a non-identifier receiver", () => {
+    // `(gr = new GlideRecord(...))` has no object name. The finder used to skip
+    // such calls, losing the filter fact and reporting the bulk operation as
+    // unfiltered.
     assertValid(
+      `var gr;
+(gr = new GlideRecord("task")).addQuery("active", true);
+gr.deleteMultiple();`,
+      RULE,
+      SERVER,
+    );
+  });
+
+  it("stays silent for a shadowed undefined filter", () => {
+    assertValidActive(
       `function run(undefined) {
   var gr = new GlideRecord("task");
   gr.addQuery(undefined);
@@ -191,7 +203,7 @@ gr.deleteMultiple();`,
   });
 
   it("stays silent for a dynamic filter argument", () => {
-    assertValid(
+    assertValidActive(
       `var gr = new GlideRecord("task");
 gr.addQuery(fieldName, value);
 gr.deleteMultiple();`,
@@ -201,7 +213,7 @@ gr.deleteMultiple();`,
   });
 
   it("stays silent after an unknown method follows merged filter state", () => {
-    assertValid(
+    assertValidActive(
       `var gr = new GlideRecord("task");
 if (ready) gr.addQuery("active", true);
 gr.unknownMethod();
@@ -253,7 +265,6 @@ ajax.addParam("sysparm_name");
 ajax.getXMLAnswer(handleAnswer);`,
       RULE,
       { messageId: "emptyValue" },
-      CLIENT,
     );
     assertInvalid(
       `var ajax = new GlideAjax("x_acme.UserLookup");
@@ -261,7 +272,6 @@ ajax.addParam("sysparm_name", "");
 ajax.getXML(handleResponse);`,
       RULE,
       { messageId: "emptyValue" },
-      CLIENT,
     );
     assertInvalid(
       `var ajax = new GlideAjax("x_acme.UserLookup");
@@ -269,7 +279,6 @@ ajax.addParam("sysparm_name", null);
 ajax.getXMLWait();`,
       RULE,
       { messageId: "emptyValue" },
-      CLIENT,
     );
     assertInvalid(
       `var ajax = new GlideAjax("x_acme.UserLookup");
@@ -277,17 +286,15 @@ ajax.addParam("sysparm_name", undefined);
 ajax.getXMLAnswer(handleAnswer);`,
       RULE,
       { messageId: "emptyValue" },
-      CLIENT,
     );
   });
 
   it("stays silent for a dynamic method value", () => {
-    assertValid(
+    assertValidActive(
       `var ajax = new GlideAjax("x_acme.UserLookup");
 ajax.addParam("sysparm_name", methodName);
 ajax.getXMLAnswer(handleAnswer);`,
       RULE,
-      CLIENT,
     );
   });
 
@@ -299,7 +306,6 @@ ajax.addParam("sysparm_name", ${value});
 ajax.getXMLAnswer(handleAnswer);`,
         RULE,
         { messageId: "invalidValue" },
-        CLIENT,
       );
     }
   });
@@ -312,7 +318,6 @@ ajax.addParam(${key});
 ajax.getXMLAnswer(handleAnswer);`,
         RULE,
         { messageId: "missingName" },
-        CLIENT,
       );
     }
   });
@@ -325,7 +330,6 @@ ajax.addParam("sysparm_name", "getManager");
 ajax = {};
 original.getXMLAnswer(handleAnswer);`,
       RULE,
-      CLIENT,
     );
     assertInvalid(
       `var ajax = new GlideAjax("x_acme.UserLookup");
@@ -334,7 +338,6 @@ ajax = {};
 original.getXMLWait();`,
       RULE,
       { messageId: "missingName" },
-      CLIENT,
     );
   });
 
@@ -346,7 +349,6 @@ ajax.getXMLAnswer(handleAnswer);
 ajax.getXMLWait();`,
       RULE,
       { count: 1, messageId: "missingName" },
-      CLIENT,
     );
   });
 });
@@ -676,14 +678,14 @@ gr._next();`,
   });
 
   it("stays silent after an unresolved computed call", () => {
-    assertValid(
+    assertValidActive(
       `var gr = new GlideRecord("incident");
 gr[executor]();
 gr._next();`,
       RULE,
       SERVER,
     );
-    assertValid(
+    assertValidActive(
       `var first = new GlideRecord("incident");
 var original = first;
 var second = new GlideRecord("problem");

@@ -15,6 +15,7 @@ import {
   schemaFromDescriptor,
 } from "../options/index.js";
 import type { NoHardcodedSysIdOptions } from "../options/index.js";
+import { getAncestors } from "../analysis/internal.js";
 import { isInstanceScript } from "../context/index.js";
 import { beginRuleFile } from "./helpers.js";
 import { findSysIds, looksLikeDigestContext, matchSysIds } from "../utils/sysid.js";
@@ -22,7 +23,7 @@ import { findSysIds, looksLikeDigestContext, matchSysIds } from "../utils/sysid.
 export type { NoHardcodedSysIdOptions };
 
 function allowedSet(context: Context, options: NoHardcodedSysIdOptions): Set<string> {
-  const { context: script } = beginRuleFile(context);
+  const { script } = beginRuleFile(context);
   return new Set(
     [...script.settings.allowedSysIds, ...(options.allowedSysIds ?? [])].map((id) =>
       id.toLowerCase(),
@@ -64,7 +65,7 @@ interface StaticSegment {
  * named `md5` does not suppress unrelated constants inside a nested body.
  */
 function valueOwnerName(context: Context, node: ESTree.Node): string | null {
-  const ancestors = context.sourceCode.getAncestors(node) as ESTree.Node[];
+  const ancestors = getAncestors(context, node);
   for (let index = ancestors.length - 1; index >= 0; index -= 1) {
     const ancestor = ancestors[index];
     if (!ancestor) continue;
@@ -75,14 +76,8 @@ function valueOwnerName(context: Context, node: ESTree.Node): string | null {
       const left = unwrapExpression((ancestor as ESTree.AssignmentExpression).left);
       return getName(left) ?? propertyName(left);
     }
-    if (ancestor.type === "Property") {
+    if (ancestor.type === "Property" || ancestor.type === "PropertyDefinition") {
       return propertyKeyName(ancestor as ESTree.ObjectProperty);
-    }
-    if (ancestor.type === "PropertyDefinition") {
-      const field = ancestor as { computed?: boolean; key?: unknown };
-      return field.computed
-        ? getStringValue(field.key)
-        : (getName(field.key) ?? getStringValue(field.key));
     }
     if (ancestor.type === "VariableDeclarator") {
       return getName((ancestor as ESTree.VariableDeclarator).id);
@@ -156,7 +151,7 @@ export const noHardcodedSysid = defineRule({
 
     return {
       before() {
-        const { context: script } = beginRuleFile(context);
+        const { script } = beginRuleFile(context);
         // An ordinary unclassified JavaScript file is not evidence of a
         // ServiceNow script. Keep this rule conservative rather than treating
         // every unrelated 32-hex token as a sys_id.

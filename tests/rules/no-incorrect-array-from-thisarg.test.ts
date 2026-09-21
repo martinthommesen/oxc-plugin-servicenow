@@ -1,9 +1,14 @@
 import { describe, it } from "node:test";
-import { assertInvalid, assertValid } from "../helpers/rule-tester.js";
+import {
+  assertDeclinesNonServerSurfaces,
+  assertInvalid,
+  assertValid,
+  assertValidActive,
+  AUSTRALIA_ES2021,
+  ZURICH_ES2021,
+} from "../helpers/rule-tester.js";
 
 const RULE = "no-incorrect-array-from-thisarg" as const;
-const ZURICH = { javascriptMode: "es2021", release: "zurich" } as const;
-const AUSTRALIA = { javascriptMode: "es2021", release: "australia" } as const;
 
 describe(RULE, () => {
   it("reports explicit primitive mapper this arguments in Zurich", () => {
@@ -21,7 +26,7 @@ describe(RULE, () => {
       `Array.from([], function (value) { return value; }, null);`,
       `Array.from("", function (value) { return value; }, null);`,
     ]) {
-      assertInvalid(code, RULE, { messageId: "primitive" }, { settings: ZURICH });
+      assertInvalid(code, RULE, { messageId: "primitive" }, ZURICH_ES2021);
     }
   });
 
@@ -31,7 +36,7 @@ describe(RULE, () => {
       `Array.from(source, function (value) { "use strict"; return value; }, null);`,
       `Array.from(source, function (value) { return this ? value : value; }, "scope");`,
     ]) {
-      assertInvalid(code, RULE, { messageId: "primitive" }, { settings: ZURICH });
+      assertInvalid(code, RULE, { messageId: "primitive" }, ZURICH_ES2021);
     }
   });
 
@@ -43,7 +48,7 @@ Array.from(source, mapper, null);`,
       `const mapper = function* (value) { return value; };
 Array.from(source, mapper, null);`,
     ]) {
-      assertInvalid(code, RULE, { messageId: "primitive" }, { settings: ZURICH });
+      assertInvalid(code, RULE, { messageId: "primitive" }, ZURICH_ES2021);
     }
   });
 
@@ -62,7 +67,7 @@ Array.from(source, mapper);`,
       `Array.from(source, function (value) { return class extends this.Base {}; });`,
       `Array.from(source, function (value) { return class { [this.key]() {} }; });`,
     ]) {
-      assertInvalid(code, RULE, { messageId: "omitted" }, { settings: ZURICH });
+      assertInvalid(code, RULE, { messageId: "omitted" }, ZURICH_ES2021);
     }
   });
 
@@ -73,7 +78,7 @@ Array.from(source, mapper);`,
       "`use strict`;\nArray.from(source, function (value) { return this.normalize(value); });",
       "function run() {\n  `use strict`;\n  return Array.from(source, function (value) { return this.normalize(value); });\n}\nrun();",
     ]) {
-      assertInvalid(code, RULE, { messageId: "omitted" }, { settings: ZURICH });
+      assertInvalid(code, RULE, { messageId: "omitted" }, ZURICH_ES2021);
     }
   });
 
@@ -86,7 +91,7 @@ PlatformArray["from"](source, function (value) { return value; }, null);`,
 PlatformArray.from(source, function (value) { return this.normalize(value); });`,
       `Array.from && Array.from(source, function (value) { return value; }, null);`,
     ]) {
-      assertInvalid(code, RULE, {}, { settings: ZURICH });
+      assertInvalid(code, RULE, {}, ZURICH_ES2021);
     }
   });
 
@@ -167,7 +172,7 @@ Array.from(source, function (value) {
   return class { [() => this.key]() {} };
 });`,
     ]) {
-      assertValid(code, RULE, { settings: ZURICH });
+      assertValid(code, RULE, ZURICH_ES2021);
     }
   });
 
@@ -193,7 +198,7 @@ function convert() {
 convert();
 convert();`,
     ]) {
-      assertInvalid(code, RULE, { messageId: "omitted" }, { settings: ZURICH });
+      assertInvalid(code, RULE, { messageId: "omitted" }, ZURICH_ES2021);
     }
   });
 
@@ -202,7 +207,7 @@ convert();`,
       { length: 1_000 },
       () => `Array.from(source, function (value) { return this.normalize(value); });`,
     );
-    assertValid(`const source = [];\n${calls.join("\n")}`, RULE, { settings: ZURICH });
+    assertValid(`const source = [];\n${calls.join("\n")}`, RULE, ZURICH_ES2021);
   });
 
   it("accepts object this arguments and conservatively unknown primitives", () => {
@@ -214,7 +219,7 @@ convert();`,
       "Array.from(source, function (value) { return value; }, `scope-${suffix}`);",
       `Array.from(source, function (value) { return value; }, Symbol("scope"));`,
     ]) {
-      assertValid(code, RULE, { settings: ZURICH });
+      assertValid(code, RULE, ZURICH_ES2021);
     }
   });
 
@@ -235,7 +240,7 @@ later();`,
   return Array.from(source, function (value) { return value; }, undefined);
 }`,
     ]) {
-      assertValid(code, RULE, { settings: ZURICH });
+      assertValid(code, RULE, ZURICH_ES2021);
     }
   });
 
@@ -249,7 +254,7 @@ Array.from(source, function (value) { return value; }, null);`,
       `Array.from(source, ...mapperArguments);`,
       `Array.from(source, function (value) { return value; }, ...thisArguments);`,
     ]) {
-      assertValid(code, RULE, { settings: ZURICH });
+      assertValidActive(code, RULE, ZURICH_ES2021);
     }
   });
 
@@ -274,7 +279,7 @@ later();`,
       `eval(sourceText);
 Array.from(source, function (value) { return value; }, null);`,
     ]) {
-      assertValid(code, RULE, { settings: ZURICH });
+      assertValid(code, RULE, ZURICH_ES2021);
     }
   });
 
@@ -282,8 +287,8 @@ Array.from(source, function (value) { return value; }, null);`,
     const primitive = `Array.from(source, function (value) { return value; }, null);`;
     const omitted = `Array.from(source, function (value) { return this.normalize(value); });`;
     for (const code of [primitive, omitted]) {
-      assertInvalid(code, RULE, {}, { settings: ZURICH });
-      assertValid(code, RULE, { settings: AUSTRALIA });
+      assertInvalid(code, RULE, {}, ZURICH_ES2021);
+      assertValid(code, RULE, AUSTRALIA_ES2021);
       assertValid(code, RULE, { settings: { javascriptMode: "es2021" } });
       for (const javascriptMode of ["compatibility", "es5"] as const) {
         assertValid(code, RULE, {
@@ -295,14 +300,6 @@ Array.from(source, function (value) { return value; }, null);`,
 
   it("does not apply server-engine behavior to other execution contexts", () => {
     const code = `Array.from(source, function (value) { return value; }, null);`;
-    assertValid(code, RULE, {
-      filename: "form.client.js",
-      settings: { ...ZURICH, surfaces: ["client"] },
-    });
-    assertValid(code, RULE, { filename: "metadata.now.ts", settings: ZURICH });
-    assertValid(code, RULE, {
-      filename: "mixed.ui-action.js",
-      settings: { ...ZURICH, surfaces: ["client", "server", "ui-action"] },
-    });
+    assertDeclinesNonServerSurfaces(code, RULE, ZURICH_ES2021.settings);
   });
 });

@@ -95,18 +95,18 @@ export const noUnsupportedDateFraction = defineRule({
   createOnce(context) {
     return {
       before() {
-        const { context: script } = beginRuleFile(context);
+        const { script } = beginRuleFile(context);
         if (!shouldDiagnoseFeature(script, "date-fraction-digits")) return false;
         return undefined;
       },
       Program(node) {
-        const { analysis, file } = beginRuleFile(context);
+        const file = beginRuleFile(context);
         const report = (
           invocation: ESTree.CallExpression | ESTree.NewExpression,
           operation: string,
           argumentNode: ESTree.Node | undefined = invocation.arguments[0],
         ): void => {
-          const argument = resolveDominatingConstValue(argumentNode, analysis.bindings);
+          const argument = resolveDominatingConstValue(argumentNode, file.provenance.bindings);
           const value = argument ? getStaticStringValue(argument) : null;
           const digits = value === null ? null : variableFractionDigits(value);
           if (digits === null) return;
@@ -122,9 +122,7 @@ export const noUnsupportedDateFraction = defineRule({
 
         for (const finding of findStablePlatformConstructorCalls({
           program: node as ESTree.Node,
-          analysis,
-          bindingWrites: file.bindingWrites,
-          mutations: file.mutations,
+          file,
           names: DATE_NAMES,
           namespaces: ["globalThis"],
           mutationSemantics: "authority",
@@ -137,9 +135,7 @@ export const noUnsupportedDateFraction = defineRule({
 
         for (const finding of findStablePlatformStaticMethodCalls({
           program: node as ESTree.Node,
-          analysis,
-          bindingWrites: file.bindingWrites,
-          mutations: file.mutations,
+          file,
           methods: DATE_METHODS,
           namespaces: ["globalThis"],
           mutationSemantics: "authority",

@@ -1,9 +1,9 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
-import { FLUENT_DIRECTIVE_TYPOS, ruleDocsUrl } from "../constants.js";
+import { ruleDocsUrl } from "../constants.js";
 import { knownDirectiveNames } from "../fluent/index.js";
 import { isFluentContext } from "../context/index.js";
-import { hostComments, isNode, walk, type HostComment } from "../utils/ast.js";
+import { hostComments, isNode, nodeEnd, nodeStart, walk, type HostComment } from "../utils/ast.js";
 import { beginRuleFile } from "./helpers.js";
 
 const DIRECTIVE = /@([A-Za-z][\w-]*)/g;
@@ -37,42 +37,63 @@ function firstNonEmptyLine(text: string): number {
   return 1;
 }
 
-function pointAt(text: string, offset: number): { line: number; column: number } {
-  const before = text.slice(0, Math.max(0, offset));
-  const newline = before.lastIndexOf("\n");
-  return { line: before.split("\n").length, column: before.length - newline - 1 };
+/** Offsets where each line starts, plus the end of the file. */
+interface LineIndex {
+  readonly starts: readonly number[];
+  readonly end: number;
+}
+
+function lineIndex(text: string): LineIndex {
+  const starts = [0];
+  for (let index = text.indexOf("\n"); index !== -1; index = text.indexOf("\n", index + 1)) {
+    starts.push(index + 1);
+  }
+  return { starts, end: text.length };
+}
+
+/** 1-based line and 0-based column, by binary search over the line starts. */
+function pointAt(lines: LineIndex, offset: number): { line: number; column: number } {
+  const target = Math.min(Math.max(0, offset), lines.end);
+  let low = 0;
+  let high = lines.starts.length - 1;
+  while (low < high) {
+    const mid = (low + high + 1) >> 1;
+    if (lines.starts[mid]! <= target) low = mid;
+    else high = mid - 1;
+  }
+  return { line: low + 1, column: target - lines.starts[low]! };
 }
 
 function occurrenceAt(
   comment: HostComment,
-  text: string,
+  lines: LineIndex,
   index: number,
   length: number,
 ): Occurrence {
   const start = comment.start + 2 + index;
-  return { loc: { start: pointAt(text, start), end: pointAt(text, start + length) } };
+  return { loc: { start: pointAt(lines, start), end: pointAt(lines, start + length) } };
 }
 
-function nodeRange(node: ESTree.Node, text: string): StatementRef | null {
-  const start = (node as { start?: number }).start;
-  const end = (node as { end?: number }).end;
-  if (typeof start !== "number" || typeof end !== "number") return null;
+function nodeRange(node: ESTree.Node, lines: LineIndex): StatementRef | null {
+  const start = nodeStart(node);
+  const end = nodeEnd(node);
+  if (start === -1 || end === -1) return null;
   const line = (node as { loc?: { start?: { line?: number } } }).loc?.start?.line;
-  return { start, end, line: typeof line === "number" ? line : pointAt(text, start).line };
+  return { start, end, line: typeof line === "number" ? line : pointAt(lines, start).line };
 }
 
-function statementRefs(nodes: readonly ESTree.Node[], text: string): StatementRef[] {
+function statementRefs(nodes: readonly ESTree.Node[], lines: LineIndex): StatementRef[] {
   return nodes.flatMap((node) => {
-    const range = nodeRange(node, text);
+    const range = nodeRange(node, lines);
     return range ? [range] : [];
   });
 }
 
-function collectStatementContainers(program: ESTree.Node, text: string): StatementContainer[] {
+function collectStatementContainers(program: ESTree.Node, lines: LineIndex): StatementContainer[] {
   const containers: StatementContainer[] = [];
   const add = (owner: ESTree.Node, statements: readonly ESTree.Node[]): void => {
-    const range = nodeRange(owner, text);
-    if (range) containers.push({ ...range, statements: statementRefs(statements, text) });
+    const range = nodeRange(owner, lines);
+    if (range) containers.push({ ...range, statements: statementRefs(statements, lines) });
   };
   const addBody = (owner: ESTree.Node, body: unknown): void => {
     if (isNode(body) && body.type !== "BlockStatement") add(owner, [body]);
@@ -82,8 +103,8 @@ function collectStatementContainers(program: ESTree.Node, text: string): Stateme
     Program(node) {
       containers.push({
         start: 0,
-        end: text.length,
-        statements: statementRefs((node as ESTree.Program).body, text),
+        end: lines.end,
+        statements: statementRefs((node as ESTree.Program).body, lines),
       });
     },
     BlockStatement(node) {
@@ -174,25 +195,27 @@ export const fluentDirectives = defineRule({
   createOnce(context) {
     return {
       before() {
-        const { context: script } = beginRuleFile(context);
+        const { script } = beginRuleFile(context);
         if (!isFluentContext(script)) return false;
         return undefined;
       },
       Program(node) {
-        const { file } = beginRuleFile(context);
-        const comments = hostComments(context);
+        const file = beginRuleFile(context);
         const text = context.sourceCode.text;
+        const comments = hostComments(context, text);
         const known = knownDirectiveNames(file.fluent.manifest);
         const byName = new Map(file.fluent.manifest.directives.map((item) => [item.name, item]));
         const supported = file.fluent.manifest.directives.map((item) => `@${item.name}`).join(", ");
-        const containers = collectStatementContainers(node as ESTree.Node, text);
+        const lines = lineIndex(text);
+        const containers = collectStatementContainers(node as ESTree.Node, lines);
+        let firstLine: number | undefined;
 
         for (const comment of comments) {
           TS_DIRECTIVE.lastIndex = 0;
           let tsMatch: RegExpExecArray | null;
           while ((tsMatch = TS_DIRECTIVE.exec(comment.value))) {
             context.report({
-              loc: occurrenceAt(comment, text, tsMatch.index, tsMatch[0].length).loc,
+              loc: occurrenceAt(comment, lines, tsMatch.index, tsMatch[0].length).loc,
               messageId: "tsIgnore",
               data: { name: tsMatch[0].slice(1) },
             });
@@ -203,7 +226,7 @@ export const fluentDirectives = defineRule({
           while ((match = DIRECTIVE.exec(comment.value))) {
             const name = match[1];
             if (!name || !name.startsWith("fluent-")) continue;
-            const occurrence = occurrenceAt(comment, text, match.index, match[0].length);
+            const occurrence = occurrenceAt(comment, lines, match.index, match[0].length);
             const directive = byName.get(name);
 
             if (known.has(name) && directive) {
@@ -217,16 +240,16 @@ export const fluentDirectives = defineRule({
                 } else if (!isExactPreviousLine(text, comment, next, occurrence)) {
                   context.report({ loc: occurrence.loc, messageId: "misplaced", data: { name } });
                 }
-              } else if (
-                directive.placement === "first-line" &&
-                occurrence.loc.start.line !== firstNonEmptyLine(text)
-              ) {
-                context.report({ loc: occurrence.loc, messageId: "firstLine" });
+              } else if (directive.placement === "first-line") {
+                firstLine ??= firstNonEmptyLine(text);
+                if (occurrence.loc.start.line !== firstLine) {
+                  context.report({ loc: occurrence.loc, messageId: "firstLine" });
+                }
               }
               continue;
             }
 
-            const suggestion = file.fluent.manifest.typos[name] ?? FLUENT_DIRECTIVE_TYPOS[name];
+            const suggestion = file.fluent.manifest.typos[name];
             if (suggestion) {
               context.report({
                 loc: occurrence.loc,

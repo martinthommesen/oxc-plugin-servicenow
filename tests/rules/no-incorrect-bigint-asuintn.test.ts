@@ -1,9 +1,14 @@
 import { describe, it } from "node:test";
-import { assertInvalid, assertValid } from "../helpers/rule-tester.js";
+import {
+  assertDeclinesNonServerSurfaces,
+  assertInvalid,
+  assertValid,
+  assertValidActive,
+  AUSTRALIA_ES2021,
+  ZURICH_ES2021,
+} from "../helpers/rule-tester.js";
 
 const RULE = "no-incorrect-bigint-asuintn" as const;
-const ZURICH = { javascriptMode: "es2021", release: "zurich" } as const;
-const AUSTRALIA = { javascriptMode: "es2021", release: "australia" } as const;
 
 describe(RULE, () => {
   it("reports the statically proven Zurich early-return cases", () => {
@@ -16,7 +21,7 @@ describe(RULE, () => {
       `BigInt.asUintN(64, -0x1n);`,
       `BigInt["asUintN"](64, -(1n));`,
     ]) {
-      assertInvalid(code, RULE, { messageId: "incorrect" }, { settings: ZURICH });
+      assertInvalid(code, RULE, { messageId: "incorrect" }, ZURICH_ES2021);
     }
   });
 
@@ -32,14 +37,14 @@ describe(RULE, () => {
       `BigInt.asUintN(64, 18446744073709551616n);`,
       `BigInt.asUintN(64, -(-1n));`,
     ]) {
-      assertValid(code, RULE, { settings: ZURICH });
+      assertValid(code, RULE, ZURICH_ES2021);
     }
   });
 
   it("follows the Zurich and Australia release delta without guessing omission", () => {
     const code = `BigInt.asUintN(64, -1n);`;
-    assertInvalid(code, RULE, { messageId: "incorrect" }, { settings: ZURICH });
-    assertValid(code, RULE, { settings: AUSTRALIA });
+    assertInvalid(code, RULE, { messageId: "incorrect" }, ZURICH_ES2021);
+    assertValid(code, RULE, AUSTRALIA_ES2021);
     assertValid(code, RULE, { settings: { javascriptMode: "es2021" } });
     for (const javascriptMode of ["compatibility", "es5"] as const) {
       assertValid(code, RULE, {
@@ -54,7 +59,7 @@ describe(RULE, () => {
       `const PlatformBigInt = BigInt; PlatformBigInt.asUintN(64, -1n);`,
       `const { BigInt: PlatformBigInt } = globalThis; PlatformBigInt["asUintN"](64, -1n);`,
     ]) {
-      assertInvalid(code, RULE, { messageId: "incorrect" }, { settings: ZURICH });
+      assertInvalid(code, RULE, { messageId: "incorrect" }, ZURICH_ES2021);
     }
   });
 
@@ -65,9 +70,9 @@ describe(RULE, () => {
       `BigInt.asUintN.bind(null, 64)(-1n);`,
       `Reflect.apply(BigInt.asUintN, null, [64, -1n]);`,
     ]) {
-      assertInvalid(code, RULE, { messageId: "incorrect" }, { settings: ZURICH });
+      assertInvalid(code, RULE, { messageId: "incorrect" }, ZURICH_ES2021);
     }
-    assertValid(`BigInt.asUintN.call(null, 7, -1n);`, RULE, { settings: ZURICH });
+    assertValid(`BigInt.asUintN.call(null, 7, -1n);`, RULE, ZURICH_ES2021);
   });
 
   it("does not mistake availability checks for semantic repairs", () => {
@@ -76,7 +81,7 @@ describe(RULE, () => {
       `typeof BigInt.asUintN === "function" && BigInt.asUintN(64, -1n);`,
       `if (BigInt.asUintN) BigInt.asUintN(64, -1n);`,
     ]) {
-      assertInvalid(code, RULE, { messageId: "incorrect" }, { settings: ZURICH });
+      assertInvalid(code, RULE, { messageId: "incorrect" }, ZURICH_ES2021);
     }
   });
 
@@ -90,7 +95,7 @@ describe(RULE, () => {
       `BigInt.asUintN(4097, -1n);`,
       `BigInt.asIntN(64, -1n);`,
     ]) {
-      assertValid(code, RULE, { settings: ZURICH });
+      assertValidActive(code, RULE, ZURICH_ES2021);
     }
   });
 
@@ -108,27 +113,19 @@ describe(RULE, () => {
       `const PlatformBigInt = BigInt; function later() { return PlatformBigInt.asUintN(64, -1n); } later();`,
       `eval(source); BigInt.asUintN(64, -1n);`,
     ]) {
-      assertValid(code, RULE, { settings: ZURICH });
+      assertValid(code, RULE, ZURICH_ES2021);
     }
 
     assertInvalid(
       `BigInt.asIntN = localAsIntN; BigInt.asUintN(64, -1n);`,
       RULE,
       { messageId: "incorrect" },
-      { settings: ZURICH },
+      ZURICH_ES2021,
     );
   });
 
   it("does not apply server-engine behavior to other execution contexts", () => {
     const code = `BigInt.asUintN(64, -1n);`;
-    assertValid(code, RULE, {
-      filename: "form.client.js",
-      settings: { ...ZURICH, surfaces: ["client"] },
-    });
-    assertValid(code, RULE, { filename: "metadata.now.ts", settings: ZURICH });
-    assertValid(code, RULE, {
-      filename: "mixed.ui-action.js",
-      settings: { ...ZURICH, surfaces: ["client", "server", "ui-action"] },
-    });
+    assertDeclinesNonServerSurfaces(code, RULE, ZURICH_ES2021.settings);
   });
 });

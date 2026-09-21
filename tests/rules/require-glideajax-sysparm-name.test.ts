@@ -1,8 +1,12 @@
 import { describe, it } from "node:test";
-import { assertInvalid, assertValid } from "../helpers/rule-tester.js";
+import {
+  assertInvalid,
+  assertSkipped,
+  assertValid,
+  assertValidActive,
+} from "../helpers/rule-tester.js";
 
 const RULE = "require-glideajax-sysparm-name" as const;
-const CLIENT = { filename: "incident.client.js" };
 
 describe("require-glideajax-sysparm-name", () => {
   it("allows a correct sysparm_name", () => {
@@ -12,7 +16,18 @@ ajax.addParam("sysparm_name", "getManager");
 ajax.addParam("sysparm_user_id", g_form.getValue("caller_id"));
 ajax.getXMLAnswer(handleAnswer);`,
       RULE,
-      CLIENT,
+    );
+  });
+
+  it("counts addParam applied through a non-identifier receiver", () => {
+    // `(ajax = new GlideAjax(...))` has no object name. The finder used to skip
+    // such calls, losing the sysparm_name fact and reporting the later request
+    // as unconfigured.
+    assertValid(
+      `var ajax;
+(ajax = new GlideAjax("x_acme.UserLookup")).addParam("sysparm_name", "getManager");
+ajax.getXMLAnswer(handleAnswer);`,
+      RULE,
     );
   });
 
@@ -23,7 +38,6 @@ ajax.addParam("sysparm_user_id", "abc");
 ajax.getXMLAnswer(handleAnswer);`,
       RULE,
       { messageId: "missingName" },
-      CLIENT,
     );
   });
 
@@ -34,17 +48,15 @@ ajax.addParam("method", "getManager");
 ajax.getXMLAnswer(handleAnswer);`,
       RULE,
       { messageId: "badPrefix", count: 2 },
-      CLIENT,
     );
   });
 
   it("stays silent for a dynamic key", () => {
-    assertValid(
+    assertValidActive(
       `var ajax = new GlideAjax("x_acme.UserLookup");
 ajax.addParam(nameKey, "getManager");
 ajax.getXMLAnswer(handleAnswer);`,
       RULE,
-      CLIENT,
     );
   });
 
@@ -57,7 +69,6 @@ if (ready) {
 ajax.getXMLAnswer(handleAnswer);`,
       RULE,
       { messageId: "missingName" },
-      CLIENT,
     );
   });
 
@@ -69,7 +80,6 @@ ajax.getXMLAnswer(handleAnswer);
 ajax.addParam("sysparm_user_id", "abc");`,
       RULE,
       { messageId: "afterTerminal" },
-      CLIENT,
     );
   });
 
@@ -80,14 +90,12 @@ var req = ajax;
 req.getXML(handleAnswer);`,
       RULE,
       { messageId: "missingName" },
-      CLIENT,
     );
     assertValid(
       `var ajax = new GlideAjax("x_acme.UserLookup");
 ajax = other;
 ajax.getXMLAnswer(handleAnswer);`,
       RULE,
-      CLIENT,
     );
   });
 
@@ -97,22 +105,20 @@ ajax.getXMLAnswer(handleAnswer);`,
 ajax["getXMLAnswer"](handleAnswer);`,
       RULE,
       { messageId: "missingName" },
-      CLIENT,
     );
   });
 
   it("ignores a non-GlideAjax object with addParam", () => {
-    assertValid(
+    assertValidActive(
       `var ajax = { addParam: function () {}, getXMLAnswer: function () {} };
 ajax.addParam("method", "getManager");
 ajax.getXMLAnswer(handleAnswer);`,
       RULE,
-      CLIENT,
     );
   });
 
   it("skips server files", () => {
-    assertValid(
+    assertSkipped(
       `var ajax = new GlideAjax("x_acme.UserLookup");
 ajax.getXMLAnswer(handleAnswer);`,
       RULE,
@@ -127,7 +133,6 @@ ajax.getXMLAnswer(handleAnswer);`,
 ajax.${method}(handleAnswer);`,
         RULE,
         { messageId: "missingName" },
-        CLIENT,
       );
     }
   });
@@ -140,17 +145,15 @@ ajax.addParam("user_id", "abc");
 ajax.getXMLAnswer(handleAnswer);`,
       RULE,
       { messageId: "badPrefix" },
-      CLIENT,
     );
   });
 
   it("stays silent after the object escapes", () => {
-    assertValid(
+    assertValidActive(
       `var ajax = new GlideAjax("x_acme.UserLookup");
 prepare(ajax);
 ajax.getXMLAnswer(handleAnswer);`,
       RULE,
-      CLIENT,
     );
   });
 
@@ -173,7 +176,7 @@ ajax.getXMLAnswer(handleAnswer);`,
 var ajax = new GlideAjax("x_acme.UserLookup");
 ajax.getXMLAnswer(handleAnswer);`,
     ]) {
-      assertValid(code, RULE, CLIENT);
+      assertValidActive(code, RULE);
     }
   });
 });

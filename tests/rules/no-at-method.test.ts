@@ -1,5 +1,5 @@
 import { describe, it } from "node:test";
-import { assertInvalid, assertValid, ES5 } from "../helpers/rule-tester.js";
+import { assertInvalid, assertValidActive, ES5 } from "../helpers/rule-tester.js";
 
 const RULE = "no-at-method" as const;
 
@@ -16,7 +16,7 @@ describe(`${RULE} polyfill authority`, () => {
       `prepare(Array.prototype); [1, 2].at(-1);`,
       `eval(source); [1, 2].at(-1);`,
     ]) {
-      assertValid(code, RULE, { settings: ES5 });
+      assertValidActive(code, RULE, { settings: ES5 });
     }
   });
 
@@ -56,7 +56,7 @@ const native = [1, 2]; native.at(-1);`,
 }`,
       `[1, 2].at?.(-1);`,
     ]) {
-      assertValid(code, RULE, { settings: ES5 });
+      assertValidActive(code, RULE, { settings: ES5 });
     }
   });
 

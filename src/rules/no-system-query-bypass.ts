@@ -1,6 +1,7 @@
 import { defineRule } from "@oxlint/plugins";
 import type { Context, ESTree } from "@oxlint/plugins";
 import {
+  getAncestors,
   hasAuthoritativeGlideRecordMethod,
   isComputedUnknown,
   staticPropertyName,
@@ -10,7 +11,7 @@ import { ruleDocsUrl } from "../constants.js";
 import { beginRuleFile } from "./helpers.js";
 
 function isWriteTarget(context: Context, node: ESTree.Node): boolean {
-  const ancestors = context.sourceCode.getAncestors(node);
+  const ancestors = getAncestors(context, node);
   const parent = ancestors[ancestors.length - 1] as ESTree.Node | undefined;
   return Boolean(
     (parent?.type === "AssignmentExpression" &&
@@ -43,21 +44,22 @@ export const noSystemQueryBypass = defineRule({
   createOnce(context) {
     return {
       before() {
-        const { context: script } = beginRuleFile(context);
+        const { script } = beginRuleFile(context);
         if (!isServerInstanceContext(script)) return false;
         return undefined;
       },
       MemberExpression(node) {
-        const { analysis, file } = beginRuleFile(context);
+        const file = beginRuleFile(context);
         const member = node as ESTree.MemberExpression;
         if (isWriteTarget(context, member)) return;
         const method = staticPropertyName(member);
         const possible = isComputedUnknown(member);
-        if ((!method || !analysis.glide.systemBypass.has(method)) && !possible) return;
+        if ((!method || !file.glide.byKind.GlideRecord.systemBypass.has(method)) && !possible)
+          return;
         const object = member.object;
-        const proven = analysis.ofExpression(object);
+        const proven = file.provenance.ofExpression(object);
         if (!proven || proven.kind !== "GlideRecord" || proven.invalid) return;
-        if (method && analysis.glide.systemBypass.has(method)) {
+        if (method && file.glide.byKind.GlideRecord.systemBypass.has(method)) {
           // This opt-in security rule reviews access to ACL-bypass names even
           // when a file also writes that method. File-wide mutation facts do
           // not prove that a later write happened before this access, and an
@@ -72,7 +74,7 @@ export const noSystemQueryBypass = defineRule({
             return;
           }
           if (
-            ![...analysis.glide.systemBypass].some((candidate) =>
+            ![...file.glide.byKind.GlideRecord.systemBypass].some((candidate) =>
               hasAuthoritativeGlideRecordMethod(file, object, candidate),
             )
           ) {

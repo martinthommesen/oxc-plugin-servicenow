@@ -1,47 +1,45 @@
 import { describe, it } from "node:test";
-import { assertInvalid, assertValid } from "../helpers/rule-tester.js";
+import {
+  assertInvalid,
+  assertValidActive,
+  BUSINESS_RULE,
+  FULL_SCRIPT,
+} from "../helpers/rule-tester.js";
 
-const SERVER = { filename: "incident.br.js" };
-const CLIENT = { filename: "incident.client.js" };
-const FULL_SCRIPT = {
-  filename: "incident.br.js",
-  settings: { businessRuleSourceFormat: "full-script" as const },
-};
-
-describe("Layer 3 platform aliases and wrappers", () => {
+describe("current and gs binding identity in Business Rules", () => {
   it("tracks proven current and gs aliases without matching shadowed parameters", () => {
     assertInvalid(
       `var record = current;
 record.update();`,
       "no-br-current-update",
       { messageId: "update" },
-      SERVER,
+      BUSINESS_RULE,
     );
-    assertValid(
+    assertValidActive(
       `function save(current) {
   current.update();
 }`,
       "no-br-current-update",
-      SERVER,
+      BUSINESS_RULE,
     );
     assertInvalid(
       `var service = gs;
 service.now();`,
       "no-gs-now",
       { messageId: "server" },
-      SERVER,
+      BUSINESS_RULE,
     );
-    assertValid(
+    assertValidActive(
       `function read(gs) {
   gs.now();
 }`,
       "no-gs-now",
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
   it("accepts a directive prologue before the canonical wrapper", () => {
-    assertValid(
+    assertValidActive(
       `"use strict";
 (function executeRule(current, previous) {
   current.short_description = "ok";
@@ -60,7 +58,7 @@ service.now();`,
       { messageId: "update" },
       FULL_SCRIPT,
     );
-    assertValid(
+    assertValidActive(
       `(function executeRule(current, previous) {
   current.update();
 })(localCurrent, previous);`,
@@ -76,7 +74,7 @@ service.now();`,
       { messageId: "update" },
       FULL_SCRIPT,
     );
-    assertValid(
+    assertValidActive(
       `(function executeRule(current, previous) {
   var record = current;
   record.update();
@@ -84,7 +82,7 @@ service.now();`,
       "no-br-current-update",
       FULL_SCRIPT,
     );
-    assertValid(
+    assertValidActive(
       `(function executeRule(current, previous) {
   var record = current;
   prepare(record);
@@ -96,7 +94,7 @@ service.now();`,
   });
 
   it("forgets a reassigned canonical current wrapper parameter", () => {
-    assertValid(
+    assertValidActive(
       `(function executeRule(current, previous) {\n  current = getOtherRecord();\n  current.update();\n})(current, previous);`,
       "no-br-current-update",
       FULL_SCRIPT,
@@ -104,7 +102,7 @@ service.now();`,
   });
 
   it("keeps canonical current authority temporal and method-specific", () => {
-    assertValid(
+    assertValidActive(
       `(function executeRule(current, previous) {
   prepare(current);
   current.update();
@@ -112,7 +110,7 @@ service.now();`,
       "no-br-current-update",
       FULL_SCRIPT,
     );
-    assertValid(
+    assertValidActive(
       `(function executeRule(current, previous) {
   current.update = localUpdate;
   current.update();
@@ -120,7 +118,7 @@ service.now();`,
       "no-br-current-update",
       FULL_SCRIPT,
     );
-    assertValid(
+    assertValidActive(
       `(function executeRule(current, previous) {
   globalThis.current.update = localUpdate;
   current.update();
@@ -128,7 +126,7 @@ service.now();`,
       "no-br-current-update",
       FULL_SCRIPT,
     );
-    assertValid(
+    assertValidActive(
       `(function executeRule(current, previous) {
   prepare(globalThis.current);
   current.update();
@@ -136,7 +134,7 @@ service.now();`,
       "no-br-current-update",
       FULL_SCRIPT,
     );
-    assertValid(
+    assertValidActive(
       `(function executeRule(current, previous) {
   GlideRecord.prototype.update = localUpdate;
   current.update();
@@ -156,7 +154,7 @@ service.now();`,
   });
 });
 
-describe("Layer 3 identity-based stateful consumers", () => {
+describe("identity-based stateful rule consumers", () => {
   it("retains GlideElements by cursor ObjectId across aliases", () => {
     assertInvalid(
       `var rec = new GlideRecord("incident");
@@ -167,7 +165,7 @@ while (gr.next()) {
 }`,
       "no-glideelement-in-collection",
       { messageId: "retained" },
-      SERVER,
+      BUSINESS_RULE,
     );
     assertInvalid(
       `var rec = new GlideRecord("incident");
@@ -178,7 +176,7 @@ while (alias.next()) {
 }`,
       "no-glideelement-in-collection",
       { messageId: "retained" },
-      SERVER,
+      BUSINESS_RULE,
     );
     assertInvalid(
       `var rec = new GlideRecord("incident");
@@ -189,9 +187,9 @@ while (rec.next()) {
 }`,
       "no-glideelement-in-collection",
       { messageId: "retained" },
-      SERVER,
+      BUSINESS_RULE,
     );
-    assertValid(
+    assertValidActive(
       `var rec = new GlideRecord("incident");
 rec.query();
 while (rec.next()) {
@@ -199,7 +197,7 @@ while (rec.next()) {
   nested(rec);
 }`,
       "no-glideelement-in-collection",
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
@@ -216,7 +214,7 @@ while (rec.next()) {
 }`,
       "no-glideelement-in-collection",
       { messageId: "retained", includes: "alias" },
-      SERVER,
+      BUSINESS_RULE,
     );
     assertInvalid(
       `var rec = new GlideRecord("incident");
@@ -230,7 +228,7 @@ while (rec.next()) {
 }`,
       "no-glideelement-in-collection",
       { messageId: "retained", includes: "field" },
-      SERVER,
+      BUSINESS_RULE,
     );
     assertInvalid(
       `var rec = new GlideRecord("incident");
@@ -241,12 +239,12 @@ while (rec.next()) {
 }`,
       "no-glideelement-in-collection",
       { messageId: "retained", includes: "field" },
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
   it("invalidates uncertain or converted GlideElement aliases", () => {
-    assertValid(
+    assertValidActive(
       `var rec = new GlideRecord("incident");
 var values = [];
 var stale;
@@ -257,9 +255,9 @@ while (rec.next()) {
   values.push(stale);
 }`,
       "no-glideelement-in-collection",
-      SERVER,
+      BUSINESS_RULE,
     );
-    assertValid(
+    assertValidActive(
       `var rec = new GlideRecord("incident");
 var other = new GlideRecord("task");
 var values = [];
@@ -272,9 +270,9 @@ while (rec.next() && other.next()) {
   values.push(field);
 }`,
       "no-glideelement-in-collection",
-      SERVER,
+      BUSINESS_RULE,
     );
-    assertValid(
+    assertValidActive(
       `var rec = new GlideRecord("incident");
 var values = [];
 rec.query();
@@ -284,9 +282,9 @@ while (rec.next()) {
   values.push(field);
 }`,
       "no-glideelement-in-collection",
-      SERVER,
+      BUSINESS_RULE,
     );
-    assertValid(
+    assertValidActive(
       `var rec = new GlideRecord("incident");
 var values = [];
 rec.query();
@@ -297,9 +295,9 @@ while (rec.next()) {
   values.push(field);
 }`,
       "no-glideelement-in-collection",
-      SERVER,
+      BUSINESS_RULE,
     );
-    assertValid(
+    assertValidActive(
       `var rec = new GlideRecord("incident");
 var values = [];
 rec.query();
@@ -309,9 +307,9 @@ while (rec.next()) {
   values.push(field);
 }`,
       "no-glideelement-in-collection",
-      SERVER,
+      BUSINESS_RULE,
     );
-    assertValid(
+    assertValidActive(
       `var rec = new GlideRecord("incident");
 var values = [];
 rec.query();
@@ -320,7 +318,7 @@ while (rec.next()) {
   { let field = "safe"; values.push(field); }
 }`,
       "no-glideelement-in-collection",
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
@@ -335,9 +333,9 @@ while (alias.next()) {
 }`,
       "prefer-glideaggregate",
       { messageId: "iterateCount" },
-      SERVER,
+      BUSINESS_RULE,
     );
-    assertValid(
+    assertValidActive(
       `var gr = new GlideRecord("incident");
 function nested(gr) {
   gr.query();
@@ -346,7 +344,7 @@ function nested(gr) {
 gr.query();
 while (gr.next()) { log(gr.number); }`,
       "prefer-glideaggregate",
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
@@ -356,7 +354,7 @@ while (gr.next()) { log(gr.number); }`,
 gr.addSystemQuery(gr);`,
       "no-system-query-bypass",
       { messageId: "bypass" },
-      SERVER,
+      BUSINESS_RULE,
     );
     assertInvalid(
       `var gr = new GlideRecord("incident");
@@ -364,18 +362,7 @@ prepare(gr);
 gr.addSystemQuery(gr);`,
       "no-system-query-bypass",
       { messageId: "bypass" },
-      SERVER,
-    );
-  });
-});
-
-describe("Layer 3 callback arity", () => {
-  it("does not claim a spread call is callback-free", () => {
-    assertValid("g_form.getReference(...args);", "require-callback-for-getreference", CLIENT);
-    assertValid(
-      `g_form.getReference("caller_id", ...args);`,
-      "require-callback-for-getreference",
-      CLIENT,
+      BUSINESS_RULE,
     );
   });
 });

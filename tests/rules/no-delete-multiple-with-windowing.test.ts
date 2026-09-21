@@ -1,8 +1,14 @@
 import { describe, it } from "node:test";
-import { assertInvalid, assertValid, ES5, ES2021 } from "../helpers/rule-tester.js";
+import {
+  assertInvalid,
+  assertSkipped,
+  assertValid,
+  assertValidActive,
+  ES5,
+  ES2021,
+} from "../helpers/rule-tester.js";
 
 const RULE = "no-delete-multiple-with-windowing" as const;
-const SERVER = { filename: "cleanup.br.js" };
 
 describe("no-delete-multiple-with-windowing", () => {
   it("flags setLimit then deleteMultiple", () => {
@@ -13,7 +19,6 @@ stale.setLimit(100);
 stale.deleteMultiple();`,
       RULE,
       { messageId: "windowed" },
-      SERVER,
     );
   });
 
@@ -24,7 +29,6 @@ stale.chooseWindow(0, 100);
 stale.deleteMultiple();`,
       RULE,
       { messageId: "windowed" },
-      SERVER,
     );
   });
 
@@ -36,7 +40,6 @@ stale.addQuery("active", true);
 stale.deleteMultiple();`,
       RULE,
       { messageId: "windowed" },
-      SERVER,
     );
   });
 
@@ -47,7 +50,6 @@ stale.setLimit(100);
 stale.query();
 if (stale.next()) stale.deleteRecord();`,
       RULE,
-      SERVER,
     );
   });
 
@@ -57,7 +59,6 @@ if (stale.next()) stale.deleteRecord();`,
 stale.addQuery("state", "expired");
 stale.deleteMultiple();`,
       RULE,
-      SERVER,
     );
   });
 
@@ -67,18 +68,16 @@ stale.deleteMultiple();`,
 stale.setLimit(100);
 stale.deleteMultiple();`,
       RULE,
-      SERVER,
     );
   });
 
   it("ignores a shadowed GlideRecord", () => {
-    assertValid(
+    assertValidActive(
       `function GlideRecord() { this.setLimit = function () {}; this.deleteMultiple = function () {}; }
 var stale = new GlideRecord("x_acme_staging");
 stale.setLimit(100);
 stale.deleteMultiple();`,
       RULE,
-      SERVER,
     );
   });
 
@@ -90,7 +89,6 @@ batch.setLimit(50);
 batch.deleteMultiple();`,
       RULE,
       { messageId: "windowed" },
-      SERVER,
     );
     assertValid(
       `var stale = new GlideRecord("x_acme_staging");
@@ -98,7 +96,6 @@ stale.setLimit(50);
 stale = new GlideRecord("incident");
 stale.deleteMultiple();`,
       RULE,
-      SERVER,
     );
   });
 
@@ -109,7 +106,6 @@ stale["setLimit"](100);
 stale["deleteMultiple"]();`,
       RULE,
       { messageId: "windowed" },
-      SERVER,
     );
   });
 
@@ -122,42 +118,39 @@ windowed.deleteMultiple();
 full.deleteMultiple();`,
       RULE,
       { count: 1, messageId: "windowed" },
-      SERVER,
     );
   });
 
   it("stays silent when only one branch windows", () => {
-    assertValid(
+    assertValidActive(
       `var stale = new GlideRecord("x_acme_staging");
 if (gs.getProperty("x_acme.limit") === "true") {
   stale.setLimit(100);
 }
 stale.deleteMultiple();`,
       RULE,
-      SERVER,
     );
   });
 
   it("stays silent after the record escapes to a helper", () => {
-    assertValid(
+    assertValidActive(
       `var stale = new GlideRecord("x_acme_staging");
 stale.setLimit(100);
 configure(stale);
 stale.deleteMultiple();`,
       RULE,
-      SERVER,
     );
   });
 
   it("skips client and Fluent files", () => {
-    assertValid(
+    assertSkipped(
       `var stale = new GlideRecord("x_acme_staging");
 stale.setLimit(100);
 stale.deleteMultiple();`,
       RULE,
       { filename: "form.client.js" },
     );
-    assertValid(
+    assertSkipped(
       `var stale = new GlideRecord("x_acme_staging");
 stale.setLimit(100);
 stale.deleteMultiple();`,
@@ -170,8 +163,21 @@ stale.deleteMultiple();`,
     const code = `var stale = new GlideRecord("x_acme_staging");
 stale.setLimit(5);
 stale.deleteMultiple();`;
-    assertInvalid(code, RULE, { messageId: "windowed" }, { ...SERVER, settings: ES5 });
-    assertInvalid(code, RULE, { messageId: "windowed" }, { ...SERVER, settings: ES2021 });
+    assertInvalid(code, RULE, { messageId: "windowed" }, { settings: ES5 });
+    assertInvalid(code, RULE, { messageId: "windowed" }, { settings: ES2021 });
+  });
+
+  it("tracks a windowing call on a non-identifier receiver", () => {
+    // The assignment expression receiver has no object name. The finder used to
+    // skip such calls entirely, so the windowing fact was never recorded and
+    // the later deleteMultiple went unreported.
+    assertInvalid(
+      `var stale;
+(stale = new GlideRecord("x_acme_staging")).setLimit(10);
+stale.deleteMultiple();`,
+      RULE,
+      { messageId: "windowed" },
+    );
   });
 
   it("tracks GlideRecordSecure", () => {
@@ -181,7 +187,6 @@ stale.setLimit(10);
 stale.deleteMultiple();`,
       RULE,
       { messageId: "windowed" },
-      SERVER,
     );
   });
 });

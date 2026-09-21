@@ -1,5 +1,13 @@
 import { describe, it } from "node:test";
-import { assertInvalid, assertValid } from "../helpers/rule-tester.js";
+import {
+  assertDeclinesNonServerSurfaces,
+  assertInvalid,
+  assertSkipped,
+  assertValidActive,
+  AUSTRALIA_ES2021,
+  ES2021,
+  ZURICH_ES2021,
+} from "../helpers/rule-tester.js";
 
 const RULE = "no-unsupported-date-fraction" as const;
 const SHORT_FRACTION = `new Date("2025-05-07T09:05:20.78Z");`;
@@ -13,22 +21,22 @@ describe(RULE, () => {
         { messageId: "unsupported", includes: "2 digits" },
         { settings: { javascriptMode, release: "zurich" } },
       );
-      assertValid(SHORT_FRACTION, RULE, {
+      // Australia supports the shorter fraction and an unresolved release
+      // proves nothing, so the engine gate declines the file in both cases.
+      assertSkipped(SHORT_FRACTION, RULE, {
         settings: { javascriptMode, release: "australia" },
       });
-      assertValid(SHORT_FRACTION, RULE, { settings: { javascriptMode } });
+      assertSkipped(SHORT_FRACTION, RULE, { settings: { javascriptMode } });
     }
     const parse = `Date.parse("2025-05-07T09:05:20.78Z");`;
     assertInvalid(
       parse,
       RULE,
       { messageId: "unsupported", includes: "Date.parse()" },
-      { settings: { javascriptMode: "es2021", release: "zurich" } },
+      ZURICH_ES2021,
     );
-    assertValid(parse, RULE, {
-      settings: { javascriptMode: "es2021", release: "australia" },
-    });
-    assertValid(parse, RULE, { settings: { javascriptMode: "es2021" } });
+    assertSkipped(parse, RULE, AUSTRALIA_ES2021);
+    assertSkipped(parse, RULE, { settings: ES2021 });
   });
 
   it("uses the all-modes update for a known server surface with unknown mode", () => {
@@ -41,11 +49,11 @@ describe(RULE, () => {
         settings: { release: "zurich" },
       },
     );
-    assertValid(SHORT_FRACTION, RULE, {
+    assertSkipped(SHORT_FRACTION, RULE, {
       filename: "dates.server.js",
       settings: { release: "australia" },
     });
-    assertValid(SHORT_FRACTION, RULE, { filename: "unknown.js" });
+    assertSkipped(SHORT_FRACTION, RULE, { filename: "unknown.js" });
   });
 
   it("reports every variable fraction length accepted by the Australia parser", () => {
@@ -57,14 +65,7 @@ describe(RULE, () => {
       `new Date("2024-02-29T23:59:59.123456789Z");`,
       `new Date("2025-05-07T24:00:00.0001Z");`,
     ]) {
-      assertInvalid(
-        code,
-        RULE,
-        { messageId: "unsupported" },
-        {
-          settings: { javascriptMode: "es2021", release: "zurich" },
-        },
-      );
+      assertInvalid(code, RULE, { messageId: "unsupported" }, ZURICH_ES2021);
     }
   });
 
@@ -89,14 +90,7 @@ describe(RULE, () => {
       `installRuntime(Date); new Date("2025-05-07T09:05:20.78Z");`,
       `const NativeDate = Date; installRuntime(NativeDate); new NativeDate("2025-05-07T09:05:20.78Z");`,
     ]) {
-      assertInvalid(
-        code,
-        RULE,
-        { messageId: "unsupported" },
-        {
-          settings: { javascriptMode: "es2021", release: "zurich" },
-        },
-      );
+      assertInvalid(code, RULE, { messageId: "unsupported" }, ZURICH_ES2021);
     }
   });
 
@@ -121,9 +115,7 @@ describe(RULE, () => {
       `Date("2025-05-07T09:05:20.78Z");`,
       `Reflect.construct(Date, ["2025-05-07T09:05:20.78Z"]);`,
     ]) {
-      assertValid(code, RULE, {
-        settings: { javascriptMode: "es2021", release: "zurich" },
-      });
+      assertValidActive(code, RULE, ZURICH_ES2021);
     }
   });
 
@@ -151,25 +143,11 @@ describe(RULE, () => {
       `class LocalDate extends Date {} new LocalDate("2025-05-07T09:05:20.78Z");`,
       `eval(source); new Date("2025-05-07T09:05:20.78Z");`,
     ]) {
-      assertValid(code, RULE, {
-        settings: { javascriptMode: "es2021", release: "zurich" },
-      });
+      assertValidActive(code, RULE, ZURICH_ES2021);
     }
   });
 
   it("does not apply the server engine contract to browser or Fluent code", () => {
-    assertValid(SHORT_FRACTION, RULE, {
-      filename: "form.client.js",
-      settings: { javascriptMode: "es2021", release: "zurich", surfaces: ["client"] },
-    });
-    assertValid(SHORT_FRACTION, RULE, { filename: "metadata.now.ts" });
-    assertValid(SHORT_FRACTION, RULE, {
-      filename: "action.ui-action.js",
-      settings: {
-        javascriptMode: "es2021",
-        release: "zurich",
-        surfaces: ["client", "server", "ui-action"],
-      },
-    });
+    assertDeclinesNonServerSurfaces(SHORT_FRACTION, RULE, ZURICH_ES2021.settings);
   });
 });

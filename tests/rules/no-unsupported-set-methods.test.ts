@@ -1,9 +1,14 @@
 import { describe, it } from "node:test";
-import { assertInvalid, assertValid } from "../helpers/rule-tester.js";
+import {
+  assertDeclinesNonServerSurfaces,
+  assertInvalid,
+  assertValid,
+  assertValidActive,
+  AUSTRALIA_ES2021,
+  ZURICH_ES2021,
+} from "../helpers/rule-tester.js";
 
 const RULE = "no-unsupported-set-methods" as const;
-const ZURICH = { javascriptMode: "es2021", release: "zurich" } as const;
-const AUSTRALIA = { javascriptMode: "es2021", release: "australia" } as const;
 const METHODS = [
   "difference",
   "intersection",
@@ -18,13 +23,8 @@ describe(RULE, () => {
   it("follows the Zurich and Australia release delta for all seven methods", () => {
     for (const method of METHODS) {
       const code = `new Set(left).${method}(right);`;
-      assertInvalid(
-        code,
-        RULE,
-        { messageId: "unsupported", includes: method },
-        { settings: ZURICH },
-      );
-      assertValid(code, RULE, { settings: AUSTRALIA });
+      assertInvalid(code, RULE, { messageId: "unsupported", includes: method }, ZURICH_ES2021);
+      assertValid(code, RULE, AUSTRALIA_ES2021);
       assertValid(code, RULE, { settings: { javascriptMode: "es2021" } });
     }
   });
@@ -41,7 +41,7 @@ describe(RULE, () => {
       `const values = new Set(); function later() { return values.union(other); } later();`,
       `const values = new Set(); (() => values.intersection(other))();`,
     ]) {
-      assertInvalid(code, RULE, { messageId: "unsupported" }, { settings: ZURICH });
+      assertInvalid(code, RULE, { messageId: "unsupported" }, ZURICH_ES2021);
     }
   });
 
@@ -61,7 +61,7 @@ describe(RULE, () => {
       `eval(source); new Set().union(other);`,
       `new Set()[method](other);`,
     ]) {
-      assertValid(code, RULE, { settings: ZURICH });
+      assertValid(code, RULE, ZURICH_ES2021);
     }
   });
 
@@ -80,7 +80,7 @@ describe(RULE, () => {
       `const values = new Set(); const union = values.union; if (union) values.union(other);`,
       `const values = new Set(); const alias = values; if (alias.union) values.union(other);`,
     ]) {
-      assertValid(code, RULE, { settings: ZURICH });
+      assertValid(code, RULE, ZURICH_ES2021);
     }
   });
 
@@ -92,7 +92,7 @@ describe(RULE, () => {
       `const values = new Set(); Set.prototype.intersection && values.union(other);`,
       `const values = new Set(); values?.union(other);`,
     ]) {
-      assertInvalid(code, RULE, { messageId: "unsupported" }, { settings: ZURICH });
+      assertInvalid(code, RULE, { messageId: "unsupported" }, ZURICH_ES2021);
     }
   });
 
@@ -107,7 +107,7 @@ describe(RULE, () => {
       `const values = new Set(); delete values.union; values.union(other);`,
       `const values = new Set(); if (values.union) { values.union = undefined; values.union(other); }`,
     ]) {
-      assertValid(code, RULE, { settings: ZURICH });
+      assertValidActive(code, RULE, ZURICH_ES2021);
     }
   });
 
@@ -117,7 +117,7 @@ describe(RULE, () => {
 const values = new Set(); values.union(other);`,
       RULE,
       { messageId: "unsupported", count: 1 },
-      { settings: ZURICH },
+      ZURICH_ES2021,
     );
   });
 
@@ -128,7 +128,7 @@ const values = new Set(); values.union(other);`,
       `function combine() {\n${[...guards, ...calls].join("\n")}\n}`,
       RULE,
       { messageId: "unsupported", count: 128 },
-      { settings: ZURICH },
+      ZURICH_ES2021,
     );
   });
 
@@ -136,18 +136,14 @@ const values = new Set(); values.union(other);`,
     assertValid(
       `const values = new Set(); const union = values.union.bind(values); union(other); values.union.call(values, other);`,
       RULE,
-      { settings: ZURICH },
+      ZURICH_ES2021,
     );
     for (const javascriptMode of ["compatibility", "es5"] as const) {
       assertValid(`new Set().union(other);`, RULE, {
         settings: { javascriptMode, release: "zurich" },
       });
     }
-    assertValid(`new Set().union(other);`, RULE, {
-      filename: "form.client.js",
-      settings: { ...ZURICH, surfaces: ["client"] },
-    });
-    assertValid(`new Set().union(other);`, RULE, { filename: "metadata.now.ts" });
+    assertDeclinesNonServerSurfaces(`new Set().union(other);`, RULE, ZURICH_ES2021.settings);
     assertValid(`new Set().union(other);`, RULE);
   });
 });

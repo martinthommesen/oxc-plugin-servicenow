@@ -1,11 +1,14 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
-import { getName, isNode, isValueReference, nodeStart, walk } from "../utils/ast.js";
+import { getName, isNode, nodeEnd, nodeStart } from "../utils/ast.js";
 import {
   getAncestors,
   hasAuthoritativeGlideRecordMethod,
+  provenReceiver,
   staticPropertyName,
+  type FileAnalysis,
+  type ProvenanceQuery,
 } from "../analysis/internal.js";
 import { isServerInstanceContext } from "../context/index.js";
 import { beginRuleFile } from "./helpers.js";
@@ -28,18 +31,18 @@ export const preferGlideaggregate = defineRule({
   createOnce(context) {
     return {
       before() {
-        const { context: script } = beginRuleFile(context);
+        const { script } = beginRuleFile(context);
         if (!isServerInstanceContext(script)) return false;
         return undefined;
       },
       CallExpression(node) {
-        const { analysis, file } = beginRuleFile(context);
+        const file = beginRuleFile(context);
         const call = node as ESTree.CallExpression;
         if (call.callee.type !== "MemberExpression") return;
         const member = call.callee as ESTree.MemberExpression;
         const property = staticPropertyName(member);
         if (property !== "getRowCount") return;
-        const receiver = glideRecordReceiver(analysis, member.object);
+        const receiver = glideRecordReceiver(file.provenance, member.object);
         if (!receiver) return;
         if (!hasAuthoritativeGlideRecordMethod(file, member.object, property)) return;
         context.report({
@@ -57,25 +60,23 @@ export const preferGlideaggregate = defineRule({
     };
 
     function glideRecordReceiver(
-      analysis: ReturnType<typeof beginRuleFile>["analysis"],
+      analysis: ProvenanceQuery,
       node: unknown,
     ): { id: number; name: string } | null {
-      const proven = analysis.trustedExpression(node);
-      if (!proven || proven.kind !== "GlideRecord" || proven.objectId === undefined) {
-        return null;
-      }
+      const proven = provenReceiver(analysis, node, "GlideRecord");
+      if (!proven || proven.objectId === undefined) return null;
       return { id: proven.objectId, name: getName(node) ?? "record" };
     }
 
     function checkLoopBody(node: ESTree.WhileStatement | ESTree.ForStatement) {
-      const { analysis, file } = beginRuleFile(context);
+      const file = beginRuleFile(context);
       const test = node.test;
       if (!test || test.type !== "CallExpression") return;
       const callee = (test as ESTree.CallExpression).callee;
       if (callee.type !== "MemberExpression") return;
       const property = staticPropertyName(callee);
-      if (!property || !analysis.glide.cursorAdvancers.has(property)) return;
-      const receiver = glideRecordReceiver(analysis, callee.object);
+      if (!property || !file.glide.byKind.GlideRecord.cursorAdvancers.has(property)) return;
+      const receiver = glideRecordReceiver(file.provenance, callee.object);
       if (!receiver) return;
       if (!hasAuthoritativeGlideRecordMethod(file, callee.object, property)) return;
 
@@ -93,25 +94,21 @@ export const preferGlideaggregate = defineRule({
       if (updates.length === 0) return;
       let counterId: number | undefined;
       for (const update of updates) {
-        const target = counterUpdateTarget(update, analysis);
+        const target = counterUpdateTarget(update, file.provenance);
         if (!target) return;
         if (counterId === undefined) counterId = target;
         if (counterId !== target) return;
       }
       if (counterId === undefined) return;
-      const declaration = counterDeclaration(counterId, analysis);
       if (
-        !declaration ||
-        !counterHasOnlyAllowedUses(counterId, declaration, node, new Set(updates), analysis)
+        !counterDeclaration(counterId, file) ||
+        !counterHasOnlyAllowedUses(counterId, node, new Set(updates), file)
       )
         return;
       context.report({ node, messageId: "iterateCount", data: { name: receiver.name } });
     }
 
-    function counterUpdateTarget(
-      node: ESTree.Node,
-      analysis: ReturnType<typeof beginRuleFile>["analysis"],
-    ): number | null {
+    function counterUpdateTarget(node: ESTree.Node, analysis: ProvenanceQuery): number | null {
       if (node.type === "UpdateExpression") {
         const update = node as ESTree.UpdateExpression;
         if (
@@ -143,82 +140,35 @@ export const preferGlideaggregate = defineRule({
       return resolved?.id ?? null;
     }
 
-    function counterDeclaration(
-      id: number,
-      analysis: ReturnType<typeof beginRuleFile>["analysis"],
-    ): ESTree.VariableDeclarator | null {
-      let declaration: ESTree.Node | null = null;
-      const ancestors: ESTree.Node[] = [];
-      walk(
-        context.sourceCode.ast as unknown as ESTree.Node,
-        {
-          VariableDeclarator(node) {
-            const candidate = node as ESTree.VariableDeclarator;
-            if (!isNode(candidate.id) || candidate.id.type !== "Identifier") return;
-            const resolved = analysis.bindings.resolve(
-              getName(candidate.id) ?? "",
-              candidate.id,
-              ancestors,
-            );
-            if (resolved?.id === id) declaration = candidate;
-          },
-        },
-        ancestors,
-      );
+    function counterDeclaration(id: number, file: FileAnalysis): ESTree.VariableDeclarator | null {
+      const declarators = file.bindingReferences.declaratorsFor(id);
+      const declaration = declarators[declarators.length - 1];
       if (!declaration) return null;
-      const init = (declaration as ESTree.VariableDeclarator).init as {
-        type?: string;
-        value?: unknown;
-      } | null;
-      return init && init.type === "Literal" && typeof init.value === "number"
-        ? (declaration as ESTree.VariableDeclarator)
-        : null;
+      const init = declaration.init as { type?: string; value?: unknown } | null;
+      return init && init.type === "Literal" && typeof init.value === "number" ? declaration : null;
     }
 
     function counterHasOnlyAllowedUses(
       id: number,
-      declaration: ESTree.VariableDeclarator,
       loop: ESTree.Node,
       allowedUpdates: ReadonlySet<ESTree.Node>,
-      analysis: ReturnType<typeof beginRuleFile>["analysis"],
+      file: FileAnalysis,
     ): boolean {
-      let valid = true;
-      const loopStart = nodeStart(loop);
-      const loopEnd =
-        (loop as { end?: number; range?: readonly number[] }).end ??
-        (loop as { range?: readonly number[] }).range?.[1] ??
-        loopStart;
-      const ancestors: ESTree.Node[] = [];
-      walk(
-        context.sourceCode.ast as unknown as ESTree.Node,
-        {
-          Identifier(node) {
-            if (!isValueReference(node, ancestors)) return;
-            const name = getName(node);
-            const resolved = name ? analysis.bindings.resolve(name, node, ancestors) : null;
-            if (resolved?.id !== id) return;
-            const parent = ancestors[ancestors.length - 2];
-            const isDeclaration =
-              parent?.type === "VariableDeclarator" &&
-              (parent as ESTree.VariableDeclarator).id === node;
-            if (isDeclaration && parent === declaration) return;
-            if (parent && allowedUpdates.has(parent)) return;
-            const position = nodeStart(node);
-            if (position < loopStart || position <= loopEnd) {
-              valid = false;
-              return;
-            }
-            const writesAfter =
-              (parent?.type === "UpdateExpression" &&
-                (parent as ESTree.UpdateExpression).argument === node) ||
-              (parent?.type === "AssignmentExpression" &&
-                (parent as ESTree.AssignmentExpression).left === node);
-            if (writesAfter) valid = false;
-          },
-        },
-        ancestors,
-      );
-      return valid;
+      const end = nodeEnd(loop);
+      // The fallback keeps `loopEnd >= loopStart`, so a reference before the
+      // loop is also `<= loopEnd`: one comparison rejects both.
+      const loopEnd = end >= 0 ? end : nodeStart(loop);
+      for (const { node, parent, start } of file.bindingReferences.referencesFor(id)) {
+        if (parent && allowedUpdates.has(parent)) continue;
+        if (start <= loopEnd) return false;
+        const writesAfter =
+          (parent?.type === "UpdateExpression" &&
+            (parent as ESTree.UpdateExpression).argument === node) ||
+          (parent?.type === "AssignmentExpression" &&
+            (parent as ESTree.AssignmentExpression).left === node);
+        if (writesAfter) return false;
+      }
+      return true;
     }
   },
 });

@@ -1,8 +1,8 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
-import { hasAuthoritativeConstructedMethod, staticPropertyName } from "../analysis/internal.js";
 import { isClientCapableContext } from "../context/index.js";
+import { provenReceiverMethod } from "../analysis/internal.js";
 import { beginRuleFile } from "./helpers.js";
 
 export const noSyncGlideajax = defineRule({
@@ -20,21 +20,19 @@ export const noSyncGlideajax = defineRule({
   createOnce(context) {
     return {
       before() {
-        const { context: script } = beginRuleFile(context);
+        const { script } = beginRuleFile(context);
         if (!isClientCapableContext(script)) return false;
         return undefined;
       },
       CallExpression(node) {
-        const { analysis, file } = beginRuleFile(context);
+        const file = beginRuleFile(context);
         const call = node as ESTree.CallExpression;
-        if (call.callee.type !== "MemberExpression") return;
-        const member = call.callee as ESTree.MemberExpression;
-        if (staticPropertyName(member) !== "getXMLWait") return;
-        const object = member.object;
-        const proven = analysis.trustedExpression(object);
-        if (proven?.kind !== "GlideAjax") return;
-        if (!hasAuthoritativeConstructedMethod(file, object, "GlideAjax", "getXMLWait", "browser"))
-          return;
+        const access = provenReceiverMethod(file, call, {
+          kind: "GlideAjax",
+          method: "getXMLWait",
+          runtime: "browser",
+        });
+        if (!access) return;
         context.report({ node, messageId: "wait" });
       },
     };

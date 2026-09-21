@@ -1,9 +1,9 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
-import { findAclQueries } from "../analysis/acl-query.js";
 import { appliesOnSurface } from "../context/index.js";
 import { ruleDocsUrl } from "../constants.js";
 import { beginRuleFile } from "./helpers.js";
+import { findAclQueries } from "../analysis/internal.js";
 
 export const noGliderecordQueryInAcl = defineRule({
   meta: {
@@ -21,13 +21,13 @@ export const noGliderecordQueryInAcl = defineRule({
   createOnce(context) {
     return {
       before() {
-        const { context: script } = beginRuleFile(context);
+        const { script } = beginRuleFile(context);
         if (!appliesOnSurface(script, "acl", "filename")) return false;
         return undefined;
       },
       Program(node) {
-        const { analysis, file } = beginRuleFile(context);
-        for (const finding of findAclQueries(node as ESTree.Node, analysis, file)) {
+        const file = beginRuleFile(context);
+        for (const finding of findAclQueries(node as ESTree.Node, file.provenance, file)) {
           context.report({
             node: finding.node,
             messageId: "query",

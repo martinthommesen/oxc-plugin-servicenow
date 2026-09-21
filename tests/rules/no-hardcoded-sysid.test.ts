@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { assertInvalid, assertValid, lint } from "../helpers/rule-tester.js";
+import { assertInvalid, assertValid, assertValidActive, lint } from "../helpers/rule-tester.js";
 
 const RULE = "no-hardcoded-sysid" as const;
 const ID = "97c04b3b1b12100043ab85e5bd0713e2";
@@ -23,7 +23,7 @@ describe(RULE, () => {
   });
 
   it("ignores obvious hash bindings by default", () => {
-    assertValid(`var md5 = "${ID}";`, RULE);
+    assertValidActive(`var md5 = "${ID}";`, RULE);
   });
 
   it("ignores every digest-like binding name by default (FINDINGS.md COR-002)", () => {
@@ -37,9 +37,9 @@ describe(RULE, () => {
       "contentChecksum",
       "MD5_SUM",
     ]) {
-      assertValid(`var ${name} = "${ID}";`, RULE);
+      assertValidActive(`var ${name} = "${ID}";`, RULE);
     }
-    assertValid(`var payload = { checksum: "${ID}" };`, RULE);
+    assertValidActive(`var payload = { checksum: "${ID}" };`, RULE);
   });
 
   it("does not suppress a sys_id for a name without a digest word", () => {

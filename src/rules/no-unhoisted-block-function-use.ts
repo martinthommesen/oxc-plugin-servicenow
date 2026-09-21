@@ -21,15 +21,15 @@ export const noUnhoistedBlockFunctionUse = defineRule({
   createOnce(context) {
     return {
       before() {
-        const { context: script } = beginRuleFile(context);
+        const { script } = beginRuleFile(context);
         if (!shouldDiagnoseFeature(script, "block-function-hoisting")) return false;
         return undefined;
       },
       Program(node) {
-        const { analysis, file } = beginRuleFile(context);
+        const file = beginRuleFile(context);
         for (const finding of findUnhoistedBlockFunctionUses(
           node as ESTree.Node,
-          analysis.bindings,
+          file.provenance.bindings,
           file.bindingWrites,
         )) {
           context.report({

@@ -21,13 +21,13 @@ export const noNowIdAsReference = defineRule({
   createOnce(context) {
     return {
       before() {
-        const { context: script } = beginRuleFile(context);
+        const { script } = beginRuleFile(context);
         if (!isFluentContext(script)) return false;
         return undefined;
       },
       Program(node) {
-        const { analysis, file } = beginRuleFile(context);
-        for (const finding of findNowIdMisuses(node as ESTree.Node, analysis, file.nowIdAt)) {
+        const file = beginRuleFile(context);
+        for (const finding of findNowIdMisuses(node as ESTree.Node, file.nowIdAt)) {
           context.report({ node: finding.node, messageId: "asReference" });
         }
       },

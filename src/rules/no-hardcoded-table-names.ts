@@ -15,7 +15,7 @@ import { beginRuleFile } from "./helpers.js";
 export type { NoHardcodedTableNamesOptions };
 
 function allowed(context: Context, options: NoHardcodedTableNamesOptions): Set<string> {
-  const { context: script } = beginRuleFile(context);
+  const { script } = beginRuleFile(context);
   const names = [...script.settings.allowedTables, ...(options.allowedTables ?? [])];
   if (options.allowBuiltins) names.push(...BUILTIN_TABLES);
   return new Set(names);
@@ -42,17 +42,17 @@ export const noHardcodedTableNames = defineRule({
 
     return {
       before() {
-        const { context: script } = beginRuleFile(context);
+        const { script } = beginRuleFile(context);
         if (!isServerInstanceContext(script) || isMixedUiActionContext(script)) return false;
         allow = allowed(context, parseRuleOptions(noHardcodedTableNamesOptions, context.options));
         return undefined;
       },
       NewExpression(node) {
-        const { analysis } = beginRuleFile(context);
+        const { provenance } = beginRuleFile(context);
         const callee = (node as ESTree.NewExpression).callee as ESTree.Node;
         const name = getName(callee);
         if (!name || !CTORS.includes(name as (typeof CTORS)[number])) return;
-        if (!analysis.isPlatformGlobal(callee)) return;
+        if (!provenance.isPlatformGlobal(callee)) return;
         const first = (node as ESTree.NewExpression).arguments[0];
         if (!first || first.type === "SpreadElement") return;
         const table = getStringValue(first);

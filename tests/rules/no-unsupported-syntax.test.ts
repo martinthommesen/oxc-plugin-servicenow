@@ -1,5 +1,12 @@
 import { describe, it } from "node:test";
-import { assertInvalid, assertValid, ES5, ES2021 } from "../helpers/rule-tester.js";
+import {
+  assertDeclinesNonServerSurfaces,
+  assertInvalid,
+  assertValid,
+  assertValidActive,
+  ES2021,
+  ES5,
+} from "../helpers/rule-tester.js";
 
 const RULE = "no-unsupported-syntax" as const;
 
@@ -31,7 +38,7 @@ describe(`${RULE} RegExp identity`, () => {
 
   it("stays silent after visible RegExp authority loss", () => {
     for (const replacement of ["LocalRegExp", "null", "{}"]) {
-      assertValid(`RegExp = ${replacement}; RegExp("(?<=a)b");`, RULE, { settings: ES5 });
+      assertValidActive(`RegExp = ${replacement}; RegExp("(?<=a)b");`, RULE, { settings: ES5 });
     }
   });
 
@@ -100,13 +107,6 @@ describe(`${RULE} object method syntax`, () => {
 
   it("does not apply server syntax restrictions to client or Fluent files", () => {
     const code = `const definitions = { create() {} };`;
-    assertValid(code, RULE, {
-      filename: "form.client.js",
-      settings: { javascriptMode: "es5", surfaces: ["client"] },
-    });
-    assertValid(code, RULE, {
-      filename: "metadata.now.ts",
-      settings: { javascriptMode: "es5" },
-    });
+    assertDeclinesNonServerSurfaces(code, RULE, ES5);
   });
 });
