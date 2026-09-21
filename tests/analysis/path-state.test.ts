@@ -34,6 +34,9 @@ const UNCHANGED_METHODS: PlatformMethodAuthorityFacts = {
     isGlobalAuthorityLost: () => false,
     isGlobalPathAuthorityLost: () => false,
     isObjectPropertyAuthorityLost: () => false,
+    isGlobalAuthorityLostAt: () => false,
+    isGlobalPathAuthorityLostAt: () => false,
+    isObjectPropertyAuthorityLostAt: () => false,
   },
 };
 

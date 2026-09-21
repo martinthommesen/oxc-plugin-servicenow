@@ -26,6 +26,8 @@ export function isNewExpressionFinding(
 
 export interface PlatformStaticMethodCallFinding {
   readonly aliasOrigin: PlatformGlobalAliasOrigin | null;
+  /** Arguments received by the platform method after helper normalization. */
+  readonly arguments: readonly ESTree.Node[] | null;
   readonly method: string;
   readonly name: string;
   readonly node: ESTree.CallExpression;
@@ -59,6 +61,7 @@ interface DeclaratorFacts {
 }
 
 interface CallSite {
+  readonly allowAliases: boolean;
   readonly callee: unknown;
   readonly executionBoundary: ESTree.Node;
   readonly node: ESTree.CallExpression | ESTree.NewExpression;
@@ -67,7 +70,6 @@ interface CallSite {
 interface PlatformCallSyntaxIndex {
   readonly declarators: WeakMap<ESTree.VariableDeclarator, DeclaratorFacts>;
   readonly callSites: readonly CallSite[];
-  readonly callBudgetExceeded: boolean;
 }
 
 interface ResolvedPlatformGlobal {
@@ -78,7 +80,11 @@ interface ResolvedPlatformGlobal {
 interface StablePlatformGlobalResolver {
   readonly callSites: readonly CallSite[];
   readonly pathIdentityIsStable: (path: readonly string[]) => boolean;
-  readonly resolve: (node: unknown, useBoundary: ESTree.Node) => ResolvedPlatformGlobal | null;
+  readonly resolve: (
+    node: unknown,
+    useBoundary: ESTree.Node,
+    allowAliases?: boolean,
+  ) => ResolvedPlatformGlobal | null;
 }
 
 const syntaxIndexByProgram = new WeakMap<ESTree.Node, PlatformCallSyntaxIndex>();
@@ -137,15 +143,17 @@ function platformCallSyntaxIndex(program: ESTree.Node): PlatformCallSyntaxIndex 
   const declarators = new WeakMap<ESTree.VariableDeclarator, DeclaratorFacts>();
   const callSites: CallSite[] = [];
   const ancestors: ESTree.Node[] = [];
-  let callBudgetExceeded = false;
 
   const recordCallSite = (node: ESTree.CallExpression | ESTree.NewExpression): void => {
-    if (callSites.length >= MAX_PLATFORM_CALL_SITES) {
-      callBudgetExceeded = true;
-      return;
-    }
     const boundary = executionBoundary(ancestors);
-    if (boundary) callSites.push({ callee: node.callee, executionBoundary: boundary, node });
+    if (boundary) {
+      callSites.push({
+        allowAliases: callSites.length < MAX_PLATFORM_CALL_SITES,
+        callee: node.callee,
+        executionBoundary: boundary,
+        node,
+      });
+    }
   };
 
   walk(
@@ -169,7 +177,7 @@ function platformCallSyntaxIndex(program: ESTree.Node): PlatformCallSyntaxIndex 
     ancestors,
   );
 
-  const created = { declarators, callSites, callBudgetExceeded };
+  const created = { declarators, callSites };
   syntaxIndexByProgram.set(program, created);
   return created;
 }
@@ -198,9 +206,9 @@ function stablePlatformGlobalResolver(
 ): StablePlatformGlobalResolver | null {
   const nameSet = new Set(names);
   const namespaceSet = new Set(namespaces);
-  const { declarators, callSites, callBudgetExceeded } = platformCallSyntaxIndex(program);
+  const { declarators, callSites } = platformCallSyntaxIndex(program);
 
-  if (bindingWrites.hasDynamicScope() || callBudgetExceeded) return null;
+  if (bindingWrites.hasDynamicScope()) return null;
 
   const pathIdentityIsStable = (path: readonly string[]): boolean =>
     !mutationPathChanged(mutations, path, mutationSemantics) &&
@@ -256,60 +264,64 @@ function stablePlatformGlobalResolver(
   const resolve = (
     node: unknown,
     useBoundary: ESTree.Node,
-    seen: ReadonlySet<number> = new Set(),
+    allowAliases = true,
   ): ResolvedPlatformGlobal | null => {
-    const value = unwrapExpression(node);
-    if (!isNode(value)) return null;
+    let current = unwrapExpression(node);
+    let boundary = useBoundary;
+    const seen = new Set<number>();
+    while (isNode(current)) {
+      if (current.type === "MemberExpression") {
+        const name = staticPropertyName(current);
+        const namespace = directNamespace(current.object);
+        return name && namespace && nameSet.has(name) && globalIdentityIsStable(name)
+          ? {
+              aliasOrigin: seen.size > 0 ? { node: current, qualified: true } : null,
+              name,
+            }
+          : null;
+      }
 
-    if (value.type === "MemberExpression") {
-      const name = staticPropertyName(value);
-      const namespace = directNamespace(value.object);
-      return name && namespace && nameSet.has(name) && globalIdentityIsStable(name)
-        ? {
-            aliasOrigin: seen.size > 0 ? { node: value, qualified: true } : null,
-            name,
-          }
-        : null;
-    }
+      if (current.type !== "Identifier") return null;
+      if (nameSet.has(current.name) && analysis.bindings.isPlatformGlobal(current)) {
+        return globalIdentityIsStable(current.name)
+          ? {
+              aliasOrigin: seen.size > 0 ? { node: current, qualified: false } : null,
+              name: current.name,
+            }
+          : null;
+      }
+      if (!allowAliases) return null;
 
-    if (value.type !== "Identifier") return null;
-    if (nameSet.has(value.name) && analysis.bindings.isPlatformGlobal(value)) {
-      return globalIdentityIsStable(value.name)
-        ? {
-            aliasOrigin: seen.size > 0 ? { node: value, qualified: false } : null,
-            name: value.name,
-          }
-        : null;
-    }
+      const binding = analysis.bindings.resolve(current.name, current);
+      if (
+        !binding ||
+        seen.has(binding.id) ||
+        bindingWrites.isWritten(binding.id) ||
+        binding.declarations.length !== 1 ||
+        binding.node.type !== "VariableDeclarator"
+      ) {
+        return null;
+      }
+      const declaration = binding.node as ESTree.VariableDeclarator;
+      const facts = declarators.get(declaration);
+      if (
+        !facts?.statementContainer ||
+        facts.executionBoundary !== boundary ||
+        !containsNode(facts.statementContainer, current) ||
+        !declaration.init ||
+        !definitelyPrecedes(declaration.init, current)
+      ) {
+        return null;
+      }
 
-    const binding = analysis.bindings.resolve(value.name, value);
-    if (
-      !binding ||
-      seen.has(binding.id) ||
-      bindingWrites.isWritten(binding.id) ||
-      binding.declarations.length !== 1 ||
-      binding.node.type !== "VariableDeclarator"
-    ) {
-      return null;
+      const selected = destructuredName(declaration, binding.id);
+      if (selected) return globalIdentityIsStable(selected.name) ? selected : null;
+      if (declaration.id.type !== "Identifier" || declaration.id.name !== binding.name) return null;
+      seen.add(binding.id);
+      current = unwrapExpression(declaration.init);
+      boundary = facts.executionBoundary;
     }
-    const declaration = binding.node as ESTree.VariableDeclarator;
-    const facts = declarators.get(declaration);
-    if (
-      !facts?.statementContainer ||
-      facts.executionBoundary !== useBoundary ||
-      !containsNode(facts.statementContainer, value) ||
-      !declaration.init ||
-      !definitelyPrecedes(declaration.init, value)
-    ) {
-      return null;
-    }
-
-    const selected = destructuredName(declaration, binding.id);
-    if (selected) return globalIdentityIsStable(selected.name) ? selected : null;
-    if (declaration.id.type !== "Identifier" || declaration.id.name !== binding.name) return null;
-    const next = new Set(seen);
-    next.add(binding.id);
-    return resolve(declaration.init, facts.executionBoundary, next);
+    return null;
   };
 
   return { callSites, pathIdentityIsStable, resolve };
@@ -344,7 +356,11 @@ export function findStablePlatformConstructorCalls({
 
   const findings: PlatformConstructorCallFinding[] = [];
   for (const callSite of resolver.callSites) {
-    const resolved = resolver.resolve(callSite.callee, callSite.executionBoundary);
+    const resolved = resolver.resolve(
+      callSite.callee,
+      callSite.executionBoundary,
+      callSite.allowAliases,
+    );
     if (resolved) findings.push({ ...resolved, node: callSite.node });
   }
   return findings;
@@ -372,34 +388,65 @@ export function findStablePlatformStaticMethodCalls({
   });
   if (!resolver || !reflectResolver) return [];
 
+  const directArguments = (nodes: readonly ESTree.Node[]): readonly ESTree.Node[] | null =>
+    nodes.some((node) => node.type === "SpreadElement") ? null : nodes;
+  const arrayArguments = (node: unknown): readonly ESTree.Node[] | null => {
+    const array = unwrapExpression(node);
+    if (
+      !isNode(array) ||
+      array.type !== "ArrayExpression" ||
+      array.elements.some((element) => element === null)
+    ) {
+      return null;
+    }
+    return directArguments(array.elements as ESTree.Node[]);
+  };
+
   const findings: PlatformStaticMethodCallFinding[] = [];
   for (const callSite of resolver.callSites) {
     if (callSite.node.type !== "CallExpression") continue;
     const direct = unwrapExpression(callSite.callee);
     const targets: Array<{
+      readonly arguments: readonly ESTree.Node[] | null;
       readonly helper: "apply" | "bind" | "call" | null;
       readonly member: ESTree.MemberExpression;
     }> = [];
     if (isNode(direct) && direct.type === "MemberExpression") {
-      targets.push({ helper: null, member: direct });
+      targets.push({
+        arguments: directArguments(callSite.node.arguments),
+        helper: null,
+        member: direct,
+      });
       const helper = staticPropertyName(direct);
       const wrapped = unwrapExpression(direct.object);
       const reflectApplyTarget = unwrapExpression(callSite.node.arguments[0]);
       if (
         helper === "apply" &&
-        reflectResolver.resolve(direct.object, callSite.executionBoundary)?.name === "Reflect" &&
+        reflectResolver.resolve(direct.object, callSite.executionBoundary, callSite.allowAliases)
+          ?.name === "Reflect" &&
         reflectResolver.pathIdentityIsStable(["Reflect", "apply"]) &&
         isNode(reflectApplyTarget) &&
         reflectApplyTarget.type === "MemberExpression"
       ) {
-        targets.push({ helper: null, member: reflectApplyTarget });
+        targets.push({
+          arguments: arrayArguments(callSite.node.arguments[2]),
+          helper: null,
+          member: reflectApplyTarget,
+        });
       }
       if (
         (helper === "call" || helper === "apply") &&
         isNode(wrapped) &&
         wrapped.type === "MemberExpression"
       ) {
-        targets.push({ helper, member: wrapped });
+        targets.push({
+          arguments:
+            helper === "call"
+              ? directArguments(callSite.node.arguments.slice(1))
+              : arrayArguments(callSite.node.arguments[1]),
+          helper,
+          member: wrapped,
+        });
       }
     } else if (isNode(direct) && direct.type === "CallExpression") {
       const bindCallee = unwrapExpression(direct.callee);
@@ -410,14 +457,22 @@ export function findStablePlatformStaticMethodCalls({
           ? unwrapExpression(bindCallee.object)
           : null;
       if (isNode(wrapped) && wrapped.type === "MemberExpression") {
-        targets.push({ helper: "bind", member: wrapped });
+        targets.push({
+          arguments: directArguments([...direct.arguments.slice(1), ...callSite.node.arguments]),
+          helper: "bind",
+          member: wrapped,
+        });
       }
     }
 
-    for (const { helper, member } of targets) {
+    for (const { arguments: semanticArguments, helper, member } of targets) {
       const method = staticPropertyName(member);
       if (!method) continue;
-      const resolved = resolver.resolve(member.object, callSite.executionBoundary);
+      const resolved = resolver.resolve(
+        member.object,
+        callSite.executionBoundary,
+        callSite.allowAliases,
+      );
       if (!resolved || !methodSets.get(resolved.name)?.has(method)) continue;
       if (!resolver.pathIdentityIsStable([resolved.name, method])) continue;
       if (
@@ -427,7 +482,12 @@ export function findStablePlatformStaticMethodCalls({
       ) {
         continue;
       }
-      findings.push({ ...resolved, method, node: callSite.node });
+      findings.push({
+        ...resolved,
+        arguments: semanticArguments,
+        method,
+        node: callSite.node,
+      });
       break;
     }
   }

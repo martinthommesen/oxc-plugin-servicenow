@@ -58,6 +58,12 @@ Every rule has an entry in `AUSTRALIA_RULE_REVIEWS` in [[src/release-reviews.ts#
 
 The engine rows are pinned separately: `tests/australia-engine-updates.test.ts` and `tests/engine-features.test.ts` fix the row and pull-request inventory, so a `pending` disposition cannot quietly become an implied support claim.
 
+## Foreign package execution cannot modify release inputs
+
+Release artifacts are frozen before validation executes registry-installed package code, and privileged jobs consume only artifacts from the earlier trusted job.
+
+The release workflow builds and uploads one tarball before the consumer matrix runs. Recovery fetches and uploads the npm tarball in a read-only job, verifies package installation and imports in a separate read-only job, and lets the contents-write job consume only the original artifact.
+
 ## The release and SDK axes never mix
 
 A rule versioned by the Fluent SDK must not claim an instance release, and a rule versioned by instance release must not claim an SDK range. The catalog encodes both and the checker verifies neither is stated for the wrong family. See [[domain#Two independent version axes]].
@@ -75,6 +81,8 @@ Freezing covers cyclic objects, and the shared empty default is never mutable. K
 `scripts/**/*.mjs` modules carry JSDoc types and no separate declaration file may exist. `tsconfig.scripts.json` runs the strict `checkJs` project over them, and `npm run typecheck:scripts` sits in the validate chain (FINDINGS.md MNT-005).
 
 TypeScript imports of script helpers resolve the JSDoc types directly. `scripts/check-script-paths.mjs` separately requires every script under `scripts/` to be tracked in Git. Scripts share the `root` export of `scripts/lib/repo.mjs` instead of re-deriving the repository root from `import.meta.url`.
+
+Destructive verifier cleanup checks every existing component from the repository root through the selected run directory and rejects symbolic links immediately before deletion. Cloud-agent Bun installation uses an exact version and committed npm integrity lock rather than a mutable dist-tag.
 
 ## Declared ranges match tested cells
 

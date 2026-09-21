@@ -120,8 +120,31 @@ export function containedPath(base, dest) {
  * @returns {void}
  */
 function assertNotSymlink(target) {
-  if (existsSync(target) && lstatSync(target).isSymbolicLink()) {
-    throw new Error(`refusing symlink ${target}`);
+  try {
+    if (lstatSync(target).isSymbolicLink()) {
+      throw new Error(`refusing symlink ${target}`);
+    }
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") return;
+    throw error;
+  }
+}
+
+/**
+ * @param {string} base
+ * @param {string} target
+ * @returns {void}
+ */
+function assertContainedPathComponentsNotSymlinks(base, target) {
+  const resolvedBase = path.resolve(base);
+  const resolvedTarget = containedPath(resolvedBase, target);
+  let current = resolvedBase;
+  assertNotSymlink(current);
+  const relative = path.relative(resolvedBase, resolvedTarget);
+  if (!relative) return;
+  for (const component of relative.split(path.sep)) {
+    current = path.join(current, component);
+    assertNotSymlink(current);
   }
 }
 
@@ -415,6 +438,17 @@ export function examplesGit(repoRoot) {
  */
 function artifactBase(repoRoot) {
   return path.join(repoRoot, ARTIFACT_REL);
+}
+
+/**
+ * @param {string} repoRoot
+ * @param {string} runId
+ * @returns {string}
+ */
+export function assertArtifactRunPathSafe(repoRoot, runId) {
+  const runDir = runDirFor(repoRoot, runId);
+  assertContainedPathComponentsNotSymlinks(repoRoot, runDir);
+  return runDir;
 }
 
 /**
@@ -974,8 +1008,9 @@ function driveOxfmt(repoRoot, projects, project, runDir, manifest, argv, noncano
  */
 function prepareRun(repoRoot, runId) {
   const base = artifactBase(repoRoot);
+  const runDir = assertArtifactRunPathSafe(repoRoot, runId);
   mkdirSync(base, { recursive: true });
-  const runDir = runDirFor(repoRoot, runId);
+  assertArtifactRunPathSafe(repoRoot, runId);
   mkdirExclusive(runDir);
   writeLivePid(runDir);
   try {
@@ -1016,8 +1051,10 @@ function prepareRun(repoRoot, runId) {
     writeJson(path.join(runDir, "manifest.json"), manifest);
     return { runDir, manifest };
   } catch (error) {
+    assertArtifactRunPathSafe(repoRoot, runId);
     clearLivePid(runDir);
     if (!existsSync(path.join(runDir, "manifest.json"))) {
+      assertArtifactRunPathSafe(repoRoot, runId);
       rmSync(runDir, { recursive: true, force: true });
     }
     throw error;
@@ -1150,13 +1187,15 @@ export function main(argv) {
   }
   const projects = loadAndValidateProjects(root);
   if (options.command === "cleanup") {
-    const runDir = runDirFor(root, parseRunId(options.runId));
+    const runId = parseRunId(options.runId);
+    const runDir = assertArtifactRunPathSafe(root, runId);
     const manifestPath = path.join(runDir, "manifest.json");
     if (!existsSync(runDir)) {
       console.log(JSON.stringify({ ok: true, cleared: null, evidenceKept: null }, null, 2));
       return 0;
     }
     if (!existsSync(manifestPath)) {
+      assertArtifactRunPathSafe(root, runId);
       rmSync(runDir, { recursive: true, force: true });
       console.log(JSON.stringify({ ok: true, removed: runDir }, null, 2));
       return 0;

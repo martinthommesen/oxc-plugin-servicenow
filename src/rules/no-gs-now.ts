@@ -44,10 +44,10 @@ export const noGsNow = defineRule({
         const isNowDateTime = property === "nowDateTime";
         if (!isNow && !isNowDateTime) return;
         if (file.bindingWrites.hasDynamicScope()) return;
-        if (directGlobal && file.mutations.isGlobalAuthorityLost("gs")) return;
+        if (directGlobal && file.mutations.isGlobalAuthorityLostAt("gs", call)) return;
         if (
-          file.mutations.isGlobalPathAuthorityLost(["gs", property]) ||
-          file.mutations.isObjectPropertyAuthorityLost(member.object, property)
+          file.mutations.isGlobalPathAuthorityLostAt(["gs", property], call) ||
+          file.mutations.isObjectPropertyAuthorityLostAt(member.object, property, call)
         ) {
           return;
         }

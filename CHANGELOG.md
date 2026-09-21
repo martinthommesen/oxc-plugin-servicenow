@@ -14,6 +14,10 @@
 ### Fixed
 
 - `no-display-value-date-comparison` no longer reports in client files. The rule declares server-only surfaces but its gate admitted every classic instance script; the gate now matches the declaration (FINDINGS.md COR-015).
+- Shared availability, mutation, object-method, block-function, empty-array, and platform-call analysis now stays linear or explicitly bounded on adversarial alias and call-site inputs. Direct platform diagnostics remain active after the alias-analysis call budget is reached.
+- `no-br-current-update` and `no-gs-now` no longer let a provably later write suppress an earlier call, `no-system-query-bypass` cannot be hidden by an appended method write, and `no-packages-calls` reports alias capture at the `Packages` source.
+- Static platform-method findings now carry normalized arguments for `.call()`, `.apply()`, `.bind()`, and `Reflect.apply()`, closing helper-call gaps in the BigInt, Date, and `Array.from()` compatibility rules.
+- Release and recovery workflows freeze artifacts before running registry-installed code, Cloud Agent Bun installation is exact-version and integrity locked, and verifier cleanup rejects symlinked artifact paths before recursive deletion.
 
 ## 3.0.0 — 2026-09-19
 

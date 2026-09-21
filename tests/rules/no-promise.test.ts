@@ -281,6 +281,18 @@ Promise.resolve(1);`,
     assertValid(`fetchThing().then(function () {});`, RULE, { settings: ES5 });
   });
 
+  it("keeps direct Promise diagnostics after the alias-analysis budget", () => {
+    const calls = Array.from({ length: 20_000 }, () => "noop();").join("\n");
+    assertInvalid(
+      `${calls}\nPromise.resolve(1);`,
+      RULE,
+      { messageId: "staticMethod" },
+      {
+        settings: ES5,
+      },
+    );
+  });
+
   it("does not flag a shadowed Promise binding", () => {
     assertValidActive(
       `function Promise(fn) { fn(); }\nvar p = new Promise(function () {});`,

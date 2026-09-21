@@ -44,16 +44,6 @@ export const noGsNowEntry = entry("no-gs-now", noGsNow, {
       code: `var gs = { now: function () { return "local"; } };
 gs.now();`,
     },
-    {
-      caseId: "no-gs-now-file-wide-mutation",
-      kind: "false-negative",
-      description:
-        "A possible gs or target-method mutation suppresses every matching call in the file, including calls that appear before the mutation.",
-      name: "later gs method mutation",
-      filename: "mutated-gs.server.js",
-      code: `gs.now();
-gs.now = localNow;`,
-    },
   ],
   title: "No gs.now()",
   family: "classic",

@@ -121,6 +121,17 @@ const values = new Set(); values.union(other);`,
     );
   });
 
+  it("handles many receivers without rebuilding block guard indexes", () => {
+    const guards = Array.from({ length: 64 }, () => `if (false) return;`);
+    const calls = Array.from({ length: 128 }, () => `new Set().union(other);`);
+    assertInvalid(
+      `function combine() {\n${[...guards, ...calls].join("\n")}\n}`,
+      RULE,
+      { messageId: "unsupported", count: 128 },
+      { settings: ZURICH },
+    );
+  });
+
   it("keeps extracted invocations and unsupported execution contexts silent", () => {
     assertValid(
       `const values = new Set(); const union = values.union.bind(values); union(other); values.union.call(values, other);`,

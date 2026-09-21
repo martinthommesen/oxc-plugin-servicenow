@@ -1,5 +1,5 @@
 import { defineRule } from "@oxlint/plugins";
-import type { ESTree } from "@oxlint/plugins";
+import type { Context, ESTree } from "@oxlint/plugins";
 import {
   hasAuthoritativeGlideRecordMethod,
   isComputedUnknown,
@@ -8,6 +8,22 @@ import {
 import { isServerInstanceContext } from "../context/index.js";
 import { ruleDocsUrl } from "../constants.js";
 import { beginRuleFile } from "./helpers.js";
+
+function isWriteTarget(context: Context, node: ESTree.Node): boolean {
+  const ancestors = context.sourceCode.getAncestors(node);
+  const parent = ancestors[ancestors.length - 1] as ESTree.Node | undefined;
+  return Boolean(
+    (parent?.type === "AssignmentExpression" &&
+      (parent as ESTree.AssignmentExpression).left === node) ||
+    (parent?.type === "UpdateExpression" &&
+      (parent as ESTree.UpdateExpression).argument === node) ||
+    (parent?.type === "UnaryExpression" &&
+      (parent as ESTree.UnaryExpression).operator === "delete" &&
+      (parent as ESTree.UnaryExpression).argument === node) ||
+    (parent?.type === "ForInStatement" && (parent as ESTree.ForInStatement).left === node) ||
+    (parent?.type === "ForOfStatement" && (parent as ESTree.ForOfStatement).left === node),
+  );
+}
 
 export const noSystemQueryBypass = defineRule({
   meta: {
@@ -34,6 +50,7 @@ export const noSystemQueryBypass = defineRule({
       MemberExpression(node) {
         const { analysis, file } = beginRuleFile(context);
         const member = node as ESTree.MemberExpression;
+        if (isWriteTarget(context, member)) return;
         const method = staticPropertyName(member);
         const possible = isComputedUnknown(member);
         if ((!method || !analysis.glide.systemBypass.has(method)) && !possible) return;
@@ -41,7 +58,10 @@ export const noSystemQueryBypass = defineRule({
         const proven = analysis.ofExpression(object);
         if (!proven || proven.kind !== "GlideRecord" || proven.invalid) return;
         if (method && analysis.glide.systemBypass.has(method)) {
-          if (!hasAuthoritativeGlideRecordMethod(file, object, method)) return;
+          // This opt-in security rule reviews access to ACL-bypass names even
+          // when a file also writes that method. File-wide mutation facts do
+          // not prove that a later write happened before this access, and an
+          // appended write must not suppress an earlier platform call.
           context.report({ node, messageId: "bypass", data: { method } });
         } else {
           if (

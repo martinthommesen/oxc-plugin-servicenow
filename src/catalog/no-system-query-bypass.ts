@@ -1,8 +1,4 @@
-import {
-  entry,
-  platformMethodAuthorityEvidence,
-  platformMethodMutationLimitation,
-} from "./entry.js";
+import { entry, platformMethodAuthorityEvidence } from "./entry.js";
 import { noSystemQueryBypass } from "../rules/no-system-query-bypass.js";
 import * as metadata from "../catalog-metadata.js";
 
@@ -38,14 +34,7 @@ export const noSystemQueryBypassEntry = entry("no-system-query-bypass", noSystem
   ),
   placements: [{ profile: "security", severity: "warn" }] as const,
   optionDescriptor: undefined,
-  limitationCases: [
-    platformMethodMutationLimitation(
-      "system-query-file-wide-mutation",
-      `var record = new GlideRecord("incident");
-record.addSystemQuery("active", true);
-record.addSystemQuery = localQuery;`,
-    ),
-  ],
+  limitationCases: [],
   title: "Review system query ACL bypass",
   family: "classic",
   severity: "warn",

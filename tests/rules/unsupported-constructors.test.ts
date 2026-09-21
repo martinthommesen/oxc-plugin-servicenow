@@ -278,4 +278,14 @@ const ref = new WeakRef(value);`,
       AUSTRALIA_ES2021,
     );
   });
+
+  it("keeps direct constructor diagnostics after the alias-analysis budget", () => {
+    const calls = Array.from({ length: 20_000 }, () => "noop();").join("\n");
+    assertInvalid(
+      `${calls}\nnew WeakRef(value);`,
+      "no-weak-references",
+      { messageId: "weak" },
+      AUSTRALIA_ES2021,
+    );
+  });
 });

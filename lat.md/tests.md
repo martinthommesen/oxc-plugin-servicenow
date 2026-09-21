@@ -83,6 +83,8 @@ The shared analysis layer carries scaling invariants alongside its facts.
 
 Quadrupling aliases and call sites must stay well below quadratic time, proving alias resolution queries the per-file write index instead of re-walking the program (FINDINGS.md PER-005).
 
+Adversarial rule fixtures also pin bounded guard, reference, sibling, mutation-alias, and platform-call analysis.
+
 ## Scripts and tooling
 
 The repository's own tooling carries invariants separate from the plugin's behavior.
@@ -90,6 +92,14 @@ The repository's own tooling carries invariants separate from the plugin's behav
 ### Scripts are checked JavaScript with no separate declarations
 
 JSDoc-typed `scripts/*.mjs` is the single source of truth: `tsconfig.scripts.json` runs `checkJs` in the validate chain and no `scripts/*.d.mts` may exist (FINDINGS.md MNT-005).
+
+### Cleanup rejects symlinked artifact paths
+
+Verifier cleanup must reject a symbolic link in the artifact root or selected run path and leave the linked target unchanged.
+
+### Cloud tooling dependencies are locked
+
+The Cloud Agent installs Bun at the exact version and integrity recorded in its committed npm lockfile before exposing the binary to the unprivileged user.
 
 ### Generated artifacts share one manifest
 
@@ -128,6 +138,10 @@ Claims made about a release must be reconstructible from the repository, not ass
 ### Every acceptance criterion maps to one proof
 
 Each atomic requirement in the PR #51 acceptance ledger must map to exactly one proof entry bound to a content hash, with no missing, duplicate, changed, or orphaned mappings. Concurrent verifier runs must use different temporary report paths.
+
+### Foreign package execution is isolated from release inputs
+
+Registry-installed package code runs only after the release tarball is immutable and cannot provide an artifact to the npm publish or GitHub release jobs.
 
 ## Fluent manifest
 

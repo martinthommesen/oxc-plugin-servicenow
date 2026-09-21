@@ -146,14 +146,20 @@ export function findObjectMethodConstructions(
       ) {
         return;
       }
-      const object = resolveDominatingConstValue(declaration.init, bindings);
-      if (!object || object.type !== "ObjectExpression") return;
-      const record = records.get(object);
-      if (!record) return;
       const initializer = unwrapExpression(declaration.init);
-      if (isNode(initializer) && initializer.type === "Identifier") {
+      if (!isNode(initializer)) return;
+      const sourceBinding =
+        initializer.type === "Identifier" ? bindings.resolve(initializer.name, initializer) : null;
+      const record =
+        initializer.type === "ObjectExpression"
+          ? records.get(initializer)
+          : sourceBinding
+            ? recordByBinding.get(sourceBinding.id)
+            : undefined;
+      if (!record) return;
+      if (initializer.type === "Identifier") {
         record.allowedReferences.add(initializer);
-      } else if (initializer !== object) {
+      } else if (initializer.type !== "ObjectExpression") {
         // Conditional, sequence, and other computed aliases may run effects
         // between reads. They stay outside this deliberately narrow proof.
         return;

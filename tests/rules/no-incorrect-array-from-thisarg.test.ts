@@ -197,6 +197,14 @@ convert();`,
     }
   });
 
+  it("reuses the all-safe empty-array proof across many calls", () => {
+    const calls = Array.from(
+      { length: 1_000 },
+      () => `Array.from(source, function (value) { return this.normalize(value); });`,
+    );
+    assertValid(`const source = [];\n${calls.join("\n")}`, RULE, { settings: ZURICH });
+  });
+
   it("accepts object this arguments and conservatively unknown primitives", () => {
     for (const code of [
       `Array.from(source, function (value) { return this.normalize(value); }, normalizer);`,

@@ -28,7 +28,9 @@ The published slice is `AnalysisProvenance` in [[src/analysis/public.ts#Analysis
 
 A platform global can be overwritten, and a rule must stop trusting the name once it is.
 
-`x_gs` assigned to `gs`, `SOMETHING.current = null`, or a write through a dynamic key all mean the name no longer stands for the platform value at that point. `MutationQuery` in [[src/analysis/mutations.ts#MutationQuery]] exposes `isGlobalWritten`, `isGlobalAuthorityLost`, `isGlobalPathAuthorityLost`, and `isObjectPropertyAuthorityLost`. Rules check these before reporting, which is what keeps diagnostics off files that deliberately replace a global.
+`x_gs` assigned to `gs`, `SOMETHING.current = null`, or a write through a dynamic key all mean the name no longer stands for the platform value at that point. `MutationQuery` in [[src/analysis/mutations.ts#MutationQuery]] exposes file-wide queries plus `...LostAt` variants for a specific use. The temporal variants ignore only writes proven to occur later in the same execution boundary; writes in another boundary remain conservative.
+
+Destructured and member aliases are bounded while mutation facts are built. Exceeding the bound records wildcard authority loss instead of recursing until the host stack fails, so exhaustion stays safe for rules that suppress diagnostics when identity is uncertain.
 
 `browserMutations` applies the same model with browser-runtime semantics, for client API authority. `bindingWrites` in `src/analysis/binding-writes.ts` additionally reports `hasDynamicScope()` — a `with` block or an indirect write that could reach any binding. Its `writesFor()` query returns every recorded write to one binding in program order, so Fluent alias resolution answers from the single shared walk instead of re-walking the program per call site (FINDINGS.md PER-005).
 
@@ -54,8 +56,10 @@ Each analysis domain has its own module exposing one finder, so the logic is tes
 - `src/analysis/glideaggregate.ts` and `src/analysis/glide-setnocount.ts` — aggregate and `chooseWindow` usage.
 - `src/analysis/glideajax-params.ts` — `GlideAjax` parameter contracts.
 - `src/analysis/now-id.ts` — canonical `Now.ID` facts and duplicate ids.
-- `src/analysis/availability.ts` — `typeof X !== "undefined"`, `"x" in owner`, and optional-call guards, so a guarded use is not reported as an unguarded one.
+- `src/analysis/availability.ts` — `typeof X !== "undefined"`, `"x" in owner`, and optional-call guards, so a guarded use is not reported as an unguarded one. One structural index is shared per block; receiver-specific proof checks scan only bounded guard candidates.
 - `src/analysis/stable-invocations.ts` — one callable resolver with explicit possible-value or dominating-value time policy. Callers separately require immediate body execution, as cursor-loop expansion does, without rejecting stable generator callbacks or mappers.
+
+Repeated-query finders cache structural facts rather than re-walking earlier siblings or binding references. Platform constructor aliases resolve iteratively, and the call-site budget disables only alias following after its limit; direct platform calls remain diagnosable.
 
 These are built on `MutationQuery`, `path-state`, and the [[glide]] manifest rather than on name lists.
 

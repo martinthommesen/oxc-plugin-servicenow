@@ -54,7 +54,7 @@ user.query();
 
 ## Limitations
 
-Unproven, invalid, or ambiguous GlideRecord bindings stay silent. Proven escaped GlideRecord identities remain reviewable because this opt-in security rule favors surfacing potential ACL bypasses. false-negative: A possible platform constructor namespace reassignment, prototype or relevant instance-method mutation, or dynamic-scope uncertainty suppresses matching diagnostics throughout the file.
+Unproven, invalid, or ambiguous GlideRecord bindings stay silent. Proven escaped GlideRecord identities remain reviewable because this opt-in security rule favors surfacing potential ACL bypasses.
 
 ## Known false positives
 
@@ -62,7 +62,7 @@ Unproven, invalid, or ambiguous GlideRecord bindings stay silent. Proven escaped
 
 ## Known false negatives
 
-- A possible platform constructor namespace reassignment, prototype or relevant instance-method mutation, or dynamic-scope uncertainty suppresses matching diagnostics throughout the file.
+- None recorded.
 
 ## Intentional scope boundaries
 

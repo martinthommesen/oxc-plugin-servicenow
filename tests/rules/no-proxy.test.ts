@@ -200,4 +200,16 @@ Proxy.revocable(target, handler);`,
       { settings: ES5 },
     );
   });
+
+  it("keeps direct Proxy diagnostics after the alias-analysis budget", () => {
+    const calls = Array.from({ length: 20_000 }, () => "noop();").join("\n");
+    assertInvalid(
+      `${calls}\nnew Proxy(target, handler);`,
+      RULE,
+      { messageId: "construct" },
+      {
+        settings: ES5,
+      },
+    );
+  });
 });

@@ -202,10 +202,13 @@ export function createEmptyArrayBindingQuery(
   options: EmptyArrayBindingQueryOptions = {},
 ): EmptyArrayBindingQuery {
   let references: ReadonlyMap<number, readonly BindingReference[]> | undefined;
+  let referenceByNode: WeakMap<ESTree.Node, BindingReference> | undefined;
+  let alwaysNonMutating: ReadonlyMap<number, boolean> | undefined;
   return Object.freeze({
     isUnchangedThrough(binding: LexicalBinding, use: ESTree.Node): boolean {
       if (!references) {
         const next = new Map<number, BindingReference[]>();
+        const byNode = new WeakMap<ESTree.Node, BindingReference>();
         const ancestors: ESTree.Node[] = [];
         walk(
           program,
@@ -224,7 +227,7 @@ export function createEmptyArrayBindingQuery(
                 return;
               }
               const nodes = next.get(resolved.id) ?? [];
-              nodes.push({
+              const reference = {
                 node,
                 boundary: bindings.executionBoundaryForNode(node, ancestors),
                 inLoop: isInsideLoopInCurrentExecution(ancestors),
@@ -232,18 +235,39 @@ export function createEmptyArrayBindingQuery(
                   options.knownNonMutatingReferences?.has(node) === true ||
                   isDefinitelyNonMutatingArrayReference(node, ancestors),
                 constAlias: directConstAliasBinding(node, ancestors, bindings),
-              });
+              };
+              nodes.push(reference);
+              byNode.set(node, reference);
               next.set(resolved.id, nodes);
             },
           },
           ancestors,
         );
         references = next;
+        referenceByNode = byNode;
+        const safe = new Map<number, boolean>();
+        const visiting = new Set<number>();
+        const isAlwaysNonMutating = (bindingId: number): boolean => {
+          const cached = safe.get(bindingId);
+          if (cached !== undefined) return cached;
+          if (visiting.has(bindingId)) return true;
+          visiting.add(bindingId);
+          const result = (next.get(bindingId) ?? []).every(
+            (reference) =>
+              reference.definitelyNonMutating ||
+              (reference.constAlias !== null && isAlwaysNonMutating(reference.constAlias.id)),
+          );
+          visiting.delete(bindingId);
+          safe.set(bindingId, result);
+          return result;
+        };
+        for (const bindingId of next.keys()) isAlwaysNonMutating(bindingId);
+        alwaysNonMutating = safe;
       }
 
-      const nodes = references.get(binding.id) ?? [];
-      const useReference = nodes.find((reference) => reference.node === use);
+      const useReference = referenceByNode!.get(use);
       if (!useReference) return false;
+      if (alwaysNonMutating!.get(binding.id) === true) return true;
       const useStart = (use as { start?: unknown }).start;
       const useBoundary = useReference.boundary;
       const declarationBoundary = bindings.executionBoundaryForNode(binding.node);

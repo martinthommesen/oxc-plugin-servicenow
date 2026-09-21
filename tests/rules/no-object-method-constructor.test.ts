@@ -43,6 +43,19 @@ new Constructor();`,
     );
   });
 
+  it("propagates long object alias chains in one pass", () => {
+    const aliases = Array.from(
+      { length: 1_000 },
+      (_, index) => `const alias${index + 1} = alias${index};`,
+    );
+    assertInvalid(
+      `const alias0 = { create() {} };\n${aliases.join("\n")}\nnew alias1000.create();`,
+      RULE,
+      { messageId: "notConstructor" },
+      { settings: AUSTRALIA },
+    );
+  });
+
   it("ignores erased TypeScript references when proving object stability", () => {
     assertInvalid(
       `const definitions = { create() {} };

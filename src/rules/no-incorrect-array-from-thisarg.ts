@@ -263,9 +263,9 @@ export const noIncorrectArrayFromThisarg = defineRule({
         const stableArrayFromSources = new Set<ESTree.Node>();
         const inlineArrayFromMappers = new Set<ESTree.Node>();
         for (const finding of findings) {
-          const source = unwrapExpression(finding.node.arguments[0]);
+          const source = unwrapExpression(finding.arguments?.[0]);
           if (isNode(source)) stableArrayFromSources.add(source);
-          const mapper = unwrapExpression(finding.node.arguments[1]);
+          const mapper = unwrapExpression(finding.arguments?.[1]);
           if (isFunctionNode(mapper)) inlineArrayFromMappers.add(mapper as ESTree.Node);
         }
         const bindingReferences = createEmptyArrayBindingQuery(
@@ -278,9 +278,10 @@ export const noIncorrectArrayFromThisarg = defineRule({
         );
         for (const finding of findings) {
           const call = finding.node;
-          if (call.arguments.some((argument) => argument.type === "SpreadElement")) continue;
-          const source = call.arguments[0];
-          const mapperArgument = call.arguments[1];
+          const semanticArguments = finding.arguments;
+          if (!semanticArguments) continue;
+          const source = semanticArguments[0];
+          const mapperArgument = semanticArguments[1];
           if (!source || !mapperArgument) continue;
           // Both releases fail before mapper-this handling for nullish input.
           if (isDefinitelyNullishValue(source, analysis.bindings)) continue;
@@ -292,7 +293,7 @@ export const noIncorrectArrayFromThisarg = defineRule({
           );
           if (!mapper) continue;
 
-          const thisArgument = call.arguments[2];
+          const thisArgument = semanticArguments[2];
           if (thisArgument) {
             if (isDefinitelyPrimitiveThisArgument(thisArgument, analysis.bindings)) {
               context.report({ node: call, messageId: "primitive" });

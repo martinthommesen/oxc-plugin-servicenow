@@ -65,4 +65,28 @@ describe("tooling execution", () => {
       /^node --import \.\/scripts\/register-tsx\.mjs /,
     );
   });
+
+  // @lat: [[tests#Scripts and tooling#Cloud tooling dependencies are locked]]
+  it("installs the pinned Bun package from the Cursor lockfile", () => {
+    const dockerfile = readFileSync(path.join(repoRoot, ".cursor", "Dockerfile"), "utf8");
+    const lock = JSON.parse(
+      readFileSync(path.join(repoRoot, ".cursor", "package-lock.json"), "utf8"),
+    ) as {
+      packages: Record<string, { version?: string; integrity?: string }>;
+    };
+
+    assert.doesNotMatch(dockerfile, /npm install -g bun/);
+    assert.match(dockerfile, /COPY \.cursor\/package\.json \.cursor\/package-lock\.json/);
+    assert.match(dockerfile, /npm ci --ignore-scripts/);
+    assert.match(dockerfile, /node node_modules\/bun\/install\.js/);
+    assert.match(dockerfile, /\/usr\/local\/bin\/bun/);
+    assert.match(dockerfile, /USER node/);
+    assert.equal(lock.packages["node_modules/bun"]?.version, "1.4.2");
+    assert.match(lock.packages["node_modules/bun"]?.integrity ?? "", /^sha512-/);
+    for (const platform of ["linux-aarch64", "linux-x64"]) {
+      const entry = lock.packages[`node_modules/@oven/bun-${platform}`];
+      assert.equal(entry?.version, "1.4.2");
+      assert.match(entry?.integrity ?? "", /^sha512-/);
+    }
+  });
 });

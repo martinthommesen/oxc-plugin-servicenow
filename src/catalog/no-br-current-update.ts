@@ -42,16 +42,6 @@ export const noBrCurrentUpdateEntry = entry("no-br-current-update", noBrCurrentU
   optionDescriptor: undefined,
   limitationCases: [
     {
-      caseId: "no-br-current-update-file-wide-reassignment",
-      kind: "false-negative",
-      description:
-        "A possible current reassignment suppresses direct current.update calls throughout the file, including calls that appear before the reassignment.",
-      name: "later current reassignment",
-      filename: "reassigned.br.js",
-      code: `current.update();
-current = getOtherRecord();`,
-    },
-    {
       caseId: "no-br-current-update-method-mutation",
       kind: "false-negative",
       description:

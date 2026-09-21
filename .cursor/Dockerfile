@@ -14,9 +14,13 @@ RUN apt-get update \
         git \
     && rm -rf /var/lib/apt/lists/*
 
-# Bun is installed via its official npm package so the binary lands in the
-# global prefix (/usr/local/bin) and is on PATH for the node user.
-RUN npm install -g bun \
+# Install the pinned Bun package from the committed lockfile, then expose its
+# local binary on the system PATH for the unprivileged node user.
+COPY .cursor/package.json .cursor/package-lock.json /opt/bun/
+RUN cd /opt/bun \
+    && npm ci --ignore-scripts \
+    && node node_modules/bun/install.js \
+    && ln -s /opt/bun/node_modules/.bin/bun /usr/local/bin/bun \
     && bun --version
 
 USER node

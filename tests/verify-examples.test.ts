@@ -1,6 +1,15 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, describe, it } from "node:test";
 import {
@@ -18,6 +27,7 @@ import {
   unwrapServicenowRuleId,
 } from "../scripts/lib/host-verifier.mjs";
 import {
+  assertArtifactRunPathSafe,
   containedPath,
   distHash,
   loadAndValidateProjects,
@@ -551,6 +561,28 @@ describe("verify-examples host classification", () => {
     assert.throws(() => containedPath(base, path.join(repoRoot, "artifacts", "base-sibling")));
   });
 
+  it("rejects symlinked artifact roots and run paths", () => {
+    const temporaryRoot = mkdtempSync(path.join(tmpdir(), "verify-examples-paths-"));
+    const external = mkdtempSync(path.join(tmpdir(), "verify-examples-external-"));
+    const artifacts = path.join(temporaryRoot, "artifacts");
+    const artifactRoot = path.join(artifacts, "verify-oxc-plugin-servicenow");
+    try {
+      symlinkSync(external, artifacts);
+      assert.throws(() => assertArtifactRunPathSafe(temporaryRoot, "run"), /refusing symlink/);
+      rmSync(artifacts);
+      mkdirSync(artifacts);
+      symlinkSync(external, artifactRoot);
+      assert.throws(() => assertArtifactRunPathSafe(temporaryRoot, "run"), /refusing symlink/);
+      rmSync(artifactRoot);
+      mkdirSync(artifactRoot);
+      symlinkSync(external, path.join(artifactRoot, "run"));
+      assert.throws(() => assertArtifactRunPathSafe(temporaryRoot, "run"), /refusing symlink/);
+    } finally {
+      rmSync(temporaryRoot, { recursive: true, force: true });
+      rmSync(external, { recursive: true, force: true });
+    }
+  });
+
   it("computes stable SHA-256 digests for strings and buffers", () => {
     const expected = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
     assert.equal(sha256("abc"), expected);
@@ -715,6 +747,27 @@ describe("verify-examples CLI", { concurrency: 1 }, () => {
     const body = JSON.parse(cleanup.stdout) as { removed?: string };
     assert.ok(body.removed);
     assert.ok(!existsSync(runDir));
+  });
+
+  // @lat: [[tests#Scripts and tooling#Cleanup rejects symlinked artifact paths]]
+  it("cleanup refuses a symlinked incomplete run without touching its target", () => {
+    const runId = `test-cleanup-symlink-${Date.now()}`;
+    const runDir = path.join(repoRoot, "artifacts", "verify-oxc-plugin-servicenow", runId);
+    const external = mkdtempSync(path.join(tmpdir(), "verify-examples-cleanup-target-"));
+    const sentinel = path.join(external, "sentinel.txt");
+    mkdirSync(path.dirname(runDir), { recursive: true });
+    writeFileSync(sentinel, "keep\n");
+    symlinkSync(external, runDir);
+    try {
+      const cleanup = runCli(["cleanup", "--run-id", runId]);
+      assert.notEqual(cleanup.status, 0);
+      assert.match(cleanup.stderr, /refusing symlink/);
+      assert.equal(readFileSync(sentinel, "utf8"), "keep\n");
+      assert.ok(existsSync(runDir));
+    } finally {
+      rmSync(runDir, { force: true });
+      rmSync(external, { recursive: true, force: true });
+    }
   });
 
   it("cleanup does not claim it cleared a missing live.pid", () => {
