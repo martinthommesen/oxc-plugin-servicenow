@@ -1,25 +1,14 @@
 import type { ESTree } from "@oxlint/plugins";
 import { isNode, unwrapExpression, walk } from "../utils/ast.js";
-import { isFunctionLike, type FileBindings } from "./bindings.js";
+import { isFunctionLike, type FileBindings, type ImmediateFunction } from "./bindings.js";
 import type { BindingWriteQuery } from "./binding-writes.js";
 import { resolveConstValue, resolveDominatingConstValue } from "./members.js";
 
 const MAX_STABLE_CALL_SITES = 20_000;
 
-export interface ImmediateFunction {
-  readonly type: "FunctionDeclaration" | "FunctionExpression" | "ArrowFunctionExpression";
-  readonly params: readonly ESTree.Node[];
-  readonly body: ESTree.Node;
-  readonly generator?: boolean;
-}
-
 export interface StableInvocationQuery {
   /** Resolve a function body proven to execute immediately at this call site. */
   resolve(callee: unknown): ImmediateFunction | null;
-}
-
-export function isFunctionNode(node: unknown): node is ImmediateFunction {
-  return isFunctionLike(node);
 }
 
 function executesImmediately(node: ImmediateFunction): boolean {
@@ -46,7 +35,7 @@ export function resolveStableCallable(
       ? resolveConstValue(node, bindings)
       : resolveDominatingConstValue(node, bindings);
   if (!value) return null;
-  if (isFunctionNode(value)) {
+  if (isFunctionLike(value)) {
     return !requireImmediateExecution || executesImmediately(value) ? value : null;
   }
   if (value.type !== "Identifier") return null;
@@ -55,7 +44,7 @@ export function resolveStableCallable(
     binding?.kind !== "function" ||
     binding.node.type !== "FunctionDeclaration" ||
     bindingWrites.isWritten(binding.id) ||
-    !isFunctionNode(binding.node)
+    !isFunctionLike(binding.node)
   ) {
     return null;
   }
@@ -86,7 +75,7 @@ export function analyzeStableInvocations(
   const resolveBase = (callee: unknown): ImmediateFunction | null => {
     const direct = unwrapExpression(callee);
     if (!isNode(direct)) return null;
-    if (isFunctionNode(direct)) return executesImmediately(direct) ? direct : null;
+    if (isFunctionLike(direct)) return executesImmediately(direct) ? direct : null;
     // Member, conditional, and sequence calls can evaluate additional code.
     // Expansion stays limited to direct bindings and immutable aliases.
     if (direct.type !== "Identifier") return null;
@@ -110,7 +99,7 @@ export function analyzeStableInvocations(
       const direct = unwrapExpression(callee);
       if (!isNode(direct)) return null;
       if (cache.has(direct)) return cache.get(direct) ?? null;
-      if (isFunctionNode(direct) && executesImmediately(direct)) {
+      if (isFunctionLike(direct) && executesImmediately(direct)) {
         cache.set(direct, direct);
         return direct;
       }

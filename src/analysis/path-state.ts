@@ -4,19 +4,20 @@ import {
   isNode,
   isValueReference,
   unwrapExpression,
-  WALK_SKIP_KEYS,
+  visitChildren,
   walk,
 } from "../utils/ast.js";
 import {
   isFunctionLike,
   type FileBindings,
+  type ImmediateFunction,
   type LexicalBinding,
   type ScopeNode,
 } from "./bindings.js";
 import { resolvePlatformGlobalName } from "./globals.js";
 import { isDefinitelyUndefinedValue, resolveConstValue, staticPropertyName } from "./members.js";
 import {
-  PLATFORM_ALIAS_GLOBALS,
+  isPlatformAliasGlobal,
   ctorProvenanceKind,
   type ProvenanceKind,
   type ProvenanceQuery,
@@ -52,17 +53,18 @@ export interface PathRefInput<T> {
 
 type AbruptCompletion = Exclude<InternalCompletion, "normal">;
 
-const DEFAULT_MAX_WORK = 50_000;
 // Snapshot cost grows superlinearly with file length (top-level `var`
 // bindings stay live to end of file), so the default budget scales with
 // program size while `maxWork` stays an explicit override and the ceiling
 // still bounds adversarial input (FINDINGS.md PER-003).
 const WORK_PER_NODE = 128;
-const MAX_DEFAULT_WORK = 5_000_000;
+/** Floor of the default work budget, whatever the program size. */
+const MIN_WORK_BUDGET = 50_000;
+/** Ceiling of the default work budget, whatever the program size. */
+const MAX_WORK_BUDGET = 5_000_000;
 const programNodeBudgets = new WeakMap<ESTree.Node, number>();
 const MAX_PATH_DEPTH = 128;
 const BUDGET_EXCEEDED = Symbol("path-analysis-budget-exceeded");
-const EMPTY_OBJECT_IDS: ReadonlySet<ObjectId> = new Set();
 let budgetExceededCount = 0;
 
 export function getPathBudgetExceededCount(): number {
@@ -91,6 +93,11 @@ export function dedupePathFindings<T extends { node: ESTree.Node }>(
     keys.add(key);
     return true;
   });
+}
+
+/** The default `cloneData` for a flat domain payload. */
+export function shallowClone<T>(data: T): T {
+  return { ...data };
 }
 
 interface WorkBudget {
@@ -124,7 +131,7 @@ export interface PathAnalysisOptions<T> {
   /** Merge different runtime identities only when the domain proves both are values of the same abstract kind. */
   mergeDistinctData?: (left: T, right: T) => T | undefined;
   equalsData: (left: T, right: T) => boolean;
-  onCall: (input: PathCallInput<T>) => void;
+  onCall?: (input: PathCallInput<T>) => void;
   onRef?: (input: PathRefInput<T>) => void;
   /** Allocate an abstract value; a later evaluation refreshes an invalid or escaped site. */
   onValue?: (node: ESTree.Node) => T | undefined;
@@ -153,6 +160,39 @@ export interface PathExitState<T> {
   records: readonly SharedRecord<T>[];
 }
 
+export interface PathFindingOptions<T, F extends { node: ESTree.Node }> extends Omit<
+  PathAnalysisOptions<T>,
+  "cloneData" | "onCall"
+> {
+  /** Defaults to a shallow copy, which suits every flat domain payload. */
+  cloneData?: (data: T) => T;
+  onCall: (input: PathCallInput<T>, report: (finding: F) => void) => void;
+}
+
+/**
+ * Run one finder domain over the shared interpreter and return its findings.
+ * Exhaustion returns no findings, so the silence rule lives here once instead
+ * of in every finder's return statement.
+ */
+export function collectPathFindings<T, F extends { node: ESTree.Node }>(
+  options: PathFindingOptions<T, F>,
+  keyOf?: (finding: F) => string,
+): F[] {
+  const { cloneData = shallowClone, onCall, ...rest } = options;
+  const findings: F[] = [];
+  const report = (finding: F): void => {
+    findings.push(finding);
+  };
+  const outcome = analyzePathBindings<T>({
+    ...rest,
+    cloneData,
+    onCall: (input) => {
+      onCall(input, report);
+    },
+  });
+  return outcome.outcome === "complete" ? dedupePathFindings(findings, keyOf) : [];
+}
+
 export function mergeTri(
   left: boolean | "unknown",
   right: boolean | "unknown",
@@ -173,6 +213,35 @@ export function mergeKeyedUnion<T>(
     merged.set(key(value), clone(value));
   }
   return [...merged.values()];
+}
+
+/** A domain payload that carries a list of mutually exclusive alternatives. */
+export interface KeyedAlternatives<A> {
+  alternatives: A[];
+}
+
+/**
+ * The `cloneData` / `equalsData` / `mergeData` triple for a keyed-alternatives
+ * payload: clone element-wise, compare position-by-position on the key, and
+ * union by key at joins.
+ */
+export function keyedAlternativeDomain<A>(
+  key: (value: A) => string,
+  clone: (value: A) => A,
+): {
+  cloneData: (data: KeyedAlternatives<A>) => KeyedAlternatives<A>;
+  equalsData: (left: KeyedAlternatives<A>, right: KeyedAlternatives<A>) => boolean;
+  mergeData: (left: KeyedAlternatives<A>, right: KeyedAlternatives<A>) => KeyedAlternatives<A>;
+} {
+  return {
+    cloneData: (data) => ({ alternatives: data.alternatives.map(clone) }),
+    equalsData: (left, right) =>
+      left.alternatives.length === right.alternatives.length &&
+      left.alternatives.every((value, index) => key(value) === key(right.alternatives[index]!)),
+    mergeData: (left, right) => ({
+      alternatives: mergeKeyedUnion(left.alternatives, right.alternatives, key, clone),
+    }),
+  };
 }
 
 function cloneAbrupt<T>(
@@ -228,34 +297,80 @@ function setCompletion<T>(
   state.completionLabel = label;
 }
 
+/**
+ * Truthiness and nullishness of an expression whose value is known from its
+ * syntax alone. Anything that depends on a binding, a call, or a coercion of
+ * an unknown operand stays `null` so the interpreter keeps the conservative
+ * join. Constant tests decide which short-circuit branch and which `if`,
+ * conditional, and loop arm can execute (FINDINGS.md COR-003).
+ */
+interface ConstantValue {
+  readonly truthy: boolean;
+  readonly nullish: boolean;
+}
+
+const ALWAYS_OBJECT_EXPRESSIONS = new Set([
+  "ObjectExpression",
+  "ArrayExpression",
+  "FunctionExpression",
+  "ArrowFunctionExpression",
+  "ClassExpression",
+]);
+
+function constantValue(node: unknown): ConstantValue | null {
+  const expr = unwrapExpression(node);
+  if (!isNode(expr)) return null;
+  if (expr.type === "Literal") {
+    const literal = expr as unknown as { value?: unknown; regex?: unknown; bigint?: string };
+    if (literal.regex !== undefined) return { truthy: true, nullish: false };
+    const value = literal.value;
+    if (value === null) return { truthy: false, nullish: true };
+    if (typeof literal.bigint === "string") {
+      return { truthy: /[1-9]/.test(literal.bigint), nullish: false };
+    }
+    if (typeof value === "boolean" || typeof value === "number" || typeof value === "string") {
+      return { truthy: Boolean(value), nullish: false };
+    }
+    return null;
+  }
+  if (expr.type === "TemplateLiteral") {
+    const template = expr as ESTree.TemplateLiteral;
+    if (template.expressions.length > 0) return null;
+    const cooked = template.quasis.map((quasi) => quasi.value.cooked ?? "").join("");
+    return { truthy: cooked.length > 0, nullish: false };
+  }
+  if (expr.type === "UnaryExpression" && (expr as ESTree.UnaryExpression).operator === "void") {
+    return { truthy: false, nullish: true };
+  }
+  if (ALWAYS_OBJECT_EXPRESSIONS.has(expr.type)) return { truthy: true, nullish: false };
+  return null;
+}
+
 function isDefinitelyTrue(node: unknown): boolean {
   if (node == null) return true;
-  const expr = unwrapExpression(node);
-  if (!isNode(expr)) return false;
-  return expr.type === "Literal" && (expr as unknown as { value?: unknown }).value === true;
+  return constantValue(node)?.truthy === true;
 }
 
 function isDefinitelyFalse(node: unknown): boolean {
-  const expr = unwrapExpression(node);
-  return Boolean(
-    isNode(expr) &&
-    expr.type === "Literal" &&
-    (expr as unknown as { value?: unknown }).value === false,
-  );
+  return constantValue(node)?.truthy === false;
 }
 
-export function visitChildren(
-  node: ESTree.Node,
-  visit: (child: unknown, traverseRoot: boolean) => void,
-): void {
-  for (const key of Object.keys(node)) {
-    if (WALK_SKIP_KEYS.has(key)) continue;
-    const value = (node as unknown as Record<string, unknown>)[key];
-    if (Array.isArray(value)) {
-      for (const child of value) visit(child, false);
-    } else {
-      visit(value, false);
-    }
+/**
+ * Whether a logical expression's right operand definitely runs, definitely
+ * does not run, or depends on a value the interpreter cannot see.
+ */
+function logicalRightOperandRuns(expr: ESTree.LogicalExpression): boolean | null {
+  const left = constantValue(expr.left);
+  if (!left) return null;
+  switch (expr.operator) {
+    case "&&":
+      return left.truthy;
+    case "||":
+      return !left.truthy;
+    case "??":
+      return left.nullish;
+    default:
+      return null;
   }
 }
 
@@ -308,6 +423,16 @@ function mergeRecords<T>(
   };
 }
 
+/** The join policy for one `analyzePathBindings` run, bound once at its start. */
+interface MergePolicy<T> {
+  readonly emptyData: () => T;
+  readonly mergeData: (left: T, right: T) => T;
+  readonly mergeDistinctData: ((left: T, right: T) => T | undefined) | undefined;
+  readonly alloc: () => ObjectId;
+  readonly retainUnboundRecords: boolean;
+  readonly retainedObjectIds: ReadonlySet<ObjectId>;
+}
+
 /**
  * Join reachable states. Must-facts come from matching object identities.
  * Risk facts union. Different identities become unknown.
@@ -315,13 +440,16 @@ function mergeRecords<T>(
 function mergeStates<T>(
   left: EnvState<T>,
   right: EnvState<T>,
-  emptyData: () => T,
-  mergeData: (left: T, right: T) => T,
-  mergeDistinctData?: (left: T, right: T) => T | undefined,
-  alloc?: () => ObjectId,
-  retainUnboundRecords = true,
-  retainedObjectIds: ReadonlySet<ObjectId> = EMPTY_OBJECT_IDS,
+  policy: MergePolicy<T>,
 ): EnvState<T> {
+  const {
+    emptyData,
+    mergeData,
+    mergeDistinctData,
+    alloc,
+    retainUnboundRecords,
+    retainedObjectIds,
+  } = policy;
   const env = new Map<BindingId, ObjectId | undefined>();
   const objects = new Map<ObjectId, SharedRecord<T>>();
   const objectIds = new Set([...left.objects.keys(), ...right.objects.keys()]);
@@ -351,7 +479,7 @@ function mergeStates<T>(
         leftRecord && rightRecord
           ? mergeDistinctData?.(leftRecord.data, rightRecord.data)
           : undefined;
-      if (data !== undefined && alloc) {
+      if (data !== undefined) {
         const id = alloc();
         objects.set(id, {
           id,
@@ -402,39 +530,17 @@ function statesEqual<T>(
   return true;
 }
 
-function mergeMany<T>(
-  paths: EnvState<T>[],
-  emptyData: () => T,
-  mergeData: (left: T, right: T) => T,
-  mergeDistinctData?: (left: T, right: T) => T | undefined,
-  alloc?: () => ObjectId,
-  retainUnboundRecords = true,
-  retainedObjectIds: ReadonlySet<ObjectId> = EMPTY_OBJECT_IDS,
-): EnvState<T> | undefined {
+function mergeMany<T>(paths: EnvState<T>[], policy: MergePolicy<T>): EnvState<T> | undefined {
   const reachable = paths.filter((path) => path.completion === "normal");
   if (reachable.length === 0) return undefined;
   let current = reachable[0]!;
   for (let i = 1; i < reachable.length; i++) {
-    current = mergeStates(
-      current,
-      reachable[i]!,
-      emptyData,
-      mergeData,
-      mergeDistinctData,
-      alloc,
-      retainUnboundRecords,
-      retainedObjectIds,
-    );
+    current = mergeStates(current, reachable[i]!, policy);
   }
   return current;
 }
 
-function replaceWith<T>(
-  target: EnvState<T>,
-  source: EnvState<T>,
-  cloneData?: (data: T) => T,
-  budget?: WorkBudget,
-): void {
+function replaceWith<T>(target: EnvState<T>, source: EnvState<T>): void {
   target.env.clear();
   for (const [id, objectId] of source.env) target.env.set(id, objectId);
   target.objects.clear();
@@ -442,17 +548,7 @@ function replaceWith<T>(
   target.completion = source.completion;
   target.completionLabel = source.completionLabel;
   target.abrupt.clear();
-  if (cloneData) {
-    if (!budget) throw new Error("path analysis budget is required when cloning state");
-    for (const [kind, paths] of source.abrupt) {
-      target.abrupt.set(
-        kind,
-        paths.map((path) => snapshotState(path, cloneData, budget)),
-      );
-    }
-  } else {
-    for (const [kind, paths] of source.abrupt) target.abrupt.set(kind, paths);
-  }
+  for (const [kind, paths] of source.abrupt) target.abrupt.set(kind, paths);
 }
 
 function ctorKind(
@@ -529,8 +625,8 @@ function defaultMaxWork(program: ESTree.Node): number {
   const cached = programNodeBudgets.get(program);
   if (cached !== undefined) return cached;
   const budget = Math.min(
-    MAX_DEFAULT_WORK,
-    Math.max(DEFAULT_MAX_WORK, countNodes(program) * WORK_PER_NODE),
+    MAX_WORK_BUDGET,
+    Math.max(MIN_WORK_BUDGET, countNodes(program) * WORK_PER_NODE),
   );
   programNodeBudgets.set(program, budget);
   return budget;
@@ -573,12 +669,20 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
   const newExpressionIds = new WeakMap<ESTree.Node, ObjectId>();
   const platformObjects = new Map<string, ObjectId>();
   const retainedPlatformObjectIds = new Set<ObjectId>();
-  const functionDefs = new Map<BindingId, ESTree.Node>();
-  const declaredFunctions = new Map<BindingId, ESTree.Node>();
+  const functionDefs = new Map<BindingId, ImmediateFunction>();
+  const declaredFunctions = new Map<BindingId, ImmediateFunction>();
   const directlyCalledFunctions = new WeakSet<ESTree.Node>();
   const activeFunctions = new Set<ESTree.Node>();
   const functionCaptures = new WeakMap<ESTree.Node, readonly BindingId[]>();
   const tryThrowPaths: EnvState<T>[][] = [];
+  const mergePolicy: MergePolicy<T> = {
+    emptyData,
+    mergeData,
+    mergeDistinctData,
+    alloc,
+    retainUnboundRecords,
+    retainedObjectIds: retainedPlatformObjectIds,
+  };
 
   const recordPossibleThrow = (state: EnvState<T>): void => {
     const paths = tryThrowPaths[tryThrowPaths.length - 1];
@@ -600,7 +704,8 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
   // only callable identity here; captured runtime values remain temporal.
   walk(program, {
     FunctionDeclaration(node) {
-      const id = (node as { id?: ESTree.Node | null }).id;
+      if (!isFunctionLike(node)) return;
+      const id = node.id;
       const name = getName(id);
       if (!id || !name) return;
       const binding = bindings.resolve(name, id);
@@ -663,7 +768,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
       const binding = resolveBinding(bindings, expr, ancestors);
       if (binding) return state.env.get(binding.id);
       const name = getName(expr);
-      if (name && PLATFORM_ALIAS_GLOBALS.has(name) && analysis.isPlatformGlobal(expr)) {
+      if (name && isPlatformAliasGlobal(name) && analysis.isPlatformGlobal(expr)) {
         let objectId = platformObjects.get(name);
         if (objectId === undefined) {
           objectId = alloc();
@@ -1024,15 +1129,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
     const flattened = paths.flatMap((path) => completionPaths(path, cloneData, budget));
     const normal = flattened.filter((path) => path.completion === "normal");
     const abrupt = flattened.filter((path) => path.completion !== "normal");
-    const merged = mergeMany(
-      normal,
-      emptyData,
-      mergeData,
-      mergeDistinctData,
-      alloc,
-      retainUnboundRecords,
-      retainedPlatformObjectIds,
-    );
+    const merged = mergeMany(normal, mergePolicy);
     state.abrupt.clear();
     if (merged) {
       replaceWith(state, merged);
@@ -1066,8 +1163,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
 
     if (isFunctionLike(node) && !traverseRoot) {
       if (node.type === "FunctionDeclaration") {
-        const id = (node as { id?: ESTree.Node | null }).id;
-        const binding = id ? resolveBinding(bindings, id, ancestors) : null;
+        const binding = node.id ? resolveBinding(bindings, node.id, ancestors) : null;
         if (binding) functionDefs.set(binding.id, node);
       }
       // Analyze local syntax once, without definition-time outer values. A
@@ -1199,6 +1295,15 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
         const expr = node as ESTree.LogicalExpression;
         visit(expr.left, state, false);
         if (state.completion !== "normal") break;
+        // A constant left operand fixes which short-circuit branch executes:
+        // `true && f()` always evaluates `f()` and `false && f()` never does.
+        // Only an unknown operand keeps the join of both paths (FINDINGS.md COR-003).
+        const rightRuns = logicalRightOperandRuns(expr);
+        if (rightRuns === false) break;
+        if (rightRuns === true) {
+          visit(expr.right, state, false);
+          break;
+        }
         const afterLeft = snapshotState(state, cloneData, budget);
         visit(expr.right, state, false);
         joinInto(state, [afterLeft, snapshotState(state, cloneData, budget)]);
@@ -1231,18 +1336,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
           if (!switchCase.test) hasDefault = true;
           if (switchCase.test) visit(switchCase.test, directState, false);
           const direct = snapshotState(directState, cloneData, budget);
-          const entry = fall
-            ? mergeStates(
-                direct,
-                fall,
-                emptyData,
-                mergeData,
-                mergeDistinctData,
-                alloc,
-                retainUnboundRecords,
-                retainedPlatformObjectIds,
-              )
-            : direct;
+          const entry = fall ? mergeStates(direct, fall, mergePolicy) : direct;
           for (const consequent of switchCase.consequent) visit(consequent, entry, false);
           if (entry.completion === "break" && !entry.completionLabel) {
             setCompletion(entry, "normal");
@@ -1317,6 +1411,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
         const initialHeader = snapshotState(isDoWhile ? beforeTest : testState, cloneData, budget);
         let header = snapshotState(initialHeader, cloneData, budget);
         let converged = false;
+        const body = (node as { body: ESTree.Node }).body;
         for (let iteration = 0; iteration < 16; iteration += 1) {
           const bodyState = snapshotState(header, cloneData, budget);
           if (node.type === "ForInStatement" || node.type === "ForOfStatement") {
@@ -1331,13 +1426,6 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
               }
             } else invalidatePattern(bodyState, left);
           }
-          const body = isFor
-            ? (node as ESTree.ForStatement).body
-            : isWhile
-              ? (node as ESTree.WhileStatement).body
-              : isDoWhile
-                ? (node as ESTree.DoWhileStatement).body
-                : (node as ESTree.ForInStatement | ESTree.ForOfStatement).body;
           visit(body, bodyState, false);
 
           const backEdges: EnvState<T>[] = [];
@@ -1364,29 +1452,12 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
             if (!infinite) exits.push(snapshotState(path, cloneData, budget));
             backEdges.push(path);
           }
-          const back = mergeMany(
-            backEdges,
-            emptyData,
-            mergeData,
-            mergeDistinctData,
-            alloc,
-            retainUnboundRecords,
-            retainedPlatformObjectIds,
-          );
+          const back = mergeMany(backEdges, mergePolicy);
           if (!back) {
             converged = true;
             break;
           }
-          const nextHeader = mergeStates(
-            initialHeader,
-            back,
-            emptyData,
-            mergeData,
-            mergeDistinctData,
-            alloc,
-            retainUnboundRecords,
-            retainedPlatformObjectIds,
-          );
+          const nextHeader = mergeStates(initialHeader, back, mergePolicy);
           if (statesEqual(header, nextHeader, equalsData)) {
             converged = true;
             break;
@@ -1469,7 +1540,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
         // Invocation remains able to throw after all argument effects complete.
         recordPossibleThrow(state);
         const rec = recordOf(state, receiverId);
-        onCall({ call, rec, receiver, objectName, property });
+        onCall?.({ call, rec, receiver, objectName, property });
         if (rec && property === null) {
           // A computed call whose property cannot be resolved may invoke any
           // mutating platform method. Keep the receiver identity out of later
@@ -1477,18 +1548,18 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
           rec.escaped = true;
         }
         const direct = unwrapExpression(call.callee);
-        let fn: ESTree.Node | undefined;
+        let fn: ImmediateFunction | undefined;
         if (isNode(direct) && isFunctionLike(direct)) {
           fn = direct;
         } else if (isNode(direct) && direct.type === "Identifier") {
           const binding = resolveBinding(bindings, direct, ancestors);
           fn = binding ? functionDefs.get(binding.id) : undefined;
         }
-        const deferred = Boolean((fn as unknown as { generator?: boolean } | undefined)?.generator);
+        const deferred = Boolean(fn?.generator);
         if (fn && !deferred && !activeFunctions.has(fn)) {
           activeFunctions.add(fn);
           const invocation = snapshotState(state, cloneData, budget);
-          const params = (fn as unknown as { params: readonly ESTree.Node[] }).params;
+          const { params } = fn;
           const hasSpreadArgument = call.arguments.some(
             (argument) => argument.type === "SpreadElement",
           );
@@ -1517,11 +1588,11 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
               );
             }
           }
-          const body = (fn as unknown as { body: ESTree.Node }).body;
+          const { body } = fn;
           visit(body, invocation, false);
           ancestors.pop();
           const returned = completionPaths(invocation, cloneData, budget);
-          const asyncFunction = Boolean((fn as unknown as { async?: boolean }).async);
+          const asyncFunction = Boolean(fn.async);
           for (const path of returned) {
             if (
               path.completion === "return" ||

@@ -1,5 +1,5 @@
 import type { ESTree } from "@oxlint/plugins";
-import { analyzePathBindings, dedupePathFindings, mergeTri } from "./path-state.js";
+import { collectPathFindings, mergeTri } from "./path-state.js";
 import {
   hasAuthoritativeGlideRecordMethod,
   type PlatformMethodAuthorityFacts,
@@ -27,26 +27,23 @@ export function findWindowedDeleteMultiple(
   analysis: ProvenanceQuery,
   authority: PlatformMethodAuthorityFacts,
 ): WindowedDeleteFinding[] {
-  const findings: WindowedDeleteFinding[] = [];
-  const outcome = analyzePathBindings<WindowData>({
+  return collectPathFindings<WindowData, WindowedDeleteFinding>({
     program,
     analysis,
     kinds: ["GlideRecord"],
     emptyData: () => ({ windowed: false }),
-    cloneData: (data) => ({ ...data }),
     equalsData: (left, right) => left.windowed === right.windowed,
     mergeData: (left, right) => ({ windowed: mergeTri(left.windowed, right.windowed) }),
-    onCall({ call, rec, receiver, objectName, property }) {
-      if (!rec || !receiver || !objectName || !property) return;
+    onCall({ call, rec, receiver, objectName, property }, report) {
+      if (!rec || !receiver || !property) return;
       if (!hasAuthoritativeGlideRecordMethod(authority, receiver, property)) {
         rec.data.windowed = "unknown";
         return;
       }
       if (WINDOW.has(property)) rec.data.windowed = true;
       if (property === "deleteMultiple" && rec.data.windowed === true) {
-        findings.push({ node: call, name: objectName, method: property });
+        report({ node: call, name: objectName ?? "record", method: property });
       }
     },
   });
-  return outcome.outcome === "complete" ? dedupePathFindings(findings) : [];
 }

@@ -7,25 +7,18 @@ import { getName, isNode, isValueReference, walk } from "../utils/ast.js";
 import { createFileBindings, type FileBindings } from "./bindings.js";
 import { resolvePlatformGlobalName } from "./globals.js";
 import { resolveConstValue, staticPropertyName } from "./members.js";
-import { analyzePathBindings } from "./path-state.js";
+import { analyzePathBindings, shallowClone } from "./path-state.js";
 import {
-  PLATFORM_ALIAS_GLOBALS,
+  CONSTRUCTED_PROVENANCE_KINDS,
   ctorProvenanceKind,
+  isPlatformAliasGlobal,
   type Provenance,
   type ProvenanceKind,
   type ProvenanceQuery,
 } from "./provenance.js";
-import {
-  DEFAULT_FLUENT_SDK_VERSION,
-  resolveFluentManifest,
-  type FluentSdkManifest,
-} from "../fluent/index.js";
+import { resolveFluentManifest, type FluentSdkManifest } from "../fluent/index.js";
 import type { FluentApiCapability } from "../fluent/index.js";
-import {
-  GLIDE_API_RELEASES,
-  resolveGlideCapabilities,
-  type GlideCapabilityView,
-} from "../glide/index.js";
+import { resolveGlideCapabilities, type GlideCapabilityView } from "../glide/index.js";
 import {
   collectFluentImports,
   resolveFluentFactory,
@@ -40,6 +33,7 @@ import {
 } from "./now-id.js";
 import { createMutationQuery, type MutationQuery } from "./mutations.js";
 import { createBindingWriteQuery, type BindingWriteQuery } from "./binding-writes.js";
+import { createBindingReferenceQuery, type BindingReferenceQuery } from "./binding-references.js";
 
 export interface FluentFileFacts {
   manifest: FluentSdkManifest;
@@ -52,8 +46,12 @@ export interface FileAnalysis {
   bindings: FileBindings;
   /** Lazily indexed lexical writes and dynamic-scope hazards shared by rule analyses. */
   bindingWrites: BindingWriteQuery;
+  /** Lazily indexed identifier references and declarators per binding (FINDINGS.md PER-005). */
+  bindingReferences: BindingReferenceQuery;
   script: ServiceNowScriptContext;
   provenance: ProvenanceQuery;
+  /** GlideRecord and GlideAggregate capabilities for the configured scope and release. */
+  glide: GlideCapabilityView;
   /** Lazily indexed possible writes used to suppress diagnostics when API identity is uncertain. */
   mutations: MutationQuery;
   /** Browser-runtime mutation semantics for client API authority checks. */
@@ -78,18 +76,8 @@ type AnalysisTree =
   | { kind: "host"; program: ESTree.Node | undefined }
   | { kind: "explicit"; program: ESTree.Node };
 
-const ALL_KINDS: readonly ProvenanceKind[] = [
-  "GlideRecord",
-  "GlideAggregate",
-  "GlideAjax",
-  "GlideDateTime",
-  "DataView",
-  "Set",
-];
-
 const bySource = new WeakMap<object, Map<string, FileAnalysis>>();
 const bySourceAndAst = new WeakMap<object, WeakMap<ESTree.Node, Map<string, FileAnalysis>>>();
-const ANALYSIS_RESOLVER_VERSION = 5;
 let analysisPasses = 0;
 
 export function getAnalysisPassCount(): number {
@@ -140,6 +128,7 @@ function buildFileAnalysis(context: Context, tree: AnalysisTree): FileAnalysis {
     scopeSource: tree.kind === "host" ? "host" : "tree",
   });
   const bindingWrites = createBindingWriteQuery(program, bindings);
+  const bindingReferences = createBindingReferenceQuery(program, bindings);
   const script = resolveScriptContext(context, {
     inferSurfaces: program ? () => inferSurfacesFromAst(program, bindings) : undefined,
   });
@@ -151,15 +140,16 @@ function buildFileAnalysis(context: Context, tree: AnalysisTree): FileAnalysis {
   const nowIdAt = new Map<ESTree.Node, NowIdFact>();
   let pathBudgetExhausted = false;
 
+  const provenance = makeQuery(bindings, provenanceAtNode, identifierAtNode, glide);
+
   if (program) {
     const kindByObject = new Map<number, ProvenanceKind>();
-    const query = makeQuery(bindings, provenanceAtNode, identifierAtNode, glide);
     const pathOutcome = analyzePathBindings<FilePathData>({
       program,
-      analysis: query,
-      kinds: ALL_KINDS,
+      analysis: provenance,
+      kinds: CONSTRUCTED_PROVENANCE_KINDS,
       emptyData: () => ({ nowIdKey: null }),
-      cloneData: (data) => ({ ...data }),
+      cloneData: shallowClone,
       equalsData: (left, right) => nowIdFactsEqual(left.nowIdKey, right.nowIdKey),
       mergeData: (left, right) => ({
         nowIdKey: mergeNowIdFacts(left.nowIdKey, right.nowIdKey),
@@ -168,9 +158,8 @@ function buildFileAnalysis(context: Context, tree: AnalysisTree): FileAnalysis {
         if (left.nowIdKey === null || right.nowIdKey === null) return undefined;
         return { nowIdKey: mergeNowIdFacts(left.nowIdKey, right.nowIdKey) };
       },
-      onCall() {},
       onValue(node) {
-        const key = nowIdValue(node, query);
+        const key = nowIdValue(node, provenance);
         if (key === undefined) return undefined;
         return { nowIdKey: key };
       },
@@ -184,8 +173,8 @@ function buildFileAnalysis(context: Context, tree: AnalysisTree): FileAnalysis {
         }
         if (node.type === "Identifier") {
           const name = getName(node);
-          if (name && PLATFORM_ALIAS_GLOBALS.has(name) && !bindingId) {
-            kindByObject.set(rec.id, name as ProvenanceKind);
+          if (name && isPlatformAliasGlobal(name) && !bindingId) {
+            kindByObject.set(rec.id, name);
           }
         }
         const kind = kindByObject.get(rec.id);
@@ -214,11 +203,10 @@ function buildFileAnalysis(context: Context, tree: AnalysisTree): FileAnalysis {
         Identifier(node) {
           if (identifierAtNode.has(node)) return;
           const name = getName(node);
-          if (!name || !PLATFORM_ALIAS_GLOBALS.has(name)) return;
+          if (!name || !isPlatformAliasGlobal(name)) return;
           if (!isValueReference(node, ancestors)) return;
           if (!bindings.isPlatformGlobal(node, ancestors)) return;
-          const snap = emptyProvenance(name as ProvenanceKind);
-          identifierAtNode.set(node, snap);
+          identifierAtNode.set(node, emptyProvenance(name));
         },
         NewExpression(node) {
           if (provenanceAtNode.has(node)) return;
@@ -234,7 +222,6 @@ function buildFileAnalysis(context: Context, tree: AnalysisTree): FileAnalysis {
     );
   }
 
-  const provenance = makeQuery(bindings, provenanceAtNode, identifierAtNode, glide);
   const mutations = createMutationQuery(
     program,
     bindings,
@@ -256,8 +243,10 @@ function buildFileAnalysis(context: Context, tree: AnalysisTree): FileAnalysis {
   return {
     bindings,
     bindingWrites,
+    bindingReferences,
     script,
     provenance,
+    glide,
     mutations,
     browserMutations,
     nowIdAt,
@@ -318,14 +307,17 @@ function makeQuery(
   };
 }
 
+/**
+ * Every input that can differ between two analyses of the same `SourceCode`.
+ * The default Fluent SDK version, the Glide release list, and the resolver
+ * version are module constants, and both cache stores are process-local, so
+ * they cannot vary within one process and are not part of the identity.
+ */
 interface AnalysisCacheIdentity {
   readonly filename: string;
   readonly physicalFilename: string;
   readonly cwd: string;
   readonly settingsFingerprint: string;
-  readonly fluentSdkVersion: string;
-  readonly glideReleases: readonly string[];
-  readonly resolverVersion: number;
 }
 
 function analysisCacheIdentity(context: Context): AnalysisCacheIdentity {
@@ -336,46 +328,39 @@ function analysisCacheIdentity(context: Context): AnalysisCacheIdentity {
     physicalFilename: host.physicalFilename ?? "",
     cwd: host.cwd ?? "",
     settingsFingerprint: fingerprintServiceNowSettings(settings),
-    fluentSdkVersion: DEFAULT_FLUENT_SDK_VERSION,
-    glideReleases: GLIDE_API_RELEASES,
-    resolverVersion: ANALYSIS_RESOLVER_VERSION,
   };
+}
+
+function getOrCreate<K extends object, V>(store: WeakMap<K, V>, key: K, make: () => V): V {
+  const existing = store.get(key);
+  if (existing) return existing;
+  const created = make();
+  store.set(key, created);
+  return created;
 }
 
 function lookupFileAnalysis(context: Context, ast?: ESTree.Node): FileAnalysis {
   const source = context.sourceCode as object;
   const hostAst = context.sourceCode.ast as ESTree.Node | undefined;
-  const explicit = ast !== undefined && ast !== hostAst;
-  let bucket: Map<string, FileAnalysis>;
-
-  if (explicit) {
-    let astBuckets = bySourceAndAst.get(source);
-    if (!astBuckets) {
-      astBuckets = new WeakMap();
-      bySourceAndAst.set(source, astBuckets);
-    }
-    const explicitAst = ast;
-    const existing = astBuckets.get(explicitAst);
-    if (existing) bucket = existing;
-    else {
-      bucket = new Map();
-      astBuckets.set(explicitAst, bucket);
-    }
-  } else {
-    const existing = bySource.get(source);
-    if (existing) bucket = existing;
-    else {
-      bucket = new Map();
-      bySource.set(source, bucket);
-    }
-  }
+  const explicitAst = ast !== undefined && ast !== hostAst ? ast : undefined;
+  const bucket = explicitAst
+    ? getOrCreate(
+        getOrCreate(
+          bySourceAndAst,
+          source,
+          () => new WeakMap<ESTree.Node, Map<string, FileAnalysis>>(),
+        ),
+        explicitAst,
+        () => new Map<string, FileAnalysis>(),
+      )
+    : getOrCreate(bySource, source, () => new Map<string, FileAnalysis>());
 
   const key = JSON.stringify(analysisCacheIdentity(context));
   const hit = bucket.get(key);
   if (hit) return hit;
   const created = buildFileAnalysis(
     context,
-    explicit ? { kind: "explicit", program: ast } : { kind: "host", program: hostAst },
+    explicitAst ? { kind: "explicit", program: explicitAst } : { kind: "host", program: hostAst },
   );
   bucket.set(key, created);
   return created;

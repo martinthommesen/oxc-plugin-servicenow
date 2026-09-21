@@ -1,8 +1,15 @@
 import type { ESTree } from "@oxlint/plugins";
-import { isNode, propertyKeyName, unwrapExpression, walk } from "../utils/ast.js";
+import {
+  isNode,
+  nodeEnd,
+  nodeStart,
+  propertyKeyName,
+  unwrapExpression,
+  walk,
+} from "../utils/ast.js";
 import type { BindingWriteQuery } from "./binding-writes.js";
 import type { MutationQuery } from "./mutations.js";
-import { staticPropertyName } from "./members.js";
+import { definitelyPrecedes, staticPropertyName } from "./members.js";
 import type { ProvenanceQuery } from "./provenance.js";
 
 const MAX_PLATFORM_CALL_SITES = 20_000;
@@ -33,11 +40,16 @@ export interface PlatformStaticMethodCallFinding {
   readonly node: ESTree.CallExpression;
 }
 
-export interface PlatformConstructorCallOptions {
-  readonly program: ESTree.Node;
-  readonly analysis: ProvenanceQuery;
+/** The per-file facts the resolver reads; `FileAnalysis` satisfies it. */
+export interface PlatformCallFacts {
+  readonly provenance: ProvenanceQuery;
   readonly bindingWrites: BindingWriteQuery;
   readonly mutations: MutationQuery;
+}
+
+interface PlatformConstructorCallOptions {
+  readonly program: ESTree.Node;
+  readonly file: PlatformCallFacts;
   readonly names: readonly string[];
   readonly namespaces?: readonly string[];
   /**
@@ -48,10 +60,7 @@ export interface PlatformConstructorCallOptions {
   readonly mutationSemantics?: "authority" | "callable";
 }
 
-export interface PlatformStaticMethodCallOptions extends Omit<
-  PlatformConstructorCallOptions,
-  "names"
-> {
+interface PlatformStaticMethodCallOptions extends Omit<PlatformConstructorCallOptions, "names"> {
   readonly methods: Readonly<Record<string, readonly string[]>>;
 }
 
@@ -115,24 +124,18 @@ function directStatementContainer(
   return container.type === "ForStatement" && container.init === declaration ? container : null;
 }
 
-function definitelyPrecedes(left: unknown, right: ESTree.Node): boolean {
-  const leftEnd = isNode(left) ? (left as { end?: number }).end : undefined;
-  const rightStart = (right as { start?: number }).start;
-  return typeof leftEnd === "number" && typeof rightStart === "number" && leftEnd <= rightStart;
-}
-
 function containsNode(container: ESTree.Node, node: ESTree.Node): boolean {
-  const containerStart = (container as { start?: number }).start;
-  const containerEnd = (container as { end?: number }).end;
-  const nodeStart = (node as { start?: number }).start;
-  const nodeEnd = (node as { end?: number }).end;
+  const containerStart = nodeStart(container);
+  const containerEnd = nodeEnd(container);
+  const start = nodeStart(node);
+  const end = nodeEnd(node);
   return (
-    typeof containerStart === "number" &&
-    typeof containerEnd === "number" &&
-    typeof nodeStart === "number" &&
-    typeof nodeEnd === "number" &&
-    containerStart <= nodeStart &&
-    nodeEnd <= containerEnd
+    containerStart >= 0 &&
+    containerEnd >= 0 &&
+    start >= 0 &&
+    end >= 0 &&
+    containerStart <= start &&
+    end <= containerEnd
   );
 }
 
@@ -195,9 +198,7 @@ function mutationPathChanged(
 function stablePlatformGlobalResolver(
   {
     program,
-    analysis,
-    bindingWrites,
-    mutations,
+    file: { provenance: analysis, bindingWrites, mutations },
     names,
     namespaces = [],
     mutationSemantics = "authority",
@@ -334,24 +335,10 @@ function stablePlatformGlobalResolver(
  * is intended for high-confidence diagnostics where silence is safer than
  * attributing a local replacement to the ServiceNow API or engine.
  */
-export function findStablePlatformConstructorCalls({
-  program,
-  analysis,
-  bindingWrites,
-  mutations,
-  names,
-  namespaces = [],
-  mutationSemantics = "authority",
-}: PlatformConstructorCallOptions): readonly PlatformConstructorCallFinding[] {
-  const resolver = stablePlatformGlobalResolver({
-    program,
-    analysis,
-    bindingWrites,
-    mutations,
-    names,
-    namespaces,
-    mutationSemantics,
-  });
+export function findStablePlatformConstructorCalls(
+  options: PlatformConstructorCallOptions,
+): readonly PlatformConstructorCallFinding[] {
+  const resolver = stablePlatformGlobalResolver(options);
   if (!resolver) return [];
 
   const findings: PlatformConstructorCallFinding[] = [];

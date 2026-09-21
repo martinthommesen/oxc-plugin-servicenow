@@ -77,24 +77,23 @@ export function getStaticStringValue(node: unknown, depth = 0): string | null {
   return null;
 }
 
+/** Node types that wrap an inner expression without changing its value. */
+export const TRANSPARENT_WRAPPER_TYPES: ReadonlySet<string> = new Set([
+  "ParenthesizedExpression",
+  "ChainExpression",
+  "TSAsExpression",
+  "TSTypeAssertion",
+  "TSNonNullExpression",
+  "TSSatisfiesExpression",
+]);
+
 /**
  * Strip grouping and TypeScript wrappers so identity looks at the inner value.
  */
 export function unwrapExpression(node: unknown): unknown {
   let current = node;
-  while (isNode(current)) {
-    switch (current.type) {
-      case "ParenthesizedExpression":
-      case "ChainExpression":
-      case "TSAsExpression":
-      case "TSTypeAssertion":
-      case "TSNonNullExpression":
-      case "TSSatisfiesExpression":
-        current = (current as { expression?: unknown }).expression;
-        continue;
-      default:
-        return current;
-    }
+  while (isNode(current) && TRANSPARENT_WRAPPER_TYPES.has(current.type)) {
+    current = (current as { expression?: unknown }).expression;
   }
   return current;
 }
@@ -210,11 +209,10 @@ export function staticMemberChain(node: unknown): string[] | null {
   let current: unknown = unwrapExpression(node);
 
   while (current && isNode(current) && current.type === "MemberExpression") {
-    const member = current as unknown as ESTree.MemberExpression;
-    const prop = member.computed ? getStringValue(member.property) : getName(member.property);
+    const prop = current.computed ? getStringValue(current.property) : getName(current.property);
     if (!prop) return null;
     parts.unshift(prop);
-    current = unwrapExpression(member.object);
+    current = unwrapExpression(current.object);
   }
 
   const root = getName(current);
@@ -225,8 +223,7 @@ export function staticMemberChain(node: unknown): string[] | null {
 
 export function propertyName(node: unknown): string | null {
   if (!isNode(node) || node.type !== "MemberExpression") return null;
-  const member = node as unknown as ESTree.MemberExpression;
-  return member.computed ? getStringValue(member.property) : getName(member.property);
+  return node.computed ? getStringValue(node.property) : getName(node.property);
 }
 
 export function propertyKeyName(property: ESTree.ObjectProperty): string | null {
@@ -237,28 +234,15 @@ export function propertyKeyName(property: ESTree.ObjectProperty): string | null 
 
 export function objectProperty(object: unknown, key: string): ESTree.ObjectProperty | null {
   if (!isNode(object) || object.type !== "ObjectExpression") return null;
-  const expr = object as unknown as ESTree.ObjectExpression;
-  for (const prop of expr.properties) {
-    if (!prop || (prop as { type?: string }).type !== "Property") continue;
-    const property = prop as unknown as ESTree.ObjectProperty;
-    const name = propertyKeyName(property);
-    if (name === key) return property;
+  for (const prop of object.properties) {
+    if (prop.type !== "Property") continue;
+    if (propertyKeyName(prop) === key) return prop;
   }
   return null;
 }
 
 export function objectPropertyValue(object: unknown, key: string): ESTree.Node | null {
-  const prop = objectProperty(object, key);
-  return (prop?.value as ESTree.Node | undefined) ?? null;
-}
-
-export function nowIdKey(node: unknown): string | null {
-  if (!isNode(node) || node.type !== "MemberExpression") return null;
-  const member = node as unknown as ESTree.MemberExpression;
-  const objectChain = staticMemberChain(member.object);
-  if (!objectChain || objectChain[0] !== "Now" || objectChain[1] !== "ID") return null;
-  if (member.computed) return getStringValue(member.property);
-  return getName(member.property);
+  return objectProperty(object, key)?.value ?? null;
 }
 
 /** A host comment with source offsets. */
@@ -268,10 +252,16 @@ export interface HostComment {
   end: number;
 }
 
-/** Host comment list, or empty when the host does not expose `getAllComments()`. */
-export function hostComments(host: { sourceCode: unknown }): HostComment[] {
+/**
+ * Host comment list. A host without `getAllComments()` is served by scanning
+ * `text` instead, so a comment-driven rule sees the same comments on every
+ * host rather than silently finding none.
+ */
+export function hostComments(host: { sourceCode: unknown }, text: string): HostComment[] {
   const sourceCode = host.sourceCode as { getAllComments?: () => HostComment[] };
-  return typeof sourceCode.getAllComments === "function" ? sourceCode.getAllComments() : [];
+  return typeof sourceCode.getAllComments === "function"
+    ? sourceCode.getAllComments()
+    : fallbackComments(text);
 }
 
 /** Extract comment bodies when the host does not expose `getAllComments()`. */
@@ -353,6 +343,26 @@ export const WALK_SKIP_KEYS = new Set([
 ]);
 
 /**
+ * Call `visit` once for every syntactic child value of `node`, in key order,
+ * flattening array-valued keys. Values are passed through unfiltered, so a
+ * caller that needs nodes only applies `isNode` itself.
+ */
+export function visitChildren(
+  node: ESTree.Node,
+  visit: (child: unknown, traverseRoot: boolean) => void,
+): void {
+  for (const key of Object.keys(node)) {
+    if (WALK_SKIP_KEYS.has(key)) continue;
+    const value = (node as unknown as Record<string, unknown>)[key];
+    if (Array.isArray(value)) {
+      for (const child of value) visit(child, false);
+    } else {
+      visit(value, false);
+    }
+  }
+}
+
+/**
  * Depth-first walk. `ancestors` is mutated so `getAncestors()` can read the
  * parent chain while a visitor is running (current node is last).
  *
@@ -385,15 +395,9 @@ export function walk(
     stack.push({ node: frame.node, exit: true });
 
     const children: ESTree.Node[] = [];
-    for (const key of Object.keys(frame.node)) {
-      if (WALK_SKIP_KEYS.has(key)) continue;
-      const value = (frame.node as unknown as Record<string, unknown>)[key];
-      if (Array.isArray(value)) {
-        for (const child of value) if (isNode(child)) children.push(child);
-      } else if (isNode(value)) {
-        children.push(value);
-      }
-    }
+    visitChildren(frame.node, (child) => {
+      if (isNode(child)) children.push(child);
+    });
     for (let index = children.length - 1; index >= 0; index -= 1) {
       stack.push({ node: children[index]!, exit: false });
     }

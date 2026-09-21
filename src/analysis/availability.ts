@@ -1,5 +1,5 @@
 import type { Context, ESTree } from "@oxlint/plugins";
-import { getName, getStringValue, walk } from "../utils/ast.js";
+import { getName, getStringValue, nodeEnd, nodeStart, walk } from "../utils/ast.js";
 import { isFunctionLike } from "./bindings.js";
 import { resolveConstValue } from "./members.js";
 import { getAncestors, type ProvenanceQuery } from "./provenance.js";
@@ -10,12 +10,6 @@ type AvailabilityAnalysis = Pick<ProvenanceQuery, "bindings" | "isPlatformGlobal
 export interface AvailabilityGuardOptions {
   /** Whether reading an absent feature yields undefined instead of throwing. */
   allowDirectAccessGuard?: boolean | ((node: unknown) => boolean);
-  /**
-   * Stable per-feature key used to cache dominating guards per block. Callers
-   * sharing a key must also provide equivalent access, direct-guard, and
-   * property-existence predicates because those predicates build the cache.
-   */
-  guardCacheKey?: string;
   /** Recognize a structural property-existence test such as `"x" in owner`. */
   isPropertyExistenceTest?: (property: string, object: ESTree.Node) => boolean;
   /** Recognize a modeled call that writes the guarded access. */
@@ -30,66 +24,36 @@ interface BlockGuardIndex {
 
 const guardIndexBySource = new WeakMap<object, WeakMap<object, BlockGuardIndex>>();
 
-function guardProvesAvailability(
-  node: unknown,
-  whenTruthy: boolean,
-  analysis: AvailabilityAnalysis,
-  isAccess: (node: unknown) => boolean,
-  allowsDirectAccessGuard: (node: unknown) => boolean,
-  isPropertyExistenceTest: (property: string, object: ESTree.Node) => boolean,
-): boolean {
+/** The per-query predicates every guard check shares, bound once per call. */
+interface GuardContext {
+  readonly analysis: AvailabilityAnalysis;
+  readonly isAccess: (node: unknown) => boolean;
+  readonly allowsDirectAccessGuard: (node: unknown) => boolean;
+  readonly isPropertyExistenceTest: (property: string, object: ESTree.Node) => boolean;
+  readonly isCallInvalidation: (call: ESTree.CallExpression) => boolean;
+}
+
+const EQUALITY_OPERATORS = new Set(["==", "===", "!=", "!=="]);
+
+function guardProvesAvailability(node: unknown, whenTruthy: boolean, guard: GuardContext): boolean {
+  const { analysis, isAccess, allowsDirectAccessGuard, isPropertyExistenceTest } = guard;
   const value = resolveConstValue(node, analysis.bindings);
   if (!value) return false;
   if (isAccess(value)) return allowsDirectAccessGuard(value) && whenTruthy;
   if (value.type === "UnaryExpression" && value.operator === "!") {
-    return guardProvesAvailability(
-      value.argument,
-      !whenTruthy,
-      analysis,
-      isAccess,
-      allowsDirectAccessGuard,
-      isPropertyExistenceTest,
-    );
+    return guardProvesAvailability(value.argument, !whenTruthy, guard);
   }
   if (value.type === "LogicalExpression") {
     if (value.operator === "&&" && whenTruthy) {
       return (
-        guardProvesAvailability(
-          value.left,
-          true,
-          analysis,
-          isAccess,
-          allowsDirectAccessGuard,
-          isPropertyExistenceTest,
-        ) ||
-        guardProvesAvailability(
-          value.right,
-          true,
-          analysis,
-          isAccess,
-          allowsDirectAccessGuard,
-          isPropertyExistenceTest,
-        )
+        guardProvesAvailability(value.left, true, guard) ||
+        guardProvesAvailability(value.right, true, guard)
       );
     }
     if (value.operator === "||" && !whenTruthy) {
       return (
-        guardProvesAvailability(
-          value.left,
-          false,
-          analysis,
-          isAccess,
-          allowsDirectAccessGuard,
-          isPropertyExistenceTest,
-        ) ||
-        guardProvesAvailability(
-          value.right,
-          false,
-          analysis,
-          isAccess,
-          allowsDirectAccessGuard,
-          isPropertyExistenceTest,
-        )
+        guardProvesAvailability(value.left, false, guard) ||
+        guardProvesAvailability(value.right, false, guard)
       );
     }
     return false;
@@ -99,8 +63,7 @@ function guardProvesAvailability(
     const property = getStringValue(resolveConstValue(value.left, analysis.bindings));
     return Boolean(property && whenTruthy && isPropertyExistenceTest(property, value.right));
   }
-  const equality = new Set(["==", "===", "!=", "!=="]);
-  if (!equality.has(value.operator)) return false;
+  if (!EQUALITY_OPERATORS.has(value.operator)) return false;
   const operands: readonly [ESTree.Node, ESTree.Node][] = [
     [value.left as ESTree.Node, value.right as ESTree.Node],
     [value.right as ESTree.Node, value.left as ESTree.Node],
@@ -144,14 +107,11 @@ function isFunctionBoundary(node: ESTree.Node): boolean {
 function sameNode(left: ESTree.Node | null | undefined, right: ESTree.Node): boolean {
   if (!left) return false;
   if (left === right) return true;
-  const leftSpan = left as { start?: unknown; end?: unknown };
-  const rightSpan = right as { start?: unknown; end?: unknown };
+  if (left.type !== right.type) return false;
+  const leftStart = nodeStart(left);
+  const leftEnd = nodeEnd(left);
   return (
-    left.type === right.type &&
-    typeof leftSpan.start === "number" &&
-    leftSpan.start === rightSpan.start &&
-    typeof leftSpan.end === "number" &&
-    leftSpan.end === rightSpan.end
+    leftStart >= 0 && leftEnd >= 0 && leftStart === nodeStart(right) && leftEnd === nodeEnd(right)
   );
 }
 
@@ -189,17 +149,17 @@ function isImmediatelyInvoked(node: ESTree.Node, ancestors: readonly ESTree.Node
   return false;
 }
 
-function containsAccessInvalidation(
-  root: ESTree.Node,
-  isAccess: (node: unknown) => boolean,
-  isCallInvalidation: (call: ESTree.CallExpression) => boolean,
-): boolean {
+function containsAccessInvalidation(root: ESTree.Node, guard: GuardContext): boolean {
+  const { isAccess, isCallInvalidation } = guard;
   let invalidated = false;
   const ancestors: ESTree.Node[] = [];
-  const isDeferred = (): boolean =>
-    ancestors
-      .slice(0, -1)
-      .some((node) => isFunctionLike(node) && !isImmediatelyInvoked(node, ancestors));
+  const isDeferred = (): boolean => {
+    for (let index = 0; index < ancestors.length - 1; index += 1) {
+      const node = ancestors[index]!;
+      if (isFunctionLike(node) && !isImmediatelyInvoked(node, ancestors)) return true;
+    }
+    return false;
+  };
   walk(
     root,
     {
@@ -296,8 +256,7 @@ function hasInvalidationOnPath(
   root: ESTree.Node,
   target: ESTree.Node,
   ancestors: readonly ESTree.Node[],
-  isAccess: (node: unknown) => boolean,
-  isCallInvalidation: (call: ESTree.CallExpression) => boolean,
+  guard: GuardContext,
 ): boolean {
   const path = [...ancestors, target];
   const rootIndex = path.findIndex((node) => sameNode(node, root));
@@ -306,9 +265,7 @@ function hasInvalidationOnPath(
     const parent = path[index]!;
     const child = path[index + 1]!;
     if (
-      nodesEvaluatedBefore(parent, child).some((node) =>
-        containsAccessInvalidation(node, isAccess, isCallInvalidation),
-      )
+      nodesEvaluatedBefore(parent, child).some((node) => containsAccessInvalidation(node, guard))
     ) {
       return true;
     }
@@ -343,92 +300,58 @@ function precedingExitGuard(
   child: ESTree.Node,
   target: ESTree.Node,
   ancestors: readonly ESTree.Node[],
-  analysis: AvailabilityAnalysis,
-  isAccess: (node: unknown) => boolean,
-  allowsDirectAccessGuard: (node: unknown) => boolean,
-  isPropertyExistenceTest: (property: string, object: ESTree.Node) => boolean,
-  isCallInvalidation: (call: ESTree.CallExpression) => boolean,
-  cacheKey: string | undefined,
+  guard: GuardContext,
 ): boolean {
   if (parent.type !== "Program" && parent.type !== "BlockStatement") return false;
   const body = (parent as ESTree.Program | ESTree.BlockStatement).body;
   const guardProves = (statement: ESTree.Node): boolean => {
     if (statement.type !== "IfStatement") return false;
-    const guard = statement as ESTree.IfStatement;
+    const candidate = statement as ESTree.IfStatement;
     return Boolean(
-      (alwaysExits(guard.consequent) &&
-        guardProvesAvailability(
-          guard.test,
-          false,
-          analysis,
-          isAccess,
-          allowsDirectAccessGuard,
-          isPropertyExistenceTest,
-        )) ||
-      (alwaysExits(guard.alternate) &&
-        guardProvesAvailability(
-          guard.test,
-          true,
-          analysis,
-          isAccess,
-          allowsDirectAccessGuard,
-          isPropertyExistenceTest,
-        )),
+      (alwaysExits(candidate.consequent) &&
+        guardProvesAvailability(candidate.test, false, guard)) ||
+      (alwaysExits(candidate.alternate) && guardProvesAvailability(candidate.test, true, guard)),
     );
   };
 
-  if (cacheKey) {
-    let byBlock = guardIndexBySource.get(source);
-    if (!byBlock) {
-      byBlock = new WeakMap();
-      guardIndexBySource.set(source, byBlock);
-    }
-    let index = byBlock.get(parent);
-    if (!index) {
-      const statementIndices = new WeakMap<object, number>();
-      const exitGuardIndices: number[] = [];
-      for (let position = 0; position < body.length; position += 1) {
-        const statement = body[position]!;
-        statementIndices.set(statement, position);
-        if (
-          statement.type === "IfStatement" &&
-          (alwaysExits(statement.consequent) || alwaysExits(statement.alternate))
-        ) {
-          exitGuardIndices.push(position);
-        }
-      }
-      index = { statementIndices, exitGuardIndices };
-      byBlock.set(parent, index);
-    }
-    const directIndex = index.statementIndices.get(child);
-    const childIndex = directIndex ?? body.findIndex((statement) => sameNode(statement, child));
-    if (childIndex <= 0) return false;
-    for (let candidate = index.exitGuardIndices.length - 1; candidate >= 0; candidate -= 1) {
-      const guardIndex = index.exitGuardIndices[candidate]!;
-      if (guardIndex >= childIndex) continue;
-      if (childIndex - guardIndex > 64) break;
-      const guard = body[guardIndex];
-      if (!guard || !guardProves(guard)) continue;
-      const intervening = body.slice(guardIndex + 1, childIndex);
-      return (
-        !intervening.some((statement) =>
-          containsAccessInvalidation(statement, isAccess, isCallInvalidation),
-        ) && !hasInvalidationOnPath(child, target, ancestors, isAccess, isCallInvalidation)
-      );
-    }
-    return false;
+  // The index is structural: it records statement positions and which of them
+  // are exit guards, with no dependence on the caller's predicates, so one
+  // index per (source, block) serves every query.
+  let byBlock = guardIndexBySource.get(source);
+  if (!byBlock) {
+    byBlock = new WeakMap();
+    guardIndexBySource.set(source, byBlock);
   }
-
-  const childIndex = body.findIndex((statement) => sameNode(statement, child));
+  let index = byBlock.get(parent);
+  if (!index) {
+    const statementIndices = new WeakMap<object, number>();
+    const exitGuardIndices: number[] = [];
+    for (let position = 0; position < body.length; position += 1) {
+      const statement = body[position]!;
+      statementIndices.set(statement, position);
+      if (
+        statement.type === "IfStatement" &&
+        (alwaysExits(statement.consequent) || alwaysExits(statement.alternate))
+      ) {
+        exitGuardIndices.push(position);
+      }
+    }
+    index = { statementIndices, exitGuardIndices };
+    byBlock.set(parent, index);
+  }
+  const directIndex = index.statementIndices.get(child);
+  const childIndex = directIndex ?? body.findIndex((statement) => sameNode(statement, child));
   if (childIndex <= 0) return false;
-  for (let index = childIndex - 1; index >= Math.max(0, childIndex - 64); index -= 1) {
-    const previous = body[index];
-    if (!previous || !guardProves(previous)) continue;
-    const intervening = body.slice(index + 1, childIndex);
+  for (let candidate = index.exitGuardIndices.length - 1; candidate >= 0; candidate -= 1) {
+    const guardIndex = index.exitGuardIndices[candidate]!;
+    if (guardIndex >= childIndex) continue;
+    if (childIndex - guardIndex > 64) break;
+    const statement = body[guardIndex];
+    if (!statement || !guardProves(statement)) continue;
+    const intervening = body.slice(guardIndex + 1, childIndex);
     return (
-      !intervening.some((statement) =>
-        containsAccessInvalidation(statement, isAccess, isCallInvalidation),
-      ) && !hasInvalidationOnPath(child, target, ancestors, isAccess, isCallInvalidation)
+      !intervening.some((entry) => containsAccessInvalidation(entry, guard)) &&
+      !hasInvalidationOnPath(child, target, ancestors, guard)
     );
   }
   return false;
@@ -449,14 +372,18 @@ export function isAvailabilityGuarded(
     return true;
   }
   const directGuardOption = options.allowDirectAccessGuard ?? true;
-  const allowsDirectAccessGuard =
-    typeof directGuardOption === "function" ? directGuardOption : () => directGuardOption;
-  const isPropertyExistenceTest = options.isPropertyExistenceTest ?? (() => false);
-  const isCallInvalidation = options.isCallInvalidation ?? (() => false);
+  const guard: GuardContext = {
+    analysis,
+    isAccess,
+    allowsDirectAccessGuard:
+      typeof directGuardOption === "function" ? directGuardOption : () => directGuardOption,
+    isPropertyExistenceTest: options.isPropertyExistenceTest ?? (() => false),
+    isCallInvalidation: options.isCallInvalidation ?? (() => false),
+  };
   const ancestors = getAncestors(context, target);
   const source = context.sourceCode as unknown as object;
   const guardRemainsValid = (root: ESTree.Node): boolean =>
-    !hasInvalidationOnPath(root, target, ancestors, isAccess, isCallInvalidation);
+    !hasInvalidationOnPath(root, target, ancestors, guard);
   let child: ESTree.Node = target;
   for (let index = ancestors.length - 1; index >= 0; index -= 1) {
     const parent = ancestors[index]!;
@@ -465,24 +392,8 @@ export function isAvailabilityGuarded(
       const logical = parent as ESTree.LogicalExpression;
       if (
         sameNode(logical.right, child) &&
-        ((logical.operator === "&&" &&
-          guardProvesAvailability(
-            logical.left,
-            true,
-            analysis,
-            isAccess,
-            allowsDirectAccessGuard,
-            isPropertyExistenceTest,
-          )) ||
-          (logical.operator === "||" &&
-            guardProvesAvailability(
-              logical.left,
-              false,
-              analysis,
-              isAccess,
-              allowsDirectAccessGuard,
-              isPropertyExistenceTest,
-            ))) &&
+        ((logical.operator === "&&" && guardProvesAvailability(logical.left, true, guard)) ||
+          (logical.operator === "||" && guardProvesAvailability(logical.left, false, guard))) &&
         guardRemainsValid(logical.right)
       ) {
         return true;
@@ -491,24 +402,10 @@ export function isAvailabilityGuarded(
       const conditional = parent as ESTree.ConditionalExpression;
       if (
         (sameNode(conditional.consequent, child) &&
-          guardProvesAvailability(
-            conditional.test,
-            true,
-            analysis,
-            isAccess,
-            allowsDirectAccessGuard,
-            isPropertyExistenceTest,
-          ) &&
+          guardProvesAvailability(conditional.test, true, guard) &&
           guardRemainsValid(conditional.consequent)) ||
         (sameNode(conditional.alternate, child) &&
-          guardProvesAvailability(
-            conditional.test,
-            false,
-            analysis,
-            isAccess,
-            allowsDirectAccessGuard,
-            isPropertyExistenceTest,
-          ) &&
+          guardProvesAvailability(conditional.test, false, guard) &&
           guardRemainsValid(conditional.alternate))
       ) {
         return true;
@@ -517,24 +414,10 @@ export function isAvailabilityGuarded(
       const statement = parent as ESTree.IfStatement;
       if (
         (sameNode(statement.consequent, child) &&
-          guardProvesAvailability(
-            statement.test,
-            true,
-            analysis,
-            isAccess,
-            allowsDirectAccessGuard,
-            isPropertyExistenceTest,
-          ) &&
+          guardProvesAvailability(statement.test, true, guard) &&
           guardRemainsValid(statement.consequent)) ||
         (sameNode(statement.alternate, child) &&
-          guardProvesAvailability(
-            statement.test,
-            false,
-            analysis,
-            isAccess,
-            allowsDirectAccessGuard,
-            isPropertyExistenceTest,
-          ) &&
+          guardProvesAvailability(statement.test, false, guard) &&
           statement.alternate !== null &&
           guardRemainsValid(statement.alternate))
       ) {
@@ -544,14 +427,7 @@ export function isAvailabilityGuarded(
       const statement = parent as ESTree.WhileStatement;
       if (
         sameNode(statement.body, child) &&
-        guardProvesAvailability(
-          statement.test,
-          true,
-          analysis,
-          isAccess,
-          allowsDirectAccessGuard,
-          isPropertyExistenceTest,
-        ) &&
+        guardProvesAvailability(statement.test, true, guard) &&
         guardRemainsValid(statement.body)
       ) {
         return true;
@@ -559,40 +435,18 @@ export function isAvailabilityGuarded(
     } else if (parent.type === "ForStatement") {
       const statement = parent as ESTree.ForStatement;
       const bodyInvalidatesUpdate =
-        sameNode(statement.update, child) &&
-        containsAccessInvalidation(statement.body, isAccess, isCallInvalidation);
+        sameNode(statement.update, child) && containsAccessInvalidation(statement.body, guard);
       if (
         statement.test &&
         (sameNode(statement.body, child) || sameNode(statement.update, child)) &&
         !bodyInvalidatesUpdate &&
-        guardProvesAvailability(
-          statement.test,
-          true,
-          analysis,
-          isAccess,
-          allowsDirectAccessGuard,
-          isPropertyExistenceTest,
-        ) &&
+        guardProvesAvailability(statement.test, true, guard) &&
         guardRemainsValid(child)
       ) {
         return true;
       }
     }
-    if (
-      precedingExitGuard(
-        source,
-        parent,
-        child,
-        target,
-        ancestors,
-        analysis,
-        isAccess,
-        allowsDirectAccessGuard,
-        isPropertyExistenceTest,
-        isCallInvalidation,
-        options.guardCacheKey,
-      )
-    ) {
+    if (precedingExitGuard(source, parent, child, target, ancestors, guard)) {
       return true;
     }
     child = parent;

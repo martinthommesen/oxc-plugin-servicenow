@@ -1,6 +1,10 @@
 import type { ESTree } from "@oxlint/plugins";
 import { isNode, nodeEnd, nodeStart, unwrapExpression, walk } from "../utils/ast.js";
-import { forEachResolvedPatternBinding, type FileBindings } from "./bindings.js";
+import {
+  forEachResolvedPatternBinding,
+  type FileBindings,
+  type LexicalBinding,
+} from "./bindings.js";
 
 interface BindingWriteIndex {
   readonly dynamicScope: boolean;
@@ -12,7 +16,11 @@ export interface BindingWrite {
   readonly boundaryId: number | null;
   /** End offset of the write; a write completes earlier when this precedes the use. */
   readonly offset: number;
-  /** Start offset of the write with a positive-infinity fallback, matching alias resolution. */
+  /**
+   * Portable start offset of the write (`start`, `range`, or `span`), or -1
+   * when the host supplies none. Alias resolution treats -1 as unknown order
+   * rather than guessing (FINDINGS.md COR-007).
+   */
   readonly start: number;
   readonly kind: "assign" | "update" | "for";
   /** True when the write target is a bare identifier rather than a pattern. */
@@ -52,14 +60,16 @@ function buildIndex(program: ESTree.Node | undefined, bindings: FileBindings): B
     offset: number,
     owner: ESTree.Node,
     detail: Pick<BindingWrite, "kind" | "operator" | "right">,
+    accepts: (binding: LexicalBinding) => boolean = () => true,
   ): void => {
     const boundaryId = executionBoundaryId(owner);
     // Drop the current node so the snapshot holds the write's parent chain.
     const ancestorTypes = ancestors.slice(0, -1).map((ancestor) => ancestor.type);
-    const start = (owner as { start?: number }).start ?? Number.POSITIVE_INFINITY;
+    const start = nodeStart(owner);
     const unwrapped = unwrapExpression(target);
     const simple = isNode(unwrapped) && unwrapped.type === "Identifier";
     forEachResolvedPatternBinding(target, bindings, ancestors, (binding) => {
+      if (!accepts(binding)) return;
       written.add(binding.id);
       const entries = writes.get(binding.id);
       const entry: BindingWrite = { boundaryId, offset, start, simple, ancestorTypes, ...detail };
@@ -85,6 +95,21 @@ function buildIndex(program: ESTree.Node | undefined, bindings: FileBindings): B
           operator: null,
           right: null,
         });
+      },
+      VariableDeclarator(node) {
+        // `var` may be declared again in the same function scope, and an
+        // initialized redeclaration assigns exactly like `name = init`. The
+        // binding's first declarator is its declaration, not a write, and a
+        // bare `var name;` is a runtime no-op (FINDINGS.md COR-009).
+        const declarator = node as ESTree.VariableDeclarator;
+        if (!isNode(declarator.init)) return;
+        record(
+          declarator.id,
+          nodeEnd(node),
+          node,
+          { kind: "assign", operator: "=", right: declarator.init },
+          (binding) => binding.kind === "var" && binding.node !== node,
+        );
       },
       ForInStatement(node) {
         const statement = node as ESTree.ForInStatement;

@@ -991,8 +991,6 @@ export function createMutationQuery(
         ) {
           return true;
         }
-        if (properties && !sources && (properties.has(property) || properties.has("*")))
-          return true;
       }
       const objectId = provenance.ofExpression(object)?.objectId;
       return (

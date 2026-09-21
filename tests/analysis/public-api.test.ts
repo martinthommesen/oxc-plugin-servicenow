@@ -49,6 +49,22 @@ function lastIdentifier(ast: ESTree.Node, name: string): ESTree.Node {
   return found;
 }
 
+function lastMemberOn(ast: ESTree.Node, objectName: string): ESTree.MemberExpression {
+  let found: ESTree.MemberExpression | undefined;
+  walk(
+    ast,
+    {
+      MemberExpression(node) {
+        const member = node as ESTree.MemberExpression;
+        if (getName(member.object) === objectName) found = member;
+      },
+    },
+    [],
+  );
+  assert.ok(found);
+  return found;
+}
+
 function parseEstree(code: string, filename: string): ESTree.Node {
   // The parser and plugin packages publish distinct Program declarations;
   // this adapter is the test boundary between their runtime-compatible ASTs.
@@ -67,18 +83,7 @@ describe("public analysis API", () => {
     assert.equal(typeof (script.surfaces as Set<string>).add, "undefined");
     assert.throws(() => ((script as { scope: string }).scope = "global"), TypeError);
 
-    let use: ESTree.Node | undefined;
-    const ancestors: ESTree.Node[] = [];
-    walk(
-      context.sourceCode.ast as ESTree.Node,
-      {
-        Identifier(node) {
-          if (getName(node) === "rec") use = node;
-        },
-      },
-      ancestors,
-    );
-    assert.ok(use);
+    const use = lastIdentifier(context.sourceCode.ast as ESTree.Node, "rec");
 
     const query = analyzeProvenance(context);
     assert.equal(Object.isFrozen(query), true);
@@ -105,41 +110,15 @@ describe("public analysis API", () => {
     const code =
       "var view = new DataView(buffer);\nview.getBigInt64(0);\nvar proto = DataView.prototype;";
     const context = testContext(code, "data-view.script-include.js");
-    let viewUse: ESTree.Node | undefined;
-    let directMember: ESTree.MemberExpression | undefined;
-    const ancestors: ESTree.Node[] = [];
-    walk(
-      context.sourceCode.ast as ESTree.Node,
-      {
-        Identifier(node) {
-          if (getName(node) === "view") viewUse = node;
-        },
-        MemberExpression(node) {
-          const member = node as ESTree.MemberExpression;
-          if (getName(member.object) === "DataView") directMember = member;
-        },
-      },
-      ancestors,
-    );
-    assert.ok(viewUse);
-    assert.ok(directMember);
+    const ast = context.sourceCode.ast as ESTree.Node;
+    const viewUse = lastIdentifier(ast, "view");
+    const directMember = lastMemberOn(ast, "DataView");
 
     const query = analyzeProvenance(context);
     assert.equal(query.ofIdentifier(viewUse), null);
     assert.equal(query.isPlatformMember(directMember, "DataView", "prototype"), true);
 
-    let aliasedMember: ESTree.MemberExpression | undefined;
-    walk(
-      context.sourceCode.ast as ESTree.Node,
-      {
-        MemberExpression(node) {
-          const member = node as ESTree.MemberExpression;
-          if (getName(member.object) === "view") aliasedMember = member;
-        },
-      },
-      [],
-    );
-    assert.ok(aliasedMember);
+    const aliasedMember = lastMemberOn(ast, "view");
     assert.equal(query.isPlatformMember(aliasedMember, "DataView", "getBigInt64"), false);
   });
 
@@ -150,18 +129,7 @@ describe("public analysis API", () => {
     const values = lastIdentifier(context.sourceCode.ast as ESTree.Node, "values");
     assert.equal(query.ofIdentifier(values), null);
 
-    let prototype: ESTree.MemberExpression | undefined;
-    walk(
-      context.sourceCode.ast as ESTree.Node,
-      {
-        MemberExpression(node) {
-          const member = node as ESTree.MemberExpression;
-          if (getName(member.object) === "Set") prototype = member;
-        },
-      },
-      [],
-    );
-    assert.ok(prototype);
+    const prototype = lastMemberOn(context.sourceCode.ast as ESTree.Node, "Set");
     assert.equal(query.isPlatformMember(prototype, "Set", "prototype"), true);
   });
 

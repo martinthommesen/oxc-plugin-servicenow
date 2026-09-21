@@ -27,9 +27,26 @@ function defaultFilename(rule: RuleName): string {
   return "src/server/test.js";
 }
 
-export interface RunOptions extends LintSourceOptions {
-  filename?: string;
-}
+export type RunOptions = LintSourceOptions;
+
+/** Release- and mode-pinned settings shared by the engine-contract tests. */
+export const ZURICH_ES2021 = {
+  settings: { javascriptMode: "es2021", release: "zurich" },
+} satisfies RunOptions;
+export const AUSTRALIA_ES2021 = {
+  settings: { javascriptMode: "es2021", release: "australia" },
+} satisfies RunOptions;
+export const AUSTRALIA_ES5 = {
+  settings: { javascriptMode: "es5", release: "australia" },
+} satisfies RunOptions;
+
+/** Surface-pinned filenames whose evidence a rule under test depends on. */
+export const ACL = { filename: "incident.acl.js" } satisfies RunOptions;
+export const BUSINESS_RULE = { filename: "incident.br.js" } satisfies RunOptions;
+export const FULL_SCRIPT = {
+  filename: "incident.br.js",
+  settings: { businessRuleSourceFormat: "full-script" },
+} satisfies RunOptions;
 
 export function parse(code: string, filename = "test.js") {
   const lang = filename.endsWith(".ts") || filename.endsWith(".tsx") ? "ts" : "js";
@@ -71,10 +88,10 @@ export function lintWithAnalysis(
   return { messages, analysis };
 }
 
-function lintWithSkipFlag(
+export function lintWithSkipFlag(
   code: string,
   rule: RuleName,
-  options: RunOptions,
+  options: RunOptions = {},
 ): { messages: LintMessage[]; skipped: boolean } {
   let skipped = false;
   const messages = lint(code, rule, {
@@ -123,6 +140,27 @@ export function assertSkipped(code: string, rule: RuleName, options: RunOptions 
     true,
     `Expected ${rule}'s before() gate to decline the file, but the rule ran.\nSource:\n${code}`,
   );
+}
+
+/**
+ * Asserts a server-engine rule declines every execution context that is not
+ * proven server JavaScript: a browser client script, a Fluent metadata
+ * module, and a UI Action whose surfaces still admit client execution.
+ */
+export function assertDeclinesNonServerSurfaces(
+  code: string,
+  rule: RuleName,
+  settings: ServiceNowSettings = {},
+): void {
+  assertSkipped(code, rule, {
+    filename: "form.client.js",
+    settings: { ...settings, surfaces: ["client"] },
+  });
+  assertSkipped(code, rule, { filename: "metadata.now.ts", settings });
+  assertSkipped(code, rule, {
+    filename: "mixed.ui-action.js",
+    settings: { ...settings, surfaces: ["client", "server", "ui-action"] },
+  });
 }
 
 export function assertInvalid(

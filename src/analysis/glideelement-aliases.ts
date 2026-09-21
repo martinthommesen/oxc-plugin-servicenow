@@ -1,7 +1,7 @@
 import type { ESTree } from "@oxlint/plugins";
 import { isNode, unwrapExpression } from "../utils/ast.js";
 import type { ProvenanceQuery } from "./provenance.js";
-import { analyzePathBindings } from "./path-state.js";
+import { analyzePathBindings, shallowClone } from "./path-state.js";
 
 interface GlideElementAliasData {
   cursorId: number | null;
@@ -40,7 +40,7 @@ export function analyzeGlideElementAliases(
     analysis,
     kinds: [],
     emptyData: () => ({ cursorId: null }),
-    cloneData: (data) => ({ ...data }),
+    cloneData: shallowClone,
     mergeData: (left, right) => ({
       cursorId: left.cursorId === right.cursorId ? left.cursorId : null,
     }),
@@ -49,7 +49,6 @@ export function analyzeGlideElementAliases(
         ? { cursorId: left.cursorId }
         : undefined,
     equalsData: (left, right) => left.cursorId === right.cursorId,
-    onCall() {},
     onValue(node) {
       const cursorId = identifyDirect(node);
       return cursorId === null ? undefined : { cursorId };

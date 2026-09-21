@@ -1,5 +1,5 @@
 import type { Context, ESTree } from "@oxlint/plugins";
-import { getName, isNode, unwrapExpression, walk } from "../utils/ast.js";
+import { getName, isNode, nodeEnd, nodeStart, unwrapExpression, walk } from "../utils/ast.js";
 
 export type BindingKind =
   | "var"
@@ -41,12 +41,17 @@ export interface ScopeNode {
 }
 
 export class ScopeTree {
-  readonly root: ScopeNode | null = null;
+  private rootScope: ScopeNode | null = null;
   private nextId = 1;
   private nextBindingId = 1;
   private readonly byBlock = new Map<ESTree.Node, ScopeNode>();
   private readonly byId = new Map<number, ScopeNode>();
+  private readonly declarationLists = new Map<number, ESTree.Node[]>();
   private current: ScopeNode | null = null;
+
+  get root(): ScopeNode | null {
+    return this.rootScope;
+  }
 
   enter(kind: ScopeNode["kind"], block: ESTree.Node): ScopeNode {
     const scope: ScopeNode = {
@@ -59,9 +64,7 @@ export class ScopeTree {
     this.byBlock.set(block, scope);
     this.byId.set(scope.id, scope);
     this.current = scope;
-    if (!this.root) {
-      (this as { root: ScopeNode }).root = scope;
-    }
+    this.rootScope ??= scope;
     return scope;
   }
 
@@ -76,17 +79,19 @@ export class ScopeTree {
     if (!target) return null;
     const existing = target.bindings.get(name);
     if (kind === "var" && existing?.kind === "var") {
-      (existing.declarations as unknown as ESTree.Node[]).push(node);
+      this.declarationLists.get(existing.id)?.push(node);
       return existing;
     }
+    const declarations: ESTree.Node[] = [node];
     const binding: LexicalBinding = {
       id: this.nextBindingId++,
       name,
       kind,
       node,
-      declarations: [node],
+      declarations,
       scopeId: target.id,
     };
+    this.declarationLists.set(binding.id, declarations);
     target.bindings.set(name, binding);
     return binding;
   }
@@ -139,15 +144,15 @@ export class ScopeTree {
   }
 
   private innermostScopeContaining(node: ESTree.Node): ScopeNode | null {
-    const start = (node as { start?: number }).start;
-    const end = (node as { end?: number }).end;
-    if (typeof start !== "number" || typeof end !== "number") return null;
+    const start = nodeStart(node);
+    const end = nodeEnd(node);
+    if (start < 0 || end < 0) return null;
     let best: ScopeNode | null = null;
     let bestSpan = Number.POSITIVE_INFINITY;
     for (const scope of this.byBlock.values()) {
-      const blockStart = (scope.block as { start?: number }).start;
-      const blockEnd = (scope.block as { end?: number }).end;
-      if (typeof blockStart !== "number" || typeof blockEnd !== "number") continue;
+      const blockStart = nodeStart(scope.block);
+      const blockEnd = nodeEnd(scope.block);
+      if (blockStart < 0 || blockEnd < 0) continue;
       if (start < blockStart || end > blockEnd) continue;
       const span = blockEnd - blockStart;
       if (span < bestSpan) {
@@ -170,14 +175,6 @@ export class ScopeTree {
       scope = scope.parent;
     }
     return null;
-  }
-
-  hasLocalBinding(
-    name: string,
-    node: ESTree.Node,
-    ancestors: readonly ESTree.Node[] = [],
-  ): boolean {
-    return this.resolve(name, node, ancestors) !== null;
   }
 }
 
@@ -381,7 +378,6 @@ export function buildScopeTree(ast: ESTree.Node): ScopeTree {
 }
 
 export interface FileBindings {
-  readonly rootBlock: ESTree.Node | null;
   resolve(
     name: string,
     node: ESTree.Node,
@@ -447,7 +443,6 @@ export function createFileBindings(
   const useHostScope = options.scopeSource === "host";
 
   return {
-    rootBlock: tree.root?.block ?? null,
     resolve(name, node, ancestors = []) {
       return tree.resolve(name, node, ancestors);
     },
@@ -468,13 +463,22 @@ export function createFileBindings(
       if (!name) return false;
       const host = useHostScope ? hostHasDefinedBinding(context, node, name) : undefined;
       if (host === true) return false;
-      if (tree.hasLocalBinding(name, node, ancestors)) return false;
+      if (tree.resolve(name, node, ancestors) !== null) return false;
       return true;
     },
   };
 }
 
-export function isFunctionLike(node: unknown): boolean {
+/**
+ * A node `isFunctionLike` admits. Callers that read `params`, `body`,
+ * `generator`, or `async` narrow to this through the predicate instead of
+ * re-deriving the shape with a cast. The union is slightly wider than the
+ * predicate: `ESTree.Function` also covers the TypeScript declaration forms,
+ * whose `body` is null and which `isFunctionLike` rejects at runtime.
+ */
+export type ImmediateFunction = ESTree.Function | ESTree.ArrowFunctionExpression;
+
+export function isFunctionLike(node: unknown): node is ImmediateFunction {
   return (
     isNode(node) &&
     (node.type === "FunctionDeclaration" ||
