@@ -6,31 +6,27 @@ export const noIncorrectArrayFromThisargEntry = entry(
   "no-incorrect-array-from-thisarg",
   noIncorrectArrayFromThisarg,
   {
-    ...metadata.meta(
-      metadata.engine(["es2021"]),
-      [
-        metadata.evidenceRecord(
-          metadata.SN_JS_ENGINE_UPDATES_AUSTRALIA,
-          "The Australia engine update lists Rhino PR 1982, Correct this in Array.from, as an ECMAScript 2021 fix.",
-          "manual",
-          "2026-08-24",
-        ),
-        metadata.evidenceRecord(
-          "tests/rules/no-incorrect-array-from-thisarg.test.ts",
-          "Fixtures prove explicit-primitive throws and omitted-this mismatches while covering strictness, lexical arrows, callable aliases, source validity, spread ambiguity, native authority, release selection, and unsupported contexts.",
-          "fixture",
-          "2026-08-24",
-        ),
-        metadata.evidenceRecord(
-          "tests/integration/release-contracts.test.ts",
-          "Real Oxlint and ESLint contracts verify explicit-nullish and omitted-this behavior in Zurich, Australia, and omitted-release configurations.",
-          "integration-test",
-          "2026-08-24",
-        ),
-      ],
-      { overlaps: [] },
-    ),
-    placements: [{ profile: "es2021", severity: "error" }] as const,
+    ...metadata.meta(metadata.engine(["es2021"]), [
+      metadata.evidenceRecord(
+        metadata.SN_JS_ENGINE_UPDATES_AUSTRALIA,
+        "The Australia engine update lists Rhino PR 1982, Correct this in Array.from, as an ECMAScript 2021 fix.",
+        "manual",
+        "2026-08-24",
+      ),
+      metadata.evidenceRecord(
+        "tests/rules/no-incorrect-array-from-thisarg.test.ts",
+        "Fixtures prove explicit-primitive throws and omitted-this mismatches while covering strictness, lexical arrows, callable aliases, source validity, spread ambiguity, native authority, release selection, and unsupported contexts.",
+        "fixture",
+        "2026-08-24",
+      ),
+      metadata.evidenceRecord(
+        "tests/integration/release-contracts.test.ts",
+        "Real Oxlint and ESLint contracts verify explicit-nullish and omitted-this behavior in Zurich, Australia, and omitted-release configurations.",
+        "integration-test",
+        "2026-08-24",
+      ),
+    ]),
+    placements: [{ profile: "es2021", severity: "error" }],
     optionDescriptor: undefined,
     limitationCases: [
       {

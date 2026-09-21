@@ -29,7 +29,7 @@ export const noProxyEntry = entry("no-proxy", noProxy, {
       overlaps: ["servicenow/no-unsupported-syntax"],
     },
   ),
-  placements: [{ profile: "classic-es5", severity: "error" }] as const,
+  placements: [{ profile: "classic-es5", severity: "error" }],
   optionDescriptor: undefined,
   limitationCases: [
     {

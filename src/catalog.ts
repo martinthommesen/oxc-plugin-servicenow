@@ -1,15 +1,5 @@
 import type { Rule } from "@oxlint/plugins";
-import type {
-  RuleFamily,
-  RuleProfile,
-  RulePlacement,
-  RuleApplicability,
-  RuleExample,
-  RuleLimitationCase,
-  RuleOptionDoc,
-  RuleCatalogEntry,
-  RuleCatalogInput,
-} from "./catalog/types.js";
+import type { RuleProfile } from "./catalog/types.js";
 import { noHardcodedSysidEntry } from "./catalog/no-hardcoded-sysid.js";
 import { noPromiseEntry } from "./catalog/no-promise.js";
 import { noAsyncAwaitEntry } from "./catalog/no-async-await.js";
@@ -61,17 +51,7 @@ import { noSystemQueryBypassEntry } from "./catalog/no-system-query-bypass.js";
 import { noSyncGlideajaxEntry } from "./catalog/no-sync-glideajax.js";
 import { noAsyncIteratorsEntry } from "./catalog/no-async-iterators.js";
 
-export type {
-  RuleFamily,
-  RuleProfile,
-  RulePlacement,
-  RuleApplicability,
-  RuleExample,
-  RuleLimitationCase,
-  RuleOptionDoc,
-  RuleCatalogEntry,
-  RuleCatalogInput,
-};
+export type { RuleProfile };
 
 export const ruleCatalog = [
   noHardcodedSysidEntry,

@@ -20,7 +20,7 @@ Zurich throws when Array.from receives an explicit primitive mapper thisArg—ev
 | --- | --- |
 | Authoring | classic |
 | Surfaces | Applies to server, acl, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. UI Actions require an explicit server surface; mixed client/server UI Actions stay silent because execution regions are not classified. An explicit javascriptMode also enables documented engine checks in otherwise unclassified files. |
-| Minimum surface confidence | filename-inferred |
+| Minimum surface confidence | inferred |
 | JavaScript modes | es2021 |
 | Application scopes | global, scoped, unknown |
 | ServiceNow releases | zurich, australia |

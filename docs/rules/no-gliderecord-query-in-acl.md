@@ -20,7 +20,7 @@ Review proven GlideRecord, GlideRecordSecure, and GlideAggregate query execution
 | --- | --- |
 | Authoring | classic |
 | Surfaces | Applies to acl when those surfaces are known. Unknown surfaces stay silent. |
-| Minimum surface confidence | filename-inferred |
+| Minimum surface confidence | filename |
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
 | ServiceNow releases | zurich, australia |

@@ -1,4 +1,4 @@
-import type { RuleOptionsDescriptor } from "./descriptor.js";
+import type { RuleOptionsDescriptor } from "./option-fields.js";
 
 export interface NoHardcodedSysIdOptions {
   allowedSysIds: string[];

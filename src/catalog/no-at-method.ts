@@ -35,7 +35,7 @@ export const noAtMethodEntry = entry("no-at-method", noAtMethod, {
       overlaps: ["servicenow/no-unsupported-syntax"],
     },
   ),
-  placements: [{ profile: "classic-es5", severity: "error" }] as const,
+  placements: [{ profile: "classic-es5", severity: "error" }],
   optionDescriptor: undefined,
   limitationCases: [
     {

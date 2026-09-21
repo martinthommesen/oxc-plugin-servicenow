@@ -7,7 +7,9 @@ export const noGliderecordQueryInAclEntry = entry(
   noGliderecordQueryInAcl,
   {
     ...metadata.meta(
-      metadata.classic(["acl"]),
+      metadata.classic(["acl"], "n/a", metadata.ALL_SCOPES, {
+        minimumSurfaceConfidence: "filename",
+      }),
       [
         metadata.evidenceRecord(
           metadata.SN_SECURE_DATA,
@@ -57,7 +59,7 @@ export const noGliderecordQueryInAclEntry = entry(
       { profile: "strict", severity: "warn" },
       { profile: "acl", severity: "warn" },
       { profile: "security", severity: "warn" },
-    ] as const,
+    ],
     optionDescriptor: undefined,
     limitationCases: [
       {

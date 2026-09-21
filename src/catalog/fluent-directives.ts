@@ -3,30 +3,24 @@ import { fluentDirectives } from "../rules/fluent-directives.js";
 import * as metadata from "../catalog-metadata.js";
 
 export const fluentDirectivesEntry = entry("fluent-directives", fluentDirectives, {
-  ...metadata.meta(
-    metadata.fluent(),
-    [
-      metadata.evidenceRecord(
-        metadata.SN_FLUENT,
-        "The documented Fluent directives are line- or file-scoped comments consumed by the SDK toolchain.",
-        "manual",
-        "2026-08-20",
-      ),
-      metadata.evidenceRecord(
-        "tests/integration/profiles/invalid/dangling-fluent-ignore.now.ts",
-        "A trailing @fluent-ignore without a following statement reports.",
-        "integration-test",
-        "2026-08-20",
-      ),
-    ],
-    {
-      overlaps: [],
-    },
-  ),
+  ...metadata.meta(metadata.fluent(), [
+    metadata.evidenceRecord(
+      metadata.SN_FLUENT,
+      "The documented Fluent directives are line- or file-scoped comments consumed by the SDK toolchain.",
+      "manual",
+      "2026-08-20",
+    ),
+    metadata.evidenceRecord(
+      "tests/integration/profiles/invalid/dangling-fluent-ignore.now.ts",
+      "A trailing @fluent-ignore without a following statement reports.",
+      "integration-test",
+      "2026-08-20",
+    ),
+  ]),
   placements: [
     { profile: "recommended", severity: "warn" },
     { profile: "fluent", severity: "warn" },
-  ] as const,
+  ],
   optionDescriptor: undefined,
   limitationCases: [
     {

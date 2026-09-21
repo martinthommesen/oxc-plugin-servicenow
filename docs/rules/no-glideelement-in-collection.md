@@ -20,7 +20,7 @@ Direct GlideRecord field access and path-proven local aliases are GlideElements 
 | --- | --- |
 | Authoring | classic |
 | Surfaces | Applies to server, acl, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. UI Actions require an explicit server surface; mixed client/server UI Actions stay silent because execution regions are not classified. Unknown surfaces stay silent. |
-| Minimum surface confidence | filename-inferred |
+| Minimum surface confidence | inferred |
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
 | ServiceNow releases | zurich, australia |
@@ -108,8 +108,8 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-b
   - Verified by: integration-test
   - Verified at: 2026-08-20
 - **Path-sensitive fixtures cover local aliases, reassignment, shadowing, all-path joins, and IIFE parameters.**
-  - Verification ID: `rule-evidence-ff2c032d`
-  - URL: tests/rules/layer3-consumers.test.ts
+  - Verification ID: `rule-evidence-7e51205d`
+  - URL: tests/rules/platform-binding-identity.test.ts
   - Verified by: fixture
   - Verified at: 2026-08-22
 - **Constructor namespace, prototype, instance-method, and dynamic-scope mutations are covered by shared platform-authority fixtures.**

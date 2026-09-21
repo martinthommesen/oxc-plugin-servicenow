@@ -10,37 +10,31 @@ export const noGlideelementInCollectionEntry = entry(
   "no-glideelement-in-collection",
   noGlideelementInCollection,
   {
-    ...metadata.meta(
-      metadata.classic(metadata.SERVER_SURFACES),
-      [
-        metadata.evidenceRecord(
-          metadata.SN_GR,
-          "A GlideElement follows a cursor advanced by next() or _next(); collections must store extracted values.",
-          "manual",
-          "2026-08-22",
-        ),
-        metadata.evidenceRecord(
-          "tests/integration/profiles/invalid/glideelement-push.br.js",
-          "Recommended hosts report pushing a cursor field into an array.",
-          "integration-test",
-          "2026-08-20",
-        ),
-        metadata.evidenceRecord(
-          "tests/rules/layer3-consumers.test.ts",
-          "Path-sensitive fixtures cover local aliases, reassignment, shadowing, all-path joins, and IIFE parameters.",
-          "fixture",
-          "2026-08-22",
-        ),
-        platformMethodAuthorityEvidence(),
-      ],
-      {
-        overlaps: [],
-      },
-    ),
+    ...metadata.meta(metadata.classic(metadata.SERVER_SURFACES), [
+      metadata.evidenceRecord(
+        metadata.SN_GR,
+        "A GlideElement follows a cursor advanced by next() or _next(); collections must store extracted values.",
+        "manual",
+        "2026-08-22",
+      ),
+      metadata.evidenceRecord(
+        "tests/integration/profiles/invalid/glideelement-push.br.js",
+        "Recommended hosts report pushing a cursor field into an array.",
+        "integration-test",
+        "2026-08-20",
+      ),
+      metadata.evidenceRecord(
+        "tests/rules/platform-binding-identity.test.ts",
+        "Path-sensitive fixtures cover local aliases, reassignment, shadowing, all-path joins, and IIFE parameters.",
+        "fixture",
+        "2026-08-22",
+      ),
+      platformMethodAuthorityEvidence(),
+    ]),
     placements: [
       { profile: "recommended", severity: "error" },
       { profile: "business-rule", severity: "error" },
-    ] as const,
+    ],
     optionDescriptor: undefined,
     limitationCases: [
       {

@@ -64,7 +64,7 @@ function withCatalogRecommendation(
         recommended: placements.some((placement) => placement.profile === "recommended"),
       },
     },
-  } as Rule;
+  };
 }
 
 export function entry<N extends string>(
@@ -72,15 +72,14 @@ export function entry<N extends string>(
   implementation: Rule,
   rest: RuleCatalogInput,
 ): RuleCatalogEntry & { name: N } {
-  // Verification IDs identify a rule-to-evidence assertion, not only the
-  // underlying URL and claim. Shared release evidence must therefore remain
-  // independently auditable when several rules cite the same source cell.
-  const evidence = releaseEvidenceForRule(name, rest.evidence).map((item) =>
-    metadata.evidenceRecord(item.url, item.claim, item.verifiedBy, item.verifiedAt, `rule:${name}`),
+  const limitationCases = rest.limitationCases ?? [];
+  const evidence = releaseEvidenceForRule(name, rest.evidence).map((claim) =>
+    metadata.verifiedEvidence(claim, `rule:${name}`),
   );
   const applicability: RuleApplicability = {
     authoring: rest.applicability.authoring,
-    surfaces: metadata.formatSurfaces(rest.applicability),
+    surfaces: rest.applicability.surfaces,
+    surfacesText: metadata.formatSurfaces(rest.applicability),
     javascriptMode: metadata.formatJavascriptModes(rest.applicability.javascriptModes),
     minimumSurfaceConfidence: rest.applicability.minimumSurfaceConfidence,
     javascriptModes: rest.applicability.javascriptModes,
@@ -96,18 +95,20 @@ export function entry<N extends string>(
     ...rest,
     evidence,
     applicability,
+    limitationCases,
+    overlaps: rest.overlaps ?? [],
     limitations: formatLimitations(
-      rest.limitationCases,
+      limitationCases,
       rest.lifecycleAssumptions,
       rest.limitationPreamble,
     ),
-    falsePositives: rest.limitationCases
+    falsePositives: limitationCases
       .filter((item) => item.kind === "false-positive")
       .map((item) => item.description),
-    falseNegatives: rest.limitationCases
+    falseNegatives: limitationCases
       .filter((item) => item.kind === "false-negative")
       .map((item) => item.description),
-    scopeBoundaries: rest.limitationCases
+    scopeBoundaries: limitationCases
       .filter((item) => item.kind === "scope-boundary")
       .map((item) => item.description),
     fixKind: rest.fixable ? "safe-fix" : rest.hasSuggestions ? "suggestion" : "none",

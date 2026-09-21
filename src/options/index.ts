@@ -1,4 +1,8 @@
-export { optionDocsFromDescriptor, parseRuleOptions, schemaFromDescriptor } from "./descriptor.js";
+export {
+  optionDocsFromDescriptor,
+  parseRuleOptions,
+  schemaFromDescriptor,
+} from "./option-fields.js";
 export type {
   BooleanOptionField,
   EnumOptionField,
@@ -8,14 +12,14 @@ export type {
   RuleOptionsDescriptor,
   StringArrayOptionField,
   StringOptionField,
-} from "./descriptor.js";
+} from "./option-fields.js";
 export {
   fluentNamingConventionOptions,
   noHardcodedSysidOptions,
   noHardcodedTableNamesOptions,
   preferNowIncludeOptions,
   requireFluentIdOptions,
-} from "./descriptors.js";
+} from "./rule-options.js";
 export type {
   FluentNamingOptions,
   NamingStyle,
@@ -23,4 +27,4 @@ export type {
   NoHardcodedTableNamesOptions,
   PreferNowIncludeOptions,
   RequireFluentIdOptions,
-} from "./descriptors.js";
+} from "./rule-options.js";

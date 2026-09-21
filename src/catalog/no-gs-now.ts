@@ -4,7 +4,9 @@ import * as metadata from "../catalog-metadata.js";
 
 export const noGsNowEntry = entry("no-gs-now", noGsNow, {
   ...metadata.meta(
-    metadata.classic(metadata.CLASSIC_SURFACES),
+    metadata.classic(metadata.CLASSIC_SURFACES, "n/a", metadata.ALL_SCOPES, {
+      minimumSurfaceConfidence: "filename",
+    }),
     [
       metadata.evidenceRecord(
         metadata.SN_GDT,
@@ -32,7 +34,7 @@ export const noGsNowEntry = entry("no-gs-now", noGsNow, {
   placements: [
     { profile: "recommended", severity: "error" },
     { profile: "client", severity: "error" },
-  ] as const,
+  ],
   optionDescriptor: undefined,
   limitationCases: [
     {

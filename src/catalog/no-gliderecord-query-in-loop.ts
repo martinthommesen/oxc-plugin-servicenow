@@ -51,7 +51,7 @@ export const noGliderecordQueryInLoopEntry = entry(
           "A proven GlideRecord next() / _next() or GlideAggregate next() receiver establishes cursor depth. Direct IIFEs and direct calls to an unmodified local function with one statically visible call site inherit that depth. GlideRecord executors must be definite for the configured scope. GlideAggregate analysis follows its directly documented query() / next() lifecycle; inherited or undocumented executors and cursor aliases stay silent.",
       },
     ),
-    placements: [{ profile: "strict", severity: "warn" }] as const,
+    placements: [{ profile: "strict", severity: "warn" }],
     optionDescriptor: undefined,
     limitationCases: [
       {

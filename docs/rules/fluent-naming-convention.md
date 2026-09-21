@@ -22,7 +22,7 @@
 | --- | --- |
 | Authoring | fluent |
 | Surfaces | Fluent `.now.ts` metadata only. |
-| Minimum surface confidence | filename-inferred |
+| Minimum surface confidence | inferred |
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
 | ServiceNow releases | n/a (Fluent SDK-versioned) |
@@ -96,8 +96,8 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
   - Verified by: manual
   - Verified at: 2026-08-20
 - **Catalog examples cover PascalCase files and kebab-case corrections.**
-  - Verification ID: `rule-evidence-8160e152`
-  - URL: src/catalog.ts
+  - Verification ID: `rule-evidence-994c1e98`
+  - URL: src/catalog/fluent-naming-convention.ts
   - Verified by: fixture
   - Verified at: 2026-08-20
 

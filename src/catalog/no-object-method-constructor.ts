@@ -6,31 +6,27 @@ export const noObjectMethodConstructorEntry = entry(
   "no-object-method-constructor",
   noObjectMethodConstructor,
   {
-    ...metadata.meta(
-      metadata.engine(["es2021"]),
-      [
-        metadata.evidenceRecord(
-          metadata.SN_JS_ENGINE_UPDATES_AUSTRALIA,
-          "The Australia engine update lists Rhino PR 1774, Don't allow methods to be used as constructors, as an ECMAScript 2021 fix.",
-          "manual",
-          "2026-08-24",
-        ),
-        metadata.evidenceRecord(
-          "tests/rules/no-object-method-constructor.test.ts",
-          "Fixtures cover direct and computed methods, immutable object and method aliases, generators, final-property selection, mutation, escape, shadowing, dynamic scope, releases, modes, and execution contexts.",
-          "fixture",
-          "2026-08-24",
-        ),
-        metadata.evidenceRecord(
-          "tests/integration/release-contracts.test.ts",
-          "Real Oxlint and ESLint contracts verify the object-method construction delta in Zurich, Australia, and omitted-release ES2021 configurations.",
-          "integration-test",
-          "2026-08-24",
-        ),
-      ],
-      { overlaps: [] },
-    ),
-    placements: [{ profile: "es2021", severity: "error" }] as const,
+    ...metadata.meta(metadata.engine(["es2021"]), [
+      metadata.evidenceRecord(
+        metadata.SN_JS_ENGINE_UPDATES_AUSTRALIA,
+        "The Australia engine update lists Rhino PR 1774, Don't allow methods to be used as constructors, as an ECMAScript 2021 fix.",
+        "manual",
+        "2026-08-24",
+      ),
+      metadata.evidenceRecord(
+        "tests/rules/no-object-method-constructor.test.ts",
+        "Fixtures cover direct and computed methods, immutable object and method aliases, generators, final-property selection, mutation, escape, shadowing, dynamic scope, releases, modes, and execution contexts.",
+        "fixture",
+        "2026-08-24",
+      ),
+      metadata.evidenceRecord(
+        "tests/integration/release-contracts.test.ts",
+        "Real Oxlint and ESLint contracts verify the object-method construction delta in Zurich, Australia, and omitted-release ES2021 configurations.",
+        "integration-test",
+        "2026-08-24",
+      ),
+    ]),
+    placements: [{ profile: "es2021", severity: "error" }],
     optionDescriptor: undefined,
     limitationCases: [
       {

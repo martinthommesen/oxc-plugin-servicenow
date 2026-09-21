@@ -33,7 +33,7 @@ export const noUnfilteredGliderecordBulkOperationEntry = entry(
           "query, orderBy, setLimit, and chooseWindow are not restricting filters.",
       },
     ),
-    placements: [{ profile: "recommended", severity: "warn" }] as const,
+    placements: [{ profile: "recommended", severity: "warn" }],
     optionDescriptor: undefined,
     limitationCases: [
       platformMethodMutationLimitation(

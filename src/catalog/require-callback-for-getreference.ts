@@ -6,36 +6,30 @@ export const requireCallbackForGetreferenceEntry = entry(
   "require-callback-for-getreference",
   requireCallbackForGetreference,
   {
-    ...metadata.meta(
-      metadata.classic(metadata.CLIENT_SURFACES),
-      [
-        metadata.evidenceRecord(
-          metadata.SN_FORM,
-          "g_form.getReference without a callback is a synchronous server request.",
-          "manual",
-          "2026-08-20",
-        ),
-        metadata.evidenceRecord(
-          "tests/integration/profiles/invalid/sync-getreference.client.js",
-          "Recommended hosts report the one-argument form.",
-          "integration-test",
-          "2026-08-20",
-        ),
-        metadata.evidenceRecord(
-          "tests/rules/require-callback-for-getreference.test.ts",
-          "Immutable callback aliases and visible method mutations are covered adversarially.",
-          "fixture",
-          "2026-08-24",
-        ),
-      ],
-      {
-        overlaps: [],
-      },
-    ),
+    ...metadata.meta(metadata.classic(metadata.CLIENT_SURFACES), [
+      metadata.evidenceRecord(
+        metadata.SN_FORM,
+        "g_form.getReference without a callback is a synchronous server request.",
+        "manual",
+        "2026-08-20",
+      ),
+      metadata.evidenceRecord(
+        "tests/integration/profiles/invalid/sync-getreference.client.js",
+        "Recommended hosts report the one-argument form.",
+        "integration-test",
+        "2026-08-20",
+      ),
+      metadata.evidenceRecord(
+        "tests/rules/require-callback-for-getreference.test.ts",
+        "Immutable callback aliases and visible method mutations are covered adversarially.",
+        "fixture",
+        "2026-08-24",
+      ),
+    ]),
     placements: [
       { profile: "recommended", severity: "error" },
       { profile: "client", severity: "error" },
-    ] as const,
+    ],
     optionDescriptor: undefined,
     limitationCases: [
       {

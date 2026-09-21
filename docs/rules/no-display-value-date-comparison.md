@@ -20,7 +20,7 @@ Do not relationally compare `GlideDateTime.getDisplayValue()` strings. Use `getN
 | --- | --- |
 | Authoring | classic |
 | Surfaces | Applies to server, acl, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. UI Actions require an explicit server surface; mixed client/server UI Actions stay silent because execution regions are not classified. Unknown surfaces stay silent. |
-| Minimum surface confidence | filename-inferred |
+| Minimum surface confidence | inferred |
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
 | ServiceNow releases | zurich, australia |
@@ -90,8 +90,8 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-n
   - Verified by: manual
   - Verified at: 2026-08-20
 - **Catalog examples cover display-value comparison versus getNumericValue.**
-  - Verification ID: `rule-evidence-54d15346`
-  - URL: src/catalog.ts
+  - Verification ID: `rule-evidence-e58fb67c`
+  - URL: src/catalog/no-display-value-date-comparison.ts
   - Verified by: fixture
   - Verified at: 2026-08-20
 - **Constructor namespace, prototype, instance-method, and dynamic-scope mutations are covered by shared platform-authority fixtures.**

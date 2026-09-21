@@ -22,7 +22,7 @@ Optional architectural policy. `.now.ts` files should declare metadata. Loops, c
 | --- | --- |
 | Authoring | fluent |
 | Surfaces | Fluent `.now.ts` metadata only. |
-| Minimum surface confidence | filename-inferred |
+| Minimum surface confidence | inferred |
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
 | ServiceNow releases | n/a (Fluent SDK-versioned) |

@@ -22,7 +22,7 @@ Fluent entity and column APIs must be imported from the module recorded in the s
 | --- | --- |
 | Authoring | fluent |
 | Surfaces | Fluent `.now.ts` metadata only. |
-| Minimum surface confidence | filename-inferred |
+| Minimum surface confidence | inferred |
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
 | ServiceNow releases | n/a (Fluent SDK-versioned) |

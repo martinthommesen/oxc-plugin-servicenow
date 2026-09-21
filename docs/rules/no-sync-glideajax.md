@@ -20,7 +20,7 @@
 | --- | --- |
 | Authoring | classic |
 | Surfaces | Applies to client, ui-action when those surfaces are known. Mixed client/server UI Actions stay silent because execution regions are not classified. Unknown surfaces stay silent. |
-| Minimum surface confidence | filename-inferred |
+| Minimum surface confidence | inferred |
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
 | ServiceNow releases | zurich, australia |
@@ -88,8 +88,8 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-n
   - Verified by: manual
   - Verified at: 2026-08-20
 - **Catalog examples cover getXMLWait versus getXMLAnswer.**
-  - Verification ID: `rule-evidence-2de6efe6`
-  - URL: src/catalog.ts
+  - Verification ID: `rule-evidence-004c489e`
+  - URL: src/catalog/no-sync-glideajax.ts
   - Verified by: fixture
   - Verified at: 2026-08-20
 - **Constructor, prototype, instance-method, and dynamic-scope mutations remain silent.**

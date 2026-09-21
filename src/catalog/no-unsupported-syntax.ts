@@ -50,7 +50,7 @@ export const noUnsupportedSyntaxEntry = entry("no-unsupported-syntax", noUnsuppo
   placements: [
     { profile: "classic-es5", severity: "error" },
     { profile: "es2021", severity: "error" },
-  ] as const,
+  ],
   optionDescriptor: undefined,
   limitationCases: [
     {

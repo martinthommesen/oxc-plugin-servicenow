@@ -26,9 +26,8 @@ export const noDuplicateFluentIdEntry = entry("no-duplicate-fluent-id", noDuplic
   placements: [
     { profile: "recommended", severity: "error" },
     { profile: "fluent", severity: "error" },
-  ] as const,
+  ],
   optionDescriptor: undefined,
-  limitationCases: [],
   title: "No duplicate Fluent $id",
   family: "fluent",
   severity: "error",

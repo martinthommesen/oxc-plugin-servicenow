@@ -37,7 +37,7 @@ export const requireGlideajaxSysparmNameEntry = entry(
     placements: [
       { profile: "recommended", severity: "error" },
       { profile: "client", severity: "error" },
-    ] as const,
+    ],
     optionDescriptor: undefined,
     limitationCases: [
       {

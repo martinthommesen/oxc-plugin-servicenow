@@ -30,7 +30,7 @@ export const noIncorrectBigintAsuintnEntry = entry(
       ],
       { overlaps: ["servicenow/no-bigint"] },
     ),
-    placements: [{ profile: "es2021", severity: "error" }] as const,
+    placements: [{ profile: "es2021", severity: "error" }],
     optionDescriptor: undefined,
     limitationCases: [
       {

@@ -2,6 +2,7 @@ import { mkdir, readdir, readFile, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { replaceMarkedSection } from "./lib/generated-artifacts.mjs";
+import { cell } from "./lib/markdown-table.mjs";
 import { root } from "./lib/repo.mjs";
 
 /** @typedef {typeof import("../src/catalog.js").ruleCatalog[number]} CatalogRule */
@@ -14,8 +15,8 @@ const { PACKAGE_GIT_REF, REPOSITORY_URL } = await import(
 const presets110 = JSON.parse(
   await readFile(join(root, "tests/fixtures/presets-1.1.0.json"), "utf8"),
 );
-/** @type {{ DEFAULT_FLUENT_MANIFEST: import("../src/fluent/index.js").FluentSdkManifest, SUPPORTED_FLUENT_SDK_VERSIONS: typeof import("../src/fluent/index.js").SUPPORTED_FLUENT_SDK_VERSIONS, CURRENT_FLUENT_SDK_VERSION: typeof import("../src/fluent/index.js").CURRENT_FLUENT_SDK_VERSION }} */
-const { DEFAULT_FLUENT_MANIFEST, SUPPORTED_FLUENT_SDK_VERSIONS, CURRENT_FLUENT_SDK_VERSION } =
+/** @type {{ DEFAULT_FLUENT_MANIFEST: import("../src/fluent/index.js").FluentSdkManifest, SUPPORTED_FLUENT_SDK_VERSIONS: typeof import("../src/fluent/index.js").SUPPORTED_FLUENT_SDK_VERSIONS, DEFAULT_FLUENT_SDK_VERSION: typeof import("../src/fluent/index.js").DEFAULT_FLUENT_SDK_VERSION }} */
+const { DEFAULT_FLUENT_MANIFEST, SUPPORTED_FLUENT_SDK_VERSIONS, DEFAULT_FLUENT_SDK_VERSION } =
   await import(pathToFileURL(join(root, "src/fluent/index.ts")).href);
 /** @type {{ businessRuleRules: typeof import("../src/configs/maps.js").businessRuleRules, classicEs5Rules: typeof import("../src/configs/maps.js").classicEs5Rules, clientRules: typeof import("../src/configs/maps.js").clientRules, es2021Rules: typeof import("../src/configs/maps.js").es2021Rules, fluentRules: typeof import("../src/configs/maps.js").fluentRules, recommendedRules: typeof import("../src/configs/maps.js").recommendedRules, strictRules: typeof import("../src/configs/maps.js").strictRules }} */
 const {
@@ -30,15 +31,6 @@ const {
 
 const docsDir = join(root, "docs/rules");
 await mkdir(docsDir, { recursive: true });
-
-/**
- * Escape values interpolated into a Markdown table cell.
- * @param {unknown} value
- * @returns {string}
- */
-function markdownTableCell(value) {
-  return String(value).replaceAll("\\", "\\\\").replaceAll("|", "\\|").replaceAll("\n", "<br>");
-}
 
 /**
  * @param {CatalogRule} rule
@@ -111,11 +103,11 @@ function tableRow(rule, includeFix) {
   const link = `[\`${rule.name}\`](${rule.docsUrl})`;
   const profile = profileLabel(rule);
   const fix = rule.fixable ? "fix" : rule.hasSuggestions ? "suggest" : "";
-  const catchText = markdownTableCell(summary(rule));
+  const catchText = cell(summary(rule));
   if (includeFix) {
-    return `| ${link} | ${markdownTableCell(profile)} | ${markdownTableCell(fix)} | ${catchText} |`;
+    return `| ${link} | ${cell(profile)} | ${cell(fix)} | ${catchText} |`;
   }
-  return `| ${link} | ${markdownTableCell(profile)} | ${catchText} |`;
+  return `| ${link} | ${cell(profile)} | ${catchText} |`;
 }
 
 /** @type {Record<string, string>} */
@@ -240,7 +232,7 @@ async function writeRuleDocs() {
         ? rule.options
             .map(
               (option) =>
-                `| \`${markdownTableCell(option.name)}\` | ${markdownTableCell(option.type)} | \`${markdownTableCell(option.default)}\` | ${markdownTableCell(option.description)} |`,
+                `| \`${cell(option.name)}\` | ${cell(option.type)} | \`${cell(option.default)}\` | ${cell(option.description)} |`,
             )
             .join("\n")
         : "| _(none)_ | | | This rule has no options. |";
@@ -255,12 +247,12 @@ ${rule.description}
 - **Fix safety:** ${rule.fixKind === "none" ? "diagnostic only" : rule.fixKind}
 - **Suggestions:** ${rule.hasSuggestions ? "yes" : "no"}
 - **Authoring:** ${rule.applicability.authoring}
-- **Surfaces:** ${rule.applicability.surfaces}
+- **Surfaces:** ${rule.applicability.surfacesText}
 - **JavaScript mode:** ${rule.applicability.javascriptMode}
 - **Last verified:** ${rule.lastVerified}
 - **Implementation:** [\`src/rules/${rule.name}.ts\`](../../src/rules/${rule.name}.ts)${
       rule.family === "fluent"
-        ? `\n- **Fluent manifest:** ${DEFAULT_FLUENT_MANIFEST.version}\n- **Fluent SDK versions:** ${SUPPORTED_FLUENT_SDK_VERSIONS.join(", ")} (unspecified selects ${CURRENT_FLUENT_SDK_VERSION})`
+        ? `\n- **Fluent manifest:** ${DEFAULT_FLUENT_MANIFEST.version}\n- **Fluent SDK versions:** ${SUPPORTED_FLUENT_SDK_VERSIONS.join(", ")} (unspecified selects ${DEFAULT_FLUENT_SDK_VERSION})`
         : ""
     }
 
@@ -268,13 +260,13 @@ ${rule.description}
 
 | Dimension | Value |
 | --- | --- |
-| Authoring | ${markdownTableCell(rule.applicability.authoring)} |
-| Surfaces | ${markdownTableCell(rule.applicability.surfaces)} |
-| Minimum surface confidence | ${markdownTableCell(rule.applicability.minimumSurfaceConfidence)} |
-| JavaScript modes | ${markdownTableCell(modes)} |
-| Application scopes | ${markdownTableCell(rule.applicability.scopes.join(", "))} |
-| ServiceNow releases | ${markdownTableCell(serviceNowReleaseRange)} |
-| Fluent SDK range | ${markdownTableCell(sdkRange)} |
+| Authoring | ${cell(rule.applicability.authoring)} |
+| Surfaces | ${cell(rule.applicability.surfacesText)} |
+| Minimum surface confidence | ${cell(rule.applicability.minimumSurfaceConfidence)} |
+| JavaScript modes | ${cell(modes)} |
+| Application scopes | ${cell(rule.applicability.scopes.join(", "))} |
+| ServiceNow releases | ${cell(serviceNowReleaseRange)} |
+| Fluent SDK range | ${cell(sdkRange)} |
 
 ## Options
 

@@ -8,23 +8,18 @@ import {
   es2021Rules,
   fluentRules,
   policyRules,
+  recommendedRules,
   securityRules,
+  strictRules,
 } from "./maps.js";
-
-export {
-  aclRules,
-  businessRuleRules,
-  classicEs5Rules,
-  clientRules,
-  es2021Rules,
-  fluentRules,
-  policyRules,
-  securityRules,
-};
 
 function profile<N extends string>(name: N, rules: RuleConfigMap) {
   return { name: `${PLUGIN_NAME}/${name}`, rules };
 }
+
+export const recommended = profile("recommended", recommendedRules);
+
+export const strict = profile("strict", strictRules);
 
 export const classicEs5 = profile("classic-es5", classicEs5Rules);
 

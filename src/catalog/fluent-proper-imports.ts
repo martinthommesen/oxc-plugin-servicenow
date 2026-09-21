@@ -26,7 +26,7 @@ export const fluentProperImportsEntry = entry("fluent-proper-imports", fluentPro
   placements: [
     { profile: "recommended", severity: "error" },
     { profile: "fluent", severity: "error" },
-  ] as const,
+  ],
   optionDescriptor: undefined,
   limitationCases: [
     {

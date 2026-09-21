@@ -20,7 +20,7 @@ Hardcoded 32-character sys_ids break when an app is installed on another instanc
 | --- | --- |
 | Authoring | classic |
 | Surfaces | Applies to client, server, acl, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. UI Actions require an explicit server surface; mixed client/server UI Actions stay silent because execution regions are not classified. Unknown surfaces stay silent. |
-| Minimum surface confidence | filename-inferred |
+| Minimum surface confidence | inferred |
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
 | ServiceNow releases | zurich, australia |

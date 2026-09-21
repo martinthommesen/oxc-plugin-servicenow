@@ -50,7 +50,7 @@ export const noTypedArraysEntry = entry("no-typed-arrays", noTypedArrays, {
   placements: [
     { profile: "classic-es5", severity: "error" },
     { profile: "es2021", severity: "error" },
-  ] as const,
+  ],
   optionDescriptor: undefined,
   limitationCases: [
     {
