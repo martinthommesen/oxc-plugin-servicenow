@@ -1,15 +1,7 @@
 import assert from "node:assert/strict";
-import { Linter } from "eslint";
 import { describe, it } from "node:test";
 import { configs } from "../../src/index.js";
-
-function ids(config: unknown, code: string, filename: string): string[] {
-  const linter = new Linter({ configType: "flat" });
-  return linter
-    .verify(code, [config as import("eslint").Linter.Config], { filename })
-    .map((message) => message.ruleId)
-    .filter((id): id is string => Boolean(id));
-}
+import { eslintRuleIds as ids } from "./helpers.js";
 
 describe("ESLint flat profile context contracts", () => {
   it("supplies independent classic ES5 settings", () => {

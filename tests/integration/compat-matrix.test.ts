@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { parseNpmPackJson } from "../../scripts/parse-npm-pack.mjs";
-import { repoRoot, TSX_CLI_EXECUTION_PATTERN } from "./helpers.js";
+import { readPackageJson, repoRoot, TSX_CLI_EXECUTION_PATTERN } from "./helpers.js";
 import { checkCompatibilityMatrix } from "../../scripts/check-compat-matrix.mjs";
 import { SUPPORTED_SERVICENOW_RELEASES } from "../../src/settings/index.js";
 
@@ -67,11 +67,7 @@ describe("compatibility matrix", () => {
   });
 
   it("matches declared package ranges", () => {
-    const pkg = JSON.parse(readFileSync(path.join(repoRoot, "package.json"), "utf8")) as {
-      engines: { node: string };
-      peerDependencies: Record<string, string>;
-      dependencies: Record<string, string>;
-    };
+    const pkg = readPackageJson();
     const matrix = JSON.parse(
       readFileSync(path.join(repoRoot, "scripts/compat-matrix.json"), "utf8"),
     ) as {
@@ -143,11 +139,33 @@ describe("compatibility matrix", () => {
     }
   });
 
+  // @lat: [[tests#Release governance#The migration guide quotes the declared peer ranges]]
+  it("keeps the 3.0 migration guide on the declared peer ranges (FINDINGS.md DOC-006)", () => {
+    const pkg = readPackageJson();
+    const guide = readFileSync(path.join(repoRoot, "docs/migration-3.0.md"), "utf8");
+    const floors: string[] = [];
+    for (const name of ["oxlint", "oxfmt"]) {
+      const range = pkg.peerDependencies[name]!;
+      assert.ok(
+        guide.includes(`becomes \`${range}\``),
+        `the migration guide must quote the declared ${name} peer range ${range}`,
+      );
+      floors.push(rangeFloor(range));
+    }
+    // A tilde range is exactly the declared minor line, so the install
+    // example cannot recommend a host the peers reject.
+    assert.ok(
+      guide.includes(`npm install oxlint@~${floors[0]} oxfmt@~${floors[1]}`),
+      "the migration guide install example must stay inside the declared peer ranges",
+    );
+    assert.ok(
+      guide.includes("](./compatibility.md)"),
+      "the migration guide must link the maintained compatibility table",
+    );
+  });
+
   it("covers every declared range endpoint with a cell (FINDINGS.md OPS-011)", () => {
-    const pkg = JSON.parse(readFileSync(path.join(repoRoot, "package.json"), "utf8")) as {
-      engines: { node: string };
-      peerDependencies: Record<string, string>;
-    };
+    const pkg = readPackageJson();
     const matrix = JSON.parse(
       readFileSync(path.join(repoRoot, "scripts/compat-matrix.json"), "utf8"),
     ) as {

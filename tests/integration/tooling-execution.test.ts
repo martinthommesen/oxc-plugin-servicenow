@@ -4,7 +4,7 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { describe, it } from "node:test";
-import { repoRoot, TSX_CLI_EXECUTION_PATTERN } from "./helpers.js";
+import { readPackageJson, repoRoot, TSX_CLI_EXECUTION_PATTERN } from "./helpers.js";
 
 describe("tooling execution", () => {
   it("recognizes package-selected tsx CLI invocations", () => {
@@ -53,9 +53,7 @@ describe("tooling execution", () => {
   });
 
   it("keeps package tools off the tsx CLI execution path", () => {
-    const pkg = JSON.parse(readFileSync(path.join(repoRoot, "package.json"), "utf8")) as {
-      scripts: Record<string, string>;
-    };
+    const pkg = readPackageJson();
     const commands = Object.values(pkg.scripts).join("\n");
     assert.doesNotMatch(commands, TSX_CLI_EXECUTION_PATTERN);
     assert.equal(pkg.scripts["compat"], "node scripts/compat-consumer.mjs");

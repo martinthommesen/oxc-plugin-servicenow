@@ -104,6 +104,29 @@ const cases: Array<{
     ],
   },
   {
+    // The documented `*.server.ui-action.js` convention has to survive real
+    // host resolution, not just the source harness (FINDINGS.md COR-017).
+    name: "documented server UI Action filename runs server contracts",
+    fixture: "approve.server.ui-action.js",
+    config: "auto-es5.oxlintrc.json",
+    settings: { javascriptMode: "es5", scope: "scoped" },
+    rules: AUTO_RULES,
+    expected: [
+      {
+        ruleId: "servicenow/no-promise",
+        messageId: "staticMethod",
+        message:
+          "`Promise.resolve()` is not supported in Compatibility or ES5 Standards mode. Use synchronous Glide APIs, or set `settings.servicenow.javascriptMode` to `es2021` when the script runs in that mode.",
+      },
+      {
+        ruleId: "servicenow/no-gs-now",
+        messageId: "server",
+        message:
+          "`gs.now()` returns a display string in the session timezone and is easy to misuse. Prefer `new GlideDateTime()` when you need an object, or an explicit display-value API when you need a string.",
+      },
+    ],
+  },
+  {
     name: "mixed UI Action suppresses the file-wide client rule",
     fixture: "mixed.ui-action.js",
     config: "mixed.oxlintrc.json",

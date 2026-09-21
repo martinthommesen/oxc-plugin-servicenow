@@ -2,6 +2,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { Linter } from "eslint";
 import {
   isHostFaultDiagnostic,
   parseOxlintStdout,
@@ -20,6 +21,21 @@ export const exampleProjectNames = Object.keys(
     }
   ).projects,
 );
+export interface PackageManifest {
+  readonly name: string;
+  readonly version: string;
+  readonly engines: { node: string };
+  readonly scripts: Record<string, string>;
+  readonly dependencies: Record<string, string>;
+  readonly peerDependencies: Record<string, string>;
+  readonly exports: Record<string, unknown>;
+}
+
+/** The repository's own manifest, read from disk on each call. */
+export function readPackageJson(): PackageManifest {
+  return JSON.parse(readFileSync(path.join(repoRoot, "package.json"), "utf8")) as PackageManifest;
+}
+
 export const TSX_CLI_EXECUTION_PATTERN =
   /(?:^|[\n|&;]\s*|\brun:\s*)(?:(?:npx(?:\s+--no-install)?|npm exec(?:\s+--[A-Za-z][\w-]*(?:=[^\s]+)?)*\s+(?:--\s+)?)\s*)?tsx(?:\s|$)/m;
 
@@ -87,6 +103,14 @@ export function eslintFlatConfig(options: {
       rules: { [options.rule]: "error" },
     },
   ];
+}
+
+/** Rule ids ESLint reports for `code` under one flat preset. */
+export function eslintRuleIds(config: unknown, code: string, filename: string): string[] {
+  return new Linter({ configType: "flat" })
+    .verify(code, [config as import("eslint").Linter.Config], { filename })
+    .map((message) => message.ruleId)
+    .filter((id): id is string => Boolean(id));
 }
 
 export type OxlintProcessResult = {
