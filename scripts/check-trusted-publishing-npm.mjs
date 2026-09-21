@@ -5,20 +5,33 @@ import { pathToFileURL } from "node:url";
 // trusted publishing needs at least the minimum, and the exclusive upper
 // bound keeps an untested major from running the publish step. The observed
 // version is printed in the result JSON for audit.
+/** @type {string} */
 export const TRUSTED_PUBLISHING_NPM_MINIMUM = "11.5.1";
+/** @type {string} */
 export const TRUSTED_PUBLISHING_NPM_BELOW = "12.0.0";
 
+/**
+ * @param {string} version
+ * @returns {{ core: number[], suffix: string }}
+ */
 function parseCore(version) {
   const match = /^(\d+)\.(\d+)\.(\d+)((?:[-+]).*)?$/.exec(version);
   if (!match) throw new Error(`invalid npm version bound: ${version}`);
   return { core: [Number(match[1]), Number(match[2]), Number(match[3])], suffix: match[4] ?? "" };
 }
 
+/**
+ * @param {string} left
+ * @param {string} right
+ * @returns {number}
+ */
 function compareCoreVersions(left, right) {
   const a = parseCore(left);
   const b = parseCore(right);
   for (let index = 0; index < 3; index += 1) {
-    if (a.core[index] !== b.core[index]) return a.core[index] - b.core[index];
+    const aValue = a.core[index] ?? 0;
+    const bValue = b.core[index] ?? 0;
+    if (aValue !== bValue) return aValue - bValue;
   }
   // SemVer: a prerelease precedes its release. The bounds are plain x.y.z,
   // so a prerelease npm (11.5.1-rc.0) must stay below the 11.5.1 minimum.
@@ -27,19 +40,34 @@ function compareCoreVersions(left, right) {
   return aPre - bPre;
 }
 
-/** Parse only a single semver-like npm --version line; npm must not be guessed from Node metadata. */
+/**
+ * Parse only a single semver-like npm --version line; npm must not be guessed from Node metadata.
+ * @param {string} output
+ * @returns {string}
+ */
 export function parseNpmVersion(output) {
   const lines = String(output)
     .trim()
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean);
-  if (lines.length !== 1 || !/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(lines[0])) {
+  const first = lines[0];
+  if (
+    lines.length !== 1 ||
+    first === undefined ||
+    !/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(first)
+  ) {
     throw new Error(`npm --version returned an invalid value: ${JSON.stringify(output)}`);
   }
-  return lines[0];
+  return first;
 }
 
+/**
+ * @param {string} output
+ * @param {string} [minimum]
+ * @param {string} [below]
+ * @returns {string}
+ */
 export function assertTrustedPublishingNpm(
   output,
   minimum = TRUSTED_PUBLISHING_NPM_MINIMUM,
@@ -54,10 +82,19 @@ export function assertTrustedPublishingNpm(
   return actual;
 }
 
+/**
+ * @param {string} [command]
+ * @returns {string}
+ */
 export function readExecutableNpmVersion(command = "npm") {
   return assertTrustedPublishingNpm(execFileSync(command, ["--version"], { encoding: "utf8" }));
 }
 
+/**
+ * @param {string[]} argv
+ * @param {string} name
+ * @returns {string | undefined}
+ */
 function argValue(argv, name) {
   const index = argv.indexOf(name);
   if (index < 0) return undefined;
@@ -66,6 +103,10 @@ function argValue(argv, name) {
   return value;
 }
 
+/**
+ * @param {string[]} [argv]
+ * @returns {Record<string, unknown>}
+ */
 export function main(argv = process.argv) {
   const minimum = argValue(argv, "--expected") ?? TRUSTED_PUBLISHING_NPM_MINIMUM;
   const output = argValue(argv, "--version-output");
@@ -81,8 +122,11 @@ export function main(argv = process.argv) {
   return result;
 }
 
+const invokedScript = process.argv[1];
 const invokedDirectly =
-  Boolean(process.argv[1]) && import.meta.url === pathToFileURL(process.argv[1]).href;
+  invokedScript !== undefined &&
+  invokedScript !== "" &&
+  import.meta.url === pathToFileURL(invokedScript).href;
 if (invokedDirectly) {
   try {
     main();

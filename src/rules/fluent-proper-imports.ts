@@ -46,6 +46,7 @@ export const fluentProperImports = defineRule({
             [node, spec as unknown as ESTree.Node],
             file.bindings,
             file.fluent.imports,
+            file.bindingWrites,
           );
           if (!imported || imported.exportedName === "*") continue;
           const expected = owned.get(imported.exportedName);
@@ -73,6 +74,7 @@ export const fluentProperImports = defineRule({
           file.bindings,
           file.fluent.imports,
           file.fluent.manifest,
+          file.bindingWrites,
         );
         const capability = resolved?.capability;
         if (capability) {
@@ -85,6 +87,7 @@ export const fluentProperImports = defineRule({
             ancestors,
             file.bindings,
             file.fluent.imports,
+            file.bindingWrites,
           );
           reportNamespaceModule(member, capability.name, expected, imported);
           return;
@@ -110,7 +113,13 @@ export const fluentProperImports = defineRule({
         const expected = exported ? owned.get(exported) : undefined;
         if (!exported || !expected) return;
         const object = member.object as ESTree.Node;
-        const imported = importedBindingFor(object, ancestors, file.bindings, file.fluent.imports);
+        const imported = importedBindingFor(
+          object,
+          ancestors,
+          file.bindings,
+          file.fluent.imports,
+          file.bindingWrites,
+        );
         reportNamespaceModule(member, exported, expected, imported);
       },
     };

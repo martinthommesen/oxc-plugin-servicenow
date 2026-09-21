@@ -26,6 +26,9 @@ const searchRoots =
 /**
  * Collect `*.test.ts` files without relying on Node 22 glob expansion.
  * Node 20's test runner treats a quoted `**` path as a literal filename.
+ * @param {string} dir
+ * @param {string[]} out
+ * @param {boolean} [named]
  */
 async function collectTestFiles(dir, out, named = false) {
   let info;
@@ -58,6 +61,7 @@ async function collectTestFiles(dir, out, named = false) {
   }
 }
 
+/** @type {string[]} */
 const collected = [];
 for (const searchRoot of searchRoots) {
   await collectTestFiles(searchRoot, collected, searchArgs.length > 0);

@@ -29,8 +29,9 @@ npx oxfmt --write .
 
 | Files | Style |
 | --- | --- |
-| `**/*.now.ts` | TypeScript / Fluent. Single quotes. Trailing commas. Width 100. |
-| `**/*.{server,client,br,si}.js`, `**/*.ui-action.js`, `src/{server,client}/**` | Classic Studio style. Double quotes. No trailing commas. Width 120. Compound UI Action suffixes such as `.client.ui-action.js` and `.server.ui-action.js` are included. |
-| `**/.now/**`, `keys.ts` | Ignored SDK sync artifacts. |
+| `**/*.now.ts`, `**/*.now.tsx` | TypeScript / Fluent. Single quotes. Trailing commas. Width 100. |
+| `**/*.{server,client,br,si,acl}.js`, `**/*.ui-action.js`, `**/src/server/**/*.js`, `**/src/client/**/*.js`, ACL directories | Classic Studio style. Double quotes. No trailing commas. Width 120. Compound UI Action suffixes such as `.client.ui-action.js` and `.server.ui-action.js` are included. |
+| `**/now.config.json`, `**/.oxlintrc.json`, `**/.oxfmtrc.json` | Configuration files. Width 80. No trailing commas. |
+| `**/node_modules/**`, `**/dist/**`, `**/build/**`, `**/.now/**`, `**/keys.ts`, `**/*.min.js` | Ignored build output and SDK sync artifacts. |
 
 CI formats the dedicated fixtures and all eight example `valid` trees with `--check`.

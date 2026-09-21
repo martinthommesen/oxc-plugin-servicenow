@@ -7,6 +7,25 @@ import { sha256File, tarballIntegrity } from "./check-release-artifact.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
+/**
+ * @typedef {object} ReleaseAsset
+ * @property {unknown} [name]
+ * @property {unknown} [digest]
+ */
+/**
+ * @typedef {object} ReleaseView
+ * @property {string} [tagName]
+ * @property {string} [name]
+ * @property {boolean} [isDraft]
+ * @property {boolean} [isPrerelease]
+ * @property {string} [body]
+ * @property {ReleaseAsset[]} [assets]
+ */
+
+/**
+ * @param {string | ReleaseView} raw
+ * @returns {ReleaseView}
+ */
 export function parseReleaseView(raw) {
   let parsed;
   try {
@@ -22,7 +41,12 @@ export function parseReleaseView(raw) {
   return parsed;
 }
 
-/** Decide the idempotent action before touching GitHub. */
+/**
+ * Decide the idempotent action before touching GitHub.
+ * @param {ReleaseView | undefined} existing
+ * @param {string} assetName
+ * @returns {"create" | "verify-asset" | "upload-asset"}
+ */
 export function releaseAction(existing, assetName) {
   if (!existing) return "create";
   if (existing.tagName && typeof existing.tagName !== "string")
@@ -33,23 +57,37 @@ export function releaseAction(existing, assetName) {
     : "upload-asset";
 }
 
+/**
+ * @param {ReleaseView | undefined} view
+ * @returns {string[]}
+ */
 export function releaseAssetNames(view) {
   return (Array.isArray(view?.assets) ? view.assets : [])
     .filter((asset) => asset && typeof asset.name === "string")
-    .map((asset) => asset.name);
+    .map((asset) => /** @type {string} */ (asset.name));
 }
 
+/**
+ * @param {string} source
+ * @param {string} version
+ * @returns {string}
+ */
 export function changelogReleaseNotes(source, version) {
   const escaped = version.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const heading = new RegExp(`^## ${escaped} — \\d{4}-\\d{2}-\\d{2}$`, "m").exec(source);
   if (!heading) fail(`CHANGELOG.md has no release notes for ${version}`);
-  const start = heading.index + heading[0].length;
+  const start = heading.index + (heading[0] ?? "").length;
   const next = source.indexOf("\n## ", start);
   const notes = source.slice(start, next === -1 ? source.length : next).trim();
   if (!notes) fail(`CHANGELOG.md has no release notes for ${version}`);
   return notes;
 }
 
+/**
+ * @param {ReleaseView | undefined} existing
+ * @param {{ tag: string, version: string, assetName: string, prerelease: boolean, notes: string }} expected
+ * @returns {ReleaseView}
+ */
 export function validateExistingRelease(existing, expected) {
   const errors = [];
   if (existing?.tagName !== expected.tag)
@@ -66,34 +104,51 @@ export function validateExistingRelease(existing, expected) {
     errors.push(`release has conflicting assets: ${names.join(", ")}`);
   if (new Set(names).size !== names.length) errors.push("release has duplicate asset names");
   if (errors.length > 0) fail(`existing GitHub release metadata mismatch:\n${errors.join("\n")}`);
-  return existing;
+  return /** @type {ReleaseView} */ (existing);
 }
 
+/**
+ * @param {{ tag: string, expectedCommit: string, readRef: (tag: string) => { object?: { type?: string, sha?: string } }, readTag: (sha: string) => { object?: { type?: string, sha?: string } }, maxDepth?: number }} options
+ * @returns {string}
+ */
 export function resolveTagCommit({ tag, expectedCommit, readRef, readTag, maxDepth = 8 }) {
   if (!/^[a-f0-9]{40}$/i.test(expectedCommit)) fail(`invalid expected commit ${expectedCommit}`);
   const ref = readRef(tag);
   let object = ref?.object;
   const seen = new Set();
   for (let depth = 0; depth <= maxDepth; depth += 1) {
-    if (!object || typeof object.type !== "string" || !/^[a-f0-9]{40}$/i.test(object.sha ?? "")) {
+    const sha = object?.sha;
+    if (
+      !object ||
+      typeof object.type !== "string" ||
+      typeof sha !== "string" ||
+      !/^[a-f0-9]{40}$/i.test(sha)
+    ) {
       fail(`release tag ${tag} resolved to a malformed Git object`);
     }
     if (object.type === "commit") {
-      if (object.sha.toLowerCase() !== expectedCommit.toLowerCase()) {
-        fail(`release tag ${tag} targets ${object.sha}, expected ${expectedCommit}`);
+      if (sha.toLowerCase() !== expectedCommit.toLowerCase()) {
+        fail(`release tag ${tag} targets ${sha}, expected ${expectedCommit}`);
       }
-      return object.sha.toLowerCase();
+      return sha.toLowerCase();
     }
     if (object.type !== "tag")
       fail(`release tag ${tag} resolves to unsupported object type ${object.type}`);
-    if (seen.has(object.sha)) fail(`release tag ${tag} contains an annotated-tag cycle`);
-    seen.add(object.sha);
+    if (seen.has(sha)) fail(`release tag ${tag} contains an annotated-tag cycle`);
+    seen.add(sha);
     if (depth === maxDepth) fail(`release tag ${tag} exceeds annotated-tag depth ${maxDepth}`);
-    object = readTag(object.sha)?.object;
+    object = readTag(sha)?.object;
   }
   fail(`release tag ${tag} did not resolve to a commit`);
 }
 
+/**
+ * @param {string} tag
+ * @param {string} version
+ * @param {string} tarball
+ * @param {string} notesFile
+ * @returns {string[]}
+ */
 export function githubReleaseCreateArgs(tag, version, tarball, notesFile) {
   const args = [
     "release",
@@ -110,12 +165,21 @@ export function githubReleaseCreateArgs(tag, version, tarball, notesFile) {
   return args;
 }
 
+/**
+ * @param {string} message
+ * @returns {never}
+ */
 function fail(message) {
-  const error = new Error(message);
+  const error = /** @type {Error & { kind?: string }} */ (new Error(message));
   error.kind = "github-release";
   throw error;
 }
 
+/**
+ * @param {string[]} argv
+ * @param {string} name
+ * @returns {string | undefined}
+ */
 function argValue(argv, name) {
   const index = argv.indexOf(name);
   if (index === -1) return undefined;
@@ -124,6 +188,11 @@ function argValue(argv, name) {
   return value;
 }
 
+/**
+ * @param {string[]} args
+ * @param {{ inherit?: boolean }} [options]
+ * @returns {string}
+ */
 function gh(args, options = {}) {
   return execFileSync("gh", args, {
     cwd: root,
@@ -133,6 +202,10 @@ function gh(args, options = {}) {
   });
 }
 
+/**
+ * @param {string} endpoint
+ * @returns {any}
+ */
 function readGitObject(endpoint) {
   const raw = gh(["api", endpoint]);
   try {
@@ -141,13 +214,19 @@ function readGitObject(endpoint) {
       fail(`GitHub API ${endpoint} returned no object`);
     return parsed;
   } catch (error) {
-    if (error?.kind === "github-release") throw error;
+    const kind = /** @type {{ kind?: unknown }} */ (error)?.kind;
+    if (kind === "github-release") throw error;
     fail(`GitHub API ${endpoint} returned invalid JSON`);
   }
 }
 
+/**
+ * @param {string} tag
+ * @param {string} expectedCommit
+ * @returns {string}
+ */
 function verifyRemoteTag(tag, expectedCommit) {
-  const repository = process.env.GITHUB_REPOSITORY ?? "martinthommesen/oxc-plugin-servicenow";
+  const repository = process.env["GITHUB_REPOSITORY"] ?? "martinthommesen/oxc-plugin-servicenow";
   if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository))
     fail(`invalid GitHub repository ${repository}`);
   return resolveTagCommit({
@@ -159,6 +238,10 @@ function verifyRemoteTag(tag, expectedCommit) {
   });
 }
 
+/**
+ * @param {string} tag
+ * @returns {ReleaseView | undefined}
+ */
 function viewRelease(tag) {
   try {
     return parseReleaseView(
@@ -180,6 +263,12 @@ function viewRelease(tag) {
   }
 }
 
+/**
+ * @param {string} tag
+ * @param {string} assetName
+ * @param {string} destination
+ * @returns {Buffer}
+ */
 function downloadAsset(tag, assetName, destination) {
   gh(["release", "download", tag, "--pattern", assetName, "--dir", destination, "--clobber"], {
     inherit: true,
@@ -192,6 +281,12 @@ function downloadAsset(tag, assetName, destination) {
   }
 }
 
+/**
+ * @param {string} tag
+ * @param {ReleaseAsset} asset
+ * @param {string} tarball
+ * @returns {"digest" | "bytes"}
+ */
 function verifyExistingAsset(tag, asset, tarball) {
   const expectedSha256 = sha256File(tarball);
   if (typeof asset.digest === "string" && /^sha256:[a-f0-9]{64}$/i.test(asset.digest)) {
@@ -213,6 +308,11 @@ function verifyExistingAsset(tag, asset, tarball) {
   }
 }
 
+/**
+ * @param {string} tag
+ * @param {string} tarball
+ * @returns {string}
+ */
 function uploadAsset(tag, tarball) {
   try {
     gh(["release", "upload", tag, tarball]);
@@ -227,8 +327,12 @@ function uploadAsset(tag, tarball) {
   return "uploaded";
 }
 
+/**
+ * @param {string[]} [argv]
+ * @returns {Record<string, unknown>}
+ */
 export function main(argv = process.argv) {
-  const tag = argValue(argv, "--tag") ?? process.env.GITHUB_REF_NAME;
+  const tag = argValue(argv, "--tag") ?? process.env["GITHUB_REF_NAME"];
   const tarballArg = argValue(argv, "--tarball");
   if (!tag) fail("--tag or GITHUB_REF_NAME is required");
   if (!tarballArg) fail("--tarball is required");
@@ -241,7 +345,7 @@ export function main(argv = process.argv) {
     fail(`invalid tarball path ${tarballArg}`);
   const version = argValue(argv, "--version") ?? tag.slice(1);
   if (version !== tag.slice(1)) fail(`release version ${version} does not match tag ${tag}`);
-  const expectedCommit = argValue(argv, "--expected-commit") ?? process.env.GITHUB_SHA;
+  const expectedCommit = argValue(argv, "--expected-commit") ?? process.env["GITHUB_SHA"];
   if (!expectedCommit) fail("--expected-commit or GITHUB_SHA is required");
   const notes = changelogReleaseNotes(readFileSync(join(root, "CHANGELOG.md"), "utf8"), version);
   const expected = { tag, version, assetName, prerelease: version.includes("-"), notes };
@@ -261,15 +365,19 @@ export function main(argv = process.argv) {
       rmSync(temporary, { recursive: true, force: true });
     }
   } else {
-    const asset = existing.assets.find((item) => item?.name === assetName);
+    if (!existing) fail(`GitHub release ${tag} vanished between view and asset reuse`);
+    const assets = /** @type {ReleaseAsset[]} */ (existing.assets);
+    const asset = assets.find((item) => item?.name === assetName);
     if (action === "verify-asset") {
+      if (!asset) fail(`GitHub release asset ${assetName} vanished between view and verification`);
       result = { action: "reused", verification: verifyExistingAsset(tag, asset, tarball) };
     } else {
       result = { action: "uploaded", verification: uploadAsset(tag, tarball) };
     }
   }
   const finalRelease = validateExistingRelease(viewRelease(tag), expected);
-  const finalAsset = finalRelease.assets.find((item) => item?.name === assetName);
+  const finalAssets = /** @type {ReleaseAsset[]} */ (finalRelease.assets);
+  const finalAsset = finalAssets.find((item) => item?.name === assetName);
   if (!finalAsset) fail(`GitHub release is missing ${assetName}`);
   const finalVerification = verifyExistingAsset(tag, finalAsset, tarball);
   const output = {
@@ -286,8 +394,11 @@ export function main(argv = process.argv) {
   return output;
 }
 
+const invokedScript = process.argv[1];
 const invokedDirectly =
-  Boolean(process.argv[1]) && import.meta.url === pathToFileURL(process.argv[1]).href;
+  invokedScript !== undefined &&
+  invokedScript !== "" &&
+  import.meta.url === pathToFileURL(invokedScript).href;
 if (invokedDirectly) {
   try {
     main();

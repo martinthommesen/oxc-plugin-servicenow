@@ -70,11 +70,17 @@ A rule versioned by the Fluent SDK must not claim an instance release, and a rul
 
 Freezing covers cyclic objects, and the shared empty default is never mutable. Keys, defaults, parsing, freezing, and fingerprints derive from the descriptor set. `tests/settings-freeze.test.ts` guards it.
 
-## Scripts and their declarations agree
+## Scripts are checked JavaScript
 
-When a `scripts/**/*.mjs` module has a declaration file, `tests/scripts-declaration-parity.test.ts` recursively finds the pair and requires both files to export the same value names in both directions (FINDINGS.md MNT-005).
+`scripts/**/*.mjs` modules carry JSDoc types and no separate declaration file may exist. `tsconfig.scripts.json` runs the strict `checkJs` project over them, and `npm run typecheck:scripts` sits in the validate chain (FINDINGS.md MNT-005).
 
-TypeScript imports of script helpers use sibling declaration files. CLI-only scripts do not require declarations. `scripts/check-script-paths.mjs` separately requires every script under `scripts/` to be tracked in Git.
+TypeScript imports of script helpers resolve the JSDoc types directly. `scripts/check-script-paths.mjs` separately requires every script under `scripts/` to be tracked in Git.
+
+## Declared ranges match tested cells
+
+The `oxlint` and `oxfmt` peer ranges span only the tested minor lines, and every `typescript-eslint` floor the matrix forbids with ESLint 10 stays documented on the compatibility page (FINDINGS.md OPS-011).
+
+`scripts/check-compat-matrix.mjs` pins each published TypeScript value to a proving cell. The nightly `compat-advisory` CI job re-resolves the top of each declared range through `node scripts/compat-consumer.mjs --top` without gating, and the range-coverage test asserts every declared endpoint has a cell.
 
 ## Test reports are isolated and queried consistently
 

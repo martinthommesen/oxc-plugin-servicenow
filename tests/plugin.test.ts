@@ -109,6 +109,28 @@ describe("plugin export", () => {
     assert.equal(configs.flat.strict.plugins.servicenow, plugin);
   });
 
+  // @lat: [[tests#The catalog#Every rule map has a flat counterpart]]
+  it("every rule map has a flat counterpart with the same rules (FINDINGS.md FEAT-003)", () => {
+    const pairs = [
+      ["recommended", configs.recommendedRules],
+      ["strict", configs.strictRules],
+      ["classicEs5", configs.classicEs5Rules],
+      ["es2021", configs.es2021Rules],
+      ["client", configs.clientRules],
+      ["acl", configs.aclRules],
+      ["businessRule", configs.businessRuleRules],
+      ["fluent", configs.fluentRules],
+      ["policy", configs.policyRules],
+      ["security", configs.securityRules],
+    ] as const;
+    for (const [name, rulesMap] of pairs) {
+      const flat = configs.flat[name];
+      assert.ok(flat, `configs.flat.${name} is missing`);
+      assert.deepEqual(flat.rules, rulesMap, `configs.flat.${name} rules drifted`);
+      assert.equal(flat.plugins.servicenow, plugin, `configs.flat.${name} plugin`);
+    }
+  });
+
   it("flat configs apply to JavaScript and Fluent TypeScript", () => {
     for (const config of [configs.flat.recommended, configs.flat.strict]) {
       assert.ok(config.files.includes("**/*.js"), `${config.name} missing **/*.js`);

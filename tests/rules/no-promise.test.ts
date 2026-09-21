@@ -1,5 +1,12 @@
 import { describe, it } from "node:test";
-import { assertInvalid, assertValid, ES5, ES2021 } from "../helpers/rule-tester.js";
+import {
+  assertInvalid,
+  assertSkipped,
+  assertValid,
+  assertValidActive,
+  ES5,
+  ES2021,
+} from "../helpers/rule-tester.js";
 
 const RULE = "no-promise" as const;
 
@@ -275,23 +282,27 @@ Promise.resolve(1);`,
   });
 
   it("does not flag a shadowed Promise binding", () => {
-    assertValid(`function Promise(fn) { fn(); }\nvar p = new Promise(function () {});`, RULE, {
-      settings: ES5,
-    });
+    assertValidActive(
+      `function Promise(fn) { fn(); }\nvar p = new Promise(function () {});`,
+      RULE,
+      {
+        settings: ES5,
+      },
+    );
   });
 
   it("skips unknown JavaScript mode", () => {
-    assertValid(`var p = new Promise(function (resolve) { resolve(1); });`, RULE);
+    assertSkipped(`var p = new Promise(function (resolve) { resolve(1); });`, RULE);
   });
 
   it("skips ES2021", () => {
-    assertValid(`var p = new Promise(function (resolve) { resolve(1); });`, RULE, {
+    assertSkipped(`var p = new Promise(function (resolve) { resolve(1); });`, RULE, {
       settings: ES2021,
     });
   });
 
   it("skips Fluent metadata files", () => {
-    assertValid(`const p = new Promise((resolve) => resolve(1));`, RULE, {
+    assertSkipped(`const p = new Promise((resolve) => resolve(1));`, RULE, {
       filename: "table.now.ts",
     });
   });

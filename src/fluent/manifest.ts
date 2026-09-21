@@ -129,11 +129,11 @@ export const DEFAULT_FLUENT_MANIFEST: FluentSdkManifest = {
     }),
     entity("CrossScopePrivilege", "required"),
     entity("InboundEmailAction", "required"),
-    // SDK 4.1 derives list IDs; the declaration keeps `$id` only as a
+    // SDK 4.0 derives list IDs; the declaration keeps `$id` only as a
     // deprecated compatibility property. Keep that policy distinct from
     // entities whose WithID contract requires an explicit identity.
     entity("List", "deprecated", {
-      deprecated: "4.1.0",
+      deprecated: "4.0.0",
       evidence: `${SDK_EXAMPLES}/list-sample`,
       evidenceRecords: [
         {
@@ -143,9 +143,9 @@ export const DEFAULT_FLUENT_MANIFEST: FluentSdkManifest = {
           transition: "current",
         },
         {
-          url: sdkCoreDeclarationEvidence("4.1.0"),
+          url: sdkCoreDeclarationEvidence("4.0.0"),
           symbol: "List",
-          version: "4.1.0",
+          version: "4.0.0",
           transition: "deprecated",
         },
       ],

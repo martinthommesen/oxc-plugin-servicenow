@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { parseSync } from "oxc-parser";
 import { ruleCatalog } from "../../src/catalog.js";
 import { applyRules, type LintMessage, type LintSourceOptions } from "./apply-rules.js";
+import type { FileAnalysis } from "../../src/analysis/file-analysis.js";
 import type { RuleName } from "../../src/rules/index.js";
 import type { ServiceNowSettings } from "../../src/types.js";
 
@@ -47,6 +48,27 @@ export function lint(code: string, rule: RuleName, options: RunOptions = {}): Li
   const filename = options.filename ?? defaultFilename(rule);
   const parsed = parse(code, filename);
   return applyRules(code, parsed, { ...options, filename, ruleNames: [rule] });
+}
+
+/**
+ * Lints one rule and returns the shared per-file analysis alongside the
+ * messages, so tests can assert on internal analysis state such as
+ * `pathBudgetExhausted` (FINDINGS.md PER-006).
+ */
+export function lintWithAnalysis(
+  code: string,
+  rule: RuleName,
+  options: RunOptions = {},
+): { messages: LintMessage[]; analysis: FileAnalysis } {
+  let analysis: FileAnalysis | undefined;
+  const messages = lint(code, rule, {
+    ...options,
+    onFileAnalysis: (seen) => {
+      analysis = seen;
+    },
+  });
+  assert.ok(analysis, "Expected the harness to capture the shared file analysis");
+  return { messages, analysis };
 }
 
 function assertNoMessages(messages: LintMessage[], code: string): void {

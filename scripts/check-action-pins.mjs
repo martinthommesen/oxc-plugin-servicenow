@@ -8,6 +8,26 @@ const pinEntries = parseActionPinCatalog(
   readFileSync(join(root, "scripts/action-pins.json"), "utf8"),
 );
 
+/**
+ * @typedef {object} WorkflowSource
+ * @property {string} file
+ * @property {string} text
+ */
+/**
+ * @typedef {object} ActionPin
+ * @property {string} action
+ * @property {string} commit
+ */
+/**
+ * @typedef {object} ActionPinCheckResult
+ * @property {number} workflows
+ * @property {number} actions
+ */
+
+/**
+ * @param {string} source
+ * @returns {ActionPin[]}
+ */
 export function parseActionPinCatalog(source) {
   const document = parseDocument(source, { strict: true });
   const parseProblems = [...document.errors, ...document.warnings];
@@ -30,6 +50,11 @@ export function parseActionPinCatalog(source) {
   return catalog;
 }
 
+/**
+ * @param {any[]} steps
+ * @param {any[]} references
+ * @returns {void}
+ */
 function pushStepUses(steps, references) {
   for (const step of steps) {
     if (step && typeof step === "object" && !Array.isArray(step) && Object.hasOwn(step, "uses")) {
@@ -38,7 +63,12 @@ function pushStepUses(steps, references) {
   }
 }
 
+/**
+ * @param {any} workflow
+ * @returns {any[]}
+ */
 function collectUses(workflow) {
+  /** @type {any[]} */
   const references = [];
   if (!workflow || typeof workflow !== "object") return references;
   // Composite actions put their steps under runs.steps instead of jobs.
@@ -55,6 +85,11 @@ function collectUses(workflow) {
   return references;
 }
 
+/**
+ * @param {readonly WorkflowSource[]} sources
+ * @param {readonly ActionPin[]} reviewedPinEntries
+ * @returns {ActionPinCheckResult}
+ */
 export function checkActionPinSources(sources, reviewedPinEntries) {
   const pins = new Map();
   const errors = [];
@@ -140,6 +175,9 @@ function compositeActionSources() {
     }));
 }
 
+/**
+ * @returns {ActionPinCheckResult}
+ */
 export function checkActionPins() {
   const workflows = readdirSync(join(root, ".github/workflows"))
     .filter((name) => /\.(?:yml|yaml)$/.test(name))
@@ -151,6 +189,9 @@ export function checkActionPins() {
   return checkActionPinSources([...sources, ...compositeActionSources()], pinEntries);
 }
 
+/**
+ * @returns {ActionPinCheckResult}
+ */
 export function main() {
   const result = checkActionPins();
   console.log(

@@ -45,7 +45,7 @@ interface ReviewedCatalogRelease {
   readonly evidence: Readonly<Record<ReleaseReviewBasis, readonly ReleaseBasisEvidence[]>>;
 }
 
-type CatalogReleaseReviewRegistry = {
+export type CatalogReleaseReviewRegistry = {
   readonly zurich: { readonly kind: "legacy-baseline" };
 } & Readonly<Record<Exclude<ServiceNowRelease, "zurich">, ReviewedCatalogRelease>>;
 

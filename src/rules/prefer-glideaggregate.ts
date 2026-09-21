@@ -2,7 +2,11 @@ import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
 import { getName, isNode, isValueReference, nodeStart, walk } from "../utils/ast.js";
-import { hasAuthoritativeGlideRecordMethod, staticPropertyName } from "../analysis/internal.js";
+import {
+  getAncestors,
+  hasAuthoritativeGlideRecordMethod,
+  staticPropertyName,
+} from "../analysis/internal.js";
 import { isServerInstanceContext } from "../context/index.js";
 import { beginRuleFile } from "./helpers.js";
 
@@ -116,7 +120,9 @@ export const preferGlideaggregate = defineRule({
         )
           return null;
         const name = getName(update.argument);
-        const resolved = name ? analysis.bindings.resolve(name, update.argument) : null;
+        const resolved = name
+          ? analysis.bindings.resolve(name, update.argument, getAncestors(context, node))
+          : null;
         return resolved?.id ?? null;
       }
       if (node.type !== "AssignmentExpression") return null;
@@ -130,7 +136,9 @@ export const preferGlideaggregate = defineRule({
       const value = assignment.right as { type?: string; value?: unknown };
       if (value.type !== "Literal" || value.value !== 1) return null;
       const name = getName(assignment.left);
-      const resolved = name ? analysis.bindings.resolve(name, assignment.left) : null;
+      const resolved = name
+        ? analysis.bindings.resolve(name, assignment.left, getAncestors(context, node))
+        : null;
       return resolved?.id ?? null;
     }
 
@@ -139,14 +147,23 @@ export const preferGlideaggregate = defineRule({
       analysis: ReturnType<typeof beginRuleFile>["analysis"],
     ): ESTree.VariableDeclarator | null {
       let declaration: ESTree.Node | null = null;
-      walk(context.sourceCode.ast as unknown as ESTree.Node, {
-        VariableDeclarator(node) {
-          const candidate = node as ESTree.VariableDeclarator;
-          if (!isNode(candidate.id) || candidate.id.type !== "Identifier") return;
-          const resolved = analysis.bindings.resolve(getName(candidate.id) ?? "", candidate.id);
-          if (resolved?.id === id) declaration = candidate;
+      const ancestors: ESTree.Node[] = [];
+      walk(
+        context.sourceCode.ast as unknown as ESTree.Node,
+        {
+          VariableDeclarator(node) {
+            const candidate = node as ESTree.VariableDeclarator;
+            if (!isNode(candidate.id) || candidate.id.type !== "Identifier") return;
+            const resolved = analysis.bindings.resolve(
+              getName(candidate.id) ?? "",
+              candidate.id,
+              ancestors,
+            );
+            if (resolved?.id === id) declaration = candidate;
+          },
         },
-      });
+        ancestors,
+      );
       if (!declaration) return null;
       const init = (declaration as ESTree.VariableDeclarator).init as {
         type?: string;

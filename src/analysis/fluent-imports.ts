@@ -1,6 +1,7 @@
 import type { ESTree } from "@oxlint/plugins";
 import { apisByName, type FluentApiCapability, type FluentSdkManifest } from "../fluent/index.js";
 import { getName, getStringValue, isNode, unwrapExpression, walk } from "../utils/ast.js";
+import type { BindingWriteQuery } from "./binding-writes.js";
 import { staticPropertyName } from "./members.js";
 import type { FileBindings, LexicalBinding } from "./bindings.js";
 
@@ -99,12 +100,51 @@ function latestSimpleValue(
   program: ESTree.Node | undefined,
   bindings: FileBindings,
   useInsideFunction: boolean,
+  writes?: BindingWriteQuery,
 ): ESTree.Node | null {
   const useStart = (use as { start?: number }).start ?? Number.POSITIVE_INFINITY;
   let value = declarationInit(binding);
   let valueOffset = (binding.node as { start?: number }).start ?? -1;
   let uncertain = false;
   if (!program || binding.kind === "const") return value;
+  // The per-file index answers from one shared walk instead of re-walking the
+  // program per call site. The predicates below mirror the fallback walk
+  // exactly: same order, same outcomes (FINDINGS.md PER-005).
+  const indexed = writes?.writesFor(binding.id);
+  if (indexed) {
+    for (const write of indexed) {
+      if (write.kind === "for" || !write.simple) continue;
+      if (write.kind === "update") {
+        uncertain = true;
+        continue;
+      }
+      // Source position is execution order only for straight-line
+      // module-level code. A write inside any function can run at any
+      // time relative to the use, and a use inside a function can run at
+      // any time relative to module-level writes, so both make the alias
+      // uncertain regardless of where they appear (FINDINGS.md COR-006).
+      const insideFunction = write.ancestorTypes.some((ancestor) =>
+        FUNCTION_ANCESTORS.has(ancestor),
+      );
+      if (insideFunction || useInsideFunction) {
+        uncertain = true;
+        continue;
+      }
+      if (write.start >= useStart) continue;
+      if (
+        write.operator !== "=" ||
+        write.ancestorTypes.some((ancestor) => CONDITIONAL_WRITE_ANCESTORS.has(ancestor))
+      ) {
+        uncertain = true;
+        continue;
+      }
+      if (write.start > valueOffset) {
+        value = write.right;
+        valueOffset = write.start;
+      }
+    }
+    return uncertain ? null : value;
+  }
   const ancestors: ESTree.Node[] = [];
   walk(
     program,
@@ -159,6 +199,7 @@ function resolveBindingOrigin(
   bindings: FileBindings,
   imports: ReadonlyMap<number, FluentImportBinding>,
   seen: Set<number>,
+  writes?: BindingWriteQuery,
 ): FluentImportBinding | null {
   const expr = unwrapExpression(node);
   if (!isNode(expr)) return null;
@@ -177,13 +218,21 @@ function resolveBindingOrigin(
       bindings.rootBlock ?? undefined,
       bindings,
       useInsideFunction,
+      writes,
     );
     if (!init) return null;
     seen.add(binding.id);
     // A declaration node has enough source/span information for ScopeTree to
     // resolve its initializer. The caller's ancestors are retained for
     // hosts that provide richer lexical scope data.
-    return resolveBindingOrigin(init, [...ancestors, binding.node], bindings, imports, seen);
+    return resolveBindingOrigin(
+      init,
+      [...ancestors, binding.node],
+      bindings,
+      imports,
+      seen,
+      writes,
+    );
   }
 
   if (expr.type !== "MemberExpression") return null;
@@ -196,6 +245,7 @@ function resolveBindingOrigin(
     bindings,
     imports,
     seen,
+    writes,
   );
   if (!namespace || namespace.exportedName !== "*") return null;
   return { ...namespace, exportedName: exported };
@@ -207,8 +257,9 @@ export function resolveFluentBindingOrigin(
   ancestors: readonly ESTree.Node[],
   bindings: FileBindings,
   imports: ReadonlyMap<number, FluentImportBinding>,
+  writes?: BindingWriteQuery,
 ): FluentBindingOrigin | null {
-  return resolveBindingOrigin(node, ancestors, bindings, imports, new Set());
+  return resolveBindingOrigin(node, ancestors, bindings, imports, new Set(), writes);
 }
 
 export function resolveFluentCandidate(
@@ -217,11 +268,12 @@ export function resolveFluentCandidate(
   bindings: FileBindings,
   imports: ReadonlyMap<number, FluentImportBinding>,
   manifest: FluentSdkManifest,
+  writes?: BindingWriteQuery,
 ): { capability: FluentApiCapability; origin: FluentBindingOrigin } | null {
   const expr = unwrapExpression(callee);
   if (!isNode(expr)) return null;
   const apis = apisByName(manifest);
-  const origin = resolveFluentBindingOrigin(expr, ancestors, bindings, imports);
+  const origin = resolveFluentBindingOrigin(expr, ancestors, bindings, imports, writes);
   if (!origin || origin.exportedName === "*" || origin.exportedName === "default") return null;
 
   const capability = apis.get(origin.exportedName);
@@ -235,8 +287,9 @@ export function resolveFluentFactory(
   bindings: FileBindings,
   imports: ReadonlyMap<number, FluentImportBinding>,
   manifest: FluentSdkManifest,
+  writes?: BindingWriteQuery,
 ): FluentApiCapability | null {
-  const candidate = resolveFluentCandidate(callee, ancestors, bindings, imports, manifest);
+  const candidate = resolveFluentCandidate(callee, ancestors, bindings, imports, manifest, writes);
   if (!candidate) return null;
   const { capability, origin } = candidate;
   // A recognized symbol from another module is still a candidate for the
@@ -250,6 +303,7 @@ export function importedBindingFor(
   ancestors: readonly ESTree.Node[],
   bindings: FileBindings,
   imports: ReadonlyMap<number, FluentImportBinding>,
+  writes?: BindingWriteQuery,
 ): FluentImportBinding | null {
-  return resolveFluentBindingOrigin(node, ancestors, bindings, imports);
+  return resolveFluentBindingOrigin(node, ancestors, bindings, imports, writes);
 }

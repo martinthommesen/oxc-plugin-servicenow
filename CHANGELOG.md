@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+### Added
+
+- `configs.flat.policy` and `configs.flat.security` bring the ESLint flat presets to parity with the oxlint preset maps, and the README preset table names each flat configuration (FINDINGS.md FEAT-003).
+
+### Changed
+
+- The `oxlint` peer range narrows from `>=1.83.0 <2` to `>=1.83.0 <1.84.0` and the `oxfmt` peer range from `>=0.68.0 <1` to `>=0.68.0 <0.69.0`, matching the tested compatibility cells (FINDINGS.md OPS-011). Consumers on untested versions now get a resolution warning instead of silent behavior drift; ranges widen again as the nightly top-of-range advisory proves each version.
+- The compatibility page states that parser cells on ESLint 10 require `typescript-eslint` 8.56.0 or later; peer ranges cannot express the conditional, so the matrix check enforces it per cell.
+
+### Fixed
+
+- `no-display-value-date-comparison` no longer reports in client files. The rule declares server-only surfaces but its gate admitted every classic instance script; the gate now matches the declaration (FINDINGS.md COR-015).
+
 ## 3.0.0 — 2026-09-19
 
 3.0.0 is a major modernization release: dependency and language floors move to current versions, the three recorded 2.x deprecations are removed, and the toolchain runs under the strictest project type-check. No rule, preset, or formatter changes behavior except the removals listed below; follow `docs/migration-3.0.md` to upgrade.

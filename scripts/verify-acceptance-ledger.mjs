@@ -23,6 +23,24 @@ const ACCEPTANCE_GOAL_SHA256 = "22f9e1d3d370eaa88001d8c7587f2878b7955a8d9b80922d
 const ACCEPTANCE_AUTHORITY_DIGEST =
   "6f9473920d9ffde625bcf68418da08cde196282c91661c2d40608c9bfff68d02";
 
+/**
+ * @typedef {object} AcceptanceSource
+ * @property {string} heading
+ * @property {number} line
+ * @property {string} text
+ * @property {string} digest
+ */
+/**
+ * @typedef {object} AcceptanceCriterion
+ * @property {string} id
+ * @property {AcceptanceSource} source
+ * @property {{ plan: string | null, pr: number, branch: string }} owner
+ */
+
+/**
+ * @param {string} path
+ * @returns {string}
+ */
 export function repoFilePath(path) {
   if (typeof path !== "string" || path === "" || path.includes("\0") || path.includes("\\")) {
     throw new Error(`unsafe repository path ${JSON.stringify(path)}`);
@@ -53,10 +71,19 @@ const dispositionLabels = new Set([
   "Live-pending",
 ]);
 
+/**
+ * @param {string | Buffer} value
+ * @returns {string}
+ */
 function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
 }
 
+/**
+ * @param {readonly AcceptanceCriterion[]} criteria
+ * @param {string | undefined} goalSha256
+ * @returns {string}
+ */
 export function criteriaAuthorityDigest(criteria, goalSha256) {
   return sha256(
     `${goalSha256}\n` +
@@ -73,12 +100,21 @@ export function criteriaAuthorityDigest(criteria, goalSha256) {
   );
 }
 
+/**
+ * @param {string} value
+ * @returns {string}
+ */
 function normalize(value) {
   return value.replace(/\s+/g, " ").trim();
 }
 
+/**
+ * @param {string} heading
+ * @returns {{ plan: string | null, pr: number, branch: string }}
+ */
 function ownerForHeading(heading) {
   const section = Number(/^#{1,3} (\d+)\./.exec(heading)?.[1]);
+  /** @type {Record<number, [string, number, string]>} */
   const owners = {
     4: [
       "plans/009-rebuild-stateful-rule-lifecycles.md",
@@ -146,7 +182,11 @@ function ownerForHeading(heading) {
     : { plan: null, pr: 51, branch: "tracking-only" };
 }
 
-/** Parse every normative bullet or numbered requirement after the introductory section. */
+/**
+ * Parse every normative bullet or numbered requirement after the introductory section.
+ * @param {string} source
+ * @returns {AcceptanceCriterion[]}
+ */
 export function parseCriteria(source) {
   const lines = source.split(/\r?\n/);
   const criteria = [];
@@ -154,7 +194,7 @@ export function parseCriteria(source) {
   let heading = "";
   let started = false;
   for (let index = 0; index < lines.length; index += 1) {
-    const line = lines[index];
+    const line = lines[index] ?? "";
     if (/^# \d+\./.test(line)) started = true;
     if (/^#{1,3} /.test(line)) {
       heading = line;
@@ -164,7 +204,7 @@ export function parseCriteria(source) {
     const parts = [line.replace(/^(?:- |\d+\. )/, "")];
     let cursor = index + 1;
     while (cursor < lines.length) {
-      const next = lines[cursor];
+      const next = lines[cursor] ?? "";
       if (!next.trim()) break;
       if (/^#{1,3} |^- |^\d+\. /.test(next)) break;
       parts.push(next.trim());
@@ -186,10 +226,18 @@ export function parseCriteria(source) {
   return criteria;
 }
 
+/**
+ * @returns {any}
+ */
 function readMapping() {
   return JSON.parse(readFileSync(mappingPath, "utf8"));
 }
 
+/**
+ * @param {AcceptanceCriterion[]} parsed
+ * @param {{ criteria?: Array<AcceptanceCriterion & { disposition: string }> }} mapping
+ * @returns {string[]}
+ */
 export function validateMapping(parsed, mapping) {
   const errors = [];
   const sourceById = new Map(parsed.map((item) => [item.id, item]));
@@ -214,6 +262,10 @@ export function validateMapping(parsed, mapping) {
   return errors;
 }
 
+/**
+ * @param {{ goal?: { sha256?: string, criteria?: number, criteriaSha256?: string }, criteriaDigest?: string, criteria?: Array<AcceptanceCriterion & { disposition: string }> }} mapping
+ * @returns {string[]}
+ */
 export function validateSnapshot(mapping) {
   const errors = [];
   const seen = new Set();
@@ -244,6 +296,10 @@ export function validateSnapshot(mapping) {
   return errors;
 }
 
+/**
+ * @param {AcceptanceCriterion[]} criteria
+ * @returns {string}
+ */
 export function criteriaSha256(criteria) {
   return sha256(
     JSON.stringify(
@@ -258,14 +314,20 @@ export function criteriaSha256(criteria) {
   );
 }
 
+/**
+ * @param {string} source
+ * @param {AcceptanceCriterion[]} parsed
+ */
 function updateMapping(source, parsed) {
+  /** @type {any} */
   let previous = { criteria: [] };
   try {
     previous = readMapping();
   } catch (error) {
-    if (error?.code !== "ENOENT") throw error;
+    const code = /** @type {{ code?: unknown }} */ (error)?.code;
+    if (code !== "ENOENT") throw error;
   }
-  const byId = new Map(previous.criteria.map((item) => [item.id, item]));
+  const byId = new Map(previous.criteria.map(/** @param {any} item */ (item) => [item.id, item]));
   const criteria = parsed.map((item) => {
     const old = byId.get(item.id);
     return {
@@ -298,6 +360,10 @@ function updateMapping(source, parsed) {
   return result;
 }
 
+/**
+ * @param {string[]} args
+ * @returns {string}
+ */
 function git(args) {
   return execFileSync("git", ["-c", "core.fsmonitor=false", ...args], {
     cwd: root,
@@ -315,6 +381,9 @@ const GENERATED_LEDGER_OUTPUTS = [
   "docs/pr-51-validation-report.md",
 ];
 
+/**
+ * @returns {{ head: string, clean: boolean, diffDigest: string | null, testedIdentity: string }}
+ */
 export function worktreeIdentity() {
   const head = git(["rev-parse", "HEAD"]);
   const excludePathspecs = GENERATED_LEDGER_OUTPUTS.map((path) => `:(exclude)${path}`);
@@ -350,10 +419,17 @@ export function worktreeIdentity() {
   };
 }
 
+/**
+ * @param {string} [base]
+ * @returns {string}
+ */
 export function acceptanceTestReportPath(base = tmpdir()) {
   return join(mkdtempSync(join(base, "oxc-plugin-servicenow-acceptance-")), "test-results.json");
 }
 
+/**
+ * @returns {any}
+ */
 function runTests() {
   const testReportPath = acceptanceTestReportPath();
   try {
@@ -383,8 +459,13 @@ function runTests() {
   }
 }
 
+/**
+ * @returns {string[]}
+ */
 export function searchableRepoFiles() {
+  /** @type {string[]} */
   const files = [];
+  /** @param {string} directory */
   const visit = (directory) => {
     for (const entry of readdirSync(directory, { withFileTypes: true })) {
       const path = join(directory, entry.name);
@@ -396,6 +477,11 @@ export function searchableRepoFiles() {
   return files.filter((path) => path !== "scripts/pr51-acceptance.json");
 }
 
+/**
+ * @param {any} mapping
+ * @param {any} report
+ * @returns {string[]}
+ */
 function verifyProofs(mapping, report) {
   const errors = [];
   const byKey = indexOutcomes(report);
@@ -439,19 +525,36 @@ function verifyProofs(mapping, report) {
   return errors;
 }
 
+/**
+ * @param {unknown} value
+ * @returns {string}
+ */
 function markdownCell(value) {
   return String(value ?? "")
     .replaceAll("|", "\\|")
     .replaceAll("\n", "<br>");
 }
 
+/**
+ * @param {any} item
+ * @returns {string}
+ */
 function proofLabel(item) {
-  return item.proofs.map((proof) => `\`${proof.file}\` — ${proof.fullName}`).join("<br>") || "—";
+  return (
+    item.proofs
+      .map(/** @param {any} proof */ (proof) => `\`${proof.file}\` — ${proof.fullName}`)
+      .join("<br>") || "—"
+  );
 }
 
+/**
+ * @param {any} mapping
+ * @param {any} artifact
+ * @returns {void}
+ */
 function generateDocs(mapping, artifact) {
   const rows = mapping.criteria.map(
-    (item) =>
+    /** @param {any} item */ (item) =>
       `| ${item.id} | #${item.owner.pr} | ${markdownCell(item.source.heading)} | ${markdownCell(item.source.text)} | ${item.disposition} | ${proofLabel(item)} |`,
   );
   const ledger = `# PR #51 acceptance ledger\n\nThis file is generated from the authoritative goal and \`scripts/pr51-acceptance.json\`. The committed ledger maps requirements. It cannot prove the commit that contains itself. Current execution evidence is written to \`artifacts/pr51-acceptance.json\` and records either an exact clean commit or \`uncommitted\` with a diff digest.\n\n- Goal SHA-256: \`${mapping.goal.sha256}\`\n- Atomic requirements: ${mapping.criteria.length}\n- Verified at exact head: ${artifact.summary.verified}\n- Pending: ${artifact.summary.pending}\n- Live-pending: ${artifact.summary.livePending}\n\n| Finding ID | Owner | Source | Exact requirement | Disposition | Exact proof |\n| --- | ---: | --- | --- | --- | --- |\n${rows.join("\n")}\n`;
@@ -461,31 +564,43 @@ function generateDocs(mapping, artifact) {
   writeFileSync(join(artifactsDir, "pr51-acceptance.md"), report);
 }
 
+/**
+ * @param {string[]} argv
+ * @returns {Promise<any>}
+ */
 async function runAcceptance(argv) {
   const update = argv.includes("--update");
   if (update && !existsSync(goalPath))
     throw new Error("--update requires PR51-REMEDIATION-GOAL.md from the tracking branch");
   const source = update ? readFileSync(goalPath, "utf8") : null;
   const parsed = source === null ? null : parseCriteria(source);
-  const mapping = update ? updateMapping(source, parsed) : readMapping();
-  const errors = update ? validateMapping(parsed, mapping) : validateSnapshot(mapping);
+  const mapping = update
+    ? updateMapping(/** @type {string} */ (source), /** @type {AcceptanceCriterion[]} */ (parsed))
+    : readMapping();
+  const errors = update
+    ? validateMapping(/** @type {AcceptanceCriterion[]} */ (parsed), mapping)
+    : validateSnapshot(mapping);
   if (
     source !== null &&
-    (mapping.goal.sha256 !== sha256(source) || mapping.goal.criteria !== parsed.length)
+    (mapping.goal.sha256 !== sha256(source) || mapping.goal.criteria !== parsed?.length)
   )
     errors.push("goal identity or criterion count changed");
   const report = argv.includes("--update") ? { tests: [] } : runTests();
   if (!argv.includes("--update")) errors.push(...verifyProofs(mapping, report));
   const identity = worktreeIdentity();
-  if (process.env.CI && (!identity.clean || process.env.GITHUB_SHA !== identity.head))
+  if (process.env["CI"] && (!identity.clean || process.env["GITHUB_SHA"] !== identity.head))
     errors.push("CI acceptance evidence requires a clean exact GITHUB_SHA");
   const summary = {
-    verified: mapping.criteria.filter((item) => item.disposition === "Verified at exact head")
-      .length,
-    pending: mapping.criteria.filter((item) =>
-      ["Pending", "Reproduced", "Implemented"].includes(item.disposition),
+    verified: mapping.criteria.filter(
+      /** @param {any} item */ (item) => item.disposition === "Verified at exact head",
     ).length,
-    livePending: mapping.criteria.filter((item) => item.disposition === "Live-pending").length,
+    pending: mapping.criteria.filter(
+      /** @param {any} item */ (item) =>
+        ["Pending", "Reproduced", "Implemented"].includes(item.disposition),
+    ).length,
+    livePending: mapping.criteria.filter(
+      /** @param {any} item */ (item) => item.disposition === "Live-pending",
+    ).length,
   };
   const testResults = outcomeSummary(report);
   const artifact = {
@@ -533,13 +648,22 @@ async function runAcceptance(argv) {
   return artifact;
 }
 
+/**
+ * @param {string[]} [argv]
+ * @returns {Promise<Record<string, unknown>>}
+ */
 export async function main(argv = process.argv.slice(2)) {
   return withAcceptanceLock(() => runAcceptance(argv), {
     lockPath: acceptanceLockPath(root),
   });
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+const invokedScript = process.argv[1];
+if (
+  invokedScript !== undefined &&
+  invokedScript !== "" &&
+  import.meta.url === pathToFileURL(invokedScript).href
+) {
   main().catch((error) => {
     console.error(error instanceof Error ? error.message : String(error));
     process.exit(1);

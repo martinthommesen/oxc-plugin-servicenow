@@ -4,6 +4,7 @@ import { rules as allRules } from "../../src/rules/index.js";
 import type { RuleName } from "../../src/rules/index.js";
 import type { ServiceNowSettings } from "../../src/types.js";
 import { fallbackComments, isNode, walk } from "../../src/utils/ast.js";
+import { getFileAnalysis, type FileAnalysis } from "../../src/analysis/file-analysis.js";
 
 export interface LintMessage {
   ruleId: string;
@@ -29,6 +30,13 @@ export interface LintSourceOptions {
    * (FINDINGS.md TST-004).
    */
   onRuleSkipped?: (rule: RuleName) => void;
+  /**
+   * Receives the shared per-file analysis after rules run, so tests can
+   * assert on internal analysis state such as `pathBudgetExhausted`
+   * (FINDINGS.md PER-006). The analysis is identical for every rule in one
+   * lint call because the cache identity excludes the rule id.
+   */
+  onFileAnalysis?: (analysis: FileAnalysis) => void;
 }
 
 export interface ParsedSource {
@@ -116,6 +124,7 @@ export function applyRules(
     },
   };
 
+  let lastContext: Context | undefined;
   for (const name of selected) {
     const rule = allRules[name] as Rule | undefined;
     if (!rule) continue;
@@ -172,6 +181,7 @@ export function applyRules(
         });
       },
     } as unknown as Context;
+    lastContext = context;
 
     const visitors = createOnce ? createOnce.call(rule, context) : create!(context);
     if (!visitors) continue;
@@ -189,6 +199,8 @@ export function applyRules(
 
     hooks.after?.();
   }
+
+  if (lastContext) options.onFileAnalysis?.(getFileAnalysis(lastContext));
 
   return messages;
 }

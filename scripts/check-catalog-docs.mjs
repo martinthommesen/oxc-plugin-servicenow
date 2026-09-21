@@ -4,23 +4,42 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { isValidIsoDate } from "./lib/iso-date.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+/** @type {{ ruleCatalog: typeof import("../src/catalog.js").ruleCatalog }} */
 const { ruleCatalog } = await import(pathToFileURL(join(root, "src/catalog.ts")).href);
+/** @type {{ SUPPORTED_SERVICENOW_RELEASES: typeof import("../src/settings/index.js").SUPPORTED_SERVICENOW_RELEASES }} */
 const { SUPPORTED_SERVICENOW_RELEASES } = await import(
   pathToFileURL(join(root, "src/settings/index.ts")).href
 );
+/** @type {{ CATALOG_RELEASE_REVIEWS: import("../src/release-reviews.js").CatalogReleaseReviewRegistry }} */
 const { CATALOG_RELEASE_REVIEWS } = await import(
   pathToFileURL(join(root, "src/release-reviews.ts")).href
 );
+/** @type {{ optionDocsFromDescriptor: typeof import("../src/options/index.js").optionDocsFromDescriptor }} */
 const { optionDocsFromDescriptor } = await import(
   pathToFileURL(join(root, "src/options/index.ts")).href
 );
+/** @type {typeof import("../src/surfaces.js")} */
+const { SERVER_SURFACES, CLIENT_SURFACES, CLASSIC_SURFACES } = await import(
+  pathToFileURL(join(root, "src/surfaces.ts")).href
+);
+const { assertRuleGateAgreement, delegateFileFor, implementationFileFor } =
+  await import("./lib/catalog-gates.mjs");
 
+/** @type {string[]} */
 const errors = [];
 
+/**
+ * @param {string} message
+ * @returns {void}
+ */
 function fail(message) {
   errors.push(message);
 }
 
+/**
+ * @param {string} line
+ * @returns {number}
+ */
 function unescapedPipeCount(line) {
   let count = 0;
   for (let index = 0; index < line.length; index += 1) {
@@ -32,29 +51,42 @@ function unescapedPipeCount(line) {
   return count;
 }
 
+/**
+ * @param {string} line
+ * @returns {number}
+ */
 function tableColumnCount(line) {
   const trimmed = line.trim();
   if (!trimmed.startsWith("|") || !trimmed.endsWith("|")) return 0;
   return unescapedPipeCount(trimmed) - 1;
 }
 
+/**
+ * @param {string} line
+ * @returns {boolean}
+ */
 function isDelimiter(line) {
   return /^\s*\|?\s*:?-{3,}:?\s*(?:\|\s*:?-{3,}:?\s*)+\|?\s*$/.test(line);
 }
 
-/** Validate every generated Markdown table's column count and escaping. */
+/**
+ * Validate every generated Markdown table's column count and escaping.
+ * @param {string} source
+ * @param {string} label
+ * @returns {void}
+ */
 function checkMarkdownTables(source, label) {
   const lines = source.split(/\r?\n/);
   let fenced = false;
   for (let index = 0; index < lines.length; index += 1) {
-    const line = lines[index];
+    const line = lines[index] ?? "";
     if (/^\s*```/.test(line)) {
       fenced = !fenced;
       continue;
     }
     if (fenced || !isDelimiter(line) || index === 0) continue;
     const expected = tableColumnCount(line);
-    const header = tableColumnCount(lines[index - 1]);
+    const header = tableColumnCount(lines[index - 1] ?? "");
     if (expected < 2 || header !== expected) {
       fail(
         `${label}:${index + 1} malformed Markdown table header (${header} columns, delimiter ${expected})`,
@@ -62,7 +94,7 @@ function checkMarkdownTables(source, label) {
       continue;
     }
     for (let row = index + 1; row < lines.length; row += 1) {
-      const candidate = lines[row].trim();
+      const candidate = (lines[row] ?? "").trim();
       if (candidate === "") break;
       if (/^\s*```/.test(candidate)) break;
       if (!candidate.startsWith("|")) break;
@@ -74,17 +106,25 @@ function checkMarkdownTables(source, label) {
   }
 }
 
+/**
+ * @param {string} source
+ * @returns {void}
+ */
 function checkPublishedReadmeLinks(source) {
   const lines = source.split(/\r?\n/);
   let fenced = false;
+  /**
+   * @param {string | undefined} target
+   * @param {number} line
+   */
   const checkTarget = (target, line) => {
-    if (/^(?:https:\/\/|#|mailto:)/.test(target)) return;
+    if (!target || /^(?:https:\/\/|#|mailto:)/.test(target)) return;
     fail(
       `README.md:${line} uses relative link ${JSON.stringify(target)} even though its target is not shipped in the package`,
     );
   };
   for (let index = 0; index < lines.length; index += 1) {
-    const line = lines[index];
+    const line = lines[index] ?? "";
     if (/^\s*```/.test(line)) {
       fenced = !fenced;
       continue;
@@ -98,6 +138,10 @@ function checkPublishedReadmeLinks(source) {
   }
 }
 
+/**
+ * @param {string | undefined} relativePath
+ * @returns {Promise<boolean>}
+ */
 async function sourceExists(relativePath) {
   if (
     !relativePath ||
@@ -125,13 +169,15 @@ if (
 ) {
   fail("catalog release-review registry keys do not match supported ServiceNow releases");
 }
-const allowedReviewBases = new Set([
+/** @type {Array<import("../src/release-reviews.js").ReleaseReviewBasis>} */
+const reviewBasisList = [
   "direct",
   "engine-matrix",
   "engine-updates",
   "glide-record",
   "glide-aggregate",
-]);
+];
+const allowedReviewBases = new Set(reviewBasisList);
 for (const release of SUPPORTED_SERVICENOW_RELEASES) {
   const releaseReview = CATALOG_RELEASE_REVIEWS[release];
   if (!releaseReview) continue;
@@ -166,8 +212,10 @@ for (const release of SUPPORTED_SERVICENOW_RELEASES) {
   }
   const reviewedNames = Object.keys(releaseReview.rules).sort();
   if (JSON.stringify(reviewedNames) !== JSON.stringify(catalogNames)) {
+    /** @type {string[]} */
+    const catalogNameList = catalogNames;
     const missing = catalogNames.filter((name) => !reviewedNames.includes(name));
-    const extra = reviewedNames.filter((name) => !catalogNames.includes(name));
+    const extra = reviewedNames.filter((name) => !catalogNameList.includes(name));
     fail(
       `${release} per-rule review keys differ from catalog (missing: ${missing.join(", ") || "none"}; extra: ${extra.join(", ") || "none"})`,
     );
@@ -176,7 +224,8 @@ for (const release of SUPPORTED_SERVICENOW_RELEASES) {
     const review = releaseReview.rules[rule.name];
     if (!review) continue;
     if (rule.family === "fluent") {
-      if (review.status !== "not-applicable" || review.axis !== "fluent-sdk") {
+      const fluentOk = review.status === "not-applicable" && review.axis === "fluent-sdk";
+      if (!fluentOk) {
         fail(`${release}/${rule.name} must be not-applicable on the Fluent SDK axis`);
       }
       continue;
@@ -216,15 +265,18 @@ for (const rule of ruleCatalog) {
       `${rule.name} lastVerified ${rule.lastVerified} does not match latest evidence date ${latest}`,
     );
   }
-  for (const field of [
+  /** @type {Array<keyof import("../src/catalog/types.js").RuleApplicability>} */
+  const requiredApplicabilityFields = [
     "authoring",
     "surfaces",
     "minimumSurfaceConfidence",
     "javascriptModes",
     "scopes",
     "serviceNowReleases",
-  ]) {
-    if (rule.applicability[field] == null || rule.applicability[field] === "") {
+  ];
+  for (const field of requiredApplicabilityFields) {
+    const value = rule.applicability[field];
+    if (value == null || value === "") {
       fail(`${rule.name} applicability.${field} is missing`);
     }
   }
@@ -313,6 +365,25 @@ for (const rule of ruleCatalog) {
   const expectedFix = rule.fixable ? "safe-fix" : rule.hasSuggestions ? "suggestion" : "none";
   if (rule.fixKind !== expectedFix) {
     fail(`${rule.name} fixKind ${rule.fixKind} does not match ${expectedFix}`);
+  }
+  try {
+    const catalogSource = await readFile(join(root, "src/catalog", `${rule.name}.ts`), "utf8");
+    const implName = implementationFileFor(rule.name, catalogSource);
+    const ruleSource = await readFile(join(root, "src/rules", `${implName}.ts`), "utf8");
+    const delegate = delegateFileFor(ruleSource);
+    const delegateSource = delegate
+      ? await readFile(join(root, "src/rules", `${delegate}.ts`), "utf8")
+      : undefined;
+    assertRuleGateAgreement({
+      ruleName: rule.name,
+      implName,
+      applicability: rule.applicability,
+      ruleSource,
+      delegateSource,
+      surfaces: { server: SERVER_SURFACES, client: CLIENT_SURFACES, classic: CLASSIC_SURFACES },
+    });
+  } catch (error) {
+    fail(error instanceof Error ? error.message : String(error));
   }
   const page = await readFile(join(root, "docs/rules", `${rule.name}.md`), "utf8");
   checkMarkdownTables(page, `docs/rules/${rule.name}.md`);

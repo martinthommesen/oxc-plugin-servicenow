@@ -43,6 +43,14 @@ Each rule's evidence entries carry a unique verification id and must resolve to 
 
 The package exports named `servicenow`, `PACKAGE_VERSION` matches `package.json`, every catalogued rule is present, and every rule's documentation URL is pinned to the release tag rather than a branch.
 
+### Declared applicability implies an implemented gate
+
+Every rule whose catalog entry restricts surfaces or modes must call the corresponding gate helper in its implementation, so removing a gate fails the catalog check (FINDINGS.md COR-015).
+
+### Every rule map has a flat counterpart
+
+Each preset rule map must have a `configs.flat` entry carrying the same rules object with the plugin attached, so the ESLint flat presets cannot drift from the oxlint maps (FINDINGS.md FEAT-003).
+
 ## State and settings
 
 Two places where state outlives its file and must not. Both were the subject of real defects.
@@ -67,13 +75,21 @@ Filename and directory evidence must resolve in a fixed order: UI Actions before
 
 The client set and the server-only set must partition all eight surfaces. `ui-action` must remain in both the client-capable and server-capable sets because its execution side varies.
 
+## Analysis behavior
+
+The shared analysis layer carries scaling invariants alongside its facts.
+
+### Alias resolution scales linearly
+
+Quadrupling aliases and call sites must stay well below quadratic time, proving alias resolution queries the per-file write index instead of re-walking the program (FINDINGS.md PER-005).
+
 ## Scripts and tooling
 
 The repository's own tooling carries invariants separate from the plugin's behavior.
 
-### Script declarations match their implementations
+### Scripts are checked JavaScript with no separate declarations
 
-Every hand-written `scripts/*.d.mts` must export exactly the same value names as its `scripts/*.mjs` implementation, checked in both directions (FINDINGS.md MNT-005).
+JSDoc-typed `scripts/*.mjs` is the single source of truth: `tsconfig.scripts.json` runs `checkJs` in the validate chain and no `scripts/*.d.mts` may exist (FINDINGS.md MNT-005).
 
 ### Generated artifacts share one manifest
 

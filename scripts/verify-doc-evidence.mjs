@@ -9,14 +9,32 @@ import { isValidIsoDate } from "./lib/iso-date.mjs";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const artifacts = join(root, "artifacts");
 
+/**
+ * @typedef {object} EvidenceTestReport
+ * @property {readonly unknown[]} [tests]
+ */
+/**
+ * @typedef {object} EvidenceResult
+ * @property {readonly string[]} errors
+ * @property {readonly unknown[]} records
+ */
+
+/**
+ * @param {string} [base]
+ * @returns {string}
+ */
 export function evidenceTestReportPath(base = tmpdir()) {
   return join(mkdtempSync(join(base, "oxc-plugin-servicenow-evidence-")), "test-results.json");
 }
 
+/**
+ * @param {string} [base]
+ * @returns {EvidenceTestReport}
+ */
 export function runEvidenceTests(base = tmpdir()) {
   const reportPath = evidenceTestReportPath(base);
   const environment = { ...process.env };
-  delete environment.NODE_TEST_CONTEXT;
+  delete environment["NODE_TEST_CONTEXT"];
   try {
     const result = spawnSync(
       process.execPath,
@@ -36,6 +54,11 @@ export function runEvidenceTests(base = tmpdir()) {
   }
 }
 
+/**
+ * @param {string} path
+ * @param {unknown} value
+ * @returns {void}
+ */
 export function writeJsonArtifact(path, value) {
   mkdirSync(dirname(path), { recursive: true });
   const temporaryDirectory = mkdtempSync(join(dirname(path), ".atomic-artifact-"));
@@ -51,13 +74,22 @@ export function writeJsonArtifact(path, value) {
   }
 }
 
+/**
+ * @param {readonly unknown[]} catalog
+ * @param {EvidenceTestReport} report
+ * @returns {Promise<EvidenceResult>}
+ */
 export async function verifyDocEvidence(catalog, report) {
   const errors = [];
   const ids = new Set();
-  const tests = indexOutcomes(report);
+  const testReport = /** @type {import("./lib/test-report-types.js").TestReport} */ (
+    /** @type {unknown} */ (report)
+  );
+  const tests = indexOutcomes(testReport);
   const records = [];
   const today = new Date().toISOString().slice(0, 10);
-  for (const rule of catalog) {
+  const rules = /** @type {Array<any>} */ (catalog);
+  for (const rule of rules) {
     const dates = [];
     let normative = 0;
     let automated = 0;
@@ -112,7 +144,9 @@ export async function verifyDocEvidence(catalog, report) {
     if (rule.lastVerified !== latest)
       errors.push(`${rule.name} lastVerified does not match successful evidence metadata`);
     if (
-      rule.placements.some((placement) => placement.profile === "recommended") &&
+      rule.placements.some(
+        /** @param {any} placement */ (placement) => placement.profile === "recommended",
+      ) &&
       rule.severity === "error" &&
       (normative === 0 || automated === 0)
     ) {
@@ -122,6 +156,9 @@ export async function verifyDocEvidence(catalog, report) {
   return { errors, records };
 }
 
+/**
+ * @returns {Promise<unknown>}
+ */
 export async function main() {
   const report = runEvidenceTests();
   const { ruleCatalog } = await import(pathToFileURL(join(root, "src/catalog.ts")).href);
@@ -142,7 +179,9 @@ export async function main() {
       {
         ok: true,
         records: result.records.length,
-        automated: result.records.filter((item) => item.kind === "automated").length,
+        automated: result.records.filter(
+          (item) => /** @type {{ kind?: unknown }} */ (item).kind === "automated",
+        ).length,
       },
       null,
       2,

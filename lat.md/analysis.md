@@ -30,7 +30,7 @@ A platform global can be overwritten, and a rule must stop trusting the name onc
 
 `x_gs` assigned to `gs`, `SOMETHING.current = null`, or a write through a dynamic key all mean the name no longer stands for the platform value at that point. `MutationQuery` in [[src/analysis/mutations.ts#MutationQuery]] exposes `isGlobalWritten`, `isGlobalAuthorityLost`, `isGlobalPathAuthorityLost`, and `isObjectPropertyAuthorityLost`. Rules check these before reporting, which is what keeps diagnostics off files that deliberately replace a global.
 
-`browserMutations` applies the same model with browser-runtime semantics, for client API authority. `bindingWrites` in `src/analysis/binding-writes.ts` additionally reports `hasDynamicScope()` — a `with` block or an indirect write that could reach any binding.
+`browserMutations` applies the same model with browser-runtime semantics, for client API authority. `bindingWrites` in `src/analysis/binding-writes.ts` additionally reports `hasDynamicScope()` — a `with` block or an indirect write that could reach any binding. Its `writesFor()` query returns every recorded write to one binding in program order, so Fluent alias resolution answers from the single shared walk instead of re-walking the program per call site (FINDINGS.md PER-005).
 
 ## Path-sensitive analysis
 
@@ -42,7 +42,7 @@ Three properties matter for reading rule behavior:
 
 - **Joins converge or give up.** When two incoming branches disagree, `mergeDistinctData` returns `undefined` and the fact becomes unknown rather than picking a branch.
 - **Work is budgeted.** `WORK_PER_NODE` and `MAX_DEFAULT_WORK` in [[src/analysis/path-state.ts#analyzePathBindings]] set a deterministic budget that scales with program size, with `MAX_PATH_DEPTH` bounding traversal depth.
-- **Exhaustion is explicit.** `analyzePathBindings` returns `complete` or `exhausted`. Each finder returns no findings after exhaustion, and file analysis clears its provenance maps. No callback can forget the silence rule.
+- **Exhaustion is explicit.** `analyzePathBindings` returns `complete` or `exhausted`. Each finder returns no findings after exhaustion, and file analysis clears its provenance maps. No callback can forget the silence rule. `FileAnalysis` republishes the shared outcome as `pathBudgetExhausted` so hosts can distinguish a fully analyzed file from a budget-truncated one (FINDINGS.md PER-006).
 
 ## Per-domain finders
 

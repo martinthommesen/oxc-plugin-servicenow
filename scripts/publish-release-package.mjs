@@ -7,16 +7,30 @@ import { assertTrustedPublishingNpm } from "./check-trusted-publishing-npm.mjs";
 
 const TRANSPORT_CODES = new Set(["EAI_AGAIN", "ECONNRESET", "ECONNREFUSED", "EPIPE", "ETIMEDOUT"]);
 
+/**
+ * @param {string} message
+ * @param {string} [kind]
+ * @returns {never}
+ */
 function fail(message, kind = "publish") {
-  const error = new Error(message);
+  const error = /** @type {Error & { kind?: string }} */ (new Error(message));
   error.kind = kind;
   throw error;
 }
 
+/**
+ * @param {string} path
+ * @returns {string}
+ */
 function sha256(path) {
   return createHash("sha256").update(readFileSync(path)).digest("hex");
 }
 
+/**
+ * @param {string} root
+ * @param {string} [directory]
+ * @returns {string[]}
+ */
 function filesBelow(root, directory = root) {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
     const path = join(directory, entry.name);
@@ -24,6 +38,10 @@ function filesBelow(root, directory = root) {
   });
 }
 
+/**
+ * @param {string} version
+ * @returns {"latest" | "next"}
+ */
 export function releaseDistTag(version) {
   if (!/^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?$/.test(version)) {
     fail(`invalid release version ${version}`, "version");
@@ -31,6 +49,10 @@ export function releaseDistTag(version) {
   return version.includes("-") ? "next" : "latest";
 }
 
+/**
+ * @param {string} version
+ * @returns {{ core: number[], prerelease: string[] }}
+ */
 function parsedVersion(version) {
   releaseDistTag(version);
   // The prerelease is everything after the first hyphen. split("-", 2) would
@@ -44,11 +66,18 @@ function parsedVersion(version) {
   };
 }
 
+/**
+ * @param {string} left
+ * @param {string} right
+ * @returns {number}
+ */
 export function compareReleaseVersions(left, right) {
   const a = parsedVersion(left);
   const b = parsedVersion(right);
   for (let index = 0; index < 3; index += 1) {
-    if (a.core[index] !== b.core[index]) return a.core[index] - b.core[index];
+    const aValue = a.core[index] ?? 0;
+    const bValue = b.core[index] ?? 0;
+    if (aValue !== bValue) return aValue - bValue;
   }
   if (a.prerelease.length === 0 || b.prerelease.length === 0) {
     return a.prerelease.length === b.prerelease.length ? 0 : a.prerelease.length === 0 ? 1 : -1;
@@ -72,6 +101,11 @@ export function compareReleaseVersions(left, right) {
   return 0;
 }
 
+/**
+ * @param {any} metadata
+ * @param {string} candidate
+ * @returns {{ existing: boolean, highest?: string }}
+ */
 export function validateRegistryVersionOrder(metadata, candidate) {
   const versions = metadata?.versions;
   const tags = metadata?.["dist-tags"];
@@ -95,6 +129,11 @@ export function validateRegistryVersionOrder(metadata, candidate) {
   return { existing: false, highest: highest ?? null };
 }
 
+/**
+ * @param {unknown} text
+ * @param {string} label
+ * @returns {any}
+ */
 export function parseNpmJson(text, label) {
   const trimmed = String(text).trim();
   if (!trimmed) return undefined;
@@ -104,11 +143,16 @@ export function parseNpmJson(text, label) {
       fail(`${label} is not a JSON object`, "npm-output");
     return parsed;
   } catch (error) {
-    if (error?.kind === "npm-output") throw error;
+    const kind = /** @type {{ kind?: unknown }} */ (error)?.kind;
+    if (kind === "npm-output") throw error;
     fail(`${label} is not valid JSON`, "npm-output");
   }
 }
 
+/**
+ * @param {{ status: number | null, signal: unknown, stdout?: unknown, stderr?: unknown }} result
+ * @returns {{ outcome: "published" } | { outcome: "ambiguous" | "verify-existing", code: string }}
+ */
 export function classifyPublishResult(result) {
   if (result.signal) fail(`npm publish terminated by signal ${result.signal}`, "signal");
   if (result.status === 0) return { outcome: "published" };
@@ -133,6 +177,10 @@ export function classifyPublishResult(result) {
   );
 }
 
+/**
+ * @param {string} inputDir
+ * @returns {{ manifest: Record<string, unknown>, npmPackManifest: { schemaVersion: number, name: string, version: string, filename: string, size: number, sha256: string, integrity: string, files: Array<{ path: string, size: number, mode: number, link: string | null, sha256: string }> }, tarball: string }}
+ */
 export function inspectPublishInput(inputDir) {
   const manifestPath = join(inputDir, "release-publish-input.json");
   const manifest = parseNpmJson(readFileSync(manifestPath, "utf8"), "release publish manifest");
@@ -145,7 +193,7 @@ export function inspectPublishInput(inputDir) {
   }
   if (!Array.isArray(manifest.files) || manifest.files.length !== 4)
     fail("release publish manifest must list exactly four files", "manifest");
-  const listed = manifest.files.map((item) => item?.path).sort();
+  const listed = manifest.files.map(/** @param {any} item */ (item) => item?.path).sort();
   const actual = filesBelow(inputDir)
     .filter((path) => path !== "release-publish-input.json")
     .sort();
@@ -170,7 +218,8 @@ export function inspectPublishInput(inputDir) {
   ) {
     fail("release publish input is missing reviewed helpers or artifact manifest", "manifest");
   }
-  const tarball = join(inputDir, tarballs[0]);
+  const tarballName = /** @type {string} */ (tarballs[0]);
+  const tarball = join(inputDir, tarballName);
   const npmPackManifest = parseNpmJson(
     readFileSync(join(inputDir, "package/npm-pack-manifest.json"), "utf8"),
     "npm pack manifest",
@@ -191,6 +240,12 @@ export function inspectPublishInput(inputDir) {
   return { manifest, npmPackManifest, tarball };
 }
 
+/**
+ * @param {{ status: number | null, signal: unknown, stdout?: unknown, stderr?: unknown }} result
+ * @param {string} name
+ * @param {string} version
+ * @returns {{ state: "existing", integrity: string } | { state: "absent" }}
+ */
 export function publicationStateResult(result, name, version) {
   if (result.signal) fail(`npm view terminated by signal ${result.signal}`, "signal");
   if (result.status === 0) {
@@ -210,6 +265,12 @@ export function publicationStateResult(result, name, version) {
   fail(`npm view failed permanently${code ? ` (${code})` : ""}`, "permanent");
 }
 
+/**
+ * @param {string} name
+ * @param {string} version
+ * @param {string} [npmCommand]
+ * @returns {{ state: "existing", integrity: string } | { state: "absent" }}
+ */
 export function runPublicationState(name, version, npmCommand = "npm") {
   releaseDistTag(version);
   const indexResult = spawnSync(npmCommand, ["view", name, "--json"], { encoding: "utf8" });
@@ -233,6 +294,10 @@ export function runPublicationState(name, version, npmCommand = "npm") {
   return publicationStateResult(result, name, version);
 }
 
+/**
+ * @param {{ inputDir: string, expectedVersion: string, npmCommand?: string, spawn?: typeof import("node:child_process").spawnSync }} options
+ * @returns {{ outcome: "published" | "ambiguous" | "verify-existing", code?: string, tag: string, tarball: string, args: string[] }}
+ */
 export function publishReleasePackage({
   inputDir,
   expectedVersion,
@@ -240,8 +305,8 @@ export function publishReleasePackage({
   spawn = spawnSync,
 }) {
   const { manifest, tarball } = inspectPublishInput(inputDir);
-  if (manifest.version !== expectedVersion)
-    fail(`manifest version ${manifest.version} does not match ${expectedVersion}`, "manifest");
+  if (manifest["version"] !== expectedVersion)
+    fail(`manifest version ${manifest["version"]} does not match ${expectedVersion}`, "manifest");
   const npmVersion = spawn(npmCommand, ["--version"], { encoding: "utf8" });
   if (npmVersion.error) throw npmVersion.error;
   if (npmVersion.status !== 0 || npmVersion.signal) fail("npm --version failed", "npm-version");
@@ -263,6 +328,11 @@ export function publishReleasePackage({
   return { ...classifyPublishResult(result), tag, tarball: basename(tarball), args };
 }
 
+/**
+ * @param {string[]} argv
+ * @param {string} name
+ * @returns {string | undefined}
+ */
 function argValue(argv, name) {
   const index = argv.indexOf(name);
   if (index < 0) return undefined;
@@ -271,6 +341,10 @@ function argValue(argv, name) {
   return value;
 }
 
+/**
+ * @param {string[]} [argv]
+ * @returns {{ state: "existing", integrity: string } | { state: "absent" } | { outcome: "published" | "ambiguous" | "verify-existing", code?: string, tag: string, tarball: string, args: string[] }}
+ */
 export function main(argv = process.argv) {
   const name = argValue(argv, "--name") ?? "oxc-plugin-servicenow";
   const version = argValue(argv, "--version");
@@ -285,7 +359,12 @@ export function main(argv = process.argv) {
   return result;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+const invokedScript = process.argv[1];
+if (
+  invokedScript !== undefined &&
+  invokedScript !== "" &&
+  import.meta.url === pathToFileURL(invokedScript).href
+) {
   try {
     main();
   } catch (error) {

@@ -1,4 +1,4 @@
-# Client and Catalog Client Scripts
+# Client Scripts
 
 Client GlideRecord is unsupported in scoped applications. Use GlideAjax with `sysparm_name` and an async callback, or a Scripted REST API.
 

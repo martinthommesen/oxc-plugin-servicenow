@@ -61,6 +61,13 @@ export interface FileAnalysis {
   fluent: FluentFileFacts;
   /** Program-point `Now.ID` facts keyed by the use-site node. */
   nowIdAt: ReadonlyMap<ESTree.Node, NowIdFact>;
+  /**
+   * True when path analysis exceeded its work budget and provenance was
+   * cleared to fail safe. Rules stay silent on such files; the flag keeps
+   * the degraded state observable instead of indistinguishable from clean
+   * (FINDINGS.md PER-006).
+   */
+  pathBudgetExhausted: boolean;
 }
 
 interface FilePathData {
@@ -142,6 +149,7 @@ function buildFileAnalysis(context: Context, tree: AnalysisTree): FileAnalysis {
   const provenanceAtNode = new Map<ESTree.Node, Provenance>();
   const identifierAtNode = new Map<ESTree.Node, Provenance>();
   const nowIdAt = new Map<ESTree.Node, NowIdFact>();
+  let pathBudgetExhausted = false;
 
   if (program) {
     const kindByObject = new Map<number, ProvenanceKind>();
@@ -196,6 +204,7 @@ function buildFileAnalysis(context: Context, tree: AnalysisTree): FileAnalysis {
       provenanceAtNode.clear();
       identifierAtNode.clear();
       nowIdAt.clear();
+      pathBudgetExhausted = true;
     }
 
     const ancestors: ESTree.Node[] = [];
@@ -252,11 +261,12 @@ function buildFileAnalysis(context: Context, tree: AnalysisTree): FileAnalysis {
     mutations,
     browserMutations,
     nowIdAt,
+    pathBudgetExhausted,
     fluent: {
       manifest,
       imports,
       resolveFactory(callee, ancestors = []) {
-        return resolveFluentFactory(callee, ancestors, bindings, imports, manifest);
+        return resolveFluentFactory(callee, ancestors, bindings, imports, manifest, bindingWrites);
       },
       isCanonicalNow(node) {
         return isCanonicalNow(node, provenance);

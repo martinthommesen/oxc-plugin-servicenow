@@ -115,6 +115,8 @@ export const configs = {
       BUSINESS_RULE_FILE_GLOBS,
     ),
     fluent: flatConfig("fluent", fluentRules, { authoring: "fluent" }, FLUENT_FILES),
+    policy: flatConfig("policy", policyRules),
+    security: flatConfig("security", securityRules),
   },
 };
 

@@ -114,4 +114,23 @@ describe("Fluent SDK manifest", () => {
       /deprecation lifecycle drifted/,
     );
   });
+
+  it("reports the first deprecating version for List and Role (FINDINGS.md MNT-006)", () => {
+    for (const version of ["4.0.0", "4.1.0", "4.11.0"]) {
+      const manifest = resolveFluentManifest(version);
+      assert.equal(
+        manifest.apis.find((api) => api.name === "List")?.deprecated,
+        "4.0.0",
+        `List deprecation at ${version}`,
+      );
+      assert.equal(
+        manifest.apis.find((api) => api.name === "Role")?.deprecated,
+        "4.0.0",
+        `Role deprecation at ${version}`,
+      );
+    }
+    const before = resolveFluentManifest("3.0.3");
+    assert.equal(before.apis.find((api) => api.name === "List")?.deprecated, undefined);
+    assert.equal(before.apis.find((api) => api.name === "Role")?.deprecated, undefined);
+  });
 });

@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { assertInvalid, assertSkipped, assertValid, ES5, lint } from "../helpers/rule-tester.js";
+import {
+  assertInvalid,
+  assertSkipped,
+  assertValid,
+  assertValidActive,
+  ES5,
+  lint,
+} from "../helpers/rule-tester.js";
 
 describe("no-gs-now", () => {
   it("flags gs.now()", () => {
@@ -98,7 +105,9 @@ describe("no-br-current-update", () => {
   });
 
   it("allows field assignment", () => {
-    assertValid(`current.state = 2;`, "no-br-current-update");
+    assertValidActive(`current.state = 2;`, "no-br-current-update", {
+      filename: "incident.br.js",
+    });
   });
 
   it("allows current.update() in a UI Action", () => {

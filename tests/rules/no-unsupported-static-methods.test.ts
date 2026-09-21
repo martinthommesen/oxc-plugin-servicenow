@@ -1,5 +1,5 @@
 import { describe, it } from "node:test";
-import { assertInvalid, assertValid } from "../helpers/rule-tester.js";
+import { assertInvalid, assertValid, assertValidActive } from "../helpers/rule-tester.js";
 
 const RULE = "no-unsupported-static-methods" as const;
 const ZURICH = { javascriptMode: "es2021", release: "zurich" } as const;
@@ -56,7 +56,7 @@ describe(RULE, () => {
       `helper.isError(value);`,
       `eval(source); Error.isError(value);`,
     ]) {
-      assertValid(code, RULE, { settings: ZURICH });
+      assertValidActive(code, RULE, { settings: ZURICH });
     }
   });
 

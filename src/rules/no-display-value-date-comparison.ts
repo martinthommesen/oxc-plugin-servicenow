@@ -5,7 +5,7 @@ import {
   staticPropertyName,
   type PlatformMethodAuthorityFacts,
 } from "../analysis/internal.js";
-import { isFluentContext, isInstanceScript } from "../context/index.js";
+import { isServerInstanceContext } from "../context/index.js";
 import { ruleDocsUrl } from "../constants.js";
 import { beginRuleFile } from "./helpers.js";
 
@@ -44,7 +44,9 @@ export const noDisplayValueDateComparison = defineRule({
     return {
       before() {
         const { context: script } = beginRuleFile(context);
-        if (isFluentContext(script) || !isInstanceScript(script)) return false;
+        // Server-only applicability: GlideDateTime comparisons are instance
+        // server scripts, never client or Fluent files (FINDINGS.md COR-015).
+        if (!isServerInstanceContext(script)) return false;
         return undefined;
       },
       BinaryExpression(node) {

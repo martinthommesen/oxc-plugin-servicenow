@@ -14,6 +14,8 @@ The command generates deterministic fixtures and times the real `oxlint` executa
 - branch-heavy alias and try/catch analysis
 - nested scopes
 - large Fluent metadata
+- Fluent factory calls through mutable aliases
+- classic cursor-count loops with post-loop writes
 - skip-path client files
 - a mixed repository
 

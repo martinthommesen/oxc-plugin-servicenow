@@ -20,6 +20,12 @@ export const MARKED_SECTION_NAMES = Object.freeze([
   "compatibility",
 ]);
 
+/**
+ * @param {string} source
+ * @param {string} name
+ * @param {string} body
+ * @returns {string}
+ */
 export function replaceMarkedSection(source, name, body) {
   if (!MARKED_SECTION_NAMES.includes(name)) throw new Error(`Unknown generated section ${name}`);
   const start = `<!-- generated:${name}:start -->`;

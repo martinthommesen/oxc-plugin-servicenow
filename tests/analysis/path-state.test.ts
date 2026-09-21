@@ -25,6 +25,7 @@ const UNCHANGED_METHODS: PlatformMethodAuthorityFacts = {
     isWritten: () => false,
     isWrittenBeforeInBoundary: () => false,
     hasDynamicScope: () => false,
+    writesFor: () => [],
   },
   mutations: {
     isGlobalWritten: () => false,

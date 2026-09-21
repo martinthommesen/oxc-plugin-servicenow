@@ -1,5 +1,11 @@
 import { describe, it } from "node:test";
-import { assertInvalid, assertValid, ES5, type RunOptions } from "../helpers/rule-tester.js";
+import {
+  assertInvalid,
+  assertValid,
+  assertValidActive,
+  ES5,
+  type RunOptions,
+} from "../helpers/rule-tester.js";
 
 const AUSTRALIA_ES2021 = {
   settings: { javascriptMode: "es2021", release: "australia" },
@@ -31,11 +37,17 @@ const cache = new Cache();`,
   });
 
   it("keeps lexical shadows and cross-execution aliases silent", () => {
-    assertValid(
+    assertValidActive(
       `function WeakRef(value) { this.value = value; }
 const ref = new WeakRef(value);`,
       "no-weak-references",
       AUSTRALIA_ES2021,
+    );
+    assertValidActive(
+      `function WeakMap() {}
+const cache = new WeakMap();`,
+      "no-weak-collections",
+      { settings: ES5 },
     );
     assertValid(
       `const Ref = WeakRef;

@@ -7,6 +7,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+/** @type {{ scripts: Record<string, string> }} */
 const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
 const tracked = new Set(
   execFileSync("git", ["ls-files"], { encoding: "utf8" }).split("\n").filter(Boolean),
@@ -19,8 +20,10 @@ for (const command of Object.values(pkg.scripts)) {
   const parts = command.split(/\s+/).map((part) => part.replace(/^['"]|['"]$/g, ""));
   for (let i = 0; i < parts.length; i += 1) {
     const part = parts[i];
-    if ((part === "-c" || part === "-p") && parts[i + 1]) {
-      referenced.add(parts[i + 1]);
+    if (part === undefined) continue;
+    const next = parts[i + 1];
+    if ((part === "-c" || part === "-p") && next) {
+      referenced.add(next);
     } else if (/\.(mjs|json|ts)$/.test(part) && !part.includes("*") && !part.startsWith("-")) {
       referenced.add(part);
     }

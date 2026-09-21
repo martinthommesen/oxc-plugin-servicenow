@@ -1,5 +1,5 @@
 import { describe, it } from "node:test";
-import { assertInvalid, assertValid } from "../helpers/rule-tester.js";
+import { assertInvalid, assertValid, assertValidActive } from "../helpers/rule-tester.js";
 
 const RULE = "no-map-set" as const;
 const CLASSIC_MODES = ["compatibility", "es5"] as const;
@@ -123,7 +123,7 @@ if (typeof Map === "function") new NativeMap();`,
       `const NativeSet = Set; function create() { return new NativeSet(); } create();`,
       `eval(source); new Map();`,
     ]) {
-      assertValid(code, RULE, { settings: { javascriptMode: "es5" } });
+      assertValidActive(code, RULE, { settings: { javascriptMode: "es5" } });
     }
   });
 

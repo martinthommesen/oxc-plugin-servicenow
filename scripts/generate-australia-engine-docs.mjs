@@ -20,12 +20,18 @@ const dispositionLabel = {
   pending: "Pending",
 };
 
+/**
+ * @param {import("../src/engine/australia-updates.ts").AustraliaEngineUpdate} update
+ */
 function pullRequestLinks(update) {
   return update.pullRequests
     .map((number) => `[#${number}](https://github.com/mozilla/rhino/pull/${number})`)
     .join(", ");
 }
 
+/**
+ * @param {import("../src/engine/australia-updates.ts").AustraliaEngineUpdate} update
+ */
 function coverage(update) {
   const disposition = update.disposition;
   if (disposition.kind === "pending") return disposition.rationale;
@@ -37,12 +43,15 @@ function coverage(update) {
   return `${features}; ${rules}. ${disposition.rationale}`;
 }
 
-const counts = Object.fromEntries(
-  ["diagnostic", "metadata-only", "pending"].map((kind) => [
-    kind,
-    AUSTRALIA_ENGINE_UPDATES.filter((update) => update.disposition.kind === kind).length,
-  ]),
-);
+const counts = {
+  diagnostic: AUSTRALIA_ENGINE_UPDATES.filter((update) => update.disposition.kind === "diagnostic")
+    .length,
+  "metadata-only": AUSTRALIA_ENGINE_UPDATES.filter(
+    (update) => update.disposition.kind === "metadata-only",
+  ).length,
+  pending: AUSTRALIA_ENGINE_UPDATES.filter((update) => update.disposition.kind === "pending")
+    .length,
+};
 
 const rows = AUSTRALIA_ENGINE_UPDATES.map(
   (update) =>

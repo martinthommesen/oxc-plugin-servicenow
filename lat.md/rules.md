@@ -54,7 +54,7 @@ Each descriptor carries an applicability block built by `classic(...)`, `engine(
 
 These produce the *documented* applicability — surfaces, JavaScript modes, scopes, releases, and `minimumSurfaceConfidence` — which the generated rule pages render.
 
-The documented applicability and the runtime predicates in [[context]] must agree, but they are separate artifacts: the metadata is what users read, the predicates are what runs. `Minimum surface confidence` on a rule page is where the two meet.
+The documented applicability and the runtime predicates in [[context]] must agree, but they are separate artifacts: the metadata is what users read, the predicates are what runs. `Minimum surface confidence` on a rule page is where the two meet. `scripts/lib/catalog-gates.mjs`, run from the catalog check, asserts the agreement structurally: a rule whose entry restricts surfaces or modes must call the corresponding gate helper, so removing a gate fails the check (FINDINGS.md COR-015).
 
 ## Evidence
 

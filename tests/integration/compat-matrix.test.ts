@@ -7,6 +7,41 @@ import { repoRoot, TSX_CLI_EXECUTION_PATTERN } from "./helpers.js";
 import { checkCompatibilityMatrix } from "../../scripts/check-compat-matrix.mjs";
 import { SUPPORTED_SERVICENOW_RELEASES } from "../../src/settings/index.js";
 
+function mustParseVersion(value: string): [number, number, number] {
+  // Ceilings may be partial ("<11"); missing parts compare as zero.
+  const match = /^(\d+)(?:\.(\d+))?(?:\.(\d+))?$/.exec(value);
+  assert.ok(match, `not a version: ${value}`);
+  return [Number(match[1]), Number(match[2] ?? 0), Number(match[3] ?? 0)];
+}
+
+function compareVersions(left: string, right: string): number {
+  const parsedLeft = mustParseVersion(left);
+  const parsedRight = mustParseVersion(right);
+  for (let index = 0; index < 3; index += 1) {
+    if (parsedLeft[index] !== parsedRight[index]) {
+      return (parsedLeft[index] ?? 0) - (parsedRight[index] ?? 0);
+    }
+  }
+  return 0;
+}
+
+// Supports the conjunction shapes this package declares: a ">=" floor with an
+// optional "<" ceiling.
+function satisfiesDeclaredRange(version: string, range: string): boolean {
+  const match = /^>=(\S+)(?:\s+<(\S+))?$/.exec(range);
+  assert.ok(match, `unsupported range shape: ${range}`);
+  if (compareVersions(version, match[1]!) < 0) return false;
+  const ceiling = match[2];
+  if (ceiling !== undefined && compareVersions(version, ceiling) >= 0) return false;
+  return true;
+}
+
+function rangeFloor(range: string): string {
+  const match = /^>=(\S+)/.exec(range);
+  assert.ok(match, `unsupported range shape: ${range}`);
+  return match[1]!;
+}
+
 describe("compatibility matrix", () => {
   it("keeps CI and release consumer cells sourced from the matrix", () => {
     const result = checkCompatibilityMatrix();
@@ -19,6 +54,16 @@ describe("compatibility matrix", () => {
     assert.match(workflow, /node scripts\/run-tests\.mjs tests\/utils\/ast\.test\.ts/);
     assert.match(workflow, /node scripts\/compat-consumer\.mjs --cell/);
     assert.doesNotMatch(workflow, TSX_CLI_EXECUTION_PATTERN);
+    assert.match(workflow, /compat-advisory:/);
+    assert.match(workflow, /node scripts\/compat-consumer\.mjs --top/);
+    const advisoryBlock = workflow.slice(
+      workflow.indexOf("compat-advisory:"),
+      workflow.indexOf("manifest-drift:"),
+    );
+    assert.ok(
+      advisoryBlock.includes("github.event_name == 'schedule'"),
+      "the networked advisory job must stay schedule-only",
+    );
   });
 
   it("matches declared package ranges", () => {
@@ -86,6 +131,8 @@ describe("compatibility matrix", () => {
     assert.ok(docs.includes(matrix.oxlint.minimum));
     assert.ok(docs.includes(matrix.eslint.minimum));
     assert.ok(docs.includes(matrix.oxfmt.highestCompatible));
+    assert.ok(docs.includes("8.56.0"), "the ESLint 10 parser floor must be documented");
+    assert.ok(docs.includes("compat-consumer.mjs --top"), "the advisory job must be documented");
     const releaseRow = docs
       .split("\n")
       .find((line) => line.startsWith("| ServiceNow release knowledge |"));
@@ -94,6 +141,71 @@ describe("compatibility matrix", () => {
     for (const release of matrix.serviceNowReleases) {
       assert.ok(documentedReleases.has(release), `compatibility table is missing ${release}`);
     }
+  });
+
+  it("covers every declared range endpoint with a cell (FINDINGS.md OPS-011)", () => {
+    const pkg = JSON.parse(readFileSync(path.join(repoRoot, "package.json"), "utf8")) as {
+      engines: { node: string };
+      peerDependencies: Record<string, string>;
+    };
+    const matrix = JSON.parse(
+      readFileSync(path.join(repoRoot, "scripts/compat-matrix.json"), "utf8"),
+    ) as {
+      node: { engines: string; minimum: string };
+      oxlint: { peer: string; minimum: string; highestCompatible: string };
+      eslint: { peer: string; minimum: string; currentV9: string; current: string };
+      oxfmt: { peer: string; minimum: string; highestCompatible: string };
+      typescriptEslint: { peer: string; minimum: string; current: string };
+      cells: Array<{
+        id: string;
+        node: string;
+        oxlint: string;
+        eslint: string;
+        oxfmt: string;
+        typescriptEslint?: string;
+      }>;
+    };
+    const peers = {
+      node: pkg.engines.node,
+      oxlint: pkg.peerDependencies["oxlint"]!,
+      eslint: pkg.peerDependencies["eslint"]!,
+      oxfmt: pkg.peerDependencies["oxfmt"]!,
+      typescriptEslint: pkg.peerDependencies["typescript-eslint"]!,
+    };
+    assert.equal(rangeFloor(peers.node), matrix.node.minimum);
+    assert.equal(rangeFloor(peers.oxlint), matrix.oxlint.minimum);
+    assert.equal(rangeFloor(peers.eslint), matrix.eslint.minimum);
+    assert.equal(rangeFloor(peers.oxfmt), matrix.oxfmt.minimum);
+    assert.equal(rangeFloor(peers.typescriptEslint), matrix.typescriptEslint.minimum);
+    for (const cell of matrix.cells) {
+      assert.ok(
+        satisfiesDeclaredRange(cell.node, peers.node),
+        `${cell.id} node ${cell.node} escapes ${peers.node}`,
+      );
+      assert.ok(
+        satisfiesDeclaredRange(cell.oxlint, peers.oxlint),
+        `${cell.id} oxlint ${cell.oxlint} escapes ${peers.oxlint}`,
+      );
+      assert.ok(
+        satisfiesDeclaredRange(cell.eslint, peers.eslint),
+        `${cell.id} eslint ${cell.eslint} escapes ${peers.eslint}`,
+      );
+      assert.ok(
+        satisfiesDeclaredRange(cell.oxfmt, peers.oxfmt),
+        `${cell.id} oxfmt ${cell.oxfmt} escapes ${peers.oxfmt}`,
+      );
+      if (cell.typescriptEslint !== undefined) {
+        assert.ok(
+          satisfiesDeclaredRange(cell.typescriptEslint, peers.typescriptEslint),
+          `${cell.id} typescript-eslint ${cell.typescriptEslint} escapes ${peers.typescriptEslint}`,
+        );
+      }
+    }
+    assert.ok(satisfiesDeclaredRange(matrix.oxlint.highestCompatible, peers.oxlint));
+    assert.ok(satisfiesDeclaredRange(matrix.oxfmt.highestCompatible, peers.oxfmt));
+    assert.ok(satisfiesDeclaredRange(matrix.eslint.currentV9, peers.eslint));
+    assert.ok(satisfiesDeclaredRange(matrix.eslint.current, peers.eslint));
+    assert.ok(satisfiesDeclaredRange(matrix.typescriptEslint.current, peers.typescriptEslint));
   });
 
   it("parses legacy npm pack arrays and npm 12 package-keyed output", () => {

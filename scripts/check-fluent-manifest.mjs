@@ -4,6 +4,15 @@ import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+/**
+ * @type {{
+ *   DEFAULT_FLUENT_MANIFEST: import("../src/fluent/index.js").FluentSdkManifest,
+ *   fluentManifests: typeof import("../src/fluent/index.js").fluentManifests,
+ *   SUPPORTED_FLUENT_SDK_VERSIONS: typeof import("../src/fluent/index.js").SUPPORTED_FLUENT_SDK_VERSIONS,
+ *   CURRENT_FLUENT_SDK_VERSION: typeof import("../src/fluent/index.js").CURRENT_FLUENT_SDK_VERSION,
+ *   FLUENT_SDK_ARTIFACTS: typeof import("../src/fluent/index.js").FLUENT_SDK_ARTIFACTS,
+ * }}
+ */
 const {
   DEFAULT_FLUENT_MANIFEST,
   fluentManifests,
@@ -27,12 +36,16 @@ const REQUIRED_DIRECTIVES = [
   "fluent-disable-sync-for-file",
 ];
 
+/** @type {Record<string, string>} */
 const REQUIRED_PLACEMENTS = {
   "fluent-ignore": "previous-line",
   "fluent-disable-sync": "previous-line",
   "fluent-disable-sync-for-file": "first-line",
 };
 
+/**
+ * @param {import("../src/fluent/index.js").FluentSdkManifest} manifest
+ */
 function summarize(manifest) {
   return {
     version: manifest.version,
@@ -61,6 +74,10 @@ function summarize(manifest) {
   };
 }
 
+/**
+ * @param {import("../src/fluent/index.js").FluentSdkManifest} manifest
+ * @returns {void}
+ */
 function assertManifest(manifest) {
   const apiNames = manifest.apis.map((api) => api.name);
   assert.equal(apiNames.length, new Set(apiNames).size, `${manifest.version} has duplicate APIs`);
@@ -206,15 +223,12 @@ assert.equal(declarationFixture.defaultVersion, CURRENT_FLUENT_SDK_VERSION);
 for (const version of SUPPORTED_FLUENT_SDK_VERSIONS) {
   const detail = declarationFixture.versions[version];
   const runtime = FLUENT_DECLARATION_SNAPSHOTS[version];
-  assert.ok(detail && runtime, `${version}: declaration snapshot missing`);
-  assert.equal(
-    detail.sdk.integrity,
-    FLUENT_SDK_ARTIFACTS[version].sdkIntegrity,
-    `${version}: SDK integrity fixture`,
-  );
+  const artifacts = FLUENT_SDK_ARTIFACTS[version];
+  assert.ok(detail && runtime && artifacts, `${version}: declaration snapshot missing`);
+  assert.equal(detail.sdk.integrity, artifacts.sdkIntegrity, `${version}: SDK integrity fixture`);
   assert.equal(
     detail.core.integrity,
-    FLUENT_SDK_ARTIFACTS[version].coreIntegrity,
+    artifacts.coreIntegrity,
     `${version}: core integrity fixture`,
   );
   // The shipped projection is the fixture's own fields narrowed to what

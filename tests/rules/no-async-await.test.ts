@@ -1,5 +1,5 @@
 import { describe, it } from "node:test";
-import { assertInvalid, assertValid, ES5 } from "../helpers/rule-tester.js";
+import { assertInvalid, assertSkipped, assertValidActive, ES5 } from "../helpers/rule-tester.js";
 
 const RULE = "no-async-await" as const;
 
@@ -23,17 +23,17 @@ describe(RULE, () => {
   });
 
   it("allows sync functions", () => {
-    assertValid(`function load() { return 1; }`, RULE);
+    assertValidActive(`function load() { return 1; }`, RULE, { settings: ES5 });
   });
 
   it("skips when settings.ecmaLatest is set", () => {
-    assertValid(`async function load() { await other(); }`, RULE, {
+    assertSkipped(`async function load() { await other(); }`, RULE, {
       settings: { ecmaLatest: true },
     });
   });
 
   it("skips when settings.scriptType is fluent", () => {
-    assertValid(`async function f() {}`, RULE, {
+    assertSkipped(`async function f() {}`, RULE, {
       filename: "misc.js",
       settings: { scriptType: "fluent" },
     });

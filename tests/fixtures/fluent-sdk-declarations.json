@@ -2502,7 +2502,7 @@
         },
         "List": {
           "introduced": null,
-          "deprecated": null
+          "deprecated": "4.0.0"
         },
         "ListColumn": {
           "introduced": null,
@@ -3120,7 +3120,7 @@
         },
         "List": {
           "introduced": null,
-          "deprecated": null
+          "deprecated": "4.0.0"
         },
         "ListColumn": {
           "introduced": null,
@@ -3738,7 +3738,7 @@
         },
         "List": {
           "introduced": null,
-          "deprecated": null
+          "deprecated": "4.0.0"
         },
         "ListColumn": {
           "introduced": null,
@@ -4356,7 +4356,7 @@
         },
         "List": {
           "introduced": null,
-          "deprecated": "4.1.0"
+          "deprecated": "4.0.0"
         },
         "ListColumn": {
           "introduced": null,
@@ -4974,7 +4974,7 @@
         },
         "List": {
           "introduced": null,
-          "deprecated": "4.1.0"
+          "deprecated": "4.0.0"
         },
         "ListColumn": {
           "introduced": null,
@@ -5612,7 +5612,7 @@
         },
         "List": {
           "introduced": null,
-          "deprecated": "4.1.0"
+          "deprecated": "4.0.0"
         },
         "ListColumn": {
           "introduced": null,
@@ -6355,7 +6355,7 @@
         },
         "List": {
           "introduced": null,
-          "deprecated": "4.1.0"
+          "deprecated": "4.0.0"
         },
         "ListColumn": {
           "introduced": null,
@@ -7173,7 +7173,7 @@
         },
         "List": {
           "introduced": null,
-          "deprecated": "4.1.0"
+          "deprecated": "4.0.0"
         },
         "ListColumn": {
           "introduced": null,
@@ -7992,7 +7992,7 @@
         },
         "List": {
           "introduced": null,
-          "deprecated": "4.1.0"
+          "deprecated": "4.0.0"
         },
         "ListColumn": {
           "introduced": null,
@@ -8907,7 +8907,7 @@
         },
         "List": {
           "introduced": null,
-          "deprecated": "4.1.0"
+          "deprecated": "4.0.0"
         },
         "ListColumn": {
           "introduced": null,
@@ -9882,7 +9882,7 @@
         },
         "List": {
           "introduced": null,
-          "deprecated": "4.1.0"
+          "deprecated": "4.0.0"
         },
         "ListColumn": {
           "introduced": null,
@@ -10862,7 +10862,7 @@
         },
         "List": {
           "introduced": null,
-          "deprecated": "4.1.0"
+          "deprecated": "4.0.0"
         },
         "ListColumn": {
           "introduced": null,
@@ -11855,7 +11855,7 @@
         },
         "List": {
           "introduced": null,
-          "deprecated": "4.1.0"
+          "deprecated": "4.0.0"
         },
         "ListColumn": {
           "introduced": null,
@@ -12849,7 +12849,7 @@
         },
         "List": {
           "introduced": null,
-          "deprecated": "4.1.0"
+          "deprecated": "4.0.0"
         },
         "ListColumn": {
           "introduced": null,
@@ -13843,7 +13843,7 @@
         },
         "List": {
           "introduced": null,
-          "deprecated": "4.1.0"
+          "deprecated": "4.0.0"
         },
         "ListColumn": {
           "introduced": null,
@@ -14889,7 +14889,7 @@
         },
         "List": {
           "introduced": null,
-          "deprecated": "4.1.0"
+          "deprecated": "4.0.0"
         },
         "ListColumn": {
           "introduced": null,
@@ -15946,7 +15946,7 @@
         },
         "List": {
           "introduced": null,
-          "deprecated": "4.1.0"
+          "deprecated": "4.0.0"
         },
         "ListColumn": {
           "introduced": null,
@@ -17003,7 +17003,7 @@
         },
         "List": {
           "introduced": null,
-          "deprecated": "4.1.0"
+          "deprecated": "4.0.0"
         },
         "ListColumn": {
           "introduced": null,
@@ -18060,7 +18060,7 @@
         },
         "List": {
           "introduced": null,
-          "deprecated": "4.1.0"
+          "deprecated": "4.0.0"
         },
         "ListColumn": {
           "introduced": null,
@@ -19117,7 +19117,7 @@
         },
         "List": {
           "introduced": null,
-          "deprecated": "4.1.0"
+          "deprecated": "4.0.0"
         },
         "ListColumn": {
           "introduced": null,
@@ -20191,7 +20191,7 @@
         },
         "List": {
           "introduced": null,
-          "deprecated": "4.1.0"
+          "deprecated": "4.0.0"
         },
         "ListColumn": {
           "introduced": null,
@@ -21269,7 +21269,7 @@
         },
         "List": {
           "introduced": null,
-          "deprecated": "4.1.0"
+          "deprecated": "4.0.0"
         },
         "ListColumn": {
           "introduced": null,
@@ -22377,7 +22377,7 @@
         },
         "List": {
           "introduced": null,
-          "deprecated": "4.1.0"
+          "deprecated": "4.0.0"
         },
         "ListColumn": {
           "introduced": null,

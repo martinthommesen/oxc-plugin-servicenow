@@ -1,11 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import {
-  exactProof,
-  indexOutcomes,
-  outcomeSummary,
-  type TestOutcome,
-} from "../scripts/lib/test-report.mjs";
+import { exactProof, indexOutcomes, outcomeSummary } from "../scripts/lib/test-report.mjs";
+import type { TestOutcome } from "../scripts/lib/test-report-types.js";
 
 const FILE = "tests/example.test.ts";
 const NAME = "suite > case";

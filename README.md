@@ -99,18 +99,18 @@ export default defineConfig({
 
 ### Presets
 
-| Preset | Intent |
-| --- | --- |
-| `configs.recommendedRules` | High-confidence rules that stay quiet when the runtime mode or surface is unknown. |
-| `configs.classicEs5Rules` | Compatibility / ES5 engine bans (Promise, async/await, `?.`, WeakMap, …). |
-| `configs.es2021Rules` | Features still unavailable after ES2021, including universal restrictions and release-dependent BigInt typed-array support. |
-| `configs.clientRules` | Client-side API rules. |
-| `configs.aclRules` | ACL-specific review rules. |
-| `configs.businessRuleRules` | Business Rule rules. |
-| `configs.fluentRules` | Fluent `.now.ts` metadata rules. |
-| `configs.strictRules` | Recommended plus warn-level performance and naming guidance. Does not promote heuristics to errors. |
-| `configs.policyRules` | Optional organizational and migration policy (`no-hardcoded-table-names`, `no-complex-fluent-logic`, `no-packages-calls`). |
-| `configs.securityRules` | Opt-in privilege-sensitive review rules such as `no-system-query-bypass`. |
+| Preset | Flat | Intent |
+| --- | --- | --- |
+| `configs.recommendedRules` | `configs.flat.recommended` | High-confidence rules that stay quiet when the runtime mode or surface is unknown. |
+| `configs.classicEs5Rules` | `configs.flat.classicEs5` | Compatibility / ES5 engine bans (Promise, async/await, `?.`, WeakMap, …). |
+| `configs.es2021Rules` | `configs.flat.es2021` | Features still unavailable after ES2021, including universal restrictions and release-dependent BigInt typed-array support. |
+| `configs.clientRules` | `configs.flat.client` | Client-side API rules. |
+| `configs.aclRules` | `configs.flat.acl` | ACL-specific review rules. |
+| `configs.businessRuleRules` | `configs.flat.businessRule` | Business Rule rules. |
+| `configs.fluentRules` | `configs.flat.fluent` | Fluent `.now.ts` metadata rules. |
+| `configs.strictRules` | `configs.flat.strict` | Recommended plus warn-level performance and naming guidance. Does not promote heuristics to errors. |
+| `configs.policyRules` | `configs.flat.policy` | Optional organizational and migration policy (`no-hardcoded-table-names`, `no-complex-fluent-logic`, `no-packages-calls`). |
+| `configs.securityRules` | `configs.flat.security` | Opt-in privilege-sensitive review rules such as `no-system-query-bypass`. |
 
 ---
 
@@ -147,7 +147,7 @@ What the preset does:
 | Files | Style |
 | --- | --- |
 | `**/*.now.ts`, `**/*.now.tsx` | TypeScript / Fluent — single quotes, trailing commas, width 100 |
-| `**/*.{server,client,br,si,acl}.js`, `**/*.ui-action.js`, `src/{server,client}/**`, ACL directories | Classic Studio style — double quotes, no trailing commas, width 120. Includes compound `.client.ui-action.js` and `.server.ui-action.js` suffixes. |
+| `**/*.{server,client,br,si,acl}.js`, `**/*.ui-action.js`, `**/src/server/**/*.js`, `**/src/client/**/*.js`, ACL directories | Classic Studio style — double quotes, no trailing commas, width 120. Includes compound `.client.ui-action.js` and `.server.ui-action.js` suffixes. |
 | `**/now.config.json`, `**/.oxlintrc.json`, `**/.oxfmtrc.json` | Configuration files — width 80, no trailing commas |
 | `**/node_modules/**`, `**/dist/**`, `**/build/**`, `**/.now/**`, `**/keys.ts`, `**/*.min.js` | Ignored (build output and SDK sync artefacts) |
 
@@ -417,7 +417,7 @@ Runnable profile projects live under [`examples/`][repository-examples]:
 | [classic-compatibility][repository-example-classic-compatibility] | Compatibility-mode server scripts |
 | [classic-es5][repository-example-classic-es5] | ES5 Standards server scripts |
 | [es2021][repository-example-es2021] | ES2021 server scripts |
-| [client][repository-example-client] | Client Scripts and Catalog Client Scripts |
+| [client][repository-example-client] | Client Scripts |
 | [business-rule][repository-example-business-rule] | Full-script Business Rules |
 | [ui-action][repository-example-ui-action] | Client, server, and mixed UI Actions |
 | [fluent][repository-example-fluent] | Fluent `.now.ts` metadata |
@@ -692,9 +692,9 @@ These declared ranges are validated by the repository test suite.
 | Component | Tested range |
 | --- | --- |
 | Node | 22.12.0, 22.14.0, 24.16.0, 26.7.0 |
-| oxlint | 1.83.0 and 1.83.0 (`>=1.83.0 <2`) |
+| oxlint | 1.83.0 and 1.83.0 (`>=1.83.0 <1.84.0`) |
 | ESLint | 9.0.0, 9.39.5, and 10.11.0 (`>=9.0.0 <11`) |
-| oxfmt | 0.68.0 and 0.68.0 (`>=0.68.0 <1`) |
+| oxfmt | 0.68.0 and 0.68.0 (`>=0.68.0 <0.69.0`) |
 | ServiceNow engine tables | zurich, australia |
 | Fluent SDK | 3.0.0, 3.0.1, 3.0.2, 3.0.3, 4.0.0, 4.0.1, 4.0.2, 4.1.0, 4.1.1, 4.2.0, 4.3.0, 4.4.0, 4.4.1, 4.5.0, 4.6.0, 4.6.1, 4.7.0, 4.7.1, 4.7.2, 4.8.0, 4.8.1, 4.9.0, 4.9.1, 4.9.2, 4.10.0, 4.10.1, 4.11.0 |
 <!-- generated:compatibility:end -->

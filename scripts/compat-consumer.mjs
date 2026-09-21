@@ -8,11 +8,41 @@ import { packTarball as buildTarball } from "./check-release-artifact.mjs";
 import { parseOxlintStdout, pluginRuleIds, runHostProcess } from "./lib/host-verifier.mjs";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
+/**
+ * @typedef {object} CompatCell
+ * @property {string} id
+ * @property {string} oxlint
+ * @property {string} eslint
+ * @property {string} oxfmt
+ * @property {string} [typescriptEslint]
+ * @property {string} [typescript]
+ * @property {string} [node]
+ * @property {string} [npm]
+ */
+/**
+ * @typedef {object} CompatMatrix
+ * @property {CompatCell[]} cells
+ * @property {string} localSmokeCell
+ * @property {{ peer: string, minimum: string }} oxlint
+ * @property {{ peer: string, minimum: string }} eslint
+ * @property {{ peer: string, minimum: string }} oxfmt
+ * @property {{ peer: string, minimum: string, current: string }} typescriptEslint
+ * @property {{ minimum: string, current: string }} typescript
+ * @property {string[]} [fluentSdk]
+ * @property {string[]} [javascriptModes]
+ * @property {string[]} [serviceNowReleases]
+ */
+/** @type {CompatMatrix} */
 const matrix = JSON.parse(readFileSync(path.join(root, "scripts/compat-matrix.json"), "utf8"));
 const fluentEvidence = JSON.parse(
   readFileSync(path.join(root, "tests/fixtures/fluent-sdk-declarations.json"), "utf8"),
 );
 
+/**
+ * @param {string} name
+ * @param {string | undefined} fallback
+ * @returns {string | undefined}
+ */
 function argValue(name, fallback) {
   const index = process.argv.indexOf(name);
   if (index < 0) return fallback;
@@ -21,17 +51,32 @@ function argValue(name, fallback) {
   return value;
 }
 
+/**
+ * @param {string} kind
+ * @param {string} message
+ * @returns {never}
+ */
 function fail(kind, message) {
-  const error = new Error(`${kind}: ${message}`);
+  const error = /** @type {Error & { kind?: string }} */ (new Error(`${kind}: ${message}`));
   error.kind = kind;
   throw error;
 }
 
+/**
+ * @param {string} destination
+ * @returns {string}
+ */
 function packTarball(destination) {
-  const tarballFlag = argValue("--tarball", process.env.SN_COMPAT_TARBALL);
+  const tarballFlag = argValue("--tarball", process.env["SN_COMPAT_TARBALL"]);
   return tarballFlag ? path.resolve(tarballFlag) : buildTarball(destination).tarball;
 }
 
+/**
+ * @param {string} consumer
+ * @param {string[]} args
+ * @param {string} errorKind
+ * @param {string} message
+ */
 function oxlintReport(consumer, args, errorKind, message) {
   const host = runHostProcess({
     bin: path.join(consumer, "node_modules", ".bin", "oxlint"),
@@ -43,6 +88,17 @@ function oxlintReport(consumer, args, errorKind, message) {
   return report;
 }
 
+/**
+ * @typedef {object} EslintJsonFile
+ * @property {string} filePath
+ * @property {Array<{ ruleId?: string, fatal?: boolean }>} messages
+ */
+/**
+ * @param {string} consumer
+ * @param {string[]} args
+ * @param {string} message
+ * @returns {EslintJsonFile[]}
+ */
 function runEslintJson(consumer, args, message) {
   let stdout = "";
   try {
@@ -51,7 +107,8 @@ function runEslintJson(consumer, args, message) {
       cwd: consumer,
     });
   } catch (error) {
-    stdout = error.stdout ?? "";
+    const stdoutProp = /** @type {{ stdout?: unknown }} */ (error).stdout;
+    stdout = typeof stdoutProp === "string" ? stdoutProp : "";
   }
   try {
     return JSON.parse(stdout);
@@ -60,6 +117,11 @@ function runEslintJson(consumer, args, message) {
   }
 }
 
+/**
+ * @param {string} tarball
+ * @param {CompatCell} cell
+ * @param {boolean} sameRuntimeSmoke
+ */
 async function runCell(tarball, cell, sameRuntimeSmoke) {
   const consumer = mkdtempSync(path.join(tmpdir(), `sn-oxc-compat-${cell.id}-`));
   try {
@@ -96,6 +158,7 @@ async function runCell(tarball, cell, sameRuntimeSmoke) {
       );
     }
 
+    /** @type {Record<string, string | undefined>} */
     const installedVersions = {
       node: process.versions.node,
       npm: execFileSync("npm", ["--version"], { cwd: consumer, encoding: "utf8" }).trim(),
@@ -194,8 +257,11 @@ console.log(JSON.stringify({
       );
       fail("package", `${cell.id} internal catalog subpath was exported`);
     } catch (error) {
-      if (error.kind === "package") throw error;
-      if (!String(error.stderr ?? error.message).includes("ERR_PACKAGE_PATH_NOT_EXPORTED")) {
+      const failure = /** @type {{ kind?: unknown, stderr?: unknown, message?: unknown }} */ (
+        error
+      );
+      if (failure.kind === "package") throw error;
+      if (!String(failure.stderr ?? failure.message).includes("ERR_PACKAGE_PATH_NOT_EXPORTED")) {
         fail("package", `${cell.id} catalog rejection was not ERR_PACKAGE_PATH_NOT_EXPORTED`);
       }
     }
@@ -387,6 +453,7 @@ export default [
         );
       }
     }
+    /** @type {Record<string, { bigint64Arrays: boolean, objectHasOwn: boolean }>} */
     const releaseExpectations = {
       zurich: { bigint64Arrays: true, objectHasOwn: true },
       australia: { bigint64Arrays: false, objectHasOwn: false },
@@ -471,9 +538,10 @@ export default [
         { encoding: "utf8", cwd: consumer },
       );
     } catch (error) {
+      const stderr = /** @type {{ stderr?: unknown }} */ (error ?? {}).stderr;
       fail(
         "formatter",
-        `${cell.id} oxfmt failed: ${error instanceof Error ? error.message : String(error)}\n${error?.stderr ?? ""}`,
+        `${cell.id} oxfmt failed: ${error instanceof Error ? error.message : String(error)}\n${stderr ?? ""}`,
       );
     }
     return { id: cell.id, ok: true };
@@ -482,17 +550,78 @@ export default [
   }
 }
 
-const cellFlag = argValue("--cell", process.env.SN_COMPAT_CELL);
-const expectedSha256 = argValue("--sha256", process.env.SN_COMPAT_SHA256);
+/**
+ * Resolve the highest published version inside a declared range.
+ * Networked: queries the registry (FINDINGS.md OPS-011).
+ *
+ * @param {string} name
+ * @param {string} range
+ * @returns {string}
+ */
+function resolveTopOfRange(name, range) {
+  let stdout = "";
+  try {
+    stdout = execFileSync("npm", ["view", `${name}@${range}`, "version", "--json"], {
+      encoding: "utf8",
+      cwd: root,
+    });
+  } catch (error) {
+    fail(
+      "runtime",
+      `${name}@${range} did not resolve: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+  let versions = null;
+  try {
+    versions = JSON.parse(stdout);
+  } catch {
+    fail("runtime", `${name}@${range} returned unparsable output: ${stdout.slice(0, 200)}`);
+  }
+  const top = Array.isArray(versions) ? versions[versions.length - 1] : versions;
+  if (typeof top !== "string" || !/^\d+\.\d+\.\d+/.test(top)) {
+    fail("runtime", `${name}@${range} resolved to an unusable version: ${JSON.stringify(top)}`);
+  }
+  return top;
+}
+
+/**
+ * Build the advisory top-of-range cell from the declared peer ranges.
+ * TypeScript follows the major line of the matrix current value, since the
+ * parser's own peer range selects the line, not this package.
+ *
+ * @returns {CompatCell}
+ */
+function topOfRangeCell() {
+  const typescriptMajor = String(matrix.typescript.current).split(".")[0] ?? "";
+  if (!/^\d+$/.test(typescriptMajor)) {
+    fail("runtime", `matrix typescript.current is not a version: ${matrix.typescript.current}`);
+  }
+  return {
+    id: "top-of-range",
+    node: process.versions.node,
+    npm: execFileSync("npm", ["--version"], { encoding: "utf8", cwd: root }).trim(),
+    oxlint: resolveTopOfRange("oxlint", matrix.oxlint.peer),
+    eslint: resolveTopOfRange("eslint", matrix.eslint.peer),
+    oxfmt: resolveTopOfRange("oxfmt", matrix.oxfmt.peer),
+    typescriptEslint: resolveTopOfRange("typescript-eslint", matrix.typescriptEslint.peer),
+    typescript: resolveTopOfRange("typescript", typescriptMajor),
+  };
+}
+
+const cellFlag = argValue("--cell", process.env["SN_COMPAT_CELL"]);
+const expectedSha256 = argValue("--sha256", process.env["SN_COMPAT_SHA256"]);
 if (expectedSha256 && !/^[0-9a-f]{64}$/.test(expectedSha256)) {
   fail("package", "expected tarball SHA-256 must be 64 lowercase hexadecimal characters");
 }
-const sameRuntimeSmoke = process.argv.includes("--all") || !cellFlag;
-const cells = matrix.cells.filter((cell) => {
-  if (cellFlag) return cell.id === cellFlag;
-  if (process.argv.includes("--all")) return true;
-  return cell.id === matrix.localSmokeCell;
-});
+const topFlag = process.argv.includes("--top");
+const sameRuntimeSmoke = topFlag || process.argv.includes("--all") || !cellFlag;
+const cells = topFlag
+  ? [topOfRangeCell()]
+  : matrix.cells.filter((cell) => {
+      if (cellFlag) return cell.id === cellFlag;
+      if (process.argv.includes("--all")) return true;
+      return cell.id === matrix.localSmokeCell;
+    });
 if (cells.length === 0) {
   fail("runtime", `no compatibility cells selected (cell=${cellFlag ?? "auto"})`);
 }

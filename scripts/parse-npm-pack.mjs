@@ -8,6 +8,17 @@
  */
 import { basename } from "node:path";
 
+/**
+ * @typedef {object} NpmPackRecord
+ * @property {string} filename
+ * @property {string} [name]
+ * @property {string} [version]
+ */
+
+/**
+ * @param {string | unknown} value
+ * @returns {NpmPackRecord}
+ */
 export function parseNpmPackJson(value) {
   let parsed;
   try {

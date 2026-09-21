@@ -5,15 +5,20 @@ import { replaceMarkedSection } from "./lib/generated-artifacts.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
+/** @typedef {typeof import("../src/catalog.js").ruleCatalog[number]} CatalogRule */
+/** @type {{ ruleCatalog: typeof import("../src/catalog.js").ruleCatalog }} */
 const { ruleCatalog } = await import(pathToFileURL(join(root, "src/catalog.ts")).href);
+/** @type {{ PACKAGE_GIT_REF: typeof import("../src/constants.js").PACKAGE_GIT_REF, REPOSITORY_URL: typeof import("../src/constants.js").REPOSITORY_URL }} */
 const { PACKAGE_GIT_REF, REPOSITORY_URL } = await import(
   pathToFileURL(join(root, "src/constants.ts")).href
 );
 const presets110 = JSON.parse(
   await readFile(join(root, "tests/fixtures/presets-1.1.0.json"), "utf8"),
 );
+/** @type {{ DEFAULT_FLUENT_MANIFEST: import("../src/fluent/index.js").FluentSdkManifest, SUPPORTED_FLUENT_SDK_VERSIONS: typeof import("../src/fluent/index.js").SUPPORTED_FLUENT_SDK_VERSIONS, CURRENT_FLUENT_SDK_VERSION: typeof import("../src/fluent/index.js").CURRENT_FLUENT_SDK_VERSION }} */
 const { DEFAULT_FLUENT_MANIFEST, SUPPORTED_FLUENT_SDK_VERSIONS, CURRENT_FLUENT_SDK_VERSION } =
   await import(pathToFileURL(join(root, "src/fluent/index.ts")).href);
+/** @type {{ businessRuleRules: typeof import("../src/configs/maps.js").businessRuleRules, classicEs5Rules: typeof import("../src/configs/maps.js").classicEs5Rules, clientRules: typeof import("../src/configs/maps.js").clientRules, es2021Rules: typeof import("../src/configs/maps.js").es2021Rules, fluentRules: typeof import("../src/configs/maps.js").fluentRules, recommendedRules: typeof import("../src/configs/maps.js").recommendedRules, strictRules: typeof import("../src/configs/maps.js").strictRules }} */
 const {
   businessRuleRules,
   classicEs5Rules,
@@ -27,23 +32,44 @@ const {
 const docsDir = join(root, "docs/rules");
 await mkdir(docsDir, { recursive: true });
 
-/** Escape values interpolated into a Markdown table cell. */
+/**
+ * Escape values interpolated into a Markdown table cell.
+ * @param {unknown} value
+ * @returns {string}
+ */
 function markdownTableCell(value) {
   return String(value).replaceAll("\\", "\\\\").replaceAll("|", "\\|").replaceAll("\n", "<br>");
 }
 
+/**
+ * @param {CatalogRule} rule
+ * @returns {string}
+ */
 function profileLabel(rule) {
   return rule.placements[0]?.profile ?? "off";
 }
 
+/**
+ * @param {CatalogRule} rule
+ * @returns {string}
+ */
 function summary(rule) {
-  return rule.description.split(". ")[0].replace(/\.$/, "");
+  return (rule.description.split(". ")[0] ?? "").replace(/\.$/, "");
 }
 
+/**
+ * @param {string | undefined} filename
+ * @returns {string}
+ */
 function fenceLang(filename) {
   return filename?.endsWith(".ts") ? "ts" : "js";
 }
 
+/**
+ * @param {CatalogRule} rule
+ * @param {boolean} includeFix
+ * @returns {string}
+ */
 function tableRow(rule, includeFix) {
   const link = `[\`${rule.name}\`](${rule.docsUrl})`;
   const profile = profileLabel(rule);
@@ -55,6 +81,7 @@ function tableRow(rule, includeFix) {
   return `| ${link} | ${markdownTableCell(profile)} | ${catchText} |`;
 }
 
+/** @type {Record<string, string>} */
 const profileExport = {
   recommended: "configs.recommendedRules",
   strict: "configs.strictRules",
@@ -68,10 +95,16 @@ const profileExport = {
   security: "configs.securityRules",
 };
 
+/**
+ * @returns {string}
+ */
 function migrationTable() {
   const current = { recommended: recommendedRules, strict: strictRules };
+  /** @type {string[]} */
   const rows = [];
-  for (const preset of ["recommended", "strict"]) {
+  /** @type {Array<"recommended" | "strict">} */
+  const presets = ["recommended", "strict"];
+  for (const preset of presets) {
     const oldMap = presets110[preset];
     const currentMap = current[preset];
     const ruleIds = new Set([...Object.keys(oldMap), ...Object.keys(currentMap)]);
@@ -105,6 +138,9 @@ function migrationTable() {
   ].join("\n");
 }
 
+/**
+ * @returns {string}
+ */
 function repositoryLinks() {
   const blob = `${REPOSITORY_URL}/blob/${PACKAGE_GIT_REF}`;
   const tree = `${REPOSITORY_URL}/tree/${PACKAGE_GIT_REF}`;
@@ -126,7 +162,11 @@ function repositoryLinks() {
   ].join("\n");
 }
 
+/**
+ * @returns {Promise<void>}
+ */
 async function writeRuleDocs() {
+  /** @type {Set<string>} */
   const keep = new Set();
   for (const rule of ruleCatalog) {
     keep.add(`${rule.name}.md`);
@@ -279,6 +319,9 @@ ${evidence}
   }
 }
 
+/**
+ * @returns {Promise<void>}
+ */
 async function writeReadmeTables() {
   const readmePath = join(root, "README.md");
   let readme = await readFile(readmePath, "utf8");
@@ -306,6 +349,9 @@ async function writeReadmeTables() {
   console.log("updated README rule tables");
 }
 
+/**
+ * @param {string} path
+ */
 function rulesForGeneratedConfig(path) {
   const relative = path.replaceAll("\\", "/");
   if (relative.endsWith("examples/classic-compatibility/.oxlintrc.json")) return classicEs5Rules;
@@ -319,6 +365,10 @@ function rulesForGeneratedConfig(path) {
   return recommendedRules;
 }
 
+/**
+ * @param {string} path
+ * @param {string} specifierComment
+ */
 async function writeOxlintrcRules(path, specifierComment, rules = rulesForGeneratedConfig(path)) {
   const current = JSON.parse(await readFile(path, "utf8"));
   if (path.replaceAll("\\", "/").includes("/examples/")) {
@@ -330,6 +380,11 @@ async function writeOxlintrcRules(path, specifierComment, rules = rulesForGenera
   console.log("updated", specifierComment, path);
 }
 
+/**
+ * @param {string} dir
+ * @param {string[]} found
+ * @returns {Promise<string[]>}
+ */
 async function collectOxlintrcFiles(dir, found = []) {
   for (const entry of await readdir(dir, { withFileTypes: true })) {
     const path = join(dir, entry.name);

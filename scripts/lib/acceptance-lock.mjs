@@ -7,31 +7,81 @@ const DEFAULT_POLL_INTERVAL_MS = 100;
 const DEFAULT_WAIT_TIMEOUT_MS = 15 * 60_000;
 const RECLAIM_SUFFIX = ".reclaim";
 
+/**
+ * @typedef {object} LockFingerprint
+ * @property {number} ctimeMs
+ * @property {number} dev
+ * @property {number} ino
+ * @property {number} mode
+ * @property {number} mtimeMs
+ * @property {number} size
+ */
+/**
+ * @typedef {object} LockOwner
+ * @property {number} pid
+ * @property {string} token
+ */
+/**
+ * @typedef {object} LockSnapshot
+ * @property {LockFingerprint} fingerprint
+ * @property {LockOwner | null} owner
+ * @property {string | null} ownerToken
+ */
+/**
+ * @typedef {object} ReclaimClaim
+ * @property {string} path
+ * @property {string} token
+ */
+
+/**
+ * @param {unknown} value
+ * @param {string} name
+ * @param {number} minimum
+ * @returns {number}
+ */
 function optionNumber(value, name, minimum) {
-  if (!Number.isSafeInteger(value) || value < minimum) {
+  if (!Number.isSafeInteger(value) || /** @type {number} */ (value) < minimum) {
     throw new RangeError(`${name} must be a safe integer of at least ${minimum}`);
   }
-  return value;
+  return /** @type {number} */ (value);
 }
 
+/**
+ * @param {unknown} error
+ * @returns {unknown}
+ */
 function errorCode(error) {
   return error && typeof error === "object" && "code" in error ? error.code : undefined;
 }
 
+/**
+ * @param {unknown} pid
+ * @returns {boolean}
+ */
 function recordedProcessIsDead(pid) {
-  if (!Number.isSafeInteger(pid) || pid < 1) return false;
+  if (!Number.isSafeInteger(pid)) return false;
+  const target = /** @type {number} */ (pid);
+  if (target < 1) return false;
   try {
-    process.kill(pid, 0);
+    process.kill(target, 0);
     return false;
   } catch (error) {
     return errorCode(error) === "ESRCH";
   }
 }
 
+/**
+ * @param {string} lockPath
+ * @returns {string}
+ */
 function reclaimPath(lockPath) {
   return `${lockPath}${RECLAIM_SUFFIX}`;
 }
 
+/**
+ * @param {import("node:fs").Stats} details
+ * @returns {LockFingerprint}
+ */
 function fingerprint(details) {
   return {
     ctimeMs: details.ctimeMs,
@@ -43,6 +93,11 @@ function fingerprint(details) {
   };
 }
 
+/**
+ * @param {LockFingerprint} left
+ * @param {LockFingerprint} right
+ * @returns {boolean}
+ */
 function sameFingerprint(left, right) {
   return (
     left.ctimeMs === right.ctimeMs &&
@@ -54,6 +109,11 @@ function sameFingerprint(left, right) {
   );
 }
 
+/**
+ * @param {LockSnapshot} left
+ * @param {LockSnapshot | null} right
+ * @returns {boolean}
+ */
 function sameSnapshot(left, right) {
   return (
     right !== null &&
@@ -62,6 +122,10 @@ function sameSnapshot(left, right) {
   );
 }
 
+/**
+ * @param {string} value
+ * @returns {LockOwner | null}
+ */
 function parseOwner(value) {
   try {
     const parsed = JSON.parse(value);
@@ -81,6 +145,10 @@ function parseOwner(value) {
   }
 }
 
+/**
+ * @param {string} lockPath
+ * @returns {Promise<LockSnapshot | null>}
+ */
 async function readLockSnapshot(lockPath) {
   let before;
   try {
@@ -115,10 +183,18 @@ async function readLockSnapshot(lockPath) {
   };
 }
 
+/**
+ * @param {LockSnapshot} snapshot
+ * @returns {boolean}
+ */
 function isStaleLock(snapshot) {
   return snapshot.owner !== null && recordedProcessIsDead(snapshot.owner.pid);
 }
 
+/**
+ * @param {string} path
+ * @returns {Promise<boolean>}
+ */
 async function pathExists(path) {
   try {
     await stat(path);
@@ -129,6 +205,12 @@ async function pathExists(path) {
   }
 }
 
+/**
+ * @param {string} path
+ * @param {string} contents
+ * @param {(() => (void | Promise<void>)) | undefined} [beforePublish]
+ * @returns {Promise<boolean>}
+ */
 async function publishFile(path, contents, beforePublish) {
   const temporaryPath = `${path}.${process.pid}.${randomUUID()}.tmp`;
   await writeFile(temporaryPath, contents, { encoding: "utf8", flag: "wx" });
@@ -146,6 +228,11 @@ async function publishFile(path, contents, beforePublish) {
   }
 }
 
+/**
+ * @param {string} lockPath
+ * @param {LockSnapshot} snapshot
+ * @returns {Promise<ReclaimClaim | null>}
+ */
 async function claimReclamation(lockPath, snapshot) {
   const token = randomUUID();
   const claim = {
@@ -158,6 +245,10 @@ async function claimReclamation(lockPath, snapshot) {
   return claimed ? { path: reclaimPath(lockPath), token } : null;
 }
 
+/**
+ * @param {ReclaimClaim} claim
+ * @returns {Promise<void>}
+ */
 async function releaseReclamationClaim(claim) {
   let owner;
   try {
@@ -170,10 +261,19 @@ async function releaseReclamationClaim(claim) {
   await rm(claim.path, { force: true });
 }
 
+/**
+ * @param {number} milliseconds
+ * @returns {Promise<void>}
+ */
 async function delay(milliseconds) {
   await new Promise((resolveDelay) => setTimeout(resolveDelay, milliseconds));
 }
 
+/**
+ * @param {string} lockPath
+ * @param {{ hooks: AcceptanceLockHooks | undefined, pollIntervalMs: number, waitTimeoutMs: number }} options
+ * @returns {Promise<string>}
+ */
 async function acquire(lockPath, options) {
   const startedAt = Date.now();
   const token = randomUUID();
@@ -219,6 +319,11 @@ async function acquire(lockPath, options) {
   }
 }
 
+/**
+ * @param {string} lockPath
+ * @param {string} token
+ * @returns {Promise<void>}
+ */
 async function release(lockPath, token) {
   let snapshot;
   try {
@@ -230,14 +335,37 @@ async function release(lockPath, token) {
   await rm(lockPath, { force: true, recursive: true });
 }
 
-/** Return the lock path for acceptance runs against one repository root. */
+/**
+ * @typedef {object} AcceptanceLockHooks
+ * @property {() => (void | Promise<void>)} [beforeLockPublish]
+ * @property {() => (void | Promise<void>)} [beforeReclaim]
+ */
+/**
+ * @typedef {object} AcceptanceLockOptions
+ * @property {AcceptanceLockHooks} [hooks]
+ * @property {string} [lockPath]
+ * @property {number} [pollIntervalMs]
+ * @property {number} [waitTimeoutMs]
+ */
+
+/**
+ * Return the lock path for acceptance runs against one repository root.
+ * @param {string} [root]
+ * @returns {string}
+ */
 export function acceptanceLockPath(root = process.cwd()) {
   const absoluteRoot = isAbsolute(root) ? root : resolve(root);
   const identity = createHash("sha256").update(absoluteRoot).digest("hex").slice(0, 16);
   return join(tmpdir(), `oxc-plugin-servicenow-acceptance-${identity}.lock`);
 }
 
-/** Run one acceptance operation while protecting its shared build artifacts. */
+/**
+ * Run one acceptance operation while protecting its shared build artifacts.
+ * @template T
+ * @param {() => (T | Promise<T>)} operation
+ * @param {AcceptanceLockOptions} [options]
+ * @returns {Promise<T>}
+ */
 export async function withAcceptanceLock(operation, options = {}) {
   if (typeof operation !== "function")
     throw new TypeError("acceptance lock operation must be a function");

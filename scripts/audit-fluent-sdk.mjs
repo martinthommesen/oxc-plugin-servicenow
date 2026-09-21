@@ -28,6 +28,34 @@ const phantomCandidates = ["DatabaseIndex", "Module", "ScriptedRestApi", "UiForm
 const reviewedNames = [
   ...new Set([...DEFAULT_FLUENT_MANIFEST.apis.map((api) => api.name), ...phantomCandidates]),
 ].sort();
+/**
+ * @typedef {object} AuditModuleOwner
+ * @property {string} name
+ * @property {Map<string, Buffer>} files
+ * @property {{ exports?: Readonly<Record<string, unknown>> }} [manifest]
+ */
+/**
+ * @typedef {object} AuditDeclarationEvidence
+ * @property {string} module
+ * @property {string} exportName
+ * @property {string} declarationPath
+ * @property {string} declarationSha256
+ * @property {string} sourceSha256
+ * @property {string} kind
+ * @property {string} idPolicy
+ */
+/**
+ * @typedef {object} AuditRuntimeVersionEntry
+ * @property {unknown} [capabilities]
+ * @property {unknown} [discoveredCapabilities]
+ * @property {unknown} [absent]
+ * @property {unknown} [lifecycle]
+ */
+
+/**
+ * @param {string} value
+ * @returns {string}
+ */
 function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
 }
@@ -40,7 +68,14 @@ function sha256(value) {
  * `auditVersion`. Reading that scan from the audited objects keeps the
  * generator independent of the module it emits.
  */
+/**
+ * @param {string} version
+ * @param {any} capabilities
+ * @param {any} discoveredCapabilities
+ * @param {any} allVersions
+ */
 function lifecycleSnapshot(version, capabilities, discoveredCapabilities, allVersions) {
+  /** @param {string} left @param {string} right */
   const atOrAfter = (left, right) => compareFluentVersions(left, right) >= 0;
   return Object.fromEntries(
     [...new Set([...Object.keys(capabilities), ...Object.keys(discoveredCapabilities)])]
@@ -68,6 +103,12 @@ function lifecycleSnapshot(version, capabilities, discoveredCapabilities, allVer
   );
 }
 
+/**
+ * @param {Buffer} bytes
+ * @param {string} integrity
+ * @param {string} label
+ * @returns {void}
+ */
 export function verifyIntegrity(bytes, integrity, label) {
   const [algorithm, expected] = integrity.split("-", 2);
   assert.equal(algorithm, "sha512", `${label}: unsupported integrity algorithm`);
@@ -75,7 +116,13 @@ export function verifyIntegrity(bytes, integrity, label) {
   assert.equal(actual, expected, `${label}: tarball integrity mismatch`);
 }
 
-/** Accept only the npm-owned artifact URL for the exact package and version. */
+/**
+ * Accept only the npm-owned artifact URL for the exact package and version.
+ * @param {string} value
+ * @param {string} name
+ * @param {string} version
+ * @returns {string}
+ */
 export function canonicalRegistryTarballUrl(value, name, version) {
   assert.ok(packageNames.includes(name), `${name}@${version}: unsupported package name`);
   let url;
@@ -99,7 +146,13 @@ export function canonicalRegistryTarballUrl(value, name, version) {
   return url.href;
 }
 
-/** Buffer a registry response only after enforcing declared and observed byte caps. */
+/**
+ * Buffer a registry response only after enforcing declared and observed byte caps.
+ * @param {Response} response
+ * @param {string} label
+ * @param {number} maxBytes
+ * @returns {Promise<Buffer>}
+ */
 export async function readResponseBytes(response, label, maxBytes) {
   assert.ok(
     Number.isSafeInteger(maxBytes) && maxBytes > 0,
@@ -136,6 +189,12 @@ export async function readResponseBytes(response, label, maxBytes) {
   return Buffer.concat(chunks, total);
 }
 
+/**
+ * @param {Buffer} bytes
+ * @param {number} start
+ * @param {number} length
+ * @returns {string}
+ */
 function tarString(bytes, start, length) {
   const end = bytes.indexOf(0, start);
   return bytes
@@ -143,6 +202,12 @@ function tarString(bytes, start, length) {
     .toString("utf8");
 }
 
+/**
+ * @param {Buffer} tgz
+ * @param {string} label
+ * @param {number} [maxOutputLength]
+ * @returns {Map<string, Buffer>}
+ */
 export function tarFiles(tgz, label, maxOutputLength = MAX_TAR_BYTES) {
   const tar = gunzipSync(tgz, { maxOutputLength });
   const files = new Map();
@@ -180,6 +245,10 @@ export function tarFiles(tgz, label, maxOutputLength = MAX_TAR_BYTES) {
   return files;
 }
 
+/**
+ * @param {string} name
+ * @returns {Promise<any>}
+ */
 async function metadata(name) {
   const encoded = encodeURIComponent(name);
   const url = `${registryBase}/${encoded}`;
@@ -199,6 +268,11 @@ async function metadata(name) {
   return parsed;
 }
 
+/**
+ * @param {any} meta
+ * @param {string} name
+ * @param {string} version
+ */
 async function artifact(meta, name, version) {
   const record = meta.versions?.[version];
   assert.ok(record, `${name}@${version}: metadata missing`);
@@ -240,34 +314,55 @@ async function artifact(meta, name, version) {
   };
 }
 
+/**
+ * @param {any} declaration
+ * @returns {string[]}
+ */
 function declarationNames(declaration) {
   if (!declaration || typeof declaration !== "object") return [];
   if (declaration.type === "VariableDeclaration") {
-    return declaration.declarations.flatMap((item) =>
-      item.id?.type === "Identifier" ? [item.id.name] : [],
+    return declaration.declarations.flatMap(
+      /** @param {any} item */ (item) => (item.id?.type === "Identifier" ? [item.id.name] : []),
     );
   }
   return typeof declaration.id?.name === "string" ? [declaration.id.name] : [];
 }
 
+/**
+ * @param {any} node
+ * @returns {string | null}
+ */
 function literalValue(node) {
   return node?.type === "Literal" && typeof node.value === "string" ? node.value : null;
 }
 
+/**
+ * @param {any} node
+ * @returns {string | null}
+ */
 function identifierName(node) {
   return node?.type === "Identifier" && typeof node.name === "string" ? node.name : null;
 }
 
+/**
+ * @param {unknown} value
+ * @returns {string | null}
+ */
 export function exportTarget(value) {
   if (typeof value === "string") return value;
   if (!value || typeof value !== "object") return null;
   for (const key of ["types", "import", "default"]) {
-    const target = exportTarget(value[key]);
+    const target = exportTarget(/** @type {Record<string, unknown>} */ (value)[key]);
     if (target) return target;
   }
   return null;
 }
 
+/**
+ * @param {string} filename
+ * @param {string} source
+ * @returns {any}
+ */
 export function parseModule(filename, source) {
   assert.ok(source.length <= 2_000_000, `${filename}: declaration module exceeds 2 MB`);
   const result = parseSync(filename, source, { lang: "ts", sourceType: "module" });
@@ -279,12 +374,23 @@ export function parseModule(filename, source) {
   return result.program;
 }
 
+/**
+ * @param {AuditModuleOwner} sdk
+ * @param {AuditModuleOwner & { manifest: { exports?: Readonly<Record<string, unknown>> } }} core
+ * @returns {{ inspect: (owner: AuditModuleOwner, filename: string) => Map<string, AuditDeclarationEvidence>, unresolvedBareExports: Set<string> }}
+ */
 export function moduleResolver(sdk, core) {
   const cache = new Map();
   const active = new Set();
   const unresolvedBareExports = new Set();
   let visited = 0;
 
+  /**
+   * @param {AuditModuleOwner} owner
+   * @param {string} current
+   * @param {string} specifier
+   * @returns {string}
+   */
   const resolveRelative = (owner, current, specifier) => {
     const base = path.posix.normalize(path.posix.join(path.posix.dirname(current), specifier));
     const candidates = [
@@ -297,9 +403,13 @@ export function moduleResolver(sdk, core) {
       .filter((candidate, index, all) => all.indexOf(candidate) === index)
       .filter((candidate) => owner.files.has(candidate));
     assert.equal(candidates.length, 1, `${current}: ambiguous or missing export ${specifier}`);
-    return candidates[0];
+    return /** @type {string} */ (candidates[0]);
   };
 
+  /**
+   * @param {string} specifier
+   * @returns {string}
+   */
   const resolveCoreSubpath = (specifier) => {
     const subpath = `./${specifier.slice("@servicenow/sdk-core/".length)}`;
     const exports = core.manifest.exports ?? {};
@@ -308,12 +418,17 @@ export function moduleResolver(sdk, core) {
     if (!target && wildcard) {
       target = wildcard.replaceAll("*", subpath.slice(2));
     }
-    assert.equal(typeof target, "string", `${specifier}: core package export missing`);
+    assert.ok(typeof target === "string", `${specifier}: core package export missing`);
     const filename = `package/${target.replace(/^\.\//u, "")}`;
     assert.ok(core.files.has(filename), `${specifier}: exported core entry missing`);
     return filename;
   };
 
+  /**
+   * @param {AuditModuleOwner} owner
+   * @param {string} current
+   * @param {string} specifier
+   */
   const resolveSource = (owner, current, specifier) => {
     if (specifier.startsWith("."))
       return { owner, filename: resolveRelative(owner, current, specifier) };
@@ -324,6 +439,10 @@ export function moduleResolver(sdk, core) {
     return null;
   };
 
+  /**
+   * @param {AuditModuleOwner} owner
+   * @param {string} filename
+   */
   const inspect = (owner, filename) => {
     const key = `${owner.name}:${filename}`;
     if (cache.has(key)) return cache.get(key);
@@ -356,6 +475,10 @@ export function moduleResolver(sdk, core) {
       }
     }
 
+    /**
+     * @param {string} name
+     * @param {any} declaration
+     */
     const evidence = (name, declaration) => {
       const start = declaration?.start ?? 0;
       const end = declaration?.end ?? source.length;
@@ -384,6 +507,10 @@ export function moduleResolver(sdk, core) {
       }
     }
 
+    /**
+     * @param {string} name
+     * @param {any} item
+     */
     const merge = (name, item) => {
       if (!item || conflicts.has(name)) return;
       const prior = result.get(name);
@@ -435,6 +562,10 @@ export function moduleResolver(sdk, core) {
   return { inspect, unresolvedBareExports };
 }
 
+/**
+ * @param {string} version
+ * @param {any} metadataByName
+ */
 async function auditVersion(version, metadataByName) {
   const [sdk, core] = await Promise.all([
     artifact(metadataByName["@servicenow/sdk"], "@servicenow/sdk", version),
@@ -445,16 +576,17 @@ async function auditVersion(version, metadataByName) {
     version,
     `${version}: SDK/core pin mismatch`,
   );
-  const expected = FLUENT_SDK_ARTIFACTS[version];
+  const expected = /** @type {Record<string, any>} */ (FLUENT_SDK_ARTIFACTS)[version];
   assert.ok(expected, `${version}: reviewed artifact record missing`);
   assert.equal(sdk.integrity, expected.sdkIntegrity, `${version}: SDK integrity drift`);
   assert.equal(core.integrity, expected.coreIntegrity, `${version}: core integrity drift`);
   const entry = exportTarget(sdk.manifest.exports?.["./core"]);
-  assert.equal(typeof entry, "string", `${version}: SDK ./core export missing`);
+  assert.ok(typeof entry === "string", `${version}: SDK ./core export missing`);
   const entryPath = `package/${entry.replace(/^\.\//u, "")}`;
   assert.ok(sdk.files.has(entryPath), `${version}: SDK ./core entry missing`);
   const resolver = moduleResolver(sdk, core);
   const exports = resolver.inspect(sdk, entryPath);
+  /** @type {Record<string, any>} */
   const capabilities = {};
   const absent = [];
   for (const name of reviewedNames) {
@@ -512,14 +644,20 @@ async function auditVersion(version, metadataByName) {
  * reviewed version that exported it. Deriving it after the loop is what lets
  * the generator read only the objects it just built.
  */
+/**
+ * @param {string} version
+ * @param {Record<string, unknown>} item
+ * @param {Record<string, unknown>} allVersions
+ * @returns {Record<string, unknown>}
+ */
 export function withLifecycle(version, item, allVersions) {
   const { unresolvedBareExports, unreviewedRequiredFactories, ...evidence } = item;
   return {
     ...evidence,
     lifecycle: lifecycleSnapshot(
       version,
-      item.capabilities,
-      item.discoveredCapabilities,
+      item["capabilities"],
+      item["discoveredCapabilities"],
       allVersions,
     ),
     unresolvedBareExports,
@@ -536,22 +674,32 @@ export function withLifecycle(version, item, allVersions) {
  * is review evidence: it stays in the fixture so the drift check can compare
  * against it, but it is not package input.
  */
+/**
+ * @param {{ versions: Record<string, AuditRuntimeVersionEntry> }} snapshot
+ * @returns {Record<string, unknown>}
+ */
 export function runtimeSnapshot(snapshot) {
   const versions = SUPPORTED_FLUENT_SDK_VERSIONS;
   return Object.fromEntries(
     Object.entries(snapshot.versions).map(([version, item]) => {
+      const capabilities = /** @type {Record<string, any>} */ (item.capabilities);
       const idPolicy = Object.fromEntries(
-        Object.entries(item.capabilities).map(([name, capability]) => [name, capability.idPolicy]),
+        Object.entries(capabilities).map(([name, capability]) => [name, capability.idPolicy]),
+      );
+      const discoveredCapabilities = /** @type {Record<string, any>} */ (
+        item.discoveredCapabilities
       );
       const discovered = Object.fromEntries(
-        Object.entries(item.discoveredCapabilities).map(([name, capability]) => [
+        Object.entries(discoveredCapabilities).map(([name, capability]) => [
           name,
           {
             module: capability.module,
             introduced:
               versions.find(
                 (candidate) =>
-                  snapshot.versions[candidate]?.discoveredCapabilities[name] !== undefined,
+                  /** @type {Record<string, any> | undefined} */ (
+                    snapshot.versions[candidate]?.discoveredCapabilities
+                  )?.[name] !== undefined,
               ) ?? null,
           },
         ]),
@@ -561,13 +709,20 @@ export function runtimeSnapshot(snapshot) {
   );
 }
 
+/**
+ * @param {any} value
+ * @param {number} [indent]
+ * @returns {string}
+ */
 function typescriptLiteral(value, indent = 0) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
   if (Array.isArray(value)) {
     if (value.length === 0) return "[]";
     const childIndent = " ".repeat(indent + 2);
     return `[\n${value
-      .map((item) => `${childIndent}${typescriptLiteral(item, indent + 2)},`)
+      .map(
+        /** @param {any} item */ (item) => `${childIndent}${typescriptLiteral(item, indent + 2)},`,
+      )
       .join("\n")}\n${" ".repeat(indent)}]`;
   }
   const entries = Object.entries(value);
@@ -580,8 +735,14 @@ function typescriptLiteral(value, indent = 0) {
   return `{\n${properties.join("\n")}\n${" ".repeat(indent)}}`;
 }
 
+/**
+ * @param {unknown} snapshot
+ * @returns {string}
+ */
 export function generatedSource(snapshot) {
-  const runtime = runtimeSnapshot(snapshot);
+  const runtime = runtimeSnapshot(
+    /** @type {{ versions: Record<string, AuditRuntimeVersionEntry> }} */ (snapshot),
+  );
   return (
     `/* Generated by scripts/audit-fluent-sdk.mjs. Do not edit. */\n` +
     `import type { DeclarationSnapshot } from "./snapshot-types.js";\n\n` +
@@ -589,6 +750,9 @@ export function generatedSource(snapshot) {
   );
 }
 
+/**
+ * @returns {Promise<void>}
+ */
 export async function main() {
   const mode = process.argv.includes("--update") ? "update" : "registry";
   const metadataByName = Object.fromEntries(
@@ -602,6 +766,7 @@ export async function main() {
     `new stable @servicenow/sdk version published above ${CURRENT_FLUENT_SDK_VERSION}`,
   );
 
+  /** @type {Record<string, any>} */
   const versions = {};
   for (const version of SUPPORTED_FLUENT_SDK_VERSIONS) {
     versions[version] = await auditVersion(version, metadataByName);
@@ -636,4 +801,10 @@ export async function main() {
   }
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) await main();
+const invokedScript = process.argv[1];
+if (
+  invokedScript !== undefined &&
+  invokedScript !== "" &&
+  import.meta.url === pathToFileURL(invokedScript).href
+)
+  await main();

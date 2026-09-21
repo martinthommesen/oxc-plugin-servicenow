@@ -68,12 +68,21 @@ const EXPECTED_MAIN_RULE_PARAMETERS = [
   { type: "required_linear_history", parameters: null },
 ];
 
+/**
+ * @param {string} message
+ * @returns {never}
+ */
 function fail(message) {
-  const error = new Error(message);
+  const error = /** @type {Error & { kind?: string }} */ (new Error(message));
   error.kind = "release-governance";
   throw error;
 }
 
+/**
+ * @param {string[]} argv
+ * @param {string} name
+ * @returns {string | undefined}
+ */
 function argValue(argv, name) {
   const index = argv.indexOf(name);
   if (index < 0) return undefined;
@@ -82,6 +91,10 @@ function argValue(argv, name) {
   return value;
 }
 
+/**
+ * @param {any} value
+ * @returns {any}
+ */
 function canonical(value) {
   if (Array.isArray(value))
     return value
@@ -91,19 +104,32 @@ function canonical(value) {
     return Object.fromEntries(
       Object.keys(value)
         .sort()
-        .map((key) => [key, canonical(value[key])]),
+        .map((key) => [key, canonical(/** @type {Record<string, any>} */ (value)[key])]),
     );
   return value;
 }
 
+/**
+ * @param {any} left
+ * @param {any} right
+ * @returns {boolean}
+ */
 function same(left, right) {
   return JSON.stringify(canonical(left)) === JSON.stringify(canonical(right));
 }
 
+/**
+ * @param {unknown} value
+ * @returns {boolean}
+ */
 function positiveId(value) {
-  return Number.isSafeInteger(value) && value > 0;
+  return Number.isSafeInteger(value) && /** @type {number} */ (value) > 0;
 }
 
+/**
+ * @param {any} desired
+ * @returns {string[]}
+ */
 export function validateDesiredGovernance(desired) {
   const errors = [];
   const actor = desired?.principals?.controlledTagActor;
@@ -119,12 +145,14 @@ export function validateDesiredGovernance(desired) {
   if (
     !Array.isArray(reviewers) ||
     reviewers.length === 0 ||
-    reviewers.some((item) => !positiveId(item?.id))
+    reviewers.some(/** @param {any} item */ (item) => !positiveId(item?.id))
   )
     errors.push("at least one independent reviewer stable ID is required");
   if (
     Array.isArray(reviewers) &&
-    reviewers.some((item) => item.id === actor?.id && item.type === actor?.type)
+    reviewers.some(
+      /** @param {any} item */ (item) => item.id === actor?.id && item.type === actor?.type,
+    )
   )
     errors.push("tag actor and environment reviewer must be distinct");
   if (
@@ -191,6 +219,9 @@ export function validateDesiredGovernance(desired) {
   return errors;
 }
 
+/**
+ * @param {any} value
+ */
 function rulesetSummary(value) {
   return {
     name: value?.name,
@@ -199,30 +230,42 @@ function rulesetSummary(value) {
     refPattern: value?.conditions?.ref_name?.include?.[0],
     refIncludes: value?.conditions?.ref_name?.include ?? [],
     refExcludes: value?.conditions?.ref_name?.exclude ?? [],
-    rules: (value?.rules ?? []).map((item) => item.type),
-    ruleParameters: (value?.rules ?? []).map((item) => ({
-      type: item.type,
-      parameters: canonical(item.parameters ?? null),
-    })),
-    bypassActors: (value?.bypass_actors ?? []).map((item) => ({
-      id: item.actor_id,
-      type: item.actor_type,
-      mode: item.bypass_mode,
-    })),
+    rules: (value?.rules ?? []).map(/** @param {any} item */ (item) => item.type),
+    ruleParameters: (value?.rules ?? []).map(
+      /** @param {any} item */ (item) => ({
+        type: item.type,
+        parameters: canonical(item.parameters ?? null),
+      }),
+    ),
+    bypassActors: (value?.bypass_actors ?? []).map(
+      /** @param {any} item */ (item) => ({
+        id: item.actor_id,
+        type: item.actor_type,
+        mode: item.bypass_mode,
+      }),
+    ),
     requiredStatusChecks:
       (value?.rules ?? [])
-        .find((item) => item.type === "required_status_checks")
-        ?.parameters?.required_status_checks?.map((item) => item.context) ?? [],
+        .find(/** @param {any} item */ (item) => item.type === "required_status_checks")
+        ?.parameters?.required_status_checks?.map(
+          /** @param {any} item */ (item) => item.context,
+        ) ?? [],
   };
 }
 
+/**
+ * @param {any} raw
+ * @param {any} desired
+ * @returns {any}
+ */
 export function normalizeLiveGovernance(raw, desired) {
   if (raw?.schemaVersion === 2 && raw?.environment?.deploymentPolicy) return raw;
   const rulesets = (raw.rulesets ?? []).map(rulesetSummary);
-  const byName = (name) => rulesets.find((item) => item.name === name);
+  /** @param {string} name */
+  const byName = (name) => rulesets.find(/** @param {any} item */ (item) => item.name === name);
   const environment = raw.environment ?? {};
   const reviewerRule = environment.protection_rules?.find(
-    (item) => item.type === "required_reviewers",
+    /** @param {any} item */ (item) => item.type === "required_reviewers",
   );
   const policies = raw.deploymentPolicies ?? [];
   return {
@@ -231,7 +274,7 @@ export function normalizeLiveGovernance(raw, desired) {
     principals: {
       controlledTagActor: desired.principals.controlledTagActor,
       environmentReviewers: (environment.reviewers ?? reviewerRule?.reviewers ?? []).map(
-        (item) => ({
+        /** @param {any} item */ (item) => ({
           id: item.reviewer?.id,
           type: item.type,
           login: item.reviewer?.login ?? item.reviewer?.name,
@@ -245,8 +288,12 @@ export function normalizeLiveGovernance(raw, desired) {
       deploymentPolicy: {
         protectedBranches: environment.deployment_branch_policy?.protected_branches,
         customBranchPolicies: environment.deployment_branch_policy?.custom_branch_policies,
-        branches: policies.filter((item) => item.type === "branch").map((item) => item.name),
-        tags: policies.filter((item) => item.type === "tag").map((item) => item.name),
+        branches: policies
+          .filter(/** @param {any} item */ (item) => item.type === "branch")
+          .map(/** @param {any} item */ (item) => item.name),
+        tags: policies
+          .filter(/** @param {any} item */ (item) => item.type === "tag")
+          .map(/** @param {any} item */ (item) => item.name),
       },
     },
     mainRuleset: byName(desired.mainRuleset.name),
@@ -268,9 +315,18 @@ export function normalizeLiveGovernance(raw, desired) {
   };
 }
 
+/**
+ * @param {any} desired
+ * @param {any} liveInput
+ * @returns {{ ok: boolean, errors: string[], livePending: string[], repository: string, environment: string }}
+ */
 export function compareGovernance(desired, liveInput) {
   const errors = validateDesiredGovernance(desired);
   const live = normalizeLiveGovernance(liveInput, desired);
+  /**
+   * @param {unknown} condition
+   * @param {string} message
+   */
   const check = (condition, message) => {
     if (!condition) errors.push(message);
   };
@@ -363,17 +419,28 @@ export function compareGovernance(desired, liveInput) {
   };
 }
 
+/**
+ * @param {string} raw
+ * @param {string} label
+ * @returns {any}
+ */
 function parseJson(raw, label) {
   try {
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object") fail(`${label} returned no JSON object`);
     return parsed;
   } catch (error) {
-    if (error?.kind === "release-governance") throw error;
+    const kind = /** @type {{ kind?: unknown }} */ (error)?.kind;
+    if (kind === "release-governance") throw error;
     fail(`${label} returned malformed JSON`);
   }
 }
 
+/**
+ * @param {any} desired
+ * @param {typeof import("node:child_process").execFileSync} [command]
+ * @returns {any}
+ */
 export function collectLiveGovernance(desired, command = execFileSync) {
   if (
     !/^[A-Za-z0-9_.-]+$/.test(desired?.repository?.owner ?? "") ||
@@ -382,10 +449,13 @@ export function collectLiveGovernance(desired, command = execFileSync) {
     fail("repository identity is invalid");
   }
   const repository = `${desired.repository.owner}/${desired.repository.name}`;
+  /** @param {string} endpoint */
   const gh = (endpoint) =>
     parseJson(command("gh", ["api", endpoint], { encoding: "utf8" }), `gh api ${endpoint}`);
   const summaries = gh(`repos/${repository}/rulesets`);
-  const rulesets = summaries.map((item) => gh(`repos/${repository}/rulesets/${item.id}`));
+  const rulesets = summaries.map(
+    /** @param {any} item */ (item) => gh(`repos/${repository}/rulesets/${item.id}`),
+  );
   const environment = gh(`repos/${repository}/environments/${desired.environment.name}`);
   const deploymentPolicies = environment.deployment_branch_policy?.custom_branch_policies
     ? (gh(`repos/${repository}/environments/${desired.environment.name}/deployment-branch-policies`)
@@ -399,6 +469,10 @@ export function collectLiveGovernance(desired, command = execFileSync) {
   };
 }
 
+/**
+ * @param {string[]} [argv]
+ * @returns {Record<string, unknown>}
+ */
 export function main(argv = process.argv) {
   const desiredPath = argValue(argv, "--desired") ?? join(root, "scripts/release-governance.json");
   const desired = parseJson(

@@ -16,11 +16,23 @@ const writeBaseline = process.argv.includes("--write");
 const warmup = 1;
 const samples = 10;
 
+/**
+ * @param {string} name
+ * @param {string} fallback
+ * @returns {string}
+ */
 function argument(name, fallback) {
   const index = process.argv.indexOf(name);
-  return index >= 0 ? resolve(process.argv[index + 1]) : fallback;
+  if (index < 0) return fallback;
+  const value = process.argv[index + 1];
+  if (value === undefined) throw new Error(`missing value for ${name}`);
+  return resolve(value);
 }
 
+/**
+ * @param {number} index
+ * @returns {string}
+ */
 function glideRecordBlock(index) {
   return `var rec${index} = new GlideRecord("incident");
 rec${index}.addQuery("active", true);
@@ -31,6 +43,10 @@ while (rec${index}.next()) {
 `;
 }
 
+/**
+ * @param {number} index
+ * @returns {string}
+ */
 function branchHeavyBlock(index) {
   return `var rec${index} = new GlideRecord("incident");
 var alias${index} = rec${index};
@@ -51,6 +67,10 @@ if (alias${index}.next()) {
 `;
 }
 
+/**
+ * @param {number} index
+ * @returns {string}
+ */
 function aclAnalysisBlock(index) {
   return `var aclRec${index} = new GlideRecord("incident");
 var aclAlias${index} = aclRec${index};
@@ -67,6 +87,10 @@ try {
 `;
 }
 
+/**
+ * @param {number} count
+ * @returns {string}
+ */
 function fluentRecords(count) {
   const records = Array.from(
     { length: count },
@@ -81,6 +105,58 @@ function fluentRecords(count) {
   return `import { BusinessRule } from "@servicenow/sdk/core";\n\n${records.join("\n\n")}\n`;
 }
 
+/**
+ * Fluent factory calls through mutable aliases. Every call site resolves its
+ * callee through the per-file write index (FINDINGS.md PER-005); removing a
+ * `$id` must report once per call.
+ *
+ * @param {number} count
+ * @returns {string}
+ */
+function fluentAliases(count) {
+  const aliases = Array.from({ length: count }, (_, index) => `let br${index} = BusinessRule;`);
+  const calls = Array.from(
+    { length: count },
+    (_, index) => `br${index}({
+  $id: Now.ID["alias-${index}"],
+  table: "incident",
+  name: "Alias ${index}",
+  when: "after",
+  action: ["update"],
+});`,
+  );
+  return `import { BusinessRule } from "@servicenow/sdk/core";\n\n${aliases.join("\n")}\n\n${calls.join("\n\n")}\n`;
+}
+
+/**
+ * Cursor-count loops with a write after each loop. The trailing write keeps
+ * the fixture diagnostic-free while the counter declaration and use scans
+ * still run per loop (FINDINGS.md PER-005); removing it must report once per
+ * loop.
+ *
+ * @param {number} count
+ * @returns {string}
+ */
+function counterBlocks(count) {
+  const blocks = [];
+  for (let index = 0; index < count; index += 1) {
+    blocks.push(`var rec${index} = new GlideRecord("incident");
+rec${index}.addQuery("active", true);
+rec${index}.query();
+var count${index} = 0;
+while (rec${index}.next()) {
+  count${index} += 1;
+}
+count${index} += 1;
+`);
+  }
+  return blocks.join("\n");
+}
+
+/**
+ * @param {number} depth
+ * @returns {string}
+ */
 function nestedScopes(depth) {
   let body = 'var rec = new GlideRecord("incident");\nrec.query();\nrec.next();\n';
   for (let index = 0; index < depth; index += 1) {
@@ -89,6 +165,12 @@ function nestedScopes(depth) {
   return body;
 }
 
+/**
+ * @param {string} directory
+ * @param {Record<string, unknown>} rules
+ * @param {boolean} jsPlugins
+ * @returns {string}
+ */
 function writeConfig(directory, rules, jsPlugins) {
   mkdirSync(directory, { recursive: true });
   const config = {
@@ -101,11 +183,15 @@ function writeConfig(directory, rules, jsPlugins) {
   return file;
 }
 
+/**
+ * @param {string} directory
+ * @returns {void}
+ */
 function generateFixtures(directory) {
   for (const child of ["classic", "fluent", "client", "mixed/src/server", "mixed/src/fluent"]) {
     mkdirSync(join(directory, child), { recursive: true });
   }
-  const repeat = process.env.SN_BENCH_INJECT_REPEAT === "1" ? 3 : 1;
+  const repeat = process.env["SN_BENCH_INJECT_REPEAT"] === "1" ? 3 : 1;
   writeFileSync(
     join(directory, "classic/small.br.js"),
     Array.from({ length: 20 }, (_, index) => glideRecordBlock(index)).join("\n"),
@@ -128,11 +214,17 @@ function generateFixtures(directory) {
   );
   writeFileSync(join(directory, "classic/nested.br.js"), nestedScopes(12));
   writeFileSync(join(directory, "fluent/large.now.ts"), fluentRecords(80));
+  writeFileSync(join(directory, "fluent/aliases.now.ts"), fluentAliases(120));
+  writeFileSync(join(directory, "classic/counters.br.js"), counterBlocks(40));
   writeFileSync(join(directory, "client/skip.client.js"), 'g_form.setValue("priority", "1");\n');
   writeFileSync(join(directory, "mixed/src/server/list.br.js"), glideRecordBlock(1));
   writeFileSync(join(directory, "mixed/src/fluent/table.now.ts"), fluentRecords(1));
 }
 
+/**
+ * @param {number} pid
+ * @returns {number}
+ */
 function readPeakRssKb(pid) {
   try {
     if (platform() === "linux") {
@@ -152,6 +244,11 @@ function readPeakRssKb(pid) {
   return 0;
 }
 
+/**
+ * @param {string} configPath
+ * @param {string[]} targets
+ * @returns {Promise<{ elapsedMs: number, peakRssKb: number | null }>}
+ */
 function measure(configPath, targets) {
   const args = [oxlintBin, "--format", "json", "-c", configPath, ...targets];
   return new Promise((resolvePromise, reject) => {
@@ -190,11 +287,21 @@ function measure(configPath, targets) {
   });
 }
 
+/**
+ * @param {number[]} values
+ * @returns {number}
+ */
 function median(values) {
   const sorted = [...values].sort((left, right) => left - right);
   return sorted[Math.floor(sorted.length / 2)] ?? 0;
 }
 
+/**
+ * @param {string} fixture
+ * @param {string} profile
+ * @param {string} configPath
+ * @param {string[]} targets
+ */
 async function runCase(fixture, profile, configPath, targets) {
   for (let index = 0; index < warmup; index += 1) await measure(configPath, targets);
   const rawSamples = [];
@@ -242,6 +349,7 @@ async function main() {
       recommended: writeConfig(join(work, "recommended"), recommended, true),
       all: writeConfig(join(work, "all"), strict, true),
     };
+    /** @type {Array<[string, string, string, string[]]>} */
     const cases = [
       ["classic-small/disabled", "disabled", configs.disabled, [join(work, "classic/small.br.js")]],
       ["classic-small/one-rule", "one-rule", configs.oneRule, [join(work, "classic/small.br.js")]],
@@ -287,6 +395,13 @@ async function main() {
         configs.recommended,
         [join(work, "fluent/large.now.ts")],
       ],
+      [
+        "fluent-aliases/recommended",
+        "recommended",
+        configs.recommended,
+        [join(work, "fluent/aliases.now.ts")],
+      ],
+      ["classic-counters/all", "all", configs.all, [join(work, "classic/counters.br.js")]],
       [
         "skip-client/recommended",
         "recommended",

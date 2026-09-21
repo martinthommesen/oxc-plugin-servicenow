@@ -111,4 +111,24 @@ describe("ESLint flat profile context contracts", () => {
     );
     assert.deepEqual(ids(configs.flat.fluent, "current.update();", "x.server.js"), []);
   });
+
+  it("exposes the policy preset to ESLint (FINDINGS.md FEAT-003)", () => {
+    assert.ok(
+      ids(
+        configs.flat.policy,
+        'var value = new Packages.java.lang.String("value");',
+        "x.server.js",
+      ).includes("servicenow/no-packages-calls"),
+    );
+  });
+
+  it("exposes the security preset to ESLint (FINDINGS.md FEAT-003)", () => {
+    assert.ok(
+      ids(
+        configs.flat.security,
+        'var user = new GlideRecord("sys_user");\nuser.addSystemQuery("active", true);\nuser.query();',
+        "x.server.js",
+      ).includes("servicenow/no-system-query-bypass"),
+    );
+  });
 });

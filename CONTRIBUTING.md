@@ -48,6 +48,7 @@ Read [Non-goals and rejected rule ideas](docs/non-goals.md) before you propose a
 - When provenance, mode, or surface is unknown, suppress the diagnostic.
 - Message text should say what is wrong and what to do instead.
 - Do not invent Fluent APIs. Update the version-pinned declaration fixture with `npm run manifest:update`. The auditor accepts only exact npm-registry artifact URLs and enforces response, decompression, declaration, and graph-work limits before updating reviewed evidence; do not weaken those bounds to accommodate an unexplained upstream artifact.
+- Query whole-program facts from the per-file `BindingWriteIndex` instead of re-walking the program per call site. Every remaining traversal over user source must be bounded by a deterministic budget: the path interpreter stops at its work budget and records `pathBudgetExhausted` instead of inventing facts (FINDINGS.md PER-005, PER-006). When a change adds a per-node or per-call-site walk, add its shape to `scripts/benchmark.mjs` and cover the scaling in `tests/analysis/alias-scaling.test.ts`.
 
 ## Autofixes
 
