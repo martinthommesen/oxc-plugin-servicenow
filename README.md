@@ -37,7 +37,7 @@ Classic scripts still run on a **restricted, mode-dependent engine**. Compatibil
 
 This package does **not** treat every non-Fluent file as ES5. Unknown JavaScript mode stays unknown. Mode-specific rules skip rather than guess.
 
-Existing ESLint plugins (`eslint-plugin-servicenow`, `eslint-plugin-sn`) cover parts of the classic world and nothing of Fluent. This package covers both, on the Oxc toolchain.
+Existing ESLint plugins (`eslint-plugin-servicenow`, `eslint-plugin-sn`) cover parts of classic scripting and none of Fluent. This package covers both, on the Oxc toolchain.
 
 ---
 
@@ -157,7 +157,7 @@ Then:
 npx oxfmt --write .
 ```
 
-`.now.ts` is TypeScript. oxfmt already knows how to format it; the preset selects Fluent-friendly options.
+`.now.ts` is TypeScript. oxfmt formats it already; the preset selects Fluent-friendly options.
 
 ---
 
@@ -276,7 +276,7 @@ Configure once. Invalid keys, types, or conflicting values throw a configuration
 | `scriptType` | **Deprecated.** Use `authoring` and `surfaces`. |
 | `ecmaLatest` | **Deprecated.** `true` maps to `javascriptMode: "es2021"`. `false` does not assume ES5. |
 
-Australia support reads release-specific capability cells:
+Australia support reads release-specific capability cells.
 
 The generated [Australia JavaScript engine update ledger](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/australia-engine-updates.md) maps every official Rhino update row to an implemented diagnostic, a deliberate metadata-only disposition, or explicit pending research. Pending rows are not counted as supported.
 
@@ -369,7 +369,7 @@ The `// @sn-es-latest` pragma was retired in 3.0.0 and is ignored; pragma-only f
 
 ### Instance engine (mode-specific)
 
-These rules run only when `javascriptMode` is known, except features that ServiceNow documents as unavailable in every instance mode for the selected release.
+These rules run only when `javascriptMode` is known, except for features that ServiceNow documents as unavailable in every instance mode for the selected release.
 
 <!-- generated:engine-rules:start -->
 | Rule | Profile | What it catches |
@@ -514,7 +514,7 @@ script: Now.include("../server/log-state-change.server.js"),
 
 1. Install `oxc-plugin-servicenow` + `oxlint`.
 2. Drop in `.oxlintrc.json` with the recommended rule map.
-3. Optionally keep ESLint around for rules oxlint does not implement yet (`eslint-plugin-oxlint` to disable overlap).
+3. Optionally keep ESLint for rules oxlint does not implement yet (`eslint-plugin-oxlint` to disable overlap).
 4. Replace Prettier with oxfmt using the shipped preset.
 5. Delete `eslint-plugin-servicenow` / `eslint-plugin-sn` once the diagnostics match.
 
@@ -587,9 +587,9 @@ These are platform limits, not bugs in this package:
 
 - JS plugins are **alpha** and the API may still move.
 - No type-aware rules (Fluent `Table` generics are not inspected).
-- No custom parsers — `.now.ts` is linted as TypeScript, which is what we want.
+- No custom parsers. `.now.ts` is linted as TypeScript, which is what these rules need.
 - Rule options / suggestions / tokens are supported; some older ESLint APIs are not.
-- Prefer `createOnce` + `before()` (this plugin does) so oxlint can skip files whose node types the rule never visits.
+- Prefer `createOnce` + `before()`, as this plugin does, so oxlint can skip files whose node types the rule never visits.
 
 ---
 

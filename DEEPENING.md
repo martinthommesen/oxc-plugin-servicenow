@@ -14,7 +14,7 @@ invariants are treated as binding.
 
 **Method.** Twelve survey agents covered disjoint slices; each produced friction points and
 candidates. Every candidate then faced an adversarial verifier instructed to default to refuted.
-Twenty-eight candidates survived, six were refuted, and a completeness critic proposed four more.
+Fifty-four candidates survived, six were refuted, and a completeness critic proposed the last twelve of those fifty-four.
 Every quantitative claim in this document was then re-measured against the working tree by the
 author. Where a survey figure and a measurement disagreed, the measurement is used and the
 discrepancy is recorded.
@@ -180,6 +180,17 @@ Two candidates recorded above as not implemented were later landed in variant fo
 - C1 landed as commit 328ed61: the 50 descriptors moved to `src/catalog/<rule>.ts` with shared assembly in `entry.ts`. The authored registry array in `src/catalog.ts` was retained, so this is not the proposed next-to-implementation layout.
 - C4 landed partially as commit ffb4fdf: the test harness derives Fluent defaults from the catalog family field instead of name-prefix matching. Full placement-to-filename derivation remains open under the recorded exception-list objection.
 
+### Follow-up (2026-09-21)
+
+A later pass landed the following. As above, the verdicts in the 2026-09-13 table are left unchanged.
+
+- A1 is now partially applied. `dedupePathFindings` is used by every finder, and `collectPathFindings` owns both the findings array and the exhaustion tail. The per-finder dedupe key stays a finder argument, which is the part the original objection was about.
+- D3 left a dead fallback: `manifestForVersion` spreads `DEFAULT_FLUENT_MANIFEST`, so `typos` is version-invariant and the `?? FLUENT_DIRECTIVE_TYPOS[name]` operand in `fluent-directives.ts` was unreachable. Both the fallback and the `FLUENT_DIRECTIVE_TYPOS` constant are removed.
+- R4's residual landed: the admissible-release input is shared, which is the one part the refutation agreed was common.
+- E12 still has one authored home (`src/surfaces.ts`) and two import spellings, because `src/catalog-metadata.ts` re-exports the three surface sets so descriptors can write `metadata.SERVER_SURFACES`. Kept: the re-export is a namespace convenience, not a second home.
+- `src/configs/recommended.ts` and `src/configs/strict.ts` were folded into `src/configs/profiles.ts`, which now holds all ten profile objects.
+- Adjacent to C3 and C7: `beginRuleFile` now returns the `FileAnalysis` itself rather than a three-field façade, and `src/analysis/internal.ts` is an enforced boundary — `scripts/lib/catalog-gates.mjs` fails a rule that imports any other analysis module (docs/decisions.md MNT-006).
+
 ### Final validation
 
 Validation was run on the uncommitted campaign tree on 2026-09-13.
@@ -336,7 +347,7 @@ typed return value is directly assertable without a domain harness.
 boolean one seam across `path-state.ts`'s own interface.
 
 **Risk.** The signal is a thrown `Symbol` unwound at `:1627`; the catch block must produce the tagged
-value, and it must not be reachable by an adapter that genuinely wants partial data. No production
+value, and it must not be reachable by an adapter that wants partial data. No production
 adapter sets `maxWork`, so the new field is exercised by tests only unless a real caller sets it.
 
 ### A3. Give the interpreter domain constructors so an adapter supplies only what it varies — Worth exploring
@@ -354,7 +365,7 @@ retainUnboundRecords 2   analyzeUncalledFunctions 1
 stopAtAwait 1   maxWork 0
 ```
 
-`glide-windowing.ts` spends 19 of its 63 lines on hook bureaucracy around one `windowed: boolean`.
+`glide-windowing.ts` spends 19 of its 63 lines on hook boilerplate around one `windowed: boolean`.
 The may-join versus must-join decision — the only semantically interesting part of `mergeData` — is
 re-derived per adapter with no shared vocabulary, and bottom-is-the-join-identity is a semilattice law
 `mergeRecords` silently depends on.
@@ -494,7 +505,7 @@ a loop's test is reached on any surviving path — recorded where the loop case 
 
 **Benefits.** *Locality:* one completion model, so a fix to break/continue or throw handling cannot land
 in the interpreter and miss the caller. *Leverage:* both consumers of `cursor-condition` get an
-authoritative answer. *Testability:* completion facts assertable from one interpreter fixture.
+authoritative answer. *Testability:* completion facts are assertable from one interpreter fixture.
 
 **Risk.** The interpreter consumes completions as it walks and discards them. Surfacing a per-loop fact
 needs a new hook whose shape is not clear, and both consumers need the answer at a point the
@@ -622,7 +633,7 @@ unregistered rule still fails to typecheck.
 
 **Benefits.** *Leverage:* a rule author reads one file, not a 4,545-line array plus their own rule.
 *Locality:* placement, evidence, applicability and fixtures stop sharing one edit site — the single
-hottest file in the repository stops being the default merge conflict. *Testability:* each descriptor
+most-edited file in the repository stops being the likeliest merge-conflict site. *Testability:* each descriptor
 typechecks alone, so a malformed entry fails at its own definition rather than at the join.
 
 **Reframing from the verify pass.** Scope this to the descriptor literal, not the derived fields. The
@@ -825,11 +836,11 @@ consumers already compute the value from `placements`.
 ### C11. Give the runtime and documentation halves separate projections — Worth exploring
 
 **Files:** `src/catalog.ts`, `src/rules/index.ts:11`, `src/configs/maps.ts:7-9`,
-`src/configs/recommended.ts`, `strict.ts`, `profiles.ts`
+`src/configs/profiles.ts` (at review time still split as `recommended.ts` and `strict.ts`)
 
 **Problem.** The runtime side reads two fields — `name` and `implementation` for the registry, `ruleId`
 and `placements` for the config map — but both sites load all 28 because `ruleCatalog` is the only
-export. The shallowest modules in the slice are ceremony over that array: `recommended.ts` (9 lines),
+export. The shallowest modules in the slice are thin wrappers over that array: `recommended.ts` (9 lines),
 `strict.ts` (9 lines), `options/index.ts` (31 lines of re-export).
 
 **Solution.** Introduce two projections at the seam where the two consumers diverge: the registry
@@ -839,7 +850,7 @@ projection and the config projection. Both derive from the full record, so no se
 change cannot break rule loading. *Testability:* the derived-projection tests narrow to the projection
 they check.
 
-**Risk.** The risk is adding a fourth shallow wrapper if the projections are not what callers actually
+**Risk.** The risk is adding a fourth shallow wrapper if the projections are not what callers
 use.
 
 ### C12. Make `entry()` derive instead of validate — Speculative
@@ -943,7 +954,7 @@ and caches it, so importing the plugin for a project that never configures `flue
 one manifest instead of 27. `fluentManifests()` (`registry.ts:327`) still builds all 27 for the check
 script.
 
-**Benefits.** *Leverage:* every plugin load in every editor session improves without a caller change,
+**Benefits.** *Leverage:* every plugin load builds one manifest instead of 27, without a caller change,
 because the seam already exists. *Locality:* the caching condition lives in one function instead of a
 top-level literal. *Testability:* unchanged; the same seam is exercised.
 
@@ -988,7 +999,7 @@ DeclarationSnapshot>>` hand the caller a raw data shape, so `registry.ts` carrie
 logic that reach into `.capabilities[api.name].idPolicy`, iterate
 `Object.entries(snapshot.discoveredCapabilities)`, and re-derive introduction by scanning every version.
 That version scan is duplicated in `scripts/audit-fluent-sdk.mjs:50` and
-`scripts/check-fluent-manifest.mjs:261`. The interface is a data dump, so every consumer re-implements
+`scripts/check-fluent-manifest.mjs:261`. The interface exposes the raw record, so every consumer re-implements
 the join.
 
 **Solution.** The verify pass corrected the original proposal: the index should be a shared helper over
@@ -1025,7 +1036,7 @@ precedence explicitly as a named function so the override is visible rather than
 assert that no declaration contradicts a manual requirement — today the contradiction would silently
 lose.
 
-**Risk.** Low. If declarations never emit `forbidden` or `optional`, the honest change is naming the
+**Risk.** Low. If declarations never emit `forbidden` or `optional`, the change to make is naming the
 precedence, not widening the type.
 
 ### D7. Collapse the declarations fixture and the runtime snapshot to one artifact — Speculative
@@ -1179,7 +1190,7 @@ and the lookups that depend on it change together. *Testability:* the index and 
 over a report object, so they can be tested with a hand-built report instead of by spawning
 `node:test`.
 
-**Risk.** E3's apparatus is *not* retiring — PR #51 has not merged — so both consumers remain live and
+**Risk.** R6's apparatus is not retiring — PR #51 has not merged — so both consumers remain live and
 the duplication stays at two copies. Sequence this on its own merits.
 
 ### E7. Collapse the tarball-production seam so local and release inspect the same bytes — Speculative
@@ -1193,7 +1204,7 @@ path. `check-release-artifact.mjs:356` does `ensureBuiltDist()` then
 `npm run clean` and `npm run build` directly and packs into its own destination.
 `check-release-artifact.mjs` is otherwise a deep module — 16 exports, publish-input construction at
 `:284`, manifest normalization at `:237`, verified by `tests/release/artifact.test.ts` and
-`layer7.test.ts` — so the tarball seam belongs there by every measure.
+`layer7.test.ts` — so the tarball seam belongs there.
 
 **Solution.** `compat-consumer` obtains its tarball from `packTarball`, passing its own destination when
 the cell wants a fresh pack.
@@ -1287,7 +1298,7 @@ strings.
 `tests/release/layer7.test.ts` (1,229), `stateful-lifecycle.test.ts` (717) versus
 `stateful-lifecycles.test.ts` (19)
 
-**Problem.** I measured 28 of the 51 rule implementations with no same-named file under `tests/rules/`.
+**Problem.** Measured: 28 of the 51 rule implementations have no same-named file under `tests/rules/`.
 Coverage sits in plan-named files. `phase3.test.ts` holds 8 describes and 77 `it`s across seven rules,
 most of which have or should have rule-named files. `glide-and-engine.test.ts` puts 31 `it`s under one
 describe named "engine extras" spanning `no-packages-calls`, `no-weak-references`, typed arrays and
@@ -1306,8 +1317,8 @@ matching the 74 describes that already are. *Locality:* the three rules that cur
 
 **ADR conflict.** `scripts/pr51-acceptance.json:3795,3825,3855` name `tests/rules/phase3.test.ts` as the
 proof file for three criteria, and `docs/pr-51-acceptance-ledger.md:140-177` cites these files by line.
-`docs/decisions.md` REM-002 retires that apparatus when the PR #51 line merges. **PR #51 has not
-merged, so this is blocked.** A rename now fails `acceptance:check` and breaks the evidence URLs
+`docs/decisions.md` REM-002 retires that apparatus when the PR #51 line merges. PR #51 has not
+merged, so this is blocked. A rename now fails `acceptance:check` and breaks the evidence URLs
 recorded in `docs/rules/*.md`.
 
 ### E12. Give the eight-surface vocabulary one home — Worth exploring
@@ -1329,7 +1340,7 @@ partitions cover it exactly, so a new surface either appears everywhere or fails
 fourth partition consumer gets the vocabulary free. *Testability:* "every surface has a filename glob"
 and "the partitions are exhaustive and disjoint" become assertions instead of conventions.
 
-**Risk.** `SCRIPT_KINDS` (`src/types.ts:168-178`) is a genuinely different, deprecated vocabulary — it
+**Risk.** `SCRIPT_KINDS` (`src/types.ts:168-178`) is a different, deprecated vocabulary — it
 belongs to the retiring 1.x `scriptType` settings layer under `docs/decisions.md` FEAT-002 — and must
 not be merged into it.
 
@@ -1338,7 +1349,7 @@ not be merged into it.
 **Files:** `src/engine/australia-updates.ts` (287 lines), `src/engine/features.ts` (447),
 `src/fluent/evidence.ts` (38), `src/fluent/lifecycle.ts` (21)
 
-**Problem.** Four modules hold evidence trains — URLs plus provenance per version — in four shapes.
+**Problem.** Four modules hold evidence records — URLs plus provenance per version — in four shapes.
 `engine/features.ts` carries `ENGINE_FEATURE_EVIDENCE`; `engine/australia-updates.ts` carries
 `AUSTRALIA_ENGINE_UPDATE_EVIDENCE` plus a roughly 250-line disposition table read only by a doc
 generator (`scripts/generate-australia-engine-docs.mjs:7`); `fluent/evidence.ts` and
@@ -1352,7 +1363,7 @@ which no runtime reads, moves to a data file the generator owns.
 **Benefits.** *Locality:* the citation requirement is checked once. *Leverage:* a new knowledge base
 cannot ship uncited facts. *Testability:* the validator is a pure function over the union of tables.
 
-**Risk.** The four shapes encode genuinely different things — a feature may be supported, unsupported
+**Risk.** The four shapes encode different things — a feature may be supported, unsupported
 or unknown per mode; a disposition is `covered`, `not-applicable` or `pending` with an owner. The
 shared part is the citation, not the payload; forcing more would be a worse shape.
 
@@ -1369,7 +1380,7 @@ duplicates of A–E and several rank above the middle of the list.
 `src/analysis/acl-query.ts`, `src/rules/no-system-query-bypass.ts`,
 `src/rules/no-glideelement-in-collection.ts`
 
-**Problem.** `manifest.ts` publishes nine module-level role sets and *also* derives the same nine onto
+**Problem.** `manifest.ts` publishes nine module-level role sets and derives the same nine onto
 `GlideCapabilityView` (`manifest.ts:352-372`). Two homes for one fact. Both exist:
 
 ```
@@ -1414,7 +1425,7 @@ re-derived. *Leverage:* a new confidence level is one edit. *Testability:* the o
 assertable rather than verified through rule output.
 
 **Risk.** The eleven predicates are the rules' vocabulary today; renaming them touches many files. The
-honest version keeps the names and changes what they read.
+version worth doing keeps the names and changes what they read.
 
 ### F3. Isolate the 1.x layer behind one compatibility adapter — Worth exploring
 
@@ -1431,7 +1442,7 @@ that belongs to the retiring layer.
 mappings onto authoring, surfaces and JavaScript mode, and the deprecation warnings. The live
 validation path stops containing the deprecated vocabulary. When 3.0 lands, the adapter is deleted whole.
 
-**Benefits.** *Locality:* the removal is a file deletion rather than an excavation, which is the
+**Benefits.** *Locality:* the removal is a file deletion rather than an edit spread across the live validation path, which is the
 condition `docs/decisions.md` FEAT-002 assumes. *Leverage:* the live path gets smaller now, not at 3.0.
 *Testability:* the translation is testable as a table.
 
@@ -1451,7 +1462,7 @@ out the evidence.
 **Solution.** One accessor returns a fact only when the record proves it, and returns absence otherwise,
 so the conjunction has one implementation and a rule cannot forget half of it.
 
-**Benefits.** *Locality:* the most load-bearing invariant in the repository — silence on unknown facts —
+**Benefits.** *Locality:* the invariant `lat.md` treats as binding — silence on unknown facts —
 gets one enforcement point on the read path. *Leverage:* a new field on `Provenance` gets the gate for
 free. *Testability:* the gate is testable as a function of a record rather than through rule output.
 
@@ -1519,9 +1530,9 @@ negative fixture per block.
 
 **Problem.** The fact "which constructors produce a GlideRecord-like cursor" is authored four times
 independently. `src/constants.ts:172` declares `GLIDE_RECORD_CTORS = ["GlideRecord",
-"GlideRecordSecure"]` and has **zero consumers repo-wide** — verified with a per-symbol grep across
+"GlideRecordSecure"]` and has zero consumers repo-wide — verified with a per-symbol grep across
 `src/`, `tests/` and `scripts/`. `platform-method-authority.ts:15` declares the identical two-element
-list as `GLIDE_RECORD_CONSTRUCTORS` and is the only one actually used. `no-client-gliderecord.ts:8`
+list as `GLIDE_RECORD_CONSTRUCTORS` and is the only one used. `no-client-gliderecord.ts:8`
 declares a third copy as `CTORS`. `no-hardcoded-table-names.ts:23` declares a fourth that also carries
 `GlideAggregate`.
 
@@ -1549,7 +1560,7 @@ from the first. That is 11 of 25 exports. `GLIDE_MUTATING_METHODS` also overlaps
 **Solution.** Delete them. Keep `PACKAGE_VERSION` and `PLUGIN_NAME`.
 
 **Benefits.** *Locality:* a module whose stated job is to be the home for shared constants stops
-answering "is this one used?" for eleven of them. *Leverage:* the deletion test is trivially clean —
+answering "is this one used?" for eleven of them. *Leverage:* the deletion test is clean —
 nothing imports them.
 
 **Risk.** Confirm against the packed-consumer contract before deleting. None of the eleven appear in
@@ -1603,8 +1614,8 @@ prose.
 
 **Benefits.** *Locality:* the citation vocabulary gets one home. *Testability:* a stale citation becomes
 a failing gate instead of a comment that reads as a live justification. This matters because the
-codebase uses these ids as the *reason* for several decisions — including the COR-016 comment that A1 is
-about — so a citation pointing at a resolved finding is a decision resting on nothing.
+codebase uses these ids as the reason for several decisions — including the COR-016 comment that A1 is
+about — so a citation pointing at a resolved finding leaves that decision without a stated basis.
 
 **Risk.** Requires normalising 79 call sites' citation format.
 
@@ -1745,7 +1756,7 @@ By expected payoff, from the completeness critic with the author's revisions:
 54. **A8** Fold do/while completion into the interpreter — Speculative
 
 **Also demoted by the critic, with reasons.** C5 (`Add a settings parameter to the matrix case
-constructors`) is test ergonomics rather than interface depth; the refuter had to fold in an unrelated
+constructors`) is test ergonomics rather than interface depth; the verifier had to fold in an unrelated
 `location()` correction to make it worth listing. A3 (`Interpreter domain constructors`) is mechanical
 clone-and-equality factoring that is close to the one-adapter hypothetical. A7 (`One cursor traversal`)
 has a narrower duplication and wider divergence than first claimed. C1 as originally written is
@@ -1757,7 +1768,7 @@ file-layout redistribution; scope it to the descriptor literal.
 
 **F1 was cleanup, not the second-deepest candidate.** Production already used `analysis.glide`; only tests read the flat exports. Removing them simplified the module before A6 added the per-kind role table.
 
-**C1 drops to seventh.** It is the hottest file in the repository — 4,545 lines, 30 of the last 77
+**C1 drops to seventh.** It is the most-edited file in the repository — 4,545 lines, 30 of the last 77
 commits — but the corrected framing is right that as stated it moves roughly 83 lines of authored input
 per rule between files without deepening an interface. The version worth doing is narrower: move the
 descriptor literal next to the rule, leave `entry()` and the derived fields where they are.

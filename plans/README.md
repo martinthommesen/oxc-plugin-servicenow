@@ -6,7 +6,7 @@ read the plan fully before starting, honor its STOP conditions, and update your
 row when done.
 
 Selection note: this audit ran non-interactively, so per the skill's default
-the top five findings by leverage were planned. The full backlog below lists
+the top five findings by impact were planned. The full backlog below lists
 vetted findings that did not get plans — promote any of them on request.
 
 ## Execution order & status
@@ -32,8 +32,8 @@ Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) | REJE
 ## Backlog — vetted findings without plans (promote on request)
 
 Correctness / rules:
-- **Function-scoped GlideRecord state**: `validate-gliderecord-calls` and `prefer-glideaggregate` track bindings in one per-file map keyed by variable name, so state leaks between functions (a `gr` in one function satisfies `.query()` for another's; a count-only loop taints a later work loop). M effort, MED risk — needs a scope stack.
-- **`no-promise` `.then/.catch/.finally` heuristic**: flags any object's method with those names (error severity). Tightening loses some detection; a maintainer call on heuristic strictness.
+- **Function-scoped GlideRecord state**: `validate-gliderecord-calls` and `prefer-glideaggregate` track bindings in one per-file map keyed by variable name, so state leaks between functions (a `gr` in one function satisfies `.query()` for another's; a count-only loop taints a later work loop). Medium effort, medium risk; it needs a scope stack.
+- **`no-promise` `.then/.catch/.finally` heuristic**: flags any object's method with those names (error severity). Tightening loses some detection; this is a maintainer call on heuristic strictness.
 - **`no-complex-fluent-logic` gaps**: statement limit applies to arrow bodies only; `function(){}` and `class {}` expressions bypass it; the `>2` threshold is hardcoded and undocumented.
 - **`fluent-directives`**: dangling `@fluent-ignore` detected only at EOF; comment `loc` branch reports column 0 under real oxlint (harness never covers that branch).
 
@@ -48,7 +48,7 @@ Docs / single source of truth:
 - Generate the README rule tables, the recommended-rules JSON block, and `examples/.oxlintrc.json` from `ruleCatalog` + `recommendedRules` behind the existing `docs:check` gate; likewise generate `oxfmt.recommended.json` from `src/oxfmt/recommended.ts`.
 - Document the 10 undocumented rule options across 5 rules (`allowedSysIds`, `ignoreHashNames`, `allowedTables`, `allowBuiltins`, `maxLines`, `maxChars`, `idStyle`, `fileStyle`, `preferNowId`) — add an Options section to the doc generator.
 - `docs:check` holes: untracked new docs pass (`git diff` misses them); orphaned docs of removed rules are never deleted.
-- CONTRIBUTING step 5 says to hand-write `docs/rules/*.md`, which are generated — actively misleading; also add an `AGENTS.md` (verification loop, generated-file map, `PACKAGE_VERSION` coupling, rule-count invariant).
+- CONTRIBUTING step 5 says to hand-write `docs/rules/*.md`, which are generated — misleading; also add an `AGENTS.md` (verification loop, generated-file map, `PACKAGE_VERSION` coupling, rule-count invariant).
 - Ship `docs/` in the npm tarball (README's 24 rule links 404 inside `node_modules`) and version `DOCS_BASE_URL` (`blob/main` → `blob/v<version>`).
 - Migration table: no provenance/links for the upstream plugins' rule ids; omits `no-hardcoded-table-names` and `no-async-iterators`.
 - `applyRules` is exported public API with no docs, hardcoded `error` severity, and ignored fixes — document it or un-export it.
@@ -77,10 +77,10 @@ Direction options (maintainer strategy calls — evidence in the audit):
 
 ## Findings considered and rejected
 
-- **oxfmt formatting plugin**: oxfmt has no plugin API; the config preset is the documented ceiling (README states this). Not a gap.
+- **oxfmt formatting plugin**: oxfmt has no plugin API; the config preset is the documented limit (README states this). Not a gap.
 - **sys_id values echoed into diagnostics**: the value is already a literal in the scanned source; showing it is what makes the rule actionable.
-- **`interpolate` prototype-chain key lookup**: message templates are first-party; no untrusted input reaches the key position. Free hardening if the file is touched anyway.
-- **Merging `applyRules`' per-rule AST walks / `Object.keys` allocation**: test-only, unmeasurable win at current suite size.
+- **`interpolate` prototype-chain key lookup**: message templates are first-party; no untrusted input reaches the key position. Worth hardening if the file is touched for another reason.
+- **Merging `applyRules`' per-rule AST walks / `Object.keys` allocation**: Test-only, and the win is unmeasurable at the current suite size.
 - **`dist/` committed to git** (recon suspicion): false — `dist/` is gitignored and untracked; the real gap is the missing `prepack` (plan 005).
 - **CHANGELOG double-dated releases**: verified correct — 1.0.0 and 1.1.0 were released the same day (git timestamps 05:18 and 06:14).
 - **`pull_request_target` misuse**: not present — CI correctly uses `pull_request`; plan 005 adds the remaining defense in depth.

@@ -23,7 +23,7 @@ One file can be executed in more than one place. `ScriptSurface` in [[src/types.
 | `scheduled-script` | Instance, as a Scheduled Job |
 | `fix-script` | Instance, as a Fix Script |
 
-The set is a set, not a single value, because a UI Action can run on the client, the server, or both. `ui-action` is deliberately different in kind from the rest: it names the record type the code belongs to rather than where it executes, so it composes with `client` and `server` instead of replacing them. A file with only `ui-action` evidence is not treated as server-capable.
+Surfaces form a set, not a single value, because a UI Action can run on the client, the server, or both. `ui-action` is deliberately different in kind from the rest: it names the record type the code belongs to rather than where it executes, so it composes with `client` and `server` instead of replacing them. A file with only `ui-action` evidence is not treated as server-capable.
 
 `isServerInstanceContext` in [[src/context/resolve.ts#isServerInstanceContext]] expands a server check across the six server-only surfaces and requires explicit `server` evidence on a UI Action. `isMixedUiActionContext` identifies the client-and-server case. `docs/rules/*.md` records which surfaces each rule applies to.
 
@@ -53,11 +53,29 @@ The instance release and the Fluent SDK version describe different things and mu
 - `settings.servicenow.release` selects instance behavior: which engine features exist, which GlideRecord methods are documented.
 - `settings.servicenow.fluentSdkVersion` selects the `@servicenow/sdk/core` API surface, defaulting to `DEFAULT_FLUENT_SDK_VERSION` in [[src/fluent/sdk-versions.ts#DEFAULT_FLUENT_SDK_VERSION]].
 
+Other version-shaped values are not axes a user sets. `PACKAGE_VERSION` names this package's own release and `DEFAULT_FLUENT_MANIFEST_VERSION` names the reviewed manifest snapshot; neither is a setting and neither selects platform behavior.
+
 A Fluent file is built by the SDK and deployed to an instance; both axes apply to it and neither derives from the other. `docs/rules/*.md` states this per rule — Fluent-SDK-versioned rules carry a `fluentSdkRange` and no instance release claim.
 
 ## Application scope
 
 `ApplicationScope` is `"global" | "scoped" | "unknown"`. Scope selects which GlideRecord methods are documented as available rather than changing what the script means. See [[glide]].
+
+## GlideRecord API scope
+
+A second, separate axis with the same two words. `GlideApiScope` in [[src/glide/manifest.ts#GlideApiScope]] is `"scoped" | "global"` and names which GlideRecord reference page documents a method, not which application scope a script runs in.
+
+`ApplicationScope` selects the axis and `resolveGlideCapabilities` maps one onto the other: an `"unknown"` application scope admits both API scopes, and a known one selects the matching page. `GlideMethodCapability.supportedScopes` lists the API scopes a method is documented for.
+
+Write "API scope" or "application scope". Never write "scope" alone where both could be meant.
+
+## Business Rule metadata
+
+Two settings describe the Business Rule record a classic file belongs to, and gate rules rather than being interpreted.
+
+`BusinessRuleWhen` in [[src/types.ts#BusinessRuleWhen]] is `"before" | "after" | "async" | "display" | "unknown"`, and `BusinessRuleSourceFormat` in [[src/types.ts#BusinessRuleSourceFormat]] is `"full-script" | "body-only" | "unknown"`.
+
+Both ride on the context straight from settings. Neither carries a `ContextSourceMap` entry, because there is no filename or AST evidence for either; both default to `"unknown"`, and a rule that needs one stays silent without it.
 
 ## Related
 

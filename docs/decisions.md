@@ -5,8 +5,9 @@ Each entry names its FINDINGS.md record, the decision, and the review point.
 
 ## Thin presets stay exported through 2.x (FEAT-001)
 
-`configs.security` and `configs.securityRules` carry one rule;
-`configs.policy` and `configs.policyRules` carry two. They stay exported for
+When this record was opened, `configs.security` and `configs.securityRules`
+carried one rule and `configs.policy` and `configs.policyRules` carried two.
+They stay exported for
 the whole 2.x line because removing named exports is a breaking change.
 
 Decision: reassess at the 3.0 boundary with npm dependents data.
@@ -15,7 +16,7 @@ Decision: reassess at the 3.0 boundary with npm dependents data.
   document the rule identifiers in the README instead. The catalog `security`
   and `policy` placements stay either way.
 - If the `security` or `policy` category grows to roughly five rules first,
-  keep the presets: they earn their surface at that size.
+  keep the presets: the category is large enough to justify a named export.
 
 Outcome at the 3.0 boundary (2026-09-19): kept. No-usage cannot be proven
 — dependents are unmeasurable (see FEAT-002) — and the categories hold two
@@ -131,6 +132,61 @@ Trigger and conditions:
 The durable gates (lint, format, typecheck, tests, docs regeneration,
 evidence, manifest, workflow, compat, benchmark, release artifact) are not
 part of the apparatus and stay required.
+
+Status on 2026-09-21: the conditions do not hold, so the apparatus stays.
+PR #51 is closed without merging (it was a tracking-only pull request), and
+its recorded head `b87972a` is not an ancestor of `main`, so the merge
+condition is unmet as written. The ledger still carries 18 pending and 30
+live-pending criteria, all of which require a live GitHub, npm, tag, or
+review-thread audit or an explicit approval that cannot be given from a
+local checkout. `PR51-REMEDIATION-GOAL.md` is not at the repository root;
+its archived copy is on the `archive/pr51-b87972a` remote branch, which is
+the retrievable location the archive condition refers to. Retirement
+proceeds once a maintainer records the merge outcome and disposes of the
+remaining criteria here.
+
+## The sys_id allowlist is lowercase-only while detection is not (COR-018)
+
+sys_id detection in `src/utils/sysid.ts` is case-insensitive: `SYS_ID` carries
+the `i` flag, so `no-hardcoded-sysid` finds an uppercase or mixed-case literal.
+The `settings.servicenow.allowedSysIds` validator is not: it rejects anything
+that is not 32 lowercase hexadecimal characters with a
+`ServiceNowSettingsError` reading "expected a 32-character lowercase
+hexadecimal sys_id".
+
+The rule itself lowercases both the configured ids and each detected id before
+comparing, so the asymmetry never changes which literals are suppressed. It
+bites only a user who pastes an uppercase id into settings: that configuration
+throws instead of being normalized.
+
+Decision: keep the lowercase-only allowlist through 3.x. One canonical casing
+keeps the allowlist a set, which is what makes the membership test exact and
+the settings fingerprint stable.
+
+Review point: revisit if a user report shows the validation error being
+mistaken for a rule defect, or if another setting gains case-insensitive
+values — at that point one normalization policy should cover all of them.
+
+## Rule files import analysis only through the barrel (MNT-006)
+
+`src/analysis/internal.ts` is the single entry point a rule file may import
+from. A rule that reaches past it can call an analysis function that builds its
+own state instead of reading the cached `FileAnalysis`, which both costs a
+second pass and can disagree with the facts every other rule sees.
+
+The convention was previously prose in `lat.md/analysis.md`, and 14 rule files
+had drifted off it.
+
+Decision: enforce it. `assertAnalysisImportsUseBarrel` in
+`scripts/lib/catalog-gates.mjs` fails the catalog check when a rule module, or
+the delegate factory it inherits its gate from, imports `../analysis/<module>.js`
+for any module other than `internal`. `tests/catalog-gates.test.ts` covers the
+negative case.
+
+Review point: if a rule genuinely needs a symbol the barrel does not export,
+the answer is to export it from the barrel, not to widen the check. Revisit
+only if the barrel grows large enough that a second, narrower boundary is
+worth defining.
 
 ## Autofixes are out of scope until a rule ships one (MNT-001)
 

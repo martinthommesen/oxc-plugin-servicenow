@@ -386,7 +386,7 @@ PER-005 is the principal measured scaling concern: counter analysis still repeat
 
 ## Simplification and feature portfolio
 
-REM-002 remains the most valuable simplification/removal candidate, but merge alone does not authorize retirement: pending criteria, archival and durable-gate preservation are separate conditions. No new product feature is justified by the reviewed user journeys. Preserve the catalog as the single source for rule maps and generated documentation (POS-003).
+REM-002 remains the one evidenced simplification/removal candidate, but merge alone does not authorize retirement: pending criteria, archival and durable-gate preservation are separate conditions. No new product feature is justified by the reviewed user journeys. Preserve the catalog as the single source for rule maps and generated documentation (POS-003).
 
 ## Immediate actions and limitations
 
@@ -1228,7 +1228,7 @@ Current regression evidence supports the remaining relevant retirement decisions
 - REL-001/REL-003 retain SemVer prerelease handling; REL-002 retains operation bounds; REL-004's desired governance omits the benchmark required status. SEC-001 retains missing-ruleset failure. TST-001 uses clock-relative local signature fixtures; TST-002 retains required history fetches. IMP-001 uses YAML parsing and IMP-002 bounds publishing npm.
 - DOC-001 retains reproducible acceptance-input hashing; DOC-002 validates evidence URL forms, not live pages; DOC-003 has restored changelog assertions and local ancestry; DOC-004 clarifies warning/command semantics; DOC-005 supplies quiet-run troubleshooting. DOC-006 is a distinct current peer-range prose mismatch.
 
-The missing historical identity fields and unrefreshed external assertions prevent a claim of complete identity-level revalidation. MNT-004 publisher-binding controls were verified, but its full historical identity text was also unavailable in the inspected revisions. Registry reservations are kept intact rather than manufacturing certainty.
+The missing historical identity fields and unrefreshed external assertions prevent a claim of complete identity-level revalidation. MNT-004 publisher-binding controls were verified, but its full historical identity text was also unavailable in the inspected revisions. Registry reservations are kept intact rather than replaced with guessed identities.
 
 ## Historical COR-007: reproduced range-only alias recurrence, reactivation blocked
 
