@@ -112,8 +112,7 @@ function method(
   } = {},
 ): GlideMethodCapability {
   const apiScope = extra.apiScope ?? "scoped";
-  const evidenceFor =
-    extra.evidenceFor ?? ((release) => GLIDE_RECORD_EVIDENCE[release][apiScope]);
+  const evidenceFor = extra.evidenceFor ?? ((release) => GLIDE_RECORD_EVIDENCE[release][apiScope]);
   const evidence = Object.freeze(
     Object.fromEntries(
       SUPPORTED_SERVICENOW_RELEASES.map((release) => [release, evidenceFor(release)]),
