@@ -107,15 +107,16 @@ export type GlideDocumentedMethodInventory = Readonly<
 function method(
   name: string,
   roles: readonly GlideMethodRole[],
-  extra: Partial<Pick<GlideMethodCapability, "apiScope" | "supportedScopes" | "releases">> = {},
+  extra: Partial<Pick<GlideMethodCapability, "apiScope" | "supportedScopes" | "releases">> & {
+    evidenceFor?: (release: ServiceNowRelease) => string;
+  } = {},
 ): GlideMethodCapability {
   const apiScope = extra.apiScope ?? "scoped";
+  const evidenceFor =
+    extra.evidenceFor ?? ((release) => GLIDE_RECORD_EVIDENCE[release][apiScope]);
   const evidence = Object.freeze(
     Object.fromEntries(
-      SUPPORTED_SERVICENOW_RELEASES.map((release) => [
-        release,
-        GLIDE_RECORD_EVIDENCE[release][apiScope],
-      ]),
+      SUPPORTED_SERVICENOW_RELEASES.map((release) => [release, evidenceFor(release)]),
     ) as Record<ServiceNowRelease, string>,
   );
   return {
@@ -182,20 +183,8 @@ export const GLIDE_RECORD_METHODS: readonly GlideMethodCapability[] = [
 ];
 
 function aggregateMethod(name: string, roles: readonly GlideMethodRole[]): GlideMethodCapability {
-  const releases = SUPPORTED_SERVICENOW_RELEASES;
-  const evidence = Object.freeze(
-    Object.fromEntries(
-      releases.map((release) => [release, GLIDE_AGGREGATE_EVIDENCE[release].scoped]),
-    ),
-  ) as Record<ServiceNowRelease, string>;
-  const supportedScopes: readonly GlideApiScope[] = ["scoped", "global"];
-  return Object.freeze({
-    name,
-    roles,
-    evidence,
-    apiScope: "scoped" as const,
-    supportedScopes,
-    releases,
+  return method(name, roles, {
+    evidenceFor: (release) => GLIDE_AGGREGATE_EVIDENCE[release].scoped as string,
   });
 }
 
