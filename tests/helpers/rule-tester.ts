@@ -71,6 +71,21 @@ export function lintWithAnalysis(
   return { messages, analysis };
 }
 
+function lintWithSkipFlag(
+  code: string,
+  rule: RuleName,
+  options: RunOptions,
+): { messages: LintMessage[]; skipped: boolean } {
+  let skipped = false;
+  const messages = lint(code, rule, {
+    ...options,
+    onRuleSkipped: () => {
+      skipped = true;
+    },
+  });
+  return { messages, skipped };
+}
+
 function assertNoMessages(messages: LintMessage[], code: string): void {
   assert.equal(
     messages.length,
@@ -91,13 +106,7 @@ export function assertValid(code: string, rule: RuleName, options: RunOptions = 
  * silent", and `assertSkipped` for a deliberate gate skip.
  */
 export function assertValidActive(code: string, rule: RuleName, options: RunOptions = {}): void {
-  let skipped = false;
-  const messages = lint(code, rule, {
-    ...options,
-    onRuleSkipped: () => {
-      skipped = true;
-    },
-  });
+  const { messages, skipped } = lintWithSkipFlag(code, rule, options);
   assert.equal(
     skipped,
     false,
@@ -108,13 +117,7 @@ export function assertValidActive(code: string, rule: RuleName, options: RunOpti
 
 /** Asserts the rule's `before()` gate declined the file. */
 export function assertSkipped(code: string, rule: RuleName, options: RunOptions = {}): void {
-  let skipped = false;
-  lint(code, rule, {
-    ...options,
-    onRuleSkipped: () => {
-      skipped = true;
-    },
-  });
+  const { skipped } = lintWithSkipFlag(code, rule, options);
   assert.equal(
     skipped,
     true,
