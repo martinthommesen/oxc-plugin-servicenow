@@ -16,7 +16,7 @@ RUN apt-get update \
 
 # Install the pinned Bun package from the committed lockfile, then expose its
 # local binary on the system PATH for the unprivileged node user.
-COPY .cursor/package.json .cursor/package-lock.json /opt/bun/
+COPY package.json package-lock.json /opt/bun/
 RUN cd /opt/bun \
     && npm ci --ignore-scripts \
     && node node_modules/bun/install.js \

@@ -76,7 +76,7 @@ describe("tooling execution", () => {
     };
 
     assert.doesNotMatch(dockerfile, /npm install -g bun/);
-    assert.match(dockerfile, /COPY \.cursor\/package\.json \.cursor\/package-lock\.json/);
+    assert.match(dockerfile, /COPY package\.json package-lock\.json/);
     assert.match(dockerfile, /npm ci --ignore-scripts/);
     assert.match(dockerfile, /node node_modules\/bun\/install\.js/);
     assert.match(dockerfile, /\/usr\/local\/bin\/bun/);
