@@ -217,7 +217,11 @@ Registry-installed package code runs only after the release tarball is immutable
 
 The tag script creates one tag at the exact `main` commit, defaults the version to `package.json`, and returns an existing tag without a push.
 
-It refuses a version the changelog does not name before touching `main`. The workflow runs on a push to `main` that changes `package.json` or `CHANGELOG.md`, with a read-only token, no dependency install, and the app token scoped to this repository.
+It refuses a version the changelog does not name before touching `main`.
+
+### The tag workflow runs only through the controlled actor
+
+The workflow runs on a push to `main` that changes `package.json` or `CHANGELOG.md`, with a read-only token, no dependency install, and the app token scoped to this repository.
 
 ### One command prepares a release pull request
 

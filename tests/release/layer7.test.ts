@@ -537,7 +537,7 @@ describe("release automation gates", () => {
     assert.ok(reviewed.errors.includes("release environment self-review policy drifted"));
   });
 
-  // @lat: [[tests#Release governance#Merging a version tags it exactly once]]
+  // @lat: [[tests#Release governance#The tag workflow runs only through the controlled actor]]
   it("tags every push to main through the controlled actor only", () => {
     assert.deepEqual(tagWorkflow.on.push, {
       branches: ["main"],
