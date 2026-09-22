@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   changelogHasVersionHeading,
@@ -73,7 +73,9 @@ export function prepareRelease({
     encoding: "utf8",
     stdio: "pipe",
   });
-  writeFileSync(changelogPath, changelog);
+  const staged = `${changelogPath}.tmp`;
+  writeFileSync(staged, changelog);
+  renameSync(staged, changelogPath);
   return { version, date, files: ["package.json", "package-lock.json", "CHANGELOG.md"] };
 }
 
