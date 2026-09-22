@@ -1,0 +1,148 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# CodeRabbit review policy. The repository's own gates (oxlint, oxfmt, tsc,
+# the catalog checks, and the release governance audit) are the hard checks;
+# this review is advisory and must never block the automated release path.
+language: en-US
+tone_instructions: >-
+  Be direct and specific. Cite the file and line. Say what would break and how
+  you know. Skip praise, restatement of the diff, and style remarks that oxfmt
+  or oxlint already enforce.
+
+reviews:
+  profile: assertive
+  request_changes_workflow: false
+  high_level_summary: true
+  high_level_summary_instructions: >-
+    Summarize the user-visible effect on lint results, presets, settings, or
+    the release pipeline. Name any rule whose diagnostics change.
+  review_status: true
+  poem: false
+  collapse_walkthrough: true
+  auto_review:
+    enabled: true
+    drafts: false
+    ignore_title_keywords:
+      - "chore(release)"
+      - "build(deps"
+
+  path_filters:
+    - "!dist/**"
+    - "!artifacts/**"
+    - "!lat.md/.cache/**"
+    - "!package-lock.json"
+    - "!docs/pr-51-acceptance-ledger.md"
+    - "!docs/pr-51-validation-report.md"
+    - "!tests/fixtures/**"
+
+  path_instructions:
+    - path: "src/rules/**"
+      instructions: |
+        A rule reports diagnostics only; no fixes or suggestions. It must stay
+        silent when provenance, mode, surface, or control flow is unknown, and
+        declining a file in `before()` is different from passing it. Check that
+        per-file state is reset in `before()`, that every diagnostic maps to a
+        catalog message, and that the applicability gate matches what the
+        descriptor in `src/catalog/` claims. See `docs/rule-authoring.md`.
+    - path: "src/catalog/**"
+      instructions: |
+        The catalog is the single rule registry. Every evidence claim needs a
+        release-pinned official URL or an in-repo proof, and a rule versioned
+        by instance release must not claim a Fluent SDK range or vice versa.
+        Flag prose that asserts support without evidence.
+    - path: "src/analysis/**"
+      instructions: |
+        Path-sensitive analysis must report exhaustion as a value, never as a
+        partial finding. Look for state that leaks across files, loops that
+        lack a fixpoint bound, and identity checks that trust shadowed or
+        escaped bindings.
+    - path: "tests/**"
+      instructions: |
+        Tests use node:test and the harness in `tests/helpers/`. Prefer
+        `assertValidActive` over a bare "no diagnostics" assertion so a rule
+        that silently declines cannot pass. Integration tests must run the real
+        oxlint or ESLint host. Flag assertions that merely restate the
+        implementation or fixture data.
+    - path: "scripts/**"
+      instructions: |
+        Scripts are type-checked JavaScript under `tsconfig.scripts.json`.
+        Release scripts are security boundaries: check that nothing publishes,
+        tags, or changes repository settings outside the documented workflow,
+        that untrusted input cannot reach a shell, and that failures throw
+        rather than print and continue.
+    - path: ".github/workflows/**"
+      instructions: |
+        Actions must be pinned to full commit SHAs via `scripts/action-pins.json`.
+        Each job should hold the least permission it needs; `persist-credentials`
+        must be false on checkout. The release workflow must keep validation,
+        publish, verification, and GitHub release in separate jobs, and no job
+        may rebuild the package after the tarball is uploaded. Compare against
+        `docs/release.md` and flag any new privilege or trigger.
+    - path: "lat.md/**"
+      instructions: |
+        Every section needs a leading paragraph of at most 250 characters, and
+        every leaf under `tests.md` must be referenced by a `@lat:` comment in a
+        test. Flag sections that restate generated tables instead of linking,
+        and prose that describes behavior the code does not have.
+    - path: "docs/**"
+      instructions: |
+        Rule pages under `docs/rules/` are generated; edits belong in the
+        catalog. For hand-written docs, check that commands and file paths
+        exist and that version and peer-range claims match `package.json`.
+
+  pre_merge_checks:
+    title:
+      mode: warning
+      requirements: >-
+        Conventional Commits: `<type>(<optional scope>): <description>` with
+        type in feat, fix, docs, style, refactor, perf, test, build, ci, chore,
+        revert; lowercase imperative description; `!` after the type for a
+        breaking change.
+    description:
+      mode: warning
+    custom_checks:
+      - name: "Changelog for user-visible changes"
+        mode: warning
+        instructions: >-
+          A change to a rule's diagnostics, a preset, a setting, or the public
+          export surface must add a note under `## Unreleased` in
+          `CHANGELOG.md`. Pass when the change is internal, a test, a doc, or
+          the note is present.
+      - name: "lat.md kept in sync"
+        mode: warning
+        instructions: >-
+          A change to architecture, invariants, or test specifications must
+          update the matching section in `lat.md/`. Pass when the change is
+          purely mechanical or the relevant section already reflects it.
+
+  tools:
+    actionlint:
+      enabled: true
+    gitleaks:
+      enabled: true
+    github-checks:
+      enabled: true
+    markdownlint:
+      enabled: true
+    yamllint:
+      enabled: true
+    shellcheck:
+      enabled: true
+    eslint:
+      enabled: false
+    biome:
+      enabled: false
+
+chat:
+  auto_reply: true
+
+knowledge_base:
+  opt_out: false
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - files: "AGENTS.md, CONTRIBUTING.md, lat.md/invariants.md"
+        applyTo: "**"
+      - files: "docs/rule-authoring.md, lat.md/rules.md"
+        applyTo: "src/rules/**, src/catalog/**"
+      - files: "docs/release.md"
+        applyTo: ".github/workflows/**, scripts/**"

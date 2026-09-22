@@ -54,6 +54,15 @@ Read [Non-goals and rejected rule ideas](docs/non-goals.md) before you propose a
 
 The plugin reports diagnostics only. No rule ships a fix or a suggestion, and the test harness has no fix application support. If a future rule needs a semantics-preserving rewrite, reintroduce the fix machinery from history together with exact output, syntax validity, idempotence, and comment-preservation tests.
 
+## Code review
+
+Two review bots read every non-release pull request. Neither is a required check, and neither can block a merge; the required status checks and the governance audit remain the gates.
+
+- CodeRabbit follows `.coderabbit.yaml`: an assertive profile with path-specific instructions for rules, analysis, tests, scripts, workflows, and `lat.md/`, plus warning-level pre-merge checks for the Conventional Commits title, a changelog note, and `lat.md/` sync. It skips drafts, release pull requests, and Dependabot updates. The CodeRabbit GitHub App must be installed on the repository for the file to take effect.
+- GitHub Copilot is requested automatically by the `Copilot code review` ruleset on every pull request to `main` and on each new push. Its guidance comes from `.github/copilot-instructions.md` and the path-specific files under `.github/instructions/`. The review effort level and auto-approval are repository settings under Copilot, Code review; approvals do not count toward merge requirements.
+
+Treat bot findings as input, not verdicts. Resolve or answer each thread; the `main` ruleset requires review threads to be resolved before merge.
+
 ## Changelog
 
 Add a short note under `Unreleased` in `CHANGELOG.md` for user-visible rule, preset, or settings changes. `npm run release:prepare -- <version>` moves those notes under the exact heading `## <version> — YYYY-MM-DD` when a release is cut. The heading must be the first version heading after `Unreleased`.
