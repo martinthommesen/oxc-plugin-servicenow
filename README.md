@@ -1,9 +1,9 @@
 # oxc-plugin-servicenow
 
-First-class **[oxlint](https://oxc.rs/docs/guide/usage/linter.html)** + **[oxfmt](https://oxc.rs/docs/guide/usage/formatter.html)** tooling for:
+**[oxlint](https://oxc.rs/docs/guide/usage/linter.html)** + **[oxfmt](https://oxc.rs/docs/guide/usage/formatter.html)** tooling for:
 
 1. **ServiceNow Fluent** — TypeScript DSL in `.now.ts` files, powered by [`@servicenow/sdk`](https://servicenow.github.io/sdk/guides/fluent-overview)
-2. **Classic ServiceNow JavaScript** — Business Rules, Client Scripts, Script Includes, UI Actions, and everything else still running on the restricted platform engine
+2. **Classic ServiceNow JavaScript** — Business Rules, Client Scripts, Script Includes, UI Actions, ACLs, and scheduled and fix scripts running on the restricted platform engine
 
 The plugin is written against the official [`@oxlint/plugins`](https://www.npmjs.com/package/@oxlint/plugins) API (`definePlugin` + `defineRule` + `createOnce`) and is wrapped with `eslintCompatPlugin`, so the same package works in **oxlint** and **ESLint 9+**.
 
@@ -29,11 +29,11 @@ Other source and `dist` paths are internal. Do not import them.
 
 ## Why this exists
 
-ServiceNow apps now live in two worlds at once.
+ServiceNow apps mix two script kinds: Fluent metadata and classic instance scripts.
 
 Fluent `.now.ts` files are **declarative metadata**. They should import from `@servicenow/sdk/core`, declare `$id: Now.ID['…']`, and keep business logic out of the metadata object.
 
-Classic scripts still run on a **restricted, mode-dependent engine**. Compatibility and ES5 Standards reject many modern features. ES2021 supports Promise, async/await, and optional chaining, but still disallows async iteration, WeakRef, and FinalizationRegistry. `current.update()` in a Business Rule retriggers the rule engine. Client-side `GlideRecord` is slow and often blocked. Hardcoded sys_ids rot the moment the app is installed on another instance.
+Classic scripts still run on a **restricted, mode-dependent engine**. Compatibility and ES5 Standards reject many modern features. ES2021 supports Promise, async/await, and optional chaining, but still disallows async iteration, WeakRef, and FinalizationRegistry. `current.update()` in a Business Rule retriggers the rule engine. Client-side `GlideRecord` retrieves all fields and is unsupported in scoped applications. Hardcoded sys_ids no longer match after the app is installed on another instance.
 
 This package does **not** treat every non-Fluent file as ES5. Unknown JavaScript mode stays unknown. Mode-specific rules skip rather than guess.
 
@@ -99,18 +99,18 @@ export default defineConfig({
 
 ### Presets
 
-| Preset | Intent |
-| --- | --- |
-| `configs.recommendedRules` | High-confidence rules that stay quiet when the runtime mode or surface is unknown. |
-| `configs.classicEs5Rules` | Compatibility / ES5 engine bans (Promise, async/await, `?.`, WeakMap, …). |
-| `configs.es2021Rules` | Features still unavailable after ES2021, including universal restrictions and release-dependent BigInt typed-array support. |
-| `configs.clientRules` | Client-side API rules. |
-| `configs.aclRules` | ACL-specific review rules. |
-| `configs.businessRuleRules` | Business Rule rules. |
-| `configs.fluentRules` | Fluent `.now.ts` metadata rules. |
-| `configs.strictRules` | Recommended plus warn-level performance and naming guidance. Does not promote heuristics to errors. |
-| `configs.policyRules` | Optional organizational and migration policy (`no-hardcoded-table-names`, `no-complex-fluent-logic`, `no-packages-calls`). |
-| `configs.securityRules` | Opt-in privilege-sensitive review rules such as `no-system-query-bypass`. |
+| Preset | Flat | Intent |
+| --- | --- | --- |
+| `configs.recommendedRules` | `configs.flat.recommended` | High-confidence rules that stay quiet when the runtime mode or surface is unknown. |
+| `configs.classicEs5Rules` | `configs.flat.classicEs5` | Compatibility / ES5 engine bans (Promise, async/await, `?.`, WeakMap, …). |
+| `configs.es2021Rules` | `configs.flat.es2021` | Features still unavailable after ES2021, including universal restrictions and release-dependent BigInt typed-array support. |
+| `configs.clientRules` | `configs.flat.client` | Client-side API rules. |
+| `configs.aclRules` | `configs.flat.acl` | ACL-specific review rules. |
+| `configs.businessRuleRules` | `configs.flat.businessRule` | Business Rule rules. |
+| `configs.fluentRules` | `configs.flat.fluent` | Fluent `.now.ts` metadata rules. |
+| `configs.strictRules` | `configs.flat.strict` | Recommended plus warn-level performance and naming guidance. Does not promote heuristics to errors. |
+| `configs.policyRules` | `configs.flat.policy` | Optional organizational and migration policy (`no-hardcoded-table-names`, `no-complex-fluent-logic`, `no-packages-calls`). |
+| `configs.securityRules` | `configs.flat.security` | Opt-in privilege-sensitive review rules such as `no-system-query-bypass`. |
 
 ---
 
@@ -147,7 +147,7 @@ What the preset does:
 | Files | Style |
 | --- | --- |
 | `**/*.now.ts`, `**/*.now.tsx` | TypeScript / Fluent — single quotes, trailing commas, width 100 |
-| `**/*.{server,client,br,si,acl}.js`, `**/*.ui-action.js`, `src/{server,client}/**`, ACL directories | Classic Studio style — double quotes, no trailing commas, width 120. Includes compound `.client.ui-action.js` and `.server.ui-action.js` suffixes. |
+| `**/*.{server,client,br,si,acl}.js`, `**/*.ui-action.js`, `**/src/server/**/*.js`, `**/src/client/**/*.js`, ACL directories | Classic Studio style — double quotes, no trailing commas, width 120. Includes compound `.client.ui-action.js` and `.server.ui-action.js` suffixes. |
 | `**/now.config.json`, `**/.oxlintrc.json`, `**/.oxfmtrc.json` | Configuration files — width 80, no trailing commas |
 | `**/node_modules/**`, `**/dist/**`, `**/build/**`, `**/.now/**`, `**/keys.ts`, `**/*.min.js` | Ignored (build output and SDK sync artefacts) |
 
@@ -157,7 +157,7 @@ Then:
 npx oxfmt --write .
 ```
 
-`.now.ts` is TypeScript. oxfmt already knows how to format it; the preset just picks Fluent-friendly options.
+`.now.ts` is TypeScript. oxfmt already knows how to format it; the preset selects Fluent-friendly options.
 
 ---
 
@@ -184,7 +184,7 @@ The flat presets set `files` so ESLint 10 opens classic `*.js` / `*.cjs` / `*.mj
 
 oxlint parses TypeScript itself. ESLint uses its default JS parser, so type annotations (`import type`, `: string`) in `.now.ts` fail to parse when you use only `plugin.configs.flat.recommended`.
 
-For typed Fluent files, compose the recommended (or strict) preset with a TypeScript parser. This package tests [`typescript-eslint`](https://typescript-eslint.io/getting-started/) `8.x` with ESLint 9. `typescript-eslint` 8 does not accept ESLint 10 as a peer. Type-aware linting is not required.
+For typed Fluent files, compose the recommended (or strict) preset with a TypeScript parser. This package tests [`typescript-eslint`](https://typescript-eslint.io/getting-started/) `8.70.0` with ESLint 9.39.5 and ESLint 10.11.0. On ESLint 10, use `typescript-eslint` 8.56.0 or later. Type-aware linting is not required.
 
 ```js
 // eslint.config.js — typed Fluent composition
@@ -208,7 +208,7 @@ export default [
 
 Ordinary TypeScript outside `*.now.ts` / `*.now.tsx` stays unaffected unless you add those files to the config yourself.
 
-To run these rules on server TypeScript (`src/server/**/*.ts`), add a `files` override. Set `settings.servicenow.javascriptMode` to `es2021` or `es5` for those files. `ecmaLatest` and `// @sn-es-latest` still map to `es2021` for one major-release cycle.
+To run these rules on server TypeScript (`src/server/**/*.ts`), add a `files` override. Set `settings.servicenow.javascriptMode` to `es2021` or `es5` for those files. `ecmaLatest` still maps `true` to `es2021` with a deprecation; the `// @sn-es-latest` pragma was retired in 3.0.0.
 
 ---
 
@@ -276,9 +276,9 @@ Configure once. Invalid keys, types, or conflicting values throw a configuration
 | `scriptType` | **Deprecated.** Use `authoring` and `surfaces`. |
 | `ecmaLatest` | **Deprecated.** `true` maps to `javascriptMode: "es2021"`. `false` does not assume ES5. |
 
-Australia support is release-aware rather than a renamed Zurich default:
+Australia support reads release-specific capability cells:
 
-The generated [Australia JavaScript engine update ledger](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/australia-engine-updates.md) maps every official Rhino update row to an implemented diagnostic, a deliberate metadata-only disposition, or explicit pending research. Pending rows are not counted as supported.
+The generated [Australia JavaScript engine update ledger](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/australia-engine-updates.md) maps every official Rhino update row to an implemented diagnostic, a deliberate metadata-only disposition, or explicit pending research. Pending rows are not counted as supported.
 
 | Engine capability | Zurich ES2021 | Australia ES2021 | ES5 Standards |
 | --- | --- | --- | --- |
@@ -296,7 +296,11 @@ The generated [Australia JavaScript engine update ledger](https://github.com/mar
 
 ServiceNow publishes feature-table columns for ES2021 and ES5 Standards, while documenting Compatibility as a distinct third mode. The plugin deliberately applies each feature-table ES5 cell to Compatibility mode as package policy; capability metadata marks those inferred cells separately from official table cells. Update-ledger entries explicitly marked for all modes, such as Australia's variable-length Date fractions, are modeled directly for Compatibility instead of using that inference. “Not Supported” retains ServiceNow's precise meaning: the feature has not been validated for that release and mode, unlike “Disallowed,” which produces a platform error.
 
-The narrow `Function.prototype.toString()` delta is recorded as compatibility knowledge but has no lint diagnostic: static analysis cannot prove that code depends on exact returned method source text without unacceptable false positives. The `Function.prototype.call()` / `.apply()` correction is also metadata-only. Before the upstream fix, nullish-`thisArg` handling depended both on function strictness and on Rhino's interpreted-versus-compiled execution path; source analysis cannot prove which legacy path ServiceNow will select. `no-unhoisted-block-function-use` covers the deterministic hoisting delta: it reports only a binding-proven read before a nested-block declaration in the same execution body, excluding deferred functions, classes, switch cases, mutable bindings, and dynamic scope. `no-object-method-constructor` covers Australia's stricter method construction: it reports only direct `new` calls whose shorthand object-method identity is stable through immutable object and method aliases. `no-incorrect-bigint-asuintn` is intentionally narrower: it reports only literal negative-input calls where the pre-Australia and specified unsigned results are provably different. `no-incorrect-array-from-thisarg` likewise requires a stable native `Array.from`, a syntax-proven mapper, and either a static primitive third argument or a non-strict mapper that reads its own `this` with no third argument. ServiceNow's unversioned Australia reference URLs were reviewed with the official `Australia` release label and March 12, 2026 update date; those source markers are pinned beside the capability tables so a later default-documentation change cannot silently relabel the review. Australia release notes identify the SDK 4.4 family. The plugin keeps `fluentSdkVersion` independent so users can select a reviewed declaration manifest; that setting does not assert that an SDK version is compatible with a particular instance.
+The narrow `Function.prototype.toString()` delta is recorded as compatibility knowledge but has no lint diagnostic: static analysis cannot prove that code depends on exact returned method source text without unacceptable false positives. The `Function.prototype.call()` / `.apply()` correction is also metadata-only. Before the upstream fix, nullish-`thisArg` handling depended both on function strictness and on Rhino's interpreted-versus-compiled execution path; source analysis cannot prove which legacy path ServiceNow will select.
+
+`no-unhoisted-block-function-use` covers the deterministic hoisting delta: it reports only a binding-proven read before a nested-block declaration in the same execution body, excluding deferred functions, classes, switch cases, mutable bindings, and dynamic scope. `no-object-method-constructor` covers Australia's stricter method construction: it reports only direct `new` calls whose shorthand object-method identity is stable through immutable object and method aliases. `no-incorrect-bigint-asuintn` is intentionally narrower: it reports only literal negative-input calls where the pre-Australia and specified unsigned results are provably different. `no-incorrect-array-from-thisarg` likewise requires a stable native `Array.from`, a syntax-proven mapper, and either a static primitive third argument or a non-strict mapper that reads its own `this` with no third argument.
+
+ServiceNow's unversioned Australia reference URLs were reviewed with the official `Australia` release label and March 12, 2026 update date; those source markers are pinned beside the capability tables so a later default-documentation change cannot silently relabel the review. Australia release notes identify the SDK 4.4 family. The plugin keeps `fluentSdkVersion` independent so users can select a reviewed declaration manifest; that setting does not assert that an SDK version is compatible with a particular instance.
 
 Mixed-repository composition:
 
@@ -327,7 +331,7 @@ export default defineConfig({
 });
 ```
 
-Per-file `// @sn-es-latest` still maps to `es2021` with inferred confidence. Prefer `javascriptMode` in settings.
+The `// @sn-es-latest` pragma was retired in 3.0.0 and is ignored; pragma-only files resolve `unknown` JavaScript mode. Set `javascriptMode` in settings instead.
 
 ---
 
@@ -336,32 +340,31 @@ Per-file `// @sn-es-latest` still maps to `es2021` with inferred confidence. Pre
 ### Classic ServiceNow
 
 <!-- generated:classic-rules:start -->
-| Rule | Preset | Fix | What it catches |
+| Rule | Profile | Fix | What it catches |
 | --- | --- | --- | --- |
-| [`no-hardcoded-sysid`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-hardcoded-sysid.md) | recommended |  | Hardcoded 32-character sys_ids break when an app is installed on another instance |
-| [`prefer-glideaggregate`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/prefer-glideaggregate.md) | strict |  | `GlideRecord.getRowCount()` (and iterate-to-count loops) load every matching row |
-| [`no-client-gliderecord`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-client-gliderecord.md) | recommended |  | Proven platform GlideRecord calls are unsupported in scoped client applications |
-| [`no-gs-now`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-gs-now.md) | recommended |  | `gs.now()` and `gs.nowDateTime()` return timezone-sensitive display strings |
-| [`require-query-before-next`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/require-query-before-next.md) | recommended |  | Require a documented, scope-supported GlideRecord query executor before `.next()` or `._next()` |
-| [`validate-gliderecord-calls`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/validate-gliderecord-calls.md) | off |  | Deprecated alias, scheduled for removal in 3.0 |
-| [`no-br-current-update`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-br-current-update.md) | recommended |  | `current.update()` retriggers other Business Rules and can recurse |
-| [`no-hardcoded-table-names`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-hardcoded-table-names.md) | policy |  | Optional organizational policy |
-| [`no-packages-calls`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-packages-calls.md) | policy |  | Optional migration policy |
-| [`no-delete-multiple-with-windowing`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-delete-multiple-with-windowing.md) | recommended |  | `setLimit()` and `chooseWindow()` do not limit `deleteMultiple()` |
-| [`require-callback-for-getreference`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/require-callback-for-getreference.md) | recommended |  | `g_form.getReference(field)` without a callback is a synchronous server request |
-| [`require-glideajax-sysparm-name`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/require-glideajax-sysparm-name.md) | recommended |  | GlideAjax requires a non-empty `addParam("sysparm_name", method)` before `getXML` / `getXMLAnswer` / `getXMLWait` |
-| [`validate-glideaggregate-calls`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/validate-glideaggregate-calls.md) | recommended |  | A proven GlideAggregate must call `query()` before `next()` or `getAggregate()` |
-| [`no-glideajax-getanswer`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-glideajax-getanswer.md) | recommended |  | `getAnswer()` belongs to synchronous GlideAjax |
-| [`no-glideelement-in-collection`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-glideelement-in-collection.md) | recommended |  | Direct GlideRecord field access and path-proven local aliases are GlideElements tied to the cursor |
-| [`no-gliderecord-query-modifier-after-query`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-gliderecord-query-modifier-after-query.md) | recommended |  | Filters and result-shaping calls after a documented query executor do not change the open cursor |
-| [`require-business-rule-wrapper`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/require-business-rule-wrapper.md) | recommended |  | Full-script Business Rules must wrap logic in the standard IIFE so top-level variables do not leak |
-| [`no-display-value-date-comparison`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-display-value-date-comparison.md) | strict |  | Do not relationally compare `GlideDateTime.getDisplayValue()` strings |
-| [`no-unfiltered-gliderecord-bulk-operation`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-unfiltered-gliderecord-bulk-operation.md) | recommended |  | `updateMultiple()` / `deleteMultiple()` without a proven restricting filter can touch every row |
-| [`no-gliderecord-query-in-acl`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-gliderecord-query-in-acl.md) | strict |  | Review proven GlideRecord, GlideRecordSecure, and GlideAggregate query executions on an ACL's immediate evaluation path |
-| [`no-gliderecord-query-in-loop`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-gliderecord-query-in-loop.md) | strict |  | A query inside a proven record cursor loop is an N+1 pattern |
-| [`prefer-setnocount-with-choosewindow`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/prefer-setnocount-with-choosewindow.md) | strict |  | The reviewed Zurich and Australia-scoped GlideRecord references document that `query()` after `chooseWindow()` runs `COUNT(*)` unless `setNoCount()` or `setLimit()` skips it |
-| [`no-system-query-bypass`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-system-query-bypass.md) | security |  | Opt-in security review for documented ACL-bypass query APIs |
-| [`no-sync-glideajax`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-sync-glideajax.md) | recommended |  | `getXMLWait()` blocks the browser and does not work in Service Portal |
+| [`no-hardcoded-sysid`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/no-hardcoded-sysid.md) | recommended |  | Hardcoded 32-character sys_ids break when an app is installed on another instance |
+| [`prefer-glideaggregate`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/prefer-glideaggregate.md) | strict |  | `GlideRecord.getRowCount()` (and iterate-to-count loops) load every matching row |
+| [`no-client-gliderecord`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/no-client-gliderecord.md) | recommended |  | Proven platform GlideRecord calls are unsupported in scoped client applications |
+| [`no-gs-now`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/no-gs-now.md) | recommended |  | `gs.now()` and `gs.nowDateTime()` return timezone-sensitive display strings |
+| [`require-query-before-next`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/require-query-before-next.md) | recommended |  | Require a documented, scope-supported GlideRecord query executor before `.next()` or `._next()` |
+| [`no-br-current-update`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/no-br-current-update.md) | recommended |  | `current.update()` retriggers other Business Rules and can recurse |
+| [`no-hardcoded-table-names`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/no-hardcoded-table-names.md) | policy |  | Optional organizational policy |
+| [`no-packages-calls`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/no-packages-calls.md) | policy |  | Optional migration policy |
+| [`no-delete-multiple-with-windowing`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/no-delete-multiple-with-windowing.md) | recommended |  | `setLimit()` and `chooseWindow()` do not limit `deleteMultiple()` |
+| [`require-callback-for-getreference`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/require-callback-for-getreference.md) | recommended |  | `g_form.getReference(field)` without a callback is a synchronous server request |
+| [`require-glideajax-sysparm-name`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/require-glideajax-sysparm-name.md) | recommended |  | GlideAjax requires a non-empty `addParam("sysparm_name", method)` before `getXML` / `getXMLAnswer` / `getXMLWait` |
+| [`validate-glideaggregate-calls`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/validate-glideaggregate-calls.md) | recommended |  | A proven GlideAggregate must call `query()` before `next()` or `getAggregate()` |
+| [`no-glideajax-getanswer`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/no-glideajax-getanswer.md) | recommended |  | `getAnswer()` belongs to synchronous GlideAjax |
+| [`no-glideelement-in-collection`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/no-glideelement-in-collection.md) | recommended |  | Direct GlideRecord field access and path-proven local aliases are GlideElements tied to the cursor |
+| [`no-gliderecord-query-modifier-after-query`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/no-gliderecord-query-modifier-after-query.md) | recommended |  | Filters and result-shaping calls after a documented query executor do not change the open cursor |
+| [`require-business-rule-wrapper`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/require-business-rule-wrapper.md) | recommended |  | Full-script Business Rules must wrap logic in the standard IIFE so top-level variables do not leak |
+| [`no-display-value-date-comparison`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/no-display-value-date-comparison.md) | strict |  | Do not relationally compare `GlideDateTime.getDisplayValue()` strings |
+| [`no-unfiltered-gliderecord-bulk-operation`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/no-unfiltered-gliderecord-bulk-operation.md) | recommended |  | `updateMultiple()` / `deleteMultiple()` without a proven restricting filter can touch every row |
+| [`no-gliderecord-query-in-acl`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/no-gliderecord-query-in-acl.md) | strict |  | Review proven GlideRecord, GlideRecordSecure, and GlideAggregate query executions on an ACL's immediate evaluation path |
+| [`no-gliderecord-query-in-loop`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/no-gliderecord-query-in-loop.md) | strict |  | A query inside a proven record cursor loop is an N+1 pattern |
+| [`prefer-setnocount-with-choosewindow`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/prefer-setnocount-with-choosewindow.md) | strict |  | The reviewed Zurich and Australia-scoped GlideRecord references document that `query()` after `chooseWindow()` runs `COUNT(*)` unless `setNoCount()` or `setLimit()` skips it |
+| [`no-system-query-bypass`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/no-system-query-bypass.md) | security |  | Opt-in security review for documented ACL-bypass query APIs |
+| [`no-sync-glideajax`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/no-sync-glideajax.md) | recommended |  | `getXMLWait()` blocks the browser and does not work in Service Portal |
 <!-- generated:classic-rules:end -->
 
 ### Instance engine (mode-specific)
@@ -369,42 +372,42 @@ Per-file `// @sn-es-latest` still maps to `es2021` with inferred confidence. Pre
 These rules run only when `javascriptMode` is known, except features that ServiceNow documents as unavailable in every instance mode for the selected release.
 
 <!-- generated:engine-rules:start -->
-| Rule | Preset | What it catches |
+| Rule | Profile | What it catches |
 | --- | --- | --- |
-| [`no-promise`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-promise.md) | classic-es5 | Compatibility and ES5 Standards modes do not implement Promises |
-| [`no-async-await`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-async-await.md) | classic-es5 | async/await is not implemented in Compatibility or ES5 Standards mode |
-| [`no-bigint`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-bigint.md) | classic-es5 | BigInt literals and `BigInt()` are unsupported in Compatibility or ES5 Standards mode |
-| [`no-incorrect-array-from-thisarg`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-incorrect-array-from-thisarg.md) | es2021 | Zurich throws when Array.from receives an explicit primitive mapper thisArg—even for an empty source, because conversion precedes iteration—and gives a non-strict mapper the wrong this when that argument is omitted |
-| [`no-unhoisted-block-function-use`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-unhoisted-block-function-use.md) | classic-es5 | Before Australia, ServiceNow does not correctly hoist nested block function declarations to block entry |
-| [`no-object-method-constructor`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-object-method-constructor.md) | es2021 | ServiceNow Australia enforces ECMAScript's non-constructible shorthand object methods, while Zurich's ES2021 engine incorrectly permits them |
-| [`no-incorrect-bigint-asuintn`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-incorrect-bigint-asuintn.md) | es2021 | Zurich can return a negative input unchanged from BigInt.asUintN() when the requested width exceeds the input's signed byte representation; Australia corrects the ES2021 behavior |
-| [`no-at-method`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-at-method.md) | classic-es5 | `.at()` is not implemented in Compatibility or ES5 Standards mode |
-| [`no-weak-references`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-weak-references.md) | recommended | WeakRef and FinalizationRegistry are disallowed in every instance JavaScript mode, including ES2021 |
-| [`no-map-set`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-map-set.md) | classic-es5 | ServiceNow supports Map and Set in ES2021 but not in Compatibility or ES5 Standards mode in either Zurich or Australia |
-| [`no-weak-collections`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-weak-collections.md) | classic-es5 | WeakMap and WeakSet are disallowed in Compatibility and ES5 Standards mode |
-| [`no-object-hasown`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-object-hasown.md) | classic-es5 | `Object.hasOwn()` is Not Supported in Zurich ES2021 and Australia ES5; Australia ES2021 Supports it |
-| [`no-unsupported-date-fraction`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-unsupported-date-fraction.md) | classic-es5 | Australia adds variable-length ISO fractional-second parsing to all JavaScript modes, while Zurich accepts fractional seconds only when exactly three digits are present |
-| [`no-unsupported-set-methods`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-unsupported-set-methods.md) | es2021 | Set.prototype.intersection(), union(), difference(), symmetricDifference(), isSubsetOf(), isSupersetOf(), and isDisjointFrom() are available in Australia ES2021 but not Zurich ES2021 |
-| [`no-unsupported-static-methods`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-unsupported-static-methods.md) | es2021 | Error.isError(), Promise.try(), and Promise.withResolvers() are available in Australia ES2021 but not Zurich ES2021 |
-| [`no-typed-arrays`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-typed-arrays.md) | classic-es5 | General TypedArray constructors and DataView construction are Disallowed by the ES5 cell, while BigInt64Array and BigUint64Array are Not Supported there |
-| [`no-proxy`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-proxy.md) | classic-es5 | `Proxy` is unsupported in Compatibility and ES5 Standards mode |
-| [`no-unsupported-syntax`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-unsupported-syntax.md) | classic-es5 | The ES5 table marks ordinary object shorthand methods Not Supported and async/generator methods Disallowed |
-| [`no-async-iterators`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-async-iterators.md) | recommended | `for await…of` and async generators are disallowed in every instance JavaScript mode, including ES2021 |
+| [`no-promise`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/no-promise.md) | classic-es5 | Compatibility and ES5 Standards modes do not implement Promises |
+| [`no-async-await`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/no-async-await.md) | classic-es5 | async/await is not implemented in Compatibility or ES5 Standards mode |
+| [`no-bigint`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/no-bigint.md) | classic-es5 | BigInt literals and `BigInt()` are unsupported in Compatibility or ES5 Standards mode |
+| [`no-incorrect-array-from-thisarg`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/no-incorrect-array-from-thisarg.md) | es2021 | Zurich throws when Array.from receives an explicit primitive mapper thisArg—even for an empty source, because conversion precedes iteration—and gives a non-strict mapper the wrong this when that argument is omitted |
+| [`no-unhoisted-block-function-use`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/no-unhoisted-block-function-use.md) | classic-es5 | Before Australia, ServiceNow does not correctly hoist nested block function declarations to block entry |
+| [`no-object-method-constructor`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/no-object-method-constructor.md) | es2021 | ServiceNow Australia enforces ECMAScript's non-constructible shorthand object methods, while Zurich's ES2021 engine incorrectly permits them |
+| [`no-incorrect-bigint-asuintn`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/no-incorrect-bigint-asuintn.md) | es2021 | Zurich can return a negative input unchanged from BigInt.asUintN() when the requested width exceeds the input's signed byte representation; Australia corrects the ES2021 behavior |
+| [`no-at-method`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/no-at-method.md) | classic-es5 | `.at()` is not implemented in Compatibility or ES5 Standards mode |
+| [`no-weak-references`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/no-weak-references.md) | recommended | WeakRef and FinalizationRegistry are disallowed in every instance JavaScript mode, including ES2021 |
+| [`no-map-set`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/no-map-set.md) | classic-es5 | ServiceNow supports Map and Set in ES2021 but not in Compatibility or ES5 Standards mode in either Zurich or Australia |
+| [`no-weak-collections`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/no-weak-collections.md) | classic-es5 | WeakMap and WeakSet are disallowed in Compatibility and ES5 Standards mode |
+| [`no-object-hasown`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/no-object-hasown.md) | classic-es5 | `Object.hasOwn()` is Not Supported in Zurich ES2021 and Australia ES5; Australia ES2021 Supports it |
+| [`no-unsupported-date-fraction`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/no-unsupported-date-fraction.md) | classic-es5 | Australia adds variable-length ISO fractional-second parsing to all JavaScript modes, while Zurich accepts fractional seconds only when exactly three digits are present |
+| [`no-unsupported-set-methods`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/no-unsupported-set-methods.md) | es2021 | Set.prototype.intersection(), union(), difference(), symmetricDifference(), isSubsetOf(), isSupersetOf(), and isDisjointFrom() are available in Australia ES2021 but not Zurich ES2021 |
+| [`no-unsupported-static-methods`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/no-unsupported-static-methods.md) | classic-es5 | Error.isError(), Promise.try(), and Promise.withResolvers() are available in Australia ES2021 but not Zurich ES2021 |
+| [`no-typed-arrays`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/no-typed-arrays.md) | classic-es5 | General TypedArray constructors and DataView construction are Disallowed by the ES5 cell, while BigInt64Array and BigUint64Array are Not Supported there |
+| [`no-proxy`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/no-proxy.md) | classic-es5 | `Proxy` is unsupported in Compatibility and ES5 Standards mode |
+| [`no-unsupported-syntax`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/no-unsupported-syntax.md) | classic-es5 | The ES5 table marks ordinary object shorthand methods Not Supported and async/generator methods Disallowed |
+| [`no-async-iterators`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/no-async-iterators.md) | recommended | `for await…of` and async generators are disallowed in every instance JavaScript mode, including ES2021 |
 <!-- generated:engine-rules:end -->
 
 ### Fluent (`.now.ts`)
 
 <!-- generated:fluent-rules:start -->
-| Rule | Preset | Fix | What it catches |
+| Rule | Profile | Fix | What it catches |
 | --- | --- | --- | --- |
-| [`fluent-proper-imports`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/fluent-proper-imports.md) | recommended |  | Fluent entity and column APIs must be imported from the module recorded in the selected SDK manifest |
-| [`fluent-directives`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/fluent-directives.md) | recommended |  | Validate documented ServiceNow Fluent SDK directive names and placement |
-| [`prefer-now-include`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/prefer-now-include.md) | strict |  | Large inline `script` / HTML / CSS payloads belong in their own file and should be loaded with `Now.include()` |
-| [`require-fluent-id`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/require-fluent-id.md) | recommended |  | Fluent entities must declare `$id` when the selected SDK manifest marks the imported factory as requiring an id |
-| [`fluent-naming-convention`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/fluent-naming-convention.md) | strict |  | `.now.ts` files and `Now.ID` keys should be kebab-case |
-| [`no-complex-fluent-logic`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-complex-fluent-logic.md) | policy |  | Optional architectural policy |
-| [`no-now-id-as-reference`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-now-id-as-reference.md) | recommended |  | `Now.ID[...]` is a metadata identity, not a reference |
-| [`no-duplicate-fluent-id`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rules/no-duplicate-fluent-id.md) | recommended |  | Two Fluent definitions that share the same static `Now.ID` key as `$id` collide |
+| [`fluent-proper-imports`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/fluent-proper-imports.md) | recommended |  | Fluent entity and column APIs must be imported from the module recorded in the selected SDK manifest |
+| [`fluent-directives`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/fluent-directives.md) | recommended |  | Validate documented ServiceNow Fluent SDK directive names and placement |
+| [`prefer-now-include`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/prefer-now-include.md) | strict |  | Large inline `script` / HTML / CSS payloads belong in their own file and should be loaded with `Now.include()` |
+| [`require-fluent-id`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/require-fluent-id.md) | recommended |  | Fluent entities must declare `$id` when the selected SDK manifest marks the imported factory as requiring an id |
+| [`fluent-naming-convention`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/fluent-naming-convention.md) | strict |  | `.now.ts` files and `Now.ID` keys should be kebab-case |
+| [`no-complex-fluent-logic`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/no-complex-fluent-logic.md) | policy |  | Optional architectural policy |
+| [`no-now-id-as-reference`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/no-now-id-as-reference.md) | recommended |  | `Now.ID[...]` is a metadata identity, not a reference |
+| [`no-duplicate-fluent-id`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/no-duplicate-fluent-id.md) | recommended |  | Two Fluent definitions that share the same static `Now.ID` key as `$id` collide |
 <!-- generated:fluent-rules:end -->
 
 ---
@@ -418,7 +421,7 @@ Runnable profile projects live under [`examples/`][repository-examples]:
 | [classic-compatibility][repository-example-classic-compatibility] | Compatibility-mode server scripts |
 | [classic-es5][repository-example-classic-es5] | ES5 Standards server scripts |
 | [es2021][repository-example-es2021] | ES2021 server scripts |
-| [client][repository-example-client] | Client Scripts and Catalog Client Scripts |
+| [client][repository-example-client] | Client Scripts |
 | [business-rule][repository-example-business-rule] | Full-script Business Rules |
 | [ui-action][repository-example-ui-action] | Client, server, and mixed UI Actions |
 | [fluent][repository-example-fluent] | Fluent `.now.ts` metadata |
@@ -568,9 +571,9 @@ group. Business Rule timing rules likewise wait for `businessRuleWhen`.
 
 **3. The receiver is not proven.** Glide lifecycle rules report only on
 object identities the analyzer can prove; an aliased, escaped, or
-dynamically constructed receiver stays silent by design. On very large
-files the path analyzer can also exhaust its deterministic work budget
-and degrade to no findings for the affected rule; the budget scales with
+dynamically constructed receiver stays silent by design. On files dense
+enough to reach the deterministic work budget, the path analyzer can also
+degrade to no findings for the affected rule; the budget scales with
 file size, so this indicates an unusually dense file. Splitting the file
 restores full analysis.
 
@@ -589,6 +592,16 @@ These are platform limits, not bugs in this package:
 - Prefer `createOnce` + `before()` (this plugin does) so oxlint can skip files whose node types the rule never visits.
 
 ---
+
+## Migrating to 3.0.0
+
+3.0.0 raises the supported toolchains and removes the three deprecations announced through 2.x. Follow [docs/migration-3.0.md](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/migration-3.0.md):
+
+1. Run on Node.js 22.12.0 or later (Node.js 20 is end-of-life).
+2. Upgrade the `oxlint` peer to `>=1.83.0 <1.84.0` and the `oxfmt` peer to `>=0.68.0 <0.69.0`.
+3. Replace `servicenow/validate-gliderecord-calls` with `servicenow/require-query-before-next`; unused-return checking is dropped.
+4. Stop reading `AnalysisProvenance.queryState`, `windowed`, `sysparmName`, `aggregates`, and the `QueryState` type.
+5. Replace `// @sn-es-latest` comments with explicit `settings.servicenow.javascriptMode`.
 
 ## Migrating to 2.0.0
 
@@ -682,10 +695,10 @@ These declared ranges are validated by the repository test suite.
 <!-- generated:compatibility:start -->
 | Component | Tested range |
 | --- | --- |
-| Node | 20.19.0, 22.14.0, 24.16.0, 26.7.0 |
-| oxlint | 1.79.0 and 1.79.0 (`>=1.79.0 <2`) |
-| ESLint | 9.0.0, 9.39.5, and 10.8.1 (`>=9.0.0 <11`) |
-| oxfmt | 0.64.0 and 0.64.0 (`>=0.64.0 <1`) |
+| Node | 22.12.0, 22.14.0, 24.16.0, 26.7.0 |
+| oxlint | 1.83.0 and 1.83.0 (`>=1.83.0 <1.84.0`) |
+| ESLint | 9.0.0, 9.39.5, and 10.11.0 (`>=9.0.0 <11`) |
+| oxfmt | 0.68.0 and 0.68.0 (`>=0.68.0 <0.69.0`) |
 | ServiceNow engine tables | zurich, australia |
 | Fluent SDK | 3.0.0, 3.0.1, 3.0.2, 3.0.3, 4.0.0, 4.0.1, 4.0.2, 4.1.0, 4.1.1, 4.2.0, 4.3.0, 4.4.0, 4.4.1, 4.5.0, 4.6.0, 4.6.1, 4.7.0, 4.7.1, 4.7.2, 4.8.0, 4.8.1, 4.9.0, 4.9.1, 4.9.2, 4.10.0, 4.10.1, 4.11.0 |
 <!-- generated:compatibility:end -->
@@ -714,18 +727,18 @@ Autofixes require proof that the rewrite preserves semantics, plus exact output,
 The test harness walks an [oxc-parser](https://www.npmjs.com/package/oxc-parser) ESTree AST. CI also runs the built plugin under real oxlint and ESLint.
 
 <!-- generated:repository-links:start -->
-[repository-examples]: https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/examples/README.md
-[repository-example-classic-compatibility]: https://github.com/martinthommesen/oxc-plugin-servicenow/tree/v2.0.0/examples/classic-compatibility
-[repository-example-classic-es5]: https://github.com/martinthommesen/oxc-plugin-servicenow/tree/v2.0.0/examples/classic-es5
-[repository-example-es2021]: https://github.com/martinthommesen/oxc-plugin-servicenow/tree/v2.0.0/examples/es2021
-[repository-example-client]: https://github.com/martinthommesen/oxc-plugin-servicenow/tree/v2.0.0/examples/client
-[repository-example-business-rule]: https://github.com/martinthommesen/oxc-plugin-servicenow/tree/v2.0.0/examples/business-rule
-[repository-example-ui-action]: https://github.com/martinthommesen/oxc-plugin-servicenow/tree/v2.0.0/examples/ui-action
-[repository-example-fluent]: https://github.com/martinthommesen/oxc-plugin-servicenow/tree/v2.0.0/examples/fluent
-[repository-example-mixed]: https://github.com/martinthommesen/oxc-plugin-servicenow/tree/v2.0.0/examples/mixed
-[repository-contributing]: https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/CONTRIBUTING.md
-[repository-rule-authoring]: https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/rule-authoring.md
-[repository-non-goals]: https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v2.0.0/docs/non-goals.md
+[repository-examples]: https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/examples/README.md
+[repository-example-classic-compatibility]: https://github.com/martinthommesen/oxc-plugin-servicenow/tree/v3.0.0/examples/classic-compatibility
+[repository-example-classic-es5]: https://github.com/martinthommesen/oxc-plugin-servicenow/tree/v3.0.0/examples/classic-es5
+[repository-example-es2021]: https://github.com/martinthommesen/oxc-plugin-servicenow/tree/v3.0.0/examples/es2021
+[repository-example-client]: https://github.com/martinthommesen/oxc-plugin-servicenow/tree/v3.0.0/examples/client
+[repository-example-business-rule]: https://github.com/martinthommesen/oxc-plugin-servicenow/tree/v3.0.0/examples/business-rule
+[repository-example-ui-action]: https://github.com/martinthommesen/oxc-plugin-servicenow/tree/v3.0.0/examples/ui-action
+[repository-example-fluent]: https://github.com/martinthommesen/oxc-plugin-servicenow/tree/v3.0.0/examples/fluent
+[repository-example-mixed]: https://github.com/martinthommesen/oxc-plugin-servicenow/tree/v3.0.0/examples/mixed
+[repository-contributing]: https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/CONTRIBUTING.md
+[repository-rule-authoring]: https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rule-authoring.md
+[repository-non-goals]: https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/non-goals.md
 <!-- generated:repository-links:end -->
 
 ## License

@@ -4,13 +4,14 @@ import {
   hasAuthoritativeGlobalObjectMethod,
   isDefinitelyNullishValue,
   resolveDominatingConstValue,
+  resolveStableCallable,
   staticPropertyName,
   type BindingWriteQuery,
   type ProvenanceQuery,
 } from "../analysis/internal.js";
 import { isClientCapableContext } from "../context/index.js";
 import { ruleDocsUrl } from "../constants.js";
-import { getName, isNode } from "../utils/ast.js";
+import { isNode } from "../utils/ast.js";
 import { beginRuleFile } from "./helpers.js";
 
 function isNullishCallback(node: unknown, analysis: ProvenanceQuery): boolean {
@@ -23,33 +24,22 @@ function callbackKind(
   analysis: ProvenanceQuery,
   bindingWrites: BindingWriteQuery,
 ): "callable" | "invalid" | "unknown" {
+  if (resolveStableCallable(node, analysis.bindings, bindingWrites)) return "callable";
   const value = resolveDominatingConstValue(node, analysis.bindings);
   if (!isNode(value)) return "unknown";
-  if (value.type === "FunctionExpression" || value.type === "ArrowFunctionExpression")
-    return "callable";
   if (value.type === "Identifier") {
-    const name = getName(value);
-    if (!name) return "unknown";
-    const binding = analysis.bindings.resolve(name, value);
-    if (!binding) return "unknown";
-    if (binding.kind === "function") {
-      return bindingWrites.isWritten(binding.id) ? "unknown" : "callable";
-    }
-    if (binding.kind === "class") {
-      return bindingWrites.isWritten(binding.id) ? "unknown" : "invalid";
-    }
-    return "unknown";
+    const binding = analysis.bindings.resolve(value.name, value);
+    return binding?.kind === "class" && !bindingWrites.isWritten(binding.id)
+      ? "invalid"
+      : "unknown";
   }
-  if (
-    value.type === "Literal" ||
+  return value.type === "Literal" ||
     value.type === "TemplateLiteral" ||
     value.type === "ObjectExpression" ||
     value.type === "ArrayExpression" ||
     value.type === "ClassExpression"
-  ) {
-    return "invalid";
-  }
-  return "unknown";
+    ? "invalid"
+    : "unknown";
 }
 
 export const requireCallbackForGetreference = defineRule({
@@ -72,6 +62,7 @@ export const requireCallbackForGetreference = defineRule({
       before() {
         const { context: script } = beginRuleFile(context);
         if (!isClientCapableContext(script)) return false;
+        return undefined;
       },
       CallExpression(node) {
         const { analysis, file } = beginRuleFile(context);
@@ -79,8 +70,8 @@ export const requireCallbackForGetreference = defineRule({
         if (call.callee.type !== "MemberExpression") return;
         if (staticPropertyName(call.callee) !== "getReference") return;
         const object = (call.callee as ESTree.MemberExpression).object;
-        const proven = analysis.ofExpression(object);
-        if (proven?.kind !== "g_form" || proven.invalid || proven.escaped) return;
+        const proven = analysis.trustedExpression(object);
+        if (proven?.kind !== "g_form") return;
         if (
           !hasAuthoritativeGlobalObjectMethod(file, object, "g_form", "getReference", {
             prototypeConstructor: "GlideForm",

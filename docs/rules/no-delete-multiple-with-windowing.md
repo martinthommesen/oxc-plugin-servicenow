@@ -3,7 +3,7 @@
 `setLimit()` and `chooseWindow()` do not limit `deleteMultiple()`. The call deletes every row that matches the query. Evidence: https://www.servicenow.com/docs/r/api-reference/server-api-reference/c_GlideRecordScopedAPI.html
 
 - **Family:** classic
-- **Preset:** recommended
+- **Profile:** recommended
 - **Placements:** recommended (error), business-rule (error)
 - **Default severity:** error
 - **Fix safety:** diagnostic only

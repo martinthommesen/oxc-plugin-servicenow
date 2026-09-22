@@ -94,24 +94,31 @@ describe("example projects", () => {
     assert.deepEqual(es5.rules, classicEs5Rules);
   });
 
-  it("executes the exact UI Action settings copied from its README", () => {
+  it("executes the shipped UI Action configuration directly", () => {
+    const shipped = JSON.parse(
+      readFileSync(path.join(examplesDir, "ui-action/.oxlintrc.json"), "utf8"),
+    ) as {
+      jsPlugins: Array<{ name: string; specifier: string }>;
+      settings: { servicenow: { surfaces: string; scope: string } };
+    };
+    withLocalConfig("ui-action", (configPath) => {
+      const effective = JSON.parse(readFileSync(configPath, "utf8")) as typeof shipped;
+      assert.ok(effective.jsPlugins[0]);
+      effective.jsPlugins[0].specifier = shipped.jsPlugins[0]?.specifier ?? "";
+      assert.deepEqual(effective, shipped);
+      const report = runOxlint(configPath, [
+        path.join(examplesDir, "ui-action/invalid/client-query.client.ui-action.js"),
+      ]);
+      assert.ok(pluginRulesFor(report).includes("servicenow/no-client-gliderecord"));
+    });
     const readme = readFileSync(path.join(examplesDir, "ui-action/README.md"), "utf8");
     const block = readme.match(/```json\n([\s\S]*?)\n```/);
     assert.ok(block, "UI Action README must contain a JSON settings block");
     const json = block?.[1];
     assert.ok(json, "UI Action README JSON block must not be empty");
-    const documented = JSON.parse(json) as { servicenow?: { surfaces?: string } };
-    assert.equal(documented.servicenow?.surfaces, "auto");
-    withLocalConfig(
-      "ui-action",
-      (configPath) => {
-        const report = runOxlint(configPath, [
-          path.join(examplesDir, "ui-action/invalid/client-query.client.ui-action.js"),
-        ]);
-        assert.ok(pluginRulesFor(report).includes("servicenow/no-client-gliderecord"));
-      },
-      documented,
-    );
+    const documented = JSON.parse(json) as { servicenow?: { surfaces?: string; scope?: string } };
+    assert.equal(documented.servicenow?.surfaces, shipped.settings.servicenow.surfaces);
+    assert.equal(documented.servicenow?.scope, shipped.settings.servicenow.scope);
   });
 
   it("classic mode examples fail for the intended engine rule, not a sys_id crutch", () => {

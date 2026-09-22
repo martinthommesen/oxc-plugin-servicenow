@@ -130,6 +130,7 @@ export const requireBusinessRuleWrapper = defineRule({
         const { context: script } = beginRuleFile(context);
         if (!appliesOnSurface(script, "business-rule")) return false;
         if (script.businessRuleSourceFormat !== "full-script") return false;
+        return undefined;
       },
       Program(node) {
         const { analysis } = beginRuleFile(context);

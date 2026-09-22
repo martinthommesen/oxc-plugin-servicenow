@@ -1,5 +1,6 @@
 import type { Context, ESTree } from "@oxlint/plugins";
 import { getName, getStringValue, walk } from "../utils/ast.js";
+import { isFunctionLike } from "./bindings.js";
 import { resolveConstValue } from "./members.js";
 import { getAncestors, type ProvenanceQuery } from "./provenance.js";
 
@@ -24,10 +25,10 @@ export interface AvailabilityGuardOptions {
 
 interface BlockGuardIndex {
   readonly statementIndices: WeakMap<object, number>;
-  readonly latestGuardBefore: readonly (number | null)[];
+  readonly exitGuardIndices: readonly number[];
 }
 
-const guardIndexBySource = new WeakMap<object, WeakMap<object, Map<string, BlockGuardIndex>>>();
+const guardIndexBySource = new WeakMap<object, WeakMap<object, BlockGuardIndex>>();
 
 function guardProvesAvailability(
   node: unknown,
@@ -154,14 +155,6 @@ function sameNode(left: ESTree.Node | null | undefined, right: ESTree.Node): boo
   );
 }
 
-function isDeferredFunction(node: ESTree.Node): boolean {
-  return (
-    node.type === "FunctionDeclaration" ||
-    node.type === "FunctionExpression" ||
-    node.type === "ArrowFunctionExpression"
-  );
-}
-
 function isImmediatelyInvoked(node: ESTree.Node, ancestors: readonly ESTree.Node[]): boolean {
   if (node.type === "FunctionDeclaration") return false;
   const index = ancestors.findIndex((ancestor) => sameNode(ancestor, node));
@@ -206,7 +199,7 @@ function containsAccessInvalidation(
   const isDeferred = (): boolean =>
     ancestors
       .slice(0, -1)
-      .some((node) => isDeferredFunction(node) && !isImmediatelyInvoked(node, ancestors));
+      .some((node) => isFunctionLike(node) && !isImmediatelyInvoked(node, ancestors));
   walk(
     root,
     {
@@ -390,33 +383,40 @@ function precedingExitGuard(
       byBlock = new WeakMap();
       guardIndexBySource.set(source, byBlock);
     }
-    let byKey = byBlock.get(parent);
-    if (!byKey) {
-      byKey = new Map();
-      byBlock.set(parent, byKey);
-    }
-    let index = byKey.get(cacheKey);
+    let index = byBlock.get(parent);
     if (!index) {
       const statementIndices = new WeakMap<object, number>();
-      const latestGuardBefore: Array<number | null> = [null];
+      const exitGuardIndices: number[] = [];
       for (let position = 0; position < body.length; position += 1) {
         const statement = body[position]!;
         statementIndices.set(statement, position);
-        latestGuardBefore.push(guardProves(statement) ? position : latestGuardBefore[position]!);
+        if (
+          statement.type === "IfStatement" &&
+          (alwaysExits(statement.consequent) || alwaysExits(statement.alternate))
+        ) {
+          exitGuardIndices.push(position);
+        }
       }
-      index = { statementIndices, latestGuardBefore };
-      byKey.set(cacheKey, index);
+      index = { statementIndices, exitGuardIndices };
+      byBlock.set(parent, index);
     }
     const directIndex = index.statementIndices.get(child);
     const childIndex = directIndex ?? body.findIndex((statement) => sameNode(statement, child));
-    const guardIndex = childIndex > 0 ? index.latestGuardBefore[childIndex] : null;
-    if (guardIndex === null || guardIndex === undefined) return false;
-    const intervening = body.slice(guardIndex + 1, childIndex);
-    return (
-      !intervening.some((statement) =>
-        containsAccessInvalidation(statement, isAccess, isCallInvalidation),
-      ) && !hasInvalidationOnPath(child, target, ancestors, isAccess, isCallInvalidation)
-    );
+    if (childIndex <= 0) return false;
+    for (let candidate = index.exitGuardIndices.length - 1; candidate >= 0; candidate -= 1) {
+      const guardIndex = index.exitGuardIndices[candidate]!;
+      if (guardIndex >= childIndex) continue;
+      if (childIndex - guardIndex > 64) break;
+      const guard = body[guardIndex];
+      if (!guard || !guardProves(guard)) continue;
+      const intervening = body.slice(guardIndex + 1, childIndex);
+      return (
+        !intervening.some((statement) =>
+          containsAccessInvalidation(statement, isAccess, isCallInvalidation),
+        ) && !hasInvalidationOnPath(child, target, ancestors, isAccess, isCallInvalidation)
+      );
+    }
+    return false;
   }
 
   const childIndex = body.findIndex((statement) => sameNode(statement, child));

@@ -1,9 +1,4 @@
-export {
-  optionDocsFromDescriptor,
-  parseRuleOptions,
-  schemaFromDescriptor,
-  typeName,
-} from "./descriptor.js";
+export { optionDocsFromDescriptor, parseRuleOptions, schemaFromDescriptor } from "./descriptor.js";
 export type {
   BooleanOptionField,
   EnumOptionField,

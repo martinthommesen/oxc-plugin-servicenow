@@ -2,13 +2,11 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
-import { fileURLToPath } from "node:url";
-
-const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "../..");
+import { repoRoot } from "../integration/helpers.js";
 
 describe("performance baseline", () => {
   it("records a real Oxlint matrix and a release threshold", () => {
-    const raw = readFileSync(path.join(root, "docs/performance-baseline.json"), "utf8");
+    const raw = readFileSync(path.join(repoRoot, "docs/performance-baseline.json"), "utf8");
     const baseline = JSON.parse(raw) as {
       command: string;
       statistic: string;

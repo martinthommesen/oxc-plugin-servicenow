@@ -1,6 +1,7 @@
 import type { ESTree } from "@oxlint/plugins";
 import { apisByName, type FluentApiCapability, type FluentSdkManifest } from "../fluent/index.js";
 import { getName, getStringValue, isNode, unwrapExpression, walk } from "../utils/ast.js";
+import type { BindingWriteQuery } from "./binding-writes.js";
 import { staticPropertyName } from "./members.js";
 import type { FileBindings, LexicalBinding } from "./bindings.js";
 
@@ -13,7 +14,7 @@ export interface FluentImportBinding {
 }
 
 /**
- * Resolve the origin of a factory/namespace value.  This intentionally keeps
+ * Resolve the origin of a factory/namespace value. This intentionally keeps
  * the source module in the result: a local alias does not make an import from
  * an unrelated module a ServiceNow factory.
  */
@@ -47,11 +48,7 @@ export function collectFluentImports(
       let exportedName = "*";
       if (spec.type === "ImportSpecifier") {
         const imported = spec.imported;
-        exportedName =
-          getName(imported) ??
-          getStringValue(imported) ??
-          (imported as { name?: string }).name ??
-          "*";
+        exportedName = getName(imported) ?? getStringValue(imported) ?? "*";
       } else if (spec.type === "ImportDefaultSpecifier") {
         exportedName = "default";
       }
@@ -69,7 +66,7 @@ function declarationInit(binding: LexicalBinding): ESTree.Node | null {
   if (binding.kind !== "const" && binding.kind !== "let" && binding.kind !== "var") return null;
   if (binding.node.type !== "VariableDeclarator") return null;
   const declaration = binding.node as ESTree.VariableDeclarator;
-  // Only simple aliases are accepted.  Destructuring can bind several values
+  // Only simple aliases are accepted. Destructuring can bind several values
   // and needs a property-sensitive assignment model; treating it as a factory
   // would turn an unrelated object property into a false positive.
   if (!isNode(declaration.id) || declaration.id.type !== "Identifier") return null;
@@ -97,18 +94,57 @@ const FUNCTION_ANCESTORS = new Set([
   "ArrowFunctionExpression",
 ]);
 
+// Source position is execution order only for straight-line module-level
+// code. A write inside any function can run at any time relative to the use,
+// and a use inside a function at any time relative to module-level writes,
+// so both make the alias uncertain wherever they appear (FINDINGS.md COR-006).
+function isFunctionScopedWrite(ancestorTypes: readonly string[]): boolean {
+  return ancestorTypes.some((ancestor) => FUNCTION_ANCESTORS.has(ancestor));
+}
+
+function isConditionalWrite(ancestorTypes: readonly string[]): boolean {
+  return ancestorTypes.some((ancestor) => CONDITIONAL_WRITE_ANCESTORS.has(ancestor));
+}
+
 function latestSimpleValue(
   binding: LexicalBinding,
   use: ESTree.Node,
   program: ESTree.Node | undefined,
   bindings: FileBindings,
   useInsideFunction: boolean,
+  writes?: BindingWriteQuery,
 ): ESTree.Node | null {
   const useStart = (use as { start?: number }).start ?? Number.POSITIVE_INFINITY;
   let value = declarationInit(binding);
   let valueOffset = (binding.node as { start?: number }).start ?? -1;
   let uncertain = false;
   if (!program || binding.kind === "const") return value;
+  // The per-file index avoids re-walking the program per call site. Both
+  // branches below apply the same predicates in the same order (FINDINGS.md PER-005).
+  const indexed = writes?.writesFor(binding.id);
+  if (indexed) {
+    for (const write of indexed) {
+      if (write.kind === "for" || !write.simple) continue;
+      if (write.kind === "update") {
+        uncertain = true;
+        continue;
+      }
+      if (isFunctionScopedWrite(write.ancestorTypes) || useInsideFunction) {
+        uncertain = true;
+        continue;
+      }
+      if (write.start >= useStart) continue;
+      if (write.operator !== "=" || isConditionalWrite(write.ancestorTypes)) {
+        uncertain = true;
+        continue;
+      }
+      if (write.start > valueOffset) {
+        value = write.right;
+        valueOffset = write.start;
+      }
+    }
+    return uncertain ? null : value;
+  }
   const ancestors: ESTree.Node[] = [];
   walk(
     program,
@@ -119,24 +155,14 @@ function latestSimpleValue(
         if (!isNode(left) || left.type !== "Identifier") return;
         const resolved = bindings.resolve(getName(left) ?? "", left, ancestors);
         if (resolved?.id !== binding.id) return;
-        // Source position is execution order only for straight-line
-        // module-level code. A write inside any function can run at any
-        // time relative to the use, and a use inside a function can run at
-        // any time relative to module-level writes, so both make the alias
-        // uncertain regardless of where they appear (FINDINGS.md COR-006).
-        const insideFunction = ancestors
-          .slice(0, -1)
-          .some((ancestor) => FUNCTION_ANCESTORS.has(ancestor.type));
-        if (insideFunction || useInsideFunction) {
+        const ancestorTypes = ancestors.slice(0, -1).map((ancestor) => ancestor.type);
+        if (isFunctionScopedWrite(ancestorTypes) || useInsideFunction) {
           uncertain = true;
           return;
         }
         const start = (node as { start?: number }).start ?? Number.POSITIVE_INFINITY;
         if (start >= useStart) return;
-        if (
-          assignment.operator !== "=" ||
-          ancestors.slice(0, -1).some((ancestor) => CONDITIONAL_WRITE_ANCESTORS.has(ancestor.type))
-        ) {
+        if (assignment.operator !== "=" || isConditionalWrite(ancestorTypes)) {
           uncertain = true;
           return;
         }
@@ -163,6 +189,7 @@ function resolveBindingOrigin(
   bindings: FileBindings,
   imports: ReadonlyMap<number, FluentImportBinding>,
   seen: Set<number>,
+  writes?: BindingWriteQuery,
 ): FluentImportBinding | null {
   const expr = unwrapExpression(node);
   if (!isNode(expr)) return null;
@@ -178,16 +205,23 @@ function resolveBindingOrigin(
     const init = latestSimpleValue(
       binding,
       expr,
-      bindings.tree.root?.block,
+      bindings.rootBlock ?? undefined,
       bindings,
       useInsideFunction,
+      writes,
     );
     if (!init) return null;
     seen.add(binding.id);
-    // A declaration node has enough source/span information for ScopeTree to
-    // resolve its initializer.  The caller's ancestors are retained for
-    // hosts that provide richer lexical scope data.
-    return resolveBindingOrigin(init, [...ancestors, binding.node], bindings, imports, seen);
+    // The declaration node has enough source/span data for ScopeTree; the
+    // caller's ancestors are retained for hosts with richer scope data.
+    return resolveBindingOrigin(
+      init,
+      [...ancestors, binding.node],
+      bindings,
+      imports,
+      seen,
+      writes,
+    );
   }
 
   if (expr.type !== "MemberExpression") return null;
@@ -200,6 +234,7 @@ function resolveBindingOrigin(
     bindings,
     imports,
     seen,
+    writes,
   );
   if (!namespace || namespace.exportedName !== "*") return null;
   return { ...namespace, exportedName: exported };
@@ -211,8 +246,9 @@ export function resolveFluentBindingOrigin(
   ancestors: readonly ESTree.Node[],
   bindings: FileBindings,
   imports: ReadonlyMap<number, FluentImportBinding>,
+  writes?: BindingWriteQuery,
 ): FluentBindingOrigin | null {
-  return resolveBindingOrigin(node, ancestors, bindings, imports, new Set());
+  return resolveBindingOrigin(node, ancestors, bindings, imports, new Set(), writes);
 }
 
 export function resolveFluentCandidate(
@@ -221,11 +257,12 @@ export function resolveFluentCandidate(
   bindings: FileBindings,
   imports: ReadonlyMap<number, FluentImportBinding>,
   manifest: FluentSdkManifest,
+  writes?: BindingWriteQuery,
 ): { capability: FluentApiCapability; origin: FluentBindingOrigin } | null {
   const expr = unwrapExpression(callee);
   if (!isNode(expr)) return null;
   const apis = apisByName(manifest);
-  const origin = resolveFluentBindingOrigin(expr, ancestors, bindings, imports);
+  const origin = resolveFluentBindingOrigin(expr, ancestors, bindings, imports, writes);
   if (!origin || origin.exportedName === "*" || origin.exportedName === "default") return null;
 
   const capability = apis.get(origin.exportedName);
@@ -239,8 +276,9 @@ export function resolveFluentFactory(
   bindings: FileBindings,
   imports: ReadonlyMap<number, FluentImportBinding>,
   manifest: FluentSdkManifest,
+  writes?: BindingWriteQuery,
 ): FluentApiCapability | null {
-  const candidate = resolveFluentCandidate(callee, ancestors, bindings, imports, manifest);
+  const candidate = resolveFluentCandidate(callee, ancestors, bindings, imports, manifest, writes);
   if (!candidate) return null;
   const { capability, origin } = candidate;
   // A recognized symbol from another module is still a candidate for the
@@ -254,6 +292,7 @@ export function importedBindingFor(
   ancestors: readonly ESTree.Node[],
   bindings: FileBindings,
   imports: ReadonlyMap<number, FluentImportBinding>,
+  writes?: BindingWriteQuery,
 ): FluentImportBinding | null {
-  return resolveFluentBindingOrigin(node, ancestors, bindings, imports);
+  return resolveFluentBindingOrigin(node, ancestors, bindings, imports, writes);
 }

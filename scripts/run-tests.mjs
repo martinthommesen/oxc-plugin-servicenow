@@ -2,9 +2,8 @@ import { spawn } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import { readdir, stat } from "node:fs/promises";
 import { dirname, isAbsolute, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { root } from "./lib/repo.mjs";
 
-const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const tsxRegistration = new URL("./register-tsx.mjs", import.meta.url).href;
 const args = process.argv.slice(2);
 const reportIndex = args.indexOf("--report-json");
@@ -26,6 +25,9 @@ const searchRoots =
 /**
  * Collect `*.test.ts` files without relying on Node 22 glob expansion.
  * Node 20's test runner treats a quoted `**` path as a literal filename.
+ * @param {string} dir
+ * @param {string[]} out
+ * @param {boolean} [named]
  */
 async function collectTestFiles(dir, out, named = false) {
   let info;
@@ -58,6 +60,7 @@ async function collectTestFiles(dir, out, named = false) {
   }
 }
 
+/** @type {string[]} */
 const collected = [];
 for (const searchRoot of searchRoots) {
   await collectTestFiles(searchRoot, collected, searchArgs.length > 0);

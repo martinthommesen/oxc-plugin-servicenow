@@ -3,7 +3,7 @@
 `current.update()` retriggers other Business Rules and can recurse. Set fields on `current` and let the platform save. Reports only when the file is a Business Rule. Shadowed `current` bindings are ignored.
 
 - **Family:** classic
-- **Preset:** recommended
+- **Profile:** recommended
 - **Placements:** recommended (error), business-rule (error)
 - **Default severity:** error
 - **Fix safety:** diagnostic only
@@ -52,7 +52,7 @@ current.work_notes = "Moved to In Progress";
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-negative: A possible current reassignment suppresses direct current.update calls throughout the file, including calls that appear before the reassignment. false-negative: A possible current.update or GlideRecord.prototype.update mutation suppresses matching calls throughout the file.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-negative: A possible current.update or GlideRecord.prototype.update mutation suppresses matching calls throughout the file.
 
 ## Known false positives
 
@@ -60,7 +60,6 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-n
 
 ## Known false negatives
 
-- A possible current reassignment suppresses direct current.update calls throughout the file, including calls that appear before the reassignment.
 - A possible current.update or GlideRecord.prototype.update mutation suppresses matching calls throughout the file.
 
 ## Intentional scope boundaries

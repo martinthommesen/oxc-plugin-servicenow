@@ -5,7 +5,7 @@ import {
   staticPropertyName,
   type PlatformMethodAuthorityFacts,
 } from "../analysis/internal.js";
-import { isFluentContext, isInstanceScript } from "../context/index.js";
+import { isServerInstanceContext } from "../context/index.js";
 import { ruleDocsUrl } from "../constants.js";
 import { beginRuleFile } from "./helpers.js";
 
@@ -19,13 +19,10 @@ function isDisplayValueCall(
   if (node.type !== "CallExpression") return false;
   const call = node as ESTree.CallExpression;
   if (staticPropertyName(call.callee) !== "getDisplayValue") return false;
-  if (call.callee.type !== "MemberExpression") return false;
   const object = (call.callee as ESTree.MemberExpression).object;
-  const proven = analysis.ofExpression(object);
+  const proven = analysis.trustedExpression(object);
   return (
     proven?.kind === "GlideDateTime" &&
-    !proven.invalid &&
-    !proven.escaped &&
     hasAuthoritativeConstructedMethod(authority, object, "GlideDateTime", "getDisplayValue")
   );
 }
@@ -47,7 +44,8 @@ export const noDisplayValueDateComparison = defineRule({
     return {
       before() {
         const { context: script } = beginRuleFile(context);
-        if (isFluentContext(script) || !isInstanceScript(script)) return false;
+        if (!isServerInstanceContext(script)) return false;
+        return undefined;
       },
       BinaryExpression(node) {
         const { analysis, file } = beginRuleFile(context);

@@ -23,6 +23,7 @@ export const noGliderecordQueryInAcl = defineRule({
       before() {
         const { context: script } = beginRuleFile(context);
         if (!appliesOnSurface(script, "acl", "filename")) return false;
+        return undefined;
       },
       Program(node) {
         const { analysis, file } = beginRuleFile(context);

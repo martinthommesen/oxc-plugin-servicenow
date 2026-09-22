@@ -1,5 +1,6 @@
 import type { Rule } from "@oxlint/plugins";
 import type { ServiceNowRelease } from "./settings/releases.js";
+import type { SURFACE_VALUES } from "./surfaces.js";
 
 /**
  * JavaScript runtime mode for instance-executed ServiceNow scripts.
@@ -17,15 +18,7 @@ export type ScriptAuthoring = "classic" | "fluent";
  * Execution surfaces that can apply to one file at the same time.
  * A UI Action may be client, server, or both.
  */
-export type ScriptSurface =
-  | "client"
-  | "server"
-  | "acl"
-  | "business-rule"
-  | "script-include"
-  | "ui-action"
-  | "scheduled-script"
-  | "fix-script";
+export type ScriptSurface = (typeof SURFACE_VALUES)[number];
 
 export type ApplicationScope = "global" | "scoped" | "unknown";
 
@@ -62,6 +55,7 @@ export interface ServiceNowScriptContext {
   scope: ApplicationScope;
   confidence: ContextConfidence;
   sources: ContextSourceMap;
+  confidenceAtLeast(source: keyof ContextSourceMap, minimum: ContextConfidence): boolean;
   businessRuleSourceFormat: BusinessRuleSourceFormat;
   businessRuleWhen: BusinessRuleWhen;
   settings: ValidatedServiceNowSettings;

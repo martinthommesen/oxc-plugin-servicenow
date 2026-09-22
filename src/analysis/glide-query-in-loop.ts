@@ -2,7 +2,7 @@ import type { ESTree } from "@oxlint/plugins";
 import { getName, isNode, unwrapExpression } from "../utils/ast.js";
 import { isDefinitelyUndefinedValue, staticPropertyName } from "./members.js";
 import type { ProvenanceQuery } from "./provenance.js";
-import { visitChildren } from "./path-state.js";
+import { dedupePathFindings, visitChildren } from "./path-state.js";
 import { definitelySkipsDoWhileTest, truthyPathRequiresCursorNext } from "./cursor-condition.js";
 import {
   analyzeStableInvocations,
@@ -37,20 +37,15 @@ const OUTSIDE_CURSOR = 1;
 const INSIDE_CURSOR = 2;
 
 function provenCursorKind(analysis: ProvenanceQuery, node: unknown): CursorKind | null {
-  const proven = analysis.ofExpression(node);
-  if (
-    !proven ||
-    (proven.kind !== "GlideRecord" && proven.kind !== "GlideAggregate") ||
-    proven.invalid ||
-    proven.escaped
-  ) {
+  const proven = analysis.trustedExpression(node);
+  if (!proven || (proven.kind !== "GlideRecord" && proven.kind !== "GlideAggregate")) {
     return null;
   }
   return proven.kind;
 }
 
 function isQueryExecutor(kind: CursorKind, property: string, analysis: ProvenanceQuery): boolean {
-  return kind === "GlideRecord" ? analysis.glide.executors.has(property) : property === "query";
+  return analysis.glide.byKind[kind].executors.has(property);
 }
 
 function hasCursorMethodAuthority(
@@ -73,14 +68,11 @@ function isCursorAdvanceCall(
   const call = node as ESTree.CallExpression;
   const property = staticPropertyName(call.callee);
   if (!property) return false;
-  if (call.callee.type !== "MemberExpression") return false;
   const receiver = (call.callee as ESTree.MemberExpression).object;
   const kind = provenCursorKind(analysis, receiver);
   if (!kind) return false;
   if (!hasCursorMethodAuthority(kind, receiver, property, authority)) return false;
-  return kind === "GlideRecord"
-    ? analysis.glide.cursorAdvancers.has(property)
-    : property === "next";
+  return analysis.glide.byKind[kind].cursorAdvancers.has(property);
 }
 
 function loopBodyRequiresCursor(
@@ -122,12 +114,7 @@ export function findQueriesInCursorLoops(
     visitedNodeModes: new WeakMap(),
   };
   visit(program, 0, state);
-  const unique = new Set<ESTree.Node>();
-  return findings.filter((finding) => {
-    if (unique.has(finding.node)) return false;
-    unique.add(finding.node);
-    return true;
-  });
+  return dedupePathFindings(findings);
 }
 
 function visitFunctionBody(
@@ -163,10 +150,8 @@ function visitMissingParameterDefaults(
 
 function visit(node: unknown, cursorDepth: number, state: CursorVisitState): void {
   if (!isNode(node)) return;
-  // Findings depend on cursorDepth only through `> 0`, so each node needs at
-  // most one visit inside and one outside a cursor. Without this memo the
-  // do/while and for branches re-visit each loop body, which composes
-  // exponentially for nested loops (FINDINGS.md PER-002).
+  // Findings depend on cursorDepth only through `> 0`, so one visit per
+  // node inside and outside a cursor suffices (FINDINGS.md PER-002).
   const mode = cursorDepth > 0 ? INSIDE_CURSOR : OUTSIDE_CURSOR;
   const seen = state.visitedNodeModes.get(node) ?? 0;
   if ((seen & mode) !== 0) return;
@@ -233,7 +218,7 @@ function visit(node: unknown, cursorDepth: number, state: CursorVisitState): voi
   if (node.type === "CallExpression" && cursorDepth > 0) {
     const call = node as ESTree.CallExpression;
     const property = staticPropertyName(call.callee);
-    if (property && call.callee.type === "MemberExpression") {
+    if (property) {
       const object = (call.callee as ESTree.MemberExpression).object;
       const kind = provenCursorKind(state.analysis, object);
       if (

@@ -64,6 +64,7 @@ export const noUnsupportedSyntax = defineRule({
           "lookbehind",
         ];
         if (!ids.some((id) => shouldDiagnoseFeature(script, id))) return false;
+        return undefined;
       },
       ChainExpression(node) {
         if (featureOn("optional-chaining")) context.report({ node, messageId: "optional" });

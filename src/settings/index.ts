@@ -1,10 +1,10 @@
 import type { Context } from "@oxlint/plugins";
-import type { ReadonlyServiceNowSettings, ValidatedServiceNowSettings } from "../types.js";
+import type { ValidatedServiceNowSettings } from "../types.js";
 import { structuralFingerprint, validateServiceNowSettings } from "./validate.js";
 import type { ValidatedSettingsResult } from "./validate.js";
 
 export { ServiceNowConfigError, ServiceNowSettingsError } from "./errors.js";
-export { validateServiceNowSettings, emptyValidatedSettings } from "./validate.js";
+export { validateServiceNowSettings } from "./validate.js";
 export type { ValidatedSettingsResult } from "./validate.js";
 export { isSupportedServiceNowRelease, SUPPORTED_SERVICENOW_RELEASES } from "./releases.js";
 export type { ServiceNowRelease } from "./releases.js";
@@ -41,17 +41,4 @@ export function fingerprintServiceNowSettings(value: object): string {
 
 export function getValidatedSettings(context: Context): ValidatedServiceNowSettings {
   return getValidatedSettingsResult(context).settings;
-}
-
-/**
- * @deprecated Prefer {@link getValidatedSettings}. Returns the raw object for
- * callers that have not migrated. Invalid shapes still throw.
- */
-export function getSettings(context: Context): ReadonlyServiceNowSettings {
-  return getValidatedSettings(context) as ReadonlyServiceNowSettings;
-}
-
-export function optionAt<T>(context: Context, index: number, fallback: T): T {
-  const value = context.options[index];
-  return (value as T | undefined) ?? fallback;
 }

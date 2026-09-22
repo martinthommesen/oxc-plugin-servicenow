@@ -3,7 +3,7 @@
 `.at()` is not implemented in Compatibility or ES5 Standards mode. Proven array/string literal receivers report unless the matching built-in authority is visibly replaced or a structural prototype-availability guard protects the call.
 
 - **Family:** engine
-- **Preset:** classic-es5
+- **Profile:** classic-es5
 - **Placements:** classic-es5 (error)
 - **Default severity:** error
 - **Fix safety:** diagnostic only
@@ -99,8 +99,8 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-b
   - URL: tests/rules/no-at-method.test.ts
   - Verified by: fixture
   - Verified at: 2026-08-24
-- **Real Oxlint and ESLint classic-ES5 profiles accept an explicit Array.prototype.at polyfill.**
-  - Verification ID: `rule-evidence-36335a13`
+- **Real Oxlint and ESLint classic-es5 profiles accept an explicit Array.prototype.at polyfill.**
+  - Verification ID: `rule-evidence-b8647693`
   - URL: tests/integration/profiles.test.ts
   - Verified by: integration-test
   - Verified at: 2026-08-24

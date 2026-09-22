@@ -3,7 +3,7 @@
 WeakMap and WeakSet are disallowed in Compatibility and ES5 Standards mode. ES2021 supports them. Direct calls and stable same-execution aliases report; bare aliases captured before a later guard still report, while visibly polyfilled calls stay silent.
 
 - **Family:** engine
-- **Preset:** classic-es5
+- **Profile:** classic-es5
 - **Placements:** classic-es5 (error)
 - **Default severity:** error
 - **Fix safety:** diagnostic only

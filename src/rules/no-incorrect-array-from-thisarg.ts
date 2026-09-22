@@ -5,10 +5,12 @@ import {
   findStablePlatformStaticMethodCalls,
   getAncestors,
   isDefinitelyNullishValue,
+  isFunctionNode,
   resolveDominatingConstValue,
-  type BindingWriteQuery,
+  resolveStableCallable,
   type EmptyArrayBindingQuery,
   type FileBindings,
+  type ImmediateFunction,
 } from "../analysis/internal.js";
 import { ruleDocsUrl } from "../constants.js";
 import { shouldDiagnoseFeature } from "../engine/index.js";
@@ -17,41 +19,7 @@ import { beginRuleFile } from "./helpers.js";
 
 const METHODS = { Array: ["from"] } as const;
 
-interface MapperFunction {
-  readonly type: "FunctionDeclaration" | "FunctionExpression" | "ArrowFunctionExpression";
-  readonly params: readonly ESTree.Node[];
-  readonly body: ESTree.Node;
-}
-
-function isMapperFunction(node: unknown): node is MapperFunction {
-  return (
-    isNode(node) &&
-    (node.type === "FunctionDeclaration" ||
-      node.type === "FunctionExpression" ||
-      node.type === "ArrowFunctionExpression")
-  );
-}
-
-/** Resolve only a callable whose exact function syntax is stable at the call. */
-function stableMapperFunction(
-  node: unknown,
-  bindings: FileBindings,
-  bindingWrites: BindingWriteQuery,
-): MapperFunction | null {
-  const value = resolveDominatingConstValue(node, bindings);
-  if (!value) return null;
-  if (isMapperFunction(value)) return value;
-  if (value.type !== "Identifier") return null;
-  const binding = bindings.resolve(value.name, value);
-  if (
-    binding?.kind !== "function" ||
-    binding.node.type !== "FunctionDeclaration" ||
-    bindingWrites.isWritten(binding.id)
-  ) {
-    return null;
-  }
-  return binding.node as MapperFunction;
-}
+type MapperFunction = ImmediateFunction;
 
 /**
  * Primitive this arguments reached `ensureScriptable()` before Australia and
@@ -133,7 +101,7 @@ function isDefinitelySloppyMapper(context: Context, mapper: MapperFunction): boo
   for (const ancestor of ancestors) {
     if (ancestor.type === "ClassDeclaration" || ancestor.type === "ClassExpression") return false;
     if (ancestor.type === "Program" && bodyHasUseStrictDirective(ancestor)) return false;
-    if (isMapperFunction(ancestor) && bodyHasUseStrictDirective(ancestor.body)) return false;
+    if (isFunctionNode(ancestor) && bodyHasUseStrictDirective(ancestor.body)) return false;
   }
   return true;
 }
@@ -279,6 +247,7 @@ export const noIncorrectArrayFromThisarg = defineRule({
         ) {
           return false;
         }
+        return undefined;
       },
       Program(node) {
         const { analysis, file } = beginRuleFile(context);
@@ -294,10 +263,10 @@ export const noIncorrectArrayFromThisarg = defineRule({
         const stableArrayFromSources = new Set<ESTree.Node>();
         const inlineArrayFromMappers = new Set<ESTree.Node>();
         for (const finding of findings) {
-          const source = unwrapExpression(finding.node.arguments[0]);
+          const source = unwrapExpression(finding.arguments?.[0]);
           if (isNode(source)) stableArrayFromSources.add(source);
-          const mapper = unwrapExpression(finding.node.arguments[1]);
-          if (isMapperFunction(mapper)) inlineArrayFromMappers.add(mapper as ESTree.Node);
+          const mapper = unwrapExpression(finding.arguments?.[1]);
+          if (isFunctionNode(mapper)) inlineArrayFromMappers.add(mapper as ESTree.Node);
         }
         const bindingReferences = createEmptyArrayBindingQuery(
           node as ESTree.Node,
@@ -309,21 +278,22 @@ export const noIncorrectArrayFromThisarg = defineRule({
         );
         for (const finding of findings) {
           const call = finding.node;
-          if (call.arguments.some((argument) => argument.type === "SpreadElement")) continue;
-          const source = call.arguments[0];
-          const mapperArgument = call.arguments[1];
+          const semanticArguments = finding.arguments;
+          if (!semanticArguments) continue;
+          const source = semanticArguments[0];
+          const mapperArgument = semanticArguments[1];
           if (!source || !mapperArgument) continue;
           // Both releases fail before mapper-this handling for nullish input.
           if (isDefinitelyNullishValue(source, analysis.bindings)) continue;
 
-          const mapper = stableMapperFunction(
+          const mapper = resolveStableCallable(
             mapperArgument,
             analysis.bindings,
             file.bindingWrites,
           );
           if (!mapper) continue;
 
-          const thisArgument = call.arguments[2];
+          const thisArgument = semanticArguments[2];
           if (thisArgument) {
             if (isDefinitelyPrimitiveThisArgument(thisArgument, analysis.bindings)) {
               context.report({ node: call, messageId: "primitive" });

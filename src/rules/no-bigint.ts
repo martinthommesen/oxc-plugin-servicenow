@@ -27,6 +27,7 @@ export const noBigint = defineRule({
       before() {
         const { context: script } = beginRuleFile(context);
         if (!shouldDiagnoseFeature(script, "bigint")) return false;
+        return undefined;
       },
       Literal(node) {
         const literal = node as { bigint?: string | null; raw?: string | null };

@@ -1,9 +1,9 @@
 # servicenow/no-now-id-as-reference
 
-`Now.ID[...]` is a metadata identity, not a reference. Alias meaning is read at the use site from lexical binding identity. Use the factory object in-app or `Now.ref()` for external records. Evidence: https://www.servicenow.com/docs/r/application-development/servicenow-sdk/fluent-constructs.html
+`Now.ID[...]` is a metadata identity, not a reference. Alias meaning is read at the use site from lexical binding identity. Use the factory object in-app or `Now.ref()` for external records.
 
 - **Family:** fluent
-- **Preset:** recommended
+- **Profile:** recommended
 - **Placements:** recommended (error), fluent (error)
 - **Default severity:** error
 - **Fix safety:** diagnostic only

@@ -15,12 +15,10 @@ import {
   resolveDestructuredConstMember,
   staticPropertyName,
 } from "../analysis/internal.js";
-import { ruleDocsUrl } from "../constants.js";
+import { INVOCATION_HELPERS, ruleDocsUrl } from "../constants.js";
 import { isFeatureAllowed, shouldDiagnoseFeature } from "../engine/index.js";
 import { isNode, unwrapExpression } from "../utils/ast.js";
-import { beginRuleFile } from "./helpers.js";
-
-const INVOCATION_HELPERS = new Set(["apply", "bind", "call"]);
+import { beginRuleFile, isPlatformStaticMember } from "./helpers.js";
 
 function destructuredObjectHasOwnSource(
   node: ESTree.Node,
@@ -64,11 +62,7 @@ function invokedObjectHasOwn(
   analysis: ReturnType<typeof beginRuleFile>["analysis"],
 ): ESTree.Node | null {
   const rawCallee = resolveConstValue(call.callee, analysis.bindings);
-  const reflectApply = Boolean(
-    rawCallee?.type === "MemberExpression" &&
-    staticPropertyName(rawCallee) === "apply" &&
-    resolvePlatformGlobalName(rawCallee.object, analysis.bindings) === "Reflect",
-  );
+  const reflectApply = isPlatformStaticMember(call.callee, "Reflect", "apply", analysis);
   let value = reflectApply ? resolveConstValue(call.arguments[0], analysis.bindings) : rawCallee;
   if (value?.type === "SequenceExpression") {
     const last = value.expressions.at(-1);
@@ -113,10 +107,10 @@ export const noObjectHasown = defineRule({
       before() {
         const { context: script } = beginRuleFile(context);
         if (!shouldDiagnoseFeature(script, "object-hasown")) return false;
+        return undefined;
       },
       CallExpression(node) {
         const { analysis, context: script, file } = beginRuleFile(context);
-        if (!shouldDiagnoseFeature(script, "object-hasown")) return;
         const call = node as ESTree.CallExpression;
         const invokedAccess = invokedObjectHasOwn(call, analysis);
         if (!invokedAccess) return;

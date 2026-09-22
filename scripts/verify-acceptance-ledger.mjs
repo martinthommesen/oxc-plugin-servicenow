@@ -1,19 +1,46 @@
 import { createHash } from "node:crypto";
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { arch, platform, release } from "node:os";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { arch, platform, release, tmpdir } from "node:os";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { pathToFileURL } from "node:url";
+import { exactProof, indexOutcomes, outcomeSummary } from "./lib/test-report.mjs";
+import { acceptanceLockPath, withAcceptanceLock } from "./lib/acceptance-lock.mjs";
+import { root } from "./lib/repo.mjs";
 
-const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const goalPath = join(root, "PR51-REMEDIATION-GOAL.md");
 const mappingPath = join(root, "scripts/pr51-acceptance.json");
 const artifactsDir = join(root, "artifacts");
-const testReportPath = join(artifactsDir, "pr51-test-results.json");
 const ACCEPTANCE_GOAL_SHA256 = "22f9e1d3d370eaa88001d8c7587f2878b7955a8d9b80922de5848696096a2dc1";
 const ACCEPTANCE_AUTHORITY_DIGEST =
   "6f9473920d9ffde625bcf68418da08cde196282c91661c2d40608c9bfff68d02";
 
+/**
+ * @typedef {object} AcceptanceSource
+ * @property {string} heading
+ * @property {number} line
+ * @property {string} text
+ * @property {string} digest
+ */
+/**
+ * @typedef {object} AcceptanceCriterion
+ * @property {string} id
+ * @property {AcceptanceSource} source
+ * @property {{ plan: string | null, pr: number, branch: string }} owner
+ */
+
+/**
+ * @param {string} path
+ * @returns {string}
+ */
 export function repoFilePath(path) {
   if (typeof path !== "string" || path === "" || path.includes("\0") || path.includes("\\")) {
     throw new Error(`unsafe repository path ${JSON.stringify(path)}`);
@@ -44,10 +71,19 @@ const dispositionLabels = new Set([
   "Live-pending",
 ]);
 
+/**
+ * @param {string | Buffer} value
+ * @returns {string}
+ */
 function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
 }
 
+/**
+ * @param {readonly AcceptanceCriterion[]} criteria
+ * @param {string | undefined} goalSha256
+ * @returns {string}
+ */
 export function criteriaAuthorityDigest(criteria, goalSha256) {
   return sha256(
     `${goalSha256}\n` +
@@ -64,12 +100,21 @@ export function criteriaAuthorityDigest(criteria, goalSha256) {
   );
 }
 
+/**
+ * @param {string} value
+ * @returns {string}
+ */
 function normalize(value) {
   return value.replace(/\s+/g, " ").trim();
 }
 
+/**
+ * @param {string} heading
+ * @returns {{ plan: string | null, pr: number, branch: string }}
+ */
 function ownerForHeading(heading) {
   const section = Number(/^#{1,3} (\d+)\./.exec(heading)?.[1]);
+  /** @type {Record<number, [string, number, string]>} */
   const owners = {
     4: [
       "plans/009-rebuild-stateful-rule-lifecycles.md",
@@ -137,7 +182,11 @@ function ownerForHeading(heading) {
     : { plan: null, pr: 51, branch: "tracking-only" };
 }
 
-/** Parse every normative bullet or numbered requirement after the introductory section. */
+/**
+ * Parse every normative bullet or numbered requirement after the introductory section.
+ * @param {string} source
+ * @returns {AcceptanceCriterion[]}
+ */
 export function parseCriteria(source) {
   const lines = source.split(/\r?\n/);
   const criteria = [];
@@ -145,7 +194,7 @@ export function parseCriteria(source) {
   let heading = "";
   let started = false;
   for (let index = 0; index < lines.length; index += 1) {
-    const line = lines[index];
+    const line = lines[index] ?? "";
     if (/^# \d+\./.test(line)) started = true;
     if (/^#{1,3} /.test(line)) {
       heading = line;
@@ -155,7 +204,7 @@ export function parseCriteria(source) {
     const parts = [line.replace(/^(?:- |\d+\. )/, "")];
     let cursor = index + 1;
     while (cursor < lines.length) {
-      const next = lines[cursor];
+      const next = lines[cursor] ?? "";
       if (!next.trim()) break;
       if (/^#{1,3} |^- |^\d+\. /.test(next)) break;
       parts.push(next.trim());
@@ -177,10 +226,18 @@ export function parseCriteria(source) {
   return criteria;
 }
 
+/**
+ * @returns {any}
+ */
 function readMapping() {
   return JSON.parse(readFileSync(mappingPath, "utf8"));
 }
 
+/**
+ * @param {AcceptanceCriterion[]} parsed
+ * @param {{ criteria?: Array<AcceptanceCriterion & { disposition: string }> }} mapping
+ * @returns {string[]}
+ */
 export function validateMapping(parsed, mapping) {
   const errors = [];
   const sourceById = new Map(parsed.map((item) => [item.id, item]));
@@ -205,6 +262,10 @@ export function validateMapping(parsed, mapping) {
   return errors;
 }
 
+/**
+ * @param {{ goal?: { sha256?: string, criteria?: number, criteriaSha256?: string }, criteriaDigest?: string, criteria?: Array<AcceptanceCriterion & { disposition: string }> }} mapping
+ * @returns {string[]}
+ */
 export function validateSnapshot(mapping) {
   const errors = [];
   const seen = new Set();
@@ -235,6 +296,10 @@ export function validateSnapshot(mapping) {
   return errors;
 }
 
+/**
+ * @param {AcceptanceCriterion[]} criteria
+ * @returns {string}
+ */
 export function criteriaSha256(criteria) {
   return sha256(
     JSON.stringify(
@@ -249,12 +314,20 @@ export function criteriaSha256(criteria) {
   );
 }
 
+/**
+ * @param {string} source
+ * @param {AcceptanceCriterion[]} parsed
+ */
 function updateMapping(source, parsed) {
+  /** @type {any} */
   let previous = { criteria: [] };
   try {
     previous = readMapping();
-  } catch {}
-  const byId = new Map(previous.criteria.map((item) => [item.id, item]));
+  } catch (error) {
+    const code = /** @type {{ code?: unknown }} */ (error)?.code;
+    if (code !== "ENOENT") throw error;
+  }
+  const byId = new Map(previous.criteria.map(/** @param {any} item */ (item) => [item.id, item]));
   const criteria = parsed.map((item) => {
     const old = byId.get(item.id);
     return {
@@ -287,6 +360,10 @@ function updateMapping(source, parsed) {
   return result;
 }
 
+/**
+ * @param {string[]} args
+ * @returns {string}
+ */
 function git(args) {
   return execFileSync("git", ["-c", "core.fsmonitor=false", ...args], {
     cwd: root,
@@ -304,6 +381,9 @@ const GENERATED_LEDGER_OUTPUTS = [
   "docs/pr-51-validation-report.md",
 ];
 
+/**
+ * @returns {{ head: string, clean: boolean, diffDigest: string | null, testedIdentity: string }}
+ */
 export function worktreeIdentity() {
   const head = git(["rev-parse", "HEAD"]);
   const excludePathspecs = GENERATED_LEDGER_OUTPUTS.map((path) => `:(exclude)${path}`);
@@ -339,33 +419,53 @@ export function worktreeIdentity() {
   };
 }
 
-function runTests() {
-  mkdirSync(artifactsDir, { recursive: true });
-  const result = spawnSync(
-    process.execPath,
-    // Naming the networked packed-consumer test explicitly opts it back in
-    // (FINDINGS.md TST-003): directory arguments stay hermetic, and the
-    // acceptance capture is the complete evidence run.
-    [
-      join(root, "scripts/run-tests.mjs"),
-      "--report-json",
-      testReportPath,
-      "tests",
-      "tests/integration/packed-consumer.test.ts",
-    ],
-    {
-      cwd: root,
-      encoding: "utf8",
-      stdio: ["ignore", "inherit", "inherit"],
-    },
-  );
-  if (result.status !== 0)
-    throw new Error(`node:test inventory failed with status ${result.status}`);
-  return JSON.parse(readFileSync(testReportPath, "utf8"));
+/**
+ * @param {string} [base]
+ * @returns {string}
+ */
+export function acceptanceTestReportPath(base = tmpdir()) {
+  return join(mkdtempSync(join(base, "oxc-plugin-servicenow-acceptance-")), "test-results.json");
 }
 
+/**
+ * @returns {any}
+ */
+function runTests() {
+  const testReportPath = acceptanceTestReportPath();
+  try {
+    const result = spawnSync(
+      process.execPath,
+      // Naming the networked packed-consumer test explicitly opts it back in
+      // (FINDINGS.md TST-003): directory arguments stay hermetic, and the
+      // acceptance capture is the complete evidence run.
+      [
+        join(root, "scripts/run-tests.mjs"),
+        "--report-json",
+        testReportPath,
+        "tests",
+        "tests/integration/packed-consumer.test.ts",
+      ],
+      {
+        cwd: root,
+        encoding: "utf8",
+        stdio: ["ignore", "inherit", "inherit"],
+      },
+    );
+    if (result.status !== 0)
+      throw new Error(`node:test inventory failed with status ${result.status}`);
+    return JSON.parse(readFileSync(testReportPath, "utf8"));
+  } finally {
+    rmSync(dirname(testReportPath), { recursive: true, force: true });
+  }
+}
+
+/**
+ * @returns {string[]}
+ */
 export function searchableRepoFiles() {
+  /** @type {string[]} */
   const files = [];
+  /** @param {string} directory */
   const visit = (directory) => {
     for (const entry of readdirSync(directory, { withFileTypes: true })) {
       const path = join(directory, entry.name);
@@ -377,28 +477,30 @@ export function searchableRepoFiles() {
   return files.filter((path) => path !== "scripts/pr51-acceptance.json");
 }
 
+/**
+ * @param {any} mapping
+ * @param {any} report
+ * @returns {string[]}
+ */
 function verifyProofs(mapping, report) {
   const errors = [];
-  const byKey = new Map();
-  for (const test of report.tests) {
-    const key = `${test.file}::${test.fullName}`;
-    const entries = byKey.get(key) ?? [];
-    entries.push(test);
-    byKey.set(key, entries);
-  }
-  const searchableFiles = searchableRepoFiles();
+  const byKey = indexOutcomes(report);
+  const searchableContents = searchableRepoFiles().map((path) =>
+    readFileSync(join(root, path), "utf8"),
+  );
   for (const item of mapping.criteria) {
     if (item.disposition === "Verified at exact head") {
       if (!item.command || item.proofs.length === 0)
         errors.push(`${item.id} is verified without an exact command and proof`);
       for (const proof of item.proofs) {
-        const matches = byKey.get(`${proof.file}::${proof.fullName}`) ?? [];
-        if (matches.length !== 1)
+        const result = exactProof(byKey, proof.file, proof.fullName);
+        if (result.status === "missing" || result.status === "ambiguous") {
           errors.push(
-            `${item.id} proof ${proof.file}::${proof.fullName} occurs ${matches.length} times`,
+            `${item.id} proof ${proof.file}::${proof.fullName} occurs ${result.count} times`,
           );
-        else if (matches[0].status !== "passed" || matches[0].skipped || matches[0].todo)
+        } else if (result.status === "not-clean") {
           errors.push(`${item.id} proof did not pass cleanly: ${proof.fullName}`);
+        }
       }
     }
     if (
@@ -408,8 +510,8 @@ function verifyProofs(mapping, report) {
       errors.push(`${item.id} ${item.disposition} requires evidence`);
     }
     for (const caseId of item.caseIds) {
-      const occurrences = searchableFiles.reduce(
-        (count, path) => count + (readFileSync(join(root, path), "utf8").includes(caseId) ? 1 : 0),
+      const occurrences = searchableContents.reduce(
+        (count, contents) => count + (contents.includes(caseId) ? 1 : 0),
         0,
       );
       if (occurrences === 0) errors.push(`${item.id} references absent case ID ${caseId}`);
@@ -423,19 +525,36 @@ function verifyProofs(mapping, report) {
   return errors;
 }
 
+/**
+ * @param {unknown} value
+ * @returns {string}
+ */
 function markdownCell(value) {
   return String(value ?? "")
     .replaceAll("|", "\\|")
     .replaceAll("\n", "<br>");
 }
 
+/**
+ * @param {any} item
+ * @returns {string}
+ */
 function proofLabel(item) {
-  return item.proofs.map((proof) => `\`${proof.file}\` — ${proof.fullName}`).join("<br>") || "—";
+  return (
+    item.proofs
+      .map(/** @param {any} proof */ (proof) => `\`${proof.file}\` — ${proof.fullName}`)
+      .join("<br>") || "—"
+  );
 }
 
+/**
+ * @param {any} mapping
+ * @param {any} artifact
+ * @returns {void}
+ */
 function generateDocs(mapping, artifact) {
   const rows = mapping.criteria.map(
-    (item) =>
+    /** @param {any} item */ (item) =>
       `| ${item.id} | #${item.owner.pr} | ${markdownCell(item.source.heading)} | ${markdownCell(item.source.text)} | ${item.disposition} | ${proofLabel(item)} |`,
   );
   const ledger = `# PR #51 acceptance ledger\n\nThis file is generated from the authoritative goal and \`scripts/pr51-acceptance.json\`. The committed ledger maps requirements. It cannot prove the commit that contains itself. Current execution evidence is written to \`artifacts/pr51-acceptance.json\` and records either an exact clean commit or \`uncommitted\` with a diff digest.\n\n- Goal SHA-256: \`${mapping.goal.sha256}\`\n- Atomic requirements: ${mapping.criteria.length}\n- Verified at exact head: ${artifact.summary.verified}\n- Pending: ${artifact.summary.pending}\n- Live-pending: ${artifact.summary.livePending}\n\n| Finding ID | Owner | Source | Exact requirement | Disposition | Exact proof |\n| --- | ---: | --- | --- | --- | --- |\n${rows.join("\n")}\n`;
@@ -445,40 +564,45 @@ function generateDocs(mapping, artifact) {
   writeFileSync(join(artifactsDir, "pr51-acceptance.md"), report);
 }
 
-export async function main(argv = process.argv.slice(2)) {
+/**
+ * @param {string[]} argv
+ * @returns {Promise<any>}
+ */
+async function runAcceptance(argv) {
   const update = argv.includes("--update");
   if (update && !existsSync(goalPath))
     throw new Error("--update requires PR51-REMEDIATION-GOAL.md from the tracking branch");
   const source = update ? readFileSync(goalPath, "utf8") : null;
   const parsed = source === null ? null : parseCriteria(source);
-  const mapping = update ? updateMapping(source, parsed) : readMapping();
-  const errors = update ? validateMapping(parsed, mapping) : validateSnapshot(mapping);
+  const mapping = update
+    ? updateMapping(/** @type {string} */ (source), /** @type {AcceptanceCriterion[]} */ (parsed))
+    : readMapping();
+  const errors = update
+    ? validateMapping(/** @type {AcceptanceCriterion[]} */ (parsed), mapping)
+    : validateSnapshot(mapping);
   if (
     source !== null &&
-    (mapping.goal.sha256 !== sha256(source) || mapping.goal.criteria !== parsed.length)
+    (mapping.goal.sha256 !== sha256(source) || mapping.goal.criteria !== parsed?.length)
   )
     errors.push("goal identity or criterion count changed");
   const report = argv.includes("--update") ? { tests: [] } : runTests();
   if (!argv.includes("--update")) errors.push(...verifyProofs(mapping, report));
   const identity = worktreeIdentity();
-  if (process.env.CI && (!identity.clean || process.env.GITHUB_SHA !== identity.head))
+  if (process.env["CI"] && (!identity.clean || process.env["GITHUB_SHA"] !== identity.head))
     errors.push("CI acceptance evidence requires a clean exact GITHUB_SHA");
   const summary = {
-    verified: mapping.criteria.filter((item) => item.disposition === "Verified at exact head")
-      .length,
-    pending: mapping.criteria.filter((item) =>
-      ["Pending", "Reproduced", "Implemented"].includes(item.disposition),
+    verified: mapping.criteria.filter(
+      /** @param {any} item */ (item) => item.disposition === "Verified at exact head",
     ).length,
-    livePending: mapping.criteria.filter((item) => item.disposition === "Live-pending").length,
+    pending: mapping.criteria.filter(
+      /** @param {any} item */ (item) =>
+        ["Pending", "Reproduced", "Implemented"].includes(item.disposition),
+    ).length,
+    livePending: mapping.criteria.filter(
+      /** @param {any} item */ (item) => item.disposition === "Live-pending",
+    ).length,
   };
-  const testResults = {
-    total: report.tests.length,
-    passed: report.tests.filter((item) => item.status === "passed" && !item.skipped && !item.todo)
-      .length,
-    failed: report.tests.filter((item) => item.status !== "passed").length,
-    skipped: report.tests.filter((item) => item.skipped).length,
-    todo: report.tests.filter((item) => item.todo).length,
-  };
+  const testResults = outcomeSummary(report);
   const artifact = {
     schemaVersion: 1,
     ok: errors.length === 0,
@@ -494,7 +618,7 @@ export async function main(argv = process.argv.slice(2)) {
       release: release(),
     },
     commands: [
-      "node scripts/run-tests.mjs --report-json artifacts/pr51-test-results.json tests tests/integration/packed-consumer.test.ts",
+      "node scripts/run-tests.mjs --report-json <unique-temporary-report> tests tests/integration/packed-consumer.test.ts",
       "node scripts/verify-acceptance-ledger.mjs",
     ],
     testResults,
@@ -524,7 +648,22 @@ export async function main(argv = process.argv.slice(2)) {
   return artifact;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+/**
+ * @param {string[]} [argv]
+ * @returns {Promise<Record<string, unknown>>}
+ */
+export async function main(argv = process.argv.slice(2)) {
+  return withAcceptanceLock(() => runAcceptance(argv), {
+    lockPath: acceptanceLockPath(root),
+  });
+}
+
+const invokedScript = process.argv[1];
+if (
+  invokedScript !== undefined &&
+  invokedScript !== "" &&
+  import.meta.url === pathToFileURL(invokedScript).href
+) {
   main().catch((error) => {
     console.error(error instanceof Error ? error.message : String(error));
     process.exit(1);

@@ -35,6 +35,18 @@ describe(RULE, () => {
     }
   });
 
+  it("retains stable generator mappers for primitive thisArg checks", () => {
+    for (const code of [
+      `Array.from(source, function* (value) { return value; }, null);`,
+      `function* mapper(value) { return value; }
+Array.from(source, mapper, null);`,
+      `const mapper = function* (value) { return value; };
+Array.from(source, mapper, null);`,
+    ]) {
+      assertInvalid(code, RULE, { messageId: "primitive" }, { settings: ZURICH });
+    }
+  });
+
   it("reports omitted this arguments only for proven sloppy mappers that read their this", () => {
     for (const code of [
       `Array.from(source, function (value) { return this.normalize(value); });`,
@@ -183,6 +195,14 @@ convert();`,
     ]) {
       assertInvalid(code, RULE, { messageId: "omitted" }, { settings: ZURICH });
     }
+  });
+
+  it("reuses the all-safe empty-array proof across many calls", () => {
+    const calls = Array.from(
+      { length: 1_000 },
+      () => `Array.from(source, function (value) { return this.normalize(value); });`,
+    );
+    assertValid(`const source = [];\n${calls.join("\n")}`, RULE, { settings: ZURICH });
   });
 
   it("accepts object this arguments and conservatively unknown primitives", () => {

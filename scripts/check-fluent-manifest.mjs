@@ -1,10 +1,18 @@
 import assert from "node:assert/strict";
 import { readFile, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { fileURLToPath } from "node:url";
+import { root } from "./lib/repo.mjs";
 
-const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+/**
+ * @type {{
+ *   DEFAULT_FLUENT_MANIFEST: import("../src/fluent/index.js").FluentSdkManifest,
+ *   fluentManifests: typeof import("../src/fluent/index.js").fluentManifests,
+ *   SUPPORTED_FLUENT_SDK_VERSIONS: typeof import("../src/fluent/index.js").SUPPORTED_FLUENT_SDK_VERSIONS,
+ *   CURRENT_FLUENT_SDK_VERSION: typeof import("../src/fluent/index.js").CURRENT_FLUENT_SDK_VERSION,
+ *   FLUENT_SDK_ARTIFACTS: typeof import("../src/fluent/index.js").FLUENT_SDK_ARTIFACTS,
+ * }}
+ */
 const {
   DEFAULT_FLUENT_MANIFEST,
   fluentManifests,
@@ -28,12 +36,16 @@ const REQUIRED_DIRECTIVES = [
   "fluent-disable-sync-for-file",
 ];
 
+/** @type {Record<string, string>} */
 const REQUIRED_PLACEMENTS = {
   "fluent-ignore": "previous-line",
   "fluent-disable-sync": "previous-line",
   "fluent-disable-sync-for-file": "first-line",
 };
 
+/**
+ * @param {import("../src/fluent/index.js").FluentSdkManifest} manifest
+ */
 function summarize(manifest) {
   return {
     version: manifest.version,
@@ -62,6 +74,10 @@ function summarize(manifest) {
   };
 }
 
+/**
+ * @param {import("../src/fluent/index.js").FluentSdkManifest} manifest
+ * @returns {void}
+ */
 function assertManifest(manifest) {
   const apiNames = manifest.apis.map((api) => api.name);
   assert.equal(apiNames.length, new Set(apiNames).size, `${manifest.version} has duplicate APIs`);
@@ -207,32 +223,37 @@ assert.equal(declarationFixture.defaultVersion, CURRENT_FLUENT_SDK_VERSION);
 for (const version of SUPPORTED_FLUENT_SDK_VERSIONS) {
   const detail = declarationFixture.versions[version];
   const runtime = FLUENT_DECLARATION_SNAPSHOTS[version];
-  assert.ok(detail && runtime, `${version}: declaration snapshot missing`);
-  assert.equal(
-    detail.sdk.integrity,
-    FLUENT_SDK_ARTIFACTS[version].sdkIntegrity,
-    `${version}: SDK integrity fixture`,
-  );
+  const artifacts = FLUENT_SDK_ARTIFACTS[version];
+  assert.ok(detail && runtime && artifacts, `${version}: declaration snapshot missing`);
+  assert.equal(detail.sdk.integrity, artifacts.sdkIntegrity, `${version}: SDK integrity fixture`);
   assert.equal(
     detail.core.integrity,
-    FLUENT_SDK_ARTIFACTS[version].coreIntegrity,
+    artifacts.coreIntegrity,
     `${version}: core integrity fixture`,
   );
-  assert.deepEqual(
-    runtime.capabilities,
-    detail.capabilities,
-    `${version}: runtime capability snapshot`,
+  // The shipped projection is the fixture's own fields narrowed to what
+  // registry.ts reads. Rebuild it here from the fixture, so a shipped snapshot
+  // that drifts from its evidence fails instead of matching a second copy.
+  const expectedIdPolicy = Object.fromEntries(
+    Object.entries(detail.capabilities).map(([name, capability]) => [name, capability.idPolicy]),
   );
-  assert.deepEqual(
-    runtime.discoveredCapabilities,
-    detail.discoveredCapabilities,
-    `${version}: discovered capability snapshot`,
+  const expectedDiscovered = Object.fromEntries(
+    Object.entries(detail.discoveredCapabilities).map(([name, capability]) => [
+      name,
+      {
+        module: capability.module,
+        introduced:
+          SUPPORTED_FLUENT_SDK_VERSIONS.find(
+            (candidate) => declarationFixture.versions[candidate]?.discoveredCapabilities[name],
+          ) ?? null,
+      },
+    ]),
   );
-  assert.deepEqual(runtime.absent, detail.absent, `${version}: negative capability snapshot`);
+  assert.deepEqual(runtime.idPolicy, expectedIdPolicy, `${version}: declaration id policies`);
+  assert.deepEqual(runtime.discovered, expectedDiscovered, `${version}: discovered declarations`);
   const manifest = fluentManifests().find((item) => item.sdkVersion === version);
   assert.ok(manifest, `${version}: runtime manifest missing`);
-  assert.deepEqual(runtime.typos, DEFAULT_FLUENT_MANIFEST.typos, `${version}: typo snapshot`);
-  for (const [name, lifecycle] of Object.entries(runtime.lifecycle)) {
+  for (const [name, lifecycle] of Object.entries(detail.lifecycle)) {
     const api = manifest.apis.find((item) => item.name === name);
     assert.ok(api, `${version}: lifecycle API ${name} missing from manifest`);
     const expectedLifecycle = {
@@ -244,18 +265,14 @@ for (const version of SUPPORTED_FLUENT_SDK_VERSIONS) {
           : undefined) ??
         null,
     };
-    try {
-      assertFluentLifecycleMatches(api, expectedLifecycle, `${version}: ${name}`);
-    } catch (error) {
-      assert.fail(error instanceof Error ? error.message : String(error));
-    }
+    assertFluentLifecycleMatches(api, expectedLifecycle, `${version}: ${name}`);
   }
   const names = new Set(manifest.apis.map((api) => api.name));
   for (const name of Object.keys(detail.discoveredCapabilities)) {
-    if (!runtime.lifecycle[name]) continue;
+    if (!detail.lifecycle[name]) continue;
     assert.ok(names.has(name), `${version}: declaration-proven required factory ${name} missing`);
   }
-  for (const [name, lifecycle] of Object.entries(runtime.lifecycle)) {
+  for (const [name, lifecycle] of Object.entries(detail.lifecycle)) {
     if (!lifecycle.introduced) continue;
     for (const priorVersion of SUPPORTED_FLUENT_SDK_VERSIONS) {
       if (compareFluentVersions(priorVersion, lifecycle.introduced) >= 0) continue;
@@ -301,12 +318,7 @@ for (const manifest of fluentManifests()) {
   }
 }
 
-const v41 = fluentManifests().find((item) => item.sdkVersion === "4.1.0");
 const v48 = fluentManifests().find((item) => item.sdkVersion === "4.8.0");
-assert.ok(
-  !v41?.apis.some((api) => api.name === "AliasTemplate"),
-  "AliasTemplate leaked before 4.8.0",
-);
 assert.ok(
   v48?.apis.some((api) => api.name === "AliasTemplate"),
   "AliasTemplate missing at 4.8.0",

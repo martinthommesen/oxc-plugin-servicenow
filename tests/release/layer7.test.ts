@@ -48,16 +48,14 @@ import {
 import { repoRoot } from "../integration/helpers.js";
 
 const workflowText = readFileSync(path.join(repoRoot, ".github/workflows/release.yml"), "utf8");
-const workflow = parse(workflowText) as any;
-const ciWorkflow = parse(
-  readFileSync(path.join(repoRoot, ".github/workflows/ci.yml"), "utf8"),
-) as any;
+const workflow = parse(workflowText);
+const ciWorkflow = parse(readFileSync(path.join(repoRoot, ".github/workflows/ci.yml"), "utf8"));
 const governanceWorkflow = parse(
   readFileSync(path.join(repoRoot, ".github/workflows/governance-audit.yml"), "utf8"),
-) as any;
+);
 const recoveryWorkflow = parse(
   readFileSync(path.join(repoRoot, ".github/workflows/recover-release.yml"), "utf8"),
-) as any;
+);
 const desiredFixture = JSON.parse(
   readFileSync(path.join(repoRoot, "tests/fixtures/release-governance/desired.json"), "utf8"),
 );
@@ -82,7 +80,6 @@ describe("release automation gates", () => {
   it("accepts only the supported executable npm range (FINDINGS.md IMP-002)", () => {
     assert.equal(parseNpmVersion("11.5.1\n"), "11.5.1");
     assert.throws(() => parseNpmVersion("v11.5.1\n"), /invalid/);
-    // Below minimum, at minimum, within range, at the exclusive upper bound.
     assert.throws(() => assertTrustedPublishingNpm("11.5.0"), /requires npm/);
     assert.equal(assertTrustedPublishingNpm("11.5.1"), "11.5.1");
     assert.equal(assertTrustedPublishingNpm("11.9.3"), "11.9.3");
@@ -710,6 +707,23 @@ describe("release automation gates", () => {
       jobs.consumer.strategy.matrix,
       "${{ fromJSON(needs.validate.outputs.compat_matrix) }}",
     );
+    const validateRuns = jobs.validate.steps
+      .filter((step: any) => step.run)
+      .map((step: any) => step.run)
+      .join("\n");
+    assert.doesNotMatch(validateRuns, /npm run test:consumer/);
+    assert.ok(
+      jobs.consumer.steps.some(
+        (step: any) =>
+          step.uses?.startsWith("actions/download-artifact@") &&
+          step.with?.name === "release-tarball",
+      ),
+    );
+    assert.ok(
+      jobs.consumer.steps.some((step: any) =>
+        step.run?.includes("node scripts/compat-consumer.mjs --cell"),
+      ),
+    );
     assert.match(jobs["github-release"].steps.at(-1).run, /--expected-commit "\$GITHUB_SHA"/);
     const argumentParsers = [
       "check-release-artifact.mjs",
@@ -727,6 +741,7 @@ describe("release automation gates", () => {
     );
   });
 
+  // @lat: [[tests#Release governance#Foreign package execution is isolated from release inputs]]
   it("recovers only an already-published release after read-only verification", () => {
     assert.ok(Object.hasOwn(recoveryWorkflow.on, "workflow_dispatch"));
     assert.deepEqual(recoveryWorkflow.concurrency, {
@@ -735,11 +750,40 @@ describe("release automation gates", () => {
     });
     assert.deepEqual(recoveryWorkflow.permissions, { contents: "read" });
     assert.deepEqual(recoveryWorkflow.jobs.verify.permissions, { contents: "read" });
+    assert.deepEqual(recoveryWorkflow.jobs["published-package"].permissions, { contents: "read" });
+    assert.equal(recoveryWorkflow.jobs["published-package"].needs, "verify");
+    assert.deepEqual(recoveryWorkflow.jobs.recover.needs, ["verify", "published-package"]);
     assert.equal(recoveryWorkflow.jobs.recover.environment, undefined);
     assert.deepEqual(recoveryWorkflow.jobs.recover.permissions, { contents: "write" });
     assert.equal(
       recoveryWorkflow.jobs.recover.steps[0].with.ref,
       "${{ needs.verify.outputs.commit }}",
+    );
+    const verifySteps = recoveryWorkflow.jobs.verify.steps as any[];
+    const fetchIndex = verifySteps.findIndex((step) => step.id === "release");
+    const uploadIndex = verifySteps.findIndex((step) =>
+      step.uses?.startsWith("actions/upload-artifact@"),
+    );
+    assert.ok(fetchIndex >= 0 && uploadIndex > fetchIndex);
+    assert.doesNotMatch(
+      verifySteps
+        .filter((step) => step.run)
+        .map((step) => step.run)
+        .join("\n"),
+      /verify-published-package\.mjs/,
+    );
+    const publishedSteps = recoveryWorkflow.jobs["published-package"].steps as any[];
+    assert.ok(
+      publishedSteps.some(
+        (step) =>
+          step.uses?.startsWith("actions/download-artifact@") &&
+          step.with?.name === "recovery-tarball",
+      ),
+    );
+    assert.ok(publishedSteps.some((step) => step.run?.includes("verify-published-package.mjs")));
+    assert.equal(
+      publishedSteps.some((step) => step.uses?.startsWith("actions/upload-artifact@")),
+      false,
     );
     const run = Object.values(recoveryWorkflow.jobs)
       .flatMap((job: any) => job.steps ?? [])
@@ -1109,9 +1153,9 @@ describe("exact Sigstore provenance", () => {
       fixture.expected,
       fixture.verifyBundle,
     );
-    assert.equal(summary.commit, fixture.expected.commit);
-    assert.equal(summary.environment, "release");
-    assert.match(summary.bundleSha256 ?? "", /^[a-f0-9]{64}$/);
+    assert.equal(summary["commit"], fixture.expected.commit);
+    assert.equal(summary["environment"], "release");
+    assert.match(summary["bundleSha256"] ?? "", /^[a-f0-9]{64}$/);
   });
 
   it("rejects signature and every required statement or certificate identity mutation", async () => {

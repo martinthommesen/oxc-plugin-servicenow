@@ -306,10 +306,9 @@ ajax.getXMLAnswer(handleAnswer);`,
 
   it("treats missing and non-string keys as definitely absent", () => {
     for (const key of ["", "null", "false", "42", "{}", "[]"]) {
-      const argument = key === "" ? "" : key;
       assertInvalid(
         `var ajax = new GlideAjax("x_acme.UserLookup");
-ajax.addParam(${argument});
+ajax.addParam(${key});
 ajax.getXMLAnswer(handleAnswer);`,
         RULE,
         { messageId: "missingName" },
@@ -712,6 +711,13 @@ gr.next();`,
       RULE,
       { messageId: "missingQuery" },
       { ...SERVER, settings: { scope: "scoped", release: "zurich" } },
+    );
+  });
+
+  it("lets an unconditional query restore the cursor state", () => {
+    assertValid(
+      `var gr = new GlideRecord("incident"); if (ready) gr.query(); gr.query(); gr.next();`,
+      RULE,
     );
   });
 });

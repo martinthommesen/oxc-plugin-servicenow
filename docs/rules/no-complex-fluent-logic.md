@@ -3,7 +3,7 @@
 Optional architectural policy. `.now.ts` files should declare metadata. Loops, classes, try/catch, and multi-statement functions belong in `src/server/`. Not enabled in recommended or strict.
 
 - **Family:** fluent
-- **Preset:** policy
+- **Profile:** policy
 - **Placements:** policy (warn)
 - **Default severity:** warn
 - **Fix safety:** diagnostic only

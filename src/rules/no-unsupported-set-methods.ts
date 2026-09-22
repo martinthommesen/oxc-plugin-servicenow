@@ -36,13 +36,8 @@ function setMethodAccess(node: unknown, analysis: Analysis): SetMethodAccess | n
   const method = staticPropertyName(value);
   if (!method || !SET_METHODS.has(method)) return null;
   const object = value.object as ESTree.Node;
-  const receiver = analysis.ofExpression(object);
-  if (
-    receiver?.kind !== "Set" ||
-    receiver.invalid ||
-    receiver.escaped ||
-    receiver.objectId === undefined
-  ) {
+  const receiver = analysis.trustedExpression(object);
+  if (receiver?.kind !== "Set" || receiver.objectId === undefined) {
     return null;
   }
   return { method, object, objectId: receiver.objectId };
@@ -86,6 +81,7 @@ export const noUnsupportedSetMethods = defineRule({
         if (script.javascriptMode !== "es2021" || !shouldDiagnoseFeature(script, "set-methods")) {
           return false;
         }
+        return undefined;
       },
       CallExpression(node) {
         const call = node as ESTree.CallExpression;
@@ -108,13 +104,8 @@ export const noUnsupportedSetMethods = defineRule({
         };
         const isSameOwner = (candidate: ESTree.Node): boolean => {
           if (isSetPrototype(candidate, analysis)) return true;
-          const receiver = analysis.ofExpression(candidate);
-          return Boolean(
-            receiver?.kind === "Set" &&
-            !receiver.invalid &&
-            !receiver.escaped &&
-            receiver.objectId === access.objectId,
-          );
+          const receiver = analysis.trustedExpression(candidate);
+          return Boolean(receiver?.kind === "Set" && receiver.objectId === access.objectId);
         };
 
         if (

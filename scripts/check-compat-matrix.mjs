@@ -1,21 +1,41 @@
 import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
+import { root } from "./lib/repo.mjs";
 
-const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const exactVersion = /^\d+\.\d+\.\d+$/;
 
+/**
+ * First typescript-eslint line whose peer range admits ESLint 10. Parser cells
+ * on ESLint 10 must install a parser at or above this version, and the
+ * generated compatibility page states the same floor (FINDINGS.md OPS-011).
+ */
+export const MIN_TYPESCRIPT_ESLINT_FOR_ESLINT_10 = "8.56.0";
+
+/**
+ * @typedef {object} CompatibilityCheckResult
+ * @property {number} cells
+ * @property {{ include: Array<{ cell: string, node: string }> }} matrix
+ */
+
+/**
+ * @param {string} file
+ * @returns {any}
+ */
 function loadJson(file) {
   return JSON.parse(readFileSync(join(root, file), "utf8"));
 }
 
+/**
+ * @returns {CompatibilityCheckResult}
+ */
 export function checkCompatibilityMatrix() {
   const matrix = loadJson("scripts/compat-matrix.json");
   const pkg = loadJson("package.json");
   const errors = [];
-  const ids = matrix.cells?.map((cell) => cell.id) ?? [];
+  const ids = matrix.cells?.map(/** @param {any} cell */ (cell) => cell.id) ?? [];
 
-  if (!exactVersion.test(matrix.resolvedAt?.replaceAll("-", ".") ?? "")) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(matrix.resolvedAt ?? "")) {
     errors.push("resolvedAt must be an exact YYYY-MM-DD date");
   }
   if (new Set(ids).size !== ids.length)
@@ -56,37 +76,60 @@ export function checkCompatibilityMatrix() {
       );
     }
     if (cell.eslint.startsWith("10.") && hasParser) {
-      errors.push(`${cell.id} must not compose typescript-eslint with ESLint 10`);
+      // Older parser lines must stay on the ESLint 9 cells.
+      const [floorMajor, floorMinor] = MIN_TYPESCRIPT_ESLINT_FOR_ESLINT_10.split(".").map(Number);
+      const [parserMajor, parserMinor] = String(cell.typescriptEslint ?? "")
+        .split(".")
+        .map(Number);
+      const major = parserMajor ?? 0;
+      const floor = floorMajor ?? 0;
+      const supportsEslint10 =
+        major > floor || (major === floor && (parserMinor ?? 0) >= (floorMinor ?? 0));
+      if (!supportsEslint10) {
+        errors.push(
+          `${cell.id} must not compose typescript-eslint below ${MIN_TYPESCRIPT_ESLINT_FOR_ESLINT_10} with ESLint 10`,
+        );
+      }
     }
   }
 
-  const cellNodes = new Set((matrix.cells ?? []).map((cell) => cell.node));
+  const cellNodes = new Set((matrix.cells ?? []).map(/** @param {any} cell */ (cell) => cell.node));
   for (const runtime of matrix.node.supported ?? []) {
     if (!exactVersion.test(runtime)) errors.push(`Node runtime ${runtime} is not exact`);
     if (!cellNodes.has(runtime)) errors.push(`Node runtime ${runtime} has no compatibility cell`);
   }
-  for (const [name, expected] of [
-    ["node engines", matrix.node.engines],
-    ["oxlint peer", matrix.oxlint.peer],
-    ["ESLint peer", matrix.eslint.peer],
-    ["oxfmt peer", matrix.oxfmt.peer],
-    ["typescript-eslint peer", matrix.typescriptEslint.peer],
-    ["@oxlint/plugins dependency", matrix.oxlintPlugins.dependency],
-  ]) {
-    const actual =
-      name === "node engines"
-        ? pkg.engines?.node
-        : name === "@oxlint/plugins dependency"
-          ? pkg.dependencies?.["@oxlint/plugins"]
-          : pkg.peerDependencies?.[
-              name === "oxlint peer"
-                ? "oxlint"
-                : name === "ESLint peer"
-                  ? "eslint"
-                  : name === "oxfmt peer"
-                    ? "oxfmt"
-                    : "typescript-eslint"
-            ];
+  // TypeScript has no package peer entry: it reaches parser cells through
+  // typescript-eslint's own peer range, so declaring one here would force a
+  // TypeScript install on oxlint-only consumers. Pin the published minimum and
+  // current values to the cells that prove them instead (FINDINGS.md OPS-011).
+  const cellTypescripts = new Set(
+    (matrix.cells ?? []).map(/** @param {any} cell */ (cell) => cell.typescript),
+  );
+  for (const published of [matrix.typescript?.minimum, matrix.typescript?.current]) {
+    if (!exactVersion.test(published ?? "")) {
+      errors.push(`TypeScript published value ${published ?? "missing"} is not exact`);
+    } else if (!cellTypescripts.has(published)) {
+      errors.push(`TypeScript ${published} has no compatibility cell`);
+    }
+  }
+  /** @type {Array<[string, unknown, unknown]>} */
+  const versionPins = [
+    ["node engines", pkg.engines?.node, matrix.node.engines],
+    ["oxlint peer", pkg.peerDependencies?.["oxlint"], matrix.oxlint.peer],
+    ["ESLint peer", pkg.peerDependencies?.["eslint"], matrix.eslint.peer],
+    ["oxfmt peer", pkg.peerDependencies?.["oxfmt"], matrix.oxfmt.peer],
+    [
+      "typescript-eslint peer",
+      pkg.peerDependencies?.["typescript-eslint"],
+      matrix.typescriptEslint.peer,
+    ],
+    [
+      "@oxlint/plugins dependency",
+      pkg.dependencies?.["@oxlint/plugins"],
+      matrix.oxlintPlugins.dependency,
+    ],
+  ];
+  for (const [name, actual, expected] of versionPins) {
     if (actual !== expected)
       errors.push(`${name} is ${actual ?? "missing"}; matrix requires ${expected}`);
   }
@@ -104,10 +147,20 @@ export function checkCompatibilityMatrix() {
   if (errors.length) throw new Error(`compatibility matrix check failed:\n${errors.join("\n")}`);
   return {
     cells: ids.length,
-    matrix: { include: matrix.cells.map((cell) => ({ cell: cell.id, node: cell.node })) },
+    matrix: {
+      include: matrix.cells.map(
+        /** @param {any} cell */ (cell) => ({
+          cell: cell.id,
+          node: cell.node,
+        }),
+      ),
+    },
   };
 }
 
+/**
+ * @returns {CompatibilityCheckResult}
+ */
 export function main() {
   const result = checkCompatibilityMatrix();
   if (process.argv.includes("--github-matrix")) {

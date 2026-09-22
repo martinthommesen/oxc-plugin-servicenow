@@ -20,26 +20,79 @@ import {
   parseOxlintStdout,
   runHostProcess,
 } from "./lib/host-verifier.mjs";
+import { root } from "./lib/repo.mjs";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
-const REPO_FROM_SCRIPT = path.resolve(SCRIPT_DIR, "..");
 const PROJECTS_PATH = path.join(SCRIPT_DIR, "verify-projects.json");
 const ARTIFACT_REL = path.join("artifacts", "verify-oxc-plugin-servicenow");
 const RUN_ID_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 const SOURCE_SUFFIXES = [".js", ".ts"];
 
+/**
+ * @typedef {object} VerifyExpectation
+ * @property {string} rule
+ * @property {string} [file]
+ * @property {number} [minCount]
+ */
+/**
+ * @typedef {object} VerifyProject
+ * @property {string} name
+ * @property {string} dir
+ * @property {string} feature
+ * @property {string} config
+ * @property {string} valid
+ * @property {string} invalid
+ * @property {VerifyExpectation[]} invalidExpected
+ */
+/**
+ * @typedef {object} VerifyProjectSet
+ * @property {string} oxfmtConfig
+ * @property {string} skillDir
+ * @property {Record<string, VerifyProject>} projects
+ * @property {string[]} names
+ */
+/**
+ * @typedef {object} VerifyManifest
+ * @property {string} runId
+ * @property {string} repoRoot
+ * @property {string} gitCommit
+ * @property {{ kind: string, detail: string, hash: string }} examplesGit
+ * @property {string} sourceFingerprint
+ * @property {string} distHash
+ * @property {{ node: string, oxlint: string, oxfmt: string }} versions
+ * @property {boolean} doctorCompleted
+ * @property {string} createdAt
+ * @property {boolean} [noncanonical]
+ */
+
+/**
+ * @param {string} file
+ * @returns {any}
+ */
 function readJson(file) {
   return JSON.parse(readFileSync(file, "utf8"));
 }
 
+/**
+ * @param {unknown} value
+ * @returns {string}
+ */
 function jsonBody(value) {
   return `${JSON.stringify(value, null, 2)}\n`;
 }
 
+/**
+ * @param {string | Buffer} value
+ * @returns {string}
+ */
 export function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
 }
 
+/**
+ * @param {string | null | undefined} value
+ * @returns {string}
+ */
 export function parseRunId(value) {
   if (!value || !RUN_ID_RE.test(value) || value === "." || value === ".." || value.includes("..")) {
     throw new Error(`invalid run id: ${value ?? "(empty)"}`);
@@ -47,6 +100,11 @@ export function parseRunId(value) {
   return value;
 }
 
+/**
+ * @param {string} base
+ * @param {string} dest
+ * @returns {string}
+ */
 export function containedPath(base, dest) {
   const resolvedBase = path.resolve(base);
   const resolvedDest = path.resolve(dest);
@@ -57,17 +115,53 @@ export function containedPath(base, dest) {
   return resolvedDest;
 }
 
+/**
+ * @param {string} target
+ * @returns {void}
+ */
 function assertNotSymlink(target) {
-  if (existsSync(target) && lstatSync(target).isSymbolicLink()) {
-    throw new Error(`refusing symlink ${target}`);
+  try {
+    if (lstatSync(target).isSymbolicLink()) {
+      throw new Error(`refusing symlink ${target}`);
+    }
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") return;
+    throw error;
   }
 }
 
+/**
+ * @param {string} base
+ * @param {string} target
+ * @returns {void}
+ */
+function assertContainedPathComponentsNotSymlinks(base, target) {
+  const resolvedBase = path.resolve(base);
+  const resolvedTarget = containedPath(resolvedBase, target);
+  let current = resolvedBase;
+  assertNotSymlink(current);
+  const relative = path.relative(resolvedBase, resolvedTarget);
+  if (!relative) return;
+  for (const component of relative.split(path.sep)) {
+    current = path.join(current, component);
+    assertNotSymlink(current);
+  }
+}
+
+/**
+ * @param {string} dir
+ * @returns {void}
+ */
 function mkdirExclusive(dir) {
   assertNotSymlink(dir);
   mkdirSync(dir, { recursive: false });
 }
 
+/**
+ * @param {string} dir
+ * @param {string[]} [acc]
+ * @returns {string[]}
+ */
 function listFiles(dir, acc = []) {
   if (!existsSync(dir)) return acc;
   for (const name of readdirSync(dir)) {
@@ -89,15 +183,28 @@ function listFiles(dir, acc = []) {
   return acc;
 }
 
+/**
+ * @param {string} dir
+ * @returns {number}
+ */
 function sourceFileCount(dir) {
   return listFiles(dir).filter((file) => SOURCE_SUFFIXES.some((suffix) => file.endsWith(suffix)))
     .length;
 }
 
+/**
+ * @param {string} dir
+ * @returns {boolean}
+ */
 function hasSourceFile(dir) {
   return sourceFileCount(dir) > 0;
 }
 
+/**
+ * @param {string} repoRoot
+ * @param {string} abs
+ * @returns {string}
+ */
 function repoRelative(repoRoot, abs) {
   const rel = path.relative(repoRoot, abs);
   if (rel.startsWith("..") || path.isAbsolute(rel)) {
@@ -106,7 +213,11 @@ function repoRelative(repoRoot, abs) {
   return rel.split(path.sep).join("/");
 }
 
-export function loadAndValidateProjects(repoRoot = REPO_FROM_SCRIPT) {
+/**
+ * @param {string} [repoRoot]
+ * @returns {VerifyProjectSet}
+ */
+export function loadAndValidateProjects(repoRoot = root) {
   const raw = readJson(PROJECTS_PATH);
   if (!raw?.projects || typeof raw.projects !== "object" || !raw.oxfmtConfig || !raw.skillDir) {
     throw new Error("verify-projects.json is missing projects, oxfmtConfig, or skillDir");
@@ -130,6 +241,7 @@ export function loadAndValidateProjects(repoRoot = REPO_FROM_SCRIPT) {
     errors.push(`Claude skill symlink must resolve to ${raw.skillDir}`);
   }
   const seenFeatures = new Set();
+  /** @type {Record<string, VerifyProject>} */
   const projects = {};
   for (const [name, spec] of Object.entries(raw.projects)) {
     if (!spec?.dir || !spec.feature || !Array.isArray(spec.invalidExpected)) {
@@ -145,13 +257,13 @@ export function loadAndValidateProjects(repoRoot = REPO_FROM_SCRIPT) {
     const valid = path.join(dir, "valid");
     const invalid = path.join(dir, "invalid");
     const featurePath = path.join(skillDir, "features", `${spec.feature}.md`);
-    for (const [label, target] of [
+    for (const [label, target] of /** @type {Array<[string, string]>} */ ([
       ["dir", dir],
       ["config", config],
       ["valid", valid],
       ["invalid", invalid],
       ["feature", featurePath],
-    ]) {
+    ])) {
       if (!existsSync(target)) errors.push(`${name} missing ${label}: ${target}`);
     }
     if (existsSync(valid) && !hasSourceFile(valid))
@@ -187,7 +299,9 @@ export function loadAndValidateProjects(repoRoot = REPO_FROM_SCRIPT) {
     if (existsSync(config)) {
       const configJson = readJson(config);
       const plugins = Array.isArray(configJson.jsPlugins) ? configJson.jsPlugins : [];
-      const matches = plugins.filter((plugin) => plugin?.name === "servicenow");
+      const matches = plugins.filter(
+        /** @param {any} plugin */ (plugin) => plugin?.name === "servicenow",
+      );
       if (matches.length !== 1) {
         errors.push(`${name} must have exactly one jsPlugins entry named servicenow`);
       }
@@ -211,7 +325,11 @@ export function loadAndValidateProjects(repoRoot = REPO_FROM_SCRIPT) {
   };
 }
 
-export function findRepo(start = REPO_FROM_SCRIPT) {
+/**
+ * @param {string} [start]
+ * @returns {{ root: string, pkg: Record<string, unknown> }}
+ */
+export function findRepo(start = root) {
   let dir = start;
   while (true) {
     const pkgPath = path.join(dir, "package.json");
@@ -225,6 +343,12 @@ export function findRepo(start = REPO_FROM_SCRIPT) {
   }
 }
 
+/**
+ * @param {string} repoRoot
+ * @param {string} relDir
+ * @param {string[]} suffixes
+ * @returns {string}
+ */
 function hashTree(repoRoot, relDir, suffixes) {
   const abs = path.join(repoRoot, relDir);
   const files = listFiles(abs)
@@ -239,10 +363,18 @@ function hashTree(repoRoot, relDir, suffixes) {
   return hash.digest("hex");
 }
 
+/**
+ * @param {string} abs
+ * @returns {string}
+ */
 function hashFile(abs) {
   return sha256(readFileSync(abs));
 }
 
+/**
+ * @param {string} repoRoot
+ * @returns {string}
+ */
 export function sourceFingerprint(repoRoot) {
   return sha256(
     [
@@ -258,12 +390,20 @@ export function sourceFingerprint(repoRoot) {
   );
 }
 
+/**
+ * @param {string} repoRoot
+ * @returns {string}
+ */
 export function distHash(repoRoot) {
   const distIndex = path.join(repoRoot, "dist", "index.js");
   if (!existsSync(distIndex)) throw new Error("dist/index.js is missing. Run npm run build.");
   return hashTree(repoRoot, "dist", [".js", ".mjs", ".cjs", ".json"]);
 }
 
+/**
+ * @param {string} repoRoot
+ * @returns {string}
+ */
 function gitCommit(repoRoot) {
   const result = runHostProcess({
     bin: "git",
@@ -277,6 +417,10 @@ function gitCommit(repoRoot) {
   return result.stdout.trim();
 }
 
+/**
+ * @param {string} repoRoot
+ * @returns {{ kind: "clean" | "dirty" | "error", detail: string, hash: string }}
+ */
 export function examplesGit(repoRoot) {
   const result = runHostProcess({
     bin: "git",
@@ -288,10 +432,30 @@ export function examplesGit(repoRoot) {
   return { ...state, hash: sha256(state.detail) };
 }
 
+/**
+ * @param {string} repoRoot
+ * @returns {string}
+ */
 function artifactBase(repoRoot) {
   return path.join(repoRoot, ARTIFACT_REL);
 }
 
+/**
+ * @param {string} repoRoot
+ * @param {string} runId
+ * @returns {string}
+ */
+export function assertArtifactRunPathSafe(repoRoot, runId) {
+  const runDir = runDirFor(repoRoot, runId);
+  assertContainedPathComponentsNotSymlinks(repoRoot, runDir);
+  return runDir;
+}
+
+/**
+ * @param {string} repoRoot
+ * @param {string} runId
+ * @returns {string}
+ */
 export function runDirFor(repoRoot, runId) {
   return containedPath(
     artifactBase(repoRoot),
@@ -299,47 +463,87 @@ export function runDirFor(repoRoot, runId) {
   );
 }
 
+/**
+ * @param {string} runDir
+ * @returns {VerifyManifest}
+ */
 function readManifest(runDir) {
   const manifestPath = path.join(runDir, "manifest.json");
   if (!existsSync(manifestPath)) throw new Error(`missing run manifest: ${manifestPath}`);
   return readJson(manifestPath);
 }
 
+/**
+ * @param {string} file
+ * @param {unknown} value
+ * @returns {void}
+ */
 function writeJson(file, value) {
   writeFileSync(file, jsonBody(value));
 }
 
+/**
+ * @param {string} dir
+ * @returns {void}
+ */
 function writeCompleted(dir) {
   writeFileSync(path.join(dir, "COMPLETED"), "1\n");
 }
 
+/**
+ * @param {any} config
+ * @returns {any}
+ */
 function servicenowPlugin(config) {
   const plugins = Array.isArray(config.jsPlugins) ? config.jsPlugins : [];
-  const matches = plugins.filter((plugin) => plugin?.name === "servicenow");
+  const matches = plugins.filter(
+    /** @param {any} plugin */ (plugin) => plugin?.name === "servicenow",
+  );
   if (matches.length !== 1) {
     throw new Error("expected exactly one jsPlugins entry named servicenow");
   }
   return matches[0];
 }
 
+/**
+ * @param {string} sourceConfigPath
+ * @param {string} distIndex
+ * @returns {any}
+ */
 function rewriteConfig(sourceConfigPath, distIndex) {
   const config = readJson(sourceConfigPath);
   servicenowPlugin(config).specifier = distIndex;
   return config;
 }
 
+/**
+ * @param {string} repoRoot
+ * @param {string} name
+ * @returns {string}
+ */
 function installedVersion(repoRoot, name) {
   return readJson(path.join(repoRoot, "node_modules", name, "package.json")).version;
 }
 
+/**
+ * @param {string} nodeVersion
+ * @param {string} engine
+ * @returns {boolean}
+ */
 function meetsEngine(nodeVersion, engine) {
   const need = /^>=(\d+)\.(\d+)\.(\d+)$/.exec(engine);
   const have = /^v?(\d+)\.(\d+)\.(\d+)/.exec(nodeVersion);
   if (!need || !have) return false;
-  const cmp = [1, 2, 3].map((index) => Number(have[index]) - Number(need[index]));
-  return cmp[0] !== 0 ? cmp[0] > 0 : cmp[1] !== 0 ? cmp[1] > 0 : cmp[2] >= 0;
+  const [major = 0, minor = 0, patch = 0] = [1, 2, 3].map(
+    (index) => Number(have[index]) - Number(need[index]),
+  );
+  return major !== 0 ? major > 0 : minor !== 0 ? minor > 0 : patch >= 0;
 }
 
+/**
+ * @param {number} pid
+ * @returns {boolean}
+ */
 function processAlive(pid) {
   try {
     process.kill(pid, 0);
@@ -349,15 +553,28 @@ function processAlive(pid) {
   }
 }
 
+/**
+ * @param {string} runDir
+ * @returns {void}
+ */
 function writeLivePid(runDir) {
   writeFileSync(path.join(runDir, "live.pid"), `${process.pid}\n`);
 }
 
+/**
+ * @param {string} runDir
+ * @returns {void}
+ */
 function clearLivePid(runDir) {
   const file = path.join(runDir, "live.pid");
   if (existsSync(file)) rmSync(file);
 }
 
+/**
+ * @param {string} repoRoot
+ * @param {VerifyManifest} manifest
+ * @returns {void}
+ */
 function requireFreshFingerprints(repoRoot, manifest) {
   const source = sourceFingerprint(repoRoot);
   const dist = distHash(repoRoot);
@@ -369,6 +586,11 @@ function requireFreshFingerprints(repoRoot, manifest) {
   }
 }
 
+/**
+ * @param {string} repoRoot
+ * @param {VerifyManifest} manifest
+ * @returns {void}
+ */
 function requireVersions(repoRoot, manifest) {
   const recorded = manifest.versions ?? {};
   const current = {
@@ -376,7 +598,11 @@ function requireVersions(repoRoot, manifest) {
     oxlint: installedVersion(repoRoot, "oxlint"),
     oxfmt: installedVersion(repoRoot, "oxfmt"),
   };
-  for (const name of ["node", "oxlint", "oxfmt"]) {
+  for (const name of /** @type {Array<"node" | "oxlint" | "oxfmt">} */ ([
+    "node",
+    "oxlint",
+    "oxfmt",
+  ])) {
     if (recorded[name] !== current[name]) {
       throw new Error(
         `${name} version changed (${recorded[name]} -> ${current[name]}). Run prepare again.`,
@@ -385,12 +611,23 @@ function requireVersions(repoRoot, manifest) {
   }
 }
 
+/**
+ * @param {string} runDir
+ * @param {VerifyManifest} manifest
+ * @returns {void}
+ */
 function requireDoctor(runDir, manifest) {
   if (!manifest.doctorCompleted || !existsSync(path.join(runDir, "doctor", "COMPLETED"))) {
     throw new Error("doctor has not completed for this run.");
   }
 }
 
+/**
+ * @param {string} repoRoot
+ * @param {VerifyManifest} manifest
+ * @param {boolean} noncanonical
+ * @returns {{ kind: "clean" | "dirty" | "error", detail: string, hash: string }}
+ */
 function requireGitMatch(repoRoot, manifest, noncanonical) {
   const commit = gitCommit(repoRoot);
   const git = examplesGit(repoRoot);
@@ -407,6 +644,12 @@ function requireGitMatch(repoRoot, manifest, noncanonical) {
   return git;
 }
 
+/**
+ * @param {string} repoRoot
+ * @param {string} runDir
+ * @param {VerifyManifest} manifest
+ * @param {boolean} noncanonical
+ */
 function requireReadyRun(repoRoot, runDir, manifest, noncanonical) {
   requireDoctor(runDir, manifest);
   requireVersions(repoRoot, manifest);
@@ -414,12 +657,25 @@ function requireReadyRun(repoRoot, runDir, manifest, noncanonical) {
   return requireGitMatch(repoRoot, manifest, noncanonical);
 }
 
+/**
+ * @param {string} runDir
+ * @param {VerifyManifest} manifest
+ * @param {boolean} noncanonical
+ * @returns {void}
+ */
 function markNoncanonical(runDir, manifest, noncanonical) {
   if (!noncanonical || manifest.noncanonical) return;
   manifest.noncanonical = true;
   writeJson(path.join(runDir, "manifest.json"), manifest);
 }
 
+/**
+ * @param {string} repoRoot
+ * @param {{ hash: string }} before
+ * @param {{ ok: boolean, reasons: string[] }} proof
+ * @param {boolean} noncanonical
+ * @returns {void}
+ */
 function recordExamplesMutation(repoRoot, before, proof, noncanonical) {
   if (!noncanonical && examplesGit(repoRoot).hash !== before.hash) {
     proof.ok = false;
@@ -427,6 +683,11 @@ function recordExamplesMutation(repoRoot, before, proof, noncanonical) {
   }
 }
 
+/**
+ * @param {string} dir
+ * @param {Record<string, string>} files
+ * @returns {void}
+ */
 function persistAttempt(dir, files) {
   mkdirSync(dir, { recursive: true });
   for (const [name, body] of Object.entries(files)) {
@@ -437,6 +698,14 @@ function persistAttempt(dir, files) {
   writeCompleted(dir);
 }
 
+/**
+ * @param {string} dir
+ * @param {string[]} argv
+ * @param {any} host
+ * @param {unknown} summary
+ * @param {Record<string, string>} [extras]
+ * @returns {void}
+ */
 function persistHostAttempt(dir, argv, host, summary, extras = {}) {
   persistAttempt(dir, {
     "argv.json": jsonBody(argv),
@@ -455,8 +724,13 @@ function persistHostAttempt(dir, argv, host, summary, extras = {}) {
   });
 }
 
+/**
+ * @param {string} repoRoot
+ * @param {VerifyProjectSet} projects
+ * @param {string} doctorDir
+ */
 function pluginLoadCheck(repoRoot, projects, doctorDir) {
-  const spec = projects.projects.fluent;
+  const spec = /** @type {VerifyProject} */ (projects.projects["fluent"]);
   const effective = rewriteConfig(
     path.join(repoRoot, spec.config),
     path.join(repoRoot, "dist", "index.js"),
@@ -487,9 +761,19 @@ function pluginLoadCheck(repoRoot, projects, doctorDir) {
   });
 }
 
+/**
+ * @param {string} repoRoot
+ * @param {any} pkg
+ * @param {VerifyManifest | null} manifest
+ * @param {VerifyProjectSet} projects
+ * @param {string} doctorDir
+ */
 function doctorChecks(repoRoot, pkg, manifest, projects, doctorDir) {
+  /** @type {Array<{ id: string, ok: boolean, detail: unknown }>} */
   const checks = [];
+  /** @param {string} id @param {unknown} detail */
   const pass = (id, detail) => checks.push({ id, ok: true, detail });
+  /** @param {string} id @param {unknown} detail */
   const fail = (id, detail) => checks.push({ id, ok: false, detail });
   if (!pkg.engines?.node || !meetsEngine(process.versions.node, pkg.engines.node)) {
     fail("node-engine", `Need Node ${pkg.engines?.node}. Have ${process.version}.`);
@@ -528,7 +812,7 @@ function doctorChecks(repoRoot, pkg, manifest, projects, doctorDir) {
       fail("fingerprint", error instanceof Error ? error.message : String(error));
     }
   }
-  if (projects.projects.fluent && existsSync(path.join(repoRoot, "dist", "index.js"))) {
+  if (projects.projects["fluent"] && existsSync(path.join(repoRoot, "dist", "index.js"))) {
     try {
       const proof = pluginLoadCheck(repoRoot, projects, doctorDir);
       if (!proof.ok) fail("plugin-load", proof.reasons.join("; "));
@@ -540,10 +824,18 @@ function doctorChecks(repoRoot, pkg, manifest, projects, doctorDir) {
   return checks;
 }
 
+/**
+ * @param {{ ok: boolean, id: string, detail: unknown }} check
+ * @returns {string}
+ */
 function formatDoctorLine(check) {
   return `${check.ok ? "OK" : "FAIL"} ${check.id}: ${check.detail}`;
 }
 
+/**
+ * @param {string} runDir
+ * @param {string} label
+ */
 function createAttemptDir(runDir, label) {
   const attemptId = `${label}-${randomUUID()}`;
   const dir = containedPath(runDir, path.join(runDir, attemptId));
@@ -552,20 +844,49 @@ function createAttemptDir(runDir, label) {
   return { attemptId, dir };
 }
 
+/**
+ * @param {string} repoRoot
+ * @param {string} runDir
+ * @param {VerifyManifest} manifest
+ * @param {boolean} noncanonical
+ * @param {string} label
+ */
+function beginDriveAttempt(repoRoot, runDir, manifest, noncanonical, label) {
+  const initialExamplesGit = requireReadyRun(repoRoot, runDir, manifest, noncanonical);
+  markNoncanonical(runDir, manifest, noncanonical);
+  const { attemptId, dir } = createAttemptDir(runDir, label);
+  return { initialExamplesGit, attemptId, dir };
+}
+
+/**
+ * @param {string} repoRoot
+ * @param {VerifyProjectSet} projects
+ * @param {string} project
+ * @param {string} tree
+ * @param {string} runDir
+ * @param {VerifyManifest} manifest
+ * @param {string[]} argv
+ * @param {boolean} noncanonical
+ */
 function driveLint(repoRoot, projects, project, tree, runDir, manifest, argv, noncanonical) {
   const spec = projects.projects[project];
   if (!spec) throw new Error(`Unknown project ${project}`);
   if (tree !== "valid" && tree !== "invalid") throw new Error(`Tree must be valid or invalid`);
-  const initialExamplesGit = requireReadyRun(repoRoot, runDir, manifest, noncanonical);
-  markNoncanonical(runDir, manifest, noncanonical);
-  const { attemptId, dir } = createAttemptDir(runDir, `${project}-${tree}`);
+  const treeDir = tree === "valid" ? spec.valid : spec.invalid;
+  const { initialExamplesGit, attemptId, dir } = beginDriveAttempt(
+    repoRoot,
+    runDir,
+    manifest,
+    noncanonical,
+    `${project}-${tree}`,
+  );
   const host = {
     argv: [],
     status: null,
     signal: null,
     stdout: "",
     stderr: "",
-    error: null,
+    error: /** @type {{ code?: string, message: string } | null} */ (null),
     timedOut: false,
     durationMs: 0,
   };
@@ -585,7 +906,7 @@ function driveLint(repoRoot, projects, project, tree, runDir, manifest, argv, no
         "json",
         "-c",
         path.join(dir, "effective.oxlintrc.json"),
-        path.join(repoRoot, spec[tree]),
+        path.join(repoRoot, treeDir),
       ],
       cwd: repoRoot,
     });
@@ -603,7 +924,7 @@ function driveLint(repoRoot, projects, project, tree, runDir, manifest, argv, no
     parseError,
     host,
     expectations: tree === "invalid" ? spec.invalidExpected : [],
-    expectedFileCount: sourceFileCount(path.join(repoRoot, spec[tree])),
+    expectedFileCount: sourceFileCount(path.join(repoRoot, treeDir)),
   });
   recordExamplesMutation(repoRoot, initialExamplesGit, proof, noncanonical);
   persistHostAttempt(
@@ -633,16 +954,31 @@ function driveLint(repoRoot, projects, project, tree, runDir, manifest, argv, no
   return { ok: proof.ok, dir, attemptId, proof, project, tree };
 }
 
+/**
+ * @param {string} repoRoot
+ * @param {VerifyProjectSet} projects
+ * @param {string} project
+ * @param {string} runDir
+ * @param {VerifyManifest} manifest
+ * @param {string[]} argv
+ * @param {boolean} noncanonical
+ */
 function driveOxfmt(repoRoot, projects, project, runDir, manifest, argv, noncanonical) {
   if (project !== "all" && !projects.projects[project])
     throw new Error(`Unknown project ${project}`);
-  const initialExamplesGit = requireReadyRun(repoRoot, runDir, manifest, noncanonical);
-  markNoncanonical(runDir, manifest, noncanonical);
-  const { attemptId, dir } = createAttemptDir(runDir, `${project}-oxfmt`);
+  const { initialExamplesGit, attemptId, dir } = beginDriveAttempt(
+    repoRoot,
+    runDir,
+    manifest,
+    noncanonical,
+    `${project}-oxfmt`,
+  );
   const targets =
     project === "all"
-      ? projects.names.map((name) => path.join(repoRoot, projects.projects[name].valid))
-      : [path.join(repoRoot, projects.projects[project].valid)];
+      ? projects.names.map((name) =>
+          path.join(repoRoot, /** @type {VerifyProject} */ (projects.projects[name]).valid),
+        )
+      : [path.join(repoRoot, /** @type {VerifyProject} */ (projects.projects[project]).valid)];
   const host = runHostProcess({
     bin: path.join(repoRoot, "node_modules", ".bin", "oxfmt"),
     args: ["-c", path.join(repoRoot, projects.oxfmtConfig), "--check", ...targets],
@@ -665,10 +1001,16 @@ function driveOxfmt(repoRoot, projects, project, runDir, manifest, argv, noncano
   return { ok: proof.ok, dir, attemptId, proof, project, tree: "oxfmt" };
 }
 
+/**
+ * @param {string} repoRoot
+ * @param {string} runId
+ * @returns {{ runDir: string, manifest: VerifyManifest }}
+ */
 function prepareRun(repoRoot, runId) {
   const base = artifactBase(repoRoot);
+  const runDir = assertArtifactRunPathSafe(repoRoot, runId);
   mkdirSync(base, { recursive: true });
-  const runDir = runDirFor(repoRoot, runId);
+  assertArtifactRunPathSafe(repoRoot, runId);
   mkdirExclusive(runDir);
   writeLivePid(runDir);
   try {
@@ -709,14 +1051,23 @@ function prepareRun(repoRoot, runId) {
     writeJson(path.join(runDir, "manifest.json"), manifest);
     return { runDir, manifest };
   } catch (error) {
+    assertArtifactRunPathSafe(repoRoot, runId);
     clearLivePid(runDir);
     if (!existsSync(path.join(runDir, "manifest.json"))) {
+      assertArtifactRunPathSafe(repoRoot, runId);
       rmSync(runDir, { recursive: true, force: true });
     }
     throw error;
   }
 }
 
+/**
+ * @param {string} repoRoot
+ * @param {any} pkg
+ * @param {VerifyProjectSet} projects
+ * @param {string} runDir
+ * @param {VerifyManifest} manifest
+ */
 function runDoctor(repoRoot, pkg, projects, runDir, manifest) {
   const doctorDir = path.join(runDir, "doctor");
   mkdirSync(doctorDir, { recursive: true });
@@ -749,30 +1100,41 @@ function usage() {
   --noncanonical skips the examples/ cleanliness gates and stamps the run manifest`);
 }
 
+/**
+ * @param {string[]} argv
+ */
 function parseArgs(argv) {
+  /** @type {{ all: boolean, command: string | null, project: string | null, tree: string | null, runId: string | null, noncanonical: boolean, argv: string[] }} */
   const options = {
     all: false,
     command: null,
     project: null,
     tree: null,
-    runId: process.env.VERIFY_RUN_ID ?? null,
+    runId: process.env["VERIFY_RUN_ID"] ?? null,
     noncanonical: false,
     argv,
   };
   for (let index = 0; index < argv.length; index += 1) {
+    /** @param {string} flag @returns {string} */
+    const takeValue = (flag) => {
+      const value = argv[index + 1];
+      if (value === undefined || value.startsWith("-")) throw new Error(`${flag} requires a value`);
+      index += 1;
+      return value;
+    };
     const part = argv[index];
     switch (part) {
       case "--all":
         options.all = true;
         break;
       case "--project":
-        options.project = argv[++index];
+        options.project = takeValue(part);
         break;
       case "--tree":
-        options.tree = argv[++index];
+        options.tree = takeValue(part);
         break;
       case "--run-id":
-        options.runId = argv[++index];
+        options.runId = takeValue(part);
         break;
       case "--noncanonical":
         options.noncanonical = true;
@@ -790,6 +1152,10 @@ function parseArgs(argv) {
   return options;
 }
 
+/**
+ * @param {string[]} argv
+ * @returns {number}
+ */
 export function main(argv) {
   const { root, pkg } = findRepo();
   const options = parseArgs(argv);
@@ -799,7 +1165,7 @@ export function main(argv) {
     const markdown = readFileSync(skillPath, "utf8");
     const fence = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(markdown);
     if (!fence) throw new Error("SKILL.md is missing YAML frontmatter");
-    const data = parseYaml(fence[1]);
+    const data = parseYaml(fence[1] ?? "");
     if (!data || typeof data !== "object") throw new Error("SKILL.md frontmatter is not a mapping");
     if (data.name !== "verify-oxc-plugin-servicenow") {
       throw new Error("SKILL.md is missing name verify-oxc-plugin-servicenow");
@@ -821,13 +1187,15 @@ export function main(argv) {
   }
   const projects = loadAndValidateProjects(root);
   if (options.command === "cleanup") {
-    const runDir = runDirFor(root, parseRunId(options.runId));
+    const runId = parseRunId(options.runId);
+    const runDir = assertArtifactRunPathSafe(root, runId);
     const manifestPath = path.join(runDir, "manifest.json");
     if (!existsSync(runDir)) {
       console.log(JSON.stringify({ ok: true, cleared: null, evidenceKept: null }, null, 2));
       return 0;
     }
     if (!existsSync(manifestPath)) {
+      assertArtifactRunPathSafe(root, runId);
       rmSync(runDir, { recursive: true, force: true });
       console.log(JSON.stringify({ ok: true, removed: runDir }, null, 2));
       return 0;
@@ -960,7 +1328,11 @@ export function main(argv) {
   return 2;
 }
 
-const invoked = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+const invokedScript = process.argv[1];
+const invoked =
+  invokedScript !== undefined &&
+  invokedScript !== "" &&
+  path.resolve(invokedScript) === fileURLToPath(import.meta.url);
 if (invoked) {
   try {
     process.exitCode = main(process.argv.slice(2));

@@ -3,7 +3,7 @@
 `updateMultiple()` / `deleteMultiple()` without a proven restricting filter can touch every row. `query`, `orderBy`, `setLimit`, and `chooseWindow` are not filters. Empty `addQuery()` / `addEncodedQuery("")` do not count.
 
 - **Family:** classic
-- **Preset:** recommended
+- **Profile:** recommended
 - **Placements:** recommended (warn)
 - **Default severity:** warn
 - **Fix safety:** diagnostic only

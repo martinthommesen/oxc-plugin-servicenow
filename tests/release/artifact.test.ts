@@ -138,7 +138,7 @@ describe("release artifact gates", () => {
 
   it("wires validate and release scripts to one inspected tarball", () => {
     const releaseCheck = pkg.scripts["release:check"];
-    const validate = pkg.scripts.validate;
+    const validate = pkg.scripts["validate"];
     assert.equal(releaseCheck, "node scripts/check-release-artifact.mjs");
     assert.ok(validate, "package.json is missing the validate script");
     assert.match(validate, /release:check -- --consumer/);
@@ -211,7 +211,7 @@ describe("release artifact gates", () => {
       assert.match(result.sha256, /^[a-f0-9]{64}$/);
       assert.match(result.integrity, /^sha512-/);
       const input = inspectPublishInput(inputDir);
-      assert.equal(input.manifest.version, pkg.version);
+      assert.equal(input.manifest["version"], pkg.version);
       assert.equal(input.npmPackManifest.filename, path.basename(result.tarball));
       assert.equal(input.npmPackManifest.sha256, result.sha256);
       assert.equal(input.npmPackManifest.integrity, result.integrity);

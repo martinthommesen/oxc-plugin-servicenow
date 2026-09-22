@@ -1,6 +1,6 @@
 {
   "name": "oxc-plugin-servicenow",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "First-class Oxlint + oxfmt tooling for ServiceNow Fluent (.now.ts) and classic ServiceNow JavaScript.",
   "keywords": [
     "oxlint",
@@ -27,7 +27,7 @@
   "type": "module",
   "sideEffects": false,
   "engines": {
-    "node": ">=20.19.0"
+    "node": ">=22.12.0"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -72,11 +72,12 @@
     "fluent:check": "node --import ./scripts/register-tsx.mjs scripts/check-fluent-manifest.mjs",
     "pretypecheck:fixtures": "npm run build",
     "typecheck:fixtures": "tsc --noEmit -p tsconfig.valid-fixtures.json",
+  "typecheck:scripts": "tsc --noEmit -p tsconfig.scripts.json",
     "lint:check": "oxlint --disable-nested-config --deny-warnings --ignore-pattern 'tests/integration/profiles/**' src scripts tests",
     "format": "oxfmt -c .oxfmtrc.json --write src scripts tests",
     "format:check": "oxfmt -c .oxfmtrc.json --check src scripts tests",
     "docs": "node --import ./scripts/register-tsx.mjs scripts/generate-rule-docs.mjs && node scripts/generate-compatibility-docs.mjs && node --import ./scripts/register-tsx.mjs scripts/generate-australia-engine-docs.mjs",
-    "docs:check": "node --import ./scripts/register-tsx.mjs scripts/generate-rule-docs.mjs && node scripts/generate-compatibility-docs.mjs && node --import ./scripts/register-tsx.mjs scripts/generate-australia-engine-docs.mjs && node --import ./scripts/register-tsx.mjs scripts/check-catalog-docs.mjs && git diff --exit-code -- docs/rules README.md docs/compatibility.md docs/australia-engine-updates.md examples tests/integration/profiles/configs/recommended.oxlintrc.json tests/integration/profiles/configs/strict.oxlintrc.json tests/integration/profiles/mixed/.oxlintrc.json tests/integration/fixtures/.oxlintrc.json",
+    "docs:check": "node scripts/generate-version.mjs && npm run docs && node --import ./scripts/register-tsx.mjs scripts/check-catalog-docs.mjs && node scripts/check-generated-roundtrip.mjs",
     "compat": "node scripts/compat-consumer.mjs",
     "manifest:check": "node --import ./scripts/register-tsx.mjs scripts/check-fluent-manifest.mjs",
     "manifest:update": "node --import ./scripts/register-tsx.mjs scripts/audit-fluent-sdk.mjs --update",
@@ -87,17 +88,17 @@
     "bench": "node scripts/benchmark.mjs",
     "release:check": "node scripts/check-release-artifact.mjs",
     "verify:examples": "node scripts/verify-examples.mjs",
-    "validate": "npm run workflow:check && npm run compat:check && npm run lint:check && npm run format:check && npm run typecheck && npm run typecheck:fixtures && npm test && npm run verify:examples -- --all && npm run test:consumer && npm run evidence:check && npm run acceptance:check && npm run docs:check && npm run manifest:check && npm run bench && npm run release:check -- --consumer",
+    "validate": "npm run workflow:check && npm run compat:check && npm run lint:check && npm run format:check && npm run typecheck && npm run typecheck:fixtures && npm run typecheck:scripts && npm test && npm run verify:examples -- --all && npm run test:consumer && npm run evidence:check && npm run acceptance:check && npm run docs:check && npm run manifest:check && npm run bench && npm run release:check -- --consumer",
     "workflow:check": "node scripts/check-action-pins.mjs && node scripts/check-script-paths.mjs",
     "compat:check": "node scripts/check-compat-matrix.mjs"
   },
   "dependencies": {
-    "@oxlint/plugins": "^1.79.0"
+    "@oxlint/plugins": "^1.83.0"
   },
   "peerDependencies": {
     "eslint": ">=9.0.0 <11",
-    "oxfmt": ">=0.64.0 <1",
-    "oxlint": ">=1.79.0 <2",
+    "oxfmt": ">=0.68.0 <0.69.0",
+    "oxlint": ">=1.83.0 <1.84.0",
     "typescript-eslint": ">=8.0.0 <9"
   },
   "peerDependenciesMeta": {
@@ -118,14 +119,14 @@
     "@sigstore/core": "4.0.1",
     "@sigstore/mock": "0.13.0",
     "@sigstore/verify": "4.1.2",
-    "@types/node": "^20.19.0",
-    "eslint": "^10.8.1",
-    "oxc-parser": "^0.147.0",
-    "oxfmt": "^0.65.0",
-    "oxlint": "1.80.0",
+    "@types/node": "^22.20.4",
+    "eslint": "^10.11.0",
+    "oxc-parser": "^0.150.0",
+    "oxfmt": "^0.68.0",
+    "oxlint": "^1.83.0",
     "sigstore": "5.0.0",
-    "tsx": "^4.19.0",
+    "tsx": "^4.23.13",
     "typescript": "^7.0.2",
-    "yaml": "2.9.0"
+    "yaml": "2.9.1"
   }
 }

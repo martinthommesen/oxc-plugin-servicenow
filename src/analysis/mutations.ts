@@ -48,6 +48,16 @@ export interface MutationQuery {
   isGlobalPathAuthorityLost(path: readonly string[], ignoredSource?: ESTree.Node): boolean;
   /** True when any write or escape makes the object's platform method identity uncertain. */
   isObjectPropertyAuthorityLost(object: unknown, property: string): boolean;
+  /** Authority loss that may execute before this use in the same run. */
+  isGlobalAuthorityLostAt(name: string, use: ESTree.Node): boolean;
+  /** Path authority loss that may execute before this use in the same run. */
+  isGlobalPathAuthorityLostAt(
+    path: readonly string[],
+    use: ESTree.Node,
+    ignoredSource?: ESTree.Node,
+  ): boolean;
+  /** Object-method authority loss that may execute before this use in the same run. */
+  isObjectPropertyAuthorityLostAt(object: unknown, property: string, use: ESTree.Node): boolean;
 }
 
 export type MutationRuntime = "instance" | "browser";
@@ -59,11 +69,18 @@ interface MutationIndex {
   objectPropertyWildcards: ReadonlySet<string>;
   allocationProperties: ReadonlyMap<ESTree.Node, ReadonlySet<string>>;
   authorityGlobals: ReadonlySet<string>;
+  authorityGlobalSources: ReadonlyMap<string, ReadonlySet<ESTree.Node | null>>;
   authorityGlobalPaths: ReadonlySet<string>;
   authorityGlobalPathSources: ReadonlyMap<string, ReadonlySet<ESTree.Node | null>>;
   authorityObjectProperties: ReadonlySet<string>;
+  authorityObjectPropertySources: ReadonlyMap<string, ReadonlySet<ESTree.Node | null>>;
   authorityObjectPropertyWildcards: ReadonlySet<string>;
+  authorityObjectPropertyWildcardSources: ReadonlyMap<string, ReadonlySet<ESTree.Node | null>>;
   authorityAllocationProperties: ReadonlyMap<ESTree.Node, ReadonlySet<string>>;
+  authorityAllocationPropertySources: WeakMap<
+    ESTree.Node,
+    ReadonlyMap<string, ReadonlySet<ESTree.Node | null>>
+  >;
 }
 
 interface MutableMutationFacts {
@@ -76,6 +93,7 @@ interface MutableMutationFacts {
 
 const MAX_NAMESPACE_ESCAPE_DEPTH = 32;
 const MAX_REFLECT_APPLY_DEPTH = 16;
+const MAX_GLOBAL_ALIAS_DEPTH = 256;
 
 function pathKey(path: readonly string[]): string {
   return JSON.stringify(path);
@@ -212,7 +230,14 @@ function buildIndex(
 ): MutationIndex {
   const callable = emptyMutationFacts();
   const authority = emptyMutationFacts();
+  const authorityGlobalSources = new Map<string, Set<ESTree.Node | null>>();
   const authorityGlobalPathSources = new Map<string, Set<ESTree.Node | null>>();
+  const authorityObjectPropertySources = new Map<string, Set<ESTree.Node | null>>();
+  const authorityObjectPropertyWildcardSources = new Map<string, Set<ESTree.Node | null>>();
+  const authorityAllocationPropertySources = new WeakMap<
+    ESTree.Node,
+    Map<string, Set<ESTree.Node | null>>
+  >();
   const { globalPaths, globals, objectProperties, objectPropertyWildcards } = callable;
   const result = (): MutationIndex => ({
     globals,
@@ -221,17 +246,34 @@ function buildIndex(
     objectPropertyWildcards,
     allocationProperties: callable.allocationProperties,
     authorityGlobals: authority.globals,
+    authorityGlobalSources,
     authorityGlobalPaths: authority.globalPaths,
     authorityGlobalPathSources,
     authorityObjectProperties: authority.objectProperties,
+    authorityObjectPropertySources,
     authorityObjectPropertyWildcards: authority.objectPropertyWildcards,
+    authorityObjectPropertyWildcardSources,
     authorityAllocationProperties: authority.allocationProperties,
+    authorityAllocationPropertySources,
   });
   if (!program) return result();
 
   const browserRuntime = runtime === "browser";
   const globalThisCanExist =
     browserRuntime || (javascriptMode !== "es5" && javascriptMode !== "compatibility");
+  const recordAuthoritySource = (
+    sources: Map<string, Set<ESTree.Node | null>>,
+    key: string,
+    source?: ESTree.Node,
+  ): void => {
+    const current = sources.get(key) ?? new Set<ESTree.Node | null>();
+    current.add(source ?? null);
+    sources.set(key, current);
+  };
+  const recordAuthorityGlobal = (name: string, source?: ESTree.Node): void => {
+    authority.globals.add(name);
+    recordAuthoritySource(authorityGlobalSources, name, source);
+  };
   const recordGlobalPathInto = (
     path: readonly string[],
     facts: MutableMutationFacts,
@@ -251,9 +293,13 @@ function buildIndex(
     const normalized = path.slice(1);
     if (normalized.length === 0 || normalized.includes("*")) {
       facts.globals.add("*");
+      if (facts === authority) recordAuthoritySource(authorityGlobalSources, "*", source);
       addPath(["*"]);
     } else if (normalized.length === 1) {
       facts.globals.add(normalized[0]!);
+      if (facts === authority) {
+        recordAuthoritySource(authorityGlobalSources, normalized[0]!, source);
+      }
     } else {
       addPath(normalized);
     }
@@ -267,41 +313,53 @@ function buildIndex(
   const aliasGlobalPath = (
     node: unknown,
     temporal: boolean,
-    seen: ReadonlySet<ESTree.Node> = new Set(),
+    seen: Set<ESTree.Node> = new Set(),
+    depth = 0,
   ): readonly string[] | null => {
     const direct = unwrapExpression(node);
     if (!isNode(direct) || seen.has(direct)) return null;
-    const directSeen = new Set(seen);
-    directSeen.add(direct);
-    const selected = resolveDestructuredConstMember(direct, bindings);
-    if (selected) {
-      // A defaulted destructuring binding may still denote the selected
-      // platform property or its fallback. Mutation facts are may-facts, so
-      // retain either platform path. Distinct paths collapse to a terminal
-      // wildcard rather than selecting one possible runtime owner.
-      const selectedBase = aliasGlobalPath(selected.source, temporal, directSeen);
-      const selectedPath = selectedBase ? [...selectedBase, selected.property] : null;
-      const fallbackPath =
-        selected.fallback === null
-          ? null
-          : aliasGlobalPath(selected.fallback, temporal, directSeen);
-      if (!selectedPath) return fallbackPath;
-      if (!fallbackPath) return selectedPath;
-      return pathKey(selectedPath) === pathKey(fallbackPath) ? selectedPath : ["*"];
+    if (depth >= MAX_GLOBAL_ALIAS_DEPTH) return ["*"];
+    seen.add(direct);
+    try {
+      const selected = resolveDestructuredConstMember(direct, bindings);
+      if (selected) {
+        // A defaulted destructuring binding may still denote the selected
+        // platform property or its fallback. Mutation facts are may-facts, so
+        // retain either platform path. Distinct paths collapse to a terminal
+        // wildcard rather than selecting one possible runtime owner.
+        const selectedBase = aliasGlobalPath(selected.source, temporal, seen, depth + 1);
+        const selectedPath = selectedBase
+          ? selectedBase.includes("*")
+            ? ["*"]
+            : [...selectedBase, selected.property]
+          : null;
+        const fallbackPath =
+          selected.fallback === null
+            ? null
+            : aliasGlobalPath(selected.fallback, temporal, seen, depth + 1);
+        if (!selectedPath) return fallbackPath;
+        if (!fallbackPath) return selectedPath;
+        return pathKey(selectedPath) === pathKey(fallbackPath) ? selectedPath : ["*"];
+      }
+      const value = aliasValue(direct, bindings, bindingWrites, temporal);
+      if (!value || (value !== direct && seen.has(value))) return null;
+      if (value.type === "Identifier") {
+        const name = resolvePlatformGlobalName(value, bindings);
+        return name ? [name] : null;
+      }
+      if (value.type !== "MemberExpression") return null;
+      const property = staticPropertyName(value);
+      if (!property) return null;
+      if (value !== direct) seen.add(value);
+      try {
+        const base = aliasGlobalPath(value.object, temporal, seen, depth + 1);
+        return base ? (base.includes("*") ? ["*"] : [...base, property]) : null;
+      } finally {
+        if (value !== direct) seen.delete(value);
+      }
+    } finally {
+      seen.delete(direct);
     }
-    const value = aliasValue(direct, bindings, bindingWrites, temporal);
-    if (!value || seen.has(value)) return null;
-    const next = new Set(directSeen);
-    next.add(value);
-    if (value.type === "Identifier") {
-      const name = resolvePlatformGlobalName(value, bindings);
-      return name ? [name] : null;
-    }
-    if (value.type !== "MemberExpression") return null;
-    const property = staticPropertyName(value);
-    if (!property) return null;
-    const base = aliasGlobalPath(value.object, temporal, next);
-    return base ? [...base, property] : null;
   };
 
   const stableGlobalPath = (node: unknown): readonly string[] | null =>
@@ -356,27 +414,47 @@ function buildIndex(
     if (identityMayAliasNamespace) {
       if (property === null) {
         facts.globals.add("*");
+        if (facts === authority) recordAuthoritySource(authorityGlobalSources, "*", source);
         recordGlobalPathInto(["*"], facts, source);
       } else {
         // The parameter could receive a namespace object (for example Object,
         // DataView.prototype, or globalThis) at any call site.
         facts.globals.add(property);
+        if (facts === authority) {
+          recordAuthoritySource(authorityGlobalSources, property, source);
+        }
         recordGlobalPathInto(["*", property], facts, source);
       }
     }
     if (object?.objectId !== undefined && identityIsStableAllocation) {
-      facts.objectProperties.add(objectPropertyKey(object.objectId, property ?? "*"));
+      const key = objectPropertyKey(object.objectId, property ?? "*");
+      facts.objectProperties.add(key);
+      if (facts === authority) {
+        recordAuthoritySource(authorityObjectPropertySources, key, source);
+      }
     } else if (object?.objectId !== undefined) {
       // A parameter or otherwise unresolved target can denote different
       // runtime objects at different call sites. Treat the affected property
       // as a may-write for every queried object rather than selecting the one
       // object identity retained by the intraprocedural provenance summary.
-      facts.objectPropertyWildcards.add(property ?? "*");
+      const key = property ?? "*";
+      facts.objectPropertyWildcards.add(key);
+      if (facts === authority) {
+        recordAuthoritySource(authorityObjectPropertyWildcardSources, key, source);
+      }
     }
     if (terminal.type === "ArrayExpression" || terminal.type === "ObjectExpression") {
       const properties = facts.allocationProperties.get(terminal) ?? new Set<string>();
       properties.add(property ?? "*");
       facts.allocationProperties.set(terminal, properties);
+      if (facts === authority) {
+        const byProperty = authorityAllocationPropertySources.get(terminal) ?? new Map();
+        const key = property ?? "*";
+        const sources = byProperty.get(key) ?? new Set<ESTree.Node | null>();
+        sources.add(source ?? null);
+        byProperty.set(key, sources);
+        authorityAllocationPropertySources.set(terminal, byProperty);
+      }
     }
   };
 
@@ -389,7 +467,10 @@ function buildIndex(
     if (!isNode(value)) return;
     if (value.type === "Identifier") {
       const name = getName(value);
-      if (name && bindings.isPlatformGlobal(value)) facts.globals.add(name);
+      if (name && bindings.isPlatformGlobal(value)) {
+        if (facts === authority) recordAuthorityGlobal(name, source);
+        else facts.globals.add(name);
+      }
       return;
     }
     if (value.type === "MemberExpression") {
@@ -701,9 +782,10 @@ function buildIndex(
           globalPaths.add(pathKey(["*"]));
           objectPropertyWildcards.add("*");
         }
-        authority.globals.add("*");
+        recordAuthorityGlobal("*", call);
         recordGlobalPathInto(["*"], authority, call);
         authority.objectPropertyWildcards.add("*");
+        recordAuthoritySource(authorityObjectPropertyWildcardSources, "*", call);
         return;
       }
       const target = effectiveArguments[0];
@@ -723,7 +805,7 @@ function buildIndex(
         return;
       }
       if (ownerName === "Reflect" && method === "deleteProperty") {
-        recordProperty(target, getStaticStringValue(effectiveArguments[1]), authority);
+        recordProperty(target, getStaticStringValue(effectiveArguments[1]), authority, call);
         return;
       }
       if (method === "defineProperties") {
@@ -763,14 +845,61 @@ export function createMutationQuery(
   let index: MutationIndex | undefined;
   const getIndex = () =>
     (index ??= buildIndex(program, bindings, bindingWrites, provenance, javascriptMode, runtime));
+  const boundaryStatements = (boundary: ESTree.Node): readonly ESTree.Statement[] | null => {
+    if (boundary.type === "Program" || boundary.type === "BlockStatement") return boundary.body;
+    if (
+      (boundary.type === "FunctionDeclaration" ||
+        boundary.type === "FunctionExpression" ||
+        boundary.type === "ArrowFunctionExpression") &&
+      boundary.body &&
+      boundary.body.type === "BlockStatement"
+    ) {
+      return boundary.body.body;
+    }
+    return null;
+  };
+  const boundaryStatementIndex = (node: ESTree.Node, boundary: ESTree.Node): number | null => {
+    const statements = boundaryStatements(boundary);
+    if (!statements) return null;
+    const start = nodeStart(node);
+    const end = nodeEnd(node);
+    if (start < 0 || end < 0) return null;
+    for (let statementIndex = 0; statementIndex < statements.length; statementIndex += 1) {
+      const statement = statements[statementIndex]!;
+      if (nodeStart(statement) <= start && end <= nodeEnd(statement)) return statementIndex;
+    }
+    return null;
+  };
+  const sourceMayAffectUse = (source: ESTree.Node | null, use: ESTree.Node): boolean => {
+    if (!source) return true;
+    const sourceBoundary = bindings.executionBoundaryForNode(source);
+    const useBoundary = bindings.executionBoundaryForNode(use);
+    if (!sourceBoundary || sourceBoundary.id !== useBoundary?.id) return true;
+    const sourceStatement = boundaryStatementIndex(source, sourceBoundary.block);
+    const useStatement = boundaryStatementIndex(use, sourceBoundary.block);
+    return sourceStatement === null || useStatement === null || sourceStatement <= useStatement;
+  };
+  const sourcesMayAffectUse = (
+    sources: ReadonlySet<ESTree.Node | null> | undefined,
+    use: ESTree.Node,
+    ignoredSource?: ESTree.Node,
+  ): boolean =>
+    !sources ||
+    [...sources].some((source) => source !== ignoredSource && sourceMayAffectUse(source, use));
+  const keyedFactMayAffectUse = (
+    facts: ReadonlySet<string>,
+    sources: ReadonlyMap<string, ReadonlySet<ESTree.Node | null>>,
+    keys: readonly string[],
+    use: ESTree.Node,
+    ignoredSource?: ESTree.Node,
+  ): boolean =>
+    keys.some((key) => facts.has(key) && sourcesMayAffectUse(sources.get(key), use, ignoredSource));
   return Object.freeze({
     isGlobalWritten(name: string) {
       return getIndex().globals.has(name) || getIndex().globals.has("*");
     },
     isGlobalPathWritten(path: readonly string[]) {
-      return (
-        getIndex().globalPaths.has(pathKey(["*"])) || pathWasWritten(getIndex().globalPaths, path)
-      );
+      return pathWasWritten(getIndex().globalPaths, path);
     },
     isObjectPropertyWritten(object: unknown, property: string) {
       const objectId = provenance.ofExpression(object)?.objectId;
@@ -814,6 +943,66 @@ export function createMutationQuery(
         (objectId !== undefined &&
           (getIndex().authorityObjectProperties.has(objectPropertyKey(objectId, property)) ||
             getIndex().authorityObjectProperties.has(objectPropertyKey(objectId, "*"))))
+      );
+    },
+    isGlobalAuthorityLostAt(name: string, use: ESTree.Node) {
+      const current = getIndex();
+      return keyedFactMayAffectUse(
+        current.authorityGlobals,
+        current.authorityGlobalSources,
+        [name, "*"],
+        use,
+      );
+    },
+    isGlobalPathAuthorityLostAt(
+      path: readonly string[],
+      use: ESTree.Node,
+      ignoredSource?: ESTree.Node,
+    ) {
+      const current = getIndex();
+      return keyedFactMayAffectUse(
+        current.authorityGlobalPaths,
+        current.authorityGlobalPathSources,
+        affectingPathKeys(path),
+        use,
+        ignoredSource,
+      );
+    },
+    isObjectPropertyAuthorityLostAt(object: unknown, property: string, use: ESTree.Node) {
+      const current = getIndex();
+      if (
+        keyedFactMayAffectUse(
+          current.authorityObjectPropertyWildcards,
+          current.authorityObjectPropertyWildcardSources,
+          [property, "*"],
+          use,
+        )
+      ) {
+        return true;
+      }
+      const allocation = allocationValue(object, bindings, bindingWrites, true);
+      if (allocation) {
+        const properties = current.authorityAllocationProperties.get(allocation);
+        const sources = current.authorityAllocationPropertySources.get(allocation);
+        if (
+          properties &&
+          sources &&
+          keyedFactMayAffectUse(properties, sources, [property, "*"], use)
+        ) {
+          return true;
+        }
+        if (properties && !sources && (properties.has(property) || properties.has("*")))
+          return true;
+      }
+      const objectId = provenance.ofExpression(object)?.objectId;
+      return (
+        objectId !== undefined &&
+        keyedFactMayAffectUse(
+          current.authorityObjectProperties,
+          current.authorityObjectPropertySources,
+          [objectPropertyKey(objectId, property), objectPropertyKey(objectId, "*")],
+          use,
+        )
       );
     },
   });

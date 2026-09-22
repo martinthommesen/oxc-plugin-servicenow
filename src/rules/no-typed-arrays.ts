@@ -15,30 +15,15 @@ import {
   resolveDestructuredConstMember,
   staticPropertyName,
 } from "../analysis/internal.js";
-import { ruleDocsUrl, TYPED_ARRAY_CTORS } from "../constants.js";
+import { INVOCATION_HELPERS, ruleDocsUrl, TYPED_ARRAY_CTORS } from "../constants.js";
 import { isFeatureAllowed, shouldDiagnoseFeature } from "../engine/index.js";
 import { isNode, unwrapExpression } from "../utils/ast.js";
-import { beginRuleFile } from "./helpers.js";
+import { beginRuleFile, isPlatformStaticMember } from "./helpers.js";
 
 const ALL = new Set<string>(TYPED_ARRAY_CTORS);
 const BIGINT_ARRAYS = new Set(["BigInt64Array", "BigUint64Array"]);
 const BIGINT_GETTERS = new Set(["getBigInt64", "getBigUint64"]);
 const TYPED_ARRAY_FACTORIES = new Set(["from", "of"]);
-const INVOCATION_HELPERS = new Set(["apply", "bind", "call"]);
-
-function isPlatformStaticMember(
-  node: unknown,
-  owner: string,
-  property: string,
-  analysis: ReturnType<typeof beginRuleFile>["analysis"],
-): boolean {
-  const value = resolveConstValue(node, analysis.bindings);
-  return Boolean(
-    value?.type === "MemberExpression" &&
-    staticPropertyName(value) === property &&
-    resolvePlatformGlobalName(value.object, analysis.bindings) === owner,
-  );
-}
 
 export const noTypedArrays = defineRule({
   meta: {
@@ -67,6 +52,7 @@ export const noTypedArrays = defineRule({
         const bigint = shouldDiagnoseFeature(script, "bigint64-arrays");
         const bigintGetter = shouldDiagnoseFeature(script, "dataview-bigint-getters");
         if (!es5 && !factories && !bigint && !bigintGetter) return false;
+        return undefined;
       },
       NewExpression: check,
       CallExpression(node) {
@@ -174,6 +160,21 @@ export const noTypedArrays = defineRule({
         callee = resolveConstValue(callee.object, analysis.bindings);
       }
 
+      const classifyDataViewGetter = (target: unknown, getterName: string) => {
+        const receiver = analysis.trustedExpression(target);
+        if (receiver?.kind === "DataView") {
+          return { name: getterName, object: target, receiver } as const;
+        }
+        const resolved = resolveConstValue(target, analysis.bindings);
+        if (
+          resolved?.type === "MemberExpression" &&
+          staticPropertyName(resolved) === "prototype" &&
+          resolvePlatformGlobalName(resolved.object, analysis.bindings) === "DataView"
+        ) {
+          return { name: getterName, object: resolved, receiver: null } as const;
+        }
+        return null;
+      };
       const getterAccess = (candidate: unknown) => {
         const value = resolveConstValue(candidate, analysis.bindings);
         if (!value) return null;
@@ -186,40 +187,12 @@ export const noTypedArrays = defineRule({
           ) {
             return null;
           }
-          const receiver = analysis.ofExpression(selected.source);
-          if (receiver?.kind === "DataView" && !receiver.invalid && !receiver.escaped) {
-            return {
-              name: selected.property,
-              object: selected.source,
-              receiver,
-            } as const;
-          }
-          const source = resolveConstValue(selected.source, analysis.bindings);
-          if (
-            source?.type === "MemberExpression" &&
-            staticPropertyName(source) === "prototype" &&
-            resolvePlatformGlobalName(source.object, analysis.bindings) === "DataView"
-          ) {
-            return { name: selected.property, object: source, receiver: null } as const;
-          }
-          return null;
+          return classifyDataViewGetter(selected.source, selected.property);
         }
         if (value.type !== "MemberExpression") return null;
         const name = staticPropertyName(value);
         if (!name || !BIGINT_GETTERS.has(name)) return null;
-        const receiver = analysis.ofExpression(value.object);
-        if (receiver?.kind === "DataView" && !receiver.invalid && !receiver.escaped) {
-          return { name, object: value.object, receiver } as const;
-        }
-        const object = resolveConstValue(value.object, analysis.bindings);
-        if (
-          object?.type === "MemberExpression" &&
-          staticPropertyName(object) === "prototype" &&
-          resolvePlatformGlobalName(object.object, analysis.bindings) === "DataView"
-        ) {
-          return { name, object, receiver: null } as const;
-        }
-        return null;
+        return classifyDataViewGetter(value.object, name);
       };
       const access = getterAccess(callee);
       if (!access) return;
@@ -250,16 +223,10 @@ export const noTypedArrays = defineRule({
         return isSameGetterAccess(rawCallee.object);
       };
       const isGetterOwner = (object: ESTree.Node): boolean => {
-        const receiver = analysis.ofExpression(object);
-        if (receiver?.kind === "DataView" && !receiver.invalid && !receiver.escaped) {
-          return !file.mutations.isObjectPropertyWritten(object, name);
-        }
-        const value = resolveConstValue(object, analysis.bindings);
-        return Boolean(
-          value?.type === "MemberExpression" &&
-          staticPropertyName(value) === "prototype" &&
-          resolvePlatformGlobalName(value.object, analysis.bindings) === "DataView",
-        );
+        const target = classifyDataViewGetter(object, name);
+        if (!target) return false;
+        if (target.receiver === null) return true;
+        return !file.mutations.isObjectPropertyWritten(object, name);
       };
       if (
         isInvocationAvailabilityGuarded(context, node, analysis, isSameGetterAccess, {

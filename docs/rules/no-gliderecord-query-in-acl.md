@@ -1,9 +1,9 @@
 # servicenow/no-gliderecord-query-in-acl
 
-Review proven GlideRecord, GlideRecordSecure, and GlideAggregate query executions on an ACL's immediate evaluation path. ServiceNow advises limiting GlideRecord queries in access control scripts because they can affect performance. This advisory rule is opt-in through strict, ACL, or security profiles and does not claim that every query is incorrect.
+Review proven GlideRecord, GlideRecordSecure, and GlideAggregate query executions on an ACL's immediate evaluation path. ServiceNow advises limiting GlideRecord queries in access control scripts because they can affect performance. This advisory rule is opt-in through strict, acl, or security profiles and does not claim that every query is incorrect.
 
 - **Family:** classic
-- **Preset:** strict
+- **Profile:** strict
 - **Placements:** strict (warn), acl (warn), security (warn)
 - **Default severity:** warn
 - **Fix safety:** diagnostic only

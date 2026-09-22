@@ -4,7 +4,7 @@ import { createRequire } from "node:module";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, isAbsolute, join } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { pathToFileURL } from "node:url";
 import { ASN1Obj } from "@sigstore/core";
 import { verify as sigstoreVerify } from "sigstore";
 import {
@@ -12,8 +12,8 @@ import {
   packageTargetPath,
   tarballIntegrity,
 } from "./check-release-artifact.mjs";
+import { root } from "./lib/repo.mjs";
 
-const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const TRANSIENT_CODES = new Set(["EAI_AGAIN", "ECONNRESET", "ECONNREFUSED", "EPIPE", "ETIMEDOUT"]);
 const TRANSIENT_STATUSES = new Set([404, 429, 502, 503, 504]);
 const STATEMENT_TYPE = "https://in-toto.io/Statement/v1";
@@ -30,13 +30,48 @@ const NPM_ERROR_STATUSES = new Map([
   ["E504", 504],
 ]);
 
+/**
+ * @typedef {object} ProvenanceExpectation
+ * @property {string} name
+ * @property {string} version
+ * @property {string} integrity
+ * @property {string} repository
+ * @property {string} workflow
+ * @property {string} environment
+ * @property {string} ref
+ * @property {string} commit
+ * @property {string} oidcSubject
+ */
+/**
+ * @typedef {object} RetryOptions
+ * @property {number | string} [timeoutMs]
+ * @property {number | string} [intervalMs]
+ * @property {number | string} [initialDelayMs]
+ * @property {number | string} [maxDelayMs]
+ * @property {number} [maxAttempts]
+ * @property {() => number} [now]
+ * @property {(ms: number) => Promise<void>} [sleep]
+ * @property {(error: unknown) => boolean} [shouldRetry]
+ */
+
+/**
+ * @param {string} message
+ * @param {string} [kind]
+ * @param {Record<string, unknown>} [details]
+ * @returns {never}
+ */
 function fail(message, kind = "published-package", details = {}) {
-  const error = new Error(message);
+  const error = /** @type {Error & { kind?: string }} */ (new Error(message));
   error.kind = kind;
   Object.assign(error, details);
   throw error;
 }
 
+/**
+ * @param {string[]} argv
+ * @param {string} name
+ * @returns {string | undefined}
+ */
 function argValue(argv, name) {
   const index = argv.indexOf(name);
   if (index === -1) return undefined;
@@ -45,24 +80,44 @@ function argValue(argv, name) {
   return value;
 }
 
+/**
+ * @param {unknown} raw
+ * @param {string} name
+ * @returns {number}
+ */
 function positiveNumber(raw, name) {
   const value = Number(raw);
   if (!Number.isFinite(value) || value <= 0) fail(`${name} must be a positive number`, "arguments");
   return value;
 }
 
+/**
+ * @param {number} ms
+ * @returns {Promise<void>}
+ */
 function defaultSleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * @param {unknown} error
+ * @returns {boolean}
+ */
 export function isTransientRegistryError(error) {
   if (!error || typeof error !== "object") return false;
-  if (error.retryable === true) return true;
-  if (TRANSIENT_CODES.has(String(error.code ?? ""))) return true;
-  return TRANSIENT_STATUSES.has(Number(error.status));
+  const record = /** @type {Record<string, unknown>} */ (error);
+  if (record["retryable"] === true) return true;
+  if (TRANSIENT_CODES.has(String(record["code"] ?? ""))) return true;
+  return TRANSIENT_STATUSES.has(Number(record["status"]));
 }
 
-/** Retry an explicitly retryable operation with a deadline and attempt cap. */
+/**
+ * Retry an explicitly retryable operation with a deadline and attempt cap.
+ * @template T
+ * @param {(attempt: number) => (T | Promise<T>)} operation
+ * @param {RetryOptions} [options]
+ * @returns {Promise<T>}
+ */
 export async function retryBounded(operation, options = {}) {
   const timeoutMs = positiveNumber(options.timeoutMs ?? 180000, "retry timeout");
   const maxAttempts = positiveNumber(options.maxAttempts ?? 8, "retry attempts");
@@ -75,29 +130,35 @@ export async function retryBounded(operation, options = {}) {
   const sleep = options.sleep ?? defaultSleep;
   const shouldRetry = options.shouldRetry ?? isTransientRegistryError;
   const started = now();
+  /** @type {unknown} */
   let lastError;
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {
       return await operation(attempt);
     } catch (error) {
       lastError = error;
+      const failure = /** @type {Record<string, unknown>} */ (error);
       if (!shouldRetry(error) || attempt === maxAttempts)
-        throw Object.assign(error, { attempts: attempt });
+        throw Object.assign(failure, { attempts: attempt });
       const remaining = timeoutMs - (now() - started);
-      if (remaining <= 0) throw Object.assign(error, { attempts: attempt });
+      if (remaining <= 0) throw Object.assign(failure, { attempts: attempt });
       const exponential = Math.min(initialDelayMs * 2 ** (attempt - 1), maxDelayMs);
-      const retryAfter = Number(error?.retryAfterMs);
+      const retryAfter = Number(failure?.["retryAfterMs"]);
       const delay = Math.min(
         Number.isFinite(retryAfter) && retryAfter >= 0 ? retryAfter : exponential,
         remaining,
       );
-      if (delay <= 0) throw Object.assign(error, { attempts: attempt });
+      if (delay <= 0) throw Object.assign(failure, { attempts: attempt });
       await sleep(delay);
     }
   }
   throw lastError;
 }
 
+/**
+ * @param {unknown} value
+ * @returns {any}
+ */
 function parseJsonOutput(value) {
   if (typeof value !== "string" || !value.trim()) return undefined;
   try {
@@ -107,16 +168,25 @@ function parseJsonOutput(value) {
   }
 }
 
+/**
+ * @param {unknown} result
+ * @param {string} context
+ * @returns {unknown}
+ */
 export function parseNpmCommandResult(result, context) {
-  if (result?.error) {
-    throw Object.assign(new Error(`${context} failed to start`), { code: result.error.code });
+  const record =
+    /** @type {{ error?: any, stdout?: any, stderr?: any, status?: unknown, signal?: unknown }} */ (
+      result
+    );
+  if (record?.error) {
+    throw Object.assign(new Error(`${context} failed to start`), { code: record.error.code });
   }
   const stdout =
-    typeof result?.stdout === "string" ? result.stdout : (result?.stdout?.toString("utf8") ?? "");
+    typeof record?.stdout === "string" ? record.stdout : (record?.stdout?.toString("utf8") ?? "");
   const stderr =
-    typeof result?.stderr === "string" ? result.stderr : (result?.stderr?.toString("utf8") ?? "");
+    typeof record?.stderr === "string" ? record.stderr : (record?.stderr?.toString("utf8") ?? "");
   const parsed = parseJsonOutput(stdout) ?? parseJsonOutput(stderr);
-  if (result?.status === 0) {
+  if (record?.status === 0) {
     if (parsed === undefined) fail(`${context} returned malformed JSON`, "registry-schema");
     return parsed;
   }
@@ -125,15 +195,22 @@ export function parseNpmCommandResult(result, context) {
   throw Object.assign(error, {
     code,
     status: NPM_ERROR_STATUSES.get(code),
-    signal: result?.signal,
+    signal: record?.signal,
   });
 }
 
 // Per-operation bound: the retry deadline only stops scheduling new
 // attempts, so every child process and fetch needs its own timeout or a
 // single hang blocks the release job indefinitely (FINDINGS.md REL-002).
+/** @type {number} */
 export const OPERATION_TIMEOUT_MS = 120000;
 
+/**
+ * @param {string[]} args
+ * @param {any} [options]
+ * @param {typeof import("node:child_process").spawnSync} [runner]
+ * @returns {any}
+ */
 function runNpmJson(args, options = {}, runner = spawnSync) {
   return parseNpmCommandResult(
     runner("npm", args, {
@@ -146,6 +223,12 @@ function runNpmJson(args, options = {}, runner = spawnSync) {
   );
 }
 
+/**
+ * @param {string} name
+ * @param {string} version
+ * @param {typeof import("node:child_process").spawnSync} [runner]
+ * @returns {any}
+ */
 function npmView(name, version, runner = spawnSync) {
   const spec = `${name}@${version}`;
   const parsed = runNpmJson(["view", spec, "--json"], { cwd: root }, runner);
@@ -155,6 +238,16 @@ function npmView(name, version, runner = spawnSync) {
   return view;
 }
 
+/**
+ * @template {object} T
+ * @param {string} name
+ * @param {string} version
+ * @param {number | string} timeoutMs
+ * @param {number | string} intervalMs
+ * @param {(view: T) => boolean} [accept]
+ * @param {RetryOptions & { view?: (name: string, version: string) => T }} [options]
+ * @returns {Promise<T>}
+ */
 export async function waitForView(
   name,
   version,
@@ -177,21 +270,36 @@ export async function waitForView(
       initialDelayMs: intervalMs,
       maxDelayMs: options.maxDelayMs ?? intervalMs,
       maxAttempts: options.maxAttempts ?? 60,
-      now: options.now,
-      sleep: options.sleep,
+      ...(options.now === undefined ? {} : { now: options.now }),
+      ...(options.sleep === undefined ? {} : { sleep: options.sleep }),
       shouldRetry: isTransientRegistryError,
     },
   );
 }
 
+/**
+ * @param {unknown} view
+ * @param {string} expectedIntegrity
+ * @returns {boolean}
+ */
 export function registryIntegrityMatches(view, expectedIntegrity) {
-  return typeof expectedIntegrity === "string" && view?.dist?.integrity === expectedIntegrity;
+  const record = /** @type {{ dist?: { integrity?: unknown } }} */ (view);
+  return typeof expectedIntegrity === "string" && record?.dist?.integrity === expectedIntegrity;
 }
 
+/**
+ * @param {string} name
+ * @param {string} version
+ * @returns {string[]}
+ */
 export function verificationInstallArgs(name, version) {
   return ["install", "--json", "--ignore-scripts", "--no-audit", "--no-fund", `${name}@${version}`];
 }
 
+/**
+ * @param {string} consumer
+ * @param {string} name
+ */
 function packageMetadataFromConsumer(consumer, name) {
   const consumerRequire = createRequire(join(consumer, "package.json"));
   let packageJsonPath;
@@ -209,6 +317,12 @@ function packageMetadataFromConsumer(consumer, name) {
   };
 }
 
+/**
+ * @param {string} consumer
+ * @param {string} name
+ * @param {string} expectedVersion
+ * @returns {{ pkg: Record<string, unknown>, packageRoot: string }}
+ */
 export function inspectInstalledPackageExports(consumer, name, expectedVersion) {
   const { pkg, packageJsonPath, consumerRequire } = packageMetadataFromConsumer(consumer, name);
   if (pkg.version !== expectedVersion)
@@ -239,6 +353,12 @@ export function inspectInstalledPackageExports(consumer, name, expectedVersion) 
   return { pkg, packageRoot };
 }
 
+/**
+ * @param {string} consumer
+ * @param {string} name
+ * @param {string} version
+ * @returns {Promise<{ pkg: Record<string, unknown>, result: { metaName: string, version: string } }>}
+ */
 export async function importInstalledPackage(consumer, name, version) {
   const { pkg } = inspectInstalledPackageExports(consumer, name, version);
   const importScript = `
@@ -280,6 +400,10 @@ console.log(JSON.stringify({ metaName: plugin.default.meta.name, version: plugin
   return { pkg, result };
 }
 
+/**
+ * @param {string} value
+ * @returns {string}
+ */
 function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -292,6 +416,9 @@ function escapeRegex(value) {
  * agreed with it. Bind the declared subject to the repository and
  * environment the rest of the certificate policy verifies
  * (FINDINGS.md MNT-004).
+ *
+ * @param {{ oidcSubject: string, repository: string, environment: string }} expected
+ * @returns {void}
  */
 function assertSubjectMatchesIdentity(expected) {
   const match = /^repo:([^@/]+)@\d+\/([^@:]+)@\d+:environment:(.+)$/.exec(expected.oidcSubject);
@@ -304,6 +431,9 @@ function assertSubjectMatchesIdentity(expected) {
   }
 }
 
+/**
+ * @param {{ repository: string, workflow: string, ref: string, commit: string, environment: string, oidcSubject: string }} expected
+ */
 function certificateIdentity(expected) {
   assertSubjectMatchesIdentity(expected);
   const workflowIdentity = `${expected.repository}/${expected.workflow}@${expected.ref}`;
@@ -327,10 +457,17 @@ function certificateIdentity(expected) {
   };
 }
 
+/**
+ * @param {any} signer
+ * @param {Record<string, string>} expectedOIDs
+ * @returns {void}
+ */
 function verifyCertificateOIDs(signer, expectedOIDs) {
   const signerOIDs = Array.isArray(signer?.identity?.oids) ? signer.identity.oids : [];
   for (const [oid, expected] of Object.entries(expectedOIDs)) {
-    const matches = signerOIDs.filter((item) => item?.oid?.id?.join(".") === oid);
+    const matches = signerOIDs.filter(
+      /** @param {any} item */ (item) => item?.oid?.id?.join(".") === oid,
+    );
     if (matches.length !== 1)
       fail(`Sigstore certificate must contain exactly one OID ${oid}`, "provenance-identity");
     try {
@@ -357,6 +494,10 @@ function verifyCertificateOIDs(signer, expectedOIDs) {
   }
 }
 
+/**
+ * @param {any} bundle
+ * @returns {any}
+ */
 function decodeStatement(bundle) {
   const payload = bundle?.dsseEnvelope?.payload;
   if (
@@ -374,12 +515,21 @@ function decodeStatement(bundle) {
   }
 }
 
+/**
+ * @param {string} integrity
+ * @returns {string}
+ */
 function sha512Hex(integrity) {
   const match = /^sha512-([A-Za-z0-9+/=]+)$/.exec(integrity);
   if (!match) fail(`invalid inspected tarball integrity ${integrity}`, "provenance-expectation");
-  return Buffer.from(match[1], "base64").toString("hex");
+  return Buffer.from(/** @type {string} */ (match[1]), "base64").toString("hex");
 }
 
+/**
+ * @param {any} statement
+ * @param {{ name: string, version: string, integrity: string, repository: string, workflow: string, ref: string, commit: string }} expected
+ * @returns {void}
+ */
 function exactWorkflowStatement(statement, expected) {
   if (statement._type !== STATEMENT_TYPE)
     fail(`unexpected statement type ${statement._type}`, "provenance-identity");
@@ -404,19 +554,26 @@ function exactWorkflowStatement(statement, expected) {
     fail("provenance workflow identity mismatch", "provenance-identity");
   }
   const dependency = (definition?.resolvedDependencies ?? []).find(
-    (item) => item?.digest?.gitCommit === expected.commit,
+    /** @param {any} item */ (item) => item?.digest?.gitCommit === expected.commit,
   );
   if (!dependency || dependency.uri !== `git+${expected.repository}@${expected.ref}`)
     fail("provenance resolved commit mismatch", "provenance-identity");
 }
 
+/**
+ * @param {unknown} attestationResponse
+ * @param {ProvenanceExpectation} expected
+ * @param {(bundle: any, options: any) => Promise<any>} [verifyBundle]
+ * @returns {Promise<Record<string, string>>}
+ */
 export async function verifyProvenanceAttestation(
   attestationResponse,
   expected,
   verifyBundle = sigstoreVerify,
 ) {
-  const candidates = Array.isArray(attestationResponse?.attestations)
-    ? attestationResponse.attestations.filter((item) => item?.predicateType === PREDICATE_TYPE)
+  const response = /** @type {{ attestations?: Array<any> }} */ (attestationResponse);
+  const candidates = Array.isArray(response?.attestations)
+    ? response.attestations.filter((item) => item?.predicateType === PREDICATE_TYPE)
     : [];
   if (candidates.length !== 1)
     fail(`expected one provenance attestation, found ${candidates.length}`, "provenance-schema");
@@ -449,13 +606,27 @@ export async function verifyProvenanceAttestation(
   };
 }
 
+/**
+ * @param {string} name
+ * @param {string} version
+ * @returns {string}
+ */
 function expectedAttestationPath(name, version) {
   return `/-/npm/v1/attestations/${encodeURIComponent(name)}@${encodeURIComponent(version)}`;
 }
 
+/**
+ * @param {unknown} view
+ * @param {string} name
+ * @param {string} version
+ * @returns {string}
+ */
 export function canonicalAttestationUrl(view, name, version) {
-  const raw = view?.dist?.attestations;
-  const records = Array.isArray(raw) ? raw : raw && typeof raw === "object" ? [raw] : [];
+  const record = /** @type {{ dist?: { attestations?: unknown } }} */ (view);
+  const raw = record?.dist?.attestations;
+  const records = /** @type {Array<any>} */ (
+    Array.isArray(raw) ? raw : raw && typeof raw === "object" ? [raw] : []
+  );
   const candidates = records.filter(
     (item) => item?.provenance?.predicateType === PREDICATE_TYPE && typeof item.url === "string",
   );
@@ -478,6 +649,11 @@ export function canonicalAttestationUrl(view, name, version) {
   return url.href;
 }
 
+/**
+ * @param {unknown} value
+ * @param {() => number} [now]
+ * @returns {number | undefined}
+ */
 export function parseRetryAfterMs(value, now = Date.now) {
   if (typeof value !== "string" || !value.trim()) return undefined;
   const seconds = Number(value);
@@ -487,6 +663,14 @@ export function parseRetryAfterMs(value, now = Date.now) {
   return Math.max(0, at - now());
 }
 
+/**
+ * @param {unknown} view
+ * @param {string} name
+ * @param {string} version
+ * @param {typeof fetch} [fetchFn]
+ * @param {() => number} [now]
+ * @returns {Promise<Record<string, unknown>>}
+ */
 export async function fetchAttestations(view, name, version, fetchFn = fetch, now = Date.now) {
   const url = canonicalAttestationUrl(view, name, version);
   let response;
@@ -497,8 +681,9 @@ export async function fetchAttestations(view, name, version, fetchFn = fetch, no
       signal: AbortSignal.timeout(OPERATION_TIMEOUT_MS),
     });
   } catch (error) {
+    const failure = /** @type {{ cause?: { code?: unknown }, code?: unknown }} */ (error);
     throw Object.assign(new Error("attestation fetch failed"), {
-      code: error?.cause?.code ?? error?.code,
+      code: failure?.cause?.code ?? failure?.code,
     });
   }
   if (response.status >= 300 && response.status < 400)
@@ -514,12 +699,16 @@ export async function fetchAttestations(view, name, version, fetchFn = fetch, no
   try {
     const result = await response.json();
     if (!result || typeof result !== "object" || Array.isArray(result)) throw new Error();
-    return result;
+    return /** @type {Record<string, unknown>} */ (result);
   } catch {
     fail("attestation endpoint returned malformed JSON", "registry-schema");
   }
 }
 
+/**
+ * @param {any} view
+ * @returns {boolean}
+ */
 function hasCompleteRegistryMetadata(view) {
   return (
     typeof view?.version === "string" &&
@@ -528,6 +717,12 @@ function hasCompleteRegistryMetadata(view) {
   );
 }
 
+/**
+ * @param {string} name
+ * @param {string} version
+ * @param {RetryOptions & Record<string, unknown>} [options]
+ * @returns {Promise<{ attempts: number }>}
+ */
 export async function verifyInstallWithRetry(name, version, options = {}) {
   return retryBounded(async (attempt) => {
     const consumer = mkdtempSync(join(tmpdir(), `sn-oxc-published-${attempt}-`));
@@ -536,13 +731,20 @@ export async function verifyInstallWithRetry(name, version, options = {}) {
         join(consumer, "package.json"),
         JSON.stringify({ name: "sn-oxc-published-verify", private: true, type: "module" }),
       );
-      if (options.install)
-        options.install("npm", verificationInstallArgs(name, version), {
+      const install = /** @type {(bin: string, args: string[], options: unknown) => unknown} */ (
+        options["install"]
+      );
+      if (install)
+        install("npm", verificationInstallArgs(name, version), {
           cwd: consumer,
           encoding: "utf8",
         });
       else runNpmJson(verificationInstallArgs(name, version), { cwd: consumer });
-      await (options.importPackage ?? importInstalledPackage)(consumer, name, version);
+      const importPackage =
+        /** @type {(consumer: string, name: string, version: string) => unknown} */ (
+          options["importPackage"]
+        ) ?? importInstalledPackage;
+      await importPackage(consumer, name, version);
       return { attempts: attempt };
     } catch (error) {
       if (isTransientRegistryError(error)) throw error;
@@ -555,6 +757,10 @@ export async function verifyInstallWithRetry(name, version, options = {}) {
   }, options);
 }
 
+/**
+ * @param {string[]} [argv]
+ * @returns {Promise<Record<string, unknown>>}
+ */
 export async function main(argv = process.argv) {
   const localPkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
   const name = argValue(argv, "--name") ?? localPkg.name;
@@ -569,8 +775,8 @@ export async function main(argv = process.argv) {
     argValue(argv, "--repository") ?? "https://github.com/martinthommesen/oxc-plugin-servicenow";
   const workflow = argValue(argv, "--workflow") ?? ".github/workflows/release.yml";
   const environment = argValue(argv, "--environment") ?? "release";
-  const ref = argValue(argv, "--ref") ?? process.env.GITHUB_REF;
-  const commit = argValue(argv, "--commit") ?? process.env.GITHUB_SHA;
+  const ref = argValue(argv, "--ref") ?? process.env["GITHUB_REF"];
+  const commit = argValue(argv, "--commit") ?? process.env["GITHUB_SHA"];
   const oidcSubject = argValue(argv, "--oidc-subject");
   if (!ref || !ref.startsWith("refs/tags/v"))
     fail("--ref or GITHUB_REF must be an exact release tag ref", "arguments");
@@ -625,7 +831,12 @@ export async function main(argv = process.argv) {
   return result;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+const invokedScript = process.argv[1];
+if (
+  invokedScript !== undefined &&
+  invokedScript !== "" &&
+  import.meta.url === pathToFileURL(invokedScript).href
+) {
   main().catch((error) => {
     console.error(error instanceof Error ? error.message : error);
     process.exit(1);

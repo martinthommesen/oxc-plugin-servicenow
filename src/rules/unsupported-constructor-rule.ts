@@ -45,6 +45,7 @@ export function unsupportedConstructorRule(options: UnsupportedConstructorRuleOp
           const { context: script } = beginRuleFile(context);
           if (!names.some((name) => shouldDiagnoseFeature(script, options.features[name]!)))
             return false;
+          return undefined;
         },
         Program(node) {
           const { analysis, context: script, file } = beginRuleFile(context);

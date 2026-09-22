@@ -211,19 +211,24 @@ gr.next = localNext;`,
     );
   });
 
-  it("suppresses direct method diagnostics after replacement", () => {
-    assertValid(
-      `var gr = new GlideRecord("incident");
-gr.update();
-gr.update = localUpdate;`,
-      "validate-gliderecord-calls",
-      SERVER,
-    );
-    assertValid(
+  it("does not let a later method replacement suppress a security review", () => {
+    assertInvalid(
       `var gr = new GlideRecord("incident");
 gr.addSystemQuery("active", true);
 gr.addSystemQuery = localQuery;`,
       "no-system-query-bypass",
+      { count: 1, messageId: "bypass" },
+      SERVER,
+    );
+  });
+
+  it("reviews a named bypass call after a visible replacement", () => {
+    assertInvalid(
+      `var gr = new GlideRecord("incident");
+gr.addSystemQuery = localQuery;
+gr.addSystemQuery("active", true);`,
+      "no-system-query-bypass",
+      { count: 1, messageId: "bypass" },
       SERVER,
     );
   });

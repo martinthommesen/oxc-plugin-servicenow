@@ -1,16 +1,39 @@
+/**
+ * @typedef {object} BenchmarkRow
+ * @property {string} fixture
+ * @property {string} profile
+ * @property {number} elapsedMs
+ * @property {number} peakRssKb
+ * @property {Array<{ elapsedMs: number, peakRssKb: number | null }>} [rawSamples]
+ */
+
+/**
+ * @param {BenchmarkRow} row
+ * @returns {string}
+ */
 function caseKey(row) {
   return `${row.fixture}\0${row.profile}`;
 }
 
-export function assertBenchmarkFixtureSet(results, baselineRows) {
+/**
+ * @param {BenchmarkRow[]} results
+ * @param {BenchmarkRow[]} baselineRows
+ * @param {{ allowNew?: boolean }} [options] `allowNew` accepts fixtures the
+ *   baseline lacks, which is how a pull request introduces a fixture before
+ *   the target branch has a row for it.
+ * @returns {void}
+ */
+export function assertBenchmarkFixtureSet(results, baselineRows, { allowNew = false } = {}) {
   const actual = results.map(caseKey);
   const baseline = baselineRows.map(caseKey);
   if (new Set(actual).size !== actual.length)
     throw new Error("benchmark produced duplicate fixture/profile keys");
   if (new Set(baseline).size !== baseline.length)
     throw new Error("performance baseline contains duplicate fixture/profile keys");
-  const missing = actual.filter((key) => !baseline.includes(key));
-  const extra = baseline.filter((key) => !actual.includes(key));
+  const actualKeys = new Set(actual);
+  const baselineKeys = new Set(baseline);
+  const missing = baseline.filter((key) => !actualKeys.has(key));
+  const extra = allowNew ? [] : actual.filter((key) => !baselineKeys.has(key));
   if (missing.length || extra.length) {
     throw new Error(
       `benchmark fixture set mismatch (missing: ${missing.join(", ") || "none"}; extra: ${extra.join(", ") || "none"})`,
@@ -18,6 +41,10 @@ export function assertBenchmarkFixtureSet(results, baselineRows) {
   }
 }
 
+/**
+ * @param {{ status: number | null, signal: string | null, stdout: string, stderr: string }} result
+ * @returns {unknown}
+ */
 export function validateOxlintProcessResult(result) {
   if (result.signal) throw new Error(`oxlint terminated by signal ${result.signal}`);
   if (result.status !== 0)
@@ -33,12 +60,18 @@ export function validateOxlintProcessResult(result) {
     throw new Error("oxlint JSON has no diagnostics array");
   }
   if (report.diagnostics.length > 0) {
-    const codes = report.diagnostics.map((diagnostic) => diagnostic.code ?? "unknown");
+    const codes = report.diagnostics.map(
+      /** @param {any} diagnostic */ (diagnostic) => diagnostic.code ?? "unknown",
+    );
     throw new Error(`benchmark fixture produced diagnostics: ${codes.join(", ")}`);
   }
   return report;
 }
 
+/**
+ * @param {any} regression
+ * @returns {void}
+ */
 function validateThresholds(regression) {
   for (const field of [
     "elapsedMultiplier",
@@ -58,8 +91,15 @@ function validateThresholds(regression) {
   }
 }
 
+/**
+ * @template {{ scale: number, results: BenchmarkRow[] }} T
+ * @param {T} summary
+ * @param {{ requireRawSamples?: boolean }} [options]
+ * @returns {T}
+ */
 export function validateBenchmarkSummary(summary, options = {}) {
-  if (!summary || typeof summary !== "object" || !Array.isArray(summary.results)) {
+  const record = /** @type {Record<string, unknown>} */ (/** @type {unknown} */ (summary));
+  if (!record || typeof record !== "object" || !Array.isArray(record["results"])) {
     throw new Error("benchmark summary is malformed");
   }
   for (const field of [
@@ -75,15 +115,15 @@ export function validateBenchmarkSummary(summary, options = {}) {
     "command",
     "statistic",
   ]) {
-    if (typeof summary[field] !== "string" || !summary[field])
+    if (typeof record[field] !== "string" || !record[field])
       throw new Error(`benchmark summary ${field} is malformed`);
   }
   for (const field of ["warmup", "samples", "scale"]) {
-    if (typeof summary[field] !== "number" || !Number.isFinite(summary[field])) {
+    if (typeof record[field] !== "number" || !Number.isFinite(record[field])) {
       throw new Error(`benchmark summary ${field} is malformed`);
     }
   }
-  validateThresholds(summary.regression);
+  validateThresholds(record["regression"]);
   for (const row of summary.results) {
     if (
       !row ||
@@ -98,7 +138,7 @@ export function validateBenchmarkSummary(summary, options = {}) {
       throw new Error("benchmark result row is malformed or has unavailable RSS");
     }
     if (options.requireRawSamples) {
-      if (!Array.isArray(row.rawSamples) || row.rawSamples.length !== summary.samples) {
+      if (!Array.isArray(row.rawSamples) || row.rawSamples.length !== record["samples"]) {
         throw new Error(`benchmark ${caseKey(row)} raw samples are missing`);
       }
       let availableRssSamples = 0;
@@ -116,13 +156,21 @@ export function validateBenchmarkSummary(summary, options = {}) {
   return summary;
 }
 
+/**
+ * @param {BenchmarkRow[]} results
+ * @param {{ results?: BenchmarkRow[], regression: { elapsedMultiplier: number, elapsedFloorMs: number, rssMultiplier: number, rssFloorKb: number, maxScale: number, maxRecommendedLargeMs: number } }} baseline
+ * @returns {string[]}
+ */
 export function checkBenchmarkRegression(results, baseline) {
   validateThresholds(baseline.regression);
   const baselineRows = baseline.results ?? [];
-  assertBenchmarkFixtureSet(results, baselineRows);
+  assertBenchmarkFixtureSet(results, baselineRows, { allowNew: true });
   const trends = [];
   for (const row of results) {
     const previous = baselineRows.find((item) => caseKey(item) === caseKey(row));
+    // A fixture the target-branch baseline lacks was added by this change, so
+    // it has no trend yet; the absolute ceilings below still apply to it.
+    if (!previous) continue;
     const elapsedLimit =
       previous.elapsedMs * baseline.regression.elapsedMultiplier +
       baseline.regression.elapsedFloorMs;

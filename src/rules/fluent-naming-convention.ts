@@ -3,7 +3,7 @@ import type { ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
 import { getAncestors } from "../analysis/internal.js";
 import { getName, getStringValue, objectPropertyValue } from "../utils/ast.js";
-import { basename } from "../utils/filenames.js";
+import { basename } from "../context/filename.js";
 import {
   parseRuleOptions,
   fluentNamingConventionOptions,
@@ -63,21 +63,19 @@ export const fluentNamingConvention = defineRule({
         idStyle = options.idStyle;
         fileStyle = options.fileStyle;
         scopePrefix = script.settings.scopePrefix;
+        return undefined;
       },
       Program() {
-        // The filename convention is defined for Fluent filenames only.
-        // Explicit `authoring: "fluent"` settings can route other filenames
-        // into this rule, and checking their stem with the extension attached
-        // reports a name the convention does not describe
-        // (FINDINGS.md COR-014).
+        // The convention covers Fluent filenames only. Explicit
+        // `authoring: "fluent"` settings can route other filenames here.
         if (!isFluentFile(context.filename)) return;
-        const file = basename(context.filename);
-        const stem = file.replace(/\.now\.tsx?$/i, "");
+        const filename = basename(context.filename);
+        const stem = filename.replace(/\.now\.tsx?$/i, "");
         if (stem !== "*" && !matches(fileStyle, stem)) {
           context.report({
             loc: { start: { line: 1, column: 0 } },
             messageId: "file",
-            data: { file, style: fileStyle },
+            data: { file: filename, style: fileStyle },
           });
         }
       },

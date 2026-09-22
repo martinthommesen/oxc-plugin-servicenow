@@ -1,13 +1,11 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { Linter } from "eslint";
 import { ruleCatalog } from "../../src/catalog.js";
 import plugin, { configs } from "../../src/index.js";
-
-const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
+import { repoRoot } from "./helpers.js";
 
 const badBusinessRule = readFileSync(
   path.join(repoRoot, "tests/integration/fixtures/bad-business-rule.br.js"),

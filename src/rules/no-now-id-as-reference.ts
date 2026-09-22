@@ -23,6 +23,7 @@ export const noNowIdAsReference = defineRule({
       before() {
         const { context: script } = beginRuleFile(context);
         if (!isFluentContext(script)) return false;
+        return undefined;
       },
       Program(node) {
         const { analysis, file } = beginRuleFile(context);

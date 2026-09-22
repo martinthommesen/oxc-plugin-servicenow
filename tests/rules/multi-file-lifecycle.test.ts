@@ -12,7 +12,7 @@ import { parse } from "../helpers/rule-tester.js";
 // file reports identically (FINDINGS.md COR-011, section 9 recommendation 1).
 function lintFilesWithOneInstance(
   ruleName: string,
-  files: ReadonlyArray<{ filename: string; code: string; settings?: object }>,
+  files: ReadonlyArray<{ filename: string; code: string; settings?: object | undefined }>,
 ): number[] {
   const entry = ruleCatalog.find((item) => item.name === ruleName);
   assert.ok(entry);
@@ -23,7 +23,7 @@ function lintFilesWithOneInstance(
   let current: {
     filename: string;
     code: string;
-    settings?: object;
+    settings?: object | undefined;
     ast: unknown;
     comments: ReturnType<typeof parse>["comments"];
     ancestorIndex: NonNullable<Parameters<typeof walk>[4]>;
@@ -96,6 +96,7 @@ function lintFilesWithOneInstance(
   return perFile;
 }
 
+// @lat: [[tests#State and settings#Rule state does not leak across files]]
 describe("one rule instance across several files (FINDINGS.md COR-011)", () => {
   for (const entry of ruleCatalog) {
     it(`${entry.name} reports each file independently`, () => {

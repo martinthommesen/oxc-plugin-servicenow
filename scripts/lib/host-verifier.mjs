@@ -1,8 +1,62 @@
 import { spawnSync } from "node:child_process";
 
+/**
+ * @typedef {object} HostError
+ * @property {string} [code]
+ * @property {string} message
+ */
+/**
+ * @typedef {object} HostResult
+ * @property {string[]} argv
+ * @property {number | null} status
+ * @property {NodeJS.Signals | null} signal
+ * @property {string} stdout
+ * @property {string} stderr
+ * @property {HostError | null} error
+ * @property {boolean} timedOut
+ * @property {number} durationMs
+ */
+/**
+ * @typedef {object} OxlintDiagnostic
+ * @property {string} [message]
+ * @property {string} [code]
+ * @property {string} [severity]
+ * @property {string} [filename]
+ */
+/**
+ * @typedef {object} OxlintReport
+ * @property {OxlintDiagnostic[]} diagnostics
+ * @property {number} [number_of_files]
+ */
+/**
+ * @typedef {object} ProofExpectation
+ * @property {string} rule
+ * @property {string} [file]
+ * @property {number} [minCount]
+ */
+/**
+ * @typedef {object} GitState
+ * @property {"clean" | "dirty" | "error"} kind
+ * @property {string} detail
+ */
+/**
+ * @typedef {object} OxlintProof
+ * @property {boolean} ok
+ * @property {string[]} reasons
+ * @property {string[]} pluginRules
+ * @property {OxlintDiagnostic[]} hostFaults
+ * @property {OxlintDiagnostic[]} unexpectedErrors
+ */
+
+/** @type {number} */
 export const DEFAULT_TIMEOUT_MS = 60_000;
+/** @type {number} */
 export const DEFAULT_MAX_BUFFER = 16 * 1024 * 1024;
 
+/**
+ * @param {{ bin: string, args: string[], cwd: string, timeoutMs?: number, maxBuffer?: number }} options
+ * @returns {HostResult}
+ */
 export function runHostProcess({
   bin,
   args,
@@ -19,7 +73,11 @@ export function runHostProcess({
     maxBuffer,
     killSignal: "SIGKILL",
   });
-  const error = result.error ? { code: result.error.code, message: result.error.message } : null;
+  const spawnError = /** @type {Error & { code?: unknown }} */ (result.error);
+  const spawnCode = typeof spawnError?.code === "string" ? spawnError.code : undefined;
+  const error = result.error
+    ? { ...(spawnCode === undefined ? {} : { code: spawnCode }), message: result.error.message }
+    : null;
   return {
     argv,
     status: result.status,
@@ -32,6 +90,10 @@ export function runHostProcess({
   };
 }
 
+/**
+ * @param {string} stdout
+ * @returns {{ report: OxlintReport | null, parseError: string | null }}
+ */
 export function parseOxlintStdout(stdout) {
   try {
     const report = JSON.parse(stdout);
@@ -44,6 +106,10 @@ export function parseOxlintStdout(stdout) {
   }
 }
 
+/**
+ * @param {string | undefined} code
+ * @returns {string | undefined}
+ */
 export function unwrapServicenowRuleId(code) {
   if (typeof code !== "string") return undefined;
   const wrapped = /^servicenow\((.+)\)$/.exec(code);
@@ -52,46 +118,82 @@ export function unwrapServicenowRuleId(code) {
   return undefined;
 }
 
+/** @type {ReadonlySet<string>} */
 export const HOST_FAULT_CODES = new Set(["parser", "plugin-load"]);
 
 const PLUGIN_LOAD_STDOUT = /Failed to load JS plugin|Cannot find module/i;
 
+/**
+ * @param {string | undefined} code
+ * @returns {boolean}
+ */
 export function isHostFaultCode(code) {
   return typeof code === "string" && HOST_FAULT_CODES.has(code);
 }
 
+/**
+ * @param {OxlintDiagnostic} diagnostic
+ * @returns {string | undefined}
+ */
 export function hostFaultCodeFor(diagnostic) {
   return isHostFaultCode(diagnostic?.code) ? diagnostic.code : undefined;
 }
 
+/**
+ * @param {string | undefined} stdout
+ * @returns {string | undefined}
+ */
 export function hostFaultCodeForStdout(stdout) {
   return PLUGIN_LOAD_STDOUT.test(String(stdout ?? "")) ? "plugin-load" : undefined;
 }
 
+/**
+ * @param {OxlintDiagnostic} diagnostic
+ * @returns {boolean}
+ */
 export function isHostFaultDiagnostic(diagnostic) {
   if (hostFaultCodeFor(diagnostic) !== undefined) return true;
   return isErrorSeverity(diagnostic) && (diagnostic?.code === undefined || diagnostic.code === "");
 }
 
+/**
+ * @param {OxlintDiagnostic} diagnostic
+ * @returns {boolean}
+ */
 export function isErrorSeverity(diagnostic) {
   if (typeof diagnostic?.severity !== "string") return false;
   const severity = diagnostic.severity.toLowerCase();
   return severity === "error" || severity === "fatal";
 }
 
+/**
+ * @param {OxlintReport | null | undefined} report
+ * @param {string} [filenamePart]
+ * @returns {string[]}
+ */
 export function pluginRuleIdOccurrences(report, filenamePart) {
-  return (report?.diagnostics ?? [])
+  const ids = (report?.diagnostics ?? [])
     .filter((diagnostic) =>
       filenamePart ? String(diagnostic.filename ?? "").includes(filenamePart) : true,
     )
     .map((diagnostic) => unwrapServicenowRuleId(diagnostic.code))
     .filter((id) => id !== undefined);
+  return /** @type {string[]} */ (ids);
 }
 
+/**
+ * @param {OxlintReport | null | undefined} report
+ * @param {string} [filenamePart]
+ * @returns {string[]}
+ */
 export function pluginRuleIds(report, filenamePart) {
   return [...new Set(pluginRuleIdOccurrences(report, filenamePart))].sort();
 }
 
+/**
+ * @param {{ status: number | null, stdout?: string, stderr?: string, error?: HostError | null, signal?: NodeJS.Signals | null }} input
+ * @returns {GitState}
+ */
 export function interpretGitStatus({ status, stdout, stderr, error, signal }) {
   if (error || signal || status !== 0) {
     return {
@@ -106,6 +208,10 @@ export function interpretGitStatus({ status, stdout, stderr, error, signal }) {
   return { kind: "clean", detail: "" };
 }
 
+/**
+ * @param {HostResult | undefined} host
+ * @returns {string[]}
+ */
 function hostFailureReasons(host) {
   const reasons = [];
   if (host?.error) reasons.push(`spawn: ${host.error.message}`);
@@ -114,12 +220,20 @@ function hostFailureReasons(host) {
   return reasons;
 }
 
+/**
+ * @param {HostResult | undefined} host
+ * @returns {string | undefined}
+ */
 function firstStdoutLine(host) {
   return String(host?.stdout ?? "")
     .split(/\r?\n/)
     .find((line) => line.trim());
 }
 
+/**
+ * @param {{ tree: string, status: number | null, report: OxlintReport | null, parseError: string | null, host?: HostResult, expectations?: ProofExpectation[], expectedFileCount?: number }} input
+ * @returns {OxlintProof}
+ */
 export function classifyOxlintProof({
   tree,
   status,
@@ -225,7 +339,7 @@ export function classifyOxlintProof({
       const fileConstraints = requiredExpectations.filter((item) => item.rule === id && item.file);
       if (fileConstraints.length === 0) continue;
       const matches = fileConstraints.some((item) =>
-        String(diagnostic.filename ?? "").includes(item.file),
+        String(diagnostic.filename ?? "").includes(item.file ?? ""),
       );
       if (!matches) {
         reasons.push(`unexpected ${id} on ${diagnostic.filename ?? "*"}`);
@@ -238,6 +352,10 @@ export function classifyOxlintProof({
   return { ok: reasons.length === 0, reasons, pluginRules, hostFaults, unexpectedErrors };
 }
 
+/**
+ * @param {HostResult} host
+ * @returns {{ ok: boolean, reasons: string[] }}
+ */
 export function classifyOxfmtProof(host) {
   const reasons = hostFailureReasons(host);
   if (host.status !== 0) reasons.push(`oxfmt status ${host.status}`);

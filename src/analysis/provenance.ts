@@ -13,27 +13,12 @@ export type ProvenanceKind =
   | "gs"
   | "current";
 
-export type QueryState = "unopened" | "opened" | "unknown";
-
 export interface Provenance {
   kind: ProvenanceKind;
   /** Binding is no longer a reliable alias of the constructed object. */
   invalid: boolean;
   /** Passed to unknown code, stored externally, or captured by an escaping nested function. */
   escaped: boolean;
-  /**
-   * @deprecated Never computed: always `"unopened"`. The lifecycle facts
-   * live in the per-domain analyzers (`query-before-next.ts`,
-   * `glide-windowing.ts`, `glideajax-params.ts`, `glide-setnocount.ts`).
-   * Removed in 3.0 (FINDINGS.md API-002).
-   */
-  queryState: QueryState;
-  /** @deprecated Never computed: always `false`. Removed in 3.0 (FINDINGS.md API-002). */
-  windowed: boolean;
-  /** @deprecated Never computed: always `false`. Removed in 3.0 (FINDINGS.md API-002). */
-  sysparmName: boolean;
-  /** @deprecated Never computed: always empty. Removed in 3.0 (FINDINGS.md API-002). */
-  aggregates: ReadonlySet<string>;
   bindingId?: number;
   objectId?: number;
 }
@@ -53,9 +38,14 @@ export function ctorProvenanceKind(name: string | null): ProvenanceKind | null {
   return Object.prototype.hasOwnProperty.call(CTOR_TO_KIND, name) ? CTOR_TO_KIND[name]! : null;
 }
 
+/** Platform globals that denote ambient namespaces rather than constructors. */
+export const PLATFORM_ALIAS_GLOBALS: ReadonlySet<string> = new Set(["g_form", "gs", "current"]);
+
 export interface ProvenanceQuery {
   ofIdentifier(node: ESTree.Node): Provenance | null;
   ofExpression(node: unknown): Provenance | null;
+  /** Return provenance only while the value remains a proven, unescaped identity. */
+  trustedExpression(node: unknown): Provenance | null;
   isPlatformGlobal(node: ESTree.Node): boolean;
   isPlatformCtor(node: unknown, names: readonly string[]): boolean;
   isPlatformMember(node: unknown, object: string, property?: string): boolean;
@@ -63,6 +53,7 @@ export interface ProvenanceQuery {
   glide: GlideCapabilityView;
 }
 
+/** Host ancestor chain, or empty when the host omits ancestors or the query fails. */
 export function getAncestors(context: Context, node: ESTree.Node): ESTree.Node[] {
   const sourceCode = context.sourceCode as unknown as {
     getAncestors?: (node: ESTree.Node) => ESTree.Node[];

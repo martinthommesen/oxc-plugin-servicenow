@@ -36,18 +36,18 @@ export const noGsNow = defineRule({
         const directGlobal =
           getName(member.object) === "gs" &&
           analysis.isPlatformGlobal(member.object as ESTree.Node);
-        const proven = analysis.ofExpression(member.object);
-        const alias = proven?.kind === "gs" && !proven.invalid && !proven.escaped;
+        const proven = analysis.trustedExpression(member.object);
+        const alias = proven?.kind === "gs";
         if (!directGlobal && !alias) return;
         const property = staticPropertyName(member);
         const isNow = property === "now";
         const isNowDateTime = property === "nowDateTime";
         if (!isNow && !isNowDateTime) return;
         if (file.bindingWrites.hasDynamicScope()) return;
-        if (directGlobal && file.mutations.isGlobalAuthorityLost("gs")) return;
+        if (directGlobal && file.mutations.isGlobalAuthorityLostAt("gs", call)) return;
         if (
-          file.mutations.isGlobalPathAuthorityLost(["gs", property]) ||
-          file.mutations.isObjectPropertyAuthorityLost(member.object, property)
+          file.mutations.isGlobalPathAuthorityLostAt(["gs", property], call) ||
+          file.mutations.isObjectPropertyAuthorityLostAt(member.object, property, call)
         ) {
           return;
         }

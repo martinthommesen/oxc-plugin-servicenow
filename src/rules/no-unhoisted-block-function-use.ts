@@ -23,6 +23,7 @@ export const noUnhoistedBlockFunctionUse = defineRule({
       before() {
         const { context: script } = beginRuleFile(context);
         if (!shouldDiagnoseFeature(script, "block-function-hoisting")) return false;
+        return undefined;
       },
       Program(node) {
         const { analysis, file } = beginRuleFile(context);

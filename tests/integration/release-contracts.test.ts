@@ -1,12 +1,14 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import path from "node:path";
 import { describe, it } from "node:test";
 import { Linter } from "eslint";
 import plugin from "../../src/index.js";
 import type { ServiceNowSettings } from "../../src/types.js";
-import { pluginRuleId, repoRoot, runOxlintProcess } from "./helpers.js";
+import {
+  createTemporaryProject,
+  eslintFlatConfig,
+  pluginRuleId,
+  runOxlintProcess,
+} from "./helpers.js";
 
 interface ReleaseContract {
   readonly id: string;
@@ -515,22 +517,19 @@ BusinessRule({ table: "incident", name: "Update" });`,
   },
 ];
 
+// @lat: [[tests#Silence on unknown facts#Release-dependent facts stay unknown]]
 describe("ServiceNow release contracts in real hosts", () => {
   for (const contract of contracts) {
     it(contract.id, () => {
-      const directory = mkdtempSync(path.join(tmpdir(), "sn-release-host-"));
-      const source = path.join(directory, contract.filename);
-      const config = path.join(directory, ".oxlintrc.json");
+      const project = createTemporaryProject({
+        prefix: "sn-release-host-",
+        filename: contract.filename,
+        code: contract.code,
+        settings: contract.settings,
+        rules: { [`servicenow/${contract.rule}`]: "error" },
+      });
+      const { source, config } = project;
       try {
-        writeFileSync(source, contract.code);
-        writeFileSync(
-          config,
-          JSON.stringify({
-            jsPlugins: [{ name: "servicenow", specifier: path.join(repoRoot, "dist/index.js") }],
-            settings: { servicenow: contract.settings },
-            rules: { [`servicenow/${contract.rule}`]: "error" },
-          }),
-        );
         const oxlint = runOxlintProcess(config, [source]);
         assert.equal(oxlint.stderr, "");
         const oxlintPluginDiagnostics = oxlint.report.diagnostics.flatMap((diagnostic) => {
@@ -542,14 +541,12 @@ describe("ServiceNow release contracts in real hosts", () => {
         const linter = new Linter({ configType: "flat" });
         const eslint = linter.verify(
           contract.code,
-          [
-            {
-              files: ["**/*.{js,ts}"],
-              plugins: { servicenow: plugin as unknown as import("eslint").ESLint.Plugin },
-              settings: { servicenow: contract.settings },
-              rules: { [`servicenow/${contract.rule}`]: "error" },
-            },
-          ],
+          eslintFlatConfig({
+            files: ["**/*.{js,ts}"],
+            plugin: plugin as unknown as import("eslint").ESLint.Plugin,
+            settings: contract.settings,
+            rule: `servicenow/${contract.rule}`,
+          }),
           { filename: contract.filename },
         );
 
@@ -571,7 +568,7 @@ describe("ServiceNow release contracts in real hosts", () => {
           `${contract.id}: Oxlint and ESLint must select the same message identity`,
         );
       } finally {
-        rmSync(directory, { recursive: true, force: true });
+        project.cleanup();
       }
     });
   }

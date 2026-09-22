@@ -3,7 +3,7 @@
 WeakRef and FinalizationRegistry are disallowed in every instance JavaScript mode, including ES2021. Direct calls and stable same-execution aliases report; a bare alias must be captured inside its availability guard, while visibly polyfilled calls stay silent.
 
 - **Family:** engine
-- **Preset:** recommended
+- **Profile:** recommended
 - **Placements:** recommended (error), classic-es5 (error), es2021 (error)
 - **Default severity:** error
 - **Fix safety:** diagnostic only

@@ -3,7 +3,7 @@
 ServiceNow supports Map and Set in ES2021 but not in Compatibility or ES5 Standards mode in either Zurich or Australia. Direct calls and stable same-execution aliases report, while visibly polyfilled or availability-guarded calls stay silent.
 
 - **Family:** engine
-- **Preset:** classic-es5
+- **Profile:** classic-es5
 - **Placements:** classic-es5 (error)
 - **Default severity:** error
 - **Fix safety:** diagnostic only
@@ -93,8 +93,8 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-b
   - URL: https://www.servicenow.com/docs/r/api-reference/scripts/javascript-engine-feature-support.html
   - Verified by: manual
   - Verified at: 2026-08-24
-- **Fixtures cover both constructors, both classic modes and releases, aliases, guards, polyfills, shadowing, dynamic scope, and unsupported contexts.**
-  - Verification ID: `rule-evidence-b001f905`
+- **Fixtures cover both constructors, Compatibility and ES5 modes, both releases, aliases, guards, polyfills, shadowing, dynamic scope, and unsupported contexts.**
+  - Verification ID: `rule-evidence-19c8b8b2`
   - URL: tests/rules/no-map-set.test.ts
   - Verified by: fixture
   - Verified at: 2026-08-24

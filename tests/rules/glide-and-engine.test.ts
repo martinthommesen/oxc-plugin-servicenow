@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { assertInvalid, assertSkipped, assertValid, ES5, lint } from "../helpers/rule-tester.js";
+import {
+  assertInvalid,
+  assertSkipped,
+  assertValid,
+  assertValidActive,
+  ES5,
+  lint,
+} from "../helpers/rule-tester.js";
 
 describe("no-gs-now", () => {
   it("flags gs.now()", () => {
@@ -62,38 +69,26 @@ describe("no-gs-now", () => {
       messageId: "server",
     });
   });
-});
 
-describe("validate-gliderecord-calls", () => {
-  it("flags next() without query()", () => {
-    assertInvalid(
-      `var gr = new GlideRecord("incident");\ngr.addActiveQuery();\ngr.next();`,
-      "validate-gliderecord-calls",
-      { messageId: "missingQuery", count: 2 },
-    );
+  it("does not let a provably later top-level write suppress an earlier call", () => {
+    assertInvalid(`gs.now();\ngs.now = localNow;`, "no-gs-now", { messageId: "server" });
+    assertInvalid(`function run() { gs.now(); gs.now = localNow; } run();`, "no-gs-now", {
+      messageId: "server",
+    });
+    assertValid(`gs.now();\nfunction later() { gs.now = localNow; }`, "no-gs-now");
   });
 
-  it("flags next() without query() on GlideRecordSecure", () => {
-    assertInvalid(
-      'var gr = new GlideRecordSecure("incident"); gr.next();',
-      "validate-gliderecord-calls",
-      { messageId: "missingQuery", count: 2 },
-    );
-  });
-
-  it("flags unused insert() return", () => {
-    assertInvalid(
-      `var gr = new GlideRecord("incident");\ngr.initialize();\ngr.insert();`,
-      "validate-gliderecord-calls",
-      { messageId: "unusedReturn" },
-    );
-  });
-
-  it("allows checked next() after query()", () => {
-    assertValid(
-      `var gr = new GlideRecord("incident");\ngr.query();\nwhile (gr.next()) { gs.info(gr.number); }`,
-      "validate-gliderecord-calls",
-    );
+  it("bounds deeply destructured mutation aliases conservatively", () => {
+    const aliases = [
+      `const { missing: alias0 = globalThis } = {};`,
+      ...Array.from(
+        { length: 512 },
+        (_, index) => `const { missing: alias${index + 1} = alias${index} } = {};`,
+      ),
+    ];
+    assertValid(`${aliases.join("\n")}\nalias512.gs.now = localNow;\ngs.now();`, "no-gs-now", {
+      settings: { javascriptMode: "es2021" },
+    });
   });
 });
 
@@ -131,7 +126,9 @@ describe("no-br-current-update", () => {
   });
 
   it("allows field assignment", () => {
-    assertValid(`current.state = 2;`, "no-br-current-update");
+    assertValidActive(`current.state = 2;`, "no-br-current-update", {
+      filename: "incident.br.js",
+    });
   });
 
   it("allows current.update() in a UI Action", () => {
@@ -163,6 +160,26 @@ describe("no-br-current-update", () => {
     });
     assertValid(
       `var record = current;\nprepare(record);\ncurrent.update();`,
+      "no-br-current-update",
+      { filename: "incident.br.js" },
+    );
+  });
+
+  it("does not let a provably later top-level write suppress an earlier update", () => {
+    assertInvalid(
+      `current.update();\ncurrent.update = localUpdate;`,
+      "no-br-current-update",
+      { messageId: "update" },
+      { filename: "incident.br.js" },
+    );
+    assertInvalid(
+      `function run() { current.update(); current.update = localUpdate; } run();`,
+      "no-br-current-update",
+      { messageId: "update" },
+      { filename: "incident.br.js" },
+    );
+    assertValid(
+      `current.update();\nfunction later() { current.update = localUpdate; }`,
       "no-br-current-update",
       { filename: "incident.br.js" },
     );
@@ -267,6 +284,16 @@ describe("engine extras", () => {
     );
   });
 
+  it("no-packages-calls reports Packages aliases at their source", () => {
+    for (const code of [
+      "var P = Packages; P.java.lang.System.nanoTime();",
+      "var java = Packages.java; java.lang.System.nanoTime();",
+      "var { java } = Packages; java.lang.System.nanoTime();",
+    ]) {
+      assertInvalid(code, "no-packages-calls", { count: 1 }, { filename: "src/server/test.js" });
+    }
+  });
+
   it("no-packages-calls flags dynamic computed access", () => {
     assertInvalid(
       "var value = Packages[name][member];",
@@ -313,8 +340,8 @@ describe("engine extras", () => {
     for (const scope of ["global", "scoped"] as const) {
       assertInvalid(
         `var gr = new GlideRecord("incident"); gr._next();`,
-        "validate-gliderecord-calls",
-        { count: 2, messageId: "missingQuery" },
+        "require-query-before-next",
+        { count: 1, messageId: "missingQuery" },
         { filename: "src/server/test.js", settings: { scope } },
       );
     }

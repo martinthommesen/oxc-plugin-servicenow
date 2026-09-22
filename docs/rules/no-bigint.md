@@ -3,7 +3,7 @@
 BigInt literals and `BigInt()` are unsupported in Compatibility or ES5 Standards mode. Direct calls and stable same-execution aliases report; bare aliases must be captured under an availability guard, while visibly polyfilled, guarded, unknown-mode, and local `BigInt` calls stay silent.
 
 - **Family:** engine
-- **Preset:** classic-es5
+- **Profile:** classic-es5
 - **Placements:** classic-es5 (error)
 - **Default severity:** error
 - **Fix safety:** diagnostic only

@@ -1,4 +1,5 @@
 import { ServiceNowConfigError } from "../settings/errors.js";
+import { typeName } from "../settings/parse.js";
 
 export type OptionFieldKind = "boolean" | "integer" | "enum" | "string" | "stringArray";
 
@@ -54,10 +55,8 @@ export interface RuleOptionDoc {
   description: string;
 }
 
-export function typeName(value: unknown): string {
-  if (value === null) return "null";
-  if (Array.isArray(value)) return "array";
-  return typeof value;
+function unhandledOptionField(field: never, path: string): never {
+  throw new ServiceNowConfigError(path, `unhandled option field ${JSON.stringify(field)}`);
 }
 
 function descriptorDefaults<T extends object>(descriptor: RuleOptionsDescriptor<T>): T {
@@ -128,10 +127,8 @@ function parseField(field: OptionField, path: string, value: unknown): unknown {
         }
         return item;
       });
-    default: {
-      const unexpected: never = field;
-      throw new ServiceNowConfigError(path, `unhandled option field ${JSON.stringify(unexpected)}`);
-    }
+    default:
+      return unhandledOptionField(field, path);
   }
 }
 
@@ -141,23 +138,21 @@ function jsonSchemaProperty(field: OptionField): Record<string, unknown> {
       return { type: "boolean" };
     case "integer": {
       const schema: Record<string, unknown> = { type: "integer" };
-      if (field.minimum !== undefined) schema.minimum = field.minimum;
-      if (field.maximum !== undefined) schema.maximum = field.maximum;
+      if (field.minimum !== undefined) schema["minimum"] = field.minimum;
+      if (field.maximum !== undefined) schema["maximum"] = field.maximum;
       return schema;
     }
     case "enum":
       return { enum: [...field.values] };
     case "string": {
       const schema: Record<string, unknown> = { type: "string" };
-      if (field.minLength !== undefined) schema.minLength = field.minLength;
+      if (field.minLength !== undefined) schema["minLength"] = field.minLength;
       return schema;
     }
     case "stringArray":
       return { type: "array", items: { type: "string" } };
-    default: {
-      const unexpected: never = field;
-      throw new Error(`unhandled option field ${JSON.stringify(unexpected)}`);
-    }
+    default:
+      return unhandledOptionField(field, "options");
   }
 }
 
@@ -173,10 +168,8 @@ function optionTypeLabel(field: OptionField): string {
       return "string";
     case "stringArray":
       return "string[]";
-    default: {
-      const unexpected: never = field;
-      throw new Error(`unhandled option field ${JSON.stringify(unexpected)}`);
-    }
+    default:
+      return unhandledOptionField(field, "options");
   }
 }
 
@@ -189,10 +182,8 @@ function optionDefaultLabel(field: OptionField): string {
       return JSON.stringify(field.default);
     case "stringArray":
       return JSON.stringify([...field.default]);
-    default: {
-      const unexpected: never = field;
-      throw new Error(`unhandled option field ${JSON.stringify(unexpected)}`);
-    }
+    default:
+      return unhandledOptionField(field, "options");
   }
 }
 

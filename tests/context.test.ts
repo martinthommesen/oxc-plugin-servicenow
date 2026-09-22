@@ -1,13 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { Context } from "@oxlint/plugins";
-import { parse } from "./helpers/rule-tester.js";
-import { applyRules } from "../src/runtime/apply-rules.js";
+import { applyRules } from "./helpers/apply-rules.js";
 import { resolveScriptContext } from "../src/context/resolve.js";
 import { validateServiceNowSettings, ServiceNowSettingsError } from "../src/settings/index.js";
 import { SUPPORTED_SERVICENOW_RELEASES } from "../src/settings/releases.js";
-import { classifyFile } from "../src/utils/filenames.js";
-import { assertInvalid, assertValid, ES2021, lint } from "./helpers/rule-tester.js";
+import { classifyFile } from "../src/context/filename.js";
+import { assertInvalid, assertValid, ES2021, lint, parse } from "./helpers/rule-tester.js";
 
 describe("settings validation", () => {
   it("accepts empty settings", () => {
@@ -210,6 +209,22 @@ describe("release and context resolution", () => {
     const script = resolveScriptContext(context);
     assert.equal(script.javascriptMode, "unknown");
     assert.equal(script.sources.javascriptMode, "unknown");
+  });
+
+  it("ignores the retired @sn-es-latest pragma (FINDINGS.md FEAT-002)", () => {
+    const context = {
+      filename: "incident.br.js",
+      settings: {},
+      sourceCode: {
+        text: "// @sn-es-latest\nPromise.resolve(1);",
+        getAllComments: () => [{ value: " @sn-es-latest" }],
+      },
+      options: [],
+    } as unknown as Context;
+    const script = resolveScriptContext(context);
+    assert.equal(script.javascriptMode, "unknown");
+    assert.equal(script.sources.javascriptMode, "unknown");
+    assert.deepEqual([...script.deprecations], []);
   });
 });
 
@@ -445,7 +460,7 @@ gr.next();`,
   it("keeps surface rules silent when only JavaScript mode is known", () => {
     const settings = { javascriptMode: "es5" as const };
     assertValid("gs.now();", "no-gs-now", { filename: "plain.js", settings });
-    assertValid('var gr = new GlideRecord("incident"); gr.next();', "validate-gliderecord-calls", {
+    assertValid('var gr = new GlideRecord("incident"); gr.next();', "require-query-before-next", {
       filename: "plain.js",
       settings,
     });

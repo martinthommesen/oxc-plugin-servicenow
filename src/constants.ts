@@ -1,9 +1,5 @@
 import { PACKAGE_VERSION } from "./version.js";
-import {
-  DEFAULT_FLUENT_MANIFEST,
-  FLUENT_CORE_MODULE as MANIFEST_CORE_MODULE,
-  entitiesRequiringId,
-} from "./fluent/manifest.js";
+import { DEFAULT_FLUENT_MANIFEST } from "./fluent/manifest.js";
 
 /** Canonical plugin name used in rule ids (`servicenow/<rule>`). */
 export const PLUGIN_NAME = "servicenow";
@@ -28,38 +24,6 @@ export function ruleDocsUrl(ruleName: string): string {
   return `${DOCS_BASE_URL}/${ruleName}.md`;
 }
 
-/**
- * Fluent entity factories imported from `@servicenow/sdk/core`.
- * Derived from the versioned SDK manifest.
- */
-export const FLUENT_CORE_APIS = DEFAULT_FLUENT_MANIFEST.apis
-  .filter((api) => api.kind === "entity" && api.module === MANIFEST_CORE_MODULE)
-  .map((api) => api.name);
-
-export type FluentCoreApi = (typeof FLUENT_CORE_APIS)[number];
-
-export const FLUENT_CORE_API_SET: ReadonlySet<string> = new Set(FLUENT_CORE_APIS);
-
-/** Column helpers that also come from `@servicenow/sdk/core`. */
-export const FLUENT_COLUMN_APIS = DEFAULT_FLUENT_MANIFEST.apis
-  .filter((api) => api.kind === "column")
-  .map((api) => api.name);
-
-export const FLUENT_IMPORT_SET: ReadonlySet<string> = new Set(
-  DEFAULT_FLUENT_MANIFEST.apis.filter((api) => api.module !== "unknown").map((api) => api.name),
-);
-
-export const FLUENT_CORE_MODULE = MANIFEST_CORE_MODULE;
-
-/**
- * Fluent factories that must declare `$id` (Tables use `name` instead).
- */
-export const FLUENT_ENTITIES_REQUIRING_ID: ReadonlySet<string> = entitiesRequiringId();
-
-export const KNOWN_FLUENT_DIRECTIVES = DEFAULT_FLUENT_MANIFEST.directives.map(
-  (directive) => directive.name,
-);
-
 export const FLUENT_DIRECTIVE_TYPOS: Record<string, string> = {
   ...DEFAULT_FLUENT_MANIFEST.typos,
 };
@@ -78,15 +42,8 @@ export const FLUENT_LARGE_CONTENT_KEYS: ReadonlySet<string> = new Set([
   "render",
 ]);
 
-export const GLIDE_MUTATING_METHODS = [
-  "insert",
-  "update",
-  "updateMultiple",
-  "deleteRecord",
-  "deleteMultiple",
-  "get",
-  "next",
-] as const;
+/** `Function.prototype` helpers that forward a call with a different receiver. */
+export const INVOCATION_HELPERS: ReadonlySet<string> = new Set(["apply", "bind", "call"]);
 
 export const PROMISE_STATIC_METHODS = [
   "all",
@@ -162,11 +119,3 @@ export const CLIENT_GLOBALS_STRONG = [
   "g_navigation",
   "g_tabs2Sections",
 ] as const;
-
-/** Ambiguous globals: g_scratchpad is written by server-side display Business Rules; gel is short enough to collide. Never used for classification. */
-export const CLIENT_GLOBALS_WEAK = ["g_scratchpad", "gel"] as const;
-
-export const CLIENT_GLOBALS = [...CLIENT_GLOBALS_STRONG, ...CLIENT_GLOBALS_WEAK] as const;
-
-/** Constructors that produce a GlideRecord-like cursor. */
-export const GLIDE_RECORD_CTORS = ["GlideRecord", "GlideRecordSecure"] as const;

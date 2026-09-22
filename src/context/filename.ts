@@ -1,5 +1,5 @@
 import { CLIENT_GLOBALS_STRONG } from "../constants.js";
-import type { ScriptAuthoring, ScriptSurface } from "../types.js";
+import type { ScriptAuthoring, ScriptKind, ScriptSurface, ServiceNowSettings } from "../types.js";
 
 const SCRIPT_EXTENSIONS = ["js", "cjs", "mjs"] as const;
 
@@ -27,7 +27,6 @@ export const CLIENT_FILE_GLOBS = scriptGlobs([
   "**/*onsubmit*",
   "**/*ui-policy*",
   "**/*ui_policy*",
-  "**/*.client.ui-action",
   "**/client/**/*",
   "**/src/client/**/*",
 ]);
@@ -83,7 +82,6 @@ const SCHEDULED_DIR = /(?:^|\/)(?:scheduled[-_]?scripts?|ss)(?:\/|$)/i;
 const FIX_SCRIPT_DIR = /(?:^|\/)(?:fix[-_]?scripts?|fix)(?:\/|$)/i;
 const SERVER_DIR = /(?:^|\/)server(?:\/|$)/i;
 const CLIENT_GLOBAL_RE = new RegExp(`\\b(?:${CLIENT_GLOBALS_STRONG.join("|")})\\b`);
-export const ES_LATEST_IN_COMMENT = /(^|\s)@sn-es-latest\b/;
 
 export function normalizeFilename(filename: string): string {
   return filename.replace(/\\/g, "/");
@@ -144,20 +142,8 @@ export function surfacesFromFilename(filename: string, baseDirectory?: string): 
   // A generic server directory is weaker evidence than a specific script
   // subtype in the filename. Keep `src/server/helper.si.js` as a Script
   // Include rather than making the evidence contradictory and returning [].
-  const specificSurface = [...surfaces].some((surface) => surface !== "server");
-  if (!specificSurface && (SERVER_DIR.test(directoryPath) || SERVER_FILE.test(file)))
+  if (surfaces.size === 0 && (SERVER_DIR.test(directoryPath) || SERVER_FILE.test(file)))
     surfaces.add("server");
-
-  if (
-    surfaces.has("server") &&
-    [...surfaces].some((surface) =>
-      ["acl", "business-rule", "script-include", "scheduled-script", "fix-script"].includes(
-        surface,
-      ),
-    )
-  ) {
-    surfaces.delete("server");
-  }
 
   if (surfaces.has("ui-action")) {
     if ([...surfaces].some((surface) => !["ui-action", "client", "server"].includes(surface)))
@@ -169,4 +155,27 @@ export function surfacesFromFilename(filename: string, baseDirectory?: string): 
 
 export function authoringFromFilename(filename: string): ScriptAuthoring | undefined {
   return isFluentFile(filename) ? "fluent" : undefined;
+}
+
+/**
+ * @deprecated Use `getScriptContext`. Maps the new context model onto the
+ * historical single ScriptKind value for callers that have not migrated.
+ */
+export function classifyFile(
+  filename: string,
+  sourceText: string,
+  settings: ServiceNowSettings,
+): ScriptKind {
+  if (settings.scriptType && settings.scriptType !== "auto") {
+    return settings.scriptType;
+  }
+  if (isFluentFile(filename) || settings.authoring === "fluent") return "fluent";
+  const surfaces = surfacesFromFilename(filename);
+  if (surfaces.includes("ui-action")) return "ui-action";
+  if (surfaces.includes("client")) return "client";
+  if (surfaces.includes("business-rule")) return "business-rule";
+  if (surfaces.includes("script-include")) return "script-include";
+  if (looksLikeClientSource(sourceText)) return "client";
+  if (surfaces.includes("server")) return "server";
+  return "unknown";
 }

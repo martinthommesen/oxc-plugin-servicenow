@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import { assertInvalid, assertValid } from "../helpers/rule-tester.js";
 
-const RULE = "no-unfiltered-gliderecord-bulk-operation";
+const RULE = "no-unfiltered-gliderecord-bulk-operation" as const;
 
 // A for-in or for-of head rebinds its declared name on every iteration, so a
 // tracked GlideRecord shadowed by the loop variable must not keep its object

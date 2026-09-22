@@ -3,7 +3,7 @@
 `gs.now()` and `gs.nowDateTime()` return timezone-sensitive display strings. `gs.now()` is also gone from client scripts since London. Prefer `new GlideDateTime()`.
 
 - **Family:** classic
-- **Preset:** recommended
+- **Profile:** recommended
 - **Placements:** recommended (error), client (error)
 - **Default severity:** error
 - **Fix safety:** diagnostic only
@@ -56,7 +56,7 @@ current.u_opened = new GlideDateTime();
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-boundary: Local objects named gs are not the platform global. false-negative: A possible gs or target-method mutation suppresses every matching call in the file, including calls that appear before the mutation.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-boundary: Local objects named gs are not the platform global.
 
 ## Known false positives
 
@@ -64,7 +64,7 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-b
 
 ## Known false negatives
 
-- A possible gs or target-method mutation suppresses every matching call in the file, including calls that appear before the mutation.
+- None recorded.
 
 ## Intentional scope boundaries
 

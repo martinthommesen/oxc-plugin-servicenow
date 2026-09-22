@@ -6,6 +6,19 @@
  * single-package release; accepting an arbitrary first record could publish a
  * different artifact when npm changes its output.
  */
+import { basename } from "node:path";
+
+/**
+ * @typedef {object} NpmPackRecord
+ * @property {string} filename
+ * @property {string} [name]
+ * @property {string} [version]
+ */
+
+/**
+ * @param {string | unknown} value
+ * @returns {NpmPackRecord}
+ */
 export function parseNpmPackJson(value) {
   let parsed;
   try {
@@ -41,4 +54,3 @@ export function parseNpmPackJson(value) {
   }
   return record;
 }
-import { basename } from "node:path";

@@ -1,12 +1,7 @@
 import type { Context, ESTree } from "@oxlint/plugins";
-import type { ServiceNowScriptContext } from "../types.js";
-import { immutableSet } from "../utils/immutable.js";
 import { getName, isNode } from "../utils/ast.js";
-import {
-  analyzeProvenance as analyzeInternal,
-  getScriptContext as getInternalContext,
-} from "./file-analysis.js";
-import type { Provenance, ProvenanceKind, QueryState } from "./provenance.js";
+import { analyzeProvenance as analyzeInternal } from "./file-analysis.js";
+import type { Provenance, ProvenanceKind } from "./provenance.js";
 import { staticPropertyName } from "./members.js";
 
 export type PublicProvenanceKind =
@@ -28,34 +23,9 @@ const PUBLIC_PROVENANCE_KINDS: ReadonlySet<ProvenanceKind> = new Set([
   "current",
 ] satisfies readonly PublicProvenanceKind[]);
 
-export interface AnalysisProvenance {
-  readonly kind: PublicProvenanceKind;
-  readonly invalid: boolean;
-  readonly escaped: boolean;
-  /**
-   * @deprecated Never computed: always `"unopened"`. Cursor lifecycle facts
-   * live in the per-domain analyzers behind the rules, not in this record.
-   * Removed in 3.0 (FINDINGS.md API-002, `docs/decisions.md`).
-   */
-  readonly queryState: QueryState;
-  /**
-   * @deprecated Never computed: always `false`. Removed in 3.0
-   * (FINDINGS.md API-002, `docs/decisions.md`).
-   */
-  readonly windowed: boolean;
-  /**
-   * @deprecated Never computed: always `false`. Removed in 3.0
-   * (FINDINGS.md API-002, `docs/decisions.md`).
-   */
-  readonly sysparmName: boolean;
-  /**
-   * @deprecated Never computed: always empty. Removed in 3.0
-   * (FINDINGS.md API-002, `docs/decisions.md`).
-   */
-  readonly aggregates: ReadonlySet<string>;
-  readonly bindingId?: number;
-  readonly objectId?: number;
-}
+export type AnalysisProvenance = Readonly<
+  Omit<Provenance, "kind"> & { kind: PublicProvenanceKind }
+>;
 
 export interface AnalysisProvenanceQuery {
   ofIdentifier(node: ESTree.Node): AnalysisProvenance | null;
@@ -74,15 +44,12 @@ function readonlyProvenance(value: Provenance | null): AnalysisProvenance | null
   const wrapped = Object.freeze({
     ...value,
     kind: value.kind as PublicProvenanceKind,
-    aggregates: immutableSet(value.aggregates),
   });
   publicProvenance.set(value, wrapped);
   return wrapped;
 }
 
-export function getScriptContext(context: Context): ServiceNowScriptContext {
-  return getInternalContext(context);
-}
+export { getScriptContext } from "./file-analysis.js";
 
 /** Analyze the host source tree, or an explicitly supplied tree whose nodes will be queried. */
 export function analyzeProvenance(context: Context, ast?: ESTree.Node): AnalysisProvenanceQuery {

@@ -41,6 +41,7 @@ export const noUnsupportedStaticMethods = defineRule({
       before() {
         const { context: script } = beginRuleFile(context);
         if (!FEATURE_IDS.some((feature) => shouldDiagnoseFeature(script, feature))) return false;
+        return undefined;
       },
       Program(node) {
         const { analysis, context: script, file } = beginRuleFile(context);

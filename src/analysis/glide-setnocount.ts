@@ -1,5 +1,5 @@
 import type { ESTree } from "@oxlint/plugins";
-import { analyzePathBindings } from "./path-state.js";
+import { analyzePathBindings, mergeKeyedUnion } from "./path-state.js";
 import {
   hasAuthoritativeGlideRecordMethod,
   type PlatformMethodAuthorityFacts,
@@ -56,11 +56,14 @@ function alternativeKey(value: CountAlternative): string {
 }
 
 function mergeCountData(left: CountData, right: CountData): CountData {
-  const alternatives = new Map<string, CountAlternative>();
-  for (const value of [...left.alternatives, ...right.alternatives]) {
-    alternatives.set(alternativeKey(value), cloneAlternative(value));
-  }
-  return { alternatives: [...alternatives.values()] };
+  return {
+    alternatives: mergeKeyedUnion(
+      left.alternatives,
+      right.alternatives,
+      alternativeKey,
+      cloneAlternative,
+    ),
+  };
 }
 
 /**
@@ -79,7 +82,7 @@ export function findChooseWindowWithoutNoCount(
     }
   };
 
-  analyzePathBindings<CountData>({
+  const outcome = analyzePathBindings<CountData>({
     program,
     analysis,
     kinds: ["GlideRecord"],
@@ -152,10 +155,9 @@ export function findChooseWindowWithoutNoCount(
         }
       }
     },
-    onBudgetExceeded() {
-      finalized.clear();
-    },
   });
 
-  return [...finalized].map(([node, name]) => ({ node, name }));
+  return outcome.outcome === "complete"
+    ? [...finalized].map(([node, name]) => ({ node, name }))
+    : [];
 }

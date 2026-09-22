@@ -7,6 +7,7 @@ import { SUPPORTED_SERVICENOW_RELEASES } from "../src/settings/releases.js";
 import { lint } from "./helpers/rule-tester.js";
 import { repoRoot } from "./integration/helpers.js";
 
+// @lat: [[tests#The catalog#Every evidence record resolves]]
 describe("catalog evidence", () => {
   const ids = new Set<string>();
   for (const entry of ruleCatalog) {

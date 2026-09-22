@@ -1,9 +1,9 @@
 # servicenow/require-glideajax-sysparm-name
 
-GlideAjax requires a non-empty `addParam("sysparm_name", method)` before `getXML` / `getXMLAnswer` / `getXMLWait`. Extra static keys must start with `sysparm_`. Evidence: https://www.servicenow.com/docs/r/api-reference/scripts/p_AJAX.html
+GlideAjax requires a non-empty `addParam("sysparm_name", method)` before `getXML` / `getXMLAnswer` / `getXMLWait`. Extra static keys must start with `sysparm_`.
 
 - **Family:** classic
-- **Preset:** recommended
+- **Profile:** recommended
 - **Placements:** recommended (error), client (error)
 - **Default severity:** error
 - **Fix safety:** diagnostic only

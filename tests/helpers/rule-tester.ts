@@ -1,15 +1,17 @@
 import assert from "node:assert/strict";
 import { parseSync } from "oxc-parser";
-import {
-  applyRules,
-  type LintMessage,
-  type LintSourceOptions,
-} from "../../src/runtime/apply-rules.js";
+import { ruleCatalog } from "../../src/catalog.js";
+import { applyRules, type LintMessage, type LintSourceOptions } from "./apply-rules.js";
+import type { FileAnalysis } from "../../src/analysis/file-analysis.js";
 import type { RuleName } from "../../src/rules/index.js";
 import type { ServiceNowSettings } from "../../src/types.js";
 
 export const ES5: ServiceNowSettings = { javascriptMode: "es5" };
 export const ES2021: ServiceNowSettings = { javascriptMode: "es2021" };
+
+const FLUENT_RULES = new Set<RuleName>(
+  ruleCatalog.filter((entry) => entry.family === "fluent").map((entry) => entry.name),
+);
 
 const CLIENT_RULES = new Set<RuleName>([
   "no-client-gliderecord",
@@ -20,16 +22,7 @@ const CLIENT_RULES = new Set<RuleName>([
 ]);
 
 function defaultFilename(rule: RuleName): string {
-  if (
-    rule.startsWith("fluent") ||
-    rule.startsWith("prefer-now") ||
-    rule.startsWith("require-fluent") ||
-    rule.startsWith("no-complex") ||
-    rule === "no-now-id-as-reference" ||
-    rule === "no-duplicate-fluent-id"
-  ) {
-    return "file.now.ts";
-  }
+  if (FLUENT_RULES.has(rule)) return "file.now.ts";
   if (CLIENT_RULES.has(rule)) return "test.client.js";
   return "src/server/test.js";
 }
@@ -57,13 +50,52 @@ export function lint(code: string, rule: RuleName, options: RunOptions = {}): Li
   return applyRules(code, parsed, { ...options, filename, ruleNames: [rule] });
 }
 
-export function assertValid(code: string, rule: RuleName, options: RunOptions = {}): void {
-  const messages = lint(code, rule, options);
+/**
+ * Lints one rule and returns the shared per-file analysis alongside the
+ * messages, so tests can assert on internal analysis state such as
+ * `pathBudgetExhausted` (FINDINGS.md PER-006).
+ */
+export function lintWithAnalysis(
+  code: string,
+  rule: RuleName,
+  options: RunOptions = {},
+): { messages: LintMessage[]; analysis: FileAnalysis } {
+  let analysis: FileAnalysis | undefined;
+  const messages = lint(code, rule, {
+    ...options,
+    onFileAnalysis: (seen) => {
+      analysis = seen;
+    },
+  });
+  assert.ok(analysis, "Expected the harness to capture the shared file analysis");
+  return { messages, analysis };
+}
+
+function lintWithSkipFlag(
+  code: string,
+  rule: RuleName,
+  options: RunOptions,
+): { messages: LintMessage[]; skipped: boolean } {
+  let skipped = false;
+  const messages = lint(code, rule, {
+    ...options,
+    onRuleSkipped: () => {
+      skipped = true;
+    },
+  });
+  return { messages, skipped };
+}
+
+function assertNoMessages(messages: LintMessage[], code: string): void {
   assert.equal(
     messages.length,
     0,
     `Expected no diagnostics, got:\n${messages.map((m) => `  - ${m.messageId ?? "?"} ${m.message}`).join("\n")}\nSource:\n${code}`,
   );
+}
+
+export function assertValid(code: string, rule: RuleName, options: RunOptions = {}): void {
+  assertNoMessages(lint(code, rule, options), code);
 }
 
 /**
@@ -74,34 +106,18 @@ export function assertValid(code: string, rule: RuleName, options: RunOptions = 
  * silent", and `assertSkipped` for a deliberate gate skip.
  */
 export function assertValidActive(code: string, rule: RuleName, options: RunOptions = {}): void {
-  let skipped = false;
-  const messages = lint(code, rule, {
-    ...options,
-    onRuleSkipped: () => {
-      skipped = true;
-    },
-  });
+  const { messages, skipped } = lintWithSkipFlag(code, rule, options);
   assert.equal(
     skipped,
     false,
     `Expected ${rule} to run over the file, but its before() gate declined it.\nSource:\n${code}`,
   );
-  assert.equal(
-    messages.length,
-    0,
-    `Expected no diagnostics, got:\n${messages.map((m) => `  - ${m.messageId ?? "?"} ${m.message}`).join("\n")}\nSource:\n${code}`,
-  );
+  assertNoMessages(messages, code);
 }
 
 /** Asserts the rule's `before()` gate declined the file. */
 export function assertSkipped(code: string, rule: RuleName, options: RunOptions = {}): void {
-  let skipped = false;
-  lint(code, rule, {
-    ...options,
-    onRuleSkipped: () => {
-      skipped = true;
-    },
-  });
+  const { skipped } = lintWithSkipFlag(code, rule, options);
   assert.equal(
     skipped,
     true,
@@ -112,7 +128,12 @@ export function assertSkipped(code: string, rule: RuleName, options: RunOptions 
 export function assertInvalid(
   code: string,
   rule: RuleName,
-  expected: { messageId?: string; count?: number; includes?: string } = {},
+  expected: {
+    messageId?: string | undefined;
+    count?: number;
+    includes?: string;
+    range?: { line: number; column: number; endLine: number; endColumn: number };
+  } = {},
   options: RunOptions = {},
 ): LintMessage[] {
   const messages = lint(code, rule, options);
@@ -122,16 +143,31 @@ export function assertInvalid(
     count,
     `Expected exactly ${count} diagnostic(s), got ${messages.length}:\n${messages.map((m) => `  - ${m.messageId ?? "?"} ${m.message}`).join("\n")}\nSource:\n${code}`,
   );
+  const selected = expected.messageId
+    ? messages.find((message) => message.messageId === expected.messageId)
+    : messages[0];
   if (expected.messageId) {
     assert.ok(
-      messages.some((m) => m.messageId === expected.messageId),
+      selected,
       `Expected messageId ${expected.messageId}, got ${messages.map((m) => m.messageId).join(", ")}`,
     );
   }
+  if (expected.range) {
+    assert.deepEqual(
+      {
+        line: selected?.line,
+        column: selected?.column,
+        endLine: selected?.endLine,
+        endColumn: selected?.endColumn,
+      },
+      expected.range,
+    );
+  }
   if (expected.includes) {
+    const needle = expected.includes;
     assert.ok(
-      messages.some((m) => m.message.includes(expected.includes!)),
-      `Expected a message containing ${JSON.stringify(expected.includes)}`,
+      messages.some((m) => m.message.includes(needle)),
+      `Expected a message containing ${JSON.stringify(needle)}`,
     );
   }
   return messages;

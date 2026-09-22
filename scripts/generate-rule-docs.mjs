@@ -1,19 +1,23 @@
 import { mkdir, readdir, readFile, unlink, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 import { pathToFileURL } from "node:url";
+import { replaceMarkedSection } from "./lib/generated-artifacts.mjs";
+import { root } from "./lib/repo.mjs";
 
-const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-
+/** @typedef {typeof import("../src/catalog.js").ruleCatalog[number]} CatalogRule */
+/** @type {{ ruleCatalog: typeof import("../src/catalog.js").ruleCatalog }} */
 const { ruleCatalog } = await import(pathToFileURL(join(root, "src/catalog.ts")).href);
+/** @type {{ PACKAGE_GIT_REF: typeof import("../src/constants.js").PACKAGE_GIT_REF, REPOSITORY_URL: typeof import("../src/constants.js").REPOSITORY_URL }} */
 const { PACKAGE_GIT_REF, REPOSITORY_URL } = await import(
   pathToFileURL(join(root, "src/constants.ts")).href
 );
 const presets110 = JSON.parse(
   await readFile(join(root, "tests/fixtures/presets-1.1.0.json"), "utf8"),
 );
+/** @type {{ DEFAULT_FLUENT_MANIFEST: import("../src/fluent/index.js").FluentSdkManifest, SUPPORTED_FLUENT_SDK_VERSIONS: typeof import("../src/fluent/index.js").SUPPORTED_FLUENT_SDK_VERSIONS, CURRENT_FLUENT_SDK_VERSION: typeof import("../src/fluent/index.js").CURRENT_FLUENT_SDK_VERSION }} */
 const { DEFAULT_FLUENT_MANIFEST, SUPPORTED_FLUENT_SDK_VERSIONS, CURRENT_FLUENT_SDK_VERSION } =
   await import(pathToFileURL(join(root, "src/fluent/index.ts")).href);
+/** @type {{ businessRuleRules: typeof import("../src/configs/maps.js").businessRuleRules, classicEs5Rules: typeof import("../src/configs/maps.js").classicEs5Rules, clientRules: typeof import("../src/configs/maps.js").clientRules, es2021Rules: typeof import("../src/configs/maps.js").es2021Rules, fluentRules: typeof import("../src/configs/maps.js").fluentRules, recommendedRules: typeof import("../src/configs/maps.js").recommendedRules, strictRules: typeof import("../src/configs/maps.js").strictRules }} */
 const {
   businessRuleRules,
   classicEs5Rules,
@@ -27,45 +31,94 @@ const {
 const docsDir = join(root, "docs/rules");
 await mkdir(docsDir, { recursive: true });
 
-/** Escape values interpolated into a Markdown table cell. */
+/**
+ * Escape values interpolated into a Markdown table cell.
+ * @param {unknown} value
+ * @returns {string}
+ */
 function markdownTableCell(value) {
   return String(value).replaceAll("\\", "\\\\").replaceAll("|", "\\|").replaceAll("\n", "<br>");
 }
 
-function presetLabel(rule) {
-  if (rule.preset) return rule.preset;
+/**
+ * @param {CatalogRule} rule
+ * @returns {string}
+ */
+function profileLabel(rule) {
   return rule.placements[0]?.profile ?? "off";
 }
 
+/**
+ * @param {CatalogRule} rule
+ * @returns {string}
+ */
 function summary(rule) {
-  return rule.description.split(". ")[0].replace(/\.$/, "");
+  return (rule.description.split(". ")[0] ?? "").replace(/\.$/, "");
 }
 
+/**
+ * @param {string | undefined} filename
+ * @returns {string}
+ */
 function fenceLang(filename) {
   return filename?.endsWith(".ts") ? "ts" : "js";
 }
 
+/**
+ * @param {CatalogRule["bad"]} examples
+ * @param {string} heading
+ * @returns {string}
+ */
+function renderExamples(examples, heading) {
+  return examples
+    .map(
+      (example) =>
+        `### ${heading}: ${example.name}\n\n\`\`\`${fenceLang(example.filename)}\n${example.code}\n\`\`\`\n`,
+    )
+    .join("\n");
+}
+
+/**
+ * @param {readonly string[]} items
+ * @param {(item: string) => string} [render]
+ * @returns {string}
+ */
+function bulletList(items, render = (item) => `- ${item}`) {
+  return items.length > 0 ? items.map(render).join("\n") : "- None recorded.";
+}
+
+/**
+ * @param {string} family
+ * @param {boolean} includeFix
+ * @returns {string}
+ */
+function familyTable(family, includeFix) {
+  const header = includeFix
+    ? "| Rule | Profile | Fix | What it catches |\n| --- | --- | --- | --- |"
+    : "| Rule | Profile | What it catches |\n| --- | --- | --- |";
+  const rows = ruleCatalog
+    .filter((rule) => rule.family === family)
+    .map((rule) => tableRow(rule, includeFix));
+  return [header, ...rows].join("\n");
+}
+
+/**
+ * @param {CatalogRule} rule
+ * @param {boolean} includeFix
+ * @returns {string}
+ */
 function tableRow(rule, includeFix) {
   const link = `[\`${rule.name}\`](${rule.docsUrl})`;
-  const preset = presetLabel(rule);
+  const profile = profileLabel(rule);
   const fix = rule.fixable ? "fix" : rule.hasSuggestions ? "suggest" : "";
   const catchText = markdownTableCell(summary(rule));
   if (includeFix) {
-    return `| ${link} | ${markdownTableCell(preset)} | ${markdownTableCell(fix)} | ${catchText} |`;
+    return `| ${link} | ${markdownTableCell(profile)} | ${markdownTableCell(fix)} | ${catchText} |`;
   }
-  return `| ${link} | ${markdownTableCell(preset)} | ${catchText} |`;
+  return `| ${link} | ${markdownTableCell(profile)} | ${catchText} |`;
 }
 
-function replaceMarkedSection(source, name, body) {
-  const start = `<!-- generated:${name}:start -->`;
-  const end = `<!-- generated:${name}:end -->`;
-  const pattern = new RegExp(`${start}[\\s\\S]*?${end}`);
-  if (!pattern.test(source)) {
-    throw new Error(`Missing ${start} / ${end} markers`);
-  }
-  return source.replace(pattern, `${start}\n${body.trim()}\n${end}`);
-}
-
+/** @type {Record<string, string>} */
 const profileExport = {
   recommended: "configs.recommendedRules",
   strict: "configs.strictRules",
@@ -79,10 +132,16 @@ const profileExport = {
   security: "configs.securityRules",
 };
 
+/**
+ * @returns {string}
+ */
 function migrationTable() {
   const current = { recommended: recommendedRules, strict: strictRules };
+  /** @type {string[]} */
   const rows = [];
-  for (const preset of ["recommended", "strict"]) {
+  /** @type {Array<"recommended" | "strict">} */
+  const presets = ["recommended", "strict"];
+  for (const preset of presets) {
     const oldMap = presets110[preset];
     const currentMap = current[preset];
     const ruleIds = new Set([...Object.keys(oldMap), ...Object.keys(currentMap)]);
@@ -116,6 +175,9 @@ function migrationTable() {
   ].join("\n");
 }
 
+/**
+ * @returns {string}
+ */
 function repositoryLinks() {
   const blob = `${REPOSITORY_URL}/blob/${PACKAGE_GIT_REF}`;
   const tree = `${REPOSITORY_URL}/tree/${PACKAGE_GIT_REF}`;
@@ -137,21 +199,16 @@ function repositoryLinks() {
   ].join("\n");
 }
 
+/**
+ * @returns {Promise<void>}
+ */
 async function writeRuleDocs() {
+  /** @type {Set<string>} */
   const keep = new Set();
   for (const rule of ruleCatalog) {
     keep.add(`${rule.name}.md`);
-    const bad = rule.bad
-      .map(
-        (ex) =>
-          `### Incorrect: ${ex.name}\n\n\`\`\`${fenceLang(ex.filename)}\n${ex.code}\n\`\`\`\n`,
-      )
-      .join("\n");
-    const good = rule.good
-      .map(
-        (ex) => `### Correct: ${ex.name}\n\n\`\`\`${fenceLang(ex.filename)}\n${ex.code}\n\`\`\`\n`,
-      )
-      .join("\n");
+    const bad = renderExamples(rule.bad, "Incorrect");
+    const good = renderExamples(rule.good, "Correct");
     const evidence =
       rule.evidence.length > 0
         ? rule.evidence
@@ -161,22 +218,10 @@ async function writeRuleDocs() {
             )
             .join("\n")
         : "- None recorded. Add an authoritative ServiceNow or Oxc link before expanding this rule.";
-    const falsePositives =
-      rule.falsePositives.length > 0
-        ? rule.falsePositives.map((item) => `- ${item}`).join("\n")
-        : "- None recorded.";
-    const falseNegatives =
-      rule.falseNegatives.length > 0
-        ? rule.falseNegatives.map((item) => `- ${item}`).join("\n")
-        : "- None recorded.";
-    const scopeBoundaries =
-      rule.scopeBoundaries.length > 0
-        ? rule.scopeBoundaries.map((item) => `- ${item}`).join("\n")
-        : "- None recorded.";
-    const overlaps =
-      rule.overlaps.length > 0
-        ? rule.overlaps.map((item) => `- \`${item}\``).join("\n")
-        : "- None recorded.";
+    const falsePositives = bulletList(rule.falsePositives);
+    const falseNegatives = bulletList(rule.falseNegatives);
+    const scopeBoundaries = bulletList(rule.scopeBoundaries);
+    const overlaps = bulletList(rule.overlaps, (item) => `- \`${item}\``);
     const modes =
       rule.applicability.javascriptModes === "n/a"
         ? "n/a"
@@ -204,7 +249,7 @@ async function writeRuleDocs() {
 ${rule.description}
 
 - **Family:** ${rule.family}
-- **Preset:** ${presetLabel(rule)}
+- **Profile:** ${profileLabel(rule)}
 - **Placements:** ${placements || "off"}
 - **Default severity:** ${rule.severity}
 - **Fix safety:** ${rule.fixKind === "none" ? "diagnostic only" : rule.fixKind}
@@ -290,33 +335,24 @@ ${evidence}
   }
 }
 
+/**
+ * @returns {Promise<void>}
+ */
 async function writeReadmeTables() {
   const readmePath = join(root, "README.md");
   let readme = await readFile(readmePath, "utf8");
-  const classic = [
-    "| Rule | Preset | Fix | What it catches |",
-    "| --- | --- | --- | --- |",
-    ...ruleCatalog.filter((rule) => rule.family === "classic").map((rule) => tableRow(rule, true)),
-  ].join("\n");
-  const engine = [
-    "| Rule | Preset | What it catches |",
-    "| --- | --- | --- |",
-    ...ruleCatalog.filter((rule) => rule.family === "engine").map((rule) => tableRow(rule, false)),
-  ].join("\n");
-  const fluent = [
-    "| Rule | Preset | Fix | What it catches |",
-    "| --- | --- | --- | --- |",
-    ...ruleCatalog.filter((rule) => rule.family === "fluent").map((rule) => tableRow(rule, true)),
-  ].join("\n");
-  readme = replaceMarkedSection(readme, "classic-rules", classic);
-  readme = replaceMarkedSection(readme, "engine-rules", engine);
-  readme = replaceMarkedSection(readme, "fluent-rules", fluent);
+  readme = replaceMarkedSection(readme, "classic-rules", familyTable("classic", true));
+  readme = replaceMarkedSection(readme, "engine-rules", familyTable("engine", false));
+  readme = replaceMarkedSection(readme, "fluent-rules", familyTable("fluent", true));
   readme = replaceMarkedSection(readme, "migration-1.1-to-2.0", migrationTable());
   readme = replaceMarkedSection(readme, "repository-links", repositoryLinks());
   await writeFile(readmePath, readme);
   console.log("updated README rule tables");
 }
 
+/**
+ * @param {string} path
+ */
 function rulesForGeneratedConfig(path) {
   const relative = path.replaceAll("\\", "/");
   if (relative.endsWith("examples/classic-compatibility/.oxlintrc.json")) return classicEs5Rules;
@@ -325,11 +361,13 @@ function rulesForGeneratedConfig(path) {
   if (relative.endsWith("examples/client/.oxlintrc.json")) return clientRules;
   if (relative.endsWith("examples/business-rule/.oxlintrc.json")) return businessRuleRules;
   if (relative.endsWith("examples/fluent/.oxlintrc.json")) return fluentRules;
-  if (relative.endsWith("examples/mixed/.oxlintrc.json")) return recommendedRules;
-  if (relative.endsWith("examples/ui-action/.oxlintrc.json")) return recommendedRules;
   return recommendedRules;
 }
 
+/**
+ * @param {string} path
+ * @param {string} specifierComment
+ */
 async function writeOxlintrcRules(path, specifierComment, rules = rulesForGeneratedConfig(path)) {
   const current = JSON.parse(await readFile(path, "utf8"));
   if (path.replaceAll("\\", "/").includes("/examples/")) {
@@ -341,6 +379,11 @@ async function writeOxlintrcRules(path, specifierComment, rules = rulesForGenera
   console.log("updated", specifierComment, path);
 }
 
+/**
+ * @param {string} dir
+ * @param {string[]} found
+ * @returns {Promise<string[]>}
+ */
 async function collectOxlintrcFiles(dir, found = []) {
   for (const entry of await readdir(dir, { withFileTypes: true })) {
     const path = join(dir, entry.name);

@@ -6,6 +6,7 @@ import { assertSkipped, assertValidActive } from "./rule-tester.js";
 // a gated rule pointed at a file it declines must fail assertValidActive and
 // pass assertSkipped (FINDINGS.md TST-004). no-bigint gates on JavaScript
 // mode, so with no settings it declines every file.
+// @lat: [[tests#Silence on unknown facts#A declined file is not a passing file]]
 describe("rule-tester activity assertions (FINDINGS.md TST-004)", () => {
   it("assertValidActive fails when the rule's gate declined the file", () => {
     assert.throws(() => assertValidActive("var n = 10;", "no-bigint"), /declined/);

@@ -37,6 +37,7 @@ export const noComplexFluentLogic = defineRule({
       before() {
         const { context: script } = beginRuleFile(context);
         if (!isFluentContext(script)) return false;
+        return undefined;
       },
       FunctionDeclaration: banned,
       ClassDeclaration: banned,
@@ -53,10 +54,7 @@ export const noComplexFluentLogic = defineRule({
           async?: boolean;
           body: ESTree.BlockStatement;
         };
-        if (fn.async) {
-          context.report({ node, messageId: "asyncFn" });
-          return;
-        }
+        if (reportIfAsync(node, fn.async)) return;
         if (fn.body.body.length > 2) {
           context.report({
             node,
@@ -67,10 +65,7 @@ export const noComplexFluentLogic = defineRule({
       },
       ArrowFunctionExpression(node) {
         const fn = node as ESTree.ArrowFunctionExpression;
-        if (fn.async) {
-          context.report({ node, messageId: "asyncFn" });
-          return;
-        }
+        if (reportIfAsync(node, fn.async)) return;
         if (fn.body.type === "BlockStatement" && fn.body.body.length > 2) {
           context.report({
             node,
@@ -85,6 +80,12 @@ export const noComplexFluentLogic = defineRule({
       const kind = BANNED[node.type];
       if (!kind) return;
       context.report({ node, messageId: "banned", data: { kind } });
+    }
+
+    function reportIfAsync(node: ESTree.Node, value: unknown): boolean {
+      if (!value) return false;
+      context.report({ node, messageId: "asyncFn" });
+      return true;
     }
   },
 });

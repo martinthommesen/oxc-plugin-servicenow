@@ -2,6 +2,7 @@ import type { ESTree } from "@oxlint/plugins";
 import { getName, isValueReference, nodeStart, walk } from "../utils/ast.js";
 import type { FileBindings } from "./bindings.js";
 import type { BindingWriteQuery } from "./binding-writes.js";
+import { isFunctionNode } from "./stable-invocations.js";
 
 export interface UnhoistedBlockFunctionUse {
   readonly declaration: ESTree.Node;
@@ -22,16 +23,6 @@ const ABRUPT_STATEMENTS = new Set([
   "BreakStatement",
   "ContinueStatement",
 ]);
-
-function isFunctionNode(
-  node: ESTree.Node | undefined,
-): node is ESTree.Function | ESTree.ArrowFunctionExpression {
-  return (
-    node?.type === "FunctionDeclaration" ||
-    node?.type === "FunctionExpression" ||
-    node?.type === "ArrowFunctionExpression"
-  );
-}
 
 /** Nearest independently invoked script/function body, excluding the current node. */
 function executionBoundary(ancestors: readonly ESTree.Node[]): ESTree.Node | null {
@@ -66,15 +57,23 @@ function crossesClassBoundary(
 function followsAbruptCompletion(
   ancestors: readonly ESTree.Node[],
   declarationBlock: ESTree.BlockStatement,
+  abruptBefore: WeakMap<ESTree.BlockStatement, WeakSet<ESTree.Statement>>,
 ): boolean {
   let child = ancestors.at(-1);
   for (let index = ancestors.length - 2; index >= 0; index -= 1) {
     const parent = ancestors[index]!;
     if (parent.type === "BlockStatement" && child) {
-      const statementIndex = parent.body.indexOf(child as ESTree.Statement);
-      for (let sibling = 0; sibling < statementIndex; sibling += 1) {
-        if (ABRUPT_STATEMENTS.has(parent.body[sibling]!.type)) return true;
+      let statements = abruptBefore.get(parent);
+      if (!statements) {
+        statements = new WeakSet();
+        let precededByAbrupt = false;
+        for (const statement of parent.body) {
+          if (precededByAbrupt) statements.add(statement);
+          if (ABRUPT_STATEMENTS.has(statement.type)) precededByAbrupt = true;
+        }
+        abruptBefore.set(parent, statements);
       }
+      if (statements.has(child as ESTree.Statement)) return true;
       if (parent === declarationBlock) return false;
     }
     child = parent;
@@ -134,6 +133,7 @@ export function findUnhoistedBlockFunctionUses(
   if (declarations.size === 0) return [];
 
   const findings: UnhoistedBlockFunctionUse[] = [];
+  const abruptBefore = new WeakMap<ESTree.BlockStatement, WeakSet<ESTree.Statement>>();
   ancestors.length = 0;
   walk(
     program,
@@ -149,7 +149,7 @@ export function findUnhoistedBlockFunctionUses(
         if (useStart < 0 || declarationStart < 0 || useStart >= declarationStart) return;
         if (executionBoundary(ancestors) !== declaration.boundary) return;
         if (crossesClassBoundary(declaration.block, ancestors)) return;
-        if (followsAbruptCompletion(ancestors, declaration.block)) return;
+        if (followsAbruptCompletion(ancestors, declaration.block, abruptBefore)) return;
         findings.push({
           declaration: declaration.declaration,
           name: declaration.name,

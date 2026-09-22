@@ -24,6 +24,7 @@ export const noAsyncAwait = defineRule({
       before() {
         const { context: script } = beginRuleFile(context);
         if (!shouldDiagnoseFeature(script, "async-await")) return false;
+        return undefined;
       },
       FunctionDeclaration: checkFn,
       FunctionExpression: checkFn,

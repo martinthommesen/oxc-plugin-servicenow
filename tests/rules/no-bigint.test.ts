@@ -1,5 +1,12 @@
 import { describe, it } from "node:test";
-import { assertInvalid, assertValid, ES5, ES2021 } from "../helpers/rule-tester.js";
+import {
+  assertInvalid,
+  assertSkipped,
+  assertValid,
+  assertValidActive,
+  ES5,
+  ES2021,
+} from "../helpers/rule-tester.js";
 
 const RULE = "no-bigint" as const;
 
@@ -48,7 +55,7 @@ var n = ToBigInt(10);`,
   });
 
   it("keeps shadows, mutable aliases, and cross-execution aliases silent", () => {
-    assertValid(
+    assertValidActive(
       `function BigInt(value) { return value; }
 BigInt(10);`,
       RULE,
@@ -163,12 +170,12 @@ BigInt(10);`,
   });
 
   it("allows Number", () => {
-    assertValid(`var n = 10;`, RULE);
+    assertValidActive(`var n = 10;`, RULE, { settings: ES5 });
   });
 
   it("skips unknown mode, ES2021, and Fluent metadata", () => {
-    assertValid(`BigInt(10);`, RULE);
-    assertValid(`BigInt(10);`, RULE, { settings: ES2021 });
-    assertValid(`BigInt(10);`, RULE, { filename: "table.now.ts", settings: ES5 });
+    assertSkipped(`BigInt(10);`, RULE);
+    assertSkipped(`BigInt(10);`, RULE, { settings: ES2021 });
+    assertSkipped(`BigInt(10);`, RULE, { filename: "table.now.ts", settings: ES5 });
   });
 });

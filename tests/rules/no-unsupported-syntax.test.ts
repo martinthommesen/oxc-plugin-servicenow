@@ -35,6 +35,19 @@ describe(`${RULE} RegExp identity`, () => {
     }
   });
 
+  it("resolves long constructor alias chains without recursive stack growth", () => {
+    const aliases = Array.from(
+      { length: 2_000 },
+      (_, index) => `const Alias${index + 1} = Alias${index};`,
+    );
+    assertInvalid(
+      `const Alias0 = RegExp;\n${aliases.join("\n")}\nAlias2000("(?<=a)b");`,
+      RULE,
+      { messageId: "lookbehind" },
+      { settings: ES5 },
+    );
+  });
+
   it("does not treat constructor availability as lookbehind support", () => {
     assertInvalid(
       `if (typeof RegExp === "function") { RegExp("(?<=a)b"); }`,

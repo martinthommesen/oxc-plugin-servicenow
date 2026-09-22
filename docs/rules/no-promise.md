@@ -3,7 +3,7 @@
 Compatibility and ES5 Standards modes do not implement Promises. Direct calls plus stable same-execution constructor and static-method owner aliases report; bare aliases must be captured under an owner guard, while fully guarded, visibly polyfilled, unknown-mode, and local `Promise` uses stay silent.
 
 - **Family:** engine
-- **Preset:** classic-es5
+- **Profile:** classic-es5
 - **Placements:** classic-es5 (error)
 - **Default severity:** error
 - **Fix safety:** diagnostic only

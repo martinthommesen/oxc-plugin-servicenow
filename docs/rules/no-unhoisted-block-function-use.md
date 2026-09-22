@@ -3,7 +3,7 @@
 Before Australia, ServiceNow does not correctly hoist nested block function declarations to block entry. This rule reports binding-proven reads before the declaration in the same execution body across every instance JavaScript mode.
 
 - **Family:** engine
-- **Preset:** classic-es5
+- **Profile:** classic-es5
 - **Placements:** classic-es5 (error), es2021 (error)
 - **Default severity:** error
 - **Fix safety:** diagnostic only

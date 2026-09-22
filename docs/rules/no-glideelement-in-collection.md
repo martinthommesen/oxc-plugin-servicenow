@@ -3,7 +3,7 @@
 Direct GlideRecord field access and path-proven local aliases are GlideElements tied to the cursor. Do not `push` / `unshift` them inside a `.next()` or `._next()` loop.
 
 - **Family:** classic
-- **Preset:** recommended
+- **Profile:** recommended
 - **Placements:** recommended (error), business-rule (error)
 - **Default severity:** error
 - **Fix safety:** diagnostic only

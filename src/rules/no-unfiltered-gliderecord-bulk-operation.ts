@@ -23,6 +23,7 @@ export const noUnfilteredGliderecordBulkOperation = defineRule({
       before() {
         const { context: script } = beginRuleFile(context);
         if (!isServerInstanceContext(script)) return false;
+        return undefined;
       },
       Program(node) {
         const { analysis, file } = beginRuleFile(context);

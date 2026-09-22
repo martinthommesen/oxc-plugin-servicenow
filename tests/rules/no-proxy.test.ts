@@ -1,5 +1,5 @@
 import { describe, it } from "node:test";
-import { assertInvalid, assertValid, ES5 } from "../helpers/rule-tester.js";
+import { assertInvalid, assertValid, assertValidActive, ES5 } from "../helpers/rule-tester.js";
 
 const RULE = "no-proxy" as const;
 
@@ -38,7 +38,7 @@ const pair = P.revocable(target, handler);`,
   });
 
   it("keeps shadows, mutable aliases, and cross-execution aliases silent", () => {
-    assertValid(
+    assertValidActive(
       `function Proxy(target) { return target; }
 new Proxy(target, handler);`,
       RULE,
@@ -198,6 +198,18 @@ Proxy.revocable(target, handler);`,
 Proxy.revocable(target, handler);`,
       RULE,
       { settings: ES5 },
+    );
+  });
+
+  it("keeps direct Proxy diagnostics after the alias-analysis budget", () => {
+    const calls = Array.from({ length: 20_000 }, () => "noop();").join("\n");
+    assertInvalid(
+      `${calls}\nnew Proxy(target, handler);`,
+      RULE,
+      { messageId: "construct" },
+      {
+        settings: ES5,
+      },
     );
   });
 });

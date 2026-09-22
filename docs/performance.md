@@ -1,6 +1,6 @@
 # Performance benchmarks
 
-Stateful GlideRecord analysis must stay approximately linear for local provenance.
+Stateful GlideRecord analysis must keep the recommended large/small scale ratio at or below 4 (see Release gate).
 
 ## Command
 
@@ -14,6 +14,8 @@ The command generates deterministic fixtures and times the real `oxlint` executa
 - branch-heavy alias and try/catch analysis
 - nested scopes
 - large Fluent metadata
+- Fluent factory calls through mutable aliases
+- classic cursor-count loops with post-loop writes
 - skip-path client files
 - a mixed repository
 
@@ -26,7 +28,7 @@ Profiles compared:
 - recommended
 - all/strict
 
-`docs/performance-baseline.json` is the reviewed comparison baseline. `npm run bench` writes the current run to `artifacts/performance-current.json`. In pull-request CI, pass a baseline extracted from the target-branch merge base. Do not use a baseline modified by the same pull request.
+`docs/performance-baseline.json` is the reviewed comparison baseline. A fixture that the target-branch baseline lacks is new: it is measured and held to the absolute limits, but it has no trend until the baseline is refreshed. A fixture missing from the current run still fails the gate. `npm run bench` writes the current run to `artifacts/performance-current.json`. In pull-request CI, pass a baseline extracted from the target-branch merge base. Do not use a baseline modified by the same pull request.
 
 Refresh the baseline in a separate reviewed pull request with `npm run bench -- --write`. A baseline change must not excuse the performance change that it measures.
 

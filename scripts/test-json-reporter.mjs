@@ -2,7 +2,10 @@ import { relative } from "node:path";
 
 const root = process.cwd();
 
-/** Emit one deterministic JSON inventory of exact node:test outcomes. */
+/**
+ * Emit one deterministic JSON inventory of exact node:test outcomes.
+ * @param {AsyncIterable<any>} source
+ */
 export default async function* jsonReporter(source) {
   const stacks = new Map();
   const names = new Map();

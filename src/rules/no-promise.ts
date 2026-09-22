@@ -4,6 +4,7 @@ import { PROMISE_STATIC_METHODS, ruleDocsUrl } from "../constants.js";
 import {
   findStablePlatformConstructorCalls,
   findStablePlatformStaticMethodCalls,
+  isNewExpressionFinding,
 } from "../analysis/internal.js";
 import { beginRuleFile } from "./helpers.js";
 import { shouldDiagnoseFeature } from "../engine/index.js";
@@ -32,6 +33,7 @@ export const noPromise = defineRule({
       before() {
         const { context: script } = beginRuleFile(context);
         if (!shouldDiagnoseFeature(script, "promise")) return false;
+        return undefined;
       },
       Program(node) {
         const { analysis, file } = beginRuleFile(context);
@@ -44,10 +46,7 @@ export const noPromise = defineRule({
           namespaces: ["globalThis"],
           mutationSemantics: "callable",
         })
-          .filter(
-            (finding): finding is typeof finding & { node: ESTree.NewExpression } =>
-              finding.node.type === "NewExpression",
-          )
+          .filter(isNewExpressionFinding)
           .map((finding) => ({ ...finding, kind: "construct" as const }));
         const staticMethods = findStablePlatformStaticMethodCalls({
           program: node as ESTree.Node,

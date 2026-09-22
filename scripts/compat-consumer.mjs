@@ -3,15 +3,45 @@ import { createHash } from "node:crypto";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { parseNpmPackJson } from "./parse-npm-pack.mjs";
+import { packTarball as buildTarball } from "./check-release-artifact.mjs";
+import { parseOxlintStdout, pluginRuleIds, runHostProcess } from "./lib/host-verifier.mjs";
+import { root } from "./lib/repo.mjs";
 
-const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
+/**
+ * @typedef {object} CompatCell
+ * @property {string} id
+ * @property {string} oxlint
+ * @property {string} eslint
+ * @property {string} oxfmt
+ * @property {string} [typescriptEslint]
+ * @property {string} [typescript]
+ * @property {string} [node]
+ * @property {string} [npm]
+ */
+/**
+ * @typedef {object} CompatMatrix
+ * @property {CompatCell[]} cells
+ * @property {string} localSmokeCell
+ * @property {{ peer: string, minimum: string }} oxlint
+ * @property {{ peer: string, minimum: string }} eslint
+ * @property {{ peer: string, minimum: string }} oxfmt
+ * @property {{ peer: string, minimum: string, current: string }} typescriptEslint
+ * @property {{ minimum: string, current: string }} typescript
+ * @property {string[]} [fluentSdk]
+ * @property {string[]} [javascriptModes]
+ * @property {string[]} [serviceNowReleases]
+ */
+/** @type {CompatMatrix} */
 const matrix = JSON.parse(readFileSync(path.join(root, "scripts/compat-matrix.json"), "utf8"));
 const fluentEvidence = JSON.parse(
   readFileSync(path.join(root, "tests/fixtures/fluent-sdk-declarations.json"), "utf8"),
 );
 
+/**
+ * @param {string} name
+ * @param {string | undefined} fallback
+ * @returns {string | undefined}
+ */
 function argValue(name, fallback) {
   const index = process.argv.indexOf(name);
   if (index < 0) return fallback;
@@ -20,36 +50,87 @@ function argValue(name, fallback) {
   return value;
 }
 
+/**
+ * @param {string} kind
+ * @param {string} message
+ * @returns {never}
+ */
 function fail(kind, message) {
-  const error = new Error(`${kind}: ${message}`);
+  const error = /** @type {Error & { kind?: string }} */ (new Error(`${kind}: ${message}`));
   error.kind = kind;
   throw error;
 }
 
+/**
+ * @param {string} destination
+ * @returns {string}
+ */
 function packTarball(destination) {
-  const tarballFlag = argValue("--tarball", process.env.SN_COMPAT_TARBALL);
-  if (tarballFlag) {
-    return path.resolve(tarballFlag);
-  }
-  execFileSync("npm", ["run", "clean"], { cwd: root, encoding: "utf8" });
-  execFileSync("npm", ["run", "build"], { cwd: root, encoding: "utf8" });
-  const stdout = execFileSync(
-    "npm",
-    ["pack", "--json", "--ignore-scripts", `--pack-destination=${destination}`],
-    {
-      encoding: "utf8",
-      cwd: root,
-    },
-  );
-  let record;
-  try {
-    record = parseNpmPackJson(stdout);
-  } catch (error) {
-    fail("package", error instanceof Error ? error.message : String(error));
-  }
-  return path.join(destination, record.filename);
+  const tarballFlag = argValue("--tarball", process.env["SN_COMPAT_TARBALL"]);
+  return tarballFlag ? path.resolve(tarballFlag) : buildTarball(destination).tarball;
 }
 
+/**
+ * @param {string} consumer
+ * @param {string[]} args
+ * @param {string} errorKind
+ * @param {string} message
+ */
+function oxlintReport(consumer, args, errorKind, message) {
+  const host = runHostProcess({
+    bin: path.join(consumer, "node_modules", ".bin", "oxlint"),
+    args,
+    cwd: consumer,
+  });
+  const { report, parseError } = parseOxlintStdout(host.stdout);
+  if (!report) fail(errorKind, `${message}: ${parseError ?? host.stderr.slice(0, 400)}`);
+  return report;
+}
+
+/**
+ * @typedef {object} EslintJsonFile
+ * @property {string} filePath
+ * @property {Array<{ ruleId?: string, fatal?: boolean }>} messages
+ */
+/**
+ * @param {string} consumer
+ * @param {string[]} args
+ * @param {string} message
+ * @returns {EslintJsonFile[]}
+ */
+function runEslintJson(consumer, args, message) {
+  let stdout = "";
+  try {
+    stdout = execFileSync(path.join(consumer, "node_modules", ".bin", "eslint"), args, {
+      encoding: "utf8",
+      cwd: consumer,
+    });
+  } catch (error) {
+    const stdoutProp = /** @type {{ stdout?: unknown }} */ (error).stdout;
+    stdout = typeof stdoutProp === "string" ? stdoutProp : "";
+  }
+  try {
+    return JSON.parse(stdout);
+  } catch {
+    fail("parser", `${message}: ${stdout.slice(0, 400)}`);
+  }
+}
+
+/**
+ * @param {string} consumer
+ * @param {string} name
+ * @returns {string}
+ */
+function installedPackageVersion(consumer, name) {
+  return JSON.parse(readFileSync(path.join(consumer, "node_modules", name, "package.json"), "utf8"))
+    .version;
+}
+
+/**
+ * @param {string} tarball
+ * @param {CompatCell} cell
+ * @param {boolean} sameRuntimeSmoke
+ */
 async function runCell(tarball, cell, sameRuntimeSmoke) {
   const consumer = mkdtempSync(path.join(tmpdir(), `sn-oxc-compat-${cell.id}-`));
   try {
@@ -86,29 +167,17 @@ async function runCell(tarball, cell, sameRuntimeSmoke) {
       );
     }
 
+    /** @type {Record<string, string | undefined>} */
     const installedVersions = {
       node: process.versions.node,
       npm: execFileSync("npm", ["--version"], { cwd: consumer, encoding: "utf8" }).trim(),
-      oxlint: JSON.parse(
-        readFileSync(path.join(consumer, "node_modules/oxlint/package.json"), "utf8"),
-      ).version,
-      eslint: JSON.parse(
-        readFileSync(path.join(consumer, "node_modules/eslint/package.json"), "utf8"),
-      ).version,
-      oxfmt: JSON.parse(
-        readFileSync(path.join(consumer, "node_modules/oxfmt/package.json"), "utf8"),
-      ).version,
+      oxlint: installedPackageVersion(consumer, "oxlint"),
+      eslint: installedPackageVersion(consumer, "eslint"),
+      oxfmt: installedPackageVersion(consumer, "oxfmt"),
       ...(cell.typescriptEslint
         ? {
-            typescriptEslint: JSON.parse(
-              readFileSync(
-                path.join(consumer, "node_modules/typescript-eslint/package.json"),
-                "utf8",
-              ),
-            ).version,
-            typescript: JSON.parse(
-              readFileSync(path.join(consumer, "node_modules/typescript/package.json"), "utf8"),
-            ).version,
+            typescriptEslint: installedPackageVersion(consumer, "typescript-eslint"),
+            typescript: installedPackageVersion(consumer, "typescript"),
           }
         : {}),
     };
@@ -184,8 +253,11 @@ console.log(JSON.stringify({
       );
       fail("package", `${cell.id} internal catalog subpath was exported`);
     } catch (error) {
-      if (error.kind === "package") throw error;
-      if (!String(error.stderr ?? error.message).includes("ERR_PACKAGE_PATH_NOT_EXPORTED")) {
+      const failure = /** @type {{ kind?: unknown, stderr?: unknown, message?: unknown }} */ (
+        error
+      );
+      if (failure.kind === "package") throw error;
+      if (!String(failure.stderr ?? failure.message).includes("ERR_PACKAGE_PATH_NOT_EXPORTED")) {
         fail("package", `${cell.id} catalog rejection was not ERR_PACKAGE_PATH_NOT_EXPORTED`);
       }
     }
@@ -222,26 +294,13 @@ console.log(JSON.stringify({
       path.join(consumer, "bad.br.js"),
       'var assignmentGroup = "97c04b3b1b12100043ab85e5bd0713e2";\nvar rec = new GlideRecord("incident");\nrec.next();\n',
     );
-    let oxlintStdout = "";
-    try {
-      oxlintStdout = execFileSync(
-        path.join(consumer, "node_modules", ".bin", "oxlint"),
-        ["--format", "json", "bad.br.js"],
-        {
-          encoding: "utf8",
-          cwd: consumer,
-        },
-      );
-    } catch (error) {
-      oxlintStdout = error.stdout ?? "";
-    }
-    let report;
-    try {
-      report = JSON.parse(oxlintStdout);
-    } catch {
-      fail("host-api", `${cell.id} oxlint did not emit JSON: ${oxlintStdout.slice(0, 400)}`);
-    }
-    const codes = (report.diagnostics ?? []).map((diagnostic) => diagnostic.code);
+    const report = oxlintReport(
+      consumer,
+      ["--format", "json", "bad.br.js"],
+      "host-api",
+      `${cell.id} oxlint did not emit JSON`,
+    );
+    const codes = pluginRuleIds(report);
     if (!codes.some((code) => String(code).includes("no-hardcoded-sysid"))) {
       fail(
         "runtime",
@@ -270,22 +329,11 @@ export default [
 `
         : `import plugin from "oxc-plugin-servicenow";\nexport default [plugin.configs.flat.recommended];\n`,
     );
-    let eslintStdout = "";
-    try {
-      eslintStdout = execFileSync(
-        path.join(consumer, "node_modules", ".bin", "eslint"),
-        ["--format", "json", "bad.br.js"],
-        { encoding: "utf8", cwd: consumer },
-      );
-    } catch (error) {
-      eslintStdout = error.stdout ?? "";
-    }
-    let eslintReport;
-    try {
-      eslintReport = JSON.parse(eslintStdout);
-    } catch {
-      fail("parser", `${cell.id} eslint did not emit JSON: ${eslintStdout.slice(0, 400)}`);
-    }
+    const eslintReport = runEslintJson(
+      consumer,
+      ["--format", "json", "bad.br.js"],
+      `${cell.id} eslint did not emit JSON`,
+    );
     const eslintRules = eslintReport.flatMap((file) =>
       file.messages.map((message) => message.ruleId),
     );
@@ -316,22 +364,11 @@ export default [
       "const Component = () => <div />;\nexport default Component;\n",
     );
     if (cell.typescriptEslint) {
-      let typedStdout = "";
-      try {
-        typedStdout = execFileSync(
-          path.join(consumer, "node_modules", ".bin", "eslint"),
-          ["--format", "json", "sample.now.ts", "sample.now.tsx"],
-          { encoding: "utf8", cwd: consumer },
-        );
-      } catch (error) {
-        typedStdout = error.stdout ?? "";
-      }
-      let typedReport;
-      try {
-        typedReport = JSON.parse(typedStdout);
-      } catch {
-        fail("parser", `${cell.id} typed ESLint output was not JSON: ${typedStdout.slice(0, 400)}`);
-      }
+      const typedReport = runEslintJson(
+        consumer,
+        ["--format", "json", "sample.now.ts", "sample.now.tsx"],
+        `${cell.id} typed ESLint output was not JSON`,
+      );
       if (typedReport.some((file) => file.messages.some((message) => message.fatal))) {
         fail("parser", `${cell.id} typed ESLint reported a fatal parser diagnostic`);
       }
@@ -356,23 +393,13 @@ export default [
           2,
         ),
       );
-      let fluentOutput = "";
-      try {
-        fluentOutput = execFileSync(
-          path.join(consumer, "node_modules", ".bin", "oxlint"),
-          ["--format", "json", "-c", fluentConfig, "sample.now.ts"],
-          { cwd: consumer, encoding: "utf8" },
-        );
-      } catch (error) {
-        fluentOutput = error.stdout ?? "";
-      }
-      let fluentReport;
-      try {
-        fluentReport = JSON.parse(fluentOutput);
-      } catch {
-        fail("runtime", `${cell.id} Fluent ${fluentSdkVersion} output was not JSON`);
-      }
-      const fluentCodes = (fluentReport.diagnostics ?? []).map((diagnostic) => diagnostic.code);
+      const fluentReport = oxlintReport(
+        consumer,
+        ["--format", "json", "-c", fluentConfig, "sample.now.ts"],
+        "runtime",
+        `${cell.id} Fluent ${fluentSdkVersion} output was not JSON`,
+      );
+      const fluentCodes = pluginRuleIds(fluentReport);
       const hasMissingId = fluentCodes.some((code) => String(code).includes("require-fluent-id"));
       const requiresListId =
         fluentEvidence.versions?.[fluentSdkVersion]?.capabilities?.List?.idPolicy === "required";
@@ -406,23 +433,13 @@ export default [
         path.join(consumer, `mode-${javascriptMode}.server.js`),
         "Promise.resolve(1);\n",
       );
-      let modeOutput = "";
-      try {
-        modeOutput = execFileSync(
-          path.join(consumer, "node_modules", ".bin", "oxlint"),
-          ["--format", "json", "-c", modeConfig, `mode-${javascriptMode}.server.js`],
-          { cwd: consumer, encoding: "utf8" },
-        );
-      } catch (error) {
-        modeOutput = error.stdout ?? "";
-      }
-      let modeReport;
-      try {
-        modeReport = JSON.parse(modeOutput);
-      } catch {
-        fail("runtime", `${cell.id} ${javascriptMode} mode output was not JSON`);
-      }
-      const modeCodes = (modeReport.diagnostics ?? []).map((diagnostic) => diagnostic.code);
+      const modeReport = oxlintReport(
+        consumer,
+        ["--format", "json", "-c", modeConfig, `mode-${javascriptMode}.server.js`],
+        "runtime",
+        `${cell.id} ${javascriptMode} mode output was not JSON`,
+      );
+      const modeCodes = pluginRuleIds(modeReport);
       const reportsPromise = javascriptMode === "compatibility" || javascriptMode === "es5";
       const hasPromiseDiagnostic = modeCodes.some((code) => String(code).includes("no-promise"));
       if (reportsPromise !== hasPromiseDiagnostic) {
@@ -432,6 +449,7 @@ export default [
         );
       }
     }
+    /** @type {Record<string, { bigint64Arrays: boolean, objectHasOwn: boolean }>} */
     const releaseExpectations = {
       zurich: { bigint64Arrays: true, objectHasOwn: true },
       australia: { bigint64Arrays: false, objectHasOwn: false },
@@ -474,25 +492,13 @@ export default [
           2,
         ),
       );
-      let releaseOutput = "";
-      try {
-        releaseOutput = execFileSync(
-          path.join(consumer, "node_modules", ".bin", "oxlint"),
-          ["--format", "json", "-c", releaseConfig, "release-engine.server.js"],
-          { cwd: consumer, encoding: "utf8" },
-        );
-      } catch (error) {
-        releaseOutput = error.stdout ?? "";
-      }
-      let releaseReport;
-      try {
-        releaseReport = JSON.parse(releaseOutput);
-      } catch {
-        fail("runtime", `${cell.id} ${releaseCase.name} release output was not JSON`);
-      }
-      const releaseCodes = (releaseReport.diagnostics ?? []).map((diagnostic) =>
-        String(diagnostic.code),
+      const releaseReport = oxlintReport(
+        consumer,
+        ["--format", "json", "-c", releaseConfig, "release-engine.server.js"],
+        "runtime",
+        `${cell.id} ${releaseCase.name} release output was not JSON`,
       );
+      const releaseCodes = pluginRuleIds(releaseReport);
       const actual = {
         bigint64Arrays: releaseCodes.some((code) => code.includes("no-typed-arrays")),
         objectHasOwn: releaseCodes.some((code) => code.includes("no-object-hasown")),
@@ -528,9 +534,10 @@ export default [
         { encoding: "utf8", cwd: consumer },
       );
     } catch (error) {
+      const stderr = /** @type {{ stderr?: unknown }} */ (error ?? {}).stderr;
       fail(
         "formatter",
-        `${cell.id} oxfmt failed: ${error instanceof Error ? error.message : String(error)}\n${error?.stderr ?? ""}`,
+        `${cell.id} oxfmt failed: ${error instanceof Error ? error.message : String(error)}\n${stderr ?? ""}`,
       );
     }
     return { id: cell.id, ok: true };
@@ -539,17 +546,78 @@ export default [
   }
 }
 
-const cellFlag = argValue("--cell", process.env.SN_COMPAT_CELL);
-const expectedSha256 = argValue("--sha256", process.env.SN_COMPAT_SHA256);
+/**
+ * Resolve the highest published version inside a declared range.
+ * Networked: queries the registry (FINDINGS.md OPS-011).
+ *
+ * @param {string} name
+ * @param {string} range
+ * @returns {string}
+ */
+function resolveTopOfRange(name, range) {
+  let stdout = "";
+  try {
+    stdout = execFileSync("npm", ["view", `${name}@${range}`, "version", "--json"], {
+      encoding: "utf8",
+      cwd: root,
+    });
+  } catch (error) {
+    fail(
+      "runtime",
+      `${name}@${range} did not resolve: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+  let versions = null;
+  try {
+    versions = JSON.parse(stdout);
+  } catch {
+    fail("runtime", `${name}@${range} returned unparsable output: ${stdout.slice(0, 200)}`);
+  }
+  const top = Array.isArray(versions) ? versions[versions.length - 1] : versions;
+  if (typeof top !== "string" || !/^\d+\.\d+\.\d+/.test(top)) {
+    fail("runtime", `${name}@${range} resolved to an unusable version: ${JSON.stringify(top)}`);
+  }
+  return top;
+}
+
+/**
+ * Build the advisory top-of-range cell from the declared peer ranges.
+ * TypeScript follows the major line of the matrix current value, since the
+ * parser's own peer range selects the line, not this package.
+ *
+ * @returns {CompatCell}
+ */
+function topOfRangeCell() {
+  const typescriptMajor = String(matrix.typescript.current).split(".")[0] ?? "";
+  if (!/^\d+$/.test(typescriptMajor)) {
+    fail("runtime", `matrix typescript.current is not a version: ${matrix.typescript.current}`);
+  }
+  return {
+    id: "top-of-range",
+    node: process.versions.node,
+    npm: execFileSync("npm", ["--version"], { encoding: "utf8", cwd: root }).trim(),
+    oxlint: resolveTopOfRange("oxlint", matrix.oxlint.peer),
+    eslint: resolveTopOfRange("eslint", matrix.eslint.peer),
+    oxfmt: resolveTopOfRange("oxfmt", matrix.oxfmt.peer),
+    typescriptEslint: resolveTopOfRange("typescript-eslint", matrix.typescriptEslint.peer),
+    typescript: resolveTopOfRange("typescript", typescriptMajor),
+  };
+}
+
+const cellFlag = argValue("--cell", process.env["SN_COMPAT_CELL"]);
+const expectedSha256 = argValue("--sha256", process.env["SN_COMPAT_SHA256"]);
 if (expectedSha256 && !/^[0-9a-f]{64}$/.test(expectedSha256)) {
   fail("package", "expected tarball SHA-256 must be 64 lowercase hexadecimal characters");
 }
-const sameRuntimeSmoke = process.argv.includes("--all") || !cellFlag;
-const cells = matrix.cells.filter((cell) => {
-  if (cellFlag) return cell.id === cellFlag;
-  if (process.argv.includes("--all")) return true;
-  return cell.id === matrix.localSmokeCell;
-});
+const topFlag = process.argv.includes("--top");
+const sameRuntimeSmoke = topFlag || process.argv.includes("--all") || !cellFlag;
+const cells = topFlag
+  ? [topOfRangeCell()]
+  : matrix.cells.filter((cell) => {
+      if (cellFlag) return cell.id === cellFlag;
+      if (process.argv.includes("--all")) return true;
+      return cell.id === matrix.localSmokeCell;
+    });
 if (cells.length === 0) {
   fail("runtime", `no compatibility cells selected (cell=${cellFlag ?? "auto"})`);
 }

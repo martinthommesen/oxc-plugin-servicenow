@@ -3,7 +3,7 @@
 Hardcoded 32-character sys_ids break when an app is installed on another instance. Store them in a system property, a named constant, or Fluent `Now.ID`.
 
 - **Family:** classic
-- **Preset:** recommended
+- **Profile:** recommended
 - **Placements:** recommended (error)
 - **Default severity:** error
 - **Fix safety:** diagnostic only

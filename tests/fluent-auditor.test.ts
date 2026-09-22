@@ -4,10 +4,13 @@ import { gzipSync } from "node:zlib";
 import { describe, it } from "node:test";
 import {
   canonicalRegistryTarballUrl,
+  generatedSource,
   moduleResolver,
   readResponseBytes,
+  runtimeSnapshot,
   tarFiles,
   verifyIntegrity,
+  withLifecycle,
 } from "../scripts/audit-fluent-sdk.mjs";
 
 function tar(entries: Array<{ name: string; type?: string }>): Buffer {
@@ -21,6 +24,7 @@ function tar(entries: Array<{ name: string; type?: string }>): Buffer {
   return gzipSync(Buffer.concat([...blocks, Buffer.alloc(1024)]));
 }
 
+// @lat: [[tests#Fluent manifest#The SDK tarball trust boundary holds]]
 describe("Fluent SDK tarball trust boundary", () => {
   it("requires the exact npm registry artifact URL", () => {
     const canonical = "https://registry.npmjs.org/@servicenow/sdk/-/sdk-4.11.0.tgz";
@@ -88,6 +92,52 @@ describe("Fluent SDK tarball trust boundary", () => {
       () => tarFiles(tar([{ name: "package/link", type: "2" }]), "fixture"),
       /unsupported tar entry type/,
     );
+  });
+
+  it("keeps lifecycle in its stable fixture position", () => {
+    const item = {
+      version: "4.11.0",
+      capabilities: {},
+      discoveredCapabilities: {},
+      absent: [],
+      unresolvedBareExports: [],
+      unreviewedRequiredFactories: [],
+    };
+    const result = withLifecycle("4.11.0", item, { "4.11.0": item });
+    assert.deepEqual(Object.keys(result), [
+      "version",
+      "capabilities",
+      "discoveredCapabilities",
+      "absent",
+      "lifecycle",
+      "unresolvedBareExports",
+      "unreviewedRequiredFactories",
+    ]);
+  });
+
+  it("rebuilds the formatted runtime projection offline", () => {
+    const snapshot = {
+      versions: {
+        "3.0.0": {
+          capabilities: {
+            Table: { idPolicy: "unknown" },
+          },
+          discoveredCapabilities: {
+            BusinessRule: { module: "@servicenow/sdk/core" },
+          },
+        },
+      },
+    };
+    assert.deepEqual(runtimeSnapshot(snapshot), {
+      "3.0.0": {
+        idPolicy: { Table: "unknown" },
+        discovered: {
+          BusinessRule: { module: "@servicenow/sdk/core", introduced: "3.0.0" },
+        },
+      },
+    });
+    assert.match(generatedSource(snapshot), /Table: "unknown",/);
+    assert.match(generatedSource(snapshot), /BusinessRule: \{/);
   });
 
   it("expands every wildcard in a package export target", () => {

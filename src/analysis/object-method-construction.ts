@@ -91,8 +91,8 @@ function finalObjectMethod(object: ESTree.ObjectExpression, name: string): ESTre
  * Find `new` calls whose callee is proven to be shorthand object-method
  * syntax. Object aliases are accepted only when every value reference is part
  * of the proven constructor access or another immutable alias declaration.
- * This deliberately trades coverage for a very low false-positive rate when
- * an object may have escaped or had its property replaced.
+ * This deliberately trades coverage for a low false-positive rate on escaped
+ * or mutated objects.
  */
 export function findObjectMethodConstructions(
   program: ESTree.Node,
@@ -146,14 +146,20 @@ export function findObjectMethodConstructions(
       ) {
         return;
       }
-      const object = resolveDominatingConstValue(declaration.init, bindings);
-      if (!object || object.type !== "ObjectExpression") return;
-      const record = records.get(object);
-      if (!record) return;
       const initializer = unwrapExpression(declaration.init);
-      if (isNode(initializer) && initializer.type === "Identifier") {
+      if (!isNode(initializer)) return;
+      const sourceBinding =
+        initializer.type === "Identifier" ? bindings.resolve(initializer.name, initializer) : null;
+      const record =
+        initializer.type === "ObjectExpression"
+          ? records.get(initializer)
+          : sourceBinding
+            ? recordByBinding.get(sourceBinding.id)
+            : undefined;
+      if (!record) return;
+      if (initializer.type === "Identifier") {
         record.allowedReferences.add(initializer);
-      } else if (initializer !== object) {
+      } else if (initializer.type !== "ObjectExpression") {
         // Conditional, sequence, and other computed aliases may run effects
         // between reads. They stay outside this deliberately narrow proof.
         return;

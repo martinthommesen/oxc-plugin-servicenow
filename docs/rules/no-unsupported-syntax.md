@@ -3,7 +3,7 @@
 The ES5 table marks ordinary object shorthand methods Not Supported and async/generator methods Disallowed. It also marks optional chaining, nullish coalescing, logical assignment, private members, and RegExp lookbehind Not Supported. Constructor-string lookbehind detection follows direct and stable same-execution built-in RegExp identity. Private instance members remain Not Supported in ES2021; Compatibility follows ES5 by package policy.
 
 - **Family:** engine
-- **Preset:** classic-es5
+- **Profile:** classic-es5
 - **Placements:** classic-es5 (error), es2021 (error)
 - **Default severity:** error
 - **Fix safety:** diagnostic only
@@ -133,8 +133,8 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-b
   - URL: tests/rules/no-unsupported-syntax.test.ts
   - Verified by: fixture
   - Verified at: 2026-08-24
-- **Real Oxlint and ESLint classic-ES5 profiles resolve stable RegExp aliases and accept explicit constructor replacements.**
-  - Verification ID: `rule-evidence-2677dcd9`
+- **Real Oxlint and ESLint classic-es5 profiles resolve stable RegExp aliases and accept explicit constructor replacements.**
+  - Verification ID: `rule-evidence-7c9c7159`
   - URL: tests/integration/profiles.test.ts
   - Verified by: integration-test
   - Verified at: 2026-08-24

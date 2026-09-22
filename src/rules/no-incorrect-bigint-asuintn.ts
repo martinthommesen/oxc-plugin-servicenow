@@ -99,6 +99,7 @@ export const noIncorrectBigintAsuintn = defineRule({
         ) {
           return false;
         }
+        return undefined;
       },
       Program(node) {
         const { analysis, file } = beginRuleFile(context);
@@ -111,8 +112,8 @@ export const noIncorrectBigintAsuintn = defineRule({
           namespaces: ["globalThis"],
           mutationSemantics: "authority",
         })) {
-          const bits = directBitCount(finding.node.arguments[0]);
-          const value = directBigIntLiteral(finding.node.arguments[1]);
+          const bits = directBitCount(finding.arguments?.[0]);
+          const value = directBigIntLiteral(finding.arguments?.[1]);
           if (bits === null || value === null || !hasLegacyResultMismatch(bits, value)) continue;
           context.report({ node: finding.node, messageId: "incorrect" });
         }

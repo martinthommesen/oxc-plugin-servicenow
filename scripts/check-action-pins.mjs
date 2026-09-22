@@ -1,13 +1,33 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
-import { join, dirname } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { parseDocument } from "yaml";
+import { root } from "./lib/repo.mjs";
 
-const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const pinEntries = parseActionPinCatalog(
   readFileSync(join(root, "scripts/action-pins.json"), "utf8"),
 );
 
+/**
+ * @typedef {object} WorkflowSource
+ * @property {string} file
+ * @property {string} text
+ */
+/**
+ * @typedef {object} ActionPin
+ * @property {string} action
+ * @property {string} commit
+ */
+/**
+ * @typedef {object} ActionPinCheckResult
+ * @property {number} workflows
+ * @property {number} actions
+ */
+
+/**
+ * @param {string} source
+ * @returns {ActionPin[]}
+ */
 export function parseActionPinCatalog(source) {
   const document = parseDocument(source, { strict: true });
   const parseProblems = [...document.errors, ...document.warnings];
@@ -30,33 +50,46 @@ export function parseActionPinCatalog(source) {
   return catalog;
 }
 
+/**
+ * @param {any[]} steps
+ * @param {any[]} references
+ * @returns {void}
+ */
+function pushStepUses(steps, references) {
+  for (const step of steps) {
+    if (step && typeof step === "object" && !Array.isArray(step) && Object.hasOwn(step, "uses")) {
+      references.push(step.uses);
+    }
+  }
+}
+
+/**
+ * @param {any} workflow
+ * @returns {any[]}
+ */
 function collectUses(workflow) {
+  /** @type {any[]} */
   const references = [];
   if (!workflow || typeof workflow !== "object") return references;
   // Composite actions put their steps under runs.steps instead of jobs.
   const runsSteps = workflow.runs?.steps;
-  if (Array.isArray(runsSteps)) {
-    for (const step of runsSteps) {
-      if (step && typeof step === "object" && !Array.isArray(step) && Object.hasOwn(step, "uses")) {
-        references.push(step.uses);
-      }
-    }
-  }
+  if (Array.isArray(runsSteps)) pushStepUses(runsSteps, references);
   const jobs = workflow.jobs;
   if (!jobs || typeof jobs !== "object" || Array.isArray(jobs)) return references;
   for (const job of Object.values(jobs)) {
     if (!job || typeof job !== "object" || Array.isArray(job)) continue;
     if (Object.hasOwn(job, "uses")) references.push(job.uses);
     if (!Array.isArray(job.steps)) continue;
-    for (const step of job.steps) {
-      if (step && typeof step === "object" && !Array.isArray(step) && Object.hasOwn(step, "uses")) {
-        references.push(step.uses);
-      }
-    }
+    pushStepUses(job.steps, references);
   }
   return references;
 }
 
+/**
+ * @param {readonly WorkflowSource[]} sources
+ * @param {readonly ActionPin[]} reviewedPinEntries
+ * @returns {ActionPinCheckResult}
+ */
 export function checkActionPinSources(sources, reviewedPinEntries) {
   const pins = new Map();
   const errors = [];
@@ -142,6 +175,9 @@ function compositeActionSources() {
     }));
 }
 
+/**
+ * @returns {ActionPinCheckResult}
+ */
 export function checkActionPins() {
   const workflows = readdirSync(join(root, ".github/workflows"))
     .filter((name) => /\.(?:yml|yaml)$/.test(name))
@@ -153,6 +189,9 @@ export function checkActionPins() {
   return checkActionPinSources([...sources, ...compositeActionSources()], pinEntries);
 }
 
+/**
+ * @returns {ActionPinCheckResult}
+ */
 export function main() {
   const result = checkActionPins();
   console.log(

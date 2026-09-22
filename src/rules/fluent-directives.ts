@@ -3,17 +3,11 @@ import type { ESTree } from "@oxlint/plugins";
 import { FLUENT_DIRECTIVE_TYPOS, ruleDocsUrl } from "../constants.js";
 import { knownDirectiveNames } from "../fluent/index.js";
 import { isFluentContext } from "../context/index.js";
-import { isNode, walk } from "../utils/ast.js";
+import { hostComments, isNode, walk, type HostComment } from "../utils/ast.js";
 import { beginRuleFile } from "./helpers.js";
 
 const DIRECTIVE = /@([A-Za-z][\w-]*)/g;
 const TS_DIRECTIVE = /@ts-(?:ignore|expect-error)\b/g;
-
-interface Comment {
-  value: string;
-  start: number;
-  end: number;
-}
 
 interface StatementRef {
   start: number;
@@ -34,12 +28,6 @@ interface Occurrence {
   };
 }
 
-function commentsOf(context: { sourceCode: { getAllComments?: () => Comment[] } }): Comment[] {
-  return typeof context.sourceCode.getAllComments === "function"
-    ? context.sourceCode.getAllComments()
-    : [];
-}
-
 function firstNonEmptyLine(text: string): number {
   const body = text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
   const lines = body.split(/\r?\n/);
@@ -55,7 +43,12 @@ function pointAt(text: string, offset: number): { line: number; column: number }
   return { line: before.split("\n").length, column: before.length - newline - 1 };
 }
 
-function occurrenceAt(comment: Comment, text: string, index: number, length: number): Occurrence {
+function occurrenceAt(
+  comment: HostComment,
+  text: string,
+  index: number,
+  length: number,
+): Occurrence {
   const start = comment.start + 2 + index;
   return { loc: { start: pointAt(text, start), end: pointAt(text, start + length) } };
 }
@@ -131,7 +124,7 @@ function collectStatementContainers(program: ESTree.Node, text: string): Stateme
 
 function containingStatementList(
   containers: readonly StatementContainer[],
-  comment: Comment,
+  comment: HostComment,
 ): StatementContainer | undefined {
   return containers
     .filter((container) => container.start <= comment.start && comment.end <= container.end)
@@ -146,7 +139,7 @@ function containingStatementList(
 
 function isExactPreviousLine(
   text: string,
-  comment: Comment,
+  comment: HostComment,
   next: StatementRef,
   occurrence: Occurrence,
 ): boolean {
@@ -183,10 +176,11 @@ export const fluentDirectives = defineRule({
       before() {
         const { context: script } = beginRuleFile(context);
         if (!isFluentContext(script)) return false;
+        return undefined;
       },
       Program(node) {
         const { file } = beginRuleFile(context);
-        const comments = commentsOf(context);
+        const comments = hostComments(context);
         const text = context.sourceCode.text;
         const known = knownDirectiveNames(file.fluent.manifest);
         const byName = new Map(file.fluent.manifest.directives.map((item) => [item.name, item]));

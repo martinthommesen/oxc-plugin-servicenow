@@ -3,7 +3,7 @@
 Require a documented, scope-supported GlideRecord query executor before `.next()` or `._next()`. A cursor advance reports when a reachable path lacks even a possible executor for the configured scope; unproven receivers stay silent.
 
 - **Family:** classic
-- **Preset:** recommended
+- **Profile:** recommended
 - **Placements:** recommended (error), business-rule (error)
 - **Default severity:** error
 - **Fix safety:** diagnostic only
@@ -73,7 +73,6 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-b
 
 ## Overlaps
 
-- `servicenow/validate-gliderecord-calls`
 - `servicenow/validate-glideaggregate-calls`
 
 ## Fix safety

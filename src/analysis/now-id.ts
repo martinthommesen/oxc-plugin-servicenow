@@ -45,7 +45,7 @@ function unknownNowId(): UnknownNowIdFact {
 export function mergeNowIdFacts(left: NowIdFact, right: NowIdFact): NowIdFact {
   if (left === right) return left;
   if (left === null || right === null) return null;
-  if (left?.kind === "static" && right?.kind === "static" && left.key === right.key) {
+  if (left.kind === "static" && right.kind === "static" && left.key === right.key) {
     return staticNowId(left.key);
   }
   return unknownNowId();
@@ -249,7 +249,7 @@ export function isProvenNowIdValue(
  */
 export function findNowIdMisuses(
   program: ESTree.Node,
-  analysis: ProvenanceQuery,
+  _analysis: ProvenanceQuery,
   facts: ReadonlyMap<ESTree.Node, NowIdFact>,
 ): NowIdMisuse[] {
   const findings: NowIdMisuse[] = [];
@@ -289,7 +289,7 @@ export function findNowIdMisuses(
  */
 export function findDuplicateFluentIds(
   program: ESTree.Node,
-  analysis: ProvenanceQuery,
+  _analysis: ProvenanceQuery,
   facts: ReadonlyMap<ESTree.Node, NowIdFact>,
 ): DuplicateFluentId[] {
   const first = new Map<string, ESTree.Node>();

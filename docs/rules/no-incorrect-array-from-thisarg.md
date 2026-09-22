@@ -3,7 +3,7 @@
 Zurich throws when Array.from receives an explicit primitive mapper thisArg—even for an empty source, because conversion precedes iteration—and gives a non-strict mapper the wrong this when that argument is omitted. Australia corrects both ES2021 behaviors. The rule reports only stable native calls with a syntax-proven callable mapper.
 
 - **Family:** engine
-- **Preset:** es2021
+- **Profile:** es2021
 - **Placements:** es2021 (error)
 - **Default severity:** error
 - **Fix safety:** diagnostic only

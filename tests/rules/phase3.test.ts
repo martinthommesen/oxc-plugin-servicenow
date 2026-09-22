@@ -1,5 +1,5 @@
 import { describe, it } from "node:test";
-import { assertInvalid, assertValid } from "../helpers/rule-tester.js";
+import { assertInvalid, assertSkipped, assertValid } from "../helpers/rule-tester.js";
 
 const SERVER = { filename: "incident.br.js" };
 const FULL = {
@@ -691,6 +691,15 @@ var text = start.getDisplayValue();
 if (text > other) { gs.info("x"); }`,
       RULE,
       SERVER,
+    );
+  });
+
+  it("skips client files (FINDINGS.md COR-015)", () => {
+    assertSkipped(
+      `var start = new GlideDateTime();
+if (start.getDisplayValue() > "b") { gs.info("x"); }`,
+      RULE,
+      { filename: "test.client.js" },
     );
   });
 

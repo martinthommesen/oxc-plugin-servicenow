@@ -12,7 +12,7 @@ interface GlobalObjectMethodOptions {
   readonly runtime?: "instance" | "browser";
 }
 
-const GLIDE_RECORD_CONSTRUCTORS = ["GlideRecord", "GlideRecordSecure"] as const;
+export const GLIDE_RECORD_CONSTRUCTORS = ["GlideRecord", "GlideRecordSecure"] as const;
 
 function hasReceiverMethodAuthority(
   facts: PlatformMethodAuthorityFacts,

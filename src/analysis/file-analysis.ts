@@ -9,6 +9,7 @@ import { resolvePlatformGlobalName } from "./globals.js";
 import { resolveConstValue, staticPropertyName } from "./members.js";
 import { analyzePathBindings } from "./path-state.js";
 import {
+  PLATFORM_ALIAS_GLOBALS,
   ctorProvenanceKind,
   type Provenance,
   type ProvenanceKind,
@@ -60,6 +61,13 @@ export interface FileAnalysis {
   fluent: FluentFileFacts;
   /** Program-point `Now.ID` facts keyed by the use-site node. */
   nowIdAt: ReadonlyMap<ESTree.Node, NowIdFact>;
+  /**
+   * True when path analysis exceeded its work budget and provenance was
+   * cleared to fail safe. Rules stay silent on such files; the flag keeps
+   * the degraded state observable instead of indistinguishable from clean
+   * (FINDINGS.md PER-006).
+   */
+  pathBudgetExhausted: boolean;
 }
 
 interface FilePathData {
@@ -79,8 +87,6 @@ const ALL_KINDS: readonly ProvenanceKind[] = [
   "Set",
 ];
 
-const PLATFORM_ALIAS_KINDS = new Set<ProvenanceKind>(["g_form", "gs", "current"]);
-
 const bySource = new WeakMap<object, Map<string, FileAnalysis>>();
 const bySourceAndAst = new WeakMap<object, WeakMap<ESTree.Node, Map<string, FileAnalysis>>>();
 const ANALYSIS_RESOLVER_VERSION = 5;
@@ -99,10 +105,6 @@ function emptyProvenance(kind: ProvenanceKind, extras?: Partial<Provenance>): Pr
     kind,
     invalid: false,
     escaped: false,
-    queryState: "unopened",
-    windowed: false,
-    sysparmName: false,
-    aggregates: new Set<string>(),
     ...extras,
   });
 }
@@ -131,10 +133,6 @@ function inferSurfacesFromAst(
   return found;
 }
 
-function inferClientFromAst(program: ESTree.Node, bindings: FileBindings): boolean {
-  return inferSurfacesFromAst(program, bindings).client;
-}
-
 function buildFileAnalysis(context: Context, tree: AnalysisTree): FileAnalysis {
   analysisPasses += 1;
   const { program } = tree;
@@ -143,8 +141,6 @@ function buildFileAnalysis(context: Context, tree: AnalysisTree): FileAnalysis {
   });
   const bindingWrites = createBindingWriteQuery(program, bindings);
   const script = resolveScriptContext(context, {
-    program,
-    inferClient: program ? () => inferClientFromAst(program, bindings) : undefined,
     inferSurfaces: program ? () => inferSurfacesFromAst(program, bindings) : undefined,
   });
   const settings = getValidatedSettingsResult(context).settings;
@@ -153,11 +149,12 @@ function buildFileAnalysis(context: Context, tree: AnalysisTree): FileAnalysis {
   const provenanceAtNode = new Map<ESTree.Node, Provenance>();
   const identifierAtNode = new Map<ESTree.Node, Provenance>();
   const nowIdAt = new Map<ESTree.Node, NowIdFact>();
+  let pathBudgetExhausted = false;
 
   if (program) {
     const kindByObject = new Map<number, ProvenanceKind>();
     const query = makeQuery(bindings, provenanceAtNode, identifierAtNode, glide);
-    analyzePathBindings<FilePathData>({
+    const pathOutcome = analyzePathBindings<FilePathData>({
       program,
       analysis: query,
       kinds: ALL_KINDS,
@@ -187,7 +184,7 @@ function buildFileAnalysis(context: Context, tree: AnalysisTree): FileAnalysis {
         }
         if (node.type === "Identifier") {
           const name = getName(node);
-          if (name && PLATFORM_ALIAS_KINDS.has(name as ProvenanceKind) && !bindingId) {
+          if (name && PLATFORM_ALIAS_GLOBALS.has(name) && !bindingId) {
             kindByObject.set(rec.id, name as ProvenanceKind);
           }
         }
@@ -196,18 +193,19 @@ function buildFileAnalysis(context: Context, tree: AnalysisTree): FileAnalysis {
         const snap = emptyProvenance(kind, {
           invalid: rec.invalid,
           escaped: rec.escaped,
-          bindingId: bindingId ?? undefined,
+          ...(bindingId == null ? {} : { bindingId }),
           objectId: rec.id,
         });
         if (node.type === "Identifier") identifierAtNode.set(node, snap);
         provenanceAtNode.set(node, snap);
       },
-      onBudgetExceeded() {
-        provenanceAtNode.clear();
-        identifierAtNode.clear();
-        nowIdAt.clear();
-      },
     });
+    if (pathOutcome.outcome === "exhausted") {
+      provenanceAtNode.clear();
+      identifierAtNode.clear();
+      nowIdAt.clear();
+      pathBudgetExhausted = true;
+    }
 
     const ancestors: ESTree.Node[] = [];
     walk(
@@ -216,7 +214,7 @@ function buildFileAnalysis(context: Context, tree: AnalysisTree): FileAnalysis {
         Identifier(node) {
           if (identifierAtNode.has(node)) return;
           const name = getName(node);
-          if (!name || !PLATFORM_ALIAS_KINDS.has(name as ProvenanceKind)) return;
+          if (!name || !PLATFORM_ALIAS_GLOBALS.has(name)) return;
           if (!isValueReference(node, ancestors)) return;
           if (!bindings.isPlatformGlobal(node, ancestors)) return;
           const snap = emptyProvenance(name as ProvenanceKind);
@@ -229,7 +227,7 @@ function buildFileAnalysis(context: Context, tree: AnalysisTree): FileAnalysis {
           if (!kind) return;
           if (!bindings.isPlatformGlobal((node as ESTree.NewExpression).callee as ESTree.Node))
             return;
-          provenanceAtNode.set(node, emptyProvenance(kind, { objectId: undefined }));
+          provenanceAtNode.set(node, emptyProvenance(kind));
         },
       },
       ancestors,
@@ -263,11 +261,12 @@ function buildFileAnalysis(context: Context, tree: AnalysisTree): FileAnalysis {
     mutations,
     browserMutations,
     nowIdAt,
+    pathBudgetExhausted,
     fluent: {
       manifest,
       imports,
       resolveFactory(callee, ancestors = []) {
-        return resolveFluentFactory(callee, ancestors, bindings, imports, manifest);
+        return resolveFluentFactory(callee, ancestors, bindings, imports, manifest, bindingWrites);
       },
       isCanonicalNow(node) {
         return isCanonicalNow(node, provenance);
@@ -292,6 +291,11 @@ function makeQuery(
       if (!isNode(node)) return null;
       return provenanceAtNode.get(node) ?? identifierAtNode.get(node) ?? null;
     },
+    trustedExpression(node) {
+      if (!isNode(node)) return null;
+      const provenance = provenanceAtNode.get(node) ?? identifierAtNode.get(node);
+      return provenance && !provenance.invalid && !provenance.escaped ? provenance : null;
+    },
     isPlatformGlobal(node) {
       return bindings.isPlatformGlobal(node);
     },
@@ -314,18 +318,67 @@ function makeQuery(
   };
 }
 
-function analysisCacheKey(context: Context): string {
+interface AnalysisCacheIdentity {
+  readonly filename: string;
+  readonly physicalFilename: string;
+  readonly cwd: string;
+  readonly settingsFingerprint: string;
+  readonly fluentSdkVersion: string;
+  readonly glideReleases: readonly string[];
+  readonly resolverVersion: number;
+}
+
+function analysisCacheIdentity(context: Context): AnalysisCacheIdentity {
   const settings = getValidatedSettingsResult(context).settings;
   const host = context as Context & { physicalFilename?: string; cwd?: string };
-  return JSON.stringify([
-    context.filename,
-    host.physicalFilename ?? "",
-    host.cwd ?? "",
-    fingerprintServiceNowSettings(settings),
-    DEFAULT_FLUENT_SDK_VERSION,
-    GLIDE_API_RELEASES,
-    ANALYSIS_RESOLVER_VERSION,
-  ]);
+  return {
+    filename: context.filename,
+    physicalFilename: host.physicalFilename ?? "",
+    cwd: host.cwd ?? "",
+    settingsFingerprint: fingerprintServiceNowSettings(settings),
+    fluentSdkVersion: DEFAULT_FLUENT_SDK_VERSION,
+    glideReleases: GLIDE_API_RELEASES,
+    resolverVersion: ANALYSIS_RESOLVER_VERSION,
+  };
+}
+
+function lookupFileAnalysis(context: Context, ast?: ESTree.Node): FileAnalysis {
+  const source = context.sourceCode as object;
+  const hostAst = context.sourceCode.ast as ESTree.Node | undefined;
+  const explicit = ast !== undefined && ast !== hostAst;
+  let bucket: Map<string, FileAnalysis>;
+
+  if (explicit) {
+    let astBuckets = bySourceAndAst.get(source);
+    if (!astBuckets) {
+      astBuckets = new WeakMap();
+      bySourceAndAst.set(source, astBuckets);
+    }
+    const explicitAst = ast;
+    const existing = astBuckets.get(explicitAst);
+    if (existing) bucket = existing;
+    else {
+      bucket = new Map();
+      astBuckets.set(explicitAst, bucket);
+    }
+  } else {
+    const existing = bySource.get(source);
+    if (existing) bucket = existing;
+    else {
+      bucket = new Map();
+      bySource.set(source, bucket);
+    }
+  }
+
+  const key = JSON.stringify(analysisCacheIdentity(context));
+  const hit = bucket.get(key);
+  if (hit) return hit;
+  const created = buildFileAnalysis(
+    context,
+    explicit ? { kind: "explicit", program: ast } : { kind: "host", program: hostAst },
+  );
+  bucket.set(key, created);
+  return created;
 }
 
 /**
@@ -333,43 +386,7 @@ function analysisCacheKey(context: Context): string {
  * and every setting that can change semantics.
  */
 export function getFileAnalysis(context: Context): FileAnalysis {
-  const source = context.sourceCode as object;
-  let bucket = bySource.get(source);
-  if (!bucket) {
-    bucket = new Map();
-    bySource.set(source, bucket);
-  }
-  const key = analysisCacheKey(context);
-  const hit = bucket.get(key);
-  if (hit) return hit;
-  const created = buildFileAnalysis(context, {
-    kind: "host",
-    program: context.sourceCode.ast as ESTree.Node | undefined,
-  });
-  bucket.set(key, created);
-  return created;
-}
-
-function getFileAnalysisForAst(context: Context, ast: ESTree.Node): FileAnalysis {
-  if (ast === context.sourceCode.ast) return getFileAnalysis(context);
-
-  const source = context.sourceCode as object;
-  let astBuckets = bySourceAndAst.get(source);
-  if (!astBuckets) {
-    astBuckets = new WeakMap();
-    bySourceAndAst.set(source, astBuckets);
-  }
-  let bucket = astBuckets.get(ast);
-  if (!bucket) {
-    bucket = new Map();
-    astBuckets.set(ast, bucket);
-  }
-  const key = analysisCacheKey(context);
-  const hit = bucket.get(key);
-  if (hit) return hit;
-  const created = buildFileAnalysis(context, { kind: "explicit", program: ast });
-  bucket.set(key, created);
-  return created;
+  return lookupFileAnalysis(context);
 }
 
 export function getScriptContext(context: Context): ServiceNowScriptContext {
@@ -377,6 +394,5 @@ export function getScriptContext(context: Context): ServiceNowScriptContext {
 }
 
 export function analyzeProvenance(context: Context, ast?: ESTree.Node): ProvenanceQuery {
-  return (ast === undefined ? getFileAnalysis(context) : getFileAnalysisForAst(context, ast))
-    .provenance;
+  return lookupFileAnalysis(context, ast).provenance;
 }

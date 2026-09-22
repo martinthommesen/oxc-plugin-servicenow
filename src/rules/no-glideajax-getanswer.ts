@@ -23,6 +23,7 @@ export const noGlideajaxGetanswer = defineRule({
       before() {
         const { context: script } = beginRuleFile(context);
         if (!isClientCapableContext(script)) return false;
+        return undefined;
       },
       CallExpression(node) {
         const { analysis, file } = beginRuleFile(context);
@@ -30,8 +31,8 @@ export const noGlideajaxGetanswer = defineRule({
         if (call.callee.type !== "MemberExpression") return;
         if (staticPropertyName(call.callee) !== "getAnswer") return;
         const object = (call.callee as ESTree.MemberExpression).object;
-        const proven = analysis.ofExpression(object);
-        if (proven?.kind !== "GlideAjax" || proven.invalid || proven.escaped) return;
+        const proven = analysis.trustedExpression(object);
+        if (proven?.kind !== "GlideAjax") return;
         if (!hasAuthoritativeConstructedMethod(file, object, "GlideAjax", "getAnswer", "browser"))
           return;
         context.report({ node, messageId: "getAnswer" });

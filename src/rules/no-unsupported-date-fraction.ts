@@ -97,14 +97,16 @@ export const noUnsupportedDateFraction = defineRule({
       before() {
         const { context: script } = beginRuleFile(context);
         if (!shouldDiagnoseFeature(script, "date-fraction-digits")) return false;
+        return undefined;
       },
       Program(node) {
         const { analysis, file } = beginRuleFile(context);
         const report = (
           invocation: ESTree.CallExpression | ESTree.NewExpression,
           operation: string,
+          argumentNode: ESTree.Node | undefined = invocation.arguments[0],
         ): void => {
-          const argument = resolveDominatingConstValue(invocation.arguments[0], analysis.bindings);
+          const argument = resolveDominatingConstValue(argumentNode, analysis.bindings);
           const value = argument ? getStaticStringValue(argument) : null;
           const digits = value === null ? null : variableFractionDigits(value);
           if (digits === null) return;
@@ -142,7 +144,9 @@ export const noUnsupportedDateFraction = defineRule({
           namespaces: ["globalThis"],
           mutationSemantics: "authority",
         })) {
-          if (finding.node.arguments.length > 0) report(finding.node, "Date.parse()");
+          if (finding.arguments?.[0]) {
+            report(finding.node, "Date.parse()", finding.arguments[0]);
+          }
         }
       },
     };

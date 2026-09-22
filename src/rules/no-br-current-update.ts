@@ -33,6 +33,7 @@ export const noBrCurrentUpdate = defineRule({
         canonicalCurrentArgument = null;
         canonicalCurrentBindingId = null;
         canonicalCurrentObjectId = null;
+        return undefined;
       },
       Program(node) {
         const { analysis, context: script } = beginRuleFile(context);
@@ -74,14 +75,18 @@ export const noBrCurrentUpdate = defineRule({
           proven.objectId === canonicalCurrentObjectId;
         if (!directGlobal && !alias && !wrapperParam) return;
         if (file.bindingWrites.hasDynamicScope()) return;
-        if (directGlobal && file.mutations.isGlobalAuthorityLost("current")) return;
+        if (directGlobal && file.mutations.isGlobalAuthorityLostAt("current", call)) return;
         if (
-          file.mutations.isGlobalPathAuthorityLost(
+          file.mutations.isGlobalPathAuthorityLostAt(
             ["current", "update"],
+            call,
             wrapperParam || wrapperAlias ? (canonicalCurrentArgument ?? undefined) : undefined,
           ) ||
-          file.mutations.isGlobalPathAuthorityLost(["GlideRecord", "prototype", "update"]) ||
-          file.mutations.isObjectPropertyAuthorityLost(member.object, "update")
+          file.mutations.isGlobalPathAuthorityLostAt(
+            ["GlideRecord", "prototype", "update"],
+            call,
+          ) ||
+          file.mutations.isObjectPropertyAuthorityLostAt(member.object, "update", call)
         ) {
           return;
         }

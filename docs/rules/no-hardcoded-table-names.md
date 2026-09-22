@@ -3,7 +3,7 @@
 Optional organizational policy. String-literal table names in `GlideRecord` / `GlideRecordSecure` / `GlideAggregate` are hard to rename. Prefer named constants or Fluent table exports.
 
 - **Family:** classic
-- **Preset:** policy
+- **Profile:** policy
 - **Placements:** policy (warn)
 - **Default severity:** warn
 - **Fix safety:** diagnostic only

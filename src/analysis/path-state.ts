@@ -7,11 +7,20 @@ import {
   WALK_SKIP_KEYS,
   walk,
 } from "../utils/ast.js";
-import type { FileBindings, LexicalBinding, ScopeNode } from "./bindings.js";
+import {
+  isFunctionLike,
+  type FileBindings,
+  type LexicalBinding,
+  type ScopeNode,
+} from "./bindings.js";
 import { resolvePlatformGlobalName } from "./globals.js";
-import { isFunctionLike } from "./bindings.js";
 import { isDefinitelyUndefinedValue, resolveConstValue, staticPropertyName } from "./members.js";
-import { ctorProvenanceKind, type ProvenanceKind, type ProvenanceQuery } from "./provenance.js";
+import {
+  PLATFORM_ALIAS_GLOBALS,
+  ctorProvenanceKind,
+  type ProvenanceKind,
+  type ProvenanceQuery,
+} from "./provenance.js";
 
 export type BindingId = number;
 export type ObjectId = number;
@@ -44,12 +53,9 @@ export interface PathRefInput<T> {
 type AbruptCompletion = Exclude<InternalCompletion, "normal">;
 
 const DEFAULT_MAX_WORK = 50_000;
-// Snapshot cost grows with the number of live tracked objects, and top-level
-// `var` bindings in classic ServiceNow code stay live to the end of the file,
-// so total work grows faster than linearly with file length. A fixed budget
-// therefore truncated ordinary 300-line scripts while tiny fixtures passed.
-// The default budget scales with program size so an ordinary file is analyzed
-// completely, while `maxWork` remains an explicit override and the ceiling
+// Snapshot cost grows superlinearly with file length (top-level `var`
+// bindings stay live to end of file), so the default budget scales with
+// program size while `maxWork` stays an explicit override and the ceiling
 // still bounds adversarial input (FINDINGS.md PER-003).
 const WORK_PER_NODE = 128;
 const MAX_DEFAULT_WORK = 5_000_000;
@@ -67,6 +73,8 @@ export function resetPathBudgetExceededCount(): void {
   budgetExceededCount = 0;
 }
 
+// Keyed on node identity: nodeStart() returns -1 on hosts without offset
+// shapes, which would collapse every finding onto one key (FINDINGS.md COR-016).
 export function dedupePathFindings<T extends { node: ESTree.Node }>(
   findings: T[],
   keyOf?: (finding: T) => string,
@@ -99,10 +107,12 @@ interface EnvState<T> {
   objects: Map<ObjectId, SharedRecord<T>>;
   completion: InternalCompletion;
   /** Label on break/continue completions, if any. */
-  completionLabel?: string | null;
+  completionLabel?: string | null | undefined;
   /** Alternative abrupt paths retained until their owning construct consumes them. */
   abrupt: Map<AbruptCompletion, EnvState<T>[]>;
 }
+
+export type PathAnalysisOutcome = { outcome: "complete" } | { outcome: "exhausted" };
 
 export interface PathAnalysisOptions<T> {
   program: ESTree.Node;
@@ -134,18 +144,13 @@ export interface PathAnalysisOptions<T> {
   retainUnboundRecords?: boolean;
   /** Inspect every reachable program completion after the shared traversal. */
   onExit?: (states: readonly PathExitState<T>[]) => void;
-  /** Internal deterministic work cap. Exceeding it degrades this pass to unknown. */
+  /** Internal deterministic work cap. Exceeding it returns an exhausted outcome. */
   maxWork?: number;
-  onBudgetExceeded?: () => void;
 }
 
 export interface PathExitState<T> {
   completion: Completion | "unreachable";
   records: readonly SharedRecord<T>[];
-}
-
-export function isFunctionLikeNode(node: ESTree.Node): boolean {
-  return isFunctionLike(node);
 }
 
 export function mergeTri(
@@ -154,6 +159,20 @@ export function mergeTri(
 ): boolean | "unknown" {
   if (left === right) return left;
   return "unknown";
+}
+
+/** Key-deduped union of branch alternatives; later duplicates replace earlier ones. */
+export function mergeKeyedUnion<T>(
+  left: readonly T[],
+  right: readonly T[],
+  key: (value: T) => string,
+  clone: (value: T) => T,
+): T[] {
+  const merged = new Map<string, T>();
+  for (const value of [...left, ...right]) {
+    merged.set(key(value), clone(value));
+  }
+  return [...merged.values()];
 }
 
 function cloneAbrupt<T>(
@@ -481,7 +500,7 @@ function capturedBindings(fn: ESTree.Node, bindings: FileBindings): BindingId[] 
     ancestors.push(node);
     if (node.type === "Identifier" && isValueReference(node, ancestors)) {
       const binding = bindings.resolve(getName(node) ?? "", node, ancestors);
-      const declared = binding ? bindings.tree.scopeById(binding.scopeId) : null;
+      const declared = binding ? bindings.scopeById(binding.scopeId) : null;
       if (binding && !scopeContains(declared, fn)) {
         found.add(binding.id);
       }
@@ -521,7 +540,7 @@ function defaultMaxWork(program: ESTree.Node): number {
  * Path-sensitive tracker keyed by lexical binding identity and runtime object
  * identity. Abrupt completions do not join into later statements.
  */
-export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
+export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAnalysisOutcome {
   const {
     program,
     analysis,
@@ -539,7 +558,6 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
     retainUnboundRecords = true,
     onExit,
     maxWork = defaultMaxWork(program),
-    onBudgetExceeded,
   } = options;
   if (!Number.isSafeInteger(maxWork) || maxWork < 1) {
     throw new RangeError("path analysis maxWork must be a positive safe integer");
@@ -561,7 +579,6 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
   const activeFunctions = new Set<ESTree.Node>();
   const functionCaptures = new WeakMap<ESTree.Node, readonly BindingId[]>();
   const tryThrowPaths: EnvState<T>[][] = [];
-  const PLATFORM_ALIASES = new Set(["g_form", "gs", "current"]);
 
   const recordPossibleThrow = (state: EnvState<T>): void => {
     const paths = tryThrowPaths[tryThrowPaths.length - 1];
@@ -646,7 +663,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
       const binding = resolveBinding(bindings, expr, ancestors);
       if (binding) return state.env.get(binding.id);
       const name = getName(expr);
-      if (name && PLATFORM_ALIASES.has(name) && analysis.isPlatformGlobal(expr)) {
+      if (name && PLATFORM_ALIAS_GLOBALS.has(name) && analysis.isPlatformGlobal(expr)) {
         let objectId = platformObjects.get(name);
         if (objectId === undefined) {
           objectId = alloc();
@@ -858,6 +875,14 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
         return;
       default:
         return;
+    }
+  };
+
+  const escapeCaptured = (state: EnvState<T>, fn: ESTree.Node): void => {
+    for (const capturedId of capturesOf(fn)) {
+      const objectId = state.env.get(capturedId);
+      const captured = objectId === undefined ? undefined : state.objects.get(objectId);
+      if (captured) captured.escaped = true;
     }
   };
 
@@ -1298,11 +1323,9 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
             const left = (node as ESTree.ForInStatement | ESTree.ForOfStatement).left;
             if (left.type === "VariableDeclaration") {
               visit(left, bodyState, false);
-              // A `var` head declarator has no initializer, so the declarator
-              // visit is a runtime no-op and a previously tracked object
-              // binding would survive into the body. The loop head rebinds
-              // the declared names on every iteration whatever the
-              // declaration kind (FINDINGS.md COR-013).
+              // A `var` head declarator has no initializer, so the visit is a
+              // runtime no-op; the head still rebinds its names on every
+              // iteration whatever the declaration kind (FINDINGS.md COR-013).
               for (const declarator of (left as ESTree.VariableDeclaration).declarations) {
                 invalidatePattern(bodyState, declarator.id);
               }
@@ -1525,22 +1548,10 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
           const discarded =
             parent?.type === "ExpressionStatement" &&
             (parent as ESTree.ExpressionStatement).expression === call;
-          if (!discarded) {
-            for (const capturedId of capturesOf(fn)) {
-              const objectId = state.env.get(capturedId);
-              const captured = objectId === undefined ? undefined : state.objects.get(objectId);
-              if (captured) captured.escaped = true;
-            }
-          }
+          if (!discarded) escapeCaptured(state, fn);
           for (const arg of call.arguments) markEscape(state, arg);
         } else {
-          if (fn) {
-            for (const capturedId of capturesOf(fn)) {
-              const objectId = state.env.get(capturedId);
-              const captured = objectId === undefined ? undefined : state.objects.get(objectId);
-              if (captured) captured.escaped = true;
-            }
-          }
+          if (fn) escapeCaptured(state, fn);
           for (const arg of call.arguments) markEscape(state, arg);
         }
         break;
@@ -1624,9 +1635,10 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): void {
         })),
       );
     }
+    return { outcome: "complete" };
   } catch (error) {
     if (error !== BUDGET_EXCEEDED) throw error;
     budgetExceededCount += 1;
-    onBudgetExceeded?.();
+    return { outcome: "exhausted" };
   }
 }

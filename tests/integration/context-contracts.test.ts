@@ -18,7 +18,6 @@ const AUTO_RULES = {
   "servicenow/no-gs-now": "error",
   "servicenow/no-promise": "error",
   "servicenow/no-system-query-bypass": "error",
-  "servicenow/validate-gliderecord-calls": "error",
 } as const;
 
 const cases: Array<{
@@ -56,12 +55,6 @@ const cases: Array<{
         messageId: "server",
         message:
           "`gs.now()` returns a display string in the session timezone and is easy to misuse. Prefer `new GlideDateTime()` when you need an object, or an explicit display-value API when you need a string.",
-      },
-      {
-        ruleId: "servicenow/validate-gliderecord-calls",
-        messageId: "unusedReturn",
-        message:
-          "The return value of `record.insert()` is ignored. Check `insert`, `update`, `deleteRecord`, `get`, `next`, and `_next`. Bulk methods such as `updateMultiple` and `deleteMultiple` are not flagged.",
       },
       {
         ruleId: "servicenow/no-system-query-bypass",
@@ -163,6 +156,7 @@ function sorted<T extends { ruleId: string; message: string }>(items: T[]): T[] 
   );
 }
 
+// @lat: [[tests#Silence on unknown facts#Surface classification holds under real hosts]]
 describe("real-host context contracts", () => {
   for (const testCase of cases) {
     it(testCase.name, () => {
@@ -189,7 +183,7 @@ describe("real-host context contracts", () => {
             [
               {
                 files: ["**/*.js"],
-                plugins: { servicenow: plugin as never },
+                plugins: { servicenow: plugin as unknown as import("eslint").ESLint.Plugin },
                 settings: { servicenow: testCase.settings },
                 rules: testCase.rules,
               },
@@ -215,16 +209,12 @@ record.next();`;
         rule: "servicenow/require-query-before-next",
         expected: ["missingQuery"],
       },
-      {
-        rule: "servicenow/validate-gliderecord-calls",
-        expected: ["missingQuery", "unusedReturn"],
-      },
     ] as const) {
       const linter = new Linter({ configType: "flat" });
       const config: import("eslint").Linter.Config[] = [
         {
           files: ["**/*.js"],
-          plugins: { servicenow: plugin as never },
+          plugins: { servicenow: plugin as unknown as import("eslint").ESLint.Plugin },
           settings: { servicenow: { surfaces: ["server"] } },
           rules: { [testCase.rule]: "error" },
         },
@@ -257,7 +247,6 @@ record.next();`,
           settings: { servicenow: { surfaces: ["server"] } },
           rules: {
             "servicenow/require-query-before-next": "error",
-            "servicenow/validate-gliderecord-calls": "error",
           },
         }),
       );
@@ -272,11 +261,7 @@ record.next();`,
           .filter((diagnostic) => diagnostic.file === path.basename(file))
           .map((diagnostic) => diagnostic.rule)
           .sort();
-        assert.deepEqual(actual, [
-          "servicenow/require-query-before-next",
-          "servicenow/validate-gliderecord-calls",
-          "servicenow/validate-gliderecord-calls",
-        ]);
+        assert.deepEqual(actual, ["servicenow/require-query-before-next"]);
       }
     } finally {
       rmSync(directory, { recursive: true, force: true });

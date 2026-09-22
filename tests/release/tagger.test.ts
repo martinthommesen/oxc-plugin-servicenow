@@ -1,12 +1,18 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+import path from "node:path";
 import { createReleaseTag } from "../../scripts/create-release-tag.mjs";
+import { repoRoot } from "../integration/helpers.js";
 
 const COMMIT = "1".repeat(40);
+const pkg = JSON.parse(readFileSync(path.join(repoRoot, "package.json"), "utf8")) as {
+  version: string;
+};
 
 describe("release tagger", () => {
   it("creates one lightweight tag at the exact current main commit", async () => {
-    const calls: Array<{ url: string; method: string; body?: string }> = [];
+    const calls: Array<{ url: string; method: string; body?: string | undefined }> = [];
     const fetchImpl: typeof fetch = async (input, init) => {
       const url = String(input);
       const method = init?.method ?? "GET";
@@ -14,13 +20,16 @@ describe("release tagger", () => {
       if (url.endsWith("/git/ref/heads/main")) {
         return new Response(JSON.stringify({ object: { sha: COMMIT } }));
       }
-      return new Response(JSON.stringify({ ref: "refs/tags/v2.0.0", object: { sha: COMMIT } }), {
-        status: 201,
-      });
+      return new Response(
+        JSON.stringify({ ref: `refs/tags/v${pkg.version}`, object: { sha: COMMIT } }),
+        {
+          status: 201,
+        },
+      );
     };
 
     const result = await createReleaseTag({
-      version: "2.0.0",
+      version: pkg.version,
       expectedCommit: COMMIT,
       repository: "martinthommesen/oxc-plugin-servicenow",
       token: "test-token",
@@ -28,14 +37,14 @@ describe("release tagger", () => {
     });
 
     assert.deepEqual(result, {
-      tag: "v2.0.0",
+      tag: `v${pkg.version}`,
       commit: COMMIT,
       repository: "martinthommesen/oxc-plugin-servicenow",
     });
     assert.equal(calls.length, 2);
     assert.equal(calls[1]?.method, "POST");
     assert.deepEqual(JSON.parse(calls[1]?.body ?? "{}"), {
-      ref: "refs/tags/v2.0.0",
+      ref: `refs/tags/v${pkg.version}`,
       sha: COMMIT,
     });
   });
@@ -46,7 +55,7 @@ describe("release tagger", () => {
 
     await assert.rejects(
       createReleaseTag({
-        version: "2.0.0",
+        version: pkg.version,
         expectedCommit: COMMIT,
         repository: "martinthommesen/oxc-plugin-servicenow",
         token: "test-token",

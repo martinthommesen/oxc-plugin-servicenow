@@ -1,33 +1,37 @@
 import { readFile, writeFile } from "node:fs/promises";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
+import { replaceMarkedSection } from "./lib/generated-artifacts.mjs";
+import { MIN_TYPESCRIPT_ESLINT_FOR_ESLINT_10 } from "./check-compat-matrix.mjs";
+import { root } from "./lib/repo.mjs";
 
-const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const matrix = JSON.parse(await readFile(join(root, "scripts/compat-matrix.json"), "utf8"));
 const packageManifest = JSON.parse(await readFile(join(root, "package.json"), "utf8"));
 
-function replaceMarkedSection(source, name, body) {
-  const start = `<!-- generated:${name}:start -->`;
-  const end = `<!-- generated:${name}:end -->`;
-  const pattern = new RegExp(`${start}[\\s\\S]*?${end}`);
-  if (!pattern.test(source)) {
-    throw new Error(`Missing ${start} / ${end} markers`);
-  }
-  return source.replace(pattern, `${start}\n${body.trim()}\n${end}`);
-}
-
-const cellRows = matrix.cells
+/** @type {Array<any>} */
+const cells = matrix.cells;
+/** @type {Array<any>} */
+const modes = matrix.javascriptModes;
+const cellRows = cells
   .map(
     (cell) =>
       `| \`${cell.id}\` | ${cell.node} | ${cell.npm} | ${cell.oxlint} | ${cell.eslint} | ${cell.oxfmt} | ${cell.typescriptEslint ?? "not installed"} | ${cell.typescript ?? "not installed"} |`,
   )
   .join("\n");
+// Cells without a parser exercise the oxlint/oxfmt-only path; the parser floor
+// for ESLint 10 cells is the same constant the matrix check enforces.
+const parserless = cells
+  .filter((cell) => cell.typescriptEslint === undefined)
+  .map((cell) => `\`${cell.id}\``);
+const parserlessNote =
+  parserless.length === 0
+    ? ""
+    : ` Cells without typescript-eslint (${parserless.join(", ")}) exercise the oxlint/oxfmt-only path.`;
 
 const page = `# Compatibility
 
 This page is generated from \`scripts/compat-matrix.json\`. Do not edit it by hand. Run \`npm run docs\` after you change the matrix.
 
-CI runs every cell under its exact Node runtime. Local \`npm run compat\` uses the \`${matrix.localSmokeCell}\` dependency set under the current host Node and npm. \`npm run compat -- --all\` is only a same-runtime dependency smoke test and is not multi-runtime proof.
+CI runs every cell under its exact Node runtime. Local \`npm run compat\` uses the \`${matrix.localSmokeCell}\` dependency set under the current host Node and npm. \`npm run compat -- --all\` is only a same-runtime dependency smoke test and is not multi-runtime proof. A nightly advisory job re-resolves the top of each declared range (\`node scripts/compat-consumer.mjs --top\`) and exercises the same consumer path without gating.
 
 ## Declared ranges
 
@@ -42,7 +46,7 @@ CI runs every cell under its exact Node runtime. Local \`npm run compat\` uses t
 | TypeScript parser runtime | optional parser dependency | ${matrix.typescript.minimum} | ${matrix.typescript.current} |
 | Fluent SDK knowledge | selected \`fluentSdkVersion\` | ${matrix.fluentSdk.join(", ")} | unspecified selects the current manifest |
 | ServiceNow release knowledge | selected \`release\` | ${matrix.serviceNowReleases.join(", ")} | unspecified uses only facts shared by every listed release |
-| ServiceNow JavaScript | ${matrix.javascriptModes.map((mode) => `\`${mode}\``).join(", ")} | all listed modes | unknown never assumes ES5 |
+| ServiceNow JavaScript | ${modes.map((mode) => `\`${mode}\``).join(", ")} | all listed modes | unknown never assumes ES5 |
 
 ## Packed-consumer matrix
 
@@ -50,7 +54,7 @@ CI runs every cell under its exact Node runtime. Local \`npm run compat\` uses t
 | --- | --- | --- | --- | --- | --- | --- | --- |
 ${cellRows}
 
-A cell fails with one of these classes: \`package\`, \`host-api\`, \`runtime\`, \`parser\`, or \`formatter\`. Parser cells exercise the exported ESLint configuration on real \`.now.ts\` and \`.now.tsx\` files. ESLint 10 cells omit typescript-eslint because its current peer range does not accept ESLint 10. Every supported combination installs with normal npm peer resolution.
+A cell fails with one of these classes: \`package\`, \`host-api\`, \`runtime\`, \`parser\`, or \`formatter\`. Parser cells exercise the exported ESLint configuration on real \`.now.ts\` and \`.now.tsx\` files.${parserlessNote} Parser cells on ESLint 10 require typescript-eslint ${MIN_TYPESCRIPT_ESLINT_FOR_ESLINT_10} or later; older parser lines stay on the ESLint 9 cells. Every supported combination installs with normal npm peer resolution.
 
 ## Contributors
 

@@ -1,5 +1,5 @@
 import type { ESTree } from "@oxlint/plugins";
-import { analyzePathBindings } from "./path-state.js";
+import { analyzePathBindings, dedupePathFindings } from "./path-state.js";
 import {
   hasAuthoritativeGlideRecordMethod,
   type PlatformMethodAuthorityFacts,
@@ -32,11 +32,7 @@ export function findMissingQueryBeforeNext(
   authority: PlatformMethodAuthorityFacts,
 ): MissingQueryFinding[] {
   const findings: MissingQueryFinding[] = [];
-  // Keyed on node identity: nodeStart() returns -1 on a host whose nodes
-  // carry no offset shape, which would collapse every finding in the file
-  // onto one key and silently drop all but the first (FINDINGS.md COR-016).
-  const reported = new Set<ESTree.Node>();
-  analyzePathBindings<QueryData>({
+  const outcome = analyzePathBindings<QueryData>({
     program,
     analysis,
     kinds: ["GlideRecord"],
@@ -56,16 +52,9 @@ export function findMissingQueryBeforeNext(
         rec.data.unopened = false;
       }
       if (analysis.glide.cursorAdvancers.has(property) && rec.data.unopened) {
-        if (!reported.has(call)) {
-          reported.add(call);
-          findings.push({ node: call, name: objectName ?? "record", method: property });
-        }
+        findings.push({ node: call, name: objectName ?? "record", method: property });
       }
     },
-    onBudgetExceeded() {
-      findings.length = 0;
-      reported.clear();
-    },
   });
-  return findings;
+  return outcome.outcome === "complete" ? dedupePathFindings(findings) : [];
 }

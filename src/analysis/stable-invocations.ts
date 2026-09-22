@@ -1,8 +1,8 @@
 import type { ESTree } from "@oxlint/plugins";
 import { isNode, unwrapExpression, walk } from "../utils/ast.js";
-import type { FileBindings } from "./bindings.js";
+import { isFunctionLike, type FileBindings } from "./bindings.js";
 import type { BindingWriteQuery } from "./binding-writes.js";
-import { resolveConstValue } from "./members.js";
+import { resolveConstValue, resolveDominatingConstValue } from "./members.js";
 
 const MAX_STABLE_CALL_SITES = 20_000;
 
@@ -19,16 +19,47 @@ export interface StableInvocationQuery {
 }
 
 export function isFunctionNode(node: unknown): node is ImmediateFunction {
-  return (
-    isNode(node) &&
-    (node.type === "FunctionDeclaration" ||
-      node.type === "FunctionExpression" ||
-      node.type === "ArrowFunctionExpression")
-  );
+  return isFunctionLike(node);
 }
 
 function executesImmediately(node: ImmediateFunction): boolean {
   return node.type === "ArrowFunctionExpression" || !node.generator;
+}
+
+export interface StableCallableOptions {
+  readonly temporal?: "possible" | "dominating";
+  /** Require calling the function to run its body immediately. */
+  readonly requireImmediateExecution?: boolean;
+}
+
+/** Resolve function syntax whose identity is stable at this exact use. */
+export function resolveStableCallable(
+  node: unknown,
+  bindings: FileBindings,
+  bindingWrites: BindingWriteQuery,
+  options: StableCallableOptions = {},
+): ImmediateFunction | null {
+  if (bindingWrites.hasDynamicScope()) return null;
+  const { temporal = "dominating", requireImmediateExecution = false } = options;
+  const value =
+    temporal === "possible"
+      ? resolveConstValue(node, bindings)
+      : resolveDominatingConstValue(node, bindings);
+  if (!value) return null;
+  if (isFunctionNode(value)) {
+    return !requireImmediateExecution || executesImmediately(value) ? value : null;
+  }
+  if (value.type !== "Identifier") return null;
+  const binding = bindings.resolve(value.name, value);
+  if (
+    binding?.kind !== "function" ||
+    binding.node.type !== "FunctionDeclaration" ||
+    bindingWrites.isWritten(binding.id) ||
+    !isFunctionNode(binding.node)
+  ) {
+    return null;
+  }
+  return !requireImmediateExecution || executesImmediately(binding.node) ? binding.node : null;
 }
 
 /**
@@ -56,28 +87,13 @@ export function analyzeStableInvocations(
     const direct = unwrapExpression(callee);
     if (!isNode(direct)) return null;
     if (isFunctionNode(direct)) return executesImmediately(direct) ? direct : null;
-    // Calling a member, conditional, or sequence expression can evaluate
-    // additional code at the call site. Keep expansion to a direct binding;
-    // resolveConstValue may then follow its immutable aliases.
+    // Member, conditional, and sequence calls can evaluate additional code.
+    // Expansion stays limited to direct bindings and immutable aliases.
     if (direct.type !== "Identifier") return null;
-    // Lexical resolution is not authoritative anywhere in a file containing
-    // direct eval or `with`. Check before following const aliases as well as
-    // function declarations.
-    if (bindingWrites.hasDynamicScope()) return null;
-    const value = resolveConstValue(direct, bindings);
-    if (!value) return null;
-    if (isFunctionNode(value)) return executesImmediately(value) ? value : null;
-    if (value.type !== "Identifier") return null;
-    const binding = bindings.resolve(value.name, value);
-    if (
-      binding?.kind !== "function" ||
-      binding.node.type !== "FunctionDeclaration" ||
-      bindingWrites.isWritten(binding.id)
-    ) {
-      return null;
-    }
-    if (!isFunctionNode(binding.node)) return null;
-    return executesImmediately(binding.node) ? binding.node : null;
+    return resolveStableCallable(direct, bindings, bindingWrites, {
+      temporal: "possible",
+      requireImmediateExecution: true,
+    });
   };
 
   const callCounts = new WeakMap<ImmediateFunction, number>();

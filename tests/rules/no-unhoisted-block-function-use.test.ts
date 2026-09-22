@@ -62,6 +62,16 @@ describe(RULE, () => {
     );
   });
 
+  it("indexes abrupt prefixes once for many reads", () => {
+    const reads = Array.from({ length: 1_000 }, () => "helper();").join("\n");
+    assertInvalid(
+      `{\n${reads}\nfunction helper() { return 1; }\n}`,
+      RULE,
+      { messageId: "unhoisted", count: 1_000 },
+      { settings: ZURICH },
+    );
+  });
+
   it("resolves the declaration in its containing block", () => {
     assertInvalid(
       `{

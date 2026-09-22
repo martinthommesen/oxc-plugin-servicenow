@@ -8,5 +8,6 @@ BusinessRule({
 
 {
   const Now = { ID: { fake: "local" } };
-  const unused = Now.ID.fake;
+  const shadowed = Now.ID.fake;
+  void shadowed;
 }

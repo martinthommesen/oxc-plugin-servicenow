@@ -1,16 +1,19 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  GLIDE_AGGREGATE_EVIDENCE,
+  GLIDE_AGGREGATE_METHODS,
   GLIDE_API_RELEASES,
-  GLIDE_CURSOR_ADVANCERS,
   GLIDE_DOCUMENTED_METHODS,
-  GLIDE_FILTER_METHODS,
-  GLIDE_QUERY_EXECUTORS,
   GLIDE_RECORD_METHODS,
   GLIDE_RECORD_EVIDENCE,
-  GLIDE_SYSTEM_BYPASS_METHODS,
   resolveGlideCapabilities,
 } from "../../src/glide/index.js";
+
+// Role membership has one home: the resolved view. These read it across every
+// admissible scope, so a membership assertion cannot pass for the reason the
+// deleted flat sets used to give (a single un-versioned derivation).
+const anyScope = resolveGlideCapabilities({ scope: "unknown" });
 
 describe("GlideRecord method manifest", () => {
   it("pins scoped and global evidence for every supported release", () => {
@@ -47,13 +50,13 @@ describe("GlideRecord method manifest", () => {
       GLIDE_RECORD_METHODS.some((entry) => entry.name === "getAsync"),
       false,
     );
-    assert.equal(GLIDE_QUERY_EXECUTORS.has("getAsync"), false);
-    assert.equal(GLIDE_QUERY_EXECUTORS.has("query"), true);
-    assert.equal(GLIDE_QUERY_EXECUTORS.has("_query"), true);
-    assert.equal(GLIDE_QUERY_EXECUTORS.has("queryNoDomain"), true);
-    assert.equal(GLIDE_QUERY_EXECUTORS.has("get"), true);
-    assert.equal(GLIDE_CURSOR_ADVANCERS.has("next"), true);
-    assert.equal(GLIDE_CURSOR_ADVANCERS.has("_next"), true);
+    assert.equal(anyScope.possibleExecutors.has("getAsync"), false);
+    assert.equal(anyScope.possibleExecutors.has("query"), true);
+    assert.equal(anyScope.possibleExecutors.has("_query"), true);
+    assert.equal(anyScope.possibleExecutors.has("queryNoDomain"), true);
+    assert.equal(anyScope.possibleExecutors.has("get"), true);
+    assert.equal(anyScope.cursorAdvancers.has("next"), true);
+    assert.equal(anyScope.cursorAdvancers.has("_next"), true);
   });
 
   it("selects capabilities by exact scope and release", () => {
@@ -174,28 +177,57 @@ describe("GlideRecord method manifest", () => {
       supportedScopes: ["global"],
       releases: ["zurich", "australia"],
     });
-    assert.equal(GLIDE_SYSTEM_BYPASS_METHODS.has("queryNoDomain"), false);
+    assert.equal(anyScope.systemBypass.has("queryNoDomain"), false);
   });
 
   it("lists only documented ACL-bypass methods", () => {
-    assert.deepEqual([...GLIDE_SYSTEM_BYPASS_METHODS].sort(), [
+    assert.deepEqual([...anyScope.systemBypass].sort(), [
       "addSystemEncodedQuery",
       "addSystemOrderBy",
       "addSystemOrderByDesc",
       "addSystemQuery",
     ]);
-    assert.equal(GLIDE_SYSTEM_BYPASS_METHODS.has("addSystemFoo"), false);
-    assert.equal(GLIDE_SYSTEM_BYPASS_METHODS.has("addQuery"), false);
+    assert.equal(anyScope.systemBypass.has("addSystemFoo"), false);
+    assert.equal(anyScope.systemBypass.has("addQuery"), false);
   });
 
   it("treats user and system query builders as filters", () => {
-    assert.equal(GLIDE_FILTER_METHODS.has("addUserQuery"), true);
-    assert.equal(GLIDE_FILTER_METHODS.has("addUserEncodedQuery"), true);
-    assert.equal(GLIDE_FILTER_METHODS.has("addSystemQuery"), true);
-    assert.equal(GLIDE_FILTER_METHODS.has("query"), false);
-    assert.equal(GLIDE_FILTER_METHODS.has("orderBy"), false);
-    assert.equal(GLIDE_FILTER_METHODS.has("setLimit"), false);
-    assert.equal(GLIDE_FILTER_METHODS.has("chooseWindow"), false);
-    assert.equal(GLIDE_FILTER_METHODS.has("addInactiveQuery"), false);
+    assert.equal(anyScope.filters.has("addUserQuery"), true);
+    assert.equal(anyScope.filters.has("addUserEncodedQuery"), true);
+    assert.equal(anyScope.filters.has("addSystemQuery"), true);
+    assert.equal(anyScope.filters.has("query"), false);
+    assert.equal(anyScope.filters.has("orderBy"), false);
+    assert.equal(anyScope.filters.has("setLimit"), false);
+    assert.equal(anyScope.filters.has("chooseWindow"), false);
+    assert.equal(anyScope.filters.has("addInactiveQuery"), false);
+  });
+
+  it("resolves GlideAggregate query roles by receiver kind, not by string literal", () => {
+    const aggregate = anyScope.byKind.GlideAggregate;
+    assert.deepEqual([...aggregate.executors], ["query"]);
+    assert.deepEqual([...aggregate.cursorAdvancers], ["next"]);
+    // The two methods the finders key on argument tuples carry no query role, so
+    // a role read must not claim them as executors.
+    assert.equal(aggregate.executors.has("addAggregate"), false);
+    assert.equal(aggregate.executors.has("getAggregate"), false);
+    assert.deepEqual([...aggregate.filters], []);
+    // The GlideRecord answer is unchanged and still the flat sets' source.
+    assert.equal(anyScope.executors.has("query"), true);
+    assert.equal(anyScope.executors.has("get"), true);
+    assert.equal(anyScope.executors.has("next"), false);
+  });
+
+  it("cites only reviewed GlideAggregate pages", () => {
+    assert.match(GLIDE_AGGREGATE_EVIDENCE.zurich.scoped!, /\/r\/zurich\//);
+    assert.match(GLIDE_AGGREGATE_EVIDENCE.zurich.scoped!, /c_GlideAggregateScopedAPI/);
+    assert.match(GLIDE_AGGREGATE_EVIDENCE.australia.scoped!, /c_GlideAggregateScopedAPI/);
+    assert.match(GLIDE_AGGREGATE_EVIDENCE.australia.global!, /c_GlideAggregateAPI/);
+    assert.match(GLIDE_AGGREGATE_EVIDENCE.zurich.global!, /c_GlideAggregateAPI/);
+    for (const entry of GLIDE_AGGREGATE_METHODS) {
+      assert.deepEqual(entry.releases, ["zurich", "australia"]);
+      assert.equal(entry.evidence.zurich, GLIDE_AGGREGATE_EVIDENCE.zurich.scoped);
+      assert.equal(entry.evidence.australia, GLIDE_AGGREGATE_EVIDENCE.australia.scoped);
+      assert.equal(typeof GLIDE_AGGREGATE_EVIDENCE.australia.scoped, "string");
+    }
   });
 });

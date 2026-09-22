@@ -2,13 +2,18 @@ import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { copyFileSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, posix } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { pathToFileURL } from "node:url";
 import { parseNpmPackJson } from "./parse-npm-pack.mjs";
+import { isValidIsoDate as sharedIsValidIsoDate } from "./lib/iso-date.mjs";
+import { root } from "./lib/repo.mjs";
 
-const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const RELEASE_VERSION =
   /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-(?:(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?$/;
 
+/**
+ * @param {unknown} value
+ * @returns {boolean}
+ */
 export function isReleaseVersion(value) {
   return typeof value === "string" && RELEASE_VERSION.test(value);
 }
@@ -37,24 +42,33 @@ const ALLOWED_ROOT_TARBALL_PATHS = new Set(
   REQUIRED_TARBALL_PATHS.filter((path) => !path.startsWith("package/dist/")),
 );
 
+/**
+ * @param {string} version
+ * @returns {RegExp}
+ */
 export function changelogVersionHeadingPattern(version) {
   const escaped = String(version).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return new RegExp(`^## ${escaped} — (\\d{4}-\\d{2}-\\d{2})$`, "m");
 }
 
-export function isValidIsoDate(value) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-  const [year, month, day] = value.split("-").map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day));
-  return (
-    date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
-  );
-}
+export const isValidIsoDate = sharedIsValidIsoDate;
 
+/**
+ * @param {string} text
+ * @param {string} version
+ * @returns {boolean}
+ */
 export function changelogHasVersionHeading(text, version) {
   const unreleased = /^## Unreleased\s*$/m.exec(text);
   const match = changelogVersionHeadingPattern(version).exec(text);
-  if (!unreleased || !match || !isValidIsoDate(match[1]) || match.index < unreleased.index) {
+  const date = match?.[1];
+  if (
+    !unreleased ||
+    !match ||
+    date === undefined ||
+    !isValidIsoDate(date) ||
+    match.index < unreleased.index
+  ) {
     return false;
   }
   const firstVersionHeading = /^## (?!Unreleased\s*$).+$/m.exec(
@@ -62,9 +76,13 @@ export function changelogHasVersionHeading(text, version) {
   );
   if (!firstVersionHeading || firstVersionHeading[0] !== match[0]) return false;
   const today = new Date().toISOString().slice(0, 10);
-  return match[1] <= today;
+  return date <= today;
 }
 
+/**
+ * @param {readonly string[]} files
+ * @returns {string[]}
+ */
 export function inspectTarballListing(files) {
   const errors = [];
   const listing = new Set(files);
@@ -100,19 +118,28 @@ export function inspectTarballListing(files) {
   return errors;
 }
 
+/**
+ * @param {readonly string[]} verboseLines
+ * @returns {string[]}
+ */
 export function inspectTarballEntryTypes(verboseLines) {
   return verboseLines
     .filter((line) => /^[lh]/.test(line))
     .map((line) => `link entry is not allowed: ${line}`);
 }
 
+/**
+ * @param {Record<string, unknown>} record
+ * @param {readonly string[]} tarballFiles
+ * @returns {string[]}
+ */
 export function inspectNpmPackRecord(record, tarballFiles) {
   const errors = [];
-  if (!record || typeof record !== "object" || !Array.isArray(record.files)) {
+  if (!record || typeof record !== "object" || !Array.isArray(record["files"])) {
     return ["npm pack record is missing its files manifest"];
   }
   const paths = [];
-  for (const file of record.files) {
+  for (const file of record["files"]) {
     if (!file || typeof file !== "object" || typeof file.path !== "string") {
       errors.push("npm pack file record is invalid");
       continue;
@@ -152,6 +179,12 @@ export function inspectNpmPackRecord(record, tarballFiles) {
   return errors;
 }
 
+/**
+ * @param {unknown} value
+ * @param {string} [path]
+ * @param {Array<{ path: string, target: string }>} [targets]
+ * @returns {Array<{ path: string, target: string }>}
+ */
 function packageExportTargets(value, path = "exports", targets = []) {
   if (typeof value === "string") {
     targets.push({ path, target: value });
@@ -168,17 +201,25 @@ function packageExportTargets(value, path = "exports", targets = []) {
   return targets;
 }
 
-/** Return every concrete file target in package `exports` and `types` metadata. */
+/**
+ * Return every concrete file target in package `exports` and `types` metadata.
+ * @param {Record<string, unknown>} pkg
+ * @returns {Array<{ path: string, target: string }>}
+ */
 export function collectPackageFileTargets(pkg) {
   const targets = [];
-  if (typeof pkg.types === "string") targets.push({ path: "types", target: pkg.types });
-  if (typeof pkg.typings === "string") targets.push({ path: "typings", target: pkg.typings });
-  if (typeof pkg.main === "string") targets.push({ path: "main", target: pkg.main });
-  if (typeof pkg.module === "string") targets.push({ path: "module", target: pkg.module });
-  packageExportTargets(pkg.exports, "exports", targets);
+  if (typeof pkg["types"] === "string") targets.push({ path: "types", target: pkg["types"] });
+  if (typeof pkg["typings"] === "string") targets.push({ path: "typings", target: pkg["typings"] });
+  if (typeof pkg["main"] === "string") targets.push({ path: "main", target: pkg["main"] });
+  if (typeof pkg["module"] === "string") targets.push({ path: "module", target: pkg["module"] });
+  packageExportTargets(pkg["exports"], "exports", targets);
   return targets;
 }
 
+/**
+ * @param {unknown} target
+ * @returns {string | undefined}
+ */
 export function packageTargetPath(target) {
   if (typeof target !== "string" || !target.startsWith("./") || target.includes("\0"))
     return undefined;
@@ -197,12 +238,16 @@ export function packageTargetPath(target) {
  * Verify package entry points and declaration targets against a tar listing.
  * This is deliberately independent of the package's source tree: publish and
  * consumer jobs must prove the exact inspected bytes, not the checkout.
+ *
+ * @param {Record<string, unknown>} pkg
+ * @param {readonly string[]} files
+ * @returns {string[]}
  */
 export function inspectPackageExports(pkg, files) {
   const errors = [];
   const listing = new Set(files);
   if (!pkg || typeof pkg !== "object") return ["package metadata is not an object"];
-  if (!pkg.exports || typeof pkg.exports !== "object")
+  if (!pkg["exports"] || typeof pkg["exports"] !== "object")
     errors.push("package.json is missing exports");
   for (const { path, target } of collectPackageFileTargets(pkg)) {
     const tarPath = packageTargetPath(target);
@@ -221,10 +266,18 @@ export function inspectPackageExports(pkg, files) {
   return errors;
 }
 
+/**
+ * @param {string} filePath
+ * @returns {string}
+ */
 export function sha256File(filePath) {
   return createHash("sha256").update(readFileSync(filePath)).digest("hex");
 }
 
+/**
+ * @param {Uint8Array} buffer
+ * @returns {string}
+ */
 export function tarballIntegrity(buffer) {
   return `sha512-${createHash("sha512").update(buffer).digest("base64")}`;
 }
@@ -234,9 +287,15 @@ export function tarballIntegrity(buffer) {
 // (FINDINGS.md PER-004).
 const TAR_MAX_BUFFER = 64 * 1024 * 1024;
 
+/**
+ * @param {Record<string, unknown>} record
+ * @param {string} tarball
+ * @returns {Record<string, unknown>}
+ */
 export function normalizeNpmPackManifest(record, tarball) {
   const tarballBytes = readFileSync(tarball);
-  const files = record.files.map((file) => {
+  const packFiles = /** @type {Array<any>} */ (record["files"]);
+  const files = packFiles.map((file) => {
     const bytes = execFileSync("tar", ["-xOf", tarball, `package/${file.path}`], {
       maxBuffer: TAR_MAX_BUFFER,
     });
@@ -251,11 +310,12 @@ export function normalizeNpmPackManifest(record, tarball) {
       sha256: createHash("sha256").update(bytes).digest("hex"),
     };
   });
+  /** @type {Record<string, unknown>} */
   const manifest = {
     schemaVersion: 1,
-    name: record.name,
-    version: record.version,
-    filename: record.filename,
+    name: record["name"],
+    version: record["version"],
+    filename: record["filename"],
     size: statSync(tarball).size,
     unpackedSize: files.reduce((total, file) => total + file.size, 0),
     entryCount: files.length,
@@ -281,9 +341,17 @@ export function normalizeNpmPackManifest(record, tarball) {
   return manifest;
 }
 
+/**
+ * @param {string} inputDir
+ * @param {string} tarball
+ * @param {{ name: string, version: string }} pkg
+ * @param {Record<string, unknown>} npmPackManifest
+ * @returns {Record<string, unknown>}
+ */
 export function createReleasePublishInput(inputDir, tarball, pkg, npmPackManifest) {
   const scriptsDir = join(inputDir, "scripts");
   mkdirSync(scriptsDir, { recursive: true });
+  /** @type {Array<{ source: string | undefined, path: string }>} */
   const files = [
     { source: tarball, path: join("package", basename(tarball)) },
     {
@@ -323,12 +391,21 @@ export function createReleasePublishInput(inputDir, tarball, pkg, npmPackManifes
   return manifest;
 }
 
+/**
+ * @param {string} message
+ * @returns {never}
+ */
 function fail(message) {
-  const error = new Error(message);
+  const error = /** @type {Error & { kind?: string }} */ (new Error(message));
   error.kind = "release-artifact";
   throw error;
 }
 
+/**
+ * @param {string[]} argv
+ * @param {string} name
+ * @returns {string | undefined}
+ */
 function argValue(argv, name) {
   const index = argv.indexOf(name);
   if (index === -1) return undefined;
@@ -353,7 +430,11 @@ function ensureBuiltDist() {
   }
 }
 
-function packTarball(destination) {
+/**
+ * @param {string} destination
+ * @returns {{ tarball: string, record: Record<string, unknown> }}
+ */
+export function packTarball(destination) {
   ensureBuiltDist();
   mkdirSync(destination, { recursive: true });
   const stdout = execFileSync(
@@ -375,18 +456,30 @@ function packTarball(destination) {
   return { tarball: join(destination, filename), record };
 }
 
+/**
+ * @param {string} tarball
+ * @returns {string[]}
+ */
 function listTarball(tarball) {
   return execFileSync("tar", ["-tzf", tarball], { encoding: "utf8", maxBuffer: TAR_MAX_BUFFER })
     .split("\n")
     .filter(Boolean);
 }
 
+/**
+ * @param {string} tarball
+ * @returns {string[]}
+ */
 function listTarballVerbose(tarball) {
   return execFileSync("tar", ["-tvzf", tarball], { encoding: "utf8", maxBuffer: TAR_MAX_BUFFER })
     .split("\n")
     .filter(Boolean);
 }
 
+/**
+ * @param {string} tarball
+ * @returns {any}
+ */
 function readPackedPackage(tarball) {
   return JSON.parse(
     execFileSync("tar", ["-xOf", tarball, "package/package.json"], {
@@ -396,6 +489,10 @@ function readPackedPackage(tarball) {
   );
 }
 
+/**
+ * @param {string} version
+ * @returns {void}
+ */
 function checkChangelog(version) {
   const text = readFileSync(join(root, "CHANGELOG.md"), "utf8");
   if (!changelogHasVersionHeading(text, version)) {
@@ -403,6 +500,11 @@ function checkChangelog(version) {
   }
 }
 
+/**
+ * @param {string} tarball
+ * @param {boolean} allCells
+ * @returns {void}
+ */
 function runConsumer(tarball, allCells) {
   const args = [
     join(root, "scripts/compat-consumer.mjs"),
@@ -419,6 +521,9 @@ function runConsumer(tarball, allCells) {
   });
 }
 
+/**
+ * @param {string[]} argv
+ */
 function parseArgs(argv) {
   return {
     changelogOnly: argv.includes("--changelog-only"),
@@ -431,6 +536,10 @@ function parseArgs(argv) {
   };
 }
 
+/**
+ * @param {string[]} [argv]
+ * @returns {{ ok: boolean, name?: string, version: string, tarball?: string, sha256?: string, integrity?: string, npmPackManifest?: Record<string, unknown>, files?: number, consumer?: boolean, consumerAll?: boolean, changelog?: boolean }}
+ */
 export function main(argv = process.argv) {
   const options = parseArgs(argv);
   const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
@@ -512,8 +621,11 @@ export function main(argv = process.argv) {
   return result;
 }
 
+const invokedScript = process.argv[1];
 const invokedDirectly =
-  Boolean(process.argv[1]) && import.meta.url === pathToFileURL(process.argv[1]).href;
+  invokedScript !== undefined &&
+  invokedScript !== "" &&
+  import.meta.url === pathToFileURL(invokedScript).href;
 if (invokedDirectly) {
   try {
     main();

@@ -1,16 +1,27 @@
 import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { isReleaseVersion } from "./check-release-artifact.mjs";
+import { root } from "./lib/repo.mjs";
 
-const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-
+/**
+ * @param {string} message
+ * @returns {never}
+ */
 function fail(message) {
-  const error = new Error(message);
+  const error = /** @type {Error & { kind?: string }} */ (new Error(message));
   error.kind = "release-tag";
   throw error;
 }
 
+/**
+ * @param {any} fetchImpl
+ * @param {string} token
+ * @param {string} repository
+ * @param {string} path
+ * @param {{ method?: string, headers?: Record<string, string>, body?: string }} [init]
+ * @returns {Promise<any>}
+ */
 async function githubRequest(fetchImpl, token, repository, path, init = {}) {
   const response = await fetchImpl(`https://api.github.com/repos/${repository}${path}`, {
     ...init,
@@ -22,10 +33,27 @@ async function githubRequest(fetchImpl, token, repository, path, init = {}) {
       ...init.headers,
     },
   });
-  if (!response.ok) fail(`GitHub ${init.method ?? "GET"} ${path} failed with ${response.status}`);
+  if (!response.ok) {
+    const detail = await response.text().catch(() => "");
+    fail(
+      `GitHub ${init.method ?? "GET"} ${path} failed with ${response.status}${detail ? `: ${detail.slice(0, 500)}` : ""}`,
+    );
+  }
   return response.json();
 }
 
+/**
+ * @typedef {object} CreateReleaseTagOptions
+ * @property {string} version
+ * @property {string} expectedCommit
+ * @property {string} repository
+ * @property {string} token
+ * @property {typeof fetch} [fetchImpl]
+ */
+/**
+ * @param {CreateReleaseTagOptions} options
+ * @returns {Promise<{ tag: string, commit: string, repository: string }>}
+ */
 export async function createReleaseTag({
   version,
   expectedCommit,
@@ -61,12 +89,16 @@ export async function createReleaseTag({
   return { tag, commit: expectedCommit, repository };
 }
 
+/**
+ * @param {NodeJS.ProcessEnv} [env]
+ * @returns {Promise<Record<string, string>>}
+ */
 export async function main(env = process.env) {
   const result = await createReleaseTag({
-    version: env.RELEASE_VERSION,
-    expectedCommit: env.EXPECTED_COMMIT,
-    repository: env.GITHUB_REPOSITORY,
-    token: env.RELEASE_SENTINEL_TOKEN,
+    version: /** @type {string} */ (env["RELEASE_VERSION"]),
+    expectedCommit: /** @type {string} */ (env["EXPECTED_COMMIT"]),
+    repository: /** @type {string} */ (env["GITHUB_REPOSITORY"]),
+    token: /** @type {string} */ (env["RELEASE_SENTINEL_TOKEN"]),
   });
   console.log(JSON.stringify(result));
   return result;

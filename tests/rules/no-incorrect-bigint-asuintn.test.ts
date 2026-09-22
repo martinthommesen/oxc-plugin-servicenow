@@ -58,6 +58,18 @@ describe(RULE, () => {
     }
   });
 
+  it("normalizes Function and Reflect helper arguments", () => {
+    for (const code of [
+      `BigInt.asUintN.call(null, 64, -1n);`,
+      `BigInt.asUintN.apply(null, [64, -1n]);`,
+      `BigInt.asUintN.bind(null, 64)(-1n);`,
+      `Reflect.apply(BigInt.asUintN, null, [64, -1n]);`,
+    ]) {
+      assertInvalid(code, RULE, { messageId: "incorrect" }, { settings: ZURICH });
+    }
+    assertValid(`BigInt.asUintN.call(null, 7, -1n);`, RULE, { settings: ZURICH });
+  });
+
   it("does not mistake availability checks for semantic repairs", () => {
     for (const code of [
       `BigInt.asUintN && BigInt.asUintN(64, -1n);`,

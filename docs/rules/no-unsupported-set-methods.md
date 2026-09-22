@@ -3,7 +3,7 @@
 Set.prototype.intersection(), union(), difference(), symmetricDifference(), isSubsetOf(), isSupersetOf(), and isDisjointFrom() are available in Australia ES2021 but not Zurich ES2021. Only direct calls on a proven, authoritative Set receiver are reported; classic Map/Set availability is outside this method-level rule.
 
 - **Family:** engine
-- **Preset:** es2021
+- **Profile:** es2021
 - **Placements:** es2021 (error)
 - **Default severity:** error
 - **Fix safety:** diagnostic only

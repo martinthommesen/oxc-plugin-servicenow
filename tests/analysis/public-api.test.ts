@@ -95,7 +95,6 @@ describe("public analysis API", () => {
     const provenance = query.ofIdentifier(use);
     assert.ok(provenance);
     assert.equal(Object.isFrozen(provenance), true);
-    assert.equal(typeof (provenance.aggregates as Set<string>).add, "undefined");
     assert.throws(
       () => ((provenance as { escaped: boolean }).escaped = !provenance.escaped),
       TypeError,
@@ -207,11 +206,10 @@ describe("public analysis API", () => {
     assert.equal(getAnalysisPassCount(), 3);
   });
 
-  it("pins the constant deprecated lifecycle fields (FINDINGS.md API-002)", () => {
-    // This source would change every one of the four fields if they were
-    // computed: the query is opened, windowed, aggregated, and carries a
-    // sysparm_name. The fields are deprecated as never computed and are
-    // removed in 3.0; a future implementation change must surface here.
+  it("omits the removed lifecycle fields (FINDINGS.md API-002)", () => {
+    // The four never-computed fields were removed in 3.0; the domain
+    // analyzers behind the rules own the real lifecycle facts. This source
+    // would populate every one of them if they still existed.
     const code = [
       'var rec = new GlideAggregate("incident");',
       'rec.addAggregate("COUNT", "state");',
@@ -231,13 +229,13 @@ describe("public analysis API", () => {
         if (name === "rec" || name === "ajax") uses.set(name, node);
       },
     });
-    const rec = query.ofIdentifier(uses.get("rec")!);
-    assert.ok(rec);
-    assert.equal(rec.queryState, "unopened");
-    assert.equal(rec.windowed, false);
-    assert.equal(rec.aggregates.size, 0);
-    const ajax = query.ofIdentifier(uses.get("ajax")!);
-    assert.ok(ajax);
-    assert.equal(ajax.sysparmName, false);
+    for (const name of ["rec", "ajax"]) {
+      const provenance = query.ofIdentifier(uses.get(name)!);
+      assert.ok(provenance);
+      assert.equal("queryState" in provenance, false);
+      assert.equal("windowed" in provenance, false);
+      assert.equal("sysparmName" in provenance, false);
+      assert.equal("aggregates" in provenance, false);
+    }
   });
 });

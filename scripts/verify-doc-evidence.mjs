@@ -1,50 +1,95 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { pathToFileURL } from "node:url";
+import { exactProof, indexOutcomes } from "./lib/test-report.mjs";
+import { isValidIsoDate } from "./lib/iso-date.mjs";
+import { root } from "./lib/repo.mjs";
 
-const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const artifacts = join(root, "artifacts");
-const reportPath = join(artifacts, "doc-evidence-test-results.json");
 
-function exactDate(value) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-  const [year, month, day] = value.split("-").map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day));
-  return (
-    date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
-  );
+/**
+ * @typedef {object} EvidenceTestReport
+ * @property {readonly unknown[]} [tests]
+ */
+/**
+ * @typedef {object} EvidenceResult
+ * @property {readonly string[]} errors
+ * @property {readonly unknown[]} records
+ */
+
+/**
+ * @param {string} [base]
+ * @returns {string}
+ */
+export function evidenceTestReportPath(base = tmpdir()) {
+  return join(mkdtempSync(join(base, "oxc-plugin-servicenow-evidence-")), "test-results.json");
 }
 
-function runEvidenceTests() {
-  mkdirSync(artifacts, { recursive: true });
-  const result = spawnSync(
-    process.execPath,
-    [
-      join(root, "scripts/run-tests.mjs"),
-      "tests/catalog-evidence.test.ts",
-      "--report-json",
-      reportPath,
-    ],
-    { cwd: root, stdio: ["ignore", "inherit", "inherit"] },
-  );
-  if (result.status !== 0)
-    throw new Error(`catalog evidence tests failed with status ${result.status}`);
-  return JSON.parse(readFileSync(reportPath, "utf8"));
+/**
+ * @param {string} [base]
+ * @returns {EvidenceTestReport}
+ */
+export function runEvidenceTests(base = tmpdir()) {
+  const reportPath = evidenceTestReportPath(base);
+  const environment = { ...process.env };
+  delete environment["NODE_TEST_CONTEXT"];
+  try {
+    const result = spawnSync(
+      process.execPath,
+      [
+        join(root, "scripts/run-tests.mjs"),
+        "tests/catalog-evidence.test.ts",
+        "--report-json",
+        reportPath,
+      ],
+      { cwd: root, env: environment, stdio: ["ignore", "inherit", "inherit"] },
+    );
+    if (result.status !== 0)
+      throw new Error(`catalog evidence tests failed with status ${result.status}`);
+    return JSON.parse(readFileSync(reportPath, "utf8"));
+  } finally {
+    rmSync(dirname(reportPath), { recursive: true, force: true });
+  }
 }
 
+/**
+ * @param {string} path
+ * @param {unknown} value
+ * @returns {void}
+ */
+export function writeJsonArtifact(path, value) {
+  mkdirSync(dirname(path), { recursive: true });
+  const temporaryDirectory = mkdtempSync(join(dirname(path), ".atomic-artifact-"));
+  const temporaryPath = join(temporaryDirectory, "artifact.json");
+  try {
+    writeFileSync(temporaryPath, `${JSON.stringify(value, null, 2)}\n`, {
+      encoding: "utf8",
+      flag: "wx",
+    });
+    renameSync(temporaryPath, path);
+  } finally {
+    rmSync(temporaryDirectory, { recursive: true, force: true });
+  }
+}
+
+/**
+ * @param {readonly unknown[]} catalog
+ * @param {EvidenceTestReport} report
+ * @returns {Promise<EvidenceResult>}
+ */
 export async function verifyDocEvidence(catalog, report) {
   const errors = [];
   const ids = new Set();
-  const tests = new Map();
-  for (const test of report.tests) {
-    const key = `${test.file}::${test.fullName}`;
-    const values = tests.get(key) ?? [];
-    values.push(test);
-    tests.set(key, values);
-  }
+  const testReport = /** @type {import("./lib/test-report-types.js").TestReport} */ (
+    /** @type {unknown} */ (report)
+  );
+  const tests = indexOutcomes(testReport);
   const records = [];
-  for (const rule of catalog) {
+  const today = new Date().toISOString().slice(0, 10);
+  const rules = /** @type {Array<any>} */ (catalog);
+  for (const rule of rules) {
     const dates = [];
     let normative = 0;
     let automated = 0;
@@ -53,10 +98,9 @@ export async function verifyDocEvidence(catalog, report) {
       if (ids.has(evidence.verificationId))
         errors.push(`duplicate verification ID ${evidence.verificationId}`);
       ids.add(evidence.verificationId);
-      if (!exactDate(evidence.verifiedAt))
+      if (!isValidIsoDate(evidence.verifiedAt))
         errors.push(`${evidence.verificationId} has an invalid date`);
-      if (evidence.verifiedAt > new Date().toISOString().slice(0, 10))
-        errors.push(`${evidence.verificationId} has a future date`);
+      if (evidence.verifiedAt > today) errors.push(`${evidence.verificationId} has a future date`);
       if (evidence.verifiedBy === "manual") {
         let url;
         try {
@@ -81,11 +125,12 @@ export async function verifyDocEvidence(catalog, report) {
       if (/^https?:/.test(evidence.url))
         errors.push(`${evidence.verificationId} automated evidence must use a local source`);
       const fullName = `catalog evidence > ${rule.name}: ${evidence.verificationId}`;
-      const proof = tests.get(`tests/catalog-evidence.test.ts::${fullName}`) ?? [];
-      if (proof.length !== 1)
-        errors.push(`${evidence.verificationId} exact proof occurs ${proof.length} times`);
-      else if (proof[0].status !== "passed" || proof[0].skipped || proof[0].todo)
+      const proof = exactProof(tests, "tests/catalog-evidence.test.ts", fullName);
+      if (proof.status === "missing" || proof.status === "ambiguous") {
+        errors.push(`${evidence.verificationId} exact proof occurs ${proof.count} times`);
+      } else if (proof.status === "not-clean") {
         errors.push(`${evidence.verificationId} exact proof did not pass cleanly`);
+      }
       records.push({
         id: evidence.verificationId,
         rule: rule.name,
@@ -99,7 +144,9 @@ export async function verifyDocEvidence(catalog, report) {
     if (rule.lastVerified !== latest)
       errors.push(`${rule.name} lastVerified does not match successful evidence metadata`);
     if (
-      rule.preset === "recommended" &&
+      rule.placements.some(
+        /** @param {any} placement */ (placement) => placement.profile === "recommended",
+      ) &&
       rule.severity === "error" &&
       (normative === 0 || automated === 0)
     ) {
@@ -109,6 +156,9 @@ export async function verifyDocEvidence(catalog, report) {
   return { errors, records };
 }
 
+/**
+ * @returns {Promise<unknown>}
+ */
 export async function main() {
   const report = runEvidenceTests();
   const { ruleCatalog } = await import(pathToFileURL(join(root, "src/catalog.ts")).href);
@@ -122,14 +172,16 @@ export async function main() {
     records: result.records,
     errors: result.errors,
   };
-  writeFileSync(join(artifacts, "doc-evidence.json"), `${JSON.stringify(artifact, null, 2)}\n`);
+  writeJsonArtifact(join(artifacts, "doc-evidence.json"), artifact);
   if (result.errors.length > 0) throw new Error(result.errors.join("\n"));
   console.log(
     JSON.stringify(
       {
         ok: true,
         records: result.records.length,
-        automated: result.records.filter((item) => item.kind === "automated").length,
+        automated: result.records.filter(
+          (item) => /** @type {{ kind?: unknown }} */ (item).kind === "automated",
+        ).length,
       },
       null,
       2,

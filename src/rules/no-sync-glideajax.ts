@@ -20,7 +20,9 @@ export const noSyncGlideajax = defineRule({
   createOnce(context) {
     return {
       before() {
-        if (!isClientCapableContext(beginRuleFile(context).context)) return false;
+        const { context: script } = beginRuleFile(context);
+        if (!isClientCapableContext(script)) return false;
+        return undefined;
       },
       CallExpression(node) {
         const { analysis, file } = beginRuleFile(context);
@@ -29,14 +31,11 @@ export const noSyncGlideajax = defineRule({
         const member = call.callee as ESTree.MemberExpression;
         if (staticPropertyName(member) !== "getXMLWait") return;
         const object = member.object;
-        const proven = analysis.ofExpression(object);
-        if (proven?.kind === "GlideAjax" && !proven.invalid && !proven.escaped) {
-          if (
-            !hasAuthoritativeConstructedMethod(file, object, "GlideAjax", "getXMLWait", "browser")
-          )
-            return;
-          context.report({ node, messageId: "wait" });
-        }
+        const proven = analysis.trustedExpression(object);
+        if (proven?.kind !== "GlideAjax") return;
+        if (!hasAuthoritativeConstructedMethod(file, object, "GlideAjax", "getXMLWait", "browser"))
+          return;
+        context.report({ node, messageId: "wait" });
       },
     };
   },

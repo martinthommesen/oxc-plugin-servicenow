@@ -3,7 +3,7 @@
 Fluent entities must declare `$id` when the selected SDK manifest marks the imported factory as requiring an id. Prefer canonical `Now.ID['descriptive-key']`.
 
 - **Family:** fluent
-- **Preset:** recommended
+- **Profile:** recommended
 - **Placements:** recommended (error), fluent (error)
 - **Default severity:** error
 - **Fix safety:** diagnostic only

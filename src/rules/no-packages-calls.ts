@@ -2,7 +2,7 @@ import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
 import { isMixedUiActionContext, isServerInstanceContext } from "../context/index.js";
-import { getName } from "../utils/ast.js";
+import { getName, isValueReference } from "../utils/ast.js";
 import { beginRuleFile } from "./helpers.js";
 
 export const noPackagesCalls = defineRule({
@@ -19,18 +19,16 @@ export const noPackagesCalls = defineRule({
     },
   },
   createOnce(context) {
-    let analysis: ReturnType<typeof beginRuleFile>["analysis"];
-    let script: ReturnType<typeof beginRuleFile>["context"];
     return {
       before() {
-        const file = beginRuleFile(context);
-        if (!isServerInstanceContext(file.context) || isMixedUiActionContext(file.context)) {
+        const { context: script } = beginRuleFile(context);
+        if (!isServerInstanceContext(script) || isMixedUiActionContext(script)) {
           return false;
         }
-        analysis = file.analysis;
-        script = file.context;
+        return undefined;
       },
       MemberExpression(node) {
+        const { analysis, context: script } = beginRuleFile(context);
         const member = node as ESTree.MemberExpression;
         const root = rootIdentifier(member);
         if (
@@ -41,7 +39,28 @@ export const noPackagesCalls = defineRule({
           script.sources.surfaces === "unknown"
         )
           return;
-        const ancestors = context.sourceCode.getAncestors(node);
+        const ancestors = context.sourceCode.getAncestors(node as ESTree.Node);
+        const parent = ancestors[ancestors.length - 1] as ESTree.Node | undefined;
+        if (
+          parent?.type === "MemberExpression" &&
+          (parent as ESTree.MemberExpression).object === node
+        ) {
+          return;
+        }
+        context.report({ node, messageId: "packages" });
+      },
+      Identifier(node) {
+        const { analysis, context: script } = beginRuleFile(context);
+        if (
+          getName(node) !== "Packages" ||
+          !analysis.isPlatformGlobal(node as ESTree.Node) ||
+          script.authoring !== "classic" ||
+          script.sources.surfaces === "unknown"
+        ) {
+          return;
+        }
+        const ancestors = context.sourceCode.getAncestors(node) as ESTree.Node[];
+        if (!isValueReference(node as ESTree.Node, [...ancestors, node as ESTree.Node])) return;
         const parent = ancestors[ancestors.length - 1] as ESTree.Node | undefined;
         if (
           parent?.type === "MemberExpression" &&
@@ -56,7 +75,7 @@ export const noPackagesCalls = defineRule({
 });
 
 function rootIdentifier(node: ESTree.MemberExpression): ESTree.Node | null {
-  let current: ESTree.Node = node as unknown as ESTree.Node;
+  let current: ESTree.Node = node;
   while (current.type === "MemberExpression") {
     current = (current as ESTree.MemberExpression).object as ESTree.Node;
   }

@@ -7,7 +7,7 @@ import {
   getPathBudgetExceededCount,
   resetPathBudgetExceededCount,
 } from "../../src/analysis/path-state.js";
-import { applyRules } from "../../src/runtime/apply-rules.js";
+import { applyRules } from "../helpers/apply-rules.js";
 import { walk } from "../../src/utils/ast.js";
 import { assertInvalid, assertValid, parse } from "../helpers/rule-tester.js";
 

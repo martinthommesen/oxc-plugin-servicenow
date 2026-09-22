@@ -1,4 +1,5 @@
 import { PLUGIN_NAME } from "../constants.js";
+import type { RuleConfigMap } from "../types.js";
 import {
   aclRules,
   businessRuleRules,
@@ -21,42 +22,22 @@ export {
   securityRules,
 };
 
-export const classicEs5 = {
-  name: `${PLUGIN_NAME}/classic-es5`,
-  rules: classicEs5Rules,
-};
+function profile<N extends string>(name: N, rules: RuleConfigMap) {
+  return { name: `${PLUGIN_NAME}/${name}`, rules };
+}
 
-export const es2021 = {
-  name: `${PLUGIN_NAME}/es2021`,
-  rules: es2021Rules,
-};
+export const classicEs5 = profile("classic-es5", classicEs5Rules);
 
-export const client = {
-  name: `${PLUGIN_NAME}/client`,
-  rules: clientRules,
-};
+export const es2021 = profile("es2021", es2021Rules);
 
-export const acl = {
-  name: `${PLUGIN_NAME}/acl`,
-  rules: aclRules,
-};
+export const client = profile("client", clientRules);
 
-export const businessRule = {
-  name: `${PLUGIN_NAME}/business-rule`,
-  rules: businessRuleRules,
-};
+export const acl = profile("acl", aclRules);
 
-export const fluent = {
-  name: `${PLUGIN_NAME}/fluent`,
-  rules: fluentRules,
-};
+export const businessRule = profile("business-rule", businessRuleRules);
 
-export const policy = {
-  name: `${PLUGIN_NAME}/policy`,
-  rules: policyRules,
-};
+export const fluent = profile("fluent", fluentRules);
 
-export const security = {
-  name: `${PLUGIN_NAME}/security`,
-  rules: securityRules,
-};
+export const policy = profile("policy", policyRules);
+
+export const security = profile("security", securityRules);

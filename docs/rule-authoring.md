@@ -5,7 +5,7 @@ This guide is for contributors who add or change a rule in `oxc-plugin-serviceno
 ## Required workflow
 
 1. Implement the visitor in `src/rules/<name>.ts` with `defineRule` and `createOnce`.
-2. Add one catalog descriptor in `src/catalog.ts`. Import the implementation in that descriptor. The rule registry and preset maps are derived from the catalog.
+2. Add one catalog descriptor in `src/catalog/<name>.ts` and register it in `src/catalog.ts`. Import the implementation in that descriptor. The rule registry and `rulePlacements` (`src/configs/maps.ts`) are derived from the catalog.
 3. Add tests that cover the matrix below. Use exact diagnostic counts and `messageId` values.
 4. Run `npm run docs` so generated rule pages, README tables, and recommended oxlintrc copies update.
 5. Run `npm run validate`.
@@ -51,7 +51,7 @@ Stateful rules also need early return, loop, helper escape, and multiple-instanc
 
 Use `assertInvalid` with a `messageId` and `assertValid` for silence. Do not weaken tests to make an implementation pass.
 
-## Preset selection
+## Placement selection
 
 | Placement | Use when |
 | --- | --- |

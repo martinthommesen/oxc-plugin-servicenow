@@ -8959,7 +8959,7 @@
       "proofs": [
         {
           "file": "tests/integration/examples.test.ts",
-          "fullName": "example projects > executes the exact UI Action settings copied from its README"
+          "fullName": "example projects > executes the shipped UI Action configuration directly"
         }
       ],
       "caseIds": [],
