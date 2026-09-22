@@ -167,6 +167,8 @@ The Cloud Agent installs Bun at the exact version and integrity recorded in its 
 
 The documentation generators, the catalog checker, and `docs:check` must use one path list. README marker replacement must reject unregistered section names.
 
+Both README formatter-guide links must use the generated repository reference, whose URL tracks the package release tag rather than a hand-written version.
+
 ### Test report queries use one clean-pass rule
 
 A proof passes only when its `file::fullName` key occurs once and the outcome is a clean pass.
