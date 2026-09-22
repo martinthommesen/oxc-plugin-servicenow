@@ -482,10 +482,10 @@ function readPackedPackage(tarball) {
 
 /**
  * @param {string} version
+ * @param {string} [text] Changelog text; defaults to the repository `CHANGELOG.md`.
  * @returns {void}
  */
-function checkChangelog(version) {
-  const text = readFileSync(join(root, "CHANGELOG.md"), "utf8");
+export function checkChangelog(version, text = readFileSync(join(root, "CHANGELOG.md"), "utf8")) {
   if (!changelogHasVersionHeading(text, version)) {
     fail(`CHANGELOG.md must contain an exact heading: ## ${version} — YYYY-MM-DD`);
   }

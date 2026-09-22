@@ -11,17 +11,10 @@
       "login": "release-sentinel-sn",
       "type": "Integration"
     },
-    "environmentReviewers": [
-      {
-        "id": 267603464,
-        "login": "martinthommesen",
-        "type": "User"
-      }
-    ]
+    "environmentReviewers": []
   },
   "environment": {
     "name": "release",
-    "preventSelfReview": true,
     "canAdminsBypass": false,
     "deploymentPolicy": {
       "protectedBranches": false,

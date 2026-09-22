@@ -1,11 +1,16 @@
+# Tags the merged package.json version on push; the manual dispatch is the
+# retry path. See docs/release.md.
 name: Create release tag
 
 on:
+  push:
+    branches: [main]
+    paths: [package.json, CHANGELOG.md]
   workflow_dispatch:
     inputs:
       version:
-        description: Exact package.json version
-        required: true
+        description: Exact package.json version (defaults to the checked-out package.json)
+        required: false
         type: string
 
 permissions:
@@ -35,7 +40,7 @@ jobs:
           owner: ${{ github.repository_owner }}
           repositories: oxc-plugin-servicenow
           permission-contents: write
-      - name: Create verified release tag
+      - name: Create release tag
         env:
           EXPECTED_COMMIT: ${{ github.sha }}
           RELEASE_SENTINEL_TOKEN: ${{ steps.release-sentinel.outputs.token }}

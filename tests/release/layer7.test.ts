@@ -56,6 +56,9 @@ const governanceWorkflow = parse(
 const recoveryWorkflow = parse(
   readFileSync(path.join(repoRoot, ".github/workflows/recover-release.yml"), "utf8"),
 );
+const tagWorkflow = parse(
+  readFileSync(path.join(repoRoot, ".github/workflows/create-release-tag.yml"), "utf8"),
+);
 const desiredFixture = JSON.parse(
   readFileSync(path.join(repoRoot, "tests/fixtures/release-governance/desired.json"), "utf8"),
 );
@@ -68,6 +71,19 @@ const liveFixture = JSON.parse(
 
 function clone<T>(value: T): T {
   return structuredClone(value);
+}
+
+function rawLiveGovernance(protectionRules: unknown[]) {
+  return {
+    rulesets: [],
+    environment: {
+      name: "release",
+      protection_rules: protectionRules,
+      can_admins_bypass: false,
+      deployment_branch_policy: { protected_branches: false, custom_branch_policies: true },
+    },
+    deploymentPolicies: [{ type: "tag", name: "v*" }],
+  };
 }
 
 describe("release automation gates", () => {
@@ -320,9 +336,6 @@ describe("release automation gates", () => {
         value.principals.environmentReviewers[0] = value.principals.controlledTagActor;
       },
       (value) => {
-        value.environment.preventSelfReview = false;
-      },
-      (value) => {
         value.environment.canAdminsBypass = true;
       },
       (value) => {
@@ -491,23 +504,68 @@ describe("release automation gates", () => {
   });
 
   it("rejects raw live self-review bypasses and missing tag-creation bypass", () => {
-    const raw = {
-      rulesets: [],
-      environment: {
-        name: "release",
-        protection_rules: [{ type: "required_reviewers", prevent_self_review: false }],
-        can_admins_bypass: false,
-        deployment_branch_policy: { protected_branches: false, custom_branch_policies: true },
-      },
-      deploymentPolicies: [{ type: "tag", name: "v*" }],
-    };
-    const selfReviewResult = compareGovernance(authoritativeDesiredFixture, raw);
-    assert.ok(selfReviewResult.errors.includes("release environment does not prevent self-review"));
+    const raw = rawLiveGovernance([{ type: "required_reviewers", prevent_self_review: false }]);
+    const selfReviewResult = compareGovernance(desiredFixture, raw);
+    assert.ok(selfReviewResult.errors.includes("release environment self-review policy drifted"));
 
     const missingBypass = clone(authoritativeDesiredFixture);
     missingBypass.releaseTagRulesets.creation.bypassActors = [];
     const bypassResult = compareGovernance(authoritativeDesiredFixture, missingBypass);
     assert.ok(bypassResult.errors.includes("creation tag bypass actors drifted"));
+  });
+
+  // @lat: [[tests#Release governance#The unattended release environment is audited as such]]
+  it("audits the unattended release environment without inventing reviewers", () => {
+    const unattended = compareGovernance(authoritativeDesiredFixture, rawLiveGovernance([]));
+    assert.equal(
+      unattended.errors.some((error) => error.includes("release environment")),
+      false,
+      unattended.errors.join("\n"),
+    );
+
+    const reviewed = compareGovernance(
+      authoritativeDesiredFixture,
+      rawLiveGovernance([
+        {
+          type: "required_reviewers",
+          prevent_self_review: true,
+          reviewers: [{ type: "User", reviewer: { id: 7, login: "someone" } }],
+        },
+      ]),
+    );
+    assert.ok(reviewed.errors.includes("release environment reviewers drifted"));
+    assert.ok(reviewed.errors.includes("release environment self-review policy drifted"));
+  });
+
+  // @lat: [[tests#Release governance#Merging a version tags it exactly once]]
+  it("tags every push to main through the controlled actor only", () => {
+    assert.deepEqual(tagWorkflow.on.push, {
+      branches: ["main"],
+      paths: ["package.json", "CHANGELOG.md"],
+    });
+    assert.equal(tagWorkflow.on.workflow_dispatch.inputs.version.required, false);
+    assert.deepEqual(tagWorkflow.permissions, { contents: "read" });
+    assert.equal(tagWorkflow.jobs["create-tag"].if, "github.ref == 'refs/heads/main'");
+    assert.deepEqual(tagWorkflow.concurrency, {
+      group: "release-tag-${{ github.repository }}",
+      "cancel-in-progress": false,
+    });
+    const steps = tagWorkflow.jobs["create-tag"].steps as any[];
+    const checkout = steps.find((step) => step.uses?.startsWith("actions/checkout@"));
+    assert.equal(checkout?.with?.["persist-credentials"], false);
+    const token = steps.find((step) => step.uses?.startsWith("actions/create-github-app-token@"));
+    assert.equal(token?.with?.["permission-contents"], "write");
+    assert.equal(token?.with?.repositories, "oxc-plugin-servicenow");
+    const runSteps = steps.filter((step) => step.run);
+    assert.deepEqual(
+      runSteps.map((step) => step.run),
+      ["node scripts/create-release-tag.mjs"],
+    );
+    assert.equal(runSteps[0].env.EXPECTED_COMMIT, "${{ github.sha }}");
+    assert.equal(
+      runSteps[0].env.RELEASE_SENTINEL_TOKEN,
+      "${{ steps.release-sentinel.outputs.token }}",
+    );
   });
 
   it("rejects missing live rulesets instead of copying desired rules", () => {
