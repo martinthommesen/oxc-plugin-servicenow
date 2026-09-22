@@ -1,93 +1,26 @@
 # oxc-plugin-servicenow
 
-**[oxlint](https://oxc.rs/docs/guide/usage/linter.html)** + **[oxfmt](https://oxc.rs/docs/guide/usage/formatter.html)** tooling for:
+ServiceNow lint rules for **[oxlint](https://oxc.rs/docs/guide/usage/linter.html)** and **ESLint 9–10**, plus an **[oxfmt](https://oxc.rs/docs/guide/usage/formatter.html)** configuration preset.
 
-1. **ServiceNow Fluent** — TypeScript DSL in `.now.ts` files, powered by [`@servicenow/sdk`](https://servicenow.github.io/sdk/guides/fluent-overview)
-2. **Classic ServiceNow JavaScript** — Business Rules, Client Scripts, Script Includes, UI Actions, ACLs, and scheduled and fix scripts running on the restricted platform engine
+- **Classic scripts:** catch unsafe GlideRecord usage, Business Rule recursion, client API mistakes, and mode-specific engine restrictions.
+- **Fluent metadata:** check imports, IDs, and directives in `.now.ts` / `.now.tsx` files.
+- **Conservative by design:** rules report diagnostics, not fixes, and stay silent when the required runtime context or API identity is unknown.
 
-The plugin is written against the official [`@oxlint/plugins`](https://www.npmjs.com/package/@oxlint/plugins) API (`definePlugin` + `defineRule` + `createOnce`) and is wrapped with `eslintCompatPlugin`, so the same package works in **oxlint** and **ESLint 9+**.
-
-```bash
-npm install -D oxc-plugin-servicenow oxlint oxfmt
-```
-
-## Supported package entry points
-
-| Entry point | Supported exports |
-| --- | --- |
-| `oxc-plugin-servicenow` | Default plugin, `plugin`, `configs`, and the `ServiceNowSettings`, `RuleConfigMap`, and `RuleName` types. |
-| `oxc-plugin-servicenow/analysis` | `analyzeProvenance`, `getScriptContext`, and their read-only public types. |
-| `oxc-plugin-servicenow/oxfmt` | The TypeScript oxfmt configuration exports. |
-| `oxc-plugin-servicenow/oxfmt.recommended.json` | The JSON oxfmt preset. |
-| `oxc-plugin-servicenow/package.json` | Package metadata through Node package exports. |
-
-Other source and `dist` paths are internal. Do not import them.
-
-`analyzeProvenance(context, ast?)` analyzes `context.sourceCode.ast` by default. Pass an explicit AST only when its nodes are the ones you will query. Explicit trees are cached independently and use their own lexical bindings rather than borrowing the host parser's scope graph.
-
----
-
-## Why this exists
-
-ServiceNow apps mix two script kinds: Fluent metadata and classic instance scripts.
-
-Fluent `.now.ts` files are **declarative metadata**. They should import from `@servicenow/sdk/core`, declare `$id: Now.ID['…']`, and keep business logic out of the metadata object.
-
-Classic scripts still run on a **restricted, mode-dependent engine**. Compatibility and ES5 Standards reject many modern features. ES2021 supports Promise, async/await, and optional chaining, but still disallows async iteration, WeakRef, and FinalizationRegistry. `current.update()` in a Business Rule retriggers the rule engine. Client-side `GlideRecord` retrieves all fields and is unsupported in scoped applications. Hardcoded sys_ids no longer match after the app is installed on another instance.
-
-This package does **not** treat every non-Fluent file as ES5. Unknown JavaScript mode stays unknown. Mode-specific rules skip rather than guess.
-
-Existing ESLint plugins (`eslint-plugin-servicenow`, `eslint-plugin-sn`) cover parts of classic scripting and none of Fluent. This package covers both, on the Oxc toolchain.
-
----
+[Quick start](#quick-start--oxlint) · [ESLint](#eslint-9) · [Formatting](#quick-start--oxfmt) · [Presets](#presets) · [Settings](#settings) · [Rules](#rules) · [Troubleshooting](#troubleshooting-a-quiet-run) · [Documentation](#documentation)
 
 ## Quick start — oxlint
 
-### `.oxlintrc.json`
+Requires **Node.js 22.12.0+**. Install the supported oxlint minor line:
 
-```jsonc
-{
-  "jsPlugins": [
-    { "name": "servicenow", "specifier": "oxc-plugin-servicenow" }
-  ],
-  "settings": {
-    "servicenow": {
-      "javascriptMode": "unknown"
-    }
-  },
-  "rules": {
-    "servicenow/no-hardcoded-sysid": "error",
-    "servicenow/no-gs-now": "error",
-    "servicenow/require-query-before-next": "error",
-    "servicenow/no-client-gliderecord": "error",
-    "servicenow/no-br-current-update": "error",
-    "servicenow/no-sync-glideajax": "error",
-    "servicenow/no-delete-multiple-with-windowing": "error",
-    "servicenow/require-callback-for-getreference": "error",
-    "servicenow/require-glideajax-sysparm-name": "error",
-    "servicenow/validate-glideaggregate-calls": "error",
-    "servicenow/no-now-id-as-reference": "error",
-    "servicenow/no-glideajax-getanswer": "error",
-    "servicenow/no-duplicate-fluent-id": "error",
-    "servicenow/no-glideelement-in-collection": "error",
-    "servicenow/no-gliderecord-query-modifier-after-query": "error",
-    "servicenow/require-business-rule-wrapper": "error",
-    "servicenow/no-unfiltered-gliderecord-bulk-operation": "warn",
-    "servicenow/no-async-iterators": "error",
-    "servicenow/no-weak-references": "error",
-    "servicenow/fluent-proper-imports": "error",
-    "servicenow/fluent-directives": "warn",
-    "servicenow/require-fluent-id": "error"
-  }
-}
+```bash
+npm install -D oxc-plugin-servicenow oxlint@~1.83.0
 ```
 
-Or copy the maps exported by the package:
+Create `oxlint.config.ts`:
 
 ```ts
-// oxlint.config.ts
 import { defineConfig } from "oxlint";
-import servicenow, { configs } from "oxc-plugin-servicenow";
+import { configs } from "oxc-plugin-servicenow";
 
 export default defineConfig({
   jsPlugins: [{ name: "servicenow", specifier: "oxc-plugin-servicenow" }],
@@ -95,75 +28,19 @@ export default defineConfig({
 });
 ```
 
-> oxlint JS plugins are **alpha**. Custom file parsers and type-aware rules are not supported. This plugin stays within the supported ESTree visitor API. See [JS plugins](https://oxc.rs/docs/guide/usage/linter/js-plugins.html) and [writing JS plugins](https://oxc.rs/docs/guide/usage/linter/writing-js-plugins.html).
-
-### Presets
-
-| Preset | Flat | Intent |
-| --- | --- | --- |
-| `configs.recommendedRules` | `configs.flat.recommended` | High-confidence rules that stay quiet when the runtime mode or surface is unknown. |
-| `configs.classicEs5Rules` | `configs.flat.classicEs5` | Compatibility / ES5 engine bans (Promise, async/await, `?.`, WeakMap, …). |
-| `configs.es2021Rules` | `configs.flat.es2021` | Features still unavailable after ES2021, including universal restrictions and release-dependent BigInt typed-array support. |
-| `configs.clientRules` | `configs.flat.client` | Client-side API rules. |
-| `configs.aclRules` | `configs.flat.acl` | ACL-specific review rules. |
-| `configs.businessRuleRules` | `configs.flat.businessRule` | Business Rule rules. |
-| `configs.fluentRules` | `configs.flat.fluent` | Fluent `.now.ts` metadata rules. |
-| `configs.strictRules` | `configs.flat.strict` | Recommended plus warn-level performance and naming guidance. Does not promote heuristics to errors. |
-| `configs.policyRules` | `configs.flat.policy` | Optional organizational and migration policy (`no-hardcoded-table-names`, `no-complex-fluent-logic`, `no-packages-calls`). |
-| `configs.securityRules` | `configs.flat.security` | Opt-in privilege-sensitive review rules such as `no-system-query-bypass`. |
-
----
-
-## Quick start — oxfmt
-
-oxfmt does **not** currently support custom formatting plugins. The supported extension point is a recommended configuration with file-type overrides.
-
-### `oxfmt.config.ts`
-
-```ts
-import { defineConfig } from "oxfmt";
-import { recommendedOxfmtConfig } from "oxc-plugin-servicenow/oxfmt";
-
-export default defineConfig(recommendedOxfmtConfig);
-```
-
-### `.oxfmtrc.json`
-
-```json
-{
-  "$schema": "./node_modules/oxfmt/configuration_schema.json",
-  "extends": []
-}
-```
-
-Copy the JSON preset shipped with the package:
-
 ```bash
-cp node_modules/oxc-plugin-servicenow/oxfmt.recommended.json .oxfmtrc.json
+npx oxlint .
 ```
 
-What the preset does:
-
-| Files | Style |
-| --- | --- |
-| `**/*.now.ts`, `**/*.now.tsx` | TypeScript / Fluent — single quotes, trailing commas, width 100 |
-| `**/*.{server,client,br,si,acl}.js`, `**/*.ui-action.js`, `**/src/server/**/*.js`, `**/src/client/**/*.js`, ACL directories | Classic Studio style — double quotes, no trailing commas, width 120. Includes compound `.client.ui-action.js` and `.server.ui-action.js` suffixes. |
-| `**/now.config.json`, `**/.oxlintrc.json`, `**/.oxfmtrc.json` | Configuration files — width 80, no trailing commas |
-| `**/node_modules/**`, `**/dist/**`, `**/build/**`, `**/.now/**`, `**/keys.ts`, `**/*.min.js` | Ignored (build output and SDK sync artefacts) |
-
-Then:
-
-```bash
-npx oxfmt --write .
-```
-
-`.now.ts` is TypeScript. oxfmt formats it already; the preset selects Fluent-friendly options.
-
----
+**Set your runtime context next.** Names such as `*.br.js`, `*.client.js`, and `*.now.ts` identify script context; generic `foo.js` does not. Set JavaScript mode and scope explicitly where known—see [Settings](#settings) and the [mixed-project example][repository-example-mixed].
 
 ## ESLint 9+
 
-The plugin is wrapped with `eslintCompatPlugin`, so every `createOnce` rule also has a `create` shim.
+Install `oxc-plugin-servicenow` and ESLint, then create `eslint.config.js`:
+
+```bash
+npm install -D oxc-plugin-servicenow eslint@^10
+```
 
 ```js
 // eslint.config.js
@@ -172,19 +49,20 @@ import servicenow from "oxc-plugin-servicenow";
 export default [servicenow.configs.flat.recommended];
 ```
 
-```js
-export default [servicenow.configs.flat.strict];
+```bash
+npx eslint .
 ```
 
-The flat presets set `files` so ESLint 10 opens classic `*.js` / `*.cjs` / `*.mjs` and Fluent `*.now.ts` / `*.now.tsx`. ESLint 10's default glob is JS/CJS/MJS only.
+Flat presets select classic JavaScript and Fluent files. **Typed Fluent files also need a TypeScript parser**; oxlint parses them natively.
 
-`configs.flat.client` selects client-script filenames and supplies the client surface, but deliberately does not guess application scope. Merge `settings.servicenow.scope: "scoped"` when using it for a scoped application; `no-client-gliderecord` stays silent for global or unknown scope because ServiceNow still documents the global client API.
+<details>
+<summary>ESLint configuration for typed Fluent files</summary>
 
-`configs.flat.acl` selects boundary-delimited ACL and access-control export names plus ACL directories, then derives the ACL surface from that same filename evidence. Contradictory paths such as `src/client/read.acl.js` stay unclassified. Its advisory query rule is also available in strict and security; recommended remains unchanged.
+Install `typescript-eslint` 8.x (8.56.0 or later for ESLint 10):
 
-oxlint parses TypeScript itself. ESLint uses its default JS parser, so type annotations (`import type`, `: string`) in `.now.ts` fail to parse when you use only `plugin.configs.flat.recommended`.
-
-For typed Fluent files, compose the recommended (or strict) preset with a TypeScript parser. This package tests [`typescript-eslint`](https://typescript-eslint.io/getting-started/) `8.70.0` with ESLint 9.39.5 and ESLint 10.11.0. On ESLint 10, use `typescript-eslint` 8.56.0 or later. Type-aware linting is not required.
+```bash
+npm install -D typescript-eslint@^8.56.0
+```
 
 ```js
 // eslint.config.js — typed Fluent composition
@@ -206,41 +84,42 @@ export default [
 ];
 ```
 
-Ordinary TypeScript outside `*.now.ts` / `*.now.tsx` stays unaffected unless you add those files to the config yourself.
+Type-aware linting is not required. Ordinary TypeScript is unaffected unless you add a `files` override and parser; set `javascriptMode` for server TypeScript.
 
-To run these rules on server TypeScript (`src/server/**/*.ts`), add a `files` override. Set `settings.servicenow.javascriptMode` to `es2021` or `es5` for those files. `ecmaLatest` still maps `true` to `es2021` with a deprecation; the `// @sn-es-latest` pragma was retired in 3.0.0.
+</details>
 
----
+## Quick start — oxfmt
 
-## Runtime context
+The formatter preset selects Fluent-friendly and classic Studio styles; it is configuration, not a custom formatting plugin.
 
-The plugin models four independent dimensions. It does not collapse them into one `scriptType`.
-
-| Dimension | Values | Why it matters |
-| --- | --- | --- |
-| Authoring form | classic / Fluent | Instance script versus SDK metadata |
-| JavaScript mode | Compatibility / ES5 / ES2021 / unknown | Language-feature support |
-| Surface | client / server / ACL / Business Rule / UI Action / Script Include / scheduled / fix | Available APIs |
-| Scope | global / scoped / unknown | API availability |
-| Confidence | explicit / filename / inferred / unknown | Whether mode-specific rules may run |
-
-Authority order: explicit settings, then filename conventions, then conservative source inference. Unknown JavaScript mode never assumes ES5.
-
-UI Actions can be client, server, or mixed:
-
-```jsonc
-{
-  "settings": {
-    "servicenow": {
-      "surfaces": ["ui-action", "client"]
-    }
-  }
-}
+```bash
+npm install -D oxc-plugin-servicenow oxfmt@~0.68.0
+cp node_modules/oxc-plugin-servicenow/oxfmt.recommended.json .oxfmtrc.json
+npx oxfmt --write .
 ```
+
+Already have an oxfmt config? Merge the preset rather than overwriting it. See the [formatter guide](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/oxfmt.md) for TypeScript configuration and file overrides.
+
+## Presets
+
+Use rule maps in oxlint and `configs.flat.*` in ESLint. Start with `recommended`; add runtime-specific presets only for the files they apply to.
+
+| Rule map | ESLint flat preset | Use for |
+| --- | --- | --- |
+| `configs.recommendedRules` | `configs.flat.recommended` | High-confidence checks; unknown context stays unknown. |
+| `configs.classicEs5Rules` | `configs.flat.classicEs5` | Compatibility / ES5 engine restrictions. |
+| `configs.es2021Rules` | `configs.flat.es2021` | Remaining ES2021 restrictions and release-dependent checks. |
+| `configs.clientRules` | `configs.flat.client` | Client-side APIs; set application scope separately. |
+| `configs.aclRules` | `configs.flat.acl` | ACL review rules. |
+| `configs.businessRuleRules` | `configs.flat.businessRule` | Business Rules. |
+| `configs.fluentRules` | `configs.flat.fluent` | Fluent metadata. |
+| `configs.strictRules` | `configs.flat.strict` | Recommended plus warn-level performance and naming guidance. |
+| `configs.policyRules` | `configs.flat.policy` | Opt-in organizational and migration policy. |
+| `configs.securityRules` | `configs.flat.security` | Opt-in privilege-sensitive review. |
 
 ## Settings
 
-Configure once. Invalid keys, types, or conflicting values throw a configuration error with the full path.
+Configure `settings.servicenow` per file group. Explicit settings take precedence over filename conventions and conservative source inference. Unknown JavaScript mode never assumes ES5; invalid or conflicting settings throw a configuration error.
 
 ```jsonc
 {
@@ -248,17 +127,16 @@ Configure once. Invalid keys, types, or conflicting values throw a configuration
     "servicenow": {
       "javascriptMode": "es2021",
       "surfaces": ["business-rule"],
-      "scope": "scoped",
-      "scopePrefix": "x_acme",
-      "allowedSysIds": ["97c04b3b1b12100043ab85e5bd0713e2"],
-      "allowedTables": ["x_acme_widget"],
-      "release": "australia",
-      "fluentSdkVersion": "4.4.1",
-      "businessRuleSourceFormat": "full-script"
+      "scope": "scoped"
     }
   }
 }
 ```
+
+The instance `release` and `fluentSdkVersion` are independent. Set each only when known. For mixed UI Actions, use `surfaces: ["ui-action", "client", "server"]`.
+
+<details>
+<summary>All settings</summary>
 
 | Field | Meaning |
 | --- | --- |
@@ -276,33 +154,10 @@ Configure once. Invalid keys, types, or conflicting values throw a configuration
 | `scriptType` | **Deprecated.** Use `authoring` and `surfaces`. |
 | `ecmaLatest` | **Deprecated.** `true` maps to `javascriptMode: "es2021"`. `false` does not assume ES5. |
 
-Australia support reads release-specific capability cells.
+</details>
 
-The generated [Australia JavaScript engine update ledger](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/australia-engine-updates.md) maps every official Rhino update row to an implemented diagnostic, a deliberate metadata-only disposition, or explicit pending research. Pending rows are not counted as supported.
-
-| Engine capability | Zurich ES2021 | Australia ES2021 | ES5 Standards |
-| --- | --- | --- | --- |
-| `Object.hasOwn()` | Not Supported | Supported | Not Supported |
-| `BigInt64Array` / `BigUint64Array` | Not Supported | Supported | Not Supported |
-| `TypedArray.from()` / `TypedArray.of()` | Not Supported | Supported | Typed arrays Disallowed |
-| `BigInt.asUintN()` / `BigInt.asIntN()` narrowing | Incorrect edge cases | Corrected | BigInt Not Supported |
-| `Array.from()` mapper `thisArg` semantics | Incorrect primitive/omitted cases | Corrected | `Array.from()` Not Supported |
-| `Function.prototype.call()` / `.apply()` `thisArg` semantics | Incorrect and execution-path-dependent | Corrected | Not corrected (ES2021-only update) |
-| Nested block function hoisting | Incorrect | Corrected | Release-dependent (Australia corrected) |
-| Constructing shorthand object methods | Permitted (non-standard) | Throws `TypeError` | Ordinary method syntax Not Supported; async/generator methods Disallowed |
-| Private instance members | Not Supported | Not Supported | Not Supported |
-| `DataView` BigInt getters | Not Supported | Not Supported | Not Supported |
-| `Function.prototype.toString()` source text for methods and computed property names | Disallowed | Supported | Disallowed |
-
-ServiceNow publishes feature-table columns for ES2021 and ES5 Standards, while documenting Compatibility as a distinct third mode. The plugin deliberately applies each feature-table ES5 cell to Compatibility mode as package policy; capability metadata marks those inferred cells separately from official table cells. Update-ledger entries explicitly marked for all modes, such as Australia's variable-length Date fractions, are modeled directly for Compatibility instead of using that inference. “Not Supported” retains ServiceNow's precise meaning: the feature has not been validated for that release and mode, unlike “Disallowed,” which produces a platform error.
-
-The narrow `Function.prototype.toString()` delta is recorded as compatibility knowledge but has no lint diagnostic: static analysis cannot prove that code depends on exact returned method source text without unacceptable false positives. The `Function.prototype.call()` / `.apply()` correction is also metadata-only. Before the upstream fix, nullish-`thisArg` handling depended both on function strictness and on Rhino's interpreted-versus-compiled execution path; source analysis cannot prove which legacy path ServiceNow will select.
-
-`no-unhoisted-block-function-use` covers the deterministic hoisting delta: it reports only a binding-proven read before a nested-block declaration in the same execution body, excluding deferred functions, classes, switch cases, mutable bindings, and dynamic scope. `no-object-method-constructor` covers Australia's stricter method construction: it reports only direct `new` calls whose shorthand object-method identity is stable through immutable object and method aliases. `no-incorrect-bigint-asuintn` is intentionally narrower: it reports only literal negative-input calls where the pre-Australia and specified unsigned results are provably different. `no-incorrect-array-from-thisarg` likewise requires a stable native `Array.from`, a syntax-proven mapper, and either a static primitive third argument or a non-strict mapper that reads its own `this` with no third argument.
-
-ServiceNow's unversioned Australia reference URLs were reviewed with the official `Australia` release label and March 12, 2026 update date; those source markers are pinned beside the capability tables so a later default-documentation change cannot silently relabel the review. Australia release notes identify the SDK 4.4 family. The plugin keeps `fluentSdkVersion` independent so users can select a reviewed declaration manifest; that setting does not assert that an SDK version is compatible with a particular instance.
-
-Mixed-repository composition:
+<details>
+<summary>Mixed-repository configuration (oxlint)</summary>
 
 ```ts
 import { defineConfig } from "oxlint";
@@ -331,13 +186,18 @@ export default defineConfig({
 });
 ```
 
-The `// @sn-es-latest` pragma was retired in 3.0.0 and is ignored; pragma-only files resolve `unknown` JavaScript mode. Set `javascriptMode` in settings instead.
+</details>
 
----
+Release-specific coverage is documented in the [Australia engine update ledger](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/australia-engine-updates.md). “Not Supported” means not validated by ServiceNow for that release and mode; “Disallowed” means a platform error. Compatibility uses ES5 feature-table cells as package policy, not as an official Compatibility table.
 
 ## Rules
 
+Each rule page includes examples, applicability, limitations, and evidence. All rules are diagnostic-only.
+
 ### Classic ServiceNow
+
+<details>
+<summary>Browse classic script rules</summary>
 
 <!-- generated:classic-rules:start -->
 | Rule | Profile | Fix | What it catches |
@@ -367,7 +227,12 @@ The `// @sn-es-latest` pragma was retired in 3.0.0 and is ignored; pragma-only f
 | [`no-sync-glideajax`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/no-sync-glideajax.md) | recommended |  | `getXMLWait()` blocks the browser and does not work in Service Portal |
 <!-- generated:classic-rules:end -->
 
+</details>
+
 ### Instance engine (mode-specific)
+
+<details>
+<summary>Browse engine compatibility rules</summary>
 
 These rules run only when `javascriptMode` is known, except for features that ServiceNow documents as unavailable in every instance mode for the selected release.
 
@@ -395,7 +260,12 @@ These rules run only when `javascriptMode` is known, except for features that Se
 | [`no-async-iterators`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/no-async-iterators.md) | recommended | `for await…of` and async generators are disallowed in every instance JavaScript mode, including ES2021 |
 <!-- generated:engine-rules:end -->
 
+</details>
+
 ### Fluent (`.now.ts`)
+
+<details>
+<summary>Browse Fluent metadata rules</summary>
 
 <!-- generated:fluent-rules:start -->
 | Rule | Profile | Fix | What it catches |
@@ -410,7 +280,7 @@ These rules run only when `javascriptMode` is known, except for features that Se
 | [`no-duplicate-fluent-id`](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rules/no-duplicate-fluent-id.md) | recommended |  | Two Fluent definitions that share the same static `Now.ID` key as `$id` collide |
 <!-- generated:fluent-rules:end -->
 
----
+</details>
 
 ## Examples
 
@@ -427,185 +297,34 @@ Runnable profile projects live under [`examples/`][repository-examples]:
 | [fluent][repository-example-fluent] | Fluent `.now.ts` metadata |
 | [mixed][repository-example-mixed] | One repository with several surfaces |
 
-### Classic Business Rule — bad
-
-```js
-var assignmentGroup = "97c04b3b1b12100043ab85e5bd0713e2";
-current.assignment_group = assignmentGroup;
-current.u_opened = gs.now();
-current.update();
-```
-
-```
-error  servicenow/no-hardcoded-sysid     Hardcoded sys_id '97c04b3b…'
-error  servicenow/no-gs-now              gs.now() is timezone-unsafe
-error  servicenow/no-br-current-update   current.update() retriggers other rules
-```
-
-### Classic Business Rule — good
-
-```js
-current.assignment_group = gs.getProperty("x_acme.default_assignment_group");
-current.u_opened = new GlideDateTime();
-current.work_notes = "Assigned by default routing";
-```
-
-### Fluent — bad
-
-```ts
-import { BusinessRule } from "@servicenow/sdk";
-
-BusinessRule({
-  table: "incident",
-  name: "Log state",
-  script: `
-    (function executeRule(current) {
-      var gr = new GlideRecord("sys_journal_field");
-      // …dozens of lines of logic…
-    })(current);
-  `,
-});
-```
-
-### Fluent — good
-
-```ts
-import { BusinessRule } from "@servicenow/sdk/core";
-import { logStateChange } from "../server/log-state-change";
-
-BusinessRule({
-  $id: Now.ID["log-state-change"],
-  table: "incident",
-  name: "Log state change",
-  when: "after",
-  action: ["update"],
-  script: logStateChange,
-});
-```
-
-Or, for a raw script file:
-
-```ts
-script: Now.include("../server/log-state-change.server.js"),
-```
-
----
-
-## Migration from ESLint ServiceNow plugins
-
-| Old (`eslint-plugin-servicenow` / `eslint-plugin-sn`) | New |
-| --- | --- |
-| `servicenow/no-hardcoded-sysids` | `servicenow/no-hardcoded-sysid` |
-| `servicenow/no-promise` | `servicenow/no-promise` |
-| `servicenow/no-async-await` | `servicenow/no-async-await` |
-| `servicenow/no-bigint-and-dataview` | `servicenow/no-bigint` + `servicenow/no-typed-arrays` |
-| `sn/no-gs-now` | `servicenow/no-gs-now` |
-| `sn/no-client-gliderecord` | `servicenow/no-client-gliderecord` |
-| `sn/no-gr-count-iterate` | `servicenow/prefer-glideaggregate` |
-| `sn/validate-gliderecord-calls` | `servicenow/require-query-before-next` |
-| `sn/no-br-current-update` | `servicenow/no-br-current-update` |
-| `servicenow/no-at-method` | `servicenow/no-at-method` |
-| `servicenow/no-packages-calls` | `servicenow/no-packages-calls` |
-| `servicenow/no-weak-references` | `servicenow/no-weak-references` + `servicenow/no-weak-collections` |
-| `servicenow/no-proxy-internal-calls` | `servicenow/no-proxy` |
-| `servicenow/no-regexp-lookbehind` / `no-private-class-methods` | `servicenow/no-unsupported-syntax` |
-| *(none)* | `servicenow/no-sync-glideajax` |
-| *(none)* | `servicenow/fluent-*` and `prefer-now-include` |
-
-1. Install `oxc-plugin-servicenow` + `oxlint`.
-2. Drop in `.oxlintrc.json` with the recommended rule map.
-3. Optionally keep ESLint for rules oxlint does not implement yet (`eslint-plugin-oxlint` to disable overlap).
-4. Replace Prettier with oxfmt using the shipped preset.
-5. Delete `eslint-plugin-servicenow` / `eslint-plugin-sn` once the diagnostics match.
-
----
-
-## Official docs
-
-- [ServiceNow Fluent](https://servicenow.github.io/sdk/guides/fluent-overview)
-- [ServiceNow SDK 3.0 / `Now.include`](https://www.servicenow.com/community/servicenow-ide-sdk-and-fluent/announcing-servicenow-sdk-3-0/ta-p/3216612)
-- [ServiceNow SDK release notes (Australia)](https://www.servicenow.com/docs/r/release-notes/servicenow-sdk-rn.html)
-- [JavaScript modes (Australia)](https://www.servicenow.com/docs/r/api-reference/scripts/c_JS_modes.html)
-- [JavaScript engine feature support (Zurich)](https://www.servicenow.com/docs/r/zurich/api-reference/scripts/javascript-engine-feature-support.html)
-- [JavaScript engine feature support (Australia)](https://www.servicenow.com/docs/r/api-reference/scripts/javascript-engine-feature-support.html)
-- [JavaScript engine updates (Australia)](https://www.servicenow.com/docs/r/api-reference/scripts/updates-javascript-engine.html)
-- [Avoid `current.update()` in Business Rules (KB0715782)](https://support.servicenow.com/kb?id=kb_article_view&sysparm_article=KB0715782)
-- [oxlint JS plugins](https://oxc.rs/docs/guide/usage/linter/js-plugins.html)
-- [oxfmt configuration](https://oxc.rs/docs/guide/usage/formatter/config.html)
-
----
-
 ## Troubleshooting a quiet run
 
-The plugin deliberately stays silent when it cannot prove a rule applies:
-a wrong assumption produces a confident false positive on correct code, so
-absence of evidence never resolves to a default. Zero diagnostics on a
-fresh install usually means one of three things.
+No diagnostics does not necessarily mean a rule ran. Check:
 
-**1. The file's surface is unknown.** Most rules gate on the execution
-surface (client, server, Business Rule, and so on), which is resolved from
-explicit settings first and filename conventions second. A file named
-`foo.js` has no surface, so surface-gated rules skip it. Recognized
-filename markers include:
+1. **Surface:** use recognized names such as `*.client.js`, `*.br.js`, `*.si.js`, `*.server.js`, or `*.now.ts`, or set `surfaces` in a file override.
+2. **Mode and metadata:** set `javascriptMode` for engine checks, `scope: "scoped"` for scoped-client restrictions, and `businessRuleWhen` for timing-specific checks. The retired `// @sn-es-latest` pragma is ignored.
+3. **API identity:** rules cannot report on receivers they cannot prove. Escaped or dynamic objects and analysis-budget exhaustion can suppress findings.
 
-| Surface | Filename markers (case-insensitive; `.js`, `.cjs`, `.mjs`) |
-| --- | --- |
-| Client | `*.client.js`, `*.cs.js`, `*client-script*`, `*catalog-client*`, `*onload*`/`*onchange*`/`*onsubmit*`, `*ui-policy*`, `client/` or `src/client/` directories |
-| Business Rule | `*.br.js`, `*business-rule*`, `sys_script.js`, `br/` directories |
-| Script Include | `*.si.js`, `*script-include*`, `sys_script_include*`, `script-includes/` directories |
-| UI Action | `*.ui-action.js`, `*.ua.js`, `sys_ui_action*`, compound `*.client.ui-action.js` / `*.server.ui-action.js` |
-| ACL | `acl`/`access-control` names and directories, `sys_security_acl*` |
-| Scheduled / fix | `*scheduled-script*`, `*.ss.js`, `*fix-script*`, `*.fix.js`, `sysauto_script*`, `sys_script_fix*` |
-| Server (generic) | `*.server.js`, `server/` or `src/server/` directories |
-| Fluent | `*.now.ts`, `*.now.tsx` |
+Try one rule against one file and compare with its [rule page](#rules). oxlint JS plugins remain **alpha**, with no custom parsers or type-aware rules; see the [host limitations](https://oxc.rs/docs/guide/usage/linter/js-plugins.html).
 
-Remedy: rename files to a convention, or set
-`settings.servicenow.surfaces` per file group with `files` overrides, as
-in the mixed-repository composition above.
+## Documentation
 
-**2. The JavaScript mode is unknown.** Mode-specific rules (the ES5 and
-ES2021 engine restrictions) skip rather than guess when
-`settings.servicenow.javascriptMode` is unset. Restrictions that apply in
-every instance mode still run. Remedy: set `javascriptMode` for each file
-group. Business Rule timing rules likewise wait for `businessRuleWhen`.
-
-**3. The receiver is not proven.** Glide lifecycle rules report only on
-object identities the analyzer can prove; an aliased, escaped, or
-dynamically constructed receiver stays silent by design. On files dense
-enough to reach the deterministic work budget, the path analyzer can also
-degrade to no findings for the affected rule; the budget scales with
-file size, so this indicates an unusually dense file. Splitting the file
-restores full analysis.
-
-If a rule you expected still stays silent, run one rule at a time against
-one file and compare with the rule page's examples; each generated page
-states the exact surfaces and modes the rule runs under.
-
-## Current oxlint JS plugin limitations
-
-These are platform limits, not bugs in this package:
-
-- JS plugins are **alpha** and the API may still move.
-- No type-aware rules (Fluent `Table` generics are not inspected).
-- No custom parsers. `.now.ts` is linted as TypeScript, which is what these rules need.
-- Rule options / suggestions / tokens are supported; some older ESLint APIs are not.
-- Prefer `createOnce` + `before()`, as this plugin does, so oxlint can skip files whose node types the rule never visits.
-
----
+- [Examples](#examples) — runnable projects for each script context.
+- [Migration to 3.0.0](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/migration-3.0.md) — breaking changes and replacements.
+- [Compatibility](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/compatibility.md) — supported toolchains and tested combinations.
+- [Formatter guide](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/oxfmt.md) — configuration and styles.
+- [Contributing][repository-contributing] · [Rule authoring][repository-rule-authoring] · [Non-goals][repository-non-goals].
 
 ## Migrating to 3.0.0
 
-3.0.0 raises the supported toolchains and removes the three deprecations announced through 2.x. Follow [docs/migration-3.0.md](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/migration-3.0.md):
-
-1. Run on Node.js 22.12.0 or later (Node.js 20 is end-of-life).
-2. Upgrade the `oxlint` peer to `>=1.83.0 <1.84.0` and the `oxfmt` peer to `>=0.68.0 <0.69.0`.
-3. Replace `servicenow/validate-gliderecord-calls` with `servicenow/require-query-before-next`; unused-return checking is dropped.
-4. Stop reading `AnalysisProvenance.queryState`, `windowed`, `sysparmName`, `aggregates`, and the `QueryState` type.
-5. Replace `// @sn-es-latest` comments with explicit `settings.servicenow.javascriptMode`.
+Follow the [3.0 migration guide](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/migration-3.0.md) before upgrading: toolchain floors changed, and the deprecated GlideRecord rule alias, unused provenance fields, and mode pragma were removed.
 
 ## Migrating to 2.0.0
 
-2.0.0 is a major release because presets and settings change behavior.
+Upgrading from 1.x? Review these historical changes before following the 3.0 guide.
+
+<details>
+<summary>1.x → 2.0 preset and API changes</summary>
 
 <!-- generated:migration-1.1-to-2.0:start -->
 | Rule | 1.1 preset | 1.1 | 2.0 | Replacement profile | Required action |
@@ -688,9 +407,31 @@ The 2.0 root no longer exports these 1.1 implementation details: `rules`,
 configuration from `/oxfmt`. Test harnesses and catalog data have no public
 replacement.
 
+</details>
+
+## Supported package entry points
+
+<details>
+<summary>Public exports for configuration and integrations</summary>
+
+| Entry point | Supported exports |
+| --- | --- |
+| `oxc-plugin-servicenow` | Default plugin, `plugin`, `configs`, and the `ServiceNowSettings`, `RuleConfigMap`, and `RuleName` types. |
+| `oxc-plugin-servicenow/analysis` | `analyzeProvenance`, `getScriptContext`, and their read-only public types. |
+| `oxc-plugin-servicenow/oxfmt` | The TypeScript oxfmt configuration exports. |
+| `oxc-plugin-servicenow/oxfmt.recommended.json` | The JSON oxfmt preset. |
+| `oxc-plugin-servicenow/package.json` | Package metadata through Node package exports. |
+
+Other source and `dist` paths are internal. Do not import them.
+
+`analyzeProvenance(context, ast?)` analyzes `context.sourceCode.ast` by default. Pass an explicit AST only when its nodes are the ones you will query. Explicit trees are cached independently and use their own lexical bindings.
+
+</details>
+
 ## Tested compatibility
 
-These declared ranges are validated by the repository test suite.
+<details>
+<summary>Tested toolchains and ServiceNow versions</summary>
 
 <!-- generated:compatibility:start -->
 | Component | Tested range |
@@ -703,28 +444,16 @@ These declared ranges are validated by the repository test suite.
 | Fluent SDK | 3.0.0, 3.0.1, 3.0.2, 3.0.3, 4.0.0, 4.0.1, 4.0.2, 4.1.0, 4.1.1, 4.2.0, 4.3.0, 4.4.0, 4.4.1, 4.5.0, 4.6.0, 4.6.1, 4.7.0, 4.7.1, 4.7.2, 4.8.0, 4.8.1, 4.9.0, 4.9.1, 4.9.2, 4.10.0, 4.10.1, 4.11.0 |
 <!-- generated:compatibility:end -->
 
+</details>
+
 ## Development
 
 ```bash
-npm install
+npm ci
 npm run validate
 ```
 
-`npm run validate` checks workflow action pins and the compatibility matrix; runs lint, format, project and fixture typechecking, build, tests, `verify:examples -- --all`, and Fluent-manifest verification; then checks evidence, acceptance, generated-documentation consistency, benchmarks, and the release artifact with a packed consumer.
-
-See [Contributing][repository-contributing], [Write a ServiceNow lint rule][repository-rule-authoring], and [Non-goals][repository-non-goals].
-
-Rules live in `src/rules/`. Each rule has:
-
-- `createOnce` (with `before()` to skip irrelevant files)
-- `meta.docs` / `meta.messages`
-- unit tests under `tests/rules/`
-
-Use `getScriptContext` and `analyzeProvenance`. Do not match platform APIs by name alone.
-
-Autofixes require proof that the rewrite preserves semantics, plus exact output, syntax-validity, idempotence, and comment-preservation tests. Otherwise emit a diagnostic only.
-
-The test harness walks an [oxc-parser](https://www.npmjs.com/package/oxc-parser) ESTree AST. CI also runs the built plugin under real oxlint and ESLint.
+See [Contributing][repository-contributing] for the full validation workflow.
 
 <!-- generated:repository-links:start -->
 [repository-examples]: https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/examples/README.md
