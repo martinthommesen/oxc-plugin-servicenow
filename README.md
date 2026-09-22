@@ -98,7 +98,7 @@ cp node_modules/oxc-plugin-servicenow/oxfmt.recommended.json .oxfmtrc.json
 npx oxfmt --write .
 ```
 
-Already have an oxfmt config? Merge the preset rather than overwriting it. See the [formatter guide](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/oxfmt.md) for TypeScript configuration and file overrides.
+Already have an oxfmt config? Merge the preset rather than overwriting it. See the [formatter guide][repository-formatter-guide] for TypeScript configuration and file overrides.
 
 ## Presets
 
@@ -133,7 +133,7 @@ Configure `settings.servicenow` per file group. Explicit settings take precedenc
 }
 ```
 
-The instance `release` and `fluentSdkVersion` are independent. Set each only when known. For mixed UI Actions, use `surfaces: ["ui-action", "client", "server"]`.
+The instance `release` and `fluentSdkVersion` are independent. Omit `release` to use only cross-release facts. Omitting `fluentSdkVersion` selects the current reviewed SDK manifest, not an unknown SDK; set it to your project's supported SDK version. For mixed UI Actions, use `surfaces: ["ui-action", "client", "server"]`.
 
 <details>
 <summary>All settings</summary>
@@ -312,7 +312,7 @@ Try one rule against one file and compare with its [rule page](#rules). oxlint J
 - [Examples](#examples) — runnable projects for each script context.
 - [Migration to 3.0.0](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/migration-3.0.md) — breaking changes and replacements.
 - [Compatibility](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/compatibility.md) — supported toolchains and tested combinations.
-- [Formatter guide](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/oxfmt.md) — configuration and styles.
+- [Formatter guide][repository-formatter-guide] — configuration and styles.
 - [Contributing][repository-contributing] · [Rule authoring][repository-rule-authoring] · [Non-goals][repository-non-goals].
 
 ## Migrating to 3.0.0
@@ -467,6 +467,7 @@ See [Contributing][repository-contributing] for the full validation workflow.
 [repository-example-mixed]: https://github.com/martinthommesen/oxc-plugin-servicenow/tree/v3.0.0/examples/mixed
 [repository-contributing]: https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/CONTRIBUTING.md
 [repository-rule-authoring]: https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rule-authoring.md
+[repository-formatter-guide]: https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/oxfmt.md
 [repository-non-goals]: https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/non-goals.md
 <!-- generated:repository-links:end -->
 
