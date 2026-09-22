@@ -1,10 +1,57 @@
+import type { ESTree } from "@oxlint/plugins";
 import type { BindingWriteQuery } from "./binding-writes.js";
+import { staticPropertyName } from "./members.js";
 import type { MutationQuery } from "./mutations.js";
+import type { Provenance, ProvenanceKind, ProvenanceQuery } from "./provenance.js";
 
 export interface PlatformMethodAuthorityFacts {
   readonly bindingWrites: BindingWriteQuery;
   readonly mutations: MutationQuery;
   readonly browserMutations?: MutationQuery;
+}
+
+/** Authority facts plus the provenance query they are judged against. */
+export interface ProvenPlatformFacts extends PlatformMethodAuthorityFacts {
+  readonly provenance: ProvenanceQuery;
+}
+
+export interface ProvenReceiverMethodOptions {
+  readonly kind: ProvenanceKind;
+  readonly method: string;
+  readonly runtime?: "instance" | "browser";
+}
+
+/**
+ * The provenance of `node` while it is a proven, unescaped `kind` value.
+ *
+ * This is the receiver half every caller of the authority predicates repeats:
+ * ask the trust-aware query, then require the expected kind.
+ */
+export function provenReceiver(
+  provenance: ProvenanceQuery,
+  node: unknown,
+  kind: ProvenanceKind,
+): Provenance | null {
+  const proven = provenance.trustedExpression(node);
+  return proven?.kind === kind ? proven : null;
+}
+
+/**
+ * The member access of `call` when it invokes `method` on an expression proven
+ * to hold a `kind` value whose method is still authoritative, otherwise null.
+ */
+export function provenReceiverMethod(
+  file: ProvenPlatformFacts,
+  call: ESTree.CallExpression,
+  { kind, method, runtime }: ProvenReceiverMethodOptions,
+): ESTree.MemberExpression | null {
+  if (call.callee.type !== "MemberExpression") return null;
+  const member = call.callee as ESTree.MemberExpression;
+  if (staticPropertyName(member) !== method) return null;
+  if (!provenReceiver(file.provenance, member.object, kind)) return null;
+  return hasAuthoritativeConstructedMethod(file, member.object, kind, method, runtime)
+    ? member
+    : null;
 }
 
 interface GlobalObjectMethodOptions {
@@ -23,6 +70,18 @@ function hasReceiverMethodAuthority(
   return (
     !facts.bindingWrites.hasDynamicScope() &&
     !mutations.isObjectPropertyAuthorityLost(receiver, property)
+  );
+}
+
+function hasConstructorPathAuthority(
+  mutations: MutationQuery,
+  constructorName: string,
+  property: string,
+): boolean {
+  return (
+    !mutations.isGlobalAuthorityLost(constructorName) &&
+    !mutations.isGlobalPathAuthorityLost([constructorName, "prototype"]) &&
+    !mutations.isGlobalPathAuthorityLost([constructorName, "prototype", property])
   );
 }
 
@@ -73,9 +132,7 @@ export function hasAuthoritativeConstructedMethod(
   const mutations = mutationsFor(facts, runtime);
   return (
     hasReceiverMethodAuthority(facts, mutations, receiver, property) &&
-    !mutations.isGlobalAuthorityLost(constructorName) &&
-    !mutations.isGlobalPathAuthorityLost([constructorName, "prototype"]) &&
-    !mutations.isGlobalPathAuthorityLost([constructorName, "prototype", property])
+    hasConstructorPathAuthority(mutations, constructorName, property)
   );
 }
 
@@ -90,7 +147,10 @@ export function hasAuthoritativeGlideRecordMethod(
   receiver: unknown,
   property: string,
 ): boolean {
-  return GLIDE_RECORD_CONSTRUCTORS.every((constructorName) =>
-    hasAuthoritativeConstructedMethod(facts, receiver, constructorName, property),
+  return (
+    hasReceiverMethodAuthority(facts, facts.mutations, receiver, property) &&
+    GLIDE_RECORD_CONSTRUCTORS.every((constructorName) =>
+      hasConstructorPathAuthority(facts.mutations, constructorName, property),
+    )
   );
 }

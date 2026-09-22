@@ -39,7 +39,7 @@ export const preferSetnocountWithChoosewindowEntry = entry(
           "Window and setNoCount state are scoped to one query epoch and one object identity.",
       },
     ),
-    placements: [{ profile: "strict", severity: "warn" }] as const,
+    placements: [{ profile: "strict", severity: "warn" }],
     optionDescriptor: undefined,
     limitationCases: [
       platformMethodMutationLimitation(

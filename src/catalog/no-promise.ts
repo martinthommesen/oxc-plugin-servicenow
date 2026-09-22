@@ -29,7 +29,7 @@ export const noPromiseEntry = entry("no-promise", noPromise, {
       overlaps: ["servicenow/no-async-await", "eslint no-restricted-globals"],
     },
   ),
-  placements: [{ profile: "classic-es5", severity: "error" }] as const,
+  placements: [{ profile: "classic-es5", severity: "error" }],
   optionDescriptor: undefined,
   limitationCases: [
     {

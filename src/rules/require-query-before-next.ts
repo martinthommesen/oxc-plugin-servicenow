@@ -21,13 +21,17 @@ export const requireQueryBeforeNext = defineRule({
   createOnce(context) {
     return {
       before() {
-        const { context: script } = beginRuleFile(context);
+        const { script } = beginRuleFile(context);
         if (!isServerInstanceContext(script)) return false;
         return undefined;
       },
       Program(node) {
-        const { analysis, file } = beginRuleFile(context);
-        for (const finding of findMissingQueryBeforeNext(node as ESTree.Node, analysis, file)) {
+        const file = beginRuleFile(context);
+        for (const finding of findMissingQueryBeforeNext(
+          node as ESTree.Node,
+          file.provenance,
+          file,
+        )) {
           context.report({
             node: finding.node,
             messageId: "missingQuery",

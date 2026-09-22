@@ -2,14 +2,11 @@ import type { ESTree } from "@oxlint/plugins";
 import { getName, isNode, unwrapExpression } from "../utils/ast.js";
 import { isDefinitelyUndefinedValue, staticPropertyName } from "./members.js";
 import type { ProvenanceQuery } from "./provenance.js";
-import { dedupePathFindings, visitChildren } from "./path-state.js";
+import { visitChildren } from "../utils/ast.js";
+import { dedupePathFindings } from "./path-state.js";
 import { definitelySkipsDoWhileTest, truthyPathRequiresCursorNext } from "./cursor-condition.js";
-import {
-  analyzeStableInvocations,
-  isFunctionNode,
-  type ImmediateFunction,
-  type StableInvocationQuery,
-} from "./stable-invocations.js";
+import { isFunctionLike, type ImmediateFunction } from "./bindings.js";
+import { analyzeStableInvocations, type StableInvocationQuery } from "./stable-invocations.js";
 import {
   hasAuthoritativeConstructedMethod,
   hasAuthoritativeGlideRecordMethod,
@@ -90,7 +87,7 @@ function containsCursorAdvance(
   analysis: ProvenanceQuery,
   authority: PlatformMethodAuthorityFacts,
 ): boolean {
-  if (!isNode(node) || isFunctionNode(node)) return false;
+  if (!isNode(node) || isFunctionLike(node)) return false;
   if (isCursorAdvanceCall(node, analysis, authority)) return true;
   let found = false;
   visitChildren(node, (child) => {
@@ -169,7 +166,7 @@ function visit(node: unknown, cursorDepth: number, state: CursorVisitState): voi
       return;
     }
   }
-  if (isFunctionNode(node)) {
+  if (isFunctionLike(node)) {
     visitFunctionBody(node, 0, state);
     return;
   }

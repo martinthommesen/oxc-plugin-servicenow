@@ -6,7 +6,7 @@ Client scripts execute in the browser and Fluent files are not instance-executed
 
 `ENGINE_FEATURES` in [[src/engine/features.ts#ENGINE_FEATURES]] maps each `EngineFeatureId` to an `EngineFeature`: a title and one `EngineFeatureRelease` per release, each holding a `support` value for all three JavaScript modes.
 
-`FeatureSupport` has three values, and the third one carries most of the design:
+`FeatureSupport` has three values, and the third is the one rule messages depend on:
 
 | Value | Meaning |
 | --- | --- |
@@ -26,6 +26,8 @@ ServiceNow's official capability table publishes only ES2021 and ES5-Standards c
 
 `ENGINE_FEATURE_EVIDENCE` pins the source URL, the official release label, the official page date (`2026-03-12` for Australia), and the package review date per release. The release label is a checkable fact: the Australia URL is unversioned, so the label is what proves the page read is the right one.
 
+An `officialUpdatedAt` of `null` means the URL path carries the release name instead, as the Zurich pages do, so there is no separate page date to pin.
+
 ## Resolution is conservative
 
 `featureSupport` in [[src/engine/features.ts#featureSupport]] returns `"unknown"` when the mode is unknown, and with no release it answers only where every release agrees.
@@ -38,7 +40,7 @@ Release-dependent facts therefore stay unknown until `settings.servicenow.releas
 
 - Fluent files, which are never instance-executed.
 - Mixed UI Actions, whose halves run in different runtimes.
-- Files with known surfaces that are not server-capable. A known client-only file must not inherit server engine restrictions.
+- Files whose *known* surfaces are not server-capable. A known client-only file must not inherit server engine restrictions. The test is `ctx.surfaces.size > 0 && !isServerInstanceContext(ctx)`, so a file with no surface evidence still runs — deliberately weaker than `isServerInstanceContext` alone, which would silence every unclassified instance script.
 - Files with an unknown JavaScript mode, unless the feature is unavailable in every mode for every admissible release — that case runs under `appliesToInstanceScripts`, which accepts an instance script with any known dimension.
 
 Otherwise the rule runs only when every admissible release documents the feature as unavailable in the file's mode.
@@ -55,13 +57,21 @@ The three dispositions differ in what they claim:
 | --- | --- |
 | `diagnostic` | Modeled, and enforced by named rules |
 | `metadata-only` | Modeled, with no diagnostic by design |
-| `pending` | **Unfinished work**, recorded so it is not mistaken for support |
+| `pending` | Unfinished work, recorded so it is not mistaken for support |
 
 `pending` marks rows that have been read and not yet modeled; the ledger says so rather than implying a rule exists. At the 2.0.0 snapshot the table is 19 rows: 10 diagnostic, 1 metadata-only, 8 pending, and the generated ledger states "Audit complete: no".
 
 The one metadata-only row is Rhino #1860 on `Function.prototype.call`/`apply` `thisArg`. Its rationale is recorded in `src/engine/australia-updates.ts`: the legacy behavior depends on strictness and on whether Rhino takes the interpreted or compiled path, which source analysis cannot select reliably. Modeling it would mean guessing.
 
 Separately, [[src/release-reviews.ts#AUSTRALIA_RULE_REVIEWS]] gives all 50 rules a release review — `reviewed` with bases, `invariant` with a rationale, or `not-applicable` on the Fluent SDK axis. Zurich is the legacy baseline and passes everything.
+
+## The ledger's own vocabulary
+
+Two of the ledger's fields are named like the rest of this file's axes but are not them.
+
+`AustraliaEngineUpdateMode` is `"all" | "es5" | "es2021"`. It is the column of ServiceNow's published table, not a JavaScript mode: there is no `compatibility` member because the `es5` rows reach Compatibility through the `es5-compatibility-policy` inference described above.
+
+`AustraliaEngineUpdateType` is `"feature" | "fix"` and says whether the upstream Rhino change adds behavior or corrects it. It is unrelated to a row's `featureIds`, which name the plugin's `EngineFeatureId` entries that model the row.
 
 ## Where this is documented
 

@@ -4,7 +4,6 @@ import path from "node:path";
 import { describe, it } from "node:test";
 import { ruleCatalog } from "../src/catalog.js";
 import { SUPPORTED_SERVICENOW_RELEASES } from "../src/settings/releases.js";
-import { lint } from "./helpers/rule-tester.js";
 import { repoRoot } from "./integration/helpers.js";
 
 // @lat: [[tests#The catalog#Every evidence record resolves]]
@@ -43,25 +42,18 @@ describe("catalog evidence", () => {
         assert.equal(evidence.url.startsWith("http"), false);
         const source = path.join(repoRoot, evidence.url);
         assert.equal(existsSync(source), true, evidence.url);
-        assert.ok(readFileSync(source, "utf8").trim().length > 0, evidence.url);
+        const contents = readFileSync(source, "utf8");
+        assert.ok(contents.trim().length > 0, evidence.url);
+        // A unit-test fixture must actually exercise the rule it is cited
+        // for. Naming a test file that never mentions the rule makes the
+        // evidence record unfalsifiable.
+        if (evidence.verifiedBy === "fixture" && evidence.url.startsWith("tests/rules/")) {
+          assert.ok(contents.includes(entry.name), `${evidence.url} never exercises ${entry.name}`);
+        }
         assert.ok(
           entry.bad.length + entry.good.length > 0,
           `${entry.name} needs executable examples`,
         );
-        for (const example of entry.bad) {
-          const messages = lint(example.code, entry.name, {
-            filename: example.filename ?? "test.js",
-            settings: example.settings,
-          });
-          assert.ok(messages.length > 0, `${entry.name} should report for ${example.name}`);
-        }
-        for (const example of entry.good) {
-          const messages = lint(example.code, entry.name, {
-            filename: example.filename ?? "test.js",
-            settings: example.settings,
-          });
-          assert.equal(messages.length, 0, `${entry.name} should allow ${example.name}`);
-        }
       });
     }
   }

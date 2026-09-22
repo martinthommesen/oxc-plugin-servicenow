@@ -1,5 +1,5 @@
 import type { ESTree } from "@oxlint/plugins";
-import { analyzePathBindings, mergeKeyedUnion } from "./path-state.js";
+import { analyzePathBindings, keyedAlternativeDomain } from "./path-state.js";
 import {
   hasAuthoritativeGlideRecordMethod,
   type PlatformMethodAuthorityFacts,
@@ -44,27 +44,33 @@ function cloneAlternative(value: CountAlternative): CountAlternative {
   };
 }
 
+// Alternatives are keyed on node identity, not on a source offset: a host that
+// supplies no offsets answers the same value for every node, which would
+// collapse distinct alternatives onto one key and lose findings
+// (FINDINGS.md COR-016).
+let nextResultOrdinal = 0;
+const resultOrdinals = new WeakMap<ESTree.CallExpression, number>();
+
+function resultOrdinal(node: ESTree.CallExpression): number {
+  const existing = resultOrdinals.get(node);
+  if (existing !== undefined) return existing;
+  nextResultOrdinal += 1;
+  resultOrdinals.set(node, nextResultOrdinal);
+  return nextResultOrdinal;
+}
+
 function alternativeKey(value: CountAlternative): string {
   return JSON.stringify({
     windowed: value.windowed,
     skippedCount: value.skippedCount,
     wantsCount: value.wantsCount,
     uncertain: value.uncertain,
-    resultStart: value.result?.node.start ?? null,
+    resultId: value.result ? resultOrdinal(value.result.node) : null,
     resultUsed: value.result?.used ?? null,
   });
 }
 
-function mergeCountData(left: CountData, right: CountData): CountData {
-  return {
-    alternatives: mergeKeyedUnion(
-      left.alternatives,
-      right.alternatives,
-      alternativeKey,
-      cloneAlternative,
-    ),
-  };
-}
+const countDomain = keyedAlternativeDomain(alternativeKey, cloneAlternative);
 
 /**
  * Report a reachable `query()` result that performs the documented
@@ -97,13 +103,9 @@ export function findChooseWindowWithoutNoCount(
         },
       ],
     }),
-    cloneData: (data) => ({ alternatives: data.alternatives.map(cloneAlternative) }),
-    equalsData: (left, right) =>
-      left.alternatives.length === right.alternatives.length &&
-      left.alternatives.every(
-        (value, index) => alternativeKey(value) === alternativeKey(right.alternatives[index]!),
-      ),
-    mergeData: mergeCountData,
+    cloneData: countDomain.cloneData,
+    equalsData: countDomain.equalsData,
+    mergeData: countDomain.mergeData,
     onCall({ call, rec, receiver, objectName, property }) {
       if (!rec || !receiver || !property) return;
       if (!hasAuthoritativeGlideRecordMethod(authority, receiver, property)) {

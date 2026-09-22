@@ -2,9 +2,8 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
-import { Linter } from "eslint";
 import { configs } from "../../src/index.js";
-import { pluginRulesFor, repoRoot, runOxlint } from "./helpers.js";
+import { eslintRuleIds, pluginRulesFor, repoRoot, runOxlint } from "./helpers.js";
 
 const profilesDir = path.join(repoRoot, "tests/integration/profiles");
 const validDir = path.join(profilesDir, "valid");
@@ -23,22 +22,12 @@ function validFiles(): string[] {
     .map((name) => path.join(validDir, name));
 }
 
-function eslintRecommended(code: string, filename: string) {
-  const linter = new Linter({ configType: "flat" });
-  return linter.verify(
-    code,
-    [configs.flat.recommended as unknown as import("eslint").Linter.Config],
-    { filename },
-  );
+function eslintRecommended(code: string, filename: string): string[] {
+  return eslintRuleIds(configs.flat.recommended, code, filename);
 }
 
 function eslintClassicEs5(code: string, filename: string): string[] {
-  return new Linter({ configType: "flat" })
-    .verify(code, [configs.flat.classicEs5 as unknown as import("eslint").Linter.Config], {
-      filename,
-    })
-    .map((message) => message.ruleId)
-    .filter((id): id is string => Boolean(id));
+  return eslintRuleIds(configs.flat.classicEs5, code, filename);
 }
 
 describe("profile fixtures", () => {
@@ -50,10 +39,10 @@ describe("profile fixtures", () => {
   it("recommended ESLint is silent on every valid profile fixture", () => {
     for (const file of validFiles()) {
       const code = readFileSync(file, "utf8");
-      const messages = eslintRecommended(code, path.basename(file)).filter((message) =>
-        message.ruleId?.startsWith("servicenow/"),
+      const ids = eslintRecommended(code, path.basename(file)).filter((id) =>
+        id.startsWith("servicenow/"),
       );
-      assert.deepEqual(messages, [], `${path.basename(file)}: ${JSON.stringify(messages)}`);
+      assert.deepEqual(ids, [], `${path.basename(file)}: ${JSON.stringify(ids)}`);
     }
   });
 
@@ -195,13 +184,11 @@ describe("profile fixtures", () => {
     const oxlintRules = pluginRulesFor(runOxlint(recommendedConfig, [file]));
     assert.ok(oxlintRules.includes("servicenow/no-weak-references"));
 
-    const eslintRules = eslintRecommended(readFileSync(file, "utf8"), filename)
-      .map((message) => message.ruleId)
-      .filter((id): id is string => Boolean(id));
+    const eslintRules = eslintRecommended(readFileSync(file, "utf8"), filename);
     assert.ok(eslintRules.includes("servicenow/no-weak-references"));
   });
 
-  it("recommended flags Phase 2 server and client rules", () => {
+  it("recommended flags windowed deletes, client lookups, GlideAjax, aggregates, and unopened cursors", () => {
     const windowed = pluginRulesFor(
       runOxlint(recommendedConfig, [path.join(invalidDir, "windowed-delete.br.js")]),
     );
@@ -246,7 +233,7 @@ describe("profile fixtures", () => {
     );
   });
 
-  it("recommended ESLint flags Phase 2 rules", () => {
+  it("recommended ESLint flags the same server, client, and Fluent identity fixtures", () => {
     const cases: Array<[string, string]> = [
       ["windowed-delete.br.js", "servicenow/no-delete-multiple-with-windowing"],
       ["sync-getreference.client.js", "servicenow/require-callback-for-getreference"],
@@ -259,9 +246,7 @@ describe("profile fixtures", () => {
     ];
     for (const [file, ruleId] of cases) {
       const code = readFileSync(path.join(invalidDir, file), "utf8");
-      const ids = eslintRecommended(code, file)
-        .map((message) => message.ruleId)
-        .filter((id): id is string => Boolean(id));
+      const ids = eslintRecommended(code, file);
       assert.ok(
         ids.includes(ruleId),
         `${file}: missing ${ruleId} (got ${ids.join(", ") || "(none)"})`,
@@ -269,7 +254,7 @@ describe("profile fixtures", () => {
     }
   });
 
-  it("recommended flags Phase 2 Fluent identity rules", () => {
+  it("recommended flags Fluent identity, alias, namespace, and directive fixtures", () => {
     const nowId = pluginRulesFor(
       runOxlint(recommendedConfig, [path.join(invalidDir, "now-id-ref.now.ts")]),
     );
@@ -317,9 +302,7 @@ describe("profile fixtures", () => {
     );
     assert.ok(!oxlintRules.includes("servicenow/fluent-directives"));
 
-    const eslintRules = eslintRecommended(readFileSync(file, "utf8"), filename)
-      .map((message) => message.ruleId)
-      .filter((id): id is string => Boolean(id));
+    const eslintRules = eslintRecommended(readFileSync(file, "utf8"), filename);
     assert.ok(
       eslintRules.includes("servicenow/require-fluent-id"),
       `ESLint SDK ignore directive: ${eslintRules.join(", ") || "(none)"}`,
@@ -340,7 +323,7 @@ describe("profile fixtures", () => {
     assert.deepEqual(pluginRulesFor(report), [], JSON.stringify(report.diagnostics, null, 2));
   });
 
-  it("recommended flags Phase 3 server rules", () => {
+  it("recommended flags retained elements, late modifiers, and unfiltered bulk operations", () => {
     const element = pluginRulesFor(
       runOxlint(recommendedConfig, [path.join(invalidDir, "glideelement-push.br.js")]),
     );
@@ -405,12 +388,7 @@ describe("profile fixtures", () => {
     assert.ok(strict.includes("servicenow/no-gliderecord-query-in-acl"));
     assert.ok(security.includes("servicenow/no-gliderecord-query-in-acl"));
 
-    const linter = new Linter({ configType: "flat" });
-    const eslintIds = linter
-      .verify(code, [configs.flat.acl as unknown as import("eslint").Linter.Config], {
-        filename: "acl-query.acl.js",
-      })
-      .map((message) => message.ruleId);
+    const eslintIds = eslintRuleIds(configs.flat.acl, code, "acl-query.acl.js");
     assert.ok(eslintIds.includes("servicenow/no-gliderecord-query-in-acl"));
   });
 
@@ -460,34 +438,22 @@ describe("profile fixtures", () => {
       `nested cursor: ${nested.join(", ") || "(none)"}`,
     );
 
-    const eslintStrict = (code: string, filename: string) => {
-      const linter = new Linter({ configType: "flat" });
-      return linter.verify(
-        code,
-        [configs.flat.strict as unknown as import("eslint").Linter.Config],
-        { filename },
-      );
-    };
+    const eslintStrict = (code: string, filename: string) =>
+      eslintRuleIds(configs.flat.strict, code, filename);
     const iteratorCode = readFileSync(path.join(validDir, "custom-iterator-loop.br.js"), "utf8");
-    const iteratorIds = eslintStrict(iteratorCode, "custom-iterator-loop.br.js")
-      .map((message) => message.ruleId)
-      .filter((id): id is string => Boolean(id));
+    const iteratorIds = eslintStrict(iteratorCode, "custom-iterator-loop.br.js");
     assert.ok(!iteratorIds.includes("servicenow/no-gliderecord-query-in-loop"));
 
     const secondCode = readFileSync(path.join(invalidDir, "setnocount-second-query.br.js"), "utf8");
-    const secondIds = eslintStrict(secondCode, "setnocount-second-query.br.js")
-      .map((message) => message.ruleId)
-      .filter((id): id is string => Boolean(id));
+    const secondIds = eslintStrict(secondCode, "setnocount-second-query.br.js");
     assert.ok(secondIds.includes("servicenow/prefer-setnocount-with-choosewindow"));
 
     const nestedCode = readFileSync(path.join(invalidDir, "nested-cursor-query.br.js"), "utf8");
-    const nestedIds = eslintStrict(nestedCode, "nested-cursor-query.br.js")
-      .map((message) => message.ruleId)
-      .filter((id): id is string => Boolean(id));
+    const nestedIds = eslintStrict(nestedCode, "nested-cursor-query.br.js");
     assert.ok(nestedIds.includes("servicenow/no-gliderecord-query-in-loop"));
   });
 
-  it("recommended ESLint flags Phase 3 rules", () => {
+  it("recommended ESLint flags element, modifier, bulk, aggregate, and Fluent fixtures", () => {
     const cases: Array<[string, string]> = [
       ["glideelement-push.br.js", "servicenow/no-glideelement-in-collection"],
       ["late-modifier.br.js", "servicenow/no-gliderecord-query-modifier-after-query"],
@@ -503,9 +469,7 @@ describe("profile fixtures", () => {
     ];
     for (const [file, ruleId] of cases) {
       const code = readFileSync(path.join(invalidDir, file), "utf8");
-      const ids = eslintRecommended(code, file)
-        .map((message) => message.ruleId)
-        .filter((id): id is string => Boolean(id));
+      const ids = eslintRecommended(code, file);
       assert.ok(
         ids.includes(ruleId),
         `${file}: missing ${ruleId} (got ${ids.join(", ") || "(none)"})`,

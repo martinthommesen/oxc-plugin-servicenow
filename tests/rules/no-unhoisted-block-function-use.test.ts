@@ -1,9 +1,14 @@
 import { describe, it } from "node:test";
-import { assertInvalid, assertValid } from "../helpers/rule-tester.js";
+import {
+  assertDeclinesNonServerSurfaces,
+  assertInvalid,
+  assertValid,
+  assertValidActive,
+  AUSTRALIA_ES2021,
+  ZURICH_ES2021,
+} from "../helpers/rule-tester.js";
 
 const RULE = "no-unhoisted-block-function-use" as const;
-const ZURICH = { javascriptMode: "es2021", release: "zurich" } as const;
-const AUSTRALIA = { javascriptMode: "es2021", release: "australia" } as const;
 
 describe(RULE, () => {
   it("reports reads before nested block function declarations in Zurich", () => {
@@ -45,7 +50,7 @@ describe(RULE, () => {
   function helper() { return "block"; }
 }`,
     ]) {
-      assertInvalid(code, RULE, { messageId: "unhoisted" }, { settings: ZURICH });
+      assertInvalid(code, RULE, { messageId: "unhoisted" }, ZURICH_ES2021);
     }
   });
 
@@ -58,7 +63,7 @@ describe(RULE, () => {
 }`,
       RULE,
       { messageId: "unhoisted", count: 2 },
-      { settings: ZURICH },
+      ZURICH_ES2021,
     );
   });
 
@@ -68,7 +73,7 @@ describe(RULE, () => {
       `{\n${reads}\nfunction helper() { return 1; }\n}`,
       RULE,
       { messageId: "unhoisted", count: 1_000 },
-      { settings: ZURICH },
+      ZURICH_ES2021,
     );
   });
 
@@ -80,7 +85,7 @@ describe(RULE, () => {
 }`,
       RULE,
       { messageId: "unhoisted" },
-      { settings: ZURICH },
+      ZURICH_ES2021,
     );
   });
 
@@ -99,7 +104,7 @@ function helper() { return 1; }`,
   }
 }`,
     ]) {
-      assertValid(code, RULE, { settings: ZURICH });
+      assertValid(code, RULE, ZURICH_ES2021);
     }
   });
 
@@ -123,7 +128,7 @@ function helper() { return 1; }`,
   new Runner().run();
 }`,
     ]) {
-      assertValid(code, RULE, { settings: ZURICH });
+      assertValidActive(code, RULE, ZURICH_ES2021);
     }
   });
 
@@ -154,18 +159,18 @@ function helper() { return 1; }`,
   function helper() { return 1; }
 }`,
     ]) {
-      assertValid(code, RULE, { settings: ZURICH });
+      assertValidActive(code, RULE, ZURICH_ES2021);
     }
   });
 
   it("ignores TypeScript-only pre-declaration references", () => {
-    assertValid(
+    assertValidActive(
       `{
   type Helper = typeof helper;
   function helper() { return 1; }
 }`,
       RULE,
-      { settings: ZURICH },
+      ZURICH_ES2021,
     );
   });
 
@@ -199,7 +204,7 @@ function helper() { return 1; }`,
   function helper() { return "second"; }
 }`,
     ]) {
-      assertValid(code, RULE, { settings: ZURICH });
+      assertValid(code, RULE, ZURICH_ES2021);
     }
   });
 
@@ -211,7 +216,7 @@ function helper() { return 1; }`,
     function helper() { return 1; }
 }`,
       RULE,
-      { settings: ZURICH },
+      ZURICH_ES2021,
     );
   });
 
@@ -221,11 +226,16 @@ function helper() { return 1; }`,
   function helper() { return 1; }
 }`;
     for (const javascriptMode of ["compatibility", "es5", "es2021"] as const) {
-      assertInvalid(code, RULE, {}, { settings: { javascriptMode, release: "zurich" } });
+      assertInvalid(
+        code,
+        RULE,
+        { messageId: "unhoisted" },
+        { settings: { javascriptMode, release: "zurich" } },
+      );
       assertValid(code, RULE, { settings: { javascriptMode, release: "australia" } });
       assertValid(code, RULE, { settings: { javascriptMode } });
     }
-    assertInvalid(code, RULE, {}, { settings: { release: "zurich" } });
+    assertInvalid(code, RULE, { messageId: "unhoisted" }, { settings: { release: "zurich" } });
     assertValid(code, RULE, { settings: { release: "australia" } });
   });
 
@@ -234,15 +244,7 @@ function helper() { return 1; }`,
   helper();
   function helper() { return 1; }
 }`;
-    assertValid(code, RULE, {
-      filename: "form.client.js",
-      settings: { ...ZURICH, surfaces: ["client"] },
-    });
-    assertValid(code, RULE, { filename: "metadata.now.ts", settings: ZURICH });
-    assertValid(code, RULE, {
-      filename: "mixed.ui-action.js",
-      settings: { ...ZURICH, surfaces: ["client", "server", "ui-action"] },
-    });
+    assertDeclinesNonServerSurfaces(code, RULE, ZURICH_ES2021.settings);
   });
 
   it("accepts the corrected Australia behavior", () => {
@@ -252,7 +254,7 @@ function helper() { return 1; }`,
   function helper() { return 1; }
 }`,
       RULE,
-      { settings: AUSTRALIA },
+      AUSTRALIA_ES2021,
     );
   });
 });

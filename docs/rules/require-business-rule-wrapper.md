@@ -20,7 +20,7 @@ Full-script Business Rules must wrap logic in the standard IIFE so top-level var
 | --- | --- |
 | Authoring | classic |
 | Surfaces | Applies to business-rule when those surfaces are known. Unknown surfaces stay silent. |
-| Minimum surface confidence | explicit-only |
+| Minimum surface confidence | inferred |
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
 | ServiceNow releases | zurich, australia |

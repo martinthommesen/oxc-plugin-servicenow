@@ -8,7 +8,7 @@ import {
   SN_JS_ENGINE_UPDATES_AUSTRALIA,
   SN_JS_FEATURES_AUSTRALIA,
   evidenceRecord,
-  type RuleEvidenceRecord,
+  type EvidenceClaim,
   type StructuredApplicability,
 } from "./catalog-metadata.js";
 
@@ -173,6 +173,14 @@ export const CATALOG_RELEASE_REVIEWS = Object.freeze({
   }),
 } as const satisfies CatalogReleaseReviewRegistry);
 
+/** The one place the per-rule review map widens to a lookup by rule name. */
+function reviewFor(
+  release: ReviewedCatalogRelease,
+  ruleName: string,
+): RuleReleaseReview | undefined {
+  return release.rules[ruleName];
+}
+
 export function serviceNowReleasesForRule(
   ruleName: string,
   authoring: StructuredApplicability["authoring"],
@@ -181,23 +189,21 @@ export function serviceNowReleasesForRule(
   return SUPPORTED_SERVICENOW_RELEASES.filter((release) => {
     const review = CATALOG_RELEASE_REVIEWS[release];
     if (review.kind === "legacy-baseline") return true;
-    const reviews: Readonly<Record<string, RuleReleaseReview>> = review.rules;
-    const ruleReview = reviews[ruleName];
+    const ruleReview = reviewFor(review, ruleName);
     return ruleReview?.status === "reviewed" || ruleReview?.status === "invariant";
   });
 }
 
 export function releaseEvidenceForRule(
   ruleName: string,
-  evidence: readonly RuleEvidenceRecord[],
-): readonly RuleEvidenceRecord[] {
-  const additions: RuleEvidenceRecord[] = [];
+  evidence: readonly EvidenceClaim[],
+): readonly EvidenceClaim[] {
+  const additions: EvidenceClaim[] = [];
   const urls = new Set(evidence.map((item) => item.url));
   for (const release of SUPPORTED_SERVICENOW_RELEASES) {
     const releaseReview = CATALOG_RELEASE_REVIEWS[release];
     if (releaseReview.kind === "legacy-baseline") continue;
-    const reviews: Readonly<Record<string, RuleReleaseReview>> = releaseReview.rules;
-    const ruleReview = reviews[ruleName];
+    const ruleReview = reviewFor(releaseReview, ruleName);
     if (ruleReview?.status !== "reviewed") continue;
     for (const basis of ruleReview.basis) {
       for (const item of releaseReview.evidence[basis]) {

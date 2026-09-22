@@ -1,28 +1,23 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import {
-  isAvailabilityGuarded,
-  isInvocationAvailabilityGuarded,
-} from "../analysis/availability.js";
-import {
-  directPlatformGlobalName,
-  platformGlobalNamespaceAccess,
-  resolvePlatformGlobalName,
-} from "../analysis/globals.js";
-import {
   isDefinitelyNonCallable,
+  isInvocationAvailabilityGuarded,
+  platformGlobalNamespaceAccess,
   resolveConstValue,
   resolveDestructuredConstMember,
+  resolvePlatformGlobalName,
   staticPropertyName,
+  type ProvenanceQuery,
 } from "../analysis/internal.js";
 import { INVOCATION_HELPERS, ruleDocsUrl } from "../constants.js";
-import { isFeatureAllowed, shouldDiagnoseFeature } from "../engine/index.js";
+import { shouldDiagnoseFeature } from "../engine/index.js";
 import { isNode, unwrapExpression } from "../utils/ast.js";
-import { beginRuleFile, isPlatformStaticMember } from "./helpers.js";
+import { beginRuleFile, isPlatformStaticMember, platformNamespaceIsSafe } from "./helpers.js";
 
 function destructuredObjectHasOwnSource(
   node: ESTree.Node,
-  analysis: ReturnType<typeof beginRuleFile>["analysis"],
+  analysis: ProvenanceQuery,
 ): ESTree.Node | null {
   const selected = resolveDestructuredConstMember(node, analysis.bindings);
   if (
@@ -36,10 +31,7 @@ function destructuredObjectHasOwnSource(
   return selected.source;
 }
 
-function objectHasOwnAccess(
-  node: unknown,
-  analysis: ReturnType<typeof beginRuleFile>["analysis"],
-): ESTree.Node | null {
+function objectHasOwnAccess(node: unknown, analysis: ProvenanceQuery): ESTree.Node | null {
   let value = resolveConstValue(node, analysis.bindings);
   if (!value) return null;
   if (value.type === "SequenceExpression") {
@@ -59,7 +51,7 @@ function objectHasOwnAccess(
 
 function invokedObjectHasOwn(
   call: ESTree.CallExpression,
-  analysis: ReturnType<typeof beginRuleFile>["analysis"],
+  analysis: ProvenanceQuery,
 ): ESTree.Node | null {
   const rawCallee = resolveConstValue(call.callee, analysis.bindings);
   const reflectApply = isPlatformStaticMember(call.callee, "Reflect", "apply", analysis);
@@ -79,7 +71,7 @@ function invokedObjectHasOwn(
 
 function isOptionalObjectHasOwnInvocation(
   invocation: ESTree.CallExpression | ESTree.NewExpression,
-  analysis: ReturnType<typeof beginRuleFile>["analysis"],
+  analysis: ProvenanceQuery,
 ): boolean {
   if (invocation.type !== "CallExpression") return false;
   if (invocation.optional && objectHasOwnAccess(invocation.callee, analysis)) return true;
@@ -105,50 +97,37 @@ export const noObjectHasown = defineRule({
   createOnce(context) {
     return {
       before() {
-        const { context: script } = beginRuleFile(context);
+        const { script } = beginRuleFile(context);
         if (!shouldDiagnoseFeature(script, "object-hasown")) return false;
         return undefined;
       },
       CallExpression(node) {
-        const { analysis, context: script, file } = beginRuleFile(context);
+        const file = beginRuleFile(context);
+        const { provenance } = file;
         const call = node as ESTree.CallExpression;
-        const invokedAccess = invokedObjectHasOwn(call, analysis);
+        const invokedAccess = invokedObjectHasOwn(call, provenance);
         if (!invokedAccess) return;
         const namespaceIsSafe = (candidate: ESTree.Node): boolean => {
-          const namespace = platformGlobalNamespaceAccess(candidate, analysis.bindings);
-          return (
-            namespace === null ||
-            isFeatureAllowed("global-this", script.javascriptMode, script.settings.release) ||
-            isAvailabilityGuarded(
-              context,
-              namespace,
-              analysis,
-              (access) => directPlatformGlobalName(access, analysis.bindings) === "globalThis",
-              {
-                allowDirectAccessGuard: false,
-                guardCacheKey: "global-this",
-              },
-            )
-          );
+          const namespace = platformGlobalNamespaceAccess(candidate, provenance.bindings);
+          return namespace === null || platformNamespaceIsSafe(context, namespace, file);
         };
         if (
           namespaceIsSafe(invokedAccess) &&
           isInvocationAvailabilityGuarded(
             context,
             call,
-            analysis,
+            provenance,
             (candidate) => {
-              const access = objectHasOwnAccess(candidate, analysis);
+              const access = objectHasOwnAccess(candidate, provenance);
               return access !== null && namespaceIsSafe(access);
             },
             {
-              guardCacheKey: "no-object-hasown",
               isPropertyExistenceTest: (property, object) =>
                 property === "hasOwn" &&
-                resolvePlatformGlobalName(object, analysis.bindings) === "Object" &&
+                resolvePlatformGlobalName(object, provenance.bindings) === "Object" &&
                 namespaceIsSafe(object),
               isOptionalInvocation: (invocation) =>
-                isOptionalObjectHasOwnInvocation(invocation, analysis),
+                isOptionalObjectHasOwnInvocation(invocation, provenance),
             },
           )
         ) {

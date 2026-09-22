@@ -3,6 +3,7 @@ import type { ESTree } from "@oxlint/plugins";
 import {
   hasAuthoritativeGlobalObjectMethod,
   isDefinitelyNullishValue,
+  provenReceiver,
   resolveDominatingConstValue,
   resolveStableCallable,
   staticPropertyName,
@@ -60,18 +61,17 @@ export const requireCallbackForGetreference = defineRule({
   createOnce(context) {
     return {
       before() {
-        const { context: script } = beginRuleFile(context);
+        const { script } = beginRuleFile(context);
         if (!isClientCapableContext(script)) return false;
         return undefined;
       },
       CallExpression(node) {
-        const { analysis, file } = beginRuleFile(context);
+        const file = beginRuleFile(context);
         const call = node as ESTree.CallExpression;
         if (call.callee.type !== "MemberExpression") return;
         if (staticPropertyName(call.callee) !== "getReference") return;
         const object = (call.callee as ESTree.MemberExpression).object;
-        const proven = analysis.trustedExpression(object);
-        if (proven?.kind !== "g_form") return;
+        if (!provenReceiver(file.provenance, object, "g_form")) return;
         if (
           !hasAuthoritativeGlobalObjectMethod(file, object, "g_form", "getReference", {
             prototypeConstructor: "GlideForm",
@@ -84,8 +84,8 @@ export const requireCallbackForGetreference = defineRule({
         // when no syntactic second argument is present.
         if (call.arguments.some((argument) => argument.type === "SpreadElement")) return;
         const callback = call.arguments[1];
-        if (call.arguments.length >= 2 && !isNullishCallback(callback, analysis)) {
-          if (callbackKind(callback, analysis, file.bindingWrites) === "invalid") {
+        if (call.arguments.length >= 2 && !isNullishCallback(callback, file.provenance)) {
+          if (callbackKind(callback, file.provenance, file.bindingWrites) === "invalid") {
             context.report({ node, messageId: "invalidCallback" });
           }
           return;

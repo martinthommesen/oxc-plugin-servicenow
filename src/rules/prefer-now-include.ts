@@ -38,7 +38,7 @@ export const preferNowInclude = defineRule({
 
     return {
       before() {
-        const { context: script } = beginRuleFile(context);
+        const { script } = beginRuleFile(context);
         if (!isFluentContext(script)) return false;
         const options = parseRuleOptions(preferNowIncludeOptions, context.options);
         maxLines = options.maxLines;
@@ -49,8 +49,8 @@ export const preferNowInclude = defineRule({
         const prop = node as unknown as ESTree.ObjectProperty;
         const key = propertyKeyName(prop);
         if (!key || !FLUENT_LARGE_CONTENT_KEYS.has(key)) return;
-        const { analysis } = beginRuleFile(context);
-        if (isCanonicalNowInclude(prop.value, analysis)) return;
+        const { provenance } = beginRuleFile(context);
+        if (isCanonicalNowInclude(prop.value, provenance)) return;
         if (prop.value.type === "Identifier") return;
 
         const text = getStringValue(prop.value);

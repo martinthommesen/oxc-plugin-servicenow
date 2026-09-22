@@ -28,6 +28,8 @@ Profiles compared:
 - recommended
 - all/strict
 
+Each run stamps the HEAD commit and the state of the worktree it measured: `sourceState` is `clean` or `dirty`, and a dirty run lists the differing files in `dirtyFiles`. The run's own output and baseline files are excluded, and untracked files outside `src/`, `scripts/`, `tests/`, and `package.json` are ignored, so a benchmark never reports itself dirty. A `dirty` run measured something other than the named commit; do not compare it with a committed baseline. The field is additive, so a baseline written before it existed has no `sourceState`.
+
 `docs/performance-baseline.json` is the reviewed comparison baseline. A fixture that the target-branch baseline lacks is new: it is measured and held to the absolute limits, but it has no trend until the baseline is refreshed. A fixture missing from the current run still fails the gate. `npm run bench` writes the current run to `artifacts/performance-current.json`. In pull-request CI, pass a baseline extracted from the target-branch merge base. Do not use a baseline modified by the same pull request.
 
 Refresh the baseline in a separate reviewed pull request with `npm run bench -- --write`. A baseline change must not excuse the performance change that it measures.

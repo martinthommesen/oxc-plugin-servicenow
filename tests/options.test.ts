@@ -14,7 +14,7 @@ import {
   schemaFromDescriptor,
 } from "../src/options/index.js";
 import { ServiceNowConfigError } from "../src/settings/index.js";
-import { lint } from "./helpers/rule-tester.js";
+import { assertInvalid, lint } from "./helpers/rule-tester.js";
 
 const SYS_ID = "97c04b3b1b12100043ab85e5bd0713e2";
 
@@ -34,7 +34,7 @@ describe("rule option descriptors", () => {
     const parsed = parseRuleOptions(noHardcodedSysidOptions, []);
     assert.deepEqual(parsed.allowedSysIds, []);
     assert.equal(parsed.ignoreHashNames, true);
-    assertValidSysIdHonor();
+    assertDefaultOptionsStillReportSysIds();
   });
 
   it("rejects a boolean string without coercion", () => {
@@ -145,8 +145,6 @@ describe("rule option descriptors", () => {
   });
 });
 
-function assertValidSysIdHonor(): void {
-  const messages = lint(`var id = "${SYS_ID}";`, "no-hardcoded-sysid");
-  assert.equal(messages.length, 1);
-  assert.equal(messages[0]?.messageId, "hardcoded");
+function assertDefaultOptionsStillReportSysIds(): void {
+  assertInvalid(`var id = "${SYS_ID}";`, "no-hardcoded-sysid", { messageId: "hardcoded" });
 }

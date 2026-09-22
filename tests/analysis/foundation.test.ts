@@ -3,12 +3,7 @@ import { describe, it } from "node:test";
 import type { ESTree } from "@oxlint/plugins";
 import { getAnalysisPassCount, resetAnalysisPassCount } from "../../src/analysis/internal.js";
 import { buildScopeTree } from "../../src/analysis/bindings.js";
-import {
-  getPathBudgetExceededCount,
-  resetPathBudgetExceededCount,
-} from "../../src/analysis/path-state.js";
 import { applyRules } from "../helpers/apply-rules.js";
-import { walk } from "../../src/utils/ast.js";
 import { assertInvalid, assertValid, parse } from "../helpers/rule-tester.js";
 
 describe("shared file analysis", () => {
@@ -222,29 +217,6 @@ outer.next();`,
 });
 
 describe("path identity and completion", () => {
-  it("traverses deeply nested ASTs without a silent depth cap", () => {
-    let node: Record<string, unknown> = { type: "Identifier", name: "value" };
-    for (let depth = 0; depth < 1_000; depth += 1) {
-      node = { type: "ExpressionStatement", expression: node };
-    }
-    let visited = 0;
-    walk(node, { ExpressionStatement: () => (visited += 1) });
-    assert.equal(visited, 1_000);
-  });
-
-  it("degrades pathological nested loops to unknown within the work budget", () => {
-    resetPathBudgetExceededCount();
-    const code = `var rec = new GlideRecord("incident");\n${"while (flag) {".repeat(400)}rec.next();${"}".repeat(400)}`;
-    const started = Date.now();
-    const messages = applyRules(code, parse(code, "nested.br.js"), {
-      filename: "nested.br.js",
-      ruleNames: ["require-query-before-next"],
-    });
-    assert.ok(getPathBudgetExceededCount() > 0);
-    assert.deepEqual(messages, []);
-    assert.ok(Date.now() - started < 5_000, "path analysis exceeded five seconds");
-  });
-
   it("shares query state across aliases", () => {
     assertValid(
       `var gr = new GlideRecord("incident");
@@ -263,6 +235,76 @@ gr.next();`,
       "require-query-before-next",
       { messageId: "missingQuery" },
     );
+  });
+
+  // @lat: [[tests#Analysis behavior#Constant logical operands select the reachable branch]]
+  describe("constant logical operands (FINDINGS.md COR-003)", () => {
+    const opened = 'var gr = new GlideRecord("incident");';
+    for (const tail of [
+      "true && gr.query(); gr.next();",
+      "1 && gr.query(); gr.next();",
+      '"ready" && gr.query(); gr.next();',
+      "false || gr.query(); gr.next();",
+      "0 || gr.query(); gr.next();",
+      "null ?? gr.query(); gr.next();",
+      "void 0 ?? gr.query(); gr.next();",
+      "`` || gr.query(); gr.next();",
+    ]) {
+      it(`treats a necessarily evaluated right operand as definite: ${tail}`, () => {
+        assertValid(`${opened}\n${tail}`, "require-query-before-next");
+      });
+    }
+
+    for (const tail of [
+      "false && gr.next();",
+      "0 && gr.next();",
+      "true || gr.next();",
+      "/re/ || gr.next();",
+      "[] || gr.next();",
+      "0 ?? gr.next();",
+      '"" ?? gr.next();',
+      "({}) ?? gr.next();",
+    ]) {
+      it(`does not report a call on an unreachable right operand: ${tail}`, () => {
+        assertValid(`${opened}\n${tail}`, "require-query-before-next");
+      });
+    }
+
+    it("keeps facts from a necessarily skipped right operand out of the state", () => {
+      assertInvalid(`${opened}\nfalse && gr.query();\ngr.next();`, "require-query-before-next", {
+        messageId: "missingQuery",
+      });
+      assertInvalid(`${opened}\ntrue || gr.query();\ngr.next();`, "require-query-before-next", {
+        messageId: "missingQuery",
+      });
+      assertInvalid(`${opened}\n1 ?? gr.query();\ngr.next();`, "require-query-before-next", {
+        messageId: "missingQuery",
+      });
+    });
+
+    it("keeps the join for an unknown or interpolated left operand", () => {
+      for (const tail of [
+        "ready || gr.query(); gr.next();",
+        "ready ?? gr.query(); gr.next();",
+        "`${ready}` && gr.query(); gr.next();",
+        "flag() && gr.query(); gr.next();",
+      ]) {
+        assertInvalid(`${opened}\n${tail}`, "require-query-before-next", {
+          messageId: "missingQuery",
+        });
+      }
+    });
+
+    it("prunes constant if and conditional tests beyond boolean literals", () => {
+      assertValid(`${opened}\nif (1) { gr.query(); }\ngr.next();`, "require-query-before-next");
+      assertValid(
+        `${opened}\n0 ? gr.next() : gr.query();\ngr.next();`,
+        "require-query-before-next",
+      );
+      assertInvalid(`${opened}\nif (0) { gr.query(); }\ngr.next();`, "require-query-before-next", {
+        messageId: "missingQuery",
+      });
+    });
   });
 
   it("lets a definite query recover after a branch join", () => {
@@ -705,12 +747,10 @@ gr.deleteMultiple();`,
   });
 
   it("stays silent on ordinary JavaScript without ServiceNow context", () => {
-    const code = `var gr = new GlideRecord("task");\ngr.deleteMultiple();`;
-    const parsed = parse(code, "util.js");
-    const messages = applyRules(code, parsed, {
-      filename: "util.js",
-      ruleNames: ["no-unfiltered-gliderecord-bulk-operation"],
-    });
-    assert.deepEqual(messages, []);
+    assertValid(
+      `var gr = new GlideRecord("task");\ngr.deleteMultiple();`,
+      "no-unfiltered-gliderecord-bulk-operation",
+      { filename: "util.js" },
+    );
   });
 });

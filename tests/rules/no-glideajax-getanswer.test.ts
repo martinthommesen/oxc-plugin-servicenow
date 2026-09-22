@@ -1,8 +1,12 @@
 import { describe, it } from "node:test";
-import { assertInvalid, assertValid } from "../helpers/rule-tester.js";
+import {
+  assertInvalid,
+  assertSkipped,
+  assertValid,
+  assertValidActive,
+} from "../helpers/rule-tester.js";
 
 const RULE = "no-glideajax-getanswer" as const;
-const CLIENT = { filename: "incident.client.js" };
 
 describe("no-glideajax-getanswer", () => {
   it("flags a direct getAnswer call", () => {
@@ -13,7 +17,6 @@ ajax.getXML(handleResponse);
 var answer = ajax.getAnswer();`,
       RULE,
       { messageId: "getAnswer" },
-      CLIENT,
     );
   });
 
@@ -25,7 +28,6 @@ ajax.getXMLWait();
 var answer = ajax.getAnswer();`,
       RULE,
       { messageId: "getAnswer" },
-      CLIENT,
     );
   });
 
@@ -37,16 +39,14 @@ ajax.getXMLAnswer(function (answer) {
   g_form.setValue("u_manager", answer);
 });`,
       RULE,
-      CLIENT,
     );
   });
 
   it("ignores an unrelated object with getAnswer", () => {
-    assertValid(
+    assertValidActive(
       `var ajax = { getAnswer: function () { return "x"; } };
 var answer = ajax.getAnswer();`,
       RULE,
-      CLIENT,
     );
   });
 
@@ -57,24 +57,21 @@ var req = ajax;
 req.getAnswer();`,
       RULE,
       { messageId: "getAnswer" },
-      CLIENT,
     );
     assertValid(
       `var ajax = new GlideAjax("x_acme.UserLookup");
 ajax = other;
 ajax.getAnswer();`,
       RULE,
-      CLIENT,
     );
   });
 
   it("ignores a shadowed GlideAjax", () => {
-    assertValid(
+    assertValidActive(
       `function GlideAjax() { this.getAnswer = function () { return ""; }; }
 var ajax = new GlideAjax("x_acme.UserLookup");
 ajax.getAnswer();`,
       RULE,
-      CLIENT,
     );
   });
 
@@ -89,7 +86,7 @@ ajax.getAnswer();`,
   });
 
   it("skips server files", () => {
-    assertValid(
+    assertSkipped(
       `var ajax = new GlideAjax("x_acme.UserLookup");
 ajax.getAnswer();`,
       RULE,
@@ -103,7 +100,6 @@ ajax.getAnswer();`,
 ajax["getAnswer"]();`,
       RULE,
       { messageId: "getAnswer" },
-      CLIENT,
     );
   });
 
@@ -138,7 +134,7 @@ ajax.getAnswer();`,
 var ajax = new GlideAjax("x_acme.UserLookup");
 ajax.getAnswer();`,
     ]) {
-      assertValid(code, RULE, CLIENT);
+      assertValidActive(code, RULE);
     }
   });
 

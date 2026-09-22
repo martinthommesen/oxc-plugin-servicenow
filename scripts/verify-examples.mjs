@@ -16,10 +16,12 @@ import { parse as parseYaml } from "yaml";
 import {
   classifyOxfmtProof,
   classifyOxlintProof,
+  emptyHostResult,
   interpretGitStatus,
   parseOxlintStdout,
   runHostProcess,
 } from "./lib/host-verifier.mjs";
+import { readJson } from "./lib/json-artifact.mjs";
 import { root } from "./lib/repo.mjs";
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -64,14 +66,6 @@ const SOURCE_SUFFIXES = [".js", ".ts"];
  * @property {string} createdAt
  * @property {boolean} [noncanonical]
  */
-
-/**
- * @param {string} file
- * @returns {any}
- */
-function readJson(file) {
-  return JSON.parse(readFileSync(file, "utf8"));
-}
 
 /**
  * @param {unknown} value
@@ -296,15 +290,8 @@ export function loadAndValidateProjects(repoRoot = root) {
       if (rules.has(key)) errors.push(`${name} has a duplicate expectation`);
       rules.add(key);
     }
-    if (existsSync(config)) {
-      const configJson = readJson(config);
-      const plugins = Array.isArray(configJson.jsPlugins) ? configJson.jsPlugins : [];
-      const matches = plugins.filter(
-        /** @param {any} plugin */ (plugin) => plugin?.name === "servicenow",
-      );
-      if (matches.length !== 1) {
-        errors.push(`${name} must have exactly one jsPlugins entry named servicenow`);
-      }
+    if (existsSync(config) && servicenowPluginEntries(readJson(config)).length !== 1) {
+      errors.push(`${name} must have exactly one jsPlugins entry named servicenow`);
     }
     projects[name] = {
       name,
@@ -384,6 +371,7 @@ export function sourceFingerprint(repoRoot) {
       hashFile(PROJECTS_PATH),
       hashFile(path.join(repoRoot, "scripts", "verify-examples.mjs")),
       hashFile(path.join(repoRoot, "scripts", "lib", "host-verifier.mjs")),
+      hashFile(path.join(repoRoot, "scripts", "lib", "repo.mjs")),
       hashFile(path.join(repoRoot, "oxfmt.recommended.json")),
       hashFile(path.join(repoRoot, "tsconfig.json")),
     ].join("\n"),
@@ -492,13 +480,19 @@ function writeCompleted(dir) {
 
 /**
  * @param {any} config
+ * @returns {any[]}
+ */
+function servicenowPluginEntries(config) {
+  const plugins = Array.isArray(config.jsPlugins) ? config.jsPlugins : [];
+  return plugins.filter(/** @param {any} plugin */ (plugin) => plugin?.name === "servicenow");
+}
+
+/**
+ * @param {any} config
  * @returns {any}
  */
 function servicenowPlugin(config) {
-  const plugins = Array.isArray(config.jsPlugins) ? config.jsPlugins : [];
-  const matches = plugins.filter(
-    /** @param {any} plugin */ (plugin) => plugin?.name === "servicenow",
-  );
+  const matches = servicenowPluginEntries(config);
   if (matches.length !== 1) {
     throw new Error("expected exactly one jsPlugins entry named servicenow");
   }
@@ -725,6 +719,37 @@ function persistHostAttempt(dir, argv, host, summary, extras = {}) {
 }
 
 /**
+ * The attempt fields both drives record. `tests/verify-examples.test.ts`
+ * reads `summary.json`, so the key set is part of the artifact contract.
+ *
+ * @param {{ project: string, tree: string, feature: string, attemptId: string, proof: { ok: boolean, reasons: string[] }, noncanonical: boolean, manifest: VerifyManifest, argv: string[] }} input
+ * @returns {Record<string, unknown>}
+ */
+function baseAttemptSummary({
+  project,
+  tree,
+  feature,
+  attemptId,
+  proof,
+  noncanonical,
+  manifest,
+  argv,
+}) {
+  return {
+    project,
+    tree,
+    feature,
+    attemptId,
+    ok: proof.ok,
+    reasons: proof.reasons,
+    noncanonical,
+    gitCommit: manifest.gitCommit,
+    distHash: manifest.distHash,
+    invocation: argv,
+  };
+}
+
+/**
  * @param {string} repoRoot
  * @param {VerifyProjectSet} projects
  * @param {string} doctorDir
@@ -801,9 +826,8 @@ function doctorChecks(repoRoot, pkg, manifest, projects, doctorDir) {
     }
   }
   const git = examplesGit(repoRoot);
-  if (git.kind === "error") fail("examples-clean", git.detail);
-  else if (git.kind === "dirty") fail("examples-clean", git.detail);
-  else pass("examples-clean", "examples/ is clean");
+  if (git.kind === "clean") pass("examples-clean", "examples/ is clean");
+  else fail("examples-clean", git.detail);
   if (manifest) {
     try {
       requireFreshFingerprints(repoRoot, manifest);
@@ -880,16 +904,7 @@ function driveLint(repoRoot, projects, project, tree, runDir, manifest, argv, no
     noncanonical,
     `${project}-${tree}`,
   );
-  const host = {
-    argv: [],
-    status: null,
-    signal: null,
-    stdout: "",
-    stderr: "",
-    error: /** @type {{ code?: string, message: string } | null} */ (null),
-    timedOut: false,
-    durationMs: 0,
-  };
+  const host = emptyHostResult();
   let report = null;
   let parseError = null;
   let effective = null;
@@ -932,18 +947,18 @@ function driveLint(repoRoot, projects, project, tree, runDir, manifest, argv, no
     argv,
     host,
     {
-      project,
-      tree,
-      feature: spec.feature,
-      attemptId,
-      ok: proof.ok,
-      reasons: proof.reasons,
+      ...baseAttemptSummary({
+        project,
+        tree,
+        feature: spec.feature,
+        attemptId,
+        proof,
+        noncanonical,
+        manifest,
+        argv,
+      }),
       pluginRules: proof.pluginRules,
       expectations: tree === "invalid" ? spec.invalidExpected : [],
-      noncanonical,
-      gitCommit: manifest.gitCommit,
-      distHash: manifest.distHash,
-      invocation: argv,
     },
     report
       ? {
@@ -986,18 +1001,21 @@ function driveOxfmt(repoRoot, projects, project, runDir, manifest, argv, noncano
   });
   const proof = classifyOxfmtProof(host);
   recordExamplesMutation(repoRoot, initialExamplesGit, proof, noncanonical);
-  persistHostAttempt(dir, argv, host, {
-    project,
-    tree: "oxfmt",
-    feature: "oxfmt-recommended",
-    attemptId,
-    ok: proof.ok,
-    reasons: proof.reasons,
-    noncanonical,
-    gitCommit: manifest.gitCommit,
-    distHash: manifest.distHash,
-    invocation: argv,
-  });
+  persistHostAttempt(
+    dir,
+    argv,
+    host,
+    baseAttemptSummary({
+      project,
+      tree: "oxfmt",
+      feature: "oxfmt-recommended",
+      attemptId,
+      proof,
+      noncanonical,
+      manifest,
+      argv,
+    }),
+  );
   return { ok: proof.ok, dir, attemptId, proof, project, tree: "oxfmt" };
 }
 
@@ -1054,6 +1072,8 @@ function prepareRun(repoRoot, runId) {
     assertArtifactRunPathSafe(repoRoot, runId);
     clearLivePid(runDir);
     if (!existsSync(path.join(runDir, "manifest.json"))) {
+      // Re-checked here on purpose: the path must be proven safe immediately
+      // before the delete, not before the writes that precede it.
       assertArtifactRunPathSafe(repoRoot, runId);
       rmSync(runDir, { recursive: true, force: true });
     }
@@ -1157,11 +1177,11 @@ function parseArgs(argv) {
  * @returns {number}
  */
 export function main(argv) {
-  const { root, pkg } = findRepo();
+  const { root: repoRoot, pkg } = findRepo();
   const options = parseArgs(argv);
   if (options.command === "validate") {
-    const projects = loadAndValidateProjects(root);
-    const skillPath = path.join(root, projects.skillDir, "SKILL.md");
+    const projects = loadAndValidateProjects(repoRoot);
+    const skillPath = path.join(repoRoot, projects.skillDir, "SKILL.md");
     const markdown = readFileSync(skillPath, "utf8");
     const fence = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(markdown);
     if (!fence) throw new Error("SKILL.md is missing YAML frontmatter");
@@ -1185,17 +1205,17 @@ export function main(argv) {
     console.log(JSON.stringify({ ok: true, projects: projects.names }, null, 2));
     return 0;
   }
-  const projects = loadAndValidateProjects(root);
+  const projects = loadAndValidateProjects(repoRoot);
   if (options.command === "cleanup") {
     const runId = parseRunId(options.runId);
-    const runDir = assertArtifactRunPathSafe(root, runId);
+    const runDir = assertArtifactRunPathSafe(repoRoot, runId);
     const manifestPath = path.join(runDir, "manifest.json");
     if (!existsSync(runDir)) {
       console.log(JSON.stringify({ ok: true, cleared: null, evidenceKept: null }, null, 2));
       return 0;
     }
     if (!existsSync(manifestPath)) {
-      assertArtifactRunPathSafe(root, runId);
+      assertArtifactRunPathSafe(repoRoot, runId);
       rmSync(runDir, { recursive: true, force: true });
       console.log(JSON.stringify({ ok: true, removed: runDir }, null, 2));
       return 0;
@@ -1216,9 +1236,9 @@ export function main(argv) {
 
   if (options.command === "prepare" || options.all) {
     const runId = parseRunId(options.runId ?? `run-${Date.now()}`);
-    const { runDir, manifest } = prepareRun(root, runId);
+    const { runDir, manifest } = prepareRun(repoRoot, runId);
     try {
-      const doctor = runDoctor(root, pkg, projects, runDir, manifest);
+      const doctor = runDoctor(repoRoot, pkg, projects, runDir, manifest);
       for (const check of doctor.checks) console.error(formatDoctorLine(check));
       if (!doctor.ok) return 1;
       if (options.command === "prepare") {
@@ -1228,13 +1248,33 @@ export function main(argv) {
       const results = [];
       for (const name of projects.names) {
         results.push(
-          driveLint(root, projects, name, "valid", runDir, manifest, argv, options.noncanonical),
+          driveLint(
+            repoRoot,
+            projects,
+            name,
+            "valid",
+            runDir,
+            manifest,
+            argv,
+            options.noncanonical,
+          ),
         );
         results.push(
-          driveLint(root, projects, name, "invalid", runDir, manifest, argv, options.noncanonical),
+          driveLint(
+            repoRoot,
+            projects,
+            name,
+            "invalid",
+            runDir,
+            manifest,
+            argv,
+            options.noncanonical,
+          ),
         );
       }
-      results.push(driveOxfmt(root, projects, "all", runDir, manifest, argv, options.noncanonical));
+      results.push(
+        driveOxfmt(repoRoot, projects, "all", runDir, manifest, argv, options.noncanonical),
+      );
       const ok = results.every((result) => result.ok);
       writeJson(path.join(runDir, "run-summary.json"), {
         runId,
@@ -1264,9 +1304,9 @@ export function main(argv) {
   }
 
   if (options.command === "doctor") {
-    const runDir = runDirFor(root, parseRunId(options.runId));
+    const runDir = runDirFor(repoRoot, parseRunId(options.runId));
     const manifest = readManifest(runDir);
-    const doctor = runDoctor(root, pkg, projects, runDir, manifest);
+    const doctor = runDoctor(repoRoot, pkg, projects, runDir, manifest);
     for (const check of doctor.checks) console.error(formatDoctorLine(check));
     return doctor.ok ? 0 : 1;
   }
@@ -1276,13 +1316,13 @@ export function main(argv) {
     let runDir;
     let manifest;
     let ownsLivePid = false;
-    if (existsSync(path.join(runDirFor(root, runId), "manifest.json"))) {
-      runDir = runDirFor(root, runId);
+    if (existsSync(path.join(runDirFor(repoRoot, runId), "manifest.json"))) {
+      runDir = runDirFor(repoRoot, runId);
       manifest = readManifest(runDir);
     } else {
-      ({ runDir, manifest } = prepareRun(root, runId));
+      ({ runDir, manifest } = prepareRun(repoRoot, runId));
       ownsLivePid = true;
-      const doctor = runDoctor(root, pkg, projects, runDir, manifest);
+      const doctor = runDoctor(repoRoot, pkg, projects, runDir, manifest);
       for (const check of doctor.checks) console.error(formatDoctorLine(check));
       if (!doctor.ok) {
         clearLivePid(runDir);
@@ -1293,7 +1333,7 @@ export function main(argv) {
       const result =
         options.tree === "oxfmt"
           ? driveOxfmt(
-              root,
+              repoRoot,
               projects,
               options.project,
               runDir,
@@ -1302,7 +1342,7 @@ export function main(argv) {
               options.noncanonical,
             )
           : driveLint(
-              root,
+              repoRoot,
               projects,
               options.project,
               options.tree,

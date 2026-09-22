@@ -1,5 +1,5 @@
 import type { ESTree } from "@oxlint/plugins";
-import { analyzePathBindings, dedupePathFindings } from "./path-state.js";
+import { collectPathFindings } from "./path-state.js";
 import {
   hasAuthoritativeGlideRecordMethod,
   type PlatformMethodAuthorityFacts,
@@ -31,30 +31,27 @@ export function findMissingQueryBeforeNext(
   analysis: ProvenanceQuery,
   authority: PlatformMethodAuthorityFacts,
 ): MissingQueryFinding[] {
-  const findings: MissingQueryFinding[] = [];
-  const outcome = analyzePathBindings<QueryData>({
+  return collectPathFindings<QueryData, MissingQueryFinding>({
     program,
     analysis,
     kinds: ["GlideRecord"],
     emptyData: () => ({ unopened: true }),
-    cloneData: (data) => ({ ...data }),
     equalsData: (left, right) => left.unopened === right.unopened,
     mergeData: (left, right) => ({
       unopened: left.unopened || right.unopened,
     }),
-    onCall({ call, rec, receiver, objectName, property }) {
+    onCall({ call, rec, receiver, objectName, property }, report) {
       if (!rec || !receiver || !property) return;
       if (!hasAuthoritativeGlideRecordMethod(authority, receiver, property)) {
         rec.data.unopened = false;
         return;
       }
-      if (analysis.glide.possibleExecutors.has(property)) {
+      if (analysis.glide.byKind.GlideRecord.possibleExecutors.has(property)) {
         rec.data.unopened = false;
       }
-      if (analysis.glide.cursorAdvancers.has(property) && rec.data.unopened) {
-        findings.push({ node: call, name: objectName ?? "record", method: property });
+      if (analysis.glide.byKind.GlideRecord.cursorAdvancers.has(property) && rec.data.unopened) {
+        report({ node: call, name: objectName ?? "record", method: property });
       }
     },
   });
-  return outcome.outcome === "complete" ? dedupePathFindings(findings) : [];
 }

@@ -1,4 +1,4 @@
-import type { ApplicationScope, JavaScriptMode } from "./types.js";
+import type { ApplicationScope, ContextConfidence, JavaScriptMode } from "./types.js";
 import { SUPPORTED_FLUENT_SDK_VERSIONS } from "./fluent/index.js";
 import { ENGINE_FEATURE_EVIDENCE } from "./engine/index.js";
 import { GLIDE_AGGREGATE_EVIDENCE, GLIDE_RECORD_EVIDENCE } from "./glide/index.js";
@@ -14,12 +14,14 @@ export interface RuleEvidenceRecord {
   verifiedAt: string;
 }
 
-export type SurfaceConfidence = "high" | "filename-inferred" | "explicit-only";
+/** An evidence assertion before a rule identity mints its verification id. */
+export type EvidenceClaim = Omit<RuleEvidenceRecord, "verificationId">;
 
 export interface StructuredApplicability {
   authoring: "classic" | "fluent" | "both";
   surfaces: readonly string[];
-  minimumSurfaceConfidence: SurfaceConfidence;
+  /** The `ContextConfidence` floor the rule's own surface gate enforces. */
+  minimumSurfaceConfidence: ContextConfidence;
   javascriptModes: readonly JavaScriptMode[] | "n/a";
   scopes: readonly ApplicationScope[];
   fluentSdkRange?: string;
@@ -27,11 +29,17 @@ export interface StructuredApplicability {
 
 export interface RuleDocMetadata {
   applicability: StructuredApplicability;
-  evidence: readonly RuleEvidenceRecord[];
-  overlaps: readonly string[];
+  evidence: readonly EvidenceClaim[];
+  overlaps?: readonly string[];
   lifecycleAssumptions?: string | undefined;
   limitationPreamble?: string | undefined;
 }
+
+/**
+ * The confidence floor `appliesOnSurface` and `isServerInstanceContext`
+ * enforce when a rule passes no `minimum` argument.
+ */
+export const DEFAULT_SURFACE_CONFIDENCE: ContextConfidence = "inferred";
 
 export const ALL_SCOPES = ["global", "scoped", "unknown"] as const;
 export { CLASSIC_SURFACES, CLIENT_SURFACES, SERVER_SURFACES };
@@ -43,10 +51,9 @@ export const SN_GR_GLOBAL = GLIDE_RECORD_EVIDENCE.zurich.global;
 export const SN_GR_AUSTRALIA = GLIDE_RECORD_EVIDENCE.australia.scoped;
 export const SN_GR_GLOBAL_AUSTRALIA = GLIDE_RECORD_EVIDENCE.australia.global;
 // Derived from the manifest so both evidence strings match by construction.
-// There is no reviewed Zurich global aggregate page.
-export const SN_GA = GLIDE_AGGREGATE_EVIDENCE.zurich.scoped as string;
-export const SN_GA_AUSTRALIA = GLIDE_AGGREGATE_EVIDENCE.australia.scoped as string;
-export const SN_GA_GLOBAL_AUSTRALIA = GLIDE_AGGREGATE_EVIDENCE.australia.global as string;
+export const SN_GA = GLIDE_AGGREGATE_EVIDENCE.zurich.scoped;
+export const SN_GA_AUSTRALIA = GLIDE_AGGREGATE_EVIDENCE.australia.scoped;
+export const SN_GA_GLOBAL_AUSTRALIA = GLIDE_AGGREGATE_EVIDENCE.australia.global;
 export const SN_JS_MODES =
   "https://www.servicenow.com/docs/r/api-reference/scripts/c_JS_modes.html";
 export const SN_JS_FEATURES = ENGINE_FEATURE_EVIDENCE.zurich.url;
@@ -81,53 +88,52 @@ export function evidenceRecord(
   claim: string,
   verifiedBy: EvidenceVerifiedBy,
   verifiedAt: string,
-  /** Optional identity salt for one shared claim attested independently by multiple rules. */
-  identity = "",
-): RuleEvidenceRecord {
+): EvidenceClaim {
+  return { url, claim, verifiedBy, verifiedAt };
+}
+
+/**
+ * Mint the verification id that binds one evidence claim to one rule.
+ *
+ * `identity` is the rule salt: an id identifies a rule-to-evidence assertion,
+ * not only the underlying URL and claim, so shared release evidence stays
+ * independently auditable when several rules cite the same source cell.
+ */
+export function verifiedEvidence(claim: EvidenceClaim, identity: string): RuleEvidenceRecord {
   let hash = 0x811c9dc5;
-  const hashInput = identity
-    ? `${identity}\0${url}\0${claim}\0${verifiedBy}\0${verifiedAt}`
-    : `${url}\0${claim}\0${verifiedBy}\0${verifiedAt}`;
+  const hashInput = `${identity}\0${claim.url}\0${claim.claim}\0${claim.verifiedBy}\0${claim.verifiedAt}`;
   for (const character of hashInput) {
     hash ^= character.codePointAt(0) ?? 0;
     hash = Math.imul(hash, 0x01000193);
   }
   return {
     verificationId: `rule-evidence-${(hash >>> 0).toString(16).padStart(8, "0")}`,
-    url,
-    claim,
-    verifiedBy,
-    verifiedAt,
+    ...claim,
   };
 }
 
-export function latestEvidenceDate(evidence: readonly RuleEvidenceRecord[]): string {
+export function latestEvidenceDate(evidence: readonly EvidenceClaim[]): string {
   return evidence.reduce((max, item) => (item.verifiedAt > max ? item.verifiedAt : max), "");
 }
 
 export function meta(
   applicability: StructuredApplicability,
-  evidence: readonly RuleEvidenceRecord[],
-  extra: Omit<RuleDocMetadata, "applicability" | "evidence">,
+  evidence: readonly EvidenceClaim[],
+  extra: Omit<RuleDocMetadata, "applicability" | "evidence"> = {},
 ): RuleDocMetadata {
-  return {
-    applicability,
-    evidence,
-    overlaps: extra.overlaps,
-    lifecycleAssumptions: extra.lifecycleAssumptions,
-    limitationPreamble: extra.limitationPreamble,
-  };
+  return { applicability, evidence, ...extra };
 }
 
 export function classic(
   surfaces: readonly string[],
   modes: StructuredApplicability["javascriptModes"] = "n/a",
   scopes: readonly ApplicationScope[] = ALL_SCOPES,
+  options: { minimumSurfaceConfidence?: ContextConfidence } = {},
 ): StructuredApplicability {
   return {
     authoring: "classic",
     surfaces,
-    minimumSurfaceConfidence: "filename-inferred",
+    minimumSurfaceConfidence: options.minimumSurfaceConfidence ?? DEFAULT_SURFACE_CONFIDENCE,
     javascriptModes: modes,
     scopes,
   };
@@ -137,7 +143,7 @@ export function engine(modes: readonly JavaScriptMode[]): StructuredApplicabilit
   return {
     authoring: "classic",
     surfaces: SERVER_SURFACES,
-    minimumSurfaceConfidence: "filename-inferred",
+    minimumSurfaceConfidence: DEFAULT_SURFACE_CONFIDENCE,
     javascriptModes: modes,
     scopes: ALL_SCOPES,
   };
@@ -147,7 +153,7 @@ export function fluent(): StructuredApplicability {
   return {
     authoring: "fluent",
     surfaces: ["fluent"],
-    minimumSurfaceConfidence: "filename-inferred",
+    minimumSurfaceConfidence: DEFAULT_SURFACE_CONFIDENCE,
     javascriptModes: "n/a",
     scopes: ALL_SCOPES,
     fluentSdkRange: SUPPORTED_FLUENT_SDK_VERSIONS.join(" || "),

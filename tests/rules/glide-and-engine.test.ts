@@ -5,8 +5,12 @@ import {
   assertSkipped,
   assertValid,
   assertValidActive,
+  AUSTRALIA_ES2021,
+  AUSTRALIA_ES5,
+  ES2021,
   ES5,
   lint,
+  ZURICH_ES2021,
 } from "../helpers/rule-tester.js";
 
 describe("no-gs-now", () => {
@@ -38,13 +42,13 @@ describe("no-gs-now", () => {
   });
 
   it("stays silent when the gs method identity can change", () => {
-    assertValid(`gs = localGs;\ngs.now();`, "no-gs-now");
-    assertValid(`gs = null;\ngs.now();`, "no-gs-now");
-    assertValid(`gs.now = localNow;\ngs.now();`, "no-gs-now");
-    assertValid(`gs.now = undefined;\ngs.now();`, "no-gs-now");
-    assertValid(`Object.defineProperty(gs, "now", { value: null });\ngs.now();`, "no-gs-now");
-    assertValid(`prepare(gs);\ngs.now();`, "no-gs-now");
-    assertValid(`var platform = gs;\nprepare(platform);\ngs.now();`, "no-gs-now");
+    assertValidActive(`gs = localGs;\ngs.now();`, "no-gs-now");
+    assertValidActive(`gs = null;\ngs.now();`, "no-gs-now");
+    assertValidActive(`gs.now = localNow;\ngs.now();`, "no-gs-now");
+    assertValidActive(`gs.now = undefined;\ngs.now();`, "no-gs-now");
+    assertValidActive(`Object.defineProperty(gs, "now", { value: null });\ngs.now();`, "no-gs-now");
+    assertValidActive(`prepare(gs);\ngs.now();`, "no-gs-now");
+    assertValidActive(`var platform = gs;\nprepare(platform);\ngs.now();`, "no-gs-now");
     assertInvalid(`prepare(gs.now);\ngs.now();`, "no-gs-now", { messageId: "server" });
   });
 
@@ -59,7 +63,7 @@ describe("no-gs-now", () => {
         `${declaration}\nObject.assign(gs, absent, undefined);\ngs.now();`,
         "no-gs-now",
         { messageId: "server" },
-        { settings: { javascriptMode: "es2021" } },
+        { settings: ES2021 },
       );
     }
   });
@@ -87,7 +91,7 @@ describe("no-gs-now", () => {
       ),
     ];
     assertValid(`${aliases.join("\n")}\nalias512.gs.now = localNow;\ngs.now();`, "no-gs-now", {
-      settings: { javascriptMode: "es2021" },
+      settings: ES2021,
     });
   });
 });
@@ -138,27 +142,27 @@ describe("no-br-current-update", () => {
   });
 
   it("stays silent when the body-only current identity can change", () => {
-    assertValid(`current = getOtherRecord();\ncurrent.update();`, "no-br-current-update", {
+    assertValidActive(`current = getOtherRecord();\ncurrent.update();`, "no-br-current-update", {
       filename: "incident.br.js",
     });
-    assertValid(`current = null;\ncurrent.update();`, "no-br-current-update", {
+    assertValidActive(`current = null;\ncurrent.update();`, "no-br-current-update", {
       filename: "incident.br.js",
     });
-    assertValid(`current.update = localUpdate;\ncurrent.update();`, "no-br-current-update", {
+    assertValidActive(`current.update = localUpdate;\ncurrent.update();`, "no-br-current-update", {
       filename: "incident.br.js",
     });
-    assertValid(`current.update = undefined;\ncurrent.update();`, "no-br-current-update", {
+    assertValidActive(`current.update = undefined;\ncurrent.update();`, "no-br-current-update", {
       filename: "incident.br.js",
     });
-    assertValid(
+    assertValidActive(
       `Object.defineProperty(current, "update", { value: null });\ncurrent.update();`,
       "no-br-current-update",
       { filename: "incident.br.js" },
     );
-    assertValid(`prepare(current);\ncurrent.update();`, "no-br-current-update", {
+    assertValidActive(`prepare(current);\ncurrent.update();`, "no-br-current-update", {
       filename: "incident.br.js",
     });
-    assertValid(
+    assertValidActive(
       `var record = current;\nprepare(record);\ncurrent.update();`,
       "no-br-current-update",
       { filename: "incident.br.js" },
@@ -221,7 +225,7 @@ describe("no-hardcoded-table-names", () => {
   });
 });
 
-describe("engine extras", () => {
+describe("engine feature availability by mode and release", () => {
   it("no-at-method flags .at() in ES5", () => {
     assertInvalid(
       `var last = [1, 2].at(-1);`,
@@ -256,7 +260,7 @@ describe("engine extras", () => {
     );
     assertValid(`function read(value) { return value.at(0); }`, "no-at-method", { settings: ES5 });
     assertValid(`let items = [1, 2]; items.at(0);`, "no-at-method", { settings: ES5 });
-    assertValid(`[1, 2].at(0);`, "no-at-method", { settings: { javascriptMode: "es2021" } });
+    assertValid(`[1, 2].at(0);`, "no-at-method", { settings: ES2021 });
     assertValid(
       `const values = [1, 2]; values.items = customCollection; const { items } = values; items.at(0);`,
       "no-at-method",
@@ -398,59 +402,51 @@ describe("engine extras", () => {
       `Uint8Array.of(1, 2);`,
       `const fromBytes = Int8Array.from; fromBytes(values);`,
     ]) {
-      assertInvalid(
-        code,
-        "no-typed-arrays",
-        { messageId: "factory" },
-        { settings: { javascriptMode: "es5", release: "australia" } },
-      );
+      assertInvalid(code, "no-typed-arrays", { messageId: "factory" }, AUSTRALIA_ES5);
     }
     assertInvalid(
       `BigInt64Array.from(values);`,
       "no-typed-arrays",
       { messageId: "factory" },
-      { settings: { javascriptMode: "es2021", release: "zurich" } },
+      ZURICH_ES2021,
     );
     assertValid(`BigInt64Array.from(values);`, "no-typed-arrays", {
-      settings: { javascriptMode: "es2021", release: "australia" },
+      settings: AUSTRALIA_ES2021.settings,
     });
     assertValid(
       `typeof BigInt64Array !== "undefined" && BigInt64Array.from(values);`,
       "no-typed-arrays",
-      { settings: { javascriptMode: "es2021", release: "zurich" } },
+      ZURICH_ES2021,
     );
     assertValid(`Int8Array.from = polyfill; Int8Array.from(values);`, "no-typed-arrays", {
-      settings: { javascriptMode: "es5", release: "australia" },
+      settings: AUSTRALIA_ES5.settings,
     });
     assertValid(
       `const { BigInt64Array: Words } = globalThis; Words.from = polyfill; Words.from(values);`,
       "no-typed-arrays",
-      { settings: { javascriptMode: "es2021", release: "zurich" } },
+      ZURICH_ES2021,
     );
     assertValid(`const Int8Array = { from: custom }; Int8Array.from(values);`, "no-typed-arrays", {
-      settings: { javascriptMode: "es5", release: "australia" },
+      settings: AUSTRALIA_ES5.settings,
     });
   });
 
   it("models the Australia TypedArray factory delta independently from constructors", () => {
-    const zurich = { javascriptMode: "es2021", release: "zurich" } as const;
-    const australia = { javascriptMode: "es2021", release: "australia" } as const;
     for (const code of [
       `Int8Array.from(values);`,
       `Uint8Array["of"](1, 2);`,
       `const Bytes = Int8Array; Bytes.from(values);`,
       `const fromBytes = Int8Array.from; fromBytes(values);`,
     ]) {
-      assertInvalid(code, "no-typed-arrays", { messageId: "factory" }, { settings: zurich });
-      assertValid(code, "no-typed-arrays", { settings: australia });
+      assertInvalid(code, "no-typed-arrays", { messageId: "factory" }, ZURICH_ES2021);
+      assertValid(code, "no-typed-arrays", AUSTRALIA_ES2021);
     }
     assertValid(`Int8Array.from(values);`, "no-typed-arrays", {
-      settings: { javascriptMode: "es2021" },
+      settings: ES2021,
     });
   });
 
   it("requires a method guard when Zurich already provides the TypedArray constructor", () => {
-    const settings = { javascriptMode: "es2021", release: "zurich" } as const;
     for (const code of [
       `typeof Int8Array.from === "function" && Int8Array.from(values);`,
       `Int8Array.from && Int8Array.from(values);`,
@@ -462,34 +458,24 @@ describe("engine extras", () => {
       `Object.getPrototypeOf(Int8Array).from = polyfill; Int8Array.from(values);`,
       `const Int8Array = { from: custom }; Int8Array.from(values);`,
     ]) {
-      assertValid(code, "no-typed-arrays", { settings });
+      assertValid(code, "no-typed-arrays", ZURICH_ES2021);
     }
     assertInvalid(
       `typeof Int8Array !== "undefined" && Int8Array.from(values);`,
       "no-typed-arrays",
       { messageId: "factory" },
-      { settings },
+      ZURICH_ES2021,
     );
   });
 
   it("models the BigInt typed-array Australia delta conservatively", () => {
     const code = `var values = new BigInt64Array(4);`;
-    assertInvalid(
-      code,
-      "no-typed-arrays",
-      { messageId: "bigintCtor" },
-      { settings: { javascriptMode: "es2021", release: "zurich" } },
-    );
+    assertInvalid(code, "no-typed-arrays", { messageId: "bigintCtor" }, ZURICH_ES2021);
     assertValid(code, "no-typed-arrays", {
-      settings: { javascriptMode: "es2021", release: "australia" },
+      settings: AUSTRALIA_ES2021.settings,
     });
-    assertValid(code, "no-typed-arrays", { settings: { javascriptMode: "es2021" } });
-    assertInvalid(
-      code,
-      "no-typed-arrays",
-      { messageId: "bigintCtor" },
-      { settings: { javascriptMode: "es5" } },
-    );
+    assertValid(code, "no-typed-arrays", { settings: ES2021 });
+    assertInvalid(code, "no-typed-arrays", { messageId: "bigintCtor" }, { settings: ES5 });
   });
 
   it("flags documented DataView BigInt getters through object aliases", () => {
@@ -497,7 +483,7 @@ describe("engine extras", () => {
       `const view = new DataView(buffer); const alias = view; alias["getBigInt64"](0);`,
       "no-typed-arrays",
       { messageId: "bigintGetter" },
-      { settings: { javascriptMode: "es2021", release: "australia" } },
+      AUSTRALIA_ES2021,
     );
     assertInvalid(
       `new DataView(buffer).getBigUint64(0);`,
@@ -509,13 +495,13 @@ describe("engine extras", () => {
       `const DV = DataView; const view = new DV(buffer); view.getBigInt64(0);`,
       "no-typed-arrays",
       { messageId: "bigintGetter" },
-      { settings: { javascriptMode: "es2021", release: "australia" } },
+      AUSTRALIA_ES2021,
     );
     assertInvalid(
       `const view = new globalThis.DataView(buffer); view.getBigInt64(0);`,
       "no-typed-arrays",
       { messageId: "bigintGetter" },
-      { settings: { javascriptMode: "es2021", release: "australia" } },
+      AUSTRALIA_ES2021,
     );
   });
 
@@ -524,88 +510,88 @@ describe("engine extras", () => {
       `const Bytes = Int8Array; new Bytes(4);`,
       "no-typed-arrays",
       { messageId: "ctor" },
-      { settings: { javascriptMode: "es5", release: "australia" } },
+      AUSTRALIA_ES5,
     );
     assertInvalid(
       `const Words = BigInt64Array; new Words(4);`,
       "no-typed-arrays",
       { messageId: "bigintCtor" },
-      { settings: { javascriptMode: "es2021", release: "zurich" } },
+      ZURICH_ES2021,
     );
     assertInvalid(
       `const DV = DataView; new DV(buffer);`,
       "no-typed-arrays",
       { messageId: "ctor" },
-      { settings: { javascriptMode: "es5", release: "australia" } },
+      AUSTRALIA_ES5,
     );
     assertInvalid(
       `const Bytes = globalThis.Int8Array; new Bytes(4);`,
       "no-typed-arrays",
       { messageId: "ctor" },
-      { settings: { javascriptMode: "es5", release: "australia" } },
+      AUSTRALIA_ES5,
     );
     assertInvalid(
       `const Bytes = (0, Int8Array); new Bytes(4);`,
       "no-typed-arrays",
       { messageId: "ctor" },
-      { settings: { javascriptMode: "es5", release: "australia" } },
+      AUSTRALIA_ES5,
     );
     assertInvalid(
       `new (0, Int8Array)(4);`,
       "no-typed-arrays",
       { messageId: "ctor" },
-      { settings: { javascriptMode: "es5", release: "australia" } },
+      AUSTRALIA_ES5,
     );
     assertInvalid(
       `const { BigInt64Array: Words } = globalThis; new Words(4);`,
       "no-typed-arrays",
       { messageId: "bigintCtor" },
-      { settings: { javascriptMode: "es2021", release: "zurich" } },
+      ZURICH_ES2021,
     );
     assertInvalid(
       `const { DataView: DV } = globalThis; new DV(buffer).getBigInt64(0);`,
       "no-typed-arrays",
       { messageId: "bigintGetter" },
-      { settings: { javascriptMode: "es2021", release: "australia" } },
+      AUSTRALIA_ES2021,
     );
   });
 
   it("keeps guarded typed-array features silent", () => {
     assertValid(`if (typeof Int8Array !== "undefined") new Int8Array(4);`, "no-typed-arrays", {
-      settings: { javascriptMode: "es5", release: "australia" },
+      settings: AUSTRALIA_ES5.settings,
     });
     assertValid(`typeof Int8Array !== "undefined" && new Int8Array(4);`, "no-typed-arrays", {
-      settings: { javascriptMode: "es5", release: "australia" },
+      settings: AUSTRALIA_ES5.settings,
     });
     assertValid(`typeof Int8Array !== "function" || new Int8Array(4);`, "no-typed-arrays", {
-      settings: { javascriptMode: "es5", release: "australia" },
+      settings: AUSTRALIA_ES5.settings,
     });
     assertInvalid(
       `const Bytes = globalThis.Int8Array; if (typeof Bytes === "function") new Bytes(4);`,
       "no-typed-arrays",
       { messageId: "ctor" },
-      { settings: { javascriptMode: "es5", release: "australia" } },
+      AUSTRALIA_ES5,
     );
     assertInvalid(
       `globalThis.Int8Array?.(4);`,
       "no-typed-arrays",
       { messageId: "ctor" },
-      { settings: { javascriptMode: "es5", release: "australia" } },
+      AUSTRALIA_ES5,
     );
     assertValid(
       `typeof globalThis !== "undefined" && globalThis.Int8Array && new globalThis.Int8Array(4);`,
       "no-typed-arrays",
-      { settings: { javascriptMode: "es5", release: "australia" } },
+      AUSTRALIA_ES5,
     );
     assertValid(
       `const Bytes = globalThis.Int8Array; if (typeof Bytes === "function") new Bytes(4);`,
       "no-typed-arrays",
-      { settings: { javascriptMode: "es2021", release: "australia" } },
+      AUSTRALIA_ES2021,
     );
     assertValid(
       `"BigInt64Array" in globalThis && new globalThis.BigInt64Array(4);`,
       "no-typed-arrays",
-      { settings: { javascriptMode: "es2021", release: "zurich" } },
+      ZURICH_ES2021,
     );
     for (const code of [
       `Int8Array && new Int8Array(4);`,
@@ -616,14 +602,8 @@ describe("engine extras", () => {
       `const Bytes = Int8Array; if (typeof Int8Array !== "undefined") new Bytes(4);`,
       `if (typeof Int8Array === "function") { Int8Array = undefined; new Int8Array(4); }`,
     ]) {
-      assertInvalid(
-        code,
-        "no-typed-arrays",
-        { messageId: "ctor" },
-        { settings: { javascriptMode: "es5", release: "australia" } },
-      );
+      assertInvalid(code, "no-typed-arrays", { messageId: "ctor" }, AUSTRALIA_ES5);
     }
-    const settings = { javascriptMode: "es2021", release: "australia" } as const;
     for (const code of [
       `const view = new DataView(buffer); view.getBigInt64?.(0);`,
       `const view = new DataView(buffer); view.getBigInt64 && view.getBigInt64(0);`,
@@ -634,24 +614,23 @@ describe("engine extras", () => {
       `const view = new DataView(buffer); !view.getBigInt64 || view.getBigInt64(0);`,
       `const view = new DataView(buffer); "getBigInt64" in DataView.prototype && view.getBigInt64(0);`,
     ]) {
-      assertValid(code, "no-typed-arrays", { settings });
+      assertValid(code, "no-typed-arrays", AUSTRALIA_ES2021);
     }
     assertInvalid(
       `const view = new DataView(buffer); view?.getBigInt64(0);`,
       "no-typed-arrays",
       { messageId: "bigintGetter" },
-      { settings },
+      AUSTRALIA_ES2021,
     );
     assertInvalid(
       `const view = new DataView(buffer); if (view.getBigInt64) { view.getBigInt64 = undefined; view.getBigInt64(0); }`,
       "no-typed-arrays",
       { messageId: "bigintGetter" },
-      { settings },
+      AUSTRALIA_ES2021,
     );
   });
 
   it("recognizes direct DataView getter invocation helpers", () => {
-    const settings = { javascriptMode: "es2021", release: "australia" } as const;
     for (const code of [
       `const view = new DataView(buffer); view.getBigInt64.call(view, 0);`,
       `const view = new DataView(buffer); view.getBigInt64.apply(view, [0]);`,
@@ -663,44 +642,44 @@ describe("engine extras", () => {
       `const view = new DataView(buffer); const { getBigInt64: get } = view; get.call(view, 0);`,
       `const view = new DataView(buffer); const { getBigInt64: get } = DataView.prototype; get.call(view, 0);`,
     ]) {
-      assertInvalid(code, "no-typed-arrays", { messageId: "bigintGetter" }, { settings });
+      assertInvalid(code, "no-typed-arrays", { messageId: "bigintGetter" }, AUSTRALIA_ES2021);
     }
   });
 
   it("keeps unproven DataView-like receivers and undocumented setters silent", () => {
     assertValid(`new DataView(buffer).setBigInt64(0, value);`, "no-typed-arrays", {
-      settings: { javascriptMode: "es2021", release: "zurich" },
+      settings: ZURICH_ES2021.settings,
     });
     assertValid(`view.getBigInt64(0);`, "no-typed-arrays", {
-      settings: { javascriptMode: "es2021", release: "zurich" },
+      settings: ZURICH_ES2021.settings,
     });
     assertValid(
       `function DataView() {} const view = new DataView(); view.getBigInt64(0);`,
       "no-typed-arrays",
-      { settings: { javascriptMode: "es2021", release: "zurich" } },
+      ZURICH_ES2021,
     );
     assertValid(
       `let view = new DataView(buffer); view = customView; view.getBigInt64(0);`,
       "no-typed-arrays",
-      { settings: { javascriptMode: "es2021", release: "zurich" } },
+      ZURICH_ES2021,
     );
     assertValid(
       `DataView = CustomView; const view = new DataView(buffer); view.getBigInt64(0);`,
       "no-typed-arrays",
-      { settings: { javascriptMode: "es2021", release: "zurich" } },
+      ZURICH_ES2021,
     );
     assertValid(
       `const view = new DataView(buffer); view.getBigInt64 = custom; view.getBigInt64(0);`,
       "no-typed-arrays",
-      { settings: { javascriptMode: "es2021", release: "zurich" } },
+      ZURICH_ES2021,
     );
     assertValid(
       `DataView.prototype.getBigInt64 = custom; new DataView(buffer).getBigInt64(0);`,
       "no-typed-arrays",
-      { settings: { javascriptMode: "es2021", release: "zurich" } },
+      ZURICH_ES2021,
     );
     assertValid(`Int8Array = CustomArray; new Int8Array(1);`, "no-typed-arrays", {
-      settings: { javascriptMode: "es5", release: "australia" },
+      settings: AUSTRALIA_ES5.settings,
     });
     assertValid(
       `globalThis.DataView.prototype.getBigInt64 = custom;
@@ -714,7 +693,6 @@ new DataView(buffer).getBigInt64(0);`,
   });
 
   it("conservatively suppresses diagnostics after any possible relevant mutation", () => {
-    const settings = { javascriptMode: "es2021", release: "australia" } as const;
     for (const code of [
       `function install() { DataView.prototype.getBigInt64 = custom; }
 const view = new DataView(buffer); view.getBigInt64(0);`,
@@ -752,19 +730,19 @@ new DataView(buffer).getBigInt64(0);`,
 prototype.getBigInt64 = custom;
 new DataView(buffer).getBigInt64(0);`,
     ]) {
-      assertValid(code, "no-typed-arrays", { settings });
+      assertValid(code, "no-typed-arrays", AUSTRALIA_ES2021);
     }
     assertValid(`install(Int8Array); Int8Array.from(values);`, "no-typed-arrays", {
-      settings: { javascriptMode: "es5", release: "australia" },
+      settings: AUSTRALIA_ES5.settings,
     });
     assertValid(`new Int8Array(1); Int8Array = CustomArray;`, "no-typed-arrays", {
-      settings: { javascriptMode: "es5", release: "australia" },
+      settings: AUSTRALIA_ES5.settings,
     });
     assertInvalid(
       `globalThis.Int8Array = CustomArray; new Int8Array(1);`,
       "no-typed-arrays",
       { messageId: "ctor" },
-      { settings: { javascriptMode: "es5", release: "australia" } },
+      AUSTRALIA_ES5,
     );
   });
 
@@ -774,14 +752,14 @@ new DataView(buffer).getBigInt64(0);`,
 const second = new DataView(b); second.getBigInt64(0);`,
       "no-typed-arrays",
       { messageId: "bigintGetter", count: 1 },
-      { settings: { javascriptMode: "es2021", release: "australia" } },
+      AUSTRALIA_ES2021,
     );
     assertInvalid(
       `const cache = {}; cache[key] = value;
 const view = new DataView(buffer); view.getBigInt64(0);`,
       "no-typed-arrays",
       { messageId: "bigintGetter", count: 1 },
-      { settings: { javascriptMode: "es2021", release: "australia" } },
+      AUSTRALIA_ES2021,
     );
     for (const code of [
       `const view = new DataView(buffer); delete view.getBigInt64; view.getBigInt64(0);`,
@@ -794,7 +772,7 @@ const view = new DataView(buffer); view.getBigInt64(0);`,
         code,
         "no-typed-arrays",
         { messageId: "bigintGetter", count: 1 },
-        { settings: { javascriptMode: "es2021", release: "australia" } },
+        AUSTRALIA_ES2021,
       );
     }
   });
@@ -826,57 +804,31 @@ describe("server engine surface gating", () => {
   it("does not apply the server engine matrix to browser-executed client scripts", () => {
     assertValid(`Object.hasOwn(record, "number");`, "no-object-hasown", {
       filename: "form.client.js",
-      settings: {
-        javascriptMode: "es2021",
-        release: "zurich",
-        surfaces: ["client"],
-      },
+      settings: { ...ZURICH_ES2021.settings, surfaces: ["client"] },
     });
     assertValid(`new BigInt64Array(1);`, "no-typed-arrays", {
       filename: "form.client.js",
-      settings: {
-        javascriptMode: "es2021",
-        release: "zurich",
-        surfaces: ["client"],
-      },
+      settings: { ...ZURICH_ES2021.settings, surfaces: ["client"] },
     });
     assertValid(`Int8Array.from(values);`, "no-typed-arrays", {
       filename: "form.client.js",
-      settings: {
-        javascriptMode: "es2021",
-        release: "zurich",
-        surfaces: ["client"],
-      },
+      settings: { ...ZURICH_ES2021.settings, surfaces: ["client"] },
     });
     assertValid(`class Example { #value = 1; }`, "no-unsupported-syntax", {
       filename: "form.client.js",
-      settings: {
-        javascriptMode: "es2021",
-        release: "australia",
-        surfaces: ["client"],
-      },
+      settings: { ...AUSTRALIA_ES2021.settings, surfaces: ["client"] },
     });
   });
 });
 describe("no-object-hasown", () => {
   it("follows the Zurich and Australia release matrix", () => {
     const code = `var owns = Object.hasOwn(record, "number");`;
-    assertInvalid(
-      code,
-      "no-object-hasown",
-      { messageId: "unsupported" },
-      { settings: { javascriptMode: "es2021", release: "zurich" } },
-    );
+    assertInvalid(code, "no-object-hasown", { messageId: "unsupported" }, ZURICH_ES2021);
     assertValid(code, "no-object-hasown", {
-      settings: { javascriptMode: "es2021", release: "australia" },
+      settings: AUSTRALIA_ES2021.settings,
     });
-    assertValid(code, "no-object-hasown", { settings: { javascriptMode: "es2021" } });
-    assertInvalid(
-      code,
-      "no-object-hasown",
-      { messageId: "unsupported" },
-      { settings: { javascriptMode: "es5" } },
-    );
+    assertValid(code, "no-object-hasown", { settings: ES2021 });
+    assertInvalid(code, "no-object-hasown", { messageId: "unsupported" }, { settings: ES5 });
   });
 
   it("keeps callable facts across stable nullish Object.assign sources", () => {
@@ -885,7 +837,7 @@ describe("no-object-hasown", () => {
         `${declaration}\nObject.assign(Object, absent);\nObject.hasOwn(record, "number");`,
         "no-object-hasown",
         { messageId: "unsupported" },
-        { settings: { javascriptMode: "es2021", release: "zurich" } },
+        ZURICH_ES2021,
       );
     }
   });
@@ -897,7 +849,7 @@ Object.defineProperty.apply(Object, args);
 Object.hasOwn(record, "number");`,
       "no-object-hasown",
       { messageId: "unsupported" },
-      { settings: { javascriptMode: "es5", release: "australia" } },
+      AUSTRALIA_ES5,
     );
   });
 
@@ -906,7 +858,7 @@ Object.hasOwn(record, "number");`,
       `const BuiltinObject = Object; BuiltinObject["hasOwn"](record, "number");`,
       "no-object-hasown",
       { messageId: "unsupported" },
-      { settings: { javascriptMode: "es5", release: "australia" } },
+      AUSTRALIA_ES5,
     );
     for (const code of [
       `const owns = Object.hasOwn; owns(record, "number");`,
@@ -919,83 +871,75 @@ Object.hasOwn(record, "number");`,
       `const { Object: BuiltinObject } = globalThis; BuiltinObject.hasOwn(record, "number");`,
       `const { hasOwn: owns } = globalThis.Object; owns(record, "number");`,
     ]) {
-      assertInvalid(
-        code,
-        "no-object-hasown",
-        { messageId: "unsupported" },
-        { settings: { javascriptMode: "es5", release: "australia" } },
-      );
+      assertInvalid(code, "no-object-hasown", { messageId: "unsupported" }, AUSTRALIA_ES5);
     }
     assertValid(
       `const { hasOwn = fallback } = Object; hasOwn(record, "number");`,
       "no-object-hasown",
-      { settings: { javascriptMode: "es5", release: "australia" } },
+      AUSTRALIA_ES5,
     );
     for (const code of [
       `const { hasOwn = undefined } = Object; hasOwn(record, "number");`,
       `const { hasOwn = null } = Object; hasOwn(record, "number");`,
     ]) {
-      assertInvalid(
-        code,
-        "no-object-hasown",
-        { messageId: "unsupported" },
-        { settings: { javascriptMode: "es2021", release: "zurich" } },
-      );
+      assertInvalid(code, "no-object-hasown", { messageId: "unsupported" }, ZURICH_ES2021);
     }
     assertValid(
       `const { Object: BuiltinObject = CustomObject } = globalThis; BuiltinObject.hasOwn(record, "number");`,
       "no-object-hasown",
-      { settings: { javascriptMode: "es2021", release: "zurich" } },
+      ZURICH_ES2021,
     );
   });
 
   it("keeps shadowed, reassigned, dynamic, and unrelated receivers silent", () => {
-    const settings = { javascriptMode: "es5", release: "australia" } as const;
     assertValid(
       `const Object = { hasOwn: function () { return true; } }; Object.hasOwn(record, "x");`,
       "no-object-hasown",
-      { settings },
+      AUSTRALIA_ES5,
     );
     assertValid(
       `let BuiltinObject = Object; BuiltinObject = helper; BuiltinObject.hasOwn(record, "x");`,
       "no-object-hasown",
-      { settings },
+      AUSTRALIA_ES5,
     );
-    assertValid(`Object[method](record, "x");`, "no-object-hasown", { settings });
-    assertValid(`helper.hasOwn(record, "x");`, "no-object-hasown", { settings });
-    assertValid(`const { local } = Object; local.hasOwn(record, "x");`, "no-object-hasown", {
-      settings,
-    });
-    assertValid(`Object.hasOwn = polyfill; Object.hasOwn(record, "x");`, "no-object-hasown", {
-      settings,
-    });
-    assertValid(`Object = custom; Object.hasOwn(record, "x");`, "no-object-hasown", {
-      settings,
-    });
+    assertValid(`Object[method](record, "x");`, "no-object-hasown", AUSTRALIA_ES5);
+    assertValid(`helper.hasOwn(record, "x");`, "no-object-hasown", AUSTRALIA_ES5);
+    assertValid(
+      `const { local } = Object; local.hasOwn(record, "x");`,
+      "no-object-hasown",
+      AUSTRALIA_ES5,
+    );
+    assertValid(
+      `Object.hasOwn = polyfill; Object.hasOwn(record, "x");`,
+      "no-object-hasown",
+      AUSTRALIA_ES5,
+    );
+    assertValid(`Object = custom; Object.hasOwn(record, "x");`, "no-object-hasown", AUSTRALIA_ES5);
     assertValid(
       `const BuiltinObject = Object; BuiltinObject.hasOwn = polyfill; BuiltinObject.hasOwn(record, "x");`,
       "no-object-hasown",
-      { settings },
+      AUSTRALIA_ES5,
     );
     assertValid(
       `const { Object: BuiltinObject } = globalThis; BuiltinObject.hasOwn = polyfill; BuiltinObject.hasOwn(record, "x");`,
       "no-object-hasown",
-      { settings: { javascriptMode: "es2021", release: "zurich" } },
+      ZURICH_ES2021,
     );
-    assertValid(`Object.hasOwn(record, "x"); Object.hasOwn = polyfill;`, "no-object-hasown", {
-      settings,
-    });
+    assertValid(
+      `Object.hasOwn(record, "x"); Object.hasOwn = polyfill;`,
+      "no-object-hasown",
+      AUSTRALIA_ES5,
+    );
     assertValid(
       `const { Object: First } = Second;
 const { Object: Second } = First;
 First.hasOwn(record, "x");`,
       "no-object-hasown",
-      { settings },
+      AUSTRALIA_ES5,
     );
   });
 
   it("keeps release-portable availability guards silent", () => {
-    const settings = { javascriptMode: "es2021", release: "zurich" } as const;
     for (const code of [
       `Object.hasOwn && Object.hasOwn(record, "x");`,
       `Object.hasOwn ? Object.hasOwn(record, "x") : fallback(record, "x");`,
@@ -1016,13 +960,13 @@ First.hasOwn(record, "x");`,
       `Object.hasOwn !== void 0 && Object.hasOwn(record, "x");`,
       `"hasOwn" in Object && Object.hasOwn(record, "x");`,
     ]) {
-      assertValid(code, "no-object-hasown", { settings });
+      assertValid(code, "no-object-hasown", ZURICH_ES2021);
     }
     assertInvalid(
       `Object.hasOwn || Object.hasOwn(record, "x");`,
       "no-object-hasown",
       { messageId: "unsupported" },
-      { settings },
+      ZURICH_ES2021,
     );
     for (const code of [
       `if (Object.hasOwn !== null) Object.hasOwn(record, "x");`,
@@ -1035,7 +979,7 @@ First.hasOwn(record, "x");`,
       `if (Object.hasOwn) { (function () { Object.hasOwn = undefined; })(); Object.hasOwn(record, "x"); }`,
       `for (; Object.hasOwn; Object.hasOwn(record, "x")) { Object.hasOwn = undefined; }`,
     ]) {
-      assertInvalid(code, "no-object-hasown", { messageId: "unsupported" }, { settings });
+      assertInvalid(code, "no-object-hasown", { messageId: "unsupported" }, ZURICH_ES2021);
     }
   });
 
@@ -1046,12 +990,11 @@ First.hasOwn(record, "x");`,
 }`,
       "no-object-hasown",
       { messageId: "unsupported" },
-      { settings: { javascriptMode: "es2021", release: "zurich" } },
+      ZURICH_ES2021,
     );
   });
 
   it("conservatively treats possible Object replacements as whole-file taint", () => {
-    const settings = { javascriptMode: "es2021", release: "zurich" } as const;
     for (const code of [
       `function run() { Object.hasOwn(record, "x"); }
 Object.hasOwn = polyfill; run();`,
@@ -1082,7 +1025,7 @@ Object.defineProperty(Object, "hasOwn", { value: polyfill }); Object.hasOwn(reco
       `const targets = { primary: Object }; install(targets); Object.hasOwn(record, "x");`,
       `new Installer(Object); Object.hasOwn(record, "x");`,
     ]) {
-      assertValid(code, "no-object-hasown", { settings });
+      assertValid(code, "no-object-hasown", ZURICH_ES2021);
     }
     for (const code of [
       `Reflect.set(Object, "hasOwn", polyfill); Object.hasOwn(record, "x");`,
@@ -1099,13 +1042,13 @@ Object.defineProperty(Object, "hasOwn", { value: polyfill }); Object.hasOwn(reco
       `inspect(Object.hasOwn); Object.hasOwn(record, "x");`,
       `Object.freeze(Object); Object.hasOwn(record, "x");`,
     ]) {
-      assertInvalid(code, "no-object-hasown", { messageId: "unsupported" }, { settings });
+      assertInvalid(code, "no-object-hasown", { messageId: "unsupported" }, ZURICH_ES2021);
     }
     assertInvalid(
       `globalThis.Object.defineProperty(Object, "hasOwn", { value: function () {} }); Object.hasOwn(record, "x");`,
       "no-object-hasown",
       { messageId: "unsupported" },
-      { settings: { javascriptMode: "es5", release: "australia" } },
+      AUSTRALIA_ES5,
     );
   });
 });
@@ -1207,7 +1150,7 @@ describe("no-unsupported-syntax", () => {
   });
 
   it("skips Fluent metadata files", () => {
-    assertValid(`const name = current?.caller_id ?? "x";`, "no-unsupported-syntax", {
+    assertSkipped(`const name = current?.caller_id ?? "x";`, "no-unsupported-syntax", {
       filename: "table.now.ts",
     });
   });
@@ -1246,7 +1189,7 @@ ga.getXMLWait();`,
 var ga = new GlideAjax("x_acme.UserUtils");
 ga.getXMLWait();`,
     ]) {
-      assertValid(code, "no-sync-glideajax", { filename: "incident.client.js" });
+      assertValidActive(code, "no-sync-glideajax", { filename: "incident.client.js" });
     }
   });
 });

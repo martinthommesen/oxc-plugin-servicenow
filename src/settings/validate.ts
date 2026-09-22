@@ -5,14 +5,13 @@ import type {
   JavaScriptMode,
   ScriptAuthoring,
   ScriptSurface,
-  ServiceNowSettings,
   SettingsDeprecation,
   ValidatedServiceNowSettings,
 } from "../types.js";
 import { resolveFluentManifest } from "../fluent/registry.js";
 import { isSupportedServiceNowRelease, SUPPORTED_SERVICENOW_RELEASES } from "./releases.js";
-import { ServiceNowSettingsError } from "./errors.js";
-import { expectEnum, typeName } from "./parse.js";
+import { FLUENT_SURFACES_MESSAGE, ServiceNowSettingsError } from "./errors.js";
+import { expectEnum, typeName, type SettingsFieldDescriptor } from "./parse.js";
 import { deepFreeze } from "./freeze.js";
 import { immutableSet } from "../utils/immutable.js";
 import { SURFACE_VALUES } from "../surfaces.js";
@@ -96,9 +95,9 @@ function expectPatternArray(
   return items;
 }
 
-export interface SettingsFieldDescriptor<T> {
-  readonly defaultValue: () => T;
-  readonly parse: (path: string, value: unknown, deprecations: SettingsDeprecation[]) => T;
+/** Stable structural fingerprint, with a fallback for values that cannot be walked. */
+export function settingsFingerprint(value: object): string {
+  return structuralFingerprint(value) ?? "unavailable";
 }
 
 type ParsedSettings<D extends Record<string, SettingsFieldDescriptor<unknown>>> = {
@@ -133,7 +132,7 @@ export function deriveSettingsDescriptorProducts<
     return deepFreeze(parse(raw, deprecations));
   }
   function fingerprint(value: ParsedSettings<D>): string {
-    return structuralFingerprint(value) ?? "unavailable";
+    return settingsFingerprint(value);
   }
   return Object.freeze({ keys, defaults, parse, validate, fingerprint });
 }
@@ -243,19 +242,17 @@ export interface ValidatedSettingsResult {
   readonly deprecations: readonly SettingsDeprecation[];
 }
 
-/**
- * Validate and normalize `settings.servicenow`.
- * Throws {@link ServiceNowSettingsError} for unknown keys, wrong types, or conflicts.
- */
-const EMPTY_SETTINGS: ValidatedServiceNowSettings = deepFreeze(
-  SETTINGS_PRODUCTS.validate({}) as ValidatedServiceNowSettings,
-);
+const EMPTY_SETTINGS = SETTINGS_PRODUCTS.validate({}) as ValidatedServiceNowSettings;
 
 const EMPTY_RESULT: ValidatedSettingsResult = deepFreeze({
   settings: EMPTY_SETTINGS,
   deprecations: [],
 });
 
+/**
+ * Validate and normalize `settings.servicenow`.
+ * Throws {@link ServiceNowSettingsError} for unknown keys, wrong types, or conflicts.
+ */
 export function validateServiceNowSettings(raw: unknown): ValidatedSettingsResult {
   if (raw === undefined) {
     return EMPTY_RESULT;
@@ -276,11 +273,8 @@ export function validateServiceNowSettings(raw: unknown): ValidatedSettingsResul
   const settings = normalizeLegacySettings(parsed);
   const { authoring, surfaces } = settings;
 
-  if (authoring === "fluent" && surfaces !== "auto" && surfaces.length > 0) {
-    throw new ServiceNowSettingsError(
-      ".surfaces",
-      "Fluent authoring cannot list instance execution surfaces",
-    );
+  if (authoring === "fluent" && surfaces !== "auto") {
+    throw new ServiceNowSettingsError(".surfaces", FLUENT_SURFACES_MESSAGE);
   }
 
   return deepFreeze({
@@ -288,5 +282,3 @@ export function validateServiceNowSettings(raw: unknown): ValidatedSettingsResul
     deprecations,
   });
 }
-
-export type { ServiceNowSettings };

@@ -2,7 +2,7 @@ import type { ESTree } from "@oxlint/plugins";
 import { getName, isValueReference, nodeStart, walk } from "../utils/ast.js";
 import type { FileBindings } from "./bindings.js";
 import type { BindingWriteQuery } from "./binding-writes.js";
-import { isFunctionNode } from "./stable-invocations.js";
+import { isFunctionLike } from "./bindings.js";
 
 export interface UnhoistedBlockFunctionUse {
   readonly declaration: ESTree.Node;
@@ -111,7 +111,7 @@ export function findUnhoistedBlockFunctionUses(
         if (!id || id.type !== "Identifier" || block?.type !== "BlockStatement") return;
         // Function-body declarations were already hoisted correctly. The
         // Australia fix concerns declarations in nested blocks.
-        if (isFunctionNode(blockParent) && blockParent.body === block) return;
+        if (isFunctionLike(blockParent) && blockParent.body === block) return;
         const binding = bindings.resolve(id.name, block);
         const boundary = executionBoundary(ancestors);
         if (!binding || binding.kind !== "function" || !boundary) return;

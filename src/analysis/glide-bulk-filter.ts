@@ -1,7 +1,7 @@
 import type { ESTree } from "@oxlint/plugins";
 import { getStringValue } from "../utils/ast.js";
 import { classifyStaticArg } from "./static-args.js";
-import { analyzePathBindings, dedupePathFindings, mergeTri } from "./path-state.js";
+import { collectPathFindings, mergeTri } from "./path-state.js";
 import {
   hasAuthoritativeGlideRecordMethod,
   type PlatformMethodAuthorityFacts,
@@ -44,7 +44,7 @@ function filterEvidence(
   call: ESTree.CallExpression,
   analysis: ProvenanceQuery,
 ): boolean | "unknown" | null {
-  if (!analysis.glide.filters.has(property)) return null;
+  if (!analysis.glide.byKind.GlideRecord.filters.has(property)) return null;
   if (property === "addActiveQuery") return true;
   if (!FIELD_OR_ENCODED_FILTERS.has(property)) return "unknown";
 
@@ -69,21 +69,19 @@ export function findUnfilteredBulkOperations(
   analysis: ProvenanceQuery,
   authority: PlatformMethodAuthorityFacts,
 ): UnfilteredBulkFinding[] {
-  const findings: UnfilteredBulkFinding[] = [];
-  const outcome = analyzePathBindings<FilterData>({
+  return collectPathFindings<FilterData, UnfilteredBulkFinding>({
     program,
     analysis,
     kinds: ["GlideRecord"],
     emptyData: () => ({ filtered: false, uncertain: false }),
-    cloneData: (data) => ({ ...data }),
     equalsData: (left, right) =>
       left.filtered === right.filtered && left.uncertain === right.uncertain,
     mergeData: (left, right) => ({
       filtered: mergeTri(left.filtered, right.filtered),
       uncertain: left.uncertain || right.uncertain,
     }),
-    onCall({ call, rec, receiver, objectName, property }) {
-      if (!rec || !receiver || !objectName || !property) return;
+    onCall({ call, rec, receiver, objectName, property }, report) {
+      if (!rec || !receiver || !property) return;
       if (!hasAuthoritativeGlideRecordMethod(authority, receiver, property)) {
         rec.data.filtered = "unknown";
         rec.data.uncertain = true;
@@ -104,10 +102,10 @@ export function findUnfilteredBulkOperations(
         return;
       }
       if (
-        analysis.glide.bulk.has(property) &&
+        analysis.glide.byKind.GlideRecord.bulk.has(property) &&
         (rec.data.filtered === false || (rec.data.filtered === "unknown" && !rec.data.uncertain))
       ) {
-        findings.push({ node: call, name: objectName, method: property });
+        report({ node: call, name: objectName ?? "record", method: property });
         return;
       }
       if (!analysis.glide.modeledMethods.has(property) && rec.data.filtered !== true) {
@@ -116,5 +114,4 @@ export function findUnfilteredBulkOperations(
       }
     },
   });
-  return outcome.outcome === "complete" ? dedupePathFindings(findings) : [];
 }

@@ -8,10 +8,24 @@
 
 ### Changed
 
+- Rule pages render the documented surface-confidence floor in the runtime vocabulary (`inferred`, `filename`, `explicit`), the catalog check verifies that each rule's gate passes the floor it declares, and `require-business-rule-wrapper` no longer claims an `explicit-only` floor its gate never enforced.
 - The compatibility page states that parser cells on ESLint 10 require `typescript-eslint` 8.56.0 or later; peer ranges cannot express the conditional, so the matrix check enforces it per cell.
 
 ### Fixed
 
+- `no-delete-multiple-with-windowing`, `no-unfiltered-gliderecord-bulk-operation`, and `require-glideajax-sysparm-name` now track windowing, filter, and parameter calls on a receiver that is not a bare identifier, such as `(gr = new GlideRecord("incident")).setLimit(10)`, instead of skipping the state update.
+- `prefer-setnocount-with-choosewindow` no longer merges distinct alternatives on a host that supplies no `start` offsets, so it reports the same findings on every host.
+- `fluent-directives` locates statements through portable node offsets and scans the source text when a host exposes no `getAllComments()`, instead of reporting every directive as dangling or finding none.
+- `npm run bench` no longer fails on a worktree that contains a non-ASCII filename; git status is read in NUL-terminated form, and the recorded baseline path is repository-relative.
+- The compatibility consumer removes its staging directory on failure and reports the parser or spawn error instead of an empty output tail.
+- `require-query-before-next` and the other path-sensitive rules no longer report a query placed in the necessarily evaluated operand of a constant `&&`, `||`, or `??`, and no longer report a call in an operand JavaScript cannot reach; `if`, conditional, and loop tests prune every syntactically constant value, not only `true`/`false` (FINDINGS.md COR-003).
+- Fluent alias resolution reads node offsets portably, so a host that supplies only `range` resolves a rebound alias exactly like one that supplies `start`; a host with no offsets suppresses the alias fact instead of trusting the first initializer (FINDINGS.md COR-007).
+- An initialized `var` redeclaration now counts as an alias write, so `var T = BusinessRule; var T = local;` is not reported and the reverse order is (FINDINGS.md COR-009).
+- `prefer-glideaggregate` resolves counter declarations and uses from a per-file reference index instead of walking the program once per counted loop; 200 counted loops now analyze in roughly a tenth of the time (FINDINGS.md PER-005).
+- `approve.server.ui-action.js` and a UI Action under a project-relative `server/` directory now resolve as server UI Actions, as the README naming table promises, so mode-gated engine rules such as `no-promise` run on them. Bare and `client` UI Actions are unchanged (FINDINGS.md COR-017).
+- The catalog gate-agreement check parses each rule module and counts only executable gate calls, so a helper left behind in a comment or string no longer satisfies it, and a client-surface rule must gate on a client surface (FINDINGS.md TST-005).
+- The 3.0 migration guide quotes the exact `oxlint` and `oxfmt` peer ranges from `package.json` and links the compatibility table instead of promising newer minor lines (FINDINGS.md DOC-006).
+- Benchmark summaries record `sourceState` and `dirtyFiles`, so a measurement taken on a modified worktree is distinguishable from one taken at a clean HEAD (FINDINGS.md DX-001).
 - `no-display-value-date-comparison` no longer reports in client files. The rule declares server-only surfaces but its gate admitted every classic instance script; the gate now matches the declaration (FINDINGS.md COR-015).
 - Shared availability, mutation, object-method, block-function, empty-array, and platform-call analysis now stays linear or explicitly bounded on adversarial alias and call-site inputs. Direct platform diagnostics remain active after the alias-analysis call budget is reached.
 - `no-br-current-update` and `no-gs-now` no longer let a provably later write suppress an earlier call, `no-system-query-bypass` cannot be hidden by an appended method write, and `no-packages-calls` reports alias capture at the `Packages` source.
@@ -60,7 +74,7 @@
 
 ## 2.0.0 — 2026-08-27
 
-The 2.0.0 release includes the validated settings, context, rule, and release-governance changes documented below.
+The 2.0.0 release includes the validated settings, context, rule, and release-governance changes below.
 
 ### Added
 
@@ -208,7 +222,7 @@ Initial public release.
 - 20 rules covering classic ServiceNow scripts and Fluent `.now.ts` metadata
 - `recommended` and `strict` presets
 - ESLint 9 flat-config exports (`plugin.configs.flat.*`)
-- High-performance `createOnce` visitors, with `eslintCompatPlugin` shims for ESLint
+- `createOnce` visitors, with `eslintCompatPlugin` shims for ESLint
 - Settings: `allowedSysIds`, `allowedTables`, `scriptType`, `ecmaLatest`, `scopePrefix`
 
 ### oxfmt

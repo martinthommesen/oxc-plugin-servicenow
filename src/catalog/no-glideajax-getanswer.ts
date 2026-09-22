@@ -32,7 +32,7 @@ export const noGlideajaxGetanswerEntry = entry("no-glideajax-getanswer", noGlide
   placements: [
     { profile: "recommended", severity: "error" },
     { profile: "client", severity: "error" },
-  ] as const,
+  ],
   optionDescriptor: undefined,
   limitationCases: [
     {

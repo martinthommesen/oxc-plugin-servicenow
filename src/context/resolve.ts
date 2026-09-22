@@ -9,7 +9,7 @@ import type {
   ServiceNowScriptContext,
   ValidatedServiceNowSettings,
 } from "../types.js";
-import { ServiceNowSettingsError } from "../settings/errors.js";
+import { FLUENT_SURFACES_MESSAGE, ServiceNowSettingsError } from "../settings/errors.js";
 import { SERVER_ONLY_SURFACES } from "../surfaces.js";
 import { immutableSet } from "../utils/immutable.js";
 import { authoringFromFilename, isFluentFile, surfacesFromFilename } from "./filename.js";
@@ -62,15 +62,8 @@ function resolveSurfaces(
   baseDirectory?: string,
 ): { surfaces: Set<ScriptSurface>; confidence: ContextConfidence } {
   if (authoring === "fluent") {
-    if (
-      authoringConfidence === "explicit" &&
-      settings.surfaces !== "auto" &&
-      settings.surfaces.length > 0
-    ) {
-      throw new ServiceNowSettingsError(
-        ".surfaces",
-        "Fluent authoring cannot list instance execution surfaces",
-      );
+    if (authoringConfidence === "explicit" && settings.surfaces !== "auto") {
+      throw new ServiceNowSettingsError(".surfaces", FLUENT_SURFACES_MESSAGE);
     }
     return { surfaces: new Set(), confidence: "filename" };
   }
@@ -109,14 +102,14 @@ function resolveSurfaces(
 }
 
 function resolveJavaScriptMode(
-  context: Context,
+  filename: string,
   settings: ValidatedServiceNowSettings,
   authoring: ScriptAuthoring,
 ): { mode: JavaScriptMode; confidence: ContextConfidence } {
   if (settings.javascriptMode !== undefined) {
     return { mode: settings.javascriptMode, confidence: "explicit" };
   }
-  if (authoring === "fluent" || isFluentFile(context.filename)) {
+  if (authoring === "fluent" || isFluentFile(filename)) {
     return { mode: "unknown", confidence: "filename" };
   }
   return { mode: "unknown", confidence: "unknown" };
@@ -143,8 +136,7 @@ export function resolveScriptContext(
     extras.inferSurfaces,
     (context as Context & { cwd?: string }).cwd,
   );
-  const localDeprecations = [...deprecations];
-  const javascriptMode = resolveJavaScriptMode(context, settings, authoring.authoring);
+  const javascriptMode = resolveJavaScriptMode(filename, settings, authoring.authoring);
   const scopeConfidence: ContextConfidence = settings.scope === "unknown" ? "unknown" : "explicit";
 
   const sources: ContextSourceMap = Object.freeze({
@@ -170,7 +162,9 @@ export function resolveScriptContext(
     businessRuleSourceFormat: settings.businessRuleSourceFormat,
     businessRuleWhen: settings.businessRuleWhen,
     settings,
-    deprecations: Object.freeze(localDeprecations),
+    // `validateServiceNowSettings` deep-freezes its result, so this array is
+    // already immutable and needs no defensive copy.
+    deprecations,
   });
 }
 

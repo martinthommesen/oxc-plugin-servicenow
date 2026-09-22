@@ -1,11 +1,12 @@
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { copyFileSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { basename, dirname, isAbsolute, join, posix } from "node:path";
-import { pathToFileURL } from "node:url";
+import { basename, dirname, join, posix, resolve } from "node:path";
 import { parseNpmPackJson } from "./parse-npm-pack.mjs";
-import { isValidIsoDate as sharedIsValidIsoDate } from "./lib/iso-date.mjs";
-import { root } from "./lib/repo.mjs";
+import { argValue as readArgValue } from "./lib/argv.mjs";
+import { isValidIsoDate } from "./lib/iso-date.mjs";
+import { readJson, writeJsonArtifact } from "./lib/json-artifact.mjs";
+import { isMainModule, root } from "./lib/repo.mjs";
 
 const RELEASE_VERSION =
   /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-(?:(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?$/;
@@ -50,8 +51,6 @@ export function changelogVersionHeadingPattern(version) {
   const escaped = String(version).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return new RegExp(`^## ${escaped} — (\\d{4}-\\d{2}-\\d{2})$`, "m");
 }
-
-export const isValidIsoDate = sharedIsValidIsoDate;
 
 /**
  * @param {string} text
@@ -288,9 +287,13 @@ export function tarballIntegrity(buffer) {
 const TAR_MAX_BUFFER = 64 * 1024 * 1024;
 
 /**
+ * @typedef {Record<string, unknown> & { sha256: string, integrity: string }} NpmPackManifest
+ */
+
+/**
  * @param {Record<string, unknown>} record
  * @param {string} tarball
- * @returns {Record<string, unknown>}
+ * @returns {NpmPackManifest}
  */
 export function normalizeNpmPackManifest(record, tarball) {
   const tarballBytes = readFileSync(tarball);
@@ -310,7 +313,7 @@ export function normalizeNpmPackManifest(record, tarball) {
       sha256: createHash("sha256").update(bytes).digest("hex"),
     };
   });
-  /** @type {Record<string, unknown>} */
+  /** @type {NpmPackManifest} */
   const manifest = {
     schemaVersion: 1,
     name: record["name"],
@@ -364,10 +367,7 @@ export function createReleasePublishInput(inputDir, tarball, pkg, npmPackManifes
     },
   ];
   mkdirSync(join(inputDir, "package"), { recursive: true });
-  writeFileSync(
-    join(inputDir, "package/npm-pack-manifest.json"),
-    `${JSON.stringify(npmPackManifest, null, 2)}\n`,
-  );
+  writeJsonArtifact(join(inputDir, "package/npm-pack-manifest.json"), npmPackManifest);
   files.push({
     source: undefined,
     path: "package/npm-pack-manifest.json",
@@ -384,10 +384,7 @@ export function createReleasePublishInput(inputDir, tarball, pkg, npmPackManifes
       sha256: sha256File(join(inputDir, file.path)),
     })),
   };
-  writeFileSync(
-    join(inputDir, "release-publish-input.json"),
-    `${JSON.stringify(manifest, null, 2)}\n`,
-  );
+  writeJsonArtifact(join(inputDir, "release-publish-input.json"), manifest);
   return manifest;
 }
 
@@ -407,13 +404,7 @@ function fail(message) {
  * @returns {string | undefined}
  */
 function argValue(argv, name) {
-  const index = argv.indexOf(name);
-  if (index === -1) return undefined;
-  const value = argv[index + 1];
-  if (!value || value.startsWith("-")) {
-    fail(`${name} requires a value`);
-  }
-  return value;
+  return readArgValue(argv, name, fail);
 }
 
 function ensureBuiltDist() {
@@ -503,15 +494,16 @@ function checkChangelog(version) {
 /**
  * @param {string} tarball
  * @param {boolean} allCells
+ * @param {string} sha256
  * @returns {void}
  */
-function runConsumer(tarball, allCells) {
+function runConsumer(tarball, allCells, sha256) {
   const args = [
     join(root, "scripts/compat-consumer.mjs"),
     "--tarball",
     tarball,
     "--sha256",
-    sha256File(tarball),
+    sha256,
   ];
   if (allCells) args.push("--all");
   execFileSync(process.execPath, args, {
@@ -542,7 +534,7 @@ function parseArgs(argv) {
  */
 export function main(argv = process.argv) {
   const options = parseArgs(argv);
-  const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+  const pkg = readJson(join(root, "package.json"));
   if (!isReleaseVersion(pkg.version))
     fail(`package.json has invalid release version ${pkg.version}`);
   if (options.changelogOnly) {
@@ -552,11 +544,7 @@ export function main(argv = process.argv) {
     return result;
   }
 
-  const destination = options.packDestination
-    ? isAbsolute(options.packDestination)
-      ? options.packDestination
-      : join(process.cwd(), options.packDestination)
-    : process.cwd();
+  const destination = options.packDestination ? resolve(options.packDestination) : process.cwd();
   if (options.tarball) {
     fail(
       "--tarball requires a preserved npm pack manifest and is not supported by this build gate",
@@ -588,21 +576,16 @@ export function main(argv = process.argv) {
   const npmPackManifest = normalizeNpmPackManifest(record, tarball);
 
   if (options.consumer) {
-    runConsumer(tarball, options.consumerAll);
+    runConsumer(tarball, options.consumerAll, npmPackManifest.sha256);
   }
 
   if (options.writePath) {
-    const writePath = isAbsolute(options.writePath)
-      ? options.writePath
-      : join(process.cwd(), options.writePath);
+    const writePath = resolve(options.writePath);
     mkdirSync(dirname(writePath), { recursive: true });
     writeFileSync(writePath, `${tarball}\n`);
   }
   if (options.publishInputDir) {
-    const inputDir = isAbsolute(options.publishInputDir)
-      ? options.publishInputDir
-      : join(process.cwd(), options.publishInputDir);
-    createReleasePublishInput(inputDir, tarball, pkg, npmPackManifest);
+    createReleasePublishInput(resolve(options.publishInputDir), tarball, pkg, npmPackManifest);
   }
 
   const result = {
@@ -610,8 +593,8 @@ export function main(argv = process.argv) {
     name: pkg.name,
     version: pkg.version,
     tarball,
-    sha256: sha256File(tarball),
-    integrity: tarballIntegrity(readFileSync(tarball)),
+    sha256: npmPackManifest.sha256,
+    integrity: npmPackManifest.integrity,
     npmPackManifest,
     files: files.length,
     consumer: Boolean(options.consumer),
@@ -621,12 +604,7 @@ export function main(argv = process.argv) {
   return result;
 }
 
-const invokedScript = process.argv[1];
-const invokedDirectly =
-  invokedScript !== undefined &&
-  invokedScript !== "" &&
-  import.meta.url === pathToFileURL(invokedScript).href;
-if (invokedDirectly) {
+if (isMainModule(import.meta.url)) {
   try {
     main();
   } catch (error) {

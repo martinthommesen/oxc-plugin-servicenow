@@ -1,5 +1,5 @@
 import { describe, it } from "node:test";
-import { assertInvalid, assertValid } from "../helpers/rule-tester.js";
+import { assertInvalid, assertValidActive } from "../helpers/rule-tester.js";
 
 const RULE = "no-unfiltered-gliderecord-bulk-operation" as const;
 
@@ -10,15 +10,15 @@ const RULE = "no-unfiltered-gliderecord-bulk-operation" as const;
 // (FINDINGS.md COR-013).
 describe("loop-head rebinding (FINDINGS.md COR-013)", () => {
   it("does not carry a tracked object into a shadowing for-of body", () => {
-    assertValid(
+    assertValidActive(
       "var gr = new GlideRecord('task');\nfor (var gr of items) { gr.deleteMultiple(); }",
       RULE,
     );
-    assertValid(
+    assertValidActive(
       "var gr = new GlideRecord('task');\nfor (let gr of items) { gr.deleteMultiple(); }",
       RULE,
     );
-    assertValid(
+    assertValidActive(
       "var gr = new GlideRecord('task');\nfor (var gr in items) { gr.deleteMultiple(); }",
       RULE,
     );
@@ -29,7 +29,7 @@ describe("loop-head rebinding (FINDINGS.md COR-013)", () => {
   });
 
   it("does not analyze code after an infinite do-while as reachable", () => {
-    assertValid(
+    assertValidActive(
       "var gr = new GlideRecord('incident');\ndo { gs.info(1); } while (true);\ngr.next();",
       "require-query-before-next",
     );

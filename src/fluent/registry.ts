@@ -1,5 +1,6 @@
 import { ServiceNowSettingsError } from "../settings/errors.js";
 import {
+  apisByName,
   DEFAULT_FLUENT_MANIFEST,
   sdkCoreDeclarationEvidence,
   type FluentApiCapability,
@@ -19,18 +20,6 @@ import {
   type SupportedFluentSdkVersion,
 } from "./sdk-versions.js";
 import type { DeclarationIdPolicy } from "./snapshot-types.js";
-
-export {
-  CURRENT_FLUENT_SDK_VERSION,
-  DEFAULT_FLUENT_SDK_VERSION,
-  LEGACY_FLUENT_SDK_VERSION,
-  SDK_4_1_FLUENT_SDK_VERSION,
-  SDK_4_8_FLUENT_SDK_VERSION,
-  SDK_4_10_FLUENT_SDK_VERSION,
-  SDK_4_10_1_FLUENT_SDK_VERSION,
-  SUPPORTED_FLUENT_SDK_VERSIONS,
-} from "./sdk-versions.js";
-export type { SupportedFluentSdkVersion } from "./sdk-versions.js";
 
 export interface FluentSdkArtifactEvidence {
   readonly sdkIntegrity: `sha512-${string}`;
@@ -238,7 +227,7 @@ function manifestForVersion(sdkVersion: string): FluentSdkManifest {
       `missing declaration snapshot for ${sdkVersion}`,
     );
   }
-  const manual = new Map(DEFAULT_FLUENT_MANIFEST.apis.map((api) => [api.name, api]));
+  const manual = apisByName();
   const apis: FluentApiCapability[] = [];
   for (const api of DEFAULT_FLUENT_MANIFEST.apis) {
     if (api.introduced && compareFluentVersions(sdkVersion, api.introduced) < 0) continue;
@@ -299,6 +288,8 @@ function manifestForVersion(sdkVersion: string): FluentSdkManifest {
 
 const REGISTRY_CACHE = new Map<string, FluentSdkManifest>();
 
+function registryEntry(sdkVersion: SupportedFluentSdkVersion): FluentSdkManifest;
+function registryEntry(sdkVersion: string): FluentSdkManifest | undefined;
 function registryEntry(sdkVersion: string): FluentSdkManifest | undefined {
   if (!hasDeclarationSnapshot(sdkVersion)) return undefined;
   const cached = REGISTRY_CACHE.get(sdkVersion);
@@ -318,7 +309,7 @@ export function supportedFluentSdkVersionList(): string {
  * borrowing a nearby manifest.
  */
 export function resolveFluentManifest(version: string | undefined): FluentSdkManifest {
-  if (version === undefined) return registryEntry(DEFAULT_FLUENT_SDK_VERSION)!;
+  if (version === undefined) return registryEntry(DEFAULT_FLUENT_SDK_VERSION);
   const selected = registryEntry(version);
   if (!selected) {
     throw new ServiceNowSettingsError(
@@ -330,5 +321,5 @@ export function resolveFluentManifest(version: string | undefined): FluentSdkMan
 }
 
 export function fluentManifests(): readonly FluentSdkManifest[] {
-  return SUPPORTED_FLUENT_SDK_VERSIONS.map((version) => registryEntry(version)!);
+  return SUPPORTED_FLUENT_SDK_VERSIONS.map((version) => registryEntry(version));
 }

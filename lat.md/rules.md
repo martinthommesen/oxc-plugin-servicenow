@@ -6,7 +6,7 @@ Per-rule semantics, applicability, options, false positives and negatives, and e
 
 `ruleCatalog` in [[src/catalog.ts#ruleCatalog]] assembles one descriptor per rule from `src/catalog/<rule>.ts`. It is the single registration point for the whole package.
 
-`src/rules/index.ts` builds the rule record from `ruleImplementations`, a projection derived from the full catalog. `src/configs/maps.ts` reads the separate `rulePlacements` projection.
+`src/rules/index.ts` builds the rule record from `ruleImplementations`, a projection derived from the full catalog. `src/configs/maps.ts` reads the separate `rulePlacements` projection, and the ten profile objects live in `src/configs/profiles.ts`.
 
 The file's comment states the rule: add an implementation file and one descriptor module in `src/catalog/`, never an export in the registry. Shared assembly lives in `src/catalog/entry.ts` with types in `src/catalog/types.ts`. `RuleName` is inferred from the catalog array, so an unregistered rule does not typecheck.
 
@@ -42,11 +42,13 @@ The shape exists for three reasons. `createOnce` computes per-file work once. A 
 
 The `before()` hook is where applicability is decided, using the predicates in [[context#How rules consume the context]]. Returning `false` is how a rule declines a file; it is part of the rule contract, and the test harness distinguishes it from finding nothing — see [[invariants#Declining is not the same as passing]].
 
+`src/rules/helpers.ts` holds the predicates rules share beyond the gate: `isPlatformStaticMember` for a const-aliased member of a platform global, and `platformNamespaceIsSafe` for a `globalThis` namespace access. The proven-receiver pair, `provenReceiver` and `provenReceiverMethod`, lives in [[src/analysis/platform-method-authority.ts#provenReceiverMethod]] because it joins provenance with mutation authority.
+
 ## Options come from one descriptor
 
-The five rules that take options declare them once, in `src/options/descriptors.ts`, as an `OptionField` list.
+The five rules that take options declare them once, in `src/options/rule-options.ts`, as an `OptionField` list.
 
-`schemaFromDescriptor`, `parseRuleOptions`, and `optionDocsFromDescriptor` in `src/options/descriptor.ts` derive the host JSON schema, the runtime parse, and the generated option documentation from that one source. A rule cannot hand-write its schema or parse `context.options` directly. Adding an option means adding a field to the descriptor.
+`schemaFromDescriptor`, `parseRuleOptions`, and `optionDocsFromDescriptor` in `src/options/option-fields.ts` derive the host JSON schema, the runtime parse, and the generated option documentation from that one source. A rule cannot hand-write its schema or parse `context.options` directly. Adding an option means adding a field to the descriptor.
 
 ## Applicability metadata
 
@@ -54,7 +56,9 @@ Each descriptor carries an applicability block built by `classic(...)`, `engine(
 
 These produce the *documented* applicability — surfaces, JavaScript modes, scopes, releases, and `minimumSurfaceConfidence` — which the generated rule pages render.
 
-The documented applicability and the runtime predicates in [[context]] must agree, but they are separate artifacts: the metadata is what users read, the predicates are what runs. `Minimum surface confidence` on a rule page is where the two meet. `scripts/lib/catalog-gates.mjs`, run from the catalog check, asserts the agreement structurally: a rule whose entry restricts surfaces or modes must call the corresponding gate helper, so removing a gate fails the check (FINDINGS.md COR-015).
+The documented applicability and the runtime predicates in [[context]] must agree, but they are separate artifacts: the metadata is what users read, the predicates are what runs. `Minimum surface confidence` on a rule page is where the two meet, and it is a `ContextConfidence` value — `inferred` unless the rule passes a stronger floor to its gate.
+
+`scripts/lib/catalog-gates.mjs`, run from the catalog check, asserts the agreement structurally (FINDINGS.md COR-015). It reads the structured `surfaces` list rather than the rendered prose; it requires the matching gate helper, so removing a gate fails the check; it skips the surface half for a mode-restricted rule, which gates on `shouldDiagnoseFeature` and has no surface argument; and it verifies that a declared confidence floor stronger than the default is the value passed at every surface gate.
 
 ## Evidence
 

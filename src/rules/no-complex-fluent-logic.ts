@@ -35,7 +35,7 @@ export const noComplexFluentLogic = defineRule({
   createOnce(context) {
     return {
       before() {
-        const { context: script } = beginRuleFile(context);
+        const { script } = beginRuleFile(context);
         if (!isFluentContext(script)) return false;
         return undefined;
       },

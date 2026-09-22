@@ -1,7 +1,11 @@
 const SYS_ID = /\b[0-9a-f]{32}\b/gi;
 const ALL_HEX = /^[0-9a-f]{32}$/i;
 
-/** ServiceNow sys_ids are 32-character lowercase hex strings. */
+/**
+ * Whether the whole string is a 32-character hexadecimal sys_id. ServiceNow
+ * writes sys_ids in lowercase, but the match is case-insensitive so an
+ * uppercase spelling of the same id is still recognized.
+ */
 export function isSysId(value: string): boolean {
   return ALL_HEX.test(value);
 }

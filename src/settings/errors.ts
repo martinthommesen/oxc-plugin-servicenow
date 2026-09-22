@@ -14,3 +14,10 @@ export class ServiceNowSettingsError extends ServiceNowConfigError {
     this.name = "ServiceNowSettingsError";
   }
 }
+
+/**
+ * Rejection message for Fluent authoring combined with instance execution
+ * surfaces. Validation raises it; context resolution repeats it as a defence,
+ * so both sites must report the same text.
+ */
+export const FLUENT_SURFACES_MESSAGE = "Fluent authoring cannot list instance execution surfaces";

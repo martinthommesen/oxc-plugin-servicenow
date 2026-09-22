@@ -4,6 +4,7 @@ import {
   AUSTRALIA_ENGINE_UPDATES,
   AUSTRALIA_ENGINE_UPDATE_EVIDENCE,
 } from "../src/engine/australia-updates.ts";
+import { table } from "./lib/markdown-table.mjs";
 import { root } from "./lib/repo.mjs";
 
 const modeLabel = {
@@ -53,10 +54,17 @@ for (const update of AUSTRALIA_ENGINE_UPDATES) {
   }
 }
 
-const rows = AUSTRALIA_ENGINE_UPDATES.map(
-  (update) =>
-    `| ${pullRequestLinks(update)} | ${update.description} | ${modeLabel[update.mode]} | ${update.updateType === "feature" ? "Feature" : "Fix"} | ${dispositionLabel[update.disposition.kind]} | ${coverage(update)} |`,
-).join("\n");
+const updateTable = table(
+  ["Rhino PR", "Official update", "Mode", "Type", "Disposition", "Package coverage or next proof"],
+  AUSTRALIA_ENGINE_UPDATES.map((update) => [
+    pullRequestLinks(update),
+    update.description,
+    modeLabel[update.mode],
+    update.updateType === "feature" ? "Feature" : "Fix",
+    dispositionLabel[update.disposition.kind],
+    coverage(update),
+  ]),
+);
 
 const pending = pendingEntries.join("\n");
 
@@ -76,9 +84,7 @@ This ledger is the row-for-row package disposition of ServiceNow's [Australia Ja
 
 Pending means the package has not yet established a safe final disposition. Unknown or ambiguous behavior remains silent; it is never counted as supported merely because the row appears here.
 
-| Rhino PR | Official update | Mode | Type | Disposition | Package coverage or next proof |
-| --- | --- | --- | --- | --- | --- |
-${rows}
+${updateTable}
 
 ## Pending investigations
 

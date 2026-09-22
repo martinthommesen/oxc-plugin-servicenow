@@ -40,7 +40,7 @@ export const preferGlideaggregateEntry = entry("prefer-glideaggregate", preferGl
       overlaps: ["servicenow/validate-glideaggregate-calls"],
     },
   ),
-  placements: [{ profile: "strict", severity: "warn" }] as const,
+  placements: [{ profile: "strict", severity: "warn" }],
   optionDescriptor: undefined,
   limitationCases: [
     platformMethodMutationLimitation(

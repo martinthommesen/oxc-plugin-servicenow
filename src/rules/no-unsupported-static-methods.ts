@@ -39,17 +39,15 @@ export const noUnsupportedStaticMethods = defineRule({
   createOnce(context) {
     return {
       before() {
-        const { context: script } = beginRuleFile(context);
+        const { script } = beginRuleFile(context);
         if (!FEATURE_IDS.some((feature) => shouldDiagnoseFeature(script, feature))) return false;
         return undefined;
       },
       Program(node) {
-        const { analysis, context: script, file } = beginRuleFile(context);
+        const file = beginRuleFile(context);
         for (const finding of findStablePlatformStaticMethodCalls({
           program: node as ESTree.Node,
-          analysis,
-          bindingWrites: file.bindingWrites,
-          mutations: file.mutations,
+          file,
           methods: METHODS,
           namespaces: ["globalThis"],
           mutationSemantics: "callable",
@@ -57,9 +55,9 @@ export const noUnsupportedStaticMethods = defineRule({
           // no-promise owns every Promise use in classic modes. Keeping the
           // release-specific methods here ES2021-only avoids duplicate profile
           // diagnostics without changing no-promise's standalone contract.
-          if (finding.name === "Promise" && script.javascriptMode !== "es2021") continue;
+          if (finding.name === "Promise" && file.script.javascriptMode !== "es2021") continue;
           const feature = featureFor(finding.name, finding.method);
-          if (!feature || !shouldDiagnoseFeature(script, feature)) continue;
+          if (!feature || !shouldDiagnoseFeature(file.script, feature)) continue;
           if (isUnsupportedStaticMethodInvocationProtected(context, finding)) continue;
           context.report({
             node: finding.node,

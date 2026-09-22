@@ -4,7 +4,7 @@ import * as metadata from "../catalog-metadata.js";
 
 export const noWeakReferencesEntry = entry("no-weak-references", noWeakReferences, {
   ...metadata.meta(
-    metadata.classic(metadata.SERVER_SURFACES, metadata.ALL_INSTANCE_MODES),
+    metadata.engine(metadata.ALL_INSTANCE_MODES),
     [
       metadata.evidenceRecord(
         metadata.SN_JS_FEATURES,
@@ -27,7 +27,7 @@ export const noWeakReferencesEntry = entry("no-weak-references", noWeakReference
     { profile: "recommended", severity: "error" },
     { profile: "classic-es5", severity: "error" },
     { profile: "es2021", severity: "error" },
-  ] as const,
+  ],
   optionDescriptor: undefined,
   limitationCases: [
     {

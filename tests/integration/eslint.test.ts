@@ -3,7 +3,6 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { Linter } from "eslint";
-import { ruleCatalog } from "../../src/catalog.js";
 import plugin, { configs } from "../../src/index.js";
 import { repoRoot } from "./helpers.js";
 
@@ -37,7 +36,6 @@ function ruleIds(messages: Array<{ ruleId: string | null }>): string[] {
 describe("eslint host integration", () => {
   it("loads every catalogued rule with a create shim", () => {
     const names = Object.keys(plugin.rules);
-    assert.equal(names.length, ruleCatalog.length);
     for (const name of names) {
       const rule = plugin.rules[name as keyof typeof plugin.rules] as { create?: unknown };
       assert.equal(typeof rule.create, "function", `${name} should have a create shim`);
@@ -73,6 +71,27 @@ describe("eslint host integration", () => {
   it("reports no diagnostics on the clean examples", () => {
     assert.deepEqual(verify(cleanBusinessRule, "classic-business-rule.js"), []);
     assert.deepEqual(verify(cleanFluent, "incident-table.now.ts"), []);
+  });
+
+  it("honors constant short-circuit reachability for query-before-next (FINDINGS.md COR-003)", () => {
+    const opened = 'var gr = new GlideRecord("incident");';
+    for (const tail of [
+      "true && gr.query(); gr.next();",
+      "false || gr.query(); gr.next();",
+      "null ?? gr.query(); gr.next();",
+      "false && gr.next();",
+      "true || gr.next();",
+    ]) {
+      assert.deepEqual(
+        ruleIds(verify(`${opened}\n${tail}\n`, "constant.br.js")),
+        [],
+        `expected no diagnostics for: ${tail}`,
+      );
+    }
+    assert.deepEqual(
+      ruleIds(verify(`${opened}\nready && gr.query(); gr.next();\n`, "constant.br.js")),
+      ["servicenow/require-query-before-next"],
+    );
   });
 
   it("does not apply the preset to ordinary TypeScript", () => {

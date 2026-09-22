@@ -1,18 +1,18 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { exactProof, indexOutcomes } from "./lib/test-report.mjs";
 import { isValidIsoDate } from "./lib/iso-date.mjs";
-import { root } from "./lib/repo.mjs";
+import { readJson, writeJsonArtifact } from "./lib/json-artifact.mjs";
+import { isMainModule, root } from "./lib/repo.mjs";
+
+export { writeJsonArtifact };
 
 const artifacts = join(root, "artifacts");
 
-/**
- * @typedef {object} EvidenceTestReport
- * @property {readonly unknown[]} [tests]
- */
+/** @typedef {import("./lib/test-report-types.js").TestReport} TestReport */
 /**
  * @typedef {object} EvidenceResult
  * @property {readonly string[]} errors
@@ -29,7 +29,7 @@ export function evidenceTestReportPath(base = tmpdir()) {
 
 /**
  * @param {string} [base]
- * @returns {EvidenceTestReport}
+ * @returns {TestReport}
  */
 export function runEvidenceTests(base = tmpdir()) {
   const reportPath = evidenceTestReportPath(base);
@@ -48,44 +48,21 @@ export function runEvidenceTests(base = tmpdir()) {
     );
     if (result.status !== 0)
       throw new Error(`catalog evidence tests failed with status ${result.status}`);
-    return JSON.parse(readFileSync(reportPath, "utf8"));
+    return readJson(reportPath);
   } finally {
     rmSync(dirname(reportPath), { recursive: true, force: true });
   }
 }
 
 /**
- * @param {string} path
- * @param {unknown} value
- * @returns {void}
- */
-export function writeJsonArtifact(path, value) {
-  mkdirSync(dirname(path), { recursive: true });
-  const temporaryDirectory = mkdtempSync(join(dirname(path), ".atomic-artifact-"));
-  const temporaryPath = join(temporaryDirectory, "artifact.json");
-  try {
-    writeFileSync(temporaryPath, `${JSON.stringify(value, null, 2)}\n`, {
-      encoding: "utf8",
-      flag: "wx",
-    });
-    renameSync(temporaryPath, path);
-  } finally {
-    rmSync(temporaryDirectory, { recursive: true, force: true });
-  }
-}
-
-/**
  * @param {readonly unknown[]} catalog
- * @param {EvidenceTestReport} report
+ * @param {TestReport} report
  * @returns {Promise<EvidenceResult>}
  */
 export async function verifyDocEvidence(catalog, report) {
   const errors = [];
   const ids = new Set();
-  const testReport = /** @type {import("./lib/test-report-types.js").TestReport} */ (
-    /** @type {unknown} */ (report)
-  );
-  const tests = indexOutcomes(testReport);
+  const tests = indexOutcomes(report);
   const records = [];
   const today = new Date().toISOString().slice(0, 10);
   const rules = /** @type {Array<any>} */ (catalog);
@@ -190,7 +167,7 @@ export async function main() {
   return artifact;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (isMainModule(import.meta.url)) {
   main().catch((error) => {
     console.error(error instanceof Error ? error.message : String(error));
     process.exit(1);

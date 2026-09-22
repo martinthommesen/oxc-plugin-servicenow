@@ -49,9 +49,28 @@ import { spawnSync } from "node:child_process";
  */
 
 /** @type {number} */
-export const DEFAULT_TIMEOUT_MS = 60_000;
+const DEFAULT_TIMEOUT_MS = 60_000;
 /** @type {number} */
-export const DEFAULT_MAX_BUFFER = 16 * 1024 * 1024;
+const DEFAULT_MAX_BUFFER = 16 * 1024 * 1024;
+
+/**
+ * A result for an attempt that never reached a child process, so a caller can
+ * record the same shape whether or not the host ran.
+ *
+ * @returns {HostResult}
+ */
+export function emptyHostResult() {
+  return {
+    argv: [],
+    status: null,
+    signal: null,
+    stdout: "",
+    stderr: "",
+    error: null,
+    timedOut: false,
+    durationMs: 0,
+  };
+}
 
 /**
  * @param {{ bin: string, args: string[], cwd: string, timeoutMs?: number, maxBuffer?: number }} options
@@ -119,7 +138,7 @@ export function unwrapServicenowRuleId(code) {
 }
 
 /** @type {ReadonlySet<string>} */
-export const HOST_FAULT_CODES = new Set(["parser", "plugin-load"]);
+const HOST_FAULT_CODES = new Set(["parser", "plugin-load"]);
 
 const PLUGIN_LOAD_STDOUT = /Failed to load JS plugin|Cannot find module/i;
 

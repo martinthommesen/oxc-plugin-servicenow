@@ -18,7 +18,9 @@ A Fluent file has no execution surface and no JavaScript mode; see [[context#Sur
 
 `FluentApiKind` is `"entity" | "column" | "automation" | "helper"`. `FluentIdRequirement` is `"required" | "optional" | "deprecated" | "forbidden" | "unknown"` — this is what makes an id rule possible without a name list. `require-fluent-id` reads `capability.idRequirement` and reports only where an id is genuinely required.
 
-`apisByName` is the indexed lookup. `entitiesRequiringId`, `importOwnedApis`, and `knownDirectiveNames` derive the other views the rules need.
+`apisByName` is the indexed lookup. `importOwnedApis` and `knownDirectiveNames` derive the other views the rules need.
+
+Only `apis` varies by SDK version. `directives` and `typos` come from the default manifest for every version, so `fluentSdkVersion` does not change directive validation.
 
 ## Version registry
 

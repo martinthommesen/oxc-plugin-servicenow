@@ -1,5 +1,10 @@
 import { describe, it } from "node:test";
-import { assertInvalid, assertValid } from "../helpers/rule-tester.js";
+import {
+  assertInvalid,
+  assertSkipped,
+  assertValid,
+  assertValidActive,
+} from "../helpers/rule-tester.js";
 
 const REF = "no-now-id-as-reference" as const;
 const DUP = "no-duplicate-fluent-id" as const;
@@ -126,7 +131,7 @@ id += "suffix";`,
   });
 
   it("ignores a local Now binding", () => {
-    assertValid(
+    assertValidActive(
       `const Now = { ID: { x: "1" } };
 const value = Now.ID["x"];
 other({ ref: value });`,
@@ -136,7 +141,7 @@ other({ ref: value });`,
   });
 
   it("stays silent for a dynamic key used only as $id", () => {
-    assertValid(
+    assertValidActive(
       `const id = Now.ID[key];
 Record({ $id: id });`,
       REF,
@@ -145,7 +150,7 @@ Record({ $id: id });`,
   });
 
   it("skips non-.now.ts files", () => {
-    assertValid(`CatalogItem({ variableSet: Now.ID["user-information"] });`, REF, {
+    assertSkipped(`CatalogItem({ variableSet: Now.ID["user-information"] });`, REF, {
       filename: "legacy.js",
     });
   });
@@ -192,7 +197,7 @@ const label = "update-assignment";`,
   });
 
   it("stays silent for dynamic keys", () => {
-    assertValid(
+    assertValidActive(
       `BusinessRule({ $id: Now.ID[key], name: "A", table: "incident" });
 BusinessRule({ $id: Now.ID[key], name: "B", table: "incident" });`,
       DUP,
@@ -200,7 +205,7 @@ BusinessRule({ $id: Now.ID[key], name: "B", table: "incident" });`,
   });
 
   it("ignores a local Now binding", () => {
-    assertValid(
+    assertValidActive(
       `const Now = { ID: { x: "1" } };
 BusinessRule({ $id: Now.ID["x"], name: "A" });
 BusinessRule({ $id: Now.ID["x"], name: "B" });`,
@@ -242,7 +247,7 @@ BusinessRule({ $id: MoreIDs["shared-alias"], name: "B" });`,
   });
 
   it("ignores comments and strings", () => {
-    assertValid(
+    assertValidActive(
       `BusinessRule({ $id: Now.ID["update-assignment"], name: "A", table: "incident" });
 const note = 'Now.ID["update-assignment"]';
 // $id: Now.ID["update-assignment"]`,

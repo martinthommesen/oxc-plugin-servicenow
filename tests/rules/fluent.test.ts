@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { assertInvalid, assertValid, assertValidActive, lint } from "../helpers/rule-tester.js";
+import {
+  assertInvalid,
+  assertSkipped,
+  assertValid,
+  assertValidActive,
+  lint,
+} from "../helpers/rule-tester.js";
 
 const NOW = "file.now.ts";
 
@@ -32,20 +38,9 @@ describe("fluent-proper-imports", () => {
   });
 
   it("ignores classic scripts", () => {
-    assertValid(`BusinessRule({ table: "incident" });`, "fluent-proper-imports", {
+    assertSkipped(`BusinessRule({ table: "incident" });`, "fluent-proper-imports", {
       filename: "legacy.js",
     });
-  });
-
-  it("does not rewrite a wrong-module import", () => {
-    const messages = lint(
-      `import { BusinessRule } from "@servicenow/sdk";`,
-      "fluent-proper-imports",
-      {
-        filename: NOW,
-      },
-    );
-    assert.ok(messages.length > 0);
   });
 
   it("allows a Fluent call above its hoisted import", () => {

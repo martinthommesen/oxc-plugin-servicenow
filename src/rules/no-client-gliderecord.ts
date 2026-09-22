@@ -24,7 +24,7 @@ export const noClientGliderecord = defineRule({
   createOnce(context) {
     return {
       before() {
-        const { context: script } = beginRuleFile(context);
+        const { script } = beginRuleFile(context);
         if (
           script.scope !== "scoped" ||
           !appliesOnSurface(script, "client") ||
@@ -35,12 +35,10 @@ export const noClientGliderecord = defineRule({
         return undefined;
       },
       Program(node) {
-        const { analysis, file } = beginRuleFile(context);
+        const file = beginRuleFile(context);
         for (const finding of findStablePlatformConstructorCalls({
           program: node as ESTree.Node,
-          analysis,
-          bindingWrites: file.bindingWrites,
-          mutations: file.mutations,
+          file,
           names: GLIDE_RECORD_CONSTRUCTORS,
           namespaces: ["global"],
         })) {

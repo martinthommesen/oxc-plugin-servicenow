@@ -20,7 +20,7 @@ GlideAjax requires a non-empty `addParam("sysparm_name", method)` before `getXML
 | --- | --- |
 | Authoring | classic |
 | Surfaces | Applies to client, ui-action when those surfaces are known. Mixed client/server UI Actions stay silent because execution regions are not classified. Unknown surfaces stay silent. |
-| Minimum surface confidence | filename-inferred |
+| Minimum surface confidence | inferred |
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
 | ServiceNow releases | zurich, australia |

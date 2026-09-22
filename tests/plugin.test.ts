@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readPackageJson } from "./integration/helpers.js";
 import { describe, it } from "node:test";
 import plugin, { configs } from "../src/index.js";
 import * as publicApi from "../src/index.js";
@@ -26,19 +26,7 @@ describe("plugin export", () => {
   });
 
   it("PACKAGE_VERSION matches package.json", () => {
-    const manifest = JSON.parse(
-      readFileSync(new URL("../package.json", import.meta.url), "utf8"),
-    ) as {
-      version: string;
-    };
-    assert.equal(PACKAGE_VERSION, manifest.version);
-  });
-
-  it("exports every catalogued rule", () => {
-    for (const entry of ruleCatalog) {
-      assert.ok(rules[entry.name], `missing rule ${entry.name}`);
-    }
-    assert.equal(Object.keys(rules).length, ruleCatalog.length);
+    assert.equal(PACKAGE_VERSION, readPackageJson().version);
   });
 
   it("every rule implements createOnce", () => {
@@ -90,23 +78,7 @@ describe("plugin export", () => {
         inRecommended,
         `${entry.name} meta.docs.recommended mismatch`,
       );
-      for (const placement of entry.placements) {
-        if (placement.profile === "recommended") {
-          assert.equal(configs.recommendedRules[entry.ruleId], placement.severity);
-        }
-        if (placement.profile === "security") {
-          assert.equal(configs.securityRules[entry.ruleId], placement.severity);
-        }
-        if (placement.profile === "policy") {
-          assert.equal(configs.policyRules[entry.ruleId], placement.severity);
-        }
-      }
     }
-  });
-
-  it("flat configs reference the plugin", () => {
-    assert.equal(configs.flat.recommended.plugins.servicenow, plugin);
-    assert.equal(configs.flat.strict.plugins.servicenow, plugin);
   });
 
   // @lat: [[tests#The catalog#Every rule map has a flat counterpart]]

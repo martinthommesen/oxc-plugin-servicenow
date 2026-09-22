@@ -1,10 +1,10 @@
 import { execFileSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { basename, isAbsolute, join } from "node:path";
-import { pathToFileURL } from "node:url";
+import { basename, join, resolve } from "node:path";
 import { sha256File, tarballIntegrity } from "./check-release-artifact.mjs";
-import { root } from "./lib/repo.mjs";
+import { argValue as readArgValue } from "./lib/argv.mjs";
+import { isMainModule, root } from "./lib/repo.mjs";
 
 /**
  * @typedef {object} ReleaseAsset
@@ -180,11 +180,7 @@ function fail(message) {
  * @returns {string | undefined}
  */
 function argValue(argv, name) {
-  const index = argv.indexOf(name);
-  if (index === -1) return undefined;
-  const value = argv[index + 1];
-  if (!value || value.startsWith("-")) fail(`${name} requires a value`);
-  return value;
+  return readArgValue(argv, name, fail);
 }
 
 /**
@@ -338,7 +334,7 @@ export function main(argv = process.argv) {
   if (tag.includes("/") || !/^v\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(tag)) {
     fail(`invalid release tag ${tag}`);
   }
-  const tarball = isAbsolute(tarballArg) ? tarballArg : join(process.cwd(), tarballArg);
+  const tarball = resolve(tarballArg);
   const assetName = basename(tarball);
   if (!assetName.endsWith(".tgz") || (assetName !== tarballArg && tarballArg.endsWith("/")))
     fail(`invalid tarball path ${tarballArg}`);
@@ -393,12 +389,7 @@ export function main(argv = process.argv) {
   return output;
 }
 
-const invokedScript = process.argv[1];
-const invokedDirectly =
-  invokedScript !== undefined &&
-  invokedScript !== "" &&
-  import.meta.url === pathToFileURL(invokedScript).href;
-if (invokedDirectly) {
+if (isMainModule(import.meta.url)) {
   try {
     main();
   } catch (error) {

@@ -1,5 +1,4 @@
-import { CLIENT_GLOBALS_STRONG } from "../constants.js";
-import type { ScriptAuthoring, ScriptKind, ScriptSurface, ServiceNowSettings } from "../types.js";
+import type { ScriptAuthoring, ScriptSurface } from "../types.js";
 
 const SCRIPT_EXTENSIONS = ["js", "cjs", "mjs"] as const;
 
@@ -57,21 +56,28 @@ export const ACL_FILE_GLOBS = [
   `**/{acl,acls,access-control,access-controls,access_control,access_controls,accesscontrol,accesscontrols}/**/*.${SCRIPT_EXTENSION_GLOB}`,
 ];
 
-export const CLIENT_FILE =
+const CLIENT_FILE =
   /(?:^|[-_.])(?:client[-_.]?script|catalog[-_.]?client|ui[-_.]?script|on[-_.]?change|on[-_.]?load|on[-_.]?submit|ui[-_.]?policy)(?=[-_.]|$)|^(?:sys_script_client|catalog_script_client)(?=[-_.]|$)|(?:^|[-_.])(?:client|cs)(?=[-_.]|$)/i;
-export const BR_FILE =
+const BR_FILE =
   /(?:^|[-_.])business[-_.]?rule(?=[-_.]|$)|(?:^|[-_.])br(?=\.[cm]?js$)|^sys_script\.[cm]?js$/i;
-export const ACL_FILE =
+const ACL_FILE =
   /(?:^|[-_.])(?:access[-_.]?controls?|acl)(?=[-_.]|$)|^sys_security_acl(?=[-_.]|$)/i;
-export const SI_FILE =
+const SI_FILE =
   /(?:^|[-_.])script[-_.]?include(?=[-_.]|$)|(?:^|[-_.])si(?=\.[cm]?js$)|^sys_script_include(?=[-_.]|$)/i;
-export const UI_ACTION_FILE =
+const UI_ACTION_FILE =
   /(?:^|[-_.])ui[-_.]?action(?=[-_.]|$)|(?:^|[-_.])ua(?=\.[cm]?js$)|^sys_ui_action(?=[-_.]|$)/i;
-export const SCHEDULED_FILE =
+const SCHEDULED_FILE =
   /(?:^|[-_.])scheduled[-_.]?script(?=[-_.]|$)|(?:^|[-_.])ss(?=\.[cm]?js$)|^(?:sysauto_script|sys_trigger)(?=[-_.]|$)/i;
-export const FIX_SCRIPT_FILE =
+const FIX_SCRIPT_FILE =
   /(?:^|[-_.])fix[-_.]?script(?=[-_.]|$)|(?:^|[-_.])fix(?=\.[cm]?js$)|^sys_script_fix(?=[-_.]|$)/i;
-export const SERVER_FILE = /(?:^|[-_.])server(?=\.[cm]?js$)/i;
+const SERVER_FILE = /(?:^|[-_.])server(?=\.[cm]?js$)/i;
+/**
+ * The documented compound server UI Action suffix (`approve.server.ui-action.js`).
+ * `SERVER_FILE` only matches `server` directly before the extension, so the
+ * record-type token in between has to be recognized separately
+ * (FINDINGS.md COR-017).
+ */
+const SERVER_UI_ACTION_FILE = /(?:^|[-_.])server[-_.](?:ui[-_.]?action|ua)(?=\.[cm]?js$)/i;
 
 const CLIENT_DIR = /(?:^|\/)client(?:\/|$)/i;
 const BR_DIR = /(?:^|\/)(?:br|business[-_]?rules?)(?:\/|$)/i;
@@ -81,7 +87,6 @@ const UI_ACTION_DIR = /(?:^|\/)(?:ui[-_]?actions?|ua)(?:\/|$)/i;
 const SCHEDULED_DIR = /(?:^|\/)(?:scheduled[-_]?scripts?|ss)(?:\/|$)/i;
 const FIX_SCRIPT_DIR = /(?:^|\/)(?:fix[-_]?scripts?|fix)(?:\/|$)/i;
 const SERVER_DIR = /(?:^|\/)server(?:\/|$)/i;
-const CLIENT_GLOBAL_RE = new RegExp(`\\b(?:${CLIENT_GLOBALS_STRONG.join("|")})\\b`);
 
 export function normalizeFilename(filename: string): string {
   return filename.replace(/\\/g, "/");
@@ -95,10 +100,6 @@ export function basename(filename: string): string {
   const normalized = normalizeFilename(filename);
   const parts = normalized.split("/");
   return parts[parts.length - 1] ?? normalized;
-}
-
-export function looksLikeClientSource(sourceText: string): boolean {
-  return CLIENT_GLOBAL_RE.test(sourceText);
 }
 
 function isAbsolutePath(path: string): boolean {
@@ -142,8 +143,18 @@ export function surfacesFromFilename(filename: string, baseDirectory?: string): 
   // A generic server directory is weaker evidence than a specific script
   // subtype in the filename. Keep `src/server/helper.si.js` as a Script
   // Include rather than making the evidence contradictory and returning [].
-  if (surfaces.size === 0 && (SERVER_DIR.test(directoryPath) || SERVER_FILE.test(file)))
-    surfaces.add("server");
+  // The UI Action subtype is the exception: it names a record type, not an
+  // execution surface, so it composes with server evidence instead of
+  // displacing it. `approve.server.ui-action.js` and a UI Action under
+  // `src/server/` therefore keep the documented server surface
+  // (FINDINGS.md COR-017).
+  const serverEvidence =
+    SERVER_DIR.test(directoryPath) || SERVER_FILE.test(file) || SERVER_UI_ACTION_FILE.test(file);
+  const serverComposes =
+    surfaces.size === 0 ||
+    (surfaces.has("ui-action") &&
+      [...surfaces].every((surface) => surface === "ui-action" || surface === "client"));
+  if (serverEvidence && serverComposes) surfaces.add("server");
 
   if (surfaces.has("ui-action")) {
     if ([...surfaces].some((surface) => !["ui-action", "client", "server"].includes(surface)))
@@ -155,27 +166,4 @@ export function surfacesFromFilename(filename: string, baseDirectory?: string): 
 
 export function authoringFromFilename(filename: string): ScriptAuthoring | undefined {
   return isFluentFile(filename) ? "fluent" : undefined;
-}
-
-/**
- * @deprecated Use `getScriptContext`. Maps the new context model onto the
- * historical single ScriptKind value for callers that have not migrated.
- */
-export function classifyFile(
-  filename: string,
-  sourceText: string,
-  settings: ServiceNowSettings,
-): ScriptKind {
-  if (settings.scriptType && settings.scriptType !== "auto") {
-    return settings.scriptType;
-  }
-  if (isFluentFile(filename) || settings.authoring === "fluent") return "fluent";
-  const surfaces = surfacesFromFilename(filename);
-  if (surfaces.includes("ui-action")) return "ui-action";
-  if (surfaces.includes("client")) return "client";
-  if (surfaces.includes("business-rule")) return "business-rule";
-  if (surfaces.includes("script-include")) return "script-include";
-  if (looksLikeClientSource(sourceText)) return "client";
-  if (surfaces.includes("server")) return "server";
-  return "unknown";
 }

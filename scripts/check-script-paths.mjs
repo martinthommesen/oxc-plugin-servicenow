@@ -1,17 +1,17 @@
 // Asserts that every file a package.json script references is tracked by
 // git, so a clean checkout can run its own quality gates. Added after three
 // required configuration files were left untracked (FINDINGS.md OPS-001).
-// Zero dependencies: the workflow CI job runs this without `npm ci`.
-import { execFileSync } from "node:child_process";
+// Zero dependencies: the workflow CI job runs this without `npm ci`, so the
+// only imports allowed here are node builtins and sibling script modules that
+// obey the same rule.
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { git } from "./lib/git.mjs";
 
 /** @type {{ scripts: Record<string, string> }} */
 const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
-const tracked = new Set(
-  execFileSync("git", ["ls-files"], { encoding: "utf8" }).split("\n").filter(Boolean),
-);
+const tracked = new Set(git(["ls-files"]).split("\n").filter(Boolean));
 
 // lint:check relies on oxlint's automatic discovery of .oxlintrc.json, so
 // the file never appears as a script argument.

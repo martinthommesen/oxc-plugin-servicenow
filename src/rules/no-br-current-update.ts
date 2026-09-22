@@ -27,7 +27,7 @@ export const noBrCurrentUpdate = defineRule({
     let canonicalCurrentObjectId: number | null = null;
     return {
       before() {
-        const { context: script } = beginRuleFile(context);
+        const { script } = beginRuleFile(context);
         if (!appliesOnSurface(script, "business-rule")) return false;
         canonicalCurrent = null;
         canonicalCurrentArgument = null;
@@ -36,31 +36,33 @@ export const noBrCurrentUpdate = defineRule({
         return undefined;
       },
       Program(node) {
-        const { analysis, context: script } = beginRuleFile(context);
+        const { provenance, script } = beginRuleFile(context);
         if (script.businessRuleSourceFormat !== "full-script") return;
-        const wrapper = canonicalBusinessRuleWrapper(node as ESTree.Program, analysis.bindings);
+        const wrapper = canonicalBusinessRuleWrapper(node as ESTree.Program, provenance.bindings);
         canonicalCurrent = wrapper?.currentParam ?? null;
         canonicalCurrentArgument = (wrapper?.call.arguments[0] as ESTree.Node | undefined) ?? null;
         canonicalCurrentBindingId = canonicalCurrent
-          ? (analysis.bindings.resolve("current", canonicalCurrent)?.id ?? null)
+          ? (provenance.bindings.resolve("current", canonicalCurrent)?.id ?? null)
           : null;
         canonicalCurrentObjectId = canonicalCurrentArgument
-          ? (analysis.ofExpression(canonicalCurrentArgument)?.objectId ?? null)
+          ? (provenance.ofExpression(canonicalCurrentArgument)?.objectId ?? null)
           : null;
       },
       CallExpression(node) {
-        const { analysis, file } = beginRuleFile(context);
+        const file = beginRuleFile(context);
         const call = node as ESTree.CallExpression;
         if (call.callee.type !== "MemberExpression") return;
         const member = call.callee as ESTree.MemberExpression;
         if (staticPropertyName(member) !== "update") return;
         const directGlobal =
           getName(member.object) === "current" &&
-          analysis.isPlatformGlobal(member.object as ESTree.Node);
-        const proven = analysis.ofExpression(member.object);
+          file.provenance.isPlatformGlobal(member.object as ESTree.Node);
+        const proven = file.provenance.ofExpression(member.object);
         const alias = proven?.kind === "current" && !proven.invalid && !proven.escaped;
         const name = getName(member.object);
-        const binding = name ? analysis.bindings.resolve(name, member.object as ESTree.Node) : null;
+        const binding = name
+          ? file.provenance.bindings.resolve(name, member.object as ESTree.Node)
+          : null;
         const wrapperParam =
           name === "current" &&
           canonicalCurrent !== null &&

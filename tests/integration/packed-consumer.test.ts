@@ -3,25 +3,17 @@ import { execFileSync } from "node:child_process";
 import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { describe, it } from "node:test";
-import { repoRoot } from "./helpers.js";
+import { after, describe, it } from "node:test";
+import { exampleProjectNames, repoRoot } from "./helpers.js";
 import { parseNpmPackJson } from "../../scripts/parse-npm-pack.mjs";
-
-const EXAMPLE_PROJECTS = [
-  "business-rule",
-  "classic-compatibility",
-  "classic-es5",
-  "client",
-  "es2021",
-  "fluent",
-  "mixed",
-  "ui-action",
-];
 
 function ensureBuiltDist(): void {
   try {
     readFileSync(path.join(repoRoot, "dist/index.js"));
-  } catch {
+  } catch (error) {
+    // Only a missing build is recoverable here. A permission or I/O fault
+    // must surface instead of being hidden behind a rebuild.
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
     execFileSync("npm", ["run", "build"], { cwd: repoRoot, encoding: "utf8" });
   }
 }
@@ -50,9 +42,25 @@ function listTarball(tarball: string): string[] {
 }
 
 describe("packed package consumer", () => {
+  // `npm pack` is the slowest step in this file and both consumers install
+  // byte-identical output, so the tarball is built once and shared.
+  let staging: string | undefined;
+  let sharedTarball: string | undefined;
+
+  function packedTarball(): string {
+    if (sharedTarball === undefined) {
+      staging = mkdtempSync(path.join(tmpdir(), "sn-oxc-pack-"));
+      sharedTarball = packTarball(staging);
+    }
+    return sharedTarball;
+  }
+
+  after(() => {
+    if (staging) rmSync(staging, { recursive: true, force: true });
+  });
+
   it("packs, installs, imports public exports, and lints with oxlint", async () => {
-    const staging = mkdtempSync(path.join(tmpdir(), "sn-oxc-pack-"));
-    const tarball = packTarball(staging);
+    const tarball = packedTarball();
     const files = listTarball(tarball);
     const consumer = mkdtempSync(path.join(tmpdir(), "sn-oxc-consumer-"));
     try {
@@ -314,7 +322,7 @@ void [plugin, configs, configs.flat.acl, settings, rules, analyze, getContext, q
         { encoding: "utf8", cwd: consumer },
       );
 
-      for (const project of EXAMPLE_PROJECTS) {
+      for (const project of exampleProjectNames) {
         const source = path.join(repoRoot, "examples", project);
         const destination = path.join(consumer, "examples", project);
         cpSync(source, destination, { recursive: true });
@@ -355,13 +363,11 @@ void [plugin, configs, configs.flat.acl, settings, rules, analyze, getContext, q
       }
     } finally {
       rmSync(consumer, { recursive: true, force: true });
-      rmSync(staging, { recursive: true, force: true });
     }
   });
 
   it("lints typed Fluent files when the consumer adds typescript-eslint", async () => {
-    const staging = mkdtempSync(path.join(tmpdir(), "sn-oxc-pack-ts-"));
-    const tarball = packTarball(staging);
+    const tarball = packedTarball();
     const consumer = mkdtempSync(path.join(tmpdir(), "sn-oxc-ts-consumer-"));
     try {
       writeFileSync(
@@ -456,7 +462,6 @@ BusinessRule({
       );
     } finally {
       rmSync(consumer, { recursive: true, force: true });
-      rmSync(staging, { recursive: true, force: true });
     }
   });
 });

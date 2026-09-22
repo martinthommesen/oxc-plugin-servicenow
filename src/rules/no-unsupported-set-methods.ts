@@ -1,11 +1,13 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
-import { isInvocationAvailabilityGuarded } from "../analysis/availability.js";
-import { resolvePlatformGlobalName } from "../analysis/globals.js";
 import {
   hasAuthoritativeConstructedMethod,
+  isInvocationAvailabilityGuarded,
+  provenReceiver,
   resolveConstValue,
+  resolvePlatformGlobalName,
   staticPropertyName,
+  type ProvenanceQuery,
 } from "../analysis/internal.js";
 import { ruleDocsUrl } from "../constants.js";
 import { shouldDiagnoseFeature } from "../engine/index.js";
@@ -22,28 +24,24 @@ const SET_METHODS = new Set([
   "union",
 ]);
 
-type Analysis = ReturnType<typeof beginRuleFile>["analysis"];
-
 interface SetMethodAccess {
   readonly method: string;
   readonly object: ESTree.Node;
   readonly objectId: number;
 }
 
-function setMethodAccess(node: unknown, analysis: Analysis): SetMethodAccess | null {
+function setMethodAccess(node: unknown, analysis: ProvenanceQuery): SetMethodAccess | null {
   const value = resolveConstValue(node, analysis.bindings);
   if (!value || value.type !== "MemberExpression") return null;
   const method = staticPropertyName(value);
   if (!method || !SET_METHODS.has(method)) return null;
   const object = value.object as ESTree.Node;
-  const receiver = analysis.trustedExpression(object);
-  if (receiver?.kind !== "Set" || receiver.objectId === undefined) {
-    return null;
-  }
+  const receiver = provenReceiver(analysis, object, "Set");
+  if (receiver?.objectId === undefined) return null;
   return { method, object, objectId: receiver.objectId };
 }
 
-function isSetPrototype(node: unknown, analysis: Analysis): boolean {
+function isSetPrototype(node: unknown, analysis: ProvenanceQuery): boolean {
   const value = resolveConstValue(node, analysis.bindings);
   return Boolean(
     value?.type === "MemberExpression" &&
@@ -52,7 +50,11 @@ function isSetPrototype(node: unknown, analysis: Analysis): boolean {
   );
 }
 
-function isSetPrototypeMethodAccess(node: unknown, method: string, analysis: Analysis): boolean {
+function isSetPrototypeMethodAccess(
+  node: unknown,
+  method: string,
+  analysis: ProvenanceQuery,
+): boolean {
   const value = resolveConstValue(node, analysis.bindings);
   return Boolean(
     value?.type === "MemberExpression" &&
@@ -77,7 +79,7 @@ export const noUnsupportedSetMethods = defineRule({
   createOnce(context) {
     return {
       before() {
-        const { context: script } = beginRuleFile(context);
+        const { script } = beginRuleFile(context);
         if (script.javascriptMode !== "es2021" || !shouldDiagnoseFeature(script, "set-methods")) {
           return false;
         }
@@ -88,29 +90,29 @@ export const noUnsupportedSetMethods = defineRule({
         const rawCallee = unwrapExpression(call.callee);
         if (!isNode(rawCallee) || rawCallee.type !== "MemberExpression") return;
 
-        const { analysis, file } = beginRuleFile(context);
-        const access = setMethodAccess(rawCallee, analysis);
+        const file = beginRuleFile(context);
+        const { provenance } = file;
+        const access = setMethodAccess(rawCallee, provenance);
         if (!access) return;
         if (!hasAuthoritativeConstructedMethod(file, access.object, "Set", access.method)) {
           return;
         }
 
         const isSameAccess = (candidate: unknown): boolean => {
-          const other = setMethodAccess(candidate, analysis);
+          const other = setMethodAccess(candidate, provenance);
           return Boolean(
             (other?.method === access.method && other.objectId === access.objectId) ||
-            isSetPrototypeMethodAccess(candidate, access.method, analysis),
+            isSetPrototypeMethodAccess(candidate, access.method, provenance),
           );
         };
         const isSameOwner = (candidate: ESTree.Node): boolean => {
-          if (isSetPrototype(candidate, analysis)) return true;
-          const receiver = analysis.trustedExpression(candidate);
-          return Boolean(receiver?.kind === "Set" && receiver.objectId === access.objectId);
+          if (isSetPrototype(candidate, provenance)) return true;
+          const receiver = provenReceiver(provenance, candidate, "Set");
+          return receiver?.objectId === access.objectId;
         };
 
         if (
-          isInvocationAvailabilityGuarded(context, call, analysis, isSameAccess, {
-            guardCacheKey: `no-unsupported-set-methods:${access.method}:${access.objectId}`,
+          isInvocationAvailabilityGuarded(context, call, provenance, isSameAccess, {
             isPropertyExistenceTest: (property, object) =>
               property === access.method && isSameOwner(object),
             isOptionalInvocation: (invocation) =>

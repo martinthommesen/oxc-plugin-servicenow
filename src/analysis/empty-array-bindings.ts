@@ -1,5 +1,11 @@
 import type { ESTree } from "@oxlint/plugins";
-import { getStringValue, isValueReference, walk } from "../utils/ast.js";
+import {
+  getStringValue,
+  isValueReference,
+  nodeStart,
+  TRANSPARENT_WRAPPER_TYPES,
+  walk,
+} from "../utils/ast.js";
 import type { FileBindings, LexicalBinding, ScopeNode } from "./bindings.js";
 
 interface BindingReference {
@@ -15,7 +21,7 @@ export interface EmptyArrayBindingQuery {
   isUnchangedThrough(binding: LexicalBinding, use: ESTree.Node): boolean;
 }
 
-export interface EmptyArrayBindingQueryOptions {
+interface EmptyArrayBindingQueryOptions {
   /** References consumed by a separately proven non-mutating operation. */
   readonly knownNonMutatingReferences?: ReadonlySet<ESTree.Node>;
   /** Function bodies that cannot execute until after the queried use begins. */
@@ -54,15 +60,11 @@ function isDefinitelyNonMutatingArrayReference(
   let child = node;
   for (let index = ancestors.length - 2; index >= 0; index -= 1) {
     const parent = ancestors[index]!;
+    if (TRANSPARENT_WRAPPER_TYPES.has(parent.type)) {
+      child = parent;
+      continue;
+    }
     switch (parent.type) {
-      case "ParenthesizedExpression":
-      case "ChainExpression":
-      case "TSAsExpression":
-      case "TSTypeAssertion":
-      case "TSNonNullExpression":
-      case "TSSatisfiesExpression":
-        child = parent;
-        continue;
       case "MemberExpression": {
         const member = parent as ESTree.MemberExpression;
         if (member.object !== child) return false;
@@ -75,12 +77,7 @@ function isDefinitelyNonMutatingArrayReference(
         for (let outer = index - 1; outer >= 0; outer -= 1) {
           const container = ancestors[outer]!;
           if (
-            container.type === "ParenthesizedExpression" ||
-            container.type === "ChainExpression" ||
-            container.type === "TSAsExpression" ||
-            container.type === "TSTypeAssertion" ||
-            container.type === "TSNonNullExpression" ||
-            container.type === "TSSatisfiesExpression" ||
+            TRANSPARENT_WRAPPER_TYPES.has(container.type) ||
             container.type === "Property" ||
             container.type === "ArrayPattern" ||
             container.type === "ObjectPattern" ||
@@ -172,14 +169,7 @@ function directConstAliasBinding(
   let child = node;
   for (let index = ancestors.length - 2; index >= 0; index -= 1) {
     const parent = ancestors[index]!;
-    if (
-      parent.type === "ParenthesizedExpression" ||
-      parent.type === "ChainExpression" ||
-      parent.type === "TSAsExpression" ||
-      parent.type === "TSTypeAssertion" ||
-      parent.type === "TSNonNullExpression" ||
-      parent.type === "TSSatisfiesExpression"
-    ) {
+    if (TRANSPARENT_WRAPPER_TYPES.has(parent.type)) {
       child = parent;
       continue;
     }
@@ -268,10 +258,10 @@ export function createEmptyArrayBindingQuery(
       const useReference = referenceByNode!.get(use);
       if (!useReference) return false;
       if (alwaysNonMutating!.get(binding.id) === true) return true;
-      const useStart = (use as { start?: unknown }).start;
+      const useStart = nodeStart(use);
       const useBoundary = useReference.boundary;
       const declarationBoundary = bindings.executionBoundaryForNode(binding.node);
-      if (typeof useStart !== "number" || !useBoundary || !declarationBoundary) return false;
+      if (useStart < 0 || !useBoundary || !declarationBoundary) return false;
       const bindingIsRecreatedWithUse = declarationBoundary === useBoundary;
       const seen = new Set<number>();
       const unchanged = (current: LexicalBinding): boolean => {
@@ -279,12 +269,12 @@ export function createEmptyArrayBindingQuery(
         seen.add(current.id);
         return (references!.get(current.id) ?? []).every((reference) => {
           if (reference.node === use || reference.definitelyNonMutating) return true;
-          const start = (reference.node as { start?: unknown }).start;
+          const start = nodeStart(reference.node);
           const happensTooLate =
             !useReference.inLoop &&
             bindingIsRecreatedWithUse &&
             reference.boundary === useBoundary &&
-            typeof start === "number" &&
+            start >= 0 &&
             start > useStart;
           if (happensTooLate) return true;
           return reference.constAlias !== null && unchanged(reference.constAlias);

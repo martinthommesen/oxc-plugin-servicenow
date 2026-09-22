@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import {
   assertBenchmarkFixtureSet,
   checkBenchmarkRegression,
+  classifySourceState,
   validateBenchmarkSummary,
   validateOxlintProcessResult,
 } from "../scripts/benchmark-gate.mjs";
@@ -21,6 +22,8 @@ const row = (fixture: string, elapsedMs: number, peakRssKb = 100, profile = "rec
   elapsedMs,
   peakRssKb,
 });
+// Shaped like the reviewed docs/performance-baseline.json, which was written
+// before worktree provenance existed and therefore carries no sourceState.
 const summary = (results = [row("a", 1)]) => ({
   date: "2026-08-21",
   node: "v26.7.0",
@@ -102,6 +105,75 @@ describe("benchmark regression gate", () => {
           { requireRawSamples: true },
         ),
       /unavailable/,
+    );
+  });
+
+  // @lat: [[tests#Scripts and tooling#Benchmark output records the measured source state]]
+  it("distinguishes a clean worktree from the source that was measured", () => {
+    assert.deepEqual(classifySourceState(""), { sourceState: "clean" });
+    assert.deepEqual(classifySourceState(" M src/rules/no-gs-now.ts\0?? scripts/probe.mjs\0"), {
+      sourceState: "dirty",
+      dirtyFiles: ["scripts/probe.mjs", "src/rules/no-gs-now.ts"],
+    });
+    // A rename emits the destination first and the original as its own
+    // record; the destination is the file present in the measured worktree.
+    assert.deepEqual(classifySourceState("R  src/new name.ts\0src/old.ts\0"), {
+      sourceState: "dirty",
+      dirtyFiles: ["src/new name.ts"],
+    });
+    // The line format would quote this path as "src/caf\303\251.ts", which
+    // the -z format hands back verbatim instead.
+    assert.deepEqual(classifySourceState(" M src/café.ts\0?? tests/naïve.test.ts\0"), {
+      sourceState: "dirty",
+      dirtyFiles: ["src/café.ts", "tests/naïve.test.ts"],
+    });
+  });
+
+  // @lat: [[tests#Scripts and tooling#Benchmark outputs never mark their own run dirty]]
+  it("never calls a run dirty because of its own output files", () => {
+    const porcelain =
+      " M docs/performance-baseline.json\0?? artifacts/performance-current.json\0?? note.txt\0";
+    assert.deepEqual(
+      classifySourceState(porcelain, {
+        ignorePaths: ["docs/performance-baseline.json", "artifacts/performance-current.json"],
+      }),
+      { sourceState: "clean" },
+    );
+    // Without the exclusion the same baseline edit is a real source change,
+    // so the exclusion is what keeps the clean verdict honest.
+    assert.deepEqual(classifySourceState(porcelain), {
+      sourceState: "dirty",
+      dirtyFiles: ["docs/performance-baseline.json"],
+    });
+  });
+
+  // @lat: [[tests#Scripts and tooling#Source state is required for new runs and tolerated in old baselines]]
+  it("requires worktree provenance from a new run but tolerates an older baseline", () => {
+    const clean = { ...summary(), sourceState: "clean" as const };
+    assert.equal(validateBenchmarkSummary(clean, { requireSourceState: true }).scale, 1);
+    assert.equal(
+      validateBenchmarkSummary(
+        { ...summary(), sourceState: "dirty" as const, dirtyFiles: ["src/rules/no-gs-now.ts"] },
+        { requireSourceState: true },
+      ).scale,
+      1,
+    );
+    assert.equal(validateBenchmarkSummary(summary()).scale, 1);
+    assert.throws(
+      () => validateBenchmarkSummary(summary(), { requireSourceState: true }),
+      /sourceState is missing/,
+    );
+    assert.throws(
+      () => validateBenchmarkSummary({ ...summary(), sourceState: "stale" }),
+      /sourceState is malformed/,
+    );
+    assert.throws(
+      () => validateBenchmarkSummary({ ...clean, dirtyFiles: ["src/rules/no-gs-now.ts"] }),
+      /clean source with dirtyFiles/,
+    );
+    assert.throws(
+      () => validateBenchmarkSummary({ ...summary(), sourceState: "dirty" }),
+      /dirty source without dirtyFiles/,
     );
   });
 

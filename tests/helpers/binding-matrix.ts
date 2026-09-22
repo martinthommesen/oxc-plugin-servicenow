@@ -1,17 +1,32 @@
 import type { RuleName, ServiceNowSettings } from "../../src/index.js";
 
-export interface BindingMatrixCase {
+interface BindingMatrixCaseBase {
   id: string;
   rule: RuleName;
   code: string;
   filename: string;
   settings?: ServiceNowSettings | undefined;
-  expected: "report" | "silent";
-  messageId?: string | undefined;
+}
+
+export interface SilentBindingMatrixCase extends BindingMatrixCaseBase {
+  expected: "silent";
+}
+
+export interface ReportingBindingMatrixCase extends BindingMatrixCaseBase {
+  expected: "report";
+  messageId: string;
   message: string;
   start: { line: number; column: number };
   end: { line: number; column: number };
+  offset: number;
+  length: number;
 }
+
+/**
+ * A silent case carries no diagnostic shape, so the union keeps a consumer
+ * from reading a message or a range that no rule ever produced.
+ */
+export type BindingMatrixCase = SilentBindingMatrixCase | ReportingBindingMatrixCase;
 
 function location(code: string, source: string, anchor = source) {
   const anchorOffset = code.indexOf(anchor);
@@ -23,7 +38,12 @@ function location(code: string, source: string, anchor = source) {
   const offset = anchorOffset + sourceOffset;
   const before = code.slice(0, offset).split("\n");
   const start = { line: before.length, column: before.at(-1)?.length ?? 0 };
-  return { start, end: { line: start.line, column: start.column + source.length } };
+  return {
+    start,
+    end: { line: start.line, column: start.column + source.length },
+    offset,
+    length: source.length,
+  };
 }
 
 function report(
@@ -36,7 +56,7 @@ function report(
   filename = "matrix.server.js",
   settings?: ServiceNowSettings,
   anchor?: string,
-): BindingMatrixCase {
+): ReportingBindingMatrixCase {
   return {
     id,
     rule,
@@ -56,18 +76,8 @@ function silent(
   code: string,
   filename = "matrix.server.js",
   settings?: ServiceNowSettings,
-): BindingMatrixCase {
-  return {
-    id,
-    rule,
-    code,
-    filename,
-    settings,
-    expected: "silent",
-    message: "",
-    start: { line: 0, column: 0 },
-    end: { line: 0, column: 0 },
-  };
+): SilentBindingMatrixCase {
+  return { id, rule, code, filename, settings, expected: "silent" };
 }
 
 export const BINDING_MATRIX_CASES: readonly BindingMatrixCase[] = [

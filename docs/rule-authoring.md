@@ -31,7 +31,7 @@ Recommended errors require separate normative ServiceNow evidence and an automat
 
 If the detection needs schema, types, or a project index, label the work as research. Do not fake those capabilities with heuristics.
 
-Option types, defaults, host `meta.schema`, and runtime parsing come from `src/options/descriptors.ts`. Do not hand-edit generated option tables.
+Option types, defaults, host `meta.schema`, and runtime parsing come from `src/options/rule-options.ts`. Do not hand-edit generated option tables.
 
 ## Test matrix
 

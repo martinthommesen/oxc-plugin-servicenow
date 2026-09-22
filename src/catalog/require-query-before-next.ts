@@ -48,7 +48,7 @@ export const requireQueryBeforeNextEntry = entry(
     placements: [
       { profile: "recommended", severity: "error" },
       { profile: "business-rule", severity: "error" },
-    ] as const,
+    ],
     optionDescriptor: undefined,
     limitationCases: [
       {

@@ -6,36 +6,24 @@ export const requireBusinessRuleWrapperEntry = entry(
   "require-business-rule-wrapper",
   requireBusinessRuleWrapper,
   {
-    ...metadata.meta(
-      {
-        authoring: "classic",
-        surfaces: ["business-rule"],
-        minimumSurfaceConfidence: "explicit-only",
-        javascriptModes: "n/a",
-        scopes: metadata.ALL_SCOPES,
-      },
-      [
-        metadata.evidenceRecord(
-          metadata.SN_BR,
-          "Full-script Business Rules use the executeRule(current, previous) IIFE so top-level bindings do not leak.",
-          "manual",
-          "2026-08-20",
-        ),
-        metadata.evidenceRecord(
-          "tests/integration/profiles/invalid/unwrapped.br.js",
-          "The wrapper rule reports only when businessRuleSourceFormat is full-script.",
-          "integration-test",
-          "2026-08-20",
-        ),
-      ],
-      {
-        overlaps: [],
-      },
-    ),
+    ...metadata.meta(metadata.classic(["business-rule"]), [
+      metadata.evidenceRecord(
+        metadata.SN_BR,
+        "Full-script Business Rules use the executeRule(current, previous) IIFE so top-level bindings do not leak.",
+        "manual",
+        "2026-08-20",
+      ),
+      metadata.evidenceRecord(
+        "tests/integration/profiles/invalid/unwrapped.br.js",
+        "The wrapper rule reports only when businessRuleSourceFormat is full-script.",
+        "integration-test",
+        "2026-08-20",
+      ),
+    ]),
     placements: [
       { profile: "recommended", severity: "error" },
       { profile: "business-rule", severity: "error" },
-    ] as const,
+    ],
     optionDescriptor: undefined,
     limitationCases: [
       {

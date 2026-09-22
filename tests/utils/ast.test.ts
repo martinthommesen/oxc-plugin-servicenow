@@ -2,7 +2,13 @@ import assert from "node:assert/strict";
 import type { ESTree } from "@oxlint/plugins";
 import { describe, it } from "node:test";
 import { parse } from "../helpers/rule-tester.js";
-import { fallbackComments, getName, isValueReference, walk } from "../../src/utils/ast.js";
+import {
+  fallbackComments,
+  getName,
+  hostComments,
+  isValueReference,
+  walk,
+} from "../../src/utils/ast.js";
 
 describe("fallbackComments", () => {
   it("extracts line and block comments without a backtracking regex", () => {
@@ -34,6 +40,22 @@ describe("fallbackComments", () => {
     assert.equal(comments[0]?.value, "");
     assert.equal(comments[0]?.start, 0);
     assert.equal(comments[0]?.end, 4);
+  });
+});
+
+describe("hostComments", () => {
+  it("prefers the host comment list when the host exposes one", () => {
+    const provided = [{ value: " host", start: 0, end: 7 }];
+    const host = { sourceCode: { getAllComments: () => provided } };
+    assert.equal(hostComments(host, "// text"), provided);
+  });
+
+  it("scans the source text when the host has no getAllComments", () => {
+    const comments = hostComments({ sourceCode: {} }, "var x = 1; // tail\n/* block */");
+    assert.deepEqual(
+      comments.map((comment) => comment.value),
+      [" tail", " block "],
+    );
   });
 });
 

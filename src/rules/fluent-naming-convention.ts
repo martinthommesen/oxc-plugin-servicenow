@@ -57,7 +57,7 @@ export const fluentNamingConvention = defineRule({
 
     return {
       before() {
-        const { context: script } = beginRuleFile(context);
+        const { script } = beginRuleFile(context);
         if (!isFluentContext(script)) return false;
         const options = parseRuleOptions(fluentNamingConventionOptions, context.options);
         idStyle = options.idStyle;
@@ -80,7 +80,7 @@ export const fluentNamingConvention = defineRule({
         }
       },
       MemberExpression(node) {
-        const { file } = beginRuleFile(context);
+        const file = beginRuleFile(context);
         const fact = file.nowIdAt.get(node);
         if (!fact || fact.kind !== "static") return;
         const key = fact.key;
@@ -99,7 +99,7 @@ export const fluentNamingConvention = defineRule({
           const exportName = getName(item.id);
           if (!exportName || !item.init || item.init.type !== "CallExpression") continue;
           const call = item.init as ESTree.CallExpression;
-          const { file } = beginRuleFile(context);
+          const file = beginRuleFile(context);
           const capability = file.fluent.resolveFactory(call.callee, getAncestors(context, call));
           if (capability?.name !== "Table") continue;
           const arg = call.arguments[0];

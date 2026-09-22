@@ -3,42 +3,36 @@ import { noObjectHasown } from "../rules/no-object-hasown.js";
 import * as metadata from "../catalog-metadata.js";
 
 export const noObjectHasownEntry = entry("no-object-hasown", noObjectHasown, {
-  ...metadata.meta(
-    metadata.engine(metadata.ALL_INSTANCE_MODES),
-    [
-      metadata.evidenceRecord(
-        metadata.SN_JS_FEATURES,
-        "The Zurich table marks Object.hasOwn Not Supported in ES2021 and ES5 Standards.",
-        "manual",
-        "2026-08-22",
-      ),
-      metadata.evidenceRecord(
-        metadata.SN_JS_FEATURES_AUSTRALIA,
-        "The Australia table marks Object.hasOwn Supported in ES2021 and Not Supported in ES5 Standards.",
-        "manual",
-        "2026-08-22",
-      ),
-      metadata.evidenceRecord(
-        metadata.SN_JS_MODES,
-        "ServiceNow documents Compatibility as a third mode; the plugin explicitly applies ES5 feature cells to it as package policy.",
-        "manual",
-        "2026-08-22",
-      ),
-      metadata.evidenceRecord(
-        "tests/rules/glide-and-engine.test.ts",
-        "Fixtures cover release deltas, immutable aliases, reassignment, computed access, shadowing, mutation, and namespace escape.",
-        "fixture",
-        "2026-08-22",
-      ),
-    ],
-    {
-      overlaps: [],
-    },
-  ),
+  ...metadata.meta(metadata.engine(metadata.ALL_INSTANCE_MODES), [
+    metadata.evidenceRecord(
+      metadata.SN_JS_FEATURES,
+      "The Zurich table marks Object.hasOwn Not Supported in ES2021 and ES5 Standards.",
+      "manual",
+      "2026-08-22",
+    ),
+    metadata.evidenceRecord(
+      metadata.SN_JS_FEATURES_AUSTRALIA,
+      "The Australia table marks Object.hasOwn Supported in ES2021 and Not Supported in ES5 Standards.",
+      "manual",
+      "2026-08-22",
+    ),
+    metadata.evidenceRecord(
+      metadata.SN_JS_MODES,
+      "ServiceNow documents Compatibility as a third mode; the plugin explicitly applies ES5 feature cells to it as package policy.",
+      "manual",
+      "2026-08-22",
+    ),
+    metadata.evidenceRecord(
+      "tests/rules/glide-and-engine.test.ts",
+      "Fixtures cover release deltas, immutable aliases, reassignment, computed access, shadowing, mutation, and namespace escape.",
+      "fixture",
+      "2026-08-22",
+    ),
+  ]),
   placements: [
     { profile: "classic-es5", severity: "error" },
     { profile: "es2021", severity: "error" },
-  ] as const,
+  ],
   optionDescriptor: undefined,
   limitationCases: [
     {

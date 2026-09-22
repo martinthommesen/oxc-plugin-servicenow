@@ -282,16 +282,6 @@ export function knownDirectiveNames(
   return new Set(manifest.directives.map((directive) => directive.name));
 }
 
-export function entitiesRequiringId(
-  manifest: FluentSdkManifest = DEFAULT_FLUENT_MANIFEST,
-): ReadonlySet<string> {
-  return new Set(
-    manifest.apis
-      .filter((api) => api.kind === "entity" && api.idRequirement === "required")
-      .map((api) => api.name),
-  );
-}
-
 export function importOwnedApis(
   manifest: FluentSdkManifest = DEFAULT_FLUENT_MANIFEST,
 ): ReadonlyMap<string, string> {

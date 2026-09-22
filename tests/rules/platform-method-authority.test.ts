@@ -1,7 +1,5 @@
 import { describe, it } from "node:test";
-import { assertInvalid, assertValid } from "../helpers/rule-tester.js";
-
-const SERVER = { filename: "authority.server.js" };
+import { ACL, assertInvalid, assertValidActive } from "../helpers/rule-tester.js";
 
 describe("GlideRecord method authority", () => {
   it("suppresses cursor diagnostics after visible identity loss", () => {
@@ -36,7 +34,7 @@ gr.query = localQuery;
 gr.query();
 gr.next();`,
     ]) {
-      assertValid(code, "require-query-before-next", SERVER);
+      assertValidActive(code, "require-query-before-next");
     }
   });
 
@@ -48,7 +46,6 @@ var gr = new GlideRecord("incident");
 gr.next();`,
       "require-query-before-next",
       { messageId: "missingQuery" },
-      SERVER,
     );
   });
 
@@ -60,7 +57,6 @@ var record = new GlideRecord("incident");
 record.next();`,
       "require-query-before-next",
       { messageId: "missingQuery" },
-      SERVER,
     );
     assertInvalid(
       `function customizeLocal() {
@@ -71,7 +67,6 @@ var record = new GlideRecord("incident");
 record.next();`,
       "require-query-before-next",
       { messageId: "missingQuery" },
-      SERVER,
     );
   });
 
@@ -85,79 +80,70 @@ if (condition) {
 record.next();`,
       "require-query-before-next",
       { messageId: "missingQuery" },
-      SERVER,
     );
   });
 
   it("keeps windowing and query lifecycle unknown after custom calls", () => {
-    assertValid(
+    assertValidActive(
       `var gr = new GlideRecord("incident");
 gr.setLimit(10);
 gr.deleteMultiple();
 gr.deleteMultiple = localDelete;`,
       "no-delete-multiple-with-windowing",
-      SERVER,
     );
-    assertValid(
+    assertValidActive(
       `var gr = new GlideRecord("incident");
 gr.setLimit = localLimit;
 gr.setLimit(10);
 gr.deleteMultiple();`,
       "no-delete-multiple-with-windowing",
-      SERVER,
     );
-    assertValid(
+    assertValidActive(
       `var gr = new GlideRecord("incident");
 gr.query();
 gr.setLimit(10);
 gr.next();
 gr.next = localNext;`,
       "no-gliderecord-query-modifier-after-query",
-      SERVER,
     );
-    assertValid(
+    assertValidActive(
       `var gr = new GlideRecord("incident");
 gr.query = localQuery;
 gr.query();
 gr.setLimit(10);
 gr.next();`,
       "no-gliderecord-query-modifier-after-query",
-      SERVER,
     );
   });
 
   it("keeps bulk-filter and count state uncertain after custom calls", () => {
-    assertValid(
+    assertValidActive(
       `var gr = new GlideRecord("incident");
 gr.deleteMultiple();
 gr.deleteMultiple = localDelete;`,
       "no-unfiltered-gliderecord-bulk-operation",
-      SERVER,
     );
-    assertValid(
+    assertValidActive(
       `var gr = new GlideRecord("incident");
 gr.prepare = maybeFilter;
 gr.prepare();
 gr.deleteMultiple();`,
       "no-unfiltered-gliderecord-bulk-operation",
-      SERVER,
     );
-    assertValid(
+    assertValidActive(
       `var gr = new GlideRecord("incident");
 gr.chooseWindow(0, 10);
 gr.query();
 gr.query = localQuery;`,
       "prefer-setnocount-with-choosewindow",
-      SERVER,
     );
-    assertValid(
+    assertValidActive(
       `var gr = new GlideRecord("incident");
 gr.prepare = maybeSkipCount;
 gr.prepare();
 gr.chooseWindow(0, 10);
 gr.query();`,
       "prefer-setnocount-with-choosewindow",
-      SERVER,
     );
   });
 
@@ -171,43 +157,38 @@ if (condition) {
 gr.deleteMultiple();`,
       "no-unfiltered-gliderecord-bulk-operation",
       { messageId: "unfiltered" },
-      SERVER,
     );
   });
 
   it("suppresses N+1 and counting guidance for replaced methods", () => {
-    assertValid(
+    assertValidActive(
       `var outer = new GlideRecord("incident");
 var inner = new GlideRecord("sys_user");
 outer.query();
 while (outer.next()) inner.query();
 outer.next = localNext;`,
       "no-gliderecord-query-in-loop",
-      SERVER,
     );
-    assertValid(
+    assertValidActive(
       `var outer = new GlideRecord("incident");
 var inner = new GlideRecord("sys_user");
 outer.query();
 while (outer.next()) inner.query();
 inner.query = localQuery;`,
       "no-gliderecord-query-in-loop",
-      SERVER,
     );
-    assertValid(
+    assertValidActive(
       `var gr = new GlideRecord("incident");
 gr.getRowCount();
 gr.getRowCount = localCount;`,
       "prefer-glideaggregate",
-      SERVER,
     );
-    assertValid(
+    assertValidActive(
       `var gr = new GlideRecord("incident");
 var count = 0;
 while (gr.next()) count++;
 gr.next = localNext;`,
       "prefer-glideaggregate",
-      SERVER,
     );
   });
 
@@ -218,7 +199,6 @@ gr.addSystemQuery("active", true);
 gr.addSystemQuery = localQuery;`,
       "no-system-query-bypass",
       { count: 1, messageId: "bypass" },
-      SERVER,
     );
   });
 
@@ -229,7 +209,6 @@ gr.addSystemQuery = localQuery;
 gr.addSystemQuery("active", true);`,
       "no-system-query-bypass",
       { count: 1, messageId: "bypass" },
-      SERVER,
     );
   });
 
@@ -240,9 +219,8 @@ gr.addSystemQuery = localQuery;
 gr[method];`,
       "no-system-query-bypass",
       { messageId: "possibleBypass" },
-      SERVER,
     );
-    assertValid(
+    assertValidActive(
       `var gr = new GlideRecord("incident");
 gr.addSystemEncodedQuery = localQuery;
 gr.addSystemQuery = localQuery;
@@ -250,7 +228,6 @@ gr.addSystemOrderBy = localQuery;
 gr.addSystemOrderByDesc = localQuery;
 gr[method];`,
       "no-system-query-bypass",
-      SERVER,
     );
   });
 });
@@ -268,26 +245,24 @@ ga.next();`,
 var ga = new GlideAggregate("incident");
 ga.next();`,
     ]) {
-      assertValid(code, "validate-glideaggregate-calls", SERVER);
+      assertValidActive(code, "validate-glideaggregate-calls");
     }
-    assertValid(
+    assertValidActive(
       `var ga = new GlideAggregate("incident");
 ga.query = localQuery;
 ga.query();
 ga.next();`,
       "validate-glideaggregate-calls",
-      SERVER,
     );
-    assertValid(
+    assertValidActive(
       `var ga = new GlideAggregate("incident");
 ga.addAggregate = localAggregate;
 ga.addAggregate("COUNT");
 ga.query();
 ga.getAggregate("SUM", "amount");`,
       "validate-glideaggregate-calls",
-      SERVER,
     );
-    assertValid(
+    assertValidActive(
       `var ga = new GlideAggregate("incident");
 ga.prepare = maybeAddAggregate;
 ga.prepare();
@@ -295,7 +270,6 @@ ga.query();
 ga.query();
 ga.getAggregate("SUM", "amount");`,
       "validate-glideaggregate-calls",
-      SERVER,
     );
   });
 });
@@ -313,26 +287,24 @@ if (date.getDisplayValue() < "2026-01-01") gs.info(date);`,
 var date = new GlideDateTime();
 if (date.getDisplayValue() < "2026-01-01") gs.info(date);`,
     ]) {
-      assertValid(code, "no-display-value-date-comparison", SERVER);
+      assertValidActive(code, "no-display-value-date-comparison");
     }
   });
 
   it("requires authoritative cursor and GlideElement member identities", () => {
-    assertValid(
+    assertValidActive(
       `var gr = new GlideRecord("incident");
 var values = [];
 while (gr.next()) values.push(gr.number);
 gr.next = localNext;`,
       "no-glideelement-in-collection",
-      SERVER,
     );
-    assertValid(
+    assertValidActive(
       `var gr = new GlideRecord("incident");
 var values = [];
 while (gr.next()) values.push(gr.getElement("number"));
 gr.getElement = localElement;`,
       "no-glideelement-in-collection",
-      SERVER,
     );
     assertInvalid(
       `var gr = new GlideRecord("incident");
@@ -341,7 +313,25 @@ var values = [];
 while (gr.next()) values.push(gr.number);`,
       "no-glideelement-in-collection",
       { messageId: "retained" },
-      SERVER,
     );
+  });
+
+  it("suppresses ACL query diagnostics after relevant method authority is lost", () => {
+    for (const code of [
+      `GlideRecord = LocalRecord;
+var user = new GlideRecord("sys_user");
+user.query();`,
+      `GlideRecord.prototype.query = localQuery;
+var user = new GlideRecord("sys_user");
+user.query();`,
+      `var user = new GlideRecord("sys_user");
+user.query = localQuery;
+user.query();`,
+      `eval("GlideRecord = LocalRecord");
+var user = new GlideRecord("sys_user");
+user.query();`,
+    ]) {
+      assertValidActive(code, "no-gliderecord-query-in-acl", ACL);
+    }
   });
 });

@@ -1,8 +1,7 @@
-import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { pathToFileURL } from "node:url";
 import { isReleaseVersion } from "./check-release-artifact.mjs";
-import { root } from "./lib/repo.mjs";
+import { readJson } from "./lib/json-artifact.mjs";
+import { isMainModule, root } from "./lib/repo.mjs";
 
 /**
  * @param {string} message
@@ -66,7 +65,7 @@ export async function createReleaseTag({
   if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository)) fail("repository is invalid");
   if (!token) fail("release tag token is missing");
 
-  const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+  const pkg = readJson(join(root, "package.json"));
   if (version !== pkg.version) fail(`requested version ${version} does not match ${pkg.version}`);
   if (pkg.repository?.url !== `git+https://github.com/${repository}.git`) {
     fail("repository does not match package.json");
@@ -104,7 +103,7 @@ export async function main(env = process.env) {
   return result;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (isMainModule(import.meta.url)) {
   main().catch((error) => {
     console.error(error instanceof Error ? error.message : error);
     process.exit(1);

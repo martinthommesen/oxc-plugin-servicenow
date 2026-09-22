@@ -23,7 +23,7 @@ export const noWeakCollectionsEntry = entry("no-weak-collections", noWeakCollect
       overlaps: ["servicenow/no-map-set", "servicenow/no-weak-references"],
     },
   ),
-  placements: [{ profile: "classic-es5", severity: "error" }] as const,
+  placements: [{ profile: "classic-es5", severity: "error" }],
   optionDescriptor: undefined,
   limitationCases: [
     {

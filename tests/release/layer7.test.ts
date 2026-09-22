@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash, generateKeyPairSync, sign } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, it } from "node:test";
 import { X509Certificate, crypto as sigstoreCrypto, dsse } from "@sigstore/core";
@@ -608,10 +608,6 @@ describe("release automation gates", () => {
           item.item === "npm trusted-publisher repository, workflow, and environment identity",
       ),
     );
-    const desired = JSON.parse(
-      readFileSync(path.join(repoRoot, "scripts/release-governance.json"), "utf8"),
-    );
-    assert.deepEqual(validateDesiredGovernance(desired), []);
   });
 
   it("requires only status checks that some CI job can produce", () => {
@@ -624,18 +620,32 @@ describe("release automation gates", () => {
       ...Object.keys(ciWorkflow.jobs).filter((job) => job !== "compat"),
       ...matrix.cells.map((cell) => `compat (${cell.id}, ${cell.node})`),
     ]);
-    const desired = JSON.parse(
-      readFileSync(path.join(repoRoot, "scripts/release-governance.json"), "utf8"),
-    );
-    for (const context of desired.mainRuleset.requiredStatusChecks) {
+    for (const context of authoritativeDesiredFixture.mainRuleset.requiredStatusChecks) {
       assert.ok(producible.has(context), `required check "${context}" is not producible`);
+    }
+  });
+
+  // @lat: [[tests#Release governance#Hosted jobs run every static gate]]
+  it("runs every static gate in CI and release (FINDINGS.md TST-006)", () => {
+    // tsconfig.scripts.json is the only project that type-checks script
+    // bodies, so a hosted run without it can stay green while the local
+    // aggregate fails.
+    const runCommands = (job: { steps?: Array<{ run?: string }> }) =>
+      (job.steps ?? []).flatMap((step) => (step.run ? [step.run] : []));
+    for (const [label, job] of [
+      ["ci test", ciWorkflow.jobs.test],
+      ["release validate", workflow.jobs.validate],
+    ] as const) {
+      const commands = runCommands(job);
+      for (const gate of ["typecheck", "typecheck:fixtures", "typecheck:scripts"]) {
+        assert.ok(commands.includes(`npm run ${gate}`), `${label} must run npm run ${gate}`);
+      }
     }
   });
 
   it("bounds every job and network operation (FINDINGS.md REL-002)", async () => {
     // The retry deadline only stops scheduling; each job needs a final guard
     // and each fetch its own abort signal so a hang cannot stall a release.
-    const { readdirSync } = await import("node:fs");
     const workflowFiles = readdirSync(path.join(repoRoot, ".github/workflows")).filter((name) =>
       /\.ya?ml$/.test(name),
     );

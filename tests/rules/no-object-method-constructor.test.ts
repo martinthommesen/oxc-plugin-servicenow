@@ -1,9 +1,14 @@
 import { describe, it } from "node:test";
-import { assertInvalid, assertValid } from "../helpers/rule-tester.js";
+import {
+  assertDeclinesNonServerSurfaces,
+  assertInvalid,
+  assertValid,
+  assertValidActive,
+  AUSTRALIA_ES2021,
+  ZURICH_ES2021,
+} from "../helpers/rule-tester.js";
 
 const RULE = "no-object-method-constructor" as const;
-const AUSTRALIA = { javascriptMode: "es2021", release: "australia" } as const;
-const ZURICH = { javascriptMode: "es2021", release: "zurich" } as const;
 
 describe(RULE, () => {
   it("reports direct and stable object-method constructions in Australia", () => {
@@ -27,7 +32,7 @@ new definitions.create();`,
       `const definitions = { [dynamicKey]: replacement, create() {} };
 new definitions.create();`,
     ]) {
-      assertInvalid(code, RULE, { messageId: "notConstructor" }, { settings: AUSTRALIA });
+      assertInvalid(code, RULE, { messageId: "notConstructor" }, AUSTRALIA_ES2021);
     }
   });
 
@@ -39,7 +44,7 @@ const Constructor = definitions.create;
 new Constructor();`,
       RULE,
       { messageId: "notConstructor", count: 2 },
-      { settings: AUSTRALIA },
+      AUSTRALIA_ES2021,
     );
   });
 
@@ -52,7 +57,7 @@ new Constructor();`,
       `const alias0 = { create() {} };\n${aliases.join("\n")}\nnew alias1000.create();`,
       RULE,
       { messageId: "notConstructor" },
-      { settings: AUSTRALIA },
+      AUSTRALIA_ES2021,
     );
   });
 
@@ -63,7 +68,7 @@ type Definitions = typeof definitions;
 new definitions.create();`,
       RULE,
       { messageId: "notConstructor" },
-      { filename: "factory.server.ts", settings: AUSTRALIA },
+      { filename: "factory.server.ts", settings: AUSTRALIA_ES2021.settings },
     );
   });
 
@@ -82,7 +87,7 @@ new definitions.create();`,
       `function Constructor() {}
 new Constructor();`,
     ]) {
-      assertValid(code, RULE, { settings: AUSTRALIA });
+      assertValid(code, RULE, AUSTRALIA_ES2021);
     }
   });
 
@@ -124,15 +129,15 @@ new Definitions.prototype.create();`,
 const definitions = { create() {} };
 new definitions.create();`,
     ]) {
-      assertValid(code, RULE, { settings: AUSTRALIA });
+      assertValidActive(code, RULE, AUSTRALIA_ES2021);
     }
   });
 
   it("follows the Australia ES2021 release boundary", () => {
     const code = `const definitions = { create() {} };
 new definitions.create();`;
-    assertInvalid(code, RULE, { messageId: "notConstructor" }, { settings: AUSTRALIA });
-    assertValid(code, RULE, { settings: ZURICH });
+    assertInvalid(code, RULE, { messageId: "notConstructor" }, AUSTRALIA_ES2021);
+    assertValid(code, RULE, ZURICH_ES2021);
     assertValid(code, RULE, { settings: { javascriptMode: "es2021" } });
     assertValid(code, RULE, {
       settings: { javascriptMode: "es5", release: "australia" },
@@ -145,14 +150,6 @@ new definitions.create();`;
   it("does not apply server-engine behavior to other execution contexts", () => {
     const code = `const definitions = { create() {} };
 new definitions.create();`;
-    assertValid(code, RULE, {
-      filename: "form.client.js",
-      settings: { ...AUSTRALIA, surfaces: ["client"] },
-    });
-    assertValid(code, RULE, { filename: "metadata.now.ts", settings: AUSTRALIA });
-    assertValid(code, RULE, {
-      filename: "mixed.ui-action.js",
-      settings: { ...AUSTRALIA, surfaces: ["client", "server", "ui-action"] },
-    });
+    assertDeclinesNonServerSurfaces(code, RULE, AUSTRALIA_ES2021.settings);
   });
 });

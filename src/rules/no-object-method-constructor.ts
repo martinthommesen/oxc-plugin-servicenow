@@ -21,7 +21,7 @@ export const noObjectMethodConstructor = defineRule({
   createOnce(context) {
     return {
       before() {
-        const { context: script } = beginRuleFile(context);
+        const { script } = beginRuleFile(context);
         if (
           script.javascriptMode !== "es2021" ||
           !shouldDiagnoseFeature(script, "object-method-construction")
@@ -31,10 +31,10 @@ export const noObjectMethodConstructor = defineRule({
         return undefined;
       },
       Program(node) {
-        const { analysis, file } = beginRuleFile(context);
+        const file = beginRuleFile(context);
         for (const finding of findObjectMethodConstructions(
           node as ESTree.Node,
-          analysis.bindings,
+          file.provenance.bindings,
           file.bindingWrites,
         )) {
           context.report({

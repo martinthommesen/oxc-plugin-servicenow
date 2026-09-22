@@ -27,14 +27,12 @@ export const noSystemQueryBypassEntry = entry("no-system-query-bypass", noSystem
       platformMethodAuthorityEvidence(),
     ],
     {
-      overlaps: [],
       limitationPreamble:
         "Unproven, invalid, or ambiguous GlideRecord bindings stay silent. Proven escaped GlideRecord identities remain reviewable because this opt-in security rule favors surfacing potential ACL bypasses.",
     },
   ),
-  placements: [{ profile: "security", severity: "warn" }] as const,
+  placements: [{ profile: "security", severity: "warn" }],
   optionDescriptor: undefined,
-  limitationCases: [],
   title: "Review system query ACL bypass",
   family: "classic",
   severity: "warn",

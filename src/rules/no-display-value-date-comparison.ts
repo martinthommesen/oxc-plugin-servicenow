@@ -1,29 +1,19 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
-import {
-  hasAuthoritativeConstructedMethod,
-  staticPropertyName,
-  type PlatformMethodAuthorityFacts,
-} from "../analysis/internal.js";
 import { isServerInstanceContext } from "../context/index.js";
 import { ruleDocsUrl } from "../constants.js";
+import { provenReceiverMethod, type FileAnalysis } from "../analysis/internal.js";
 import { beginRuleFile } from "./helpers.js";
 
 const RELATIONAL = new Set(["<", ">", "<=", ">=", "-"]);
 
-function isDisplayValueCall(
-  node: ESTree.Node,
-  analysis: ReturnType<typeof beginRuleFile>["analysis"],
-  authority: PlatformMethodAuthorityFacts,
-): boolean {
-  if (node.type !== "CallExpression") return false;
-  const call = node as ESTree.CallExpression;
-  if (staticPropertyName(call.callee) !== "getDisplayValue") return false;
-  const object = (call.callee as ESTree.MemberExpression).object;
-  const proven = analysis.trustedExpression(object);
+function isDisplayValueCall(node: ESTree.Node, file: FileAnalysis): boolean {
   return (
-    proven?.kind === "GlideDateTime" &&
-    hasAuthoritativeConstructedMethod(authority, object, "GlideDateTime", "getDisplayValue")
+    node.type === "CallExpression" &&
+    provenReceiverMethod(file, node as ESTree.CallExpression, {
+      kind: "GlideDateTime",
+      method: "getDisplayValue",
+    }) !== null
   );
 }
 
@@ -43,17 +33,17 @@ export const noDisplayValueDateComparison = defineRule({
   createOnce(context) {
     return {
       before() {
-        const { context: script } = beginRuleFile(context);
+        const { script } = beginRuleFile(context);
         if (!isServerInstanceContext(script)) return false;
         return undefined;
       },
       BinaryExpression(node) {
-        const { analysis, file } = beginRuleFile(context);
+        const file = beginRuleFile(context);
         const expr = node as ESTree.BinaryExpression;
         if (!RELATIONAL.has(expr.operator)) return;
         if (
-          isDisplayValueCall(expr.left as ESTree.Node, analysis, file) ||
-          isDisplayValueCall(expr.right as ESTree.Node, analysis, file)
+          isDisplayValueCall(expr.left as ESTree.Node, file) ||
+          isDisplayValueCall(expr.right as ESTree.Node, file)
         ) {
           context.report({ node, messageId: "displayCompare", data: { op: expr.operator } });
         }

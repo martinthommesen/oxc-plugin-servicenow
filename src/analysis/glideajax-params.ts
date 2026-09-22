@@ -5,7 +5,7 @@ import {
   hasAuthoritativeConstructedMethod,
   type PlatformMethodAuthorityFacts,
 } from "./platform-method-authority.js";
-import { analyzePathBindings, dedupePathFindings, mergeTri } from "./path-state.js";
+import { collectPathFindings, mergeTri } from "./path-state.js";
 import type { ProvenanceQuery } from "./provenance.js";
 
 export interface GlideAjaxParamFinding {
@@ -62,76 +62,75 @@ export function findGlideAjaxParamIssues(
   analysis: ProvenanceQuery,
   authority: PlatformMethodAuthorityFacts,
 ): GlideAjaxParamFinding[] {
-  const findings: GlideAjaxParamFinding[] = [];
-  const outcome = analyzePathBindings<AjaxData>({
-    program,
-    analysis,
-    kinds: ["GlideAjax"],
-    emptyData: () => ({ sysparmName: false, terminal: false, uncertain: false }),
-    cloneData: (data) => ({ ...data }),
-    equalsData: (left, right) =>
-      left.sysparmName === right.sysparmName &&
-      left.terminal === right.terminal &&
-      left.uncertain === right.uncertain,
-    mergeData: (left, right) => ({
-      sysparmName: mergeSysparm(left.sysparmName, right.sysparmName),
-      terminal: mergeTri(left.terminal, right.terminal),
-      uncertain: left.uncertain || right.uncertain,
-    }),
-    onCall({ call, rec, receiver, objectName, property }) {
-      if (!rec || !receiver || !objectName || !property) return;
-      if (property !== "addParam" && !TERMINAL.has(property)) return;
-      if (
-        !hasAuthoritativeConstructedMethod(authority, receiver, "GlideAjax", property, "browser")
-      ) {
-        // An unproven addParam implementation may or may not register the
-        // method name. Preserve uncertainty so a later real request stays
-        // silent instead of being reported as definitely unconfigured.
-        if (property === "addParam") {
-          rec.data.sysparmName = mergeSysparm(rec.data.sysparmName, "unknown");
-          rec.data.uncertain = true;
-        }
-        return;
-      }
-      if (property === "addParam") {
-        if (rec.data.terminal === true) {
-          findings.push({ node: call, name: objectName, messageId: "afterTerminal" });
-        }
-        const key = getStringValue(call.arguments[0]);
-        const keyEvidence = classifyStaticArg(call.arguments[0], analysis);
-        if (key === null && keyEvidence === "unknown") {
-          rec.data.sysparmName = mergeSysparm(rec.data.sysparmName, "unknown");
-          rec.data.uncertain = true;
-        } else if (key === "sysparm_name") {
-          const valueState = sysparmValueState(call, analysis);
-          if (valueState === "invalid") {
-            findings.push({ node: call, name: objectName, messageId: "invalidValue" });
-            rec.data.sysparmName = "unknown";
-            rec.data.uncertain = true;
-          } else {
-            rec.data.sysparmName = valueState;
-          }
-          if (rec.data.sysparmName === "unknown") rec.data.uncertain = true;
-        } else if (key !== null && key.length > 0 && !key.startsWith("sysparm_")) {
-          findings.push({ node: call, name: objectName, messageId: "badPrefix", param: key });
-        }
-      }
-      if (TERMINAL.has(property)) {
+  return collectPathFindings<AjaxData, GlideAjaxParamFinding>(
+    {
+      program,
+      analysis,
+      kinds: ["GlideAjax"],
+      emptyData: () => ({ sysparmName: false, terminal: false, uncertain: false }),
+      equalsData: (left, right) =>
+        left.sysparmName === right.sysparmName &&
+        left.terminal === right.terminal &&
+        left.uncertain === right.uncertain,
+      mergeData: (left, right) => ({
+        sysparmName: mergeSysparm(left.sysparmName, right.sysparmName),
+        terminal: mergeTri(left.terminal, right.terminal),
+        uncertain: left.uncertain || right.uncertain,
+      }),
+      onCall({ call, rec, receiver, objectName, property }, report) {
+        if (!rec || !receiver || !property) return;
+        const name = objectName ?? "ajax";
+        if (property !== "addParam" && !TERMINAL.has(property)) return;
         if (
-          rec.data.sysparmName === false ||
-          (rec.data.sysparmName === "unknown" && !rec.data.uncertain)
+          !hasAuthoritativeConstructedMethod(authority, receiver, "GlideAjax", property, "browser")
         ) {
-          findings.push({ node: call, name: objectName, messageId: "missingName" });
-        } else if (rec.data.sysparmName === "empty") {
-          findings.push({ node: call, name: objectName, messageId: "emptyValue" });
+          // An unproven addParam implementation may or may not register the
+          // method name. Preserve uncertainty so a later real request stays
+          // silent instead of being reported as definitely unconfigured.
+          if (property === "addParam") {
+            rec.data.sysparmName = mergeSysparm(rec.data.sysparmName, "unknown");
+            rec.data.uncertain = true;
+          }
+          return;
         }
-        rec.data.terminal = true;
-        rec.data.sysparmName = false;
-        rec.data.uncertain = false;
-      }
+        if (property === "addParam") {
+          if (rec.data.terminal === true) {
+            report({ node: call, name, messageId: "afterTerminal" });
+          }
+          const key = getStringValue(call.arguments[0]);
+          const keyEvidence = classifyStaticArg(call.arguments[0], analysis);
+          if (key === null && keyEvidence === "unknown") {
+            rec.data.sysparmName = mergeSysparm(rec.data.sysparmName, "unknown");
+            rec.data.uncertain = true;
+          } else if (key === "sysparm_name") {
+            const valueState = sysparmValueState(call, analysis);
+            if (valueState === "invalid") {
+              report({ node: call, name, messageId: "invalidValue" });
+              rec.data.sysparmName = "unknown";
+              rec.data.uncertain = true;
+            } else {
+              rec.data.sysparmName = valueState;
+            }
+            if (rec.data.sysparmName === "unknown") rec.data.uncertain = true;
+          } else if (key !== null && key.length > 0 && !key.startsWith("sysparm_")) {
+            report({ node: call, name, messageId: "badPrefix", param: key });
+          }
+        }
+        if (TERMINAL.has(property)) {
+          if (
+            rec.data.sysparmName === false ||
+            (rec.data.sysparmName === "unknown" && !rec.data.uncertain)
+          ) {
+            report({ node: call, name, messageId: "missingName" });
+          } else if (rec.data.sysparmName === "empty") {
+            report({ node: call, name, messageId: "emptyValue" });
+          }
+          rec.data.terminal = true;
+          rec.data.sysparmName = false;
+          rec.data.uncertain = false;
+        }
+      },
     },
-  });
-  return outcome.outcome === "complete"
-    ? dedupePathFindings(findings, (finding) => finding.messageId)
-    : [];
+    (finding) => finding.messageId,
+  );
 }

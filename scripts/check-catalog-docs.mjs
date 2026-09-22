@@ -268,6 +268,7 @@ for (const rule of ruleCatalog) {
   const requiredApplicabilityFields = [
     "authoring",
     "surfaces",
+    "surfacesText",
     "minimumSurfaceConfidence",
     "javascriptModes",
     "scopes",

@@ -22,7 +22,7 @@ Large inline `script` / HTML / CSS payloads belong in their own file and should 
 | --- | --- |
 | Authoring | fluent |
 | Surfaces | Fluent `.now.ts` metadata only. |
-| Minimum surface confidence | filename-inferred |
+| Minimum surface confidence | inferred |
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
 | ServiceNow releases | n/a (Fluent SDK-versioned) |
@@ -113,8 +113,8 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
   - Verified by: manual
   - Verified at: 2026-08-20
 - **Catalog examples cover large inline script versus Now.include.**
-  - Verification ID: `rule-evidence-0a765a63`
-  - URL: src/catalog.ts
+  - Verification ID: `rule-evidence-0e42c1c0`
+  - URL: src/catalog/prefer-now-include.ts
   - Verified by: fixture
   - Verified at: 2026-08-20
 

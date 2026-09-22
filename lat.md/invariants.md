@@ -14,7 +14,7 @@ The interfaces enforce this decision. `appliesOnSurface` requires membership and
 
 A rule that returns `false` from `before()` has declined the file. A rule whose visitors ran and reported nothing has passed. These are different outcomes and the test harness distinguishes them.
 
-`RuleFileState` from [[src/rules/helpers.ts#beginRuleFile]] and the `onRuleSkipped` hook in `tests/helpers/apply-rules.ts` make the distinction observable; `tests/helpers/rule-tester.ts` exposes it as `assertValidActive` (ran, found nothing) versus `assertSkipped` (declined). A test that only asserted "no diagnostics" would pass for a rule that silently stopped applying to everything.
+The `before()` return value that [[src/rules/helpers.ts#beginRuleFile]] serves and the `onRuleSkipped` hook in `tests/helpers/apply-rules.ts` make the distinction observable; `tests/helpers/rule-tester.ts` exposes it as `assertValidActive` (ran, found nothing) versus `assertSkipped` (declined). A test that only asserted "no diagnostics" would pass for a rule that silently stopped applying to everything.
 
 ## Per-file state is reset in `before()`
 
@@ -46,7 +46,9 @@ Editing generated output or changing its source without regeneration fails the c
 
 ## Evidence resolves to a passing test
 
-Every evidence record in `src/catalog-metadata.ts` carries a verification id, and every id must resolve to exactly one passing test.
+Every evidence record carries a verification id, and every id must resolve to exactly one passing test.
+
+Ids are minted by `entry()` in `src/catalog/entry.ts`, which passes each claim authored in a descriptor through `verifiedEvidence` with the rule name as salt. The id is a content hash of that identity plus the claim's url, claim text, `verifiedBy` kind, and `verifiedAt` date, so rewording a claim rotates its id.
 
 `npm run evidence:check` runs `tests/catalog-evidence.test.ts` with a unique temporary report directory, removes that directory, and atomically replaces `artifacts/doc-evidence.json`, binding each id to its test. An `error`-severity rule in a recommended profile must cite normative external evidence *and* an automated in-repo proof — `scripts/check-catalog-docs.mjs` enforces the pair. This is what makes the generated rule pages auditable rather than decorative.
 
@@ -78,9 +80,13 @@ Freezing covers cyclic objects, and the shared empty default is never mutable. K
 
 ## Scripts are checked JavaScript
 
-`scripts/**/*.mjs` modules carry JSDoc types and no separate declaration file may exist. `tsconfig.scripts.json` runs the strict `checkJs` project over them, and `npm run typecheck:scripts` sits in the validate chain (FINDINGS.md MNT-005).
+`scripts/**/*.mjs` modules carry JSDoc types and no separate declaration file may exist. `tsconfig.scripts.json` runs the strict `checkJs` project over them (FINDINGS.md MNT-005).
 
-TypeScript imports of script helpers resolve the JSDoc types directly. `scripts/check-script-paths.mjs` separately requires every script under `scripts/` to be tracked in Git. Scripts share the `root` export of `scripts/lib/repo.mjs` instead of re-deriving the repository root from `import.meta.url`.
+`npm run typecheck:scripts` sits in the validate chain and in both hosted jobs, the CI `test` job and the release `validate` job, so local and hosted validation agree (FINDINGS.md TST-006).
+
+TypeScript imports of script helpers resolve the JSDoc types directly. `scripts/check-script-paths.mjs` separately requires every script under `scripts/` to be tracked in Git.
+
+Scripts share one set of helpers instead of re-deriving them: `root` and `isMainModule` from `scripts/lib/repo.mjs`, plus `scripts/lib/git.mjs`, `scripts/lib/argv.mjs`, `scripts/lib/json-artifact.mjs`, and `scripts/lib/markdown-table.mjs`. Two scripts are exempt: `scripts/publish-release-package.mjs` and `scripts/check-trusted-publishing-npm.mjs` ship standalone inside the release publish input, so they may import only Node builtins and each other.
 
 Destructive verifier cleanup checks every existing component from the repository root through the selected run directory and rejects symbolic links immediately before deletion. Cloud-agent Bun installation uses an exact version and committed npm integrity lock rather than a mutable dist-tag.
 
@@ -88,13 +94,25 @@ Destructive verifier cleanup checks every existing component from the repository
 
 The `oxlint` and `oxfmt` peer ranges span only the tested minor lines, and every `typescript-eslint` floor the matrix forbids with ESLint 10 stays documented on the compatibility page (FINDINGS.md OPS-011).
 
+Hand-written upgrade prose is bound to the same contract: `docs/migration-3.0.md` quotes the declared ranges and links the compatibility page rather than promising newer minor lines (FINDINGS.md DOC-006).
+
 `scripts/check-compat-matrix.mjs` pins each published TypeScript value to a proving cell. The nightly `compat-advisory` CI job re-resolves the top of each declared range through `node scripts/compat-consumer.mjs --top` without gating, and the range-coverage test asserts every declared endpoint has a cell.
+
+## Benchmark metadata names the source it measured
+
+`scripts/benchmark.mjs` records `sourceState` (`clean` or `dirty`) and, when dirty, `dirtyFiles`, captured from `git status --porcelain -z` before the build and the measurements (FINDINGS.md DX-001).
+
+The NUL-terminated form is required: the line form octal-escapes non-ASCII paths and cannot be decoded. A rename or copy emits the destination record and then the original as its own record, and the destination is the file present in the measured worktree.
+
+`classifySourceState` in `scripts/benchmark-gate.mjs` excludes the run's own output and baseline paths and counts untracked files only under `src/`, `scripts/`, `tests/`, and `package.json`. The field is required on newly written summaries and tolerated when absent from the reviewed baseline.
 
 ## Test reports are isolated and queried consistently
 
 Each test run writes to its own report path when concurrent execution could occur, and report consumers share one exact-proof definition.
 
 `scripts/lib/test-report.mjs` indexes `file::fullName`, requires one clean pass, and counts outcomes. The acceptance verifier allocates a unique temporary report directory per run and removes it afterward.
+
+`writeJsonArtifact` in `scripts/lib/json-artifact.mjs` writes every CI JSON artifact through a temporary file plus a rename, so a concurrent reader never observes a partially written document.
 
 [withAcceptanceLock](../scripts/lib/acceptance-lock.mjs#withAcceptanceLock) serializes the complete acceptance run for one repository root. It publishes a completed owner record and uses a fixed reclamation claim because the test suite rebuilds the shared `dist` tree.
 

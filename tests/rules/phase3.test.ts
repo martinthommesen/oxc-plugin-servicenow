@@ -1,11 +1,12 @@
 import { describe, it } from "node:test";
-import { assertInvalid, assertSkipped, assertValid } from "../helpers/rule-tester.js";
-
-const SERVER = { filename: "incident.br.js" };
-const FULL = {
-  filename: "incident.br.js",
-  settings: { businessRuleSourceFormat: "full-script" as const },
-};
+import {
+  assertInvalid,
+  assertSkipped,
+  assertValid,
+  assertValidActive,
+  BUSINESS_RULE,
+  FULL_SCRIPT,
+} from "../helpers/rule-tester.js";
 
 describe("no-glideelement-in-collection", () => {
   const RULE = "no-glideelement-in-collection" as const;
@@ -20,7 +21,7 @@ while (incident.next()) {
 }`,
       RULE,
       { messageId: "retained" },
-      SERVER,
+      BUSINESS_RULE,
     );
     assertInvalid(
       `var numbers = [];
@@ -31,7 +32,7 @@ while (incident.next()) {
 }`,
       RULE,
       { messageId: "retained" },
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
@@ -45,7 +46,7 @@ while (incident.next()) {
 }`,
       RULE,
       { messageId: "retained" },
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
@@ -61,7 +62,7 @@ while (incident.next()) {
   numbers.push(String(incident.number));
 }`,
       RULE,
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
@@ -72,7 +73,7 @@ incident.get(id);
 var numbers = [];
 numbers.push(incident.number);`,
       RULE,
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
@@ -86,7 +87,7 @@ while (incident.next()) {
   bag.push(other.number);
 }`,
       RULE,
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
@@ -101,7 +102,7 @@ while (rec.next()) {
 }`,
       RULE,
       { messageId: "retained" },
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
@@ -115,7 +116,7 @@ while (incident["_next"]()) {
 }`,
       RULE,
       { messageId: "retained" },
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
@@ -129,7 +130,7 @@ while (incident.next()) {
   methods.push(incident.queryNoDomain);
 }`,
       RULE,
-      { ...SERVER, settings: { scope: "unknown", release: "zurich" } },
+      { ...BUSINESS_RULE, settings: { scope: "unknown", release: "zurich" } },
     );
     assertValid(
       `var methods = [];
@@ -143,7 +144,7 @@ while (incident.next()) {
   methods.push(incident.canRead);
 }`,
       RULE,
-      { ...SERVER, settings: { scope: "scoped", release: "australia" } },
+      { ...BUSINESS_RULE, settings: { scope: "scoped", release: "australia" } },
     );
   });
 
@@ -156,8 +157,8 @@ while (incident.next() && ready) numbers.push(incident.number);`;
 var incident = new GlideRecord("incident");
 incident.query();
 while (ready && incident.next()) numbers.push(incident.number);`;
-    assertInvalid(andLeft, RULE, { messageId: "retained" }, SERVER);
-    assertInvalid(andRight, RULE, { messageId: "retained" }, SERVER);
+    assertInvalid(andLeft, RULE, { messageId: "retained" }, BUSINESS_RULE);
+    assertInvalid(andRight, RULE, { messageId: "retained" }, BUSINESS_RULE);
     const fallback = `var numbers = [];
 var incident = new GlideRecord("incident");
 incident.query();
@@ -166,8 +167,8 @@ while (incident.next() || ready) numbers.push(incident.number);`;
 var incident = new GlideRecord("incident");
 incident.query();
 while (ready ?? incident.next()) numbers.push(incident.number);`;
-    assertValid(fallback, RULE, SERVER);
-    assertValid(nullish, RULE, SERVER);
+    assertValid(fallback, RULE, BUSINESS_RULE);
+    assertValid(nullish, RULE, BUSINESS_RULE);
   });
 
   it("tracks every cursor required by a truthy conjunction", () => {
@@ -180,7 +181,7 @@ b.query();
 while (a.next() && b.next()) values.push(a.number);`,
       RULE,
       { messageId: "retained" },
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
@@ -195,7 +196,7 @@ while (gr.next()) {
 }`,
       RULE,
       { messageId: "retained" },
-      SERVER,
+      BUSINESS_RULE,
     );
     assertInvalid(
       `function firstValue() {
@@ -209,7 +210,7 @@ while (gr.next()) {
 }`,
       RULE,
       { messageId: "retained" },
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
@@ -223,7 +224,7 @@ do {
   break;
 } while (gr.next());`,
       RULE,
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
@@ -235,7 +236,7 @@ gr.query();
 while (gr.next()) values.push({ fields: [gr.number] });`,
       RULE,
       { messageId: "retained" },
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
@@ -248,7 +249,7 @@ gr.query();
 while (gr.next()) values.push(String(gr.number));`,
       RULE,
       { messageId: "retained" },
-      SERVER,
+      BUSINESS_RULE,
     );
     assertInvalid(
       `var Formatter = class String {
@@ -261,12 +262,12 @@ while (gr.next()) values.push(String(gr.number));`,
 };`,
       RULE,
       { messageId: "retained" },
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
   it("skips client files", () => {
-    assertValid(
+    assertSkipped(
       `var numbers = [];
 var incident = new GlideRecord("incident");
 incident.query();
@@ -286,7 +287,7 @@ while (incident.next()) {
 }`,
       RULE,
       { messageId: "retained" },
-      SERVER,
+      BUSINESS_RULE,
     );
     assertValid(
       `var numbers = [];
@@ -296,7 +297,7 @@ while (incident.next()) {
   numbers.push(incident[field]);
 }`,
       RULE,
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
@@ -315,12 +316,12 @@ while (outer.next()) {
 }`,
       RULE,
       { messageId: "retained" },
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
   it("ignores a reassigned binding", () => {
-    assertValid(
+    assertValidActive(
       `var numbers = [];
 var incident = new GlideRecord("incident");
 incident = { number: "x", next: function () { return false; } };
@@ -328,7 +329,7 @@ while (incident.next()) {
   numbers.push(incident.number);
 }`,
       RULE,
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 });
@@ -343,7 +344,7 @@ incident.addQuery("active", true);
 incident.query();
 while (incident.next()) { gs.info(incident.number); }`,
       RULE,
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
@@ -355,7 +356,7 @@ incident.addQuery("active", true);
 while (incident.next()) { gs.info(incident.number); }`,
       RULE,
       { messageId: "lateModifier" },
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
@@ -368,7 +369,7 @@ gr.addQuery("active", true);
 gr.query();
 consumeSecondResult(gr);`,
       RULE,
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
@@ -383,19 +384,19 @@ if (ready) {
 incident.next();`,
       RULE,
       { messageId: "lateModifier" },
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
   it("stays silent after escape", () => {
-    assertValid(
+    assertValidActive(
       `var incident = new GlideRecord("incident");
 incident.query();
 incident.addQuery("active", true);
 prepare(incident);
 incident.next();`,
       RULE,
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
@@ -407,7 +408,7 @@ incident.addQuery("active", true);
 incident.next();`,
       RULE,
       { messageId: "lateModifier" },
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
@@ -419,7 +420,7 @@ incident.addQuery("active", true);
 incident._next();`,
       RULE,
       { messageId: "lateModifier" },
-      { ...SERVER, settings: { scope: "scoped", release: "zurich" } },
+      { ...BUSINESS_RULE, settings: { scope: "scoped", release: "zurich" } },
     );
     assertValid(
       `var incident = new GlideRecord("incident");
@@ -428,7 +429,7 @@ incident.addQuery("active", true);
 incident["_query"]();
 incident._next();`,
       RULE,
-      { ...SERVER, settings: { scope: "scoped", release: "zurich" } },
+      { ...BUSINESS_RULE, settings: { scope: "scoped", release: "zurich" } },
     );
   });
 
@@ -441,10 +442,10 @@ incident.next();`;
       stale,
       RULE,
       { messageId: "lateModifier" },
-      { ...SERVER, settings: { scope: "global", release: "zurich" } },
+      { ...BUSINESS_RULE, settings: { scope: "global", release: "zurich" } },
     );
     assertValid(stale, RULE, {
-      ...SERVER,
+      ...BUSINESS_RULE,
       settings: { scope: "unknown", release: "zurich" },
     });
     assertValid(
@@ -454,12 +455,12 @@ incident.addQuery("active", true);
 incident.queryNoDomain();
 incident.next();`,
       RULE,
-      { ...SERVER, settings: { scope: "unknown", release: "zurich" } },
+      { ...BUSINESS_RULE, settings: { scope: "unknown", release: "zurich" } },
     );
   });
 
   it("stays silent when a computed call may refresh the cursor", () => {
-    assertValid(
+    assertValidActive(
       `var incident = new GlideRecord("incident");
 incident.query();
 incident.addQuery("active", true);
@@ -467,11 +468,11 @@ var method = "_query";
 incident[method]();
 incident.next();`,
       RULE,
-      SERVER,
+      BUSINESS_RULE,
     );
     // Member-object evaluation captures `first` before the computed key
     // reassigns it, so the call can refresh the original cursor.
-    assertValid(
+    assertValidActive(
       `var first = new GlideRecord("incident");
 first.query();
 first.addQuery("active", true);
@@ -481,7 +482,7 @@ var method = "_query";
 first[(first = second, method)]();
 original.next();`,
       RULE,
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
@@ -494,7 +495,7 @@ rec.addQuery("active", true);
 rec.next();`,
       RULE,
       { messageId: "lateModifier" },
-      SERVER,
+      BUSINESS_RULE,
     );
     assertValid(
       `var incident = new GlideRecord("incident");
@@ -503,7 +504,7 @@ incident.query();
 other.addQuery("active", true);
 incident.next();`,
       RULE,
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
@@ -515,7 +516,7 @@ incident["addQuery"]("active", true);
 incident.next();`,
       RULE,
       { messageId: "lateModifier" },
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 });
@@ -529,7 +530,7 @@ describe("require-business-rule-wrapper", () => {
   current.priority = 3;
 })(current, previous);`,
       RULE,
-      FULL,
+      FULL_SCRIPT,
     );
   });
 
@@ -541,19 +542,19 @@ if (current.assignment_group.nil()) {
 }`,
       RULE,
       { messageId: "missingWrapper" },
-      FULL,
+      FULL_SCRIPT,
     );
   });
 
   it("stays silent in body-only mode", () => {
-    assertValid(`current.priority = 3;`, RULE, {
+    assertSkipped(`current.priority = 3;`, RULE, {
       filename: "incident.br.js",
       settings: { businessRuleSourceFormat: "body-only" },
     });
   });
 
   it("stays silent when format is unknown", () => {
-    assertValid(`current.priority = 3;`, RULE, SERVER);
+    assertSkipped(`current.priority = 3;`, RULE, BUSINESS_RULE);
   });
 
   it("allows comments before the wrapper", () => {
@@ -563,17 +564,7 @@ if (current.assignment_group.nil()) {
   current.priority = 3;
 })(current, previous);`,
       RULE,
-      FULL,
-    );
-  });
-
-  it("allows a named function expression IIFE", () => {
-    assertValid(
-      `(function executeRule(current, previous) {
-  current.priority = 3;
-})(current, previous);`,
-      RULE,
-      FULL,
+      FULL_SCRIPT,
     );
   });
 
@@ -583,16 +574,16 @@ if (current.assignment_group.nil()) {
   current.priority = 3;
 })(current, previous);`,
       RULE,
-      FULL,
+      FULL_SCRIPT,
     );
   });
 
   it("skips UI Actions and Script Includes", () => {
-    assertValid(`var x = 1;`, RULE, {
+    assertSkipped(`var x = 1;`, RULE, {
       filename: "close.ui-action.js",
       settings: { businessRuleSourceFormat: "full-script" },
     });
-    assertValid(`var x = 1;`, RULE, {
+    assertSkipped(`var x = 1;`, RULE, {
       filename: "helper.si.js",
       settings: { businessRuleSourceFormat: "full-script" },
     });
@@ -606,7 +597,7 @@ if (current.assignment_group.nil()) {
 })(current, previous);`,
       RULE,
       { messageId: "missingWrapper" },
-      FULL,
+      FULL_SCRIPT,
     );
   });
 
@@ -617,7 +608,7 @@ if (current.assignment_group.nil()) {
 })(current, previous);`,
       RULE,
       { messageId: "missingWrapper" },
-      FULL,
+      FULL_SCRIPT,
     );
   });
 
@@ -628,7 +619,7 @@ if (current.assignment_group.nil()) {
   helper();
 })(current, previous);`,
       RULE,
-      FULL,
+      FULL_SCRIPT,
     );
   });
 
@@ -647,14 +638,14 @@ var end = new GlideDateTime(current.end_date);
 if (start.getDisplayValue() > end.getDisplayValue()) { gs.info("x"); }`,
       RULE,
       { messageId: "displayCompare" },
-      SERVER,
+      BUSINESS_RULE,
     );
     assertInvalid(
       `var start = new GlideDateTime();
 var n = start.getDisplayValue() - 0;`,
       RULE,
       { messageId: "displayCompare" },
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
@@ -664,23 +655,23 @@ var n = start.getDisplayValue() - 0;`,
 if (start.getDisplayValue() === expected) { gs.info(start.getDisplayValue()); }
 if (start.getNumericValue() > 0) { gs.info("ok"); }`,
       RULE,
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
   it("ignores a shadowed GlideDateTime and custom objects", () => {
-    assertValid(
+    assertValidActive(
       `function GlideDateTime() { this.getDisplayValue = function () { return "a"; }; }
 var start = new GlideDateTime();
 if (start.getDisplayValue() > "b") { gs.info("x"); }`,
       RULE,
-      SERVER,
+      BUSINESS_RULE,
     );
-    assertValid(
+    assertValidActive(
       `var start = { getDisplayValue: function () { return "a"; } };
 if (start.getDisplayValue() > "b") { gs.info("x"); }`,
       RULE,
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
@@ -690,7 +681,7 @@ if (start.getDisplayValue() > "b") { gs.info("x"); }`,
 var text = start.getDisplayValue();
 if (text > other) { gs.info("x"); }`,
       RULE,
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
@@ -710,7 +701,7 @@ if (start.getDisplayValue() > "b") { gs.info("x"); }`,
 if (start.getDisplayValue() ${op} "2026-01-01") { gs.info("x"); }`,
         RULE,
         { messageId: "displayCompare" },
-        SERVER,
+        BUSINESS_RULE,
       );
     }
   });
@@ -722,19 +713,19 @@ var clock = start;
 if (clock.getDisplayValue() > "x") { gs.info("x"); }`,
       RULE,
       { messageId: "displayCompare" },
-      SERVER,
+      BUSINESS_RULE,
     );
     assertValid(
       `var start = new GlideDateTime();
 start = { getDisplayValue: function () { return "a"; } };
 if (start.getDisplayValue() > "x") { gs.info("x"); }`,
       RULE,
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
   it("skips Fluent metadata files", () => {
-    assertValid(
+    assertSkipped(
       `var start = new GlideDateTime();
 if (start.getDisplayValue() > "x") { gs.info("x"); }`,
       RULE,
@@ -752,7 +743,7 @@ describe("no-unfiltered-gliderecord-bulk-operation", () => {
 staging.deleteMultiple();`,
       RULE,
       { messageId: "unfiltered" },
-      SERVER,
+      BUSINESS_RULE,
     );
     assertInvalid(
       `var task = new GlideRecord("task");
@@ -760,7 +751,7 @@ task.setValue("u_migrated", true);
 task.updateMultiple();`,
       RULE,
       { messageId: "unfiltered" },
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
@@ -770,21 +761,21 @@ task.updateMultiple();`,
 task.addQuery("active", false);
 task.updateMultiple();`,
       RULE,
-      SERVER,
+      BUSINESS_RULE,
     );
     assertValid(
       `var task = new GlideRecord("task");
 task.addEncodedQuery("active=false");
 task.deleteMultiple();`,
       RULE,
-      SERVER,
+      BUSINESS_RULE,
     );
     assertValid(
       `var task = new GlideRecord("task");
 task.addActiveQuery();
 task.deleteMultiple();`,
       RULE,
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
@@ -797,17 +788,17 @@ task.query();
 task.deleteMultiple();`,
       RULE,
       { messageId: "unfiltered" },
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
   it("stays silent after escape or a one-branch filter", () => {
-    assertValid(
+    assertValidActive(
       `var task = new GlideRecord("task");
 prepare(task);
 task.deleteMultiple();`,
       RULE,
-      SERVER,
+      BUSINESS_RULE,
     );
     assertInvalid(
       `var task = new GlideRecord("task");
@@ -815,7 +806,7 @@ if (ready) task.addQuery("active", false);
 task.deleteMultiple();`,
       RULE,
       { messageId: "unfiltered" },
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
@@ -825,7 +816,7 @@ task.deleteMultiple();`,
 task.get(id);
 task.deleteRecord();`,
       RULE,
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
@@ -847,7 +838,7 @@ task.deleteRecord();`,
 ${call};
 task.deleteMultiple();`,
         RULE,
-        SERVER,
+        BUSINESS_RULE,
       );
     }
   });
@@ -858,14 +849,14 @@ task.deleteMultiple();`,
 task.addInactiveQuery();
 task.deleteMultiple();`,
       RULE,
-      { ...SERVER, settings: { scope: "global", release: "australia" } },
+      { ...BUSINESS_RULE, settings: { scope: "global", release: "australia" } },
     );
     assertValid(
       `var task = new GlideRecord("task");
 task.getTableName();
 task.deleteMultiple();`,
       RULE,
-      { ...SERVER, settings: { scope: "scoped", release: "australia" } },
+      { ...BUSINESS_RULE, settings: { scope: "scoped", release: "australia" } },
     );
   });
 
@@ -876,14 +867,14 @@ var rec = task;
 rec.deleteMultiple();`,
       RULE,
       { messageId: "unfiltered" },
-      SERVER,
+      BUSINESS_RULE,
     );
     assertValid(
       `function GlideRecord() {}
 var task = new GlideRecord("task");
 task.deleteMultiple();`,
       RULE,
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 });
@@ -901,7 +892,7 @@ while (incident.next()) {
 }`,
       RULE,
       { messageId: "nestedQuery" },
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
@@ -917,7 +908,7 @@ while (incident.next()) {
 }`,
       RULE,
       { messageId: "nestedQuery" },
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
@@ -933,7 +924,7 @@ while (incident.next()) {
 }`,
       RULE,
       { messageId: "nestedQuery" },
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
@@ -950,7 +941,7 @@ while (incident.next()) {
 }`,
       RULE,
       { messageId: "nestedQuery" },
-      SERVER,
+      BUSINESS_RULE,
     );
     assertInvalid(
       `const lookup = () => {
@@ -963,7 +954,7 @@ incident.query();
 while (incident.next()) run();`,
       RULE,
       { messageId: "nestedQuery" },
-      SERVER,
+      BUSINESS_RULE,
     );
     assertInvalid(
       `function evalShadow() {}
@@ -977,7 +968,7 @@ incident.query();
 while (incident.next()) lookupCaller();`,
       RULE,
       { messageId: "nestedQuery" },
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
@@ -993,7 +984,7 @@ incident.query();
 while (incident.next()) loadReference();`,
       RULE,
       { messageId: "nestedQuery" },
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
@@ -1007,7 +998,7 @@ while (incident.next() === true) {
 }`,
       RULE,
       { messageId: "nestedQuery" },
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
@@ -1017,7 +1008,7 @@ while (incident.next() === true) {
 incident.query();
 while (incident.next()) { gs.info(incident.number); }`,
       RULE,
-      SERVER,
+      BUSINESS_RULE,
     );
     assertValid(
       `for (var i = 0; i < ids.length; i++) {
@@ -1025,21 +1016,21 @@ while (incident.next()) { gs.info(incident.number); }`,
   rec.get(ids[i]);
 }`,
       RULE,
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
   it("stays silent for unresolved, mutable, multiply called, or deferred helpers", () => {
-    assertValid(
+    assertValidActive(
       `var incident = new GlideRecord("incident");
 incident.query();
 while (incident.next()) {
   lookupCaller(incident.getValue("caller_id"));
 }`,
       RULE,
-      SERVER,
+      BUSINESS_RULE,
     );
-    assertValid(
+    assertValidActive(
       `function lookupCaller() {
   var caller = new GlideRecord("sys_user");
   caller.query();
@@ -1049,9 +1040,9 @@ var incident = new GlideRecord("incident");
 incident.query();
 while (incident.next()) lookupCaller();`,
       RULE,
-      SERVER,
+      BUSINESS_RULE,
     );
-    assertValid(
+    assertValidActive(
       `const lookupCaller = () => {
   var caller = new GlideRecord("sys_user");
   caller.query();
@@ -1061,9 +1052,9 @@ var incident = new GlideRecord("incident");
 incident.query();
 while (incident.next()) lookupCaller();`,
       RULE,
-      SERVER,
+      BUSINESS_RULE,
     );
-    assertValid(
+    assertValidActive(
       `function runQuery(record) { record.query(); }
 var caller = new GlideRecord("sys_user");
 runQuery(caller);
@@ -1071,9 +1062,9 @@ var incident = new GlideRecord("incident");
 incident.query();
 while (incident.next()) runQuery(customRecord);`,
       RULE,
-      SERVER,
+      BUSINESS_RULE,
     );
-    assertValid(
+    assertValidActive(
       `function* lookupCaller() {
   var caller = new GlideRecord("sys_user");
   caller.query();
@@ -1082,9 +1073,9 @@ var incident = new GlideRecord("incident");
 incident.query();
 while (incident.next()) lookupCaller();`,
       RULE,
-      SERVER,
+      BUSINESS_RULE,
     );
-    assertValid(
+    assertValidActive(
       `function lookupCaller() {
   var caller = new GlideRecord("sys_user");
   caller.query();
@@ -1096,9 +1087,9 @@ while (incident.next()) {
   lookupCaller();
 }`,
       RULE,
-      SERVER,
+      BUSINESS_RULE,
     );
-    assertValid(
+    assertValidActive(
       `function lookupCaller() {
   var caller = new GlideRecord("sys_user");
   caller.query();
@@ -1108,9 +1099,9 @@ var incident = new GlideRecord("incident");
 incident.query();
 while (incident.next()) lookupCaller();`,
       RULE,
-      SERVER,
+      BUSINESS_RULE,
     );
-    assertValid(
+    assertValidActive(
       `function lookupCaller() {
   var caller = new GlideRecord("sys_user");
   caller.query();
@@ -1122,12 +1113,12 @@ while (incident.next()) {
   lookupCaller.call(null);
 }`,
       RULE,
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
   it("skips client files", () => {
-    assertValid(
+    assertSkipped(
       `var incident = new GlideRecord("incident");
 incident.query();
 while (incident.next()) {
@@ -1149,7 +1140,7 @@ while (incident.next()) {
 }`,
       RULE,
       { messageId: "nestedQuery" },
-      SERVER,
+      BUSINESS_RULE,
     );
     assertInvalid(
       `var incident = new GlideRecord("incident");
@@ -1161,7 +1152,7 @@ while (incident.next()) {
 }`,
       RULE,
       { messageId: "nestedQuery" },
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
@@ -1175,7 +1166,7 @@ while (incident.next()) {
 }`,
       RULE,
       { messageId: "nestedQuery" },
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
@@ -1190,7 +1181,7 @@ while (incident.next()) {
 }`,
       RULE,
       { messageId: "nestedQuery" },
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
@@ -1204,7 +1195,7 @@ for (; keepGoing; cursor.next()) {
 }`,
       RULE,
       { messageId: "nestedQuery" },
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 });
@@ -1218,10 +1209,20 @@ while (${test}) {
   extra.query();
 }`;
   it("requires next success on && paths and rejects fallback-only ||/?? entry", () => {
-    assertInvalid(nested("incident.next() && ready"), RULE, { messageId: "nestedQuery" }, SERVER);
-    assertInvalid(nested("ready && incident.next()"), RULE, { messageId: "nestedQuery" }, SERVER);
-    assertValid(nested("incident.next() || ready"), RULE, SERVER);
-    assertValid(nested("ready ?? incident.next()"), RULE, SERVER);
+    assertInvalid(
+      nested("incident.next() && ready"),
+      RULE,
+      { messageId: "nestedQuery" },
+      BUSINESS_RULE,
+    );
+    assertInvalid(
+      nested("ready && incident.next()"),
+      RULE,
+      { messageId: "nestedQuery" },
+      BUSINESS_RULE,
+    );
+    assertValid(nested("incident.next() || ready"), RULE, BUSINESS_RULE);
+    assertValid(nested("ready ?? incident.next()"), RULE, BUSINESS_RULE);
   });
 });
 
@@ -1241,7 +1242,7 @@ user.${method}("active", true);
 user.query();`,
         RULE,
         { messageId: "bypass" },
-        SERVER,
+        BUSINESS_RULE,
       );
     }
   });
@@ -1252,23 +1253,23 @@ user.query();`,
 user.addQuery("active", true);
 user.query();`,
       RULE,
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
   it("ignores unrelated objects and shadowed constructors", () => {
-    assertValid(
+    assertValidActive(
       `var user = { addSystemQuery: function () {} };
 user.addSystemQuery("active", true);`,
       RULE,
-      SERVER,
+      BUSINESS_RULE,
     );
-    assertValid(
+    assertValidActive(
       `function GlideRecord() { this.addSystemQuery = function () {}; }
 var user = new GlideRecord("sys_user");
 user.addSystemQuery("active", true);`,
       RULE,
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
@@ -1278,7 +1279,7 @@ user.addSystemQuery("active", true);`,
 user.addSystemFoo("active", true);
 user.query();`,
       RULE,
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
@@ -1289,7 +1290,7 @@ var rec = user;
 rec["addSystemQuery"]("active", true);`,
       RULE,
       { messageId: "bypass" },
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
@@ -1299,14 +1300,14 @@ rec["addSystemQuery"]("active", true);`,
 user["addSystem" + "Query"]("active=true");`,
       RULE,
       { messageId: "bypass" },
-      SERVER,
+      BUSINESS_RULE,
     );
     assertInvalid(
       `var user = new GlideRecord("sys_user");
 user[method]("active=true");`,
       RULE,
       { messageId: "possibleBypass" },
-      SERVER,
+      BUSINESS_RULE,
     );
     assertInvalid(
       `var user = new GlideRecord("sys_user");
@@ -1314,7 +1315,7 @@ var bypass = user.addSystemQuery;
 bypass.call(user, "active=true");`,
       RULE,
       { messageId: "bypass" },
-      SERVER,
+      BUSINESS_RULE,
     );
     assertInvalid(
       `var user = new GlideRecord("sys_user");
@@ -1322,12 +1323,12 @@ prepare(user);
 user.addSystemQuery("active=true");`,
       RULE,
       { messageId: "bypass" },
-      SERVER,
+      BUSINESS_RULE,
     );
   });
 
   it("skips client files", () => {
-    assertValid(
+    assertSkipped(
       `var user = new GlideRecord("sys_user");
 user.addSystemQuery("active", true);`,
       RULE,

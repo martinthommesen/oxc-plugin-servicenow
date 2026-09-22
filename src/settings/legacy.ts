@@ -7,12 +7,7 @@ import type {
   ValidatedServiceNowSettings,
 } from "../types.js";
 import { ServiceNowSettingsError } from "./errors.js";
-import { expectEnum, typeName } from "./parse.js";
-
-interface LegacySettingsFieldDescriptor<T> {
-  readonly defaultValue: () => T;
-  readonly parse: (path: string, value: unknown, deprecations: SettingsDeprecation[]) => T;
-}
+import { expectEnum, typeName, type SettingsFieldDescriptor } from "./parse.js";
 
 const SCRIPT_KINDS = new Set<ScriptKind>([
   "fluent",
@@ -40,7 +35,7 @@ export const LEGACY_DESCRIPTOR_FIELDS = {
       }
       return scriptType;
     },
-  } satisfies LegacySettingsFieldDescriptor<"auto" | ScriptKind>,
+  } satisfies SettingsFieldDescriptor<"auto" | ScriptKind>,
   ecmaLatest: {
     defaultValue: () => undefined as boolean | undefined,
     parse(path: string, value: unknown, deprecations: SettingsDeprecation[]) {
@@ -54,7 +49,7 @@ export const LEGACY_DESCRIPTOR_FIELDS = {
       });
       return value;
     },
-  } satisfies LegacySettingsFieldDescriptor<boolean | undefined>,
+  } satisfies SettingsFieldDescriptor<boolean | undefined>,
 };
 
 export function checkLegacyConflicts(settings: ValidatedServiceNowSettings): void {
@@ -65,35 +60,33 @@ export function checkLegacyConflicts(settings: ValidatedServiceNowSettings): voi
       `conflicts with javascriptMode ${JSON.stringify(javascriptMode)}. Use javascriptMode only.`,
     );
   }
-  if (scriptType !== "auto" && scriptType !== "unknown" && scriptType !== "fluent") {
-    if (surfaces !== "auto" && (surfaces.length !== 1 || surfaces[0] !== scriptType)) {
+  if (scriptType === "fluent") {
+    if (authoring === "classic") {
       throw new ServiceNowSettingsError(
         ".scriptType",
-        `conflicts with surfaces ${JSON.stringify(surfaces)}. Omit deprecated scriptType and use surfaces only.`,
+        'conflicts with authoring "classic". Use authoring only.',
       );
     }
+    if (surfaces !== "auto") {
+      throw new ServiceNowSettingsError(
+        ".scriptType",
+        "conflicts with instance execution surfaces. Use authoring only.",
+      );
+    }
+    return;
   }
-  if (scriptType === "fluent" && authoring === "classic") {
+  // The remaining legacy values that name an execution surface.
+  if (scriptType === "auto" || scriptType === "unknown") return;
+  if (surfaces !== "auto" && (surfaces.length !== 1 || surfaces[0] !== scriptType)) {
     throw new ServiceNowSettingsError(
       ".scriptType",
-      'conflicts with authoring "classic". Use authoring only.',
+      `conflicts with surfaces ${JSON.stringify(surfaces)}. Omit deprecated scriptType and use surfaces only.`,
     );
   }
-  if (
-    scriptType !== "auto" &&
-    scriptType !== "unknown" &&
-    scriptType !== "fluent" &&
-    authoring === "fluent"
-  ) {
+  if (authoring === "fluent") {
     throw new ServiceNowSettingsError(
       ".scriptType",
       'conflicts with authoring "fluent". Use authoring only.',
-    );
-  }
-  if (scriptType === "fluent" && surfaces !== "auto" && surfaces.length > 0) {
-    throw new ServiceNowSettingsError(
-      ".scriptType",
-      "conflicts with instance execution surfaces. Use authoring only.",
     );
   }
 }

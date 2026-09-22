@@ -30,7 +30,7 @@ export const noHardcodedSysidEntry = entry("no-hardcoded-sysid", noHardcodedSysi
       overlaps: ["servicenow/no-now-id-as-reference", "core no-restricted-syntax"],
     },
   ),
-  placements: [{ profile: "recommended", severity: "error" }] as const,
+  placements: [{ profile: "recommended", severity: "error" }],
   optionDescriptor: noHardcodedSysidOptions,
   limitationCases: [
     {

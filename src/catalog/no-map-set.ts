@@ -35,7 +35,7 @@ export const noMapSetEntry = entry("no-map-set", noMapSet, {
       overlaps: ["servicenow/no-weak-collections"],
     },
   ),
-  placements: [{ profile: "classic-es5", severity: "error" }] as const,
+  placements: [{ profile: "classic-es5", severity: "error" }],
   optionDescriptor: undefined,
   limitationCases: [
     {

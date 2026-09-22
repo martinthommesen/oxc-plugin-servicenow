@@ -1,15 +1,19 @@
 import assert from "node:assert/strict";
 import path from "node:path";
 import { describe, it } from "node:test";
-import { pluginRuleId, pluginRulesFor, repoRoot, runOxlint } from "./helpers.js";
+import { pluginRuleId, pluginRulesFor, repoRoot, runOxlint, type OxlintReport } from "./helpers.js";
 
 const configPath = path.join(repoRoot, "tests/integration/fixtures/.oxlintrc.json");
 const fixturesDir = path.join(repoRoot, "tests/integration/fixtures");
 
 describe("oxlint host integration", () => {
+  // One oxlint process covers both fixtures in this directory.
+  let fixtureReport: OxlintReport | undefined;
+  const reportForFixtures = (): OxlintReport =>
+    (fixtureReport ??= runOxlint(configPath, [fixturesDir]));
+
   it("reports the expected rules on the bad Business Rule fixture", () => {
-    const report = runOxlint(configPath, [fixturesDir]);
-    const rules = pluginRulesFor(report, "bad-business-rule.br.js");
+    const rules = pluginRulesFor(reportForFixtures(), "bad-business-rule.br.js");
     for (const id of [
       "servicenow/no-hardcoded-sysid",
       "servicenow/no-gs-now",
@@ -20,8 +24,7 @@ describe("oxlint host integration", () => {
   });
 
   it("reports the expected rules on the bad Fluent fixture", () => {
-    const report = runOxlint(configPath, [fixturesDir]);
-    const rules = pluginRulesFor(report, "bad-fluent.now.ts");
+    const rules = pluginRulesFor(reportForFixtures(), "bad-fluent.now.ts");
     assert.ok(
       rules.includes("servicenow/fluent-proper-imports"),
       `missing import diagnostic (got ${rules.join(", ") || "(none)"})`,

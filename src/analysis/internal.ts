@@ -1,5 +1,5 @@
-export { buildScopeTree, createFileBindings, forEachResolvedPatternBinding } from "./bindings.js";
-export type { FileBindings, LexicalBinding, ScopeTree } from "./bindings.js";
+export { buildScopeTree, createFileBindings, isFunctionLike } from "./bindings.js";
+export type { FileBindings, ImmediateFunction } from "./bindings.js";
 export {
   analyzeProvenance,
   getFileAnalysis,
@@ -8,27 +8,33 @@ export {
   resetAnalysisPassCount,
 } from "./file-analysis.js";
 export { ctorProvenanceKind, getAncestors } from "./provenance.js";
-export type { Provenance, ProvenanceKind, ProvenanceQuery } from "./provenance.js";
+export type { ProvenanceKind, ProvenanceQuery } from "./provenance.js";
 export type { FileAnalysis } from "./file-analysis.js";
 export type { BindingWriteQuery } from "./binding-writes.js";
+export { isAvailabilityGuarded, isInvocationAvailabilityGuarded } from "./availability.js";
+export type { AvailabilityGuardOptions } from "./availability.js";
+export {
+  directPlatformGlobalName,
+  platformGlobalNamespaceAccess,
+  resolvePlatformGlobalName,
+} from "./globals.js";
+export { findAclQueries } from "./acl-query.js";
+export { importedBindingFor, resolveFluentCandidate } from "./fluent-imports.js";
 export { findUnhoistedBlockFunctionUses } from "./block-function-hoisting.js";
-export type { UnhoistedBlockFunctionUse } from "./block-function-hoisting.js";
 export { findObjectMethodConstructions } from "./object-method-construction.js";
-export type { ObjectMethodConstruction } from "./object-method-construction.js";
 export { createEmptyArrayBindingQuery } from "./empty-array-bindings.js";
-export type { EmptyArrayBindingQuery } from "./empty-array-bindings.js";
-export type { MutationQuery } from "./mutations.js";
 export {
   GLIDE_RECORD_CONSTRUCTORS,
   hasAuthoritativeConstructedMethod,
   hasAuthoritativeGlobalObjectMethod,
   hasAuthoritativeGlideRecordMethod,
+  provenReceiver,
+  provenReceiverMethod,
 } from "./platform-method-authority.js";
 export type { PlatformMethodAuthorityFacts } from "./platform-method-authority.js";
 export {
   isDefinitelyNonCallable,
   isDefinitelyNullishValue,
-  isDefinitelyUndefinedValue,
   staticPropertyName,
   isComputedUnknown,
   resolveConstValue,
@@ -36,33 +42,20 @@ export {
   resolveDestructuredConstMember,
 } from "./members.js";
 export { findMissingQueryBeforeNext } from "./query-before-next.js";
-export type { MissingQueryFinding } from "./query-before-next.js";
 export { findWindowedDeleteMultiple } from "./glide-windowing.js";
-export type { WindowedDeleteFinding } from "./glide-windowing.js";
 export { findGlideAjaxParamIssues } from "./glideajax-params.js";
-export type { GlideAjaxParamFinding } from "./glideajax-params.js";
 export { findGlideAggregateIssues } from "./glideaggregate.js";
-export type { AggregateFinding } from "./glideaggregate.js";
 export {
   findNowIdMisuses,
   findDuplicateFluentIds,
-  isCanonicalNow,
-  isCanonicalNowId,
   isCanonicalNowInclude,
   isProvenNowIdValue,
 } from "./now-id.js";
-export type { NowIdMisuse, DuplicateFluentId, NowIdFact } from "./now-id.js";
-export { collectFluentImports, resolveFluentFactory } from "./fluent-imports.js";
 export type { FluentImportBinding } from "./fluent-imports.js";
-export type { FluentFileFacts } from "./file-analysis.js";
 export { findQueryModifiersAfterQuery } from "./glide-query-lifecycle.js";
-export type { QueryModifierFinding } from "./glide-query-lifecycle.js";
 export { findUnfilteredBulkOperations } from "./glide-bulk-filter.js";
-export type { UnfilteredBulkFinding } from "./glide-bulk-filter.js";
 export { findQueriesInCursorLoops } from "./glide-query-in-loop.js";
-export type { QueryInLoopFinding } from "./glide-query-in-loop.js";
 export { findChooseWindowWithoutNoCount } from "./glide-setnocount.js";
-export type { ChooseWindowCountFinding } from "./glide-setnocount.js";
 export {
   findStablePlatformConstructorCalls,
   findStablePlatformStaticMethodCalls,
@@ -70,9 +63,14 @@ export {
 } from "./platform-constructor-calls.js";
 export type {
   PlatformConstructorCallFinding,
-  PlatformGlobalAliasOrigin,
   PlatformStaticMethodCallFinding,
 } from "./platform-constructor-calls.js";
-export { isFunctionNode, resolveStableCallable } from "./stable-invocations.js";
-export type { ImmediateFunction, StableCallableOptions } from "./stable-invocations.js";
+export { resolveStableCallable } from "./stable-invocations.js";
 export { builtInCallMayWritePlatformProperty } from "./builtin-property-writes.js";
+export { findRetainedElements } from "./glideelement-retention.js";
+export {
+  isDefinitelyEmptyMapperSource,
+  isDefinitelyPrimitiveThisArgument,
+  isDefinitelySloppyMapper,
+  mapperUsesOwnThis,
+} from "./array-from-thisarg.js";

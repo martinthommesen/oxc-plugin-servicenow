@@ -20,12 +20,12 @@ export interface DuplicateFluentId {
   key: string;
 }
 
-export interface StaticNowIdFact {
+interface StaticNowIdFact {
   readonly kind: "static";
   readonly key: string;
 }
 
-export interface UnknownNowIdFact {
+interface UnknownNowIdFact {
   readonly kind: "unknown";
 }
 
@@ -38,17 +38,13 @@ function staticNowId(key: string): StaticNowIdFact {
   return Object.freeze({ kind: "static", key });
 }
 
-function unknownNowId(): UnknownNowIdFact {
-  return UNKNOWN_NOW_ID;
-}
-
 export function mergeNowIdFacts(left: NowIdFact, right: NowIdFact): NowIdFact {
   if (left === right) return left;
   if (left === null || right === null) return null;
   if (left.kind === "static" && right.kind === "static" && left.key === right.key) {
     return staticNowId(left.key);
   }
-  return unknownNowId();
+  return UNKNOWN_NOW_ID;
 }
 
 export function nowIdFactsEqual(left: NowIdFact, right: NowIdFact): boolean {
@@ -113,7 +109,7 @@ function isCanonicalNowIdNamespace(
   return isCanonicalNowIdNamespace(declaration.init, analysis, seen);
 }
 
-export function isCanonicalNowId(node: ESTree.Node, analysis: ProvenanceQuery): boolean {
+function isCanonicalNowId(node: ESTree.Node, analysis: ProvenanceQuery): boolean {
   const expr = unwrapExpression(node);
   if (!isNode(expr) || expr.type !== "MemberExpression") return false;
   // The key is deliberately not required to be static: Now.ID[key] has
@@ -227,7 +223,7 @@ function feedsId(parent: ESTree.Node | undefined, node: ESTree.Node): boolean {
 export function nowIdValue(node: ESTree.Node, analysis: ProvenanceQuery): NowIdFact | undefined {
   if (!isCanonicalNowId(node, analysis)) return undefined;
   const key = staticPropertyName(unwrapExpression(node));
-  return key === null ? unknownNowId() : staticNowId(key);
+  return key === null ? UNKNOWN_NOW_ID : staticNowId(key);
 }
 
 /** True when this node is a canonical `Now.ID` lookup or a proven alias at this program point. */
@@ -249,7 +245,6 @@ export function isProvenNowIdValue(
  */
 export function findNowIdMisuses(
   program: ESTree.Node,
-  _analysis: ProvenanceQuery,
   facts: ReadonlyMap<ESTree.Node, NowIdFact>,
 ): NowIdMisuse[] {
   const findings: NowIdMisuse[] = [];
@@ -289,7 +284,6 @@ export function findNowIdMisuses(
  */
 export function findDuplicateFluentIds(
   program: ESTree.Node,
-  _analysis: ProvenanceQuery,
   facts: ReadonlyMap<ESTree.Node, NowIdFact>,
 ): DuplicateFluentId[] {
   const first = new Map<string, ESTree.Node>();

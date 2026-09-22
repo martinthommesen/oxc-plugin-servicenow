@@ -20,7 +20,7 @@
 | --- | --- |
 | Authoring | classic |
 | Surfaces | Applies to business-rule when those surfaces are known. Unknown surfaces stay silent. |
-| Minimum surface confidence | filename-inferred |
+| Minimum surface confidence | inferred |
 | JavaScript modes | n/a |
 | Application scopes | global, scoped, unknown |
 | ServiceNow releases | zurich, australia |
@@ -93,8 +93,8 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing. false-n
   - Verified by: integration-test
   - Verified at: 2026-08-24
 - **Canonical wrapper fixtures distinguish the required synchronous current argument from pre-call escape, receiver replacement, and GlideRecord prototype mutation.**
-  - Verification ID: `rule-evidence-ccf8150a`
-  - URL: tests/rules/layer3-consumers.test.ts
+  - Verification ID: `rule-evidence-9fafc4ba`
+  - URL: tests/rules/platform-binding-identity.test.ts
   - Verified by: fixture
   - Verified at: 2026-08-24
 

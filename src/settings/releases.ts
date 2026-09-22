@@ -10,3 +10,13 @@ export type ServiceNowRelease = (typeof SUPPORTED_SERVICENOW_RELEASES)[number];
 export function isSupportedServiceNowRelease(value: string): value is ServiceNowRelease {
   return (SUPPORTED_SERVICENOW_RELEASES as readonly string[]).includes(value);
 }
+
+/**
+ * The releases a lookup must agree on. An omitted release admits every
+ * supported release, so a release-dependent fact stays unresolved.
+ */
+export function admissibleReleases(
+  release: ServiceNowRelease | undefined,
+): readonly ServiceNowRelease[] {
+  return release === undefined ? SUPPORTED_SERVICENOW_RELEASES : [release];
+}

@@ -1,14 +1,9 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { PROMISE_STATIC_METHODS, ruleDocsUrl } from "../constants.js";
-import {
-  findStablePlatformConstructorCalls,
-  findStablePlatformStaticMethodCalls,
-  isNewExpressionFinding,
-} from "../analysis/internal.js";
 import { beginRuleFile } from "./helpers.js";
 import { shouldDiagnoseFeature } from "../engine/index.js";
-import { isUnsupportedGlobalInvocationProtected } from "./unsupported-constructor-rule.js";
+import { findUnprotectedGlobalInvocations } from "./unsupported-constructor-rule.js";
 
 const NAMES = ["Promise"] as const;
 const STATIC = { Promise: PROMISE_STATIC_METHODS } as const;
@@ -31,39 +26,16 @@ export const noPromise = defineRule({
   createOnce(context) {
     return {
       before() {
-        const { context: script } = beginRuleFile(context);
+        const { script } = beginRuleFile(context);
         if (!shouldDiagnoseFeature(script, "promise")) return false;
         return undefined;
       },
       Program(node) {
-        const { analysis, file } = beginRuleFile(context);
-        const constructors = findStablePlatformConstructorCalls({
-          program: node as ESTree.Node,
-          analysis,
-          bindingWrites: file.bindingWrites,
-          mutations: file.mutations,
+        for (const finding of findUnprotectedGlobalInvocations(context, node as ESTree.Node, {
           names: NAMES,
-          namespaces: ["globalThis"],
-          mutationSemantics: "callable",
-        })
-          .filter(isNewExpressionFinding)
-          .map((finding) => ({ ...finding, kind: "construct" as const }));
-        const staticMethods = findStablePlatformStaticMethodCalls({
-          program: node as ESTree.Node,
-          analysis,
-          bindingWrites: file.bindingWrites,
-          mutations: file.mutations,
-          methods: STATIC,
-          namespaces: ["globalThis"],
-          mutationSemantics: "callable",
-        }).map((finding) => ({ ...finding, kind: "staticMethod" as const }));
-        const findings = [...constructors, ...staticMethods].sort(
-          (left, right) => (left.node.start ?? 0) - (right.node.start ?? 0),
-        );
-        for (const finding of findings) {
-          if (isUnsupportedGlobalInvocationProtected(context, finding)) {
-            continue;
-          }
+          constructorForm: "new",
+          staticMethods: STATIC,
+        })) {
           if (finding.kind === "construct") {
             context.report({ node: finding.node, messageId: "construct" });
           } else {

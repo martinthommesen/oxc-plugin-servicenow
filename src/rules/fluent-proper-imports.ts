@@ -1,12 +1,12 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
-import { getAncestors } from "../analysis/internal.js";
 import {
+  getAncestors,
   importedBindingFor,
   resolveFluentCandidate,
+  staticPropertyName,
   type FluentImportBinding,
-} from "../analysis/fluent-imports.js";
-import { staticPropertyName } from "../analysis/members.js";
+} from "../analysis/internal.js";
 import { importOwnedApis } from "../fluent/index.js";
 import { ruleDocsUrl } from "../constants.js";
 import { getName } from "../utils/ast.js";
@@ -32,13 +32,13 @@ export const fluentProperImports = defineRule({
 
     return {
       before() {
-        const { context: script, file } = beginRuleFile(context);
-        if (!isFluentContext(script)) return false;
+        const file = beginRuleFile(context);
+        if (!isFluentContext(file.script)) return false;
         owned = importOwnedApis(file.fluent.manifest);
         return undefined;
       },
       ImportDeclaration(node) {
-        const { file } = beginRuleFile(context);
+        const file = beginRuleFile(context);
         const decl = node as ESTree.ImportDeclaration;
         for (const spec of decl.specifiers) {
           if (spec.type !== "ImportSpecifier") continue;
@@ -66,7 +66,7 @@ export const fluentProperImports = defineRule({
         }
       },
       CallExpression(node) {
-        const { file } = beginRuleFile(context);
+        const file = beginRuleFile(context);
         const call = node as ESTree.CallExpression;
         const ancestors = getAncestors(context, call);
         const resolved = resolveFluentCandidate(

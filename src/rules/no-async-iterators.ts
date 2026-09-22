@@ -22,7 +22,7 @@ export const noAsyncIterators = defineRule({
   createOnce(context) {
     return {
       before() {
-        const { context: script } = beginRuleFile(context);
+        const { script } = beginRuleFile(context);
         if (!shouldDiagnoseFeature(script, "async-iterators")) return false;
         return undefined;
       },

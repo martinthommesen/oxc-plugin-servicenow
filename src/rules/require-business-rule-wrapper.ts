@@ -4,7 +4,7 @@ import { appliesOnSurface } from "../context/index.js";
 import { ruleDocsUrl } from "../constants.js";
 import { getName, isNode } from "../utils/ast.js";
 import { beginRuleFile } from "./helpers.js";
-import type { FileBindings } from "../analysis/bindings.js";
+import { type FileBindings } from "../analysis/internal.js";
 
 function paramName(param: unknown): string | null {
   if (!isNode(param)) return null;
@@ -24,6 +24,11 @@ function hasCurrentPreviousParams(callee: { params: unknown[] }): boolean {
   return paramName(callee.params[0]) === "current" && paramName(callee.params[1]) === "previous";
 }
 
+/**
+ * Deliberately narrower than `unwrapExpression`: only parentheses can wrap the
+ * canonical wrapper. A chained or asserted call is a different expression, not
+ * the `executeRule` IIFE this rule recognizes.
+ */
 function unwrap(node: unknown): unknown {
   let current = node;
   while (isNode(current) && current.type === "ParenthesizedExpression") {
@@ -127,18 +132,18 @@ export const requireBusinessRuleWrapper = defineRule({
   createOnce(context) {
     return {
       before() {
-        const { context: script } = beginRuleFile(context);
+        const { script } = beginRuleFile(context);
         if (!appliesOnSurface(script, "business-rule")) return false;
         if (script.businessRuleSourceFormat !== "full-script") return false;
         return undefined;
       },
       Program(node) {
-        const { analysis } = beginRuleFile(context);
+        const { provenance } = beginRuleFile(context);
         const program = node as ESTree.Program;
         // A directive prologue is executed before the wrapper and is valid in
         // a full-script Business Rule. Only directives at the start of the
         // program are ignored; later string expressions are ordinary code.
-        if (canonicalBusinessRuleWrapper(program, analysis.bindings)) return;
+        if (canonicalBusinessRuleWrapper(program, provenance.bindings)) return;
         const target =
           (program.body.find(
             (statement) =>

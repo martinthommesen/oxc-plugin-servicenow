@@ -328,7 +328,12 @@ async function release(lockPath, token) {
   let snapshot;
   try {
     snapshot = await readLockSnapshot(lockPath);
-  } catch {
+  } catch (error) {
+    // Cleanup never throws: a lock that is already gone, or replaced by a
+    // directory, is nothing to release. Anything else is reported so it is
+    // not lost behind the work this run already finished.
+    const code = errorCode(error);
+    if (code !== "ENOENT" && code !== "EISDIR") console.error(error);
     return;
   }
   if (snapshot?.owner?.token !== token) return;

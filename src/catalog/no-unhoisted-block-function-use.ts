@@ -6,34 +6,30 @@ export const noUnhoistedBlockFunctionUseEntry = entry(
   "no-unhoisted-block-function-use",
   noUnhoistedBlockFunctionUse,
   {
-    ...metadata.meta(
-      metadata.engine(metadata.ALL_INSTANCE_MODES),
-      [
-        metadata.evidenceRecord(
-          metadata.SN_JS_ENGINE_UPDATES_AUSTRALIA,
-          "The Australia engine update lists Rhino PR 1806, Fix hoisting behavior, as a fix applicable to all JavaScript modes.",
-          "manual",
-          "2026-08-24",
-        ),
-        metadata.evidenceRecord(
-          "tests/rules/no-unhoisted-block-function-use.test.ts",
-          "Fixtures cover nested blocks, loops, try/catch, reads, shadowing, deferred bodies, mutation, dynamic scope, switch boundaries, releases, modes, and execution contexts.",
-          "fixture",
-          "2026-08-24",
-        ),
-        metadata.evidenceRecord(
-          "tests/integration/release-contracts.test.ts",
-          "Real Oxlint and ESLint contracts verify the nested-block hoisting delta in Zurich, Australia, omitted-release, ES5, and ES2021 configurations.",
-          "integration-test",
-          "2026-08-24",
-        ),
-      ],
-      { overlaps: [] },
-    ),
+    ...metadata.meta(metadata.engine(metadata.ALL_INSTANCE_MODES), [
+      metadata.evidenceRecord(
+        metadata.SN_JS_ENGINE_UPDATES_AUSTRALIA,
+        "The Australia engine update lists Rhino PR 1806, Fix hoisting behavior, as a fix applicable to all JavaScript modes.",
+        "manual",
+        "2026-08-24",
+      ),
+      metadata.evidenceRecord(
+        "tests/rules/no-unhoisted-block-function-use.test.ts",
+        "Fixtures cover nested blocks, loops, try/catch, reads, shadowing, deferred bodies, mutation, dynamic scope, switch boundaries, releases, modes, and execution contexts.",
+        "fixture",
+        "2026-08-24",
+      ),
+      metadata.evidenceRecord(
+        "tests/integration/release-contracts.test.ts",
+        "Real Oxlint and ESLint contracts verify the nested-block hoisting delta in Zurich, Australia, omitted-release, ES5, and ES2021 configurations.",
+        "integration-test",
+        "2026-08-24",
+      ),
+    ]),
     placements: [
       { profile: "classic-es5", severity: "error" },
       { profile: "es2021", severity: "error" },
-    ] as const,
+    ],
     optionDescriptor: undefined,
     limitationCases: [
       {

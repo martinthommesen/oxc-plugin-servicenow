@@ -25,18 +25,28 @@ export const noGsNow = defineRule({
   },
   createOnce(context) {
     return {
+      before() {
+        const { script } = beginRuleFile(context);
+        if (
+          !appliesOnSurface(script, "client", "filename") &&
+          !isServerInstanceContext(script, "filename")
+        ) {
+          return false;
+        }
+        return undefined;
+      },
       CallExpression(node) {
-        const { analysis, context: script, file } = beginRuleFile(context);
-        const client = appliesOnSurface(script, "client", "filename");
-        const server = isServerInstanceContext(script, "filename");
-        if (!client && !server) return;
+        const file = beginRuleFile(context);
+        // Recomputed here only to choose between the client and server
+        // message; `before()` already proved one of the two surfaces applies.
+        const client = appliesOnSurface(file.script, "client", "filename");
         const call = node as ESTree.CallExpression;
         if (call.callee.type !== "MemberExpression") return;
         const member = call.callee as ESTree.MemberExpression;
         const directGlobal =
           getName(member.object) === "gs" &&
-          analysis.isPlatformGlobal(member.object as ESTree.Node);
-        const proven = analysis.trustedExpression(member.object);
+          file.provenance.isPlatformGlobal(member.object as ESTree.Node);
+        const proven = file.provenance.trustedExpression(member.object);
         const alias = proven?.kind === "gs";
         if (!directGlobal && !alias) return;
         const property = staticPropertyName(member);

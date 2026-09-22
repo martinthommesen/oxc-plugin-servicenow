@@ -1,8 +1,8 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
-import { hasAuthoritativeConstructedMethod, staticPropertyName } from "../analysis/internal.js";
 import { isClientCapableContext } from "../context/index.js";
 import { ruleDocsUrl } from "../constants.js";
+import { provenReceiverMethod } from "../analysis/internal.js";
 import { beginRuleFile } from "./helpers.js";
 
 export const noGlideajaxGetanswer = defineRule({
@@ -21,20 +21,19 @@ export const noGlideajaxGetanswer = defineRule({
   createOnce(context) {
     return {
       before() {
-        const { context: script } = beginRuleFile(context);
+        const { script } = beginRuleFile(context);
         if (!isClientCapableContext(script)) return false;
         return undefined;
       },
       CallExpression(node) {
-        const { analysis, file } = beginRuleFile(context);
+        const file = beginRuleFile(context);
         const call = node as ESTree.CallExpression;
-        if (call.callee.type !== "MemberExpression") return;
-        if (staticPropertyName(call.callee) !== "getAnswer") return;
-        const object = (call.callee as ESTree.MemberExpression).object;
-        const proven = analysis.trustedExpression(object);
-        if (proven?.kind !== "GlideAjax") return;
-        if (!hasAuthoritativeConstructedMethod(file, object, "GlideAjax", "getAnswer", "browser"))
-          return;
+        const access = provenReceiverMethod(file, call, {
+          kind: "GlideAjax",
+          method: "getAnswer",
+          runtime: "browser",
+        });
+        if (!access) return;
         context.report({ node, messageId: "getAnswer" });
       },
     };

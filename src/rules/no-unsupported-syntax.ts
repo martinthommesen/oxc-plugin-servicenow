@@ -51,7 +51,7 @@ export const noUnsupportedSyntax = defineRule({
   createOnce(context) {
     return {
       before() {
-        const { context: script } = beginRuleFile(context);
+        const { script } = beginRuleFile(context);
         const ids: EngineFeatureId[] = [
           "optional-chaining",
           "nullish-coalescing",
@@ -107,12 +107,10 @@ export const noUnsupportedSyntax = defineRule({
       },
       Program(node) {
         if (!featureOn("lookbehind")) return;
-        const { analysis, file } = beginRuleFile(context);
+        const file = beginRuleFile(context);
         for (const finding of findStablePlatformConstructorCalls({
           program: node as ESTree.Node,
-          analysis,
-          bindingWrites: file.bindingWrites,
-          mutations: file.mutations,
+          file,
           names: REGEXP_NAMES,
           namespaces: ["globalThis"],
           mutationSemantics: "authority",
@@ -128,7 +126,7 @@ export const noUnsupportedSyntax = defineRule({
     };
 
     function featureOn(id: EngineFeatureId): boolean {
-      return shouldDiagnoseFeature(beginRuleFile(context).context, id);
+      return shouldDiagnoseFeature(beginRuleFile(context).script, id);
     }
 
     function checkPrivate(node: ESTree.Node) {

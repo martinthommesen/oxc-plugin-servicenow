@@ -1,4 +1,8 @@
-import { SUPPORTED_SERVICENOW_RELEASES, type ServiceNowRelease } from "../settings/releases.js";
+import {
+  admissibleReleases,
+  SUPPORTED_SERVICENOW_RELEASES,
+  type ServiceNowRelease,
+} from "../settings/releases.js";
 import { immutableSet } from "../utils/immutable.js";
 import type { ApplicationScope } from "../types.js";
 
@@ -55,7 +59,7 @@ export type GlideApiScope = "scoped" | "global";
  * role applies only where the matching release and API-scope page supports it.
  */
 export const GLIDE_AGGREGATE_EVIDENCE: Readonly<
-  Record<ServiceNowRelease, Readonly<Partial<Record<GlideApiScope, string>>>>
+  Record<ServiceNowRelease, Readonly<Record<GlideApiScope, string>>>
 > = Object.freeze({
   zurich: Object.freeze({
     scoped:
@@ -183,18 +187,17 @@ export const GLIDE_RECORD_METHODS: readonly GlideMethodCapability[] = [
 
 function aggregateMethod(name: string, roles: readonly GlideMethodRole[]): GlideMethodCapability {
   return method(name, roles, {
-    evidenceFor: (release) => GLIDE_AGGREGATE_EVIDENCE[release].scoped as string,
+    evidenceFor: (release) => GLIDE_AGGREGATE_EVIDENCE[release].scoped,
   });
 }
 
 /**
  * Reviewed GlideAggregate methods whose query roles shared analysis cares about.
  *
- * These four roles reproduce the behaviour that used to be open-coded as string
- * literals in the finders: `query` commits an aggregate, `next` advances its
- * cursor, and `addAggregate`/`getAggregate` configure and read it. `addAggregate`
- * and `getAggregate` carry no role here because the finders key them on argument
- * tuples this manifest does not model.
+ * `query` commits an aggregate and `next` advances its cursor. `addAggregate`
+ * and `getAggregate` configure and read one, but stay `neutral`: the finders
+ * key them on argument tuples this manifest does not model, so claiming a
+ * query role for them would overstate the modeled behavior.
  */
 export const GLIDE_AGGREGATE_METHODS: readonly GlideMethodCapability[] = [
   aggregateMethod("query", ["executor"]),
@@ -343,19 +346,8 @@ export interface GlideCapabilityView {
   readonly releases: readonly ServiceNowRelease[];
   /** Methods documented for every admissible release and API scope. */
   readonly methods: readonly GlideMethodCapability[];
-  /** Role membership per receiver kind. The flat sets below are the GlideRecord entry. */
+  /** Role membership per receiver kind; the only home for a role set. */
   readonly byKind: Readonly<Record<GlideReceiverKind, GlideMethodRoleSets>>;
-  readonly filters: ReadonlySet<string>;
-  readonly modifiers: ReadonlySet<string>;
-  readonly systemBypass: ReadonlySet<string>;
-  /** Executors definitely available in the configured scope. */
-  readonly executors: ReadonlySet<string>;
-  /** Executors available in at least one API scope allowed by the configured scope. */
-  readonly possibleExecutors: ReadonlySet<string>;
-  readonly consumers: ReadonlySet<string>;
-  readonly cursorAdvancers: ReadonlySet<string>;
-  readonly bulk: ReadonlySet<string>;
-  readonly valueExtractors: ReadonlySet<string>;
   /** Role-bearing methods whose effects are modeled by shared analysis. */
   readonly modeledMethods: ReadonlySet<string>;
   /** Complete documented-name firewall; does not imply a modeled effect. */
@@ -373,9 +365,7 @@ export function resolveGlideCapabilities(input: {
   const key = `${input.scope}:${input.release ?? "*"}`;
   const existing = CAPABILITY_CACHE.get(key);
   if (existing) return existing;
-  const releases = Object.freeze(
-    input.release === undefined ? [...SUPPORTED_SERVICENOW_RELEASES] : [input.release],
-  );
+  const releases = Object.freeze([...admissibleReleases(input.release)]);
   const scopes: readonly GlideApiScope[] =
     input.scope === "unknown" ? GLIDE_API_SCOPES : [input.scope];
   const combinations = releases.flatMap((release) => scopes.map((scope) => ({ release, scope })));
@@ -384,7 +374,15 @@ export function resolveGlideCapabilities(input: {
     candidate: { release: ServiceNowRelease; scope: GlideApiScope },
   ) =>
     entry.releases.includes(candidate.release) && entry.supportedScopes.includes(candidate.scope);
-  const roleSetsFor = (inventory: readonly GlideMethodCapability[]): GlideMethodRoleSets => {
+  const roleSetsFor = (
+    inventory: readonly GlideMethodCapability[],
+  ): {
+    sets: GlideMethodRoleSets;
+    /** Documented for at least one admissible release and API scope. */
+    possible: readonly GlideMethodCapability[];
+    /** Documented for every admissible release and API scope. */
+    definite: readonly GlideMethodCapability[];
+  } => {
     const possible = inventory.filter((entry) =>
       combinations.some((candidate) => supports(entry, candidate)),
     );
@@ -393,47 +391,34 @@ export function resolveGlideCapabilities(input: {
     );
     const filters = readonlyNames(definite, "filter");
     return {
-      filters,
-      modifiers: immutableSet([...filters, ...readonlyNames(definite, "shape")]),
-      systemBypass: readonlyNames(definite, "acl-bypass"),
-      executors: readonlyNames(definite, "executor"),
-      possibleExecutors: readonlyNames(possible, "executor"),
-      consumers: readonlyNames(definite, "consumer"),
-      cursorAdvancers: readonlyNames(definite, "cursor-advance"),
-      bulk: readonlyNames(definite, "bulk"),
-      valueExtractors: readonlyNames(definite, "value-extractor"),
+      sets: {
+        filters,
+        modifiers: immutableSet([...filters, ...readonlyNames(definite, "shape")]),
+        systemBypass: readonlyNames(definite, "acl-bypass"),
+        executors: readonlyNames(definite, "executor"),
+        possibleExecutors: readonlyNames(possible, "executor"),
+        consumers: readonlyNames(definite, "consumer"),
+        cursorAdvancers: readonlyNames(definite, "cursor-advance"),
+        bulk: readonlyNames(definite, "bulk"),
+        valueExtractors: readonlyNames(definite, "value-extractor"),
+      },
+      possible,
+      definite,
     };
   };
+  const record = roleSetsFor(GLIDE_RECORD_METHODS);
   const byKind: Readonly<Record<GlideReceiverKind, GlideMethodRoleSets>> = Object.freeze({
-    GlideRecord: roleSetsFor(GLIDE_RECORD_METHODS),
-    GlideAggregate: roleSetsFor(GLIDE_AGGREGATE_METHODS),
+    GlideRecord: record.sets,
+    GlideAggregate: roleSetsFor(GLIDE_AGGREGATE_METHODS).sets,
   });
-  const recordSets = byKind.GlideRecord;
-  const possibleMethods = Object.freeze(
-    GLIDE_RECORD_METHODS.filter((entry) =>
-      combinations.some((candidate) => supports(entry, candidate)),
-    ),
-  );
-  const methods = Object.freeze(
-    possibleMethods.filter((entry) =>
-      combinations.every((candidate) => supports(entry, candidate)),
-    ),
-  );
+  const possibleMethods = Object.freeze(record.possible);
+  const methods = Object.freeze(record.definite);
   const view: GlideCapabilityView = Object.freeze({
     scope: input.scope,
     release: input.release,
     releases,
     methods,
     byKind,
-    filters: recordSets.filters,
-    modifiers: recordSets.modifiers,
-    systemBypass: recordSets.systemBypass,
-    executors: recordSets.executors,
-    possibleExecutors: recordSets.possibleExecutors,
-    consumers: recordSets.consumers,
-    cursorAdvancers: recordSets.cursorAdvancers,
-    bulk: recordSets.bulk,
-    valueExtractors: recordSets.valueExtractors,
     modeledMethods: readonlyNames(possibleMethods),
     // A documented method in either API scope must not be mistaken for a
     // GlideElement field. Scope misuse belongs to a separate diagnostic.

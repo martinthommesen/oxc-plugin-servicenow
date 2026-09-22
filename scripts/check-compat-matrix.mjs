@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { pathToFileURL } from "node:url";
-import { root } from "./lib/repo.mjs";
+import { readJson } from "./lib/json-artifact.mjs";
+import { isMainModule, root } from "./lib/repo.mjs";
 
 const exactVersion = /^\d+\.\d+\.\d+$/;
 
@@ -23,7 +23,7 @@ export const MIN_TYPESCRIPT_ESLINT_FOR_ESLINT_10 = "8.56.0";
  * @returns {any}
  */
 function loadJson(file) {
-  return JSON.parse(readFileSync(join(root, file), "utf8"));
+  return readJson(join(root, file));
 }
 
 /**
@@ -171,4 +171,4 @@ export function main() {
   return result;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();
+if (isMainModule(import.meta.url)) main();

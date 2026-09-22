@@ -1,8 +1,9 @@
 import type { Rule } from "@oxlint/plugins";
 import type * as metadata from "../catalog-metadata.js";
-import type { RuleOptionDoc, RuleOptionsDescriptor } from "../options/descriptor.js";
+import type { RuleOptionDoc, RuleOptionsDescriptor } from "../options/option-fields.js";
 import type {
   ApplicationScope,
+  ContextConfidence,
   JavaScriptMode,
   ServiceNowRelease,
   ServiceNowSettings,
@@ -26,9 +27,10 @@ export interface RulePlacement {
 }
 export interface RuleApplicability {
   authoring: "classic" | "fluent" | "both";
-  surfaces: string;
+  surfaces: readonly string[];
+  surfacesText: string;
   javascriptMode: string;
-  minimumSurfaceConfidence: metadata.SurfaceConfidence;
+  minimumSurfaceConfidence: ContextConfidence;
   javascriptModes: readonly JavaScriptMode[] | "n/a";
   scopes: readonly ApplicationScope[];
   serviceNowReleases: readonly ServiceNowRelease[];
@@ -83,16 +85,15 @@ export type RuleCatalogInput = Omit<
   | "ruleId"
   | "docsUrl"
   | "applicability"
+  | "evidence"
   | "limitations"
+  | "limitationCases"
   | "falsePositives"
   | "falseNegatives"
   | "scopeBoundaries"
+  | "overlaps"
   | "fixKind"
   | "options"
   | "lastVerified"
-  | "optionDescriptor"
 > &
-  metadata.RuleDocMetadata & {
-    optionDescriptor: RuleOptionsDescriptor<object> | undefined;
-    limitationCases: readonly RuleLimitationCase[];
-  };
+  metadata.RuleDocMetadata & { limitationCases?: readonly RuleLimitationCase[] };

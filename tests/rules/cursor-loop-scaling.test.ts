@@ -1,5 +1,5 @@
 import { describe, it } from "node:test";
-import { assertInvalid, assertValid } from "../helpers/rule-tester.js";
+import { assertInvalid, assertValidActive } from "../helpers/rule-tester.js";
 
 // Nested cursor loops must traverse in linear time. The do/while and for
 // branches of both cursor walkers visit a loop body once per cursor mode;
@@ -14,10 +14,11 @@ function nestedDoWhile(depth: number, inner: string): string {
   return `var gr = new GlideRecord('incident'); gr.query(); ${body}`;
 }
 
+// @lat: [[tests#Analysis behavior#Nested cursor loops stay linear]]
 describe("nested cursor-loop scaling (FINDINGS.md PER-002)", () => {
   it("completes a deeply nested do/while without exponential re-traversal", () => {
-    assertValid(nestedDoWhile(24, "gs.info(1);"), "no-gliderecord-query-in-loop");
-    assertValid(
+    assertValidActive(nestedDoWhile(24, "gs.info(1);"), "no-gliderecord-query-in-loop");
+    assertValidActive(
       nestedDoWhile(24, "var x = String(gr.sys_id); arr.push(x);"),
       "no-glideelement-in-collection",
     );

@@ -1,23 +1,27 @@
 import { definePlugin, eslintCompatPlugin } from "@oxlint/plugins";
-import { recommended, recommendedRules } from "./configs/recommended.js";
-import { strict, strictRules } from "./configs/strict.js";
+import {
+  aclRules,
+  businessRuleRules,
+  classicEs5Rules,
+  clientRules,
+  es2021Rules,
+  fluentRules,
+  policyRules,
+  recommendedRules,
+  securityRules,
+  strictRules,
+} from "./configs/maps.js";
 import {
   acl,
-  aclRules,
   businessRule,
-  businessRuleRules,
   classicEs5,
-  classicEs5Rules,
   client,
-  clientRules,
   es2021,
-  es2021Rules,
   fluent,
-  fluentRules,
   policy,
-  policyRules,
+  recommended,
   security,
-  securityRules,
+  strict,
 } from "./configs/profiles.js";
 import { PACKAGE_VERSION, PLUGIN_NAME } from "./constants.js";
 import { ACL_FILE_GLOBS, BUSINESS_RULE_FILE_GLOBS, CLIENT_FILE_GLOBS } from "./context/filename.js";

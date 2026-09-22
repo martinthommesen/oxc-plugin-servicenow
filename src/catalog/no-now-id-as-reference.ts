@@ -26,7 +26,7 @@ export const noNowIdAsReferenceEntry = entry("no-now-id-as-reference", noNowIdAs
   placements: [
     { profile: "recommended", severity: "error" },
     { profile: "fluent", severity: "error" },
-  ] as const,
+  ],
   optionDescriptor: undefined,
   limitationCases: [
     {

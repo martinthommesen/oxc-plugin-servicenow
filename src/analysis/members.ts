@@ -1,6 +1,13 @@
 import type { ESTree } from "@oxlint/plugins";
 import type { FileBindings } from "./bindings.js";
-import { getName, getStaticStringValue, isNode, unwrapExpression } from "../utils/ast.js";
+import {
+  getName,
+  getStaticStringValue,
+  isNode,
+  nodeEnd,
+  nodeStart,
+  unwrapExpression,
+} from "../utils/ast.js";
 
 export interface DestructuredConstMember {
   readonly fallback: ESTree.Node | null;
@@ -8,10 +15,16 @@ export interface DestructuredConstMember {
   readonly source: ESTree.Node;
 }
 
-function definitelyPrecedes(left: unknown, right: ESTree.Node): boolean {
-  const leftEnd = isNode(left) ? (left as { end?: number }).end : undefined;
-  const rightStart = (right as { start?: number }).start;
-  return typeof leftEnd === "number" && typeof rightStart === "number" && leftEnd <= rightStart;
+/**
+ * True only when both offsets are known and `left` ends at or before `right`
+ * starts. An offset-free host answers -1, which stays conservative rather than
+ * proving an order the host cannot supply (FINDINGS.md COR-016).
+ */
+export function definitelyPrecedes(left: unknown, right: ESTree.Node): boolean {
+  if (!isNode(left)) return false;
+  const leftEnd = nodeEnd(left);
+  const rightStart = nodeStart(right);
+  return leftEnd >= 0 && rightStart >= 0 && leftEnd <= rightStart;
 }
 
 type AliasResolutionPolicy = "possible" | "dominating";

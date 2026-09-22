@@ -6,37 +6,33 @@ export const noUnsupportedSetMethodsEntry = entry(
   "no-unsupported-set-methods",
   noUnsupportedSetMethods,
   {
-    ...metadata.meta(
-      metadata.engine(["es2021"]),
-      [
-        metadata.evidenceRecord(
-          metadata.SN_JS_ENGINE_UPDATES_AUSTRALIA,
-          "The Australia JavaScript engine update adds the new Set methods from Rhino PR 2029 in ECMAScript 2021 mode.",
-          "manual",
-          "2026-08-24",
-        ),
-        metadata.evidenceRecord(
-          metadata.SN_JS_ENGINE_UPDATES_AUSTRALIA,
-          "The official Australia update links Rhino PR 2029, whose implementation identifies intersection, union, difference, symmetricDifference, isSubsetOf, isSupersetOf, and isDisjointFrom as the added Set methods.",
-          "manual",
-          "2026-08-24",
-        ),
-        metadata.evidenceRecord(
-          "tests/rules/no-unsupported-set-methods.test.ts",
-          "Fixtures cover all seven methods, release selection, object identity, aliases, joins, directly invoked and escaping closures, shadowing, mutation, availability guards, and unsupported contexts.",
-          "fixture",
-          "2026-08-24",
-        ),
-        metadata.evidenceRecord(
-          "tests/integration/release-contracts.test.ts",
-          "Real Oxlint and ESLint contracts verify Zurich, Australia, and omitted-release behavior for a proven Set receiver.",
-          "integration-test",
-          "2026-08-24",
-        ),
-      ],
-      { overlaps: [] },
-    ),
-    placements: [{ profile: "es2021", severity: "error" }] as const,
+    ...metadata.meta(metadata.engine(["es2021"]), [
+      metadata.evidenceRecord(
+        metadata.SN_JS_ENGINE_UPDATES_AUSTRALIA,
+        "The Australia JavaScript engine update adds the new Set methods from Rhino PR 2029 in ECMAScript 2021 mode.",
+        "manual",
+        "2026-08-24",
+      ),
+      metadata.evidenceRecord(
+        metadata.SN_JS_ENGINE_UPDATES_AUSTRALIA,
+        "The official Australia update links Rhino PR 2029, whose implementation identifies intersection, union, difference, symmetricDifference, isSubsetOf, isSupersetOf, and isDisjointFrom as the added Set methods.",
+        "manual",
+        "2026-08-24",
+      ),
+      metadata.evidenceRecord(
+        "tests/rules/no-unsupported-set-methods.test.ts",
+        "Fixtures cover all seven methods, release selection, object identity, aliases, joins, directly invoked and escaping closures, shadowing, mutation, availability guards, and unsupported contexts.",
+        "fixture",
+        "2026-08-24",
+      ),
+      metadata.evidenceRecord(
+        "tests/integration/release-contracts.test.ts",
+        "Real Oxlint and ESLint contracts verify Zurich, Australia, and omitted-release behavior for a proven Set receiver.",
+        "integration-test",
+        "2026-08-24",
+      ),
+    ]),
+    placements: [{ profile: "es2021", severity: "error" }],
     optionDescriptor: undefined,
     limitationCases: [
       {

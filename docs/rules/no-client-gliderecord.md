@@ -20,7 +20,7 @@ Proven platform GlideRecord calls are unsupported in scoped client applications.
 | --- | --- |
 | Authoring | classic |
 | Surfaces | Applies to client, ui-action when those surfaces are known. Mixed client/server UI Actions stay silent because execution regions are not classified. Unknown surfaces stay silent. |
-| Minimum surface confidence | filename-inferred |
+| Minimum surface confidence | inferred |
 | JavaScript modes | n/a |
 | Application scopes | scoped |
 | ServiceNow releases | zurich, australia |

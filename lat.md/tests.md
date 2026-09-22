@@ -15,6 +15,8 @@ The plugin reports only from evidence it has. These specs cover the three ways t
 
 `assertValidActive` proves the rule's gate admitted the file, and `assertSkipped` proves it declined. Asserting only "no diagnostics" would pass for a rule that silently stopped applying.
 
+Every gate-sensitive case under `tests/rules` uses one of the two outcome-aware helpers: a deliberate skip (a client rule on a server filename, a Fluent file under a classic rule, an unknown mode) asserts `assertSkipped`, and a semantic negative asserts `assertValidActive`. Plain `assertValid` is reserved for cases whose contract is only "no diagnostics" (FINDINGS.md TST-004). Engine rules that must decline every non-server execution context use `assertDeclinesNonServerSurfaces`, which asserts the client, Fluent, and UI Action skips together.
+
 ### Surface classification holds under real hosts
 
 The context fixtures drive filename, directory, and mutated-globals evidence through real oxlint and ESLint. Each case asserts an exact rule id, message id, and full message text.
@@ -47,13 +49,29 @@ The package exports named `servicenow`, `PACKAGE_VERSION` matches `package.json`
 
 Every rule whose catalog entry restricts surfaces or modes must call the corresponding gate helper in its implementation, so removing a gate fails the catalog check (FINDINGS.md COR-015).
 
+### Gate agreement counts only executable calls
+
+The gate collector parses the rule module and counts only `CallExpression` callees, so a helper named in a comment or a string literal cannot satisfy a declared restriction (FINDINGS.md TST-005).
+
+### Client-surface gates name a client surface
+
+A client-surface declaration whose only `appliesOnSurface` call names a non-client surface such as `"server"` must fail the agreement check (FINDINGS.md TST-005).
+
+### A declared confidence floor is gated
+
+A rule whose catalog entry claims a `minimumSurfaceConfidence` stronger than the `inferred` default must pass that exact value to every surface gate it calls; weakening the gate argument fails the agreement check.
+
+### Rule files import analysis through the barrel
+
+A rule module that imports `../analysis/<module>.js` for anything other than `internal.js` fails the agreement check, so the analysis barrel stays the only entry point rules can reach (docs/decisions.md MNT-006).
+
 ### Every rule map has a flat counterpart
 
 Each preset rule map must have a `configs.flat` entry carrying the same rules object with the plugin attached, so the ESLint flat presets cannot drift from the oxlint maps (FINDINGS.md FEAT-003).
 
 ## State and settings
 
-Two places where state outlives its file and must not. Both were the subject of real defects.
+State can outlive its file in two places, and must not. Both were the subject of real defects.
 
 ### Rule state does not leak across files
 
@@ -71,19 +89,51 @@ A file's surface may come from its name or from its directory, and the two must 
 
 Filename and directory evidence must resolve in a fixed order: UI Actions before client heuristics, specific subtypes over generic server directories, project-bounded directory evidence, and a refusal to guess when evidence conflicts.
 
+### Explicit server naming survives for UI Actions
+
+`approve.server.ui-action.js` and a UI Action under a project-relative `server/` directory resolve to both `ui-action` and `server` at `filename` confidence; explicit `settings.surfaces` still wins and bare UI Actions stay bare (FINDINGS.md COR-017).
+
+### Engine rules run on server-named UI Actions
+
+A mode-gated engine rule such as `no-promise` must report on `approve.server.ui-action.js` in ES5 mode and stay silent on a bare `approve.ui-action.js`; the real-host context fixtures carry the same case (FINDINGS.md COR-017).
+
 ### Surface vocabulary has one authored home
 
 The client set and the server-only set must partition all eight surfaces. `ui-action` must remain in both the client-capable and server-capable sets because its execution side varies.
 
 ## Analysis behavior
 
-The shared analysis layer carries scaling invariants alongside its facts.
+The shared analysis layer carries scaling invariants alongside its facts. Adversarial rule fixtures also pin bounded guard, reference, sibling, mutation-alias, and platform-call analysis.
 
 ### Alias resolution scales linearly
 
 Quadrupling aliases and call sites must stay well below quadratic time, proving alias resolution queries the per-file write index instead of re-walking the program (FINDINGS.md PER-005).
 
-Adversarial rule fixtures also pin bounded guard, reference, sibling, mutation-alias, and platform-call analysis.
+### Counter analysis scales linearly
+
+Quadrupling counted cursor loops with post-loop counter writes must stay well below quadratic time while `pathBudgetExhausted` stays false, so an exhausted run can never pass as scaling evidence (FINDINGS.md PER-005).
+
+The measured growth is about n^1.5 against a 9x budget for 4x input, so the guard proves sub-quadratic rather than strictly linear scaling.
+
+### Nested cursor loops stay linear
+
+Deeply nested `do`/`while` cursor loops must complete without exponential re-traversal, proving the cursor walkers memoize each (node, cursor-state) pair instead of revisiting a body once per mode (FINDINGS.md PER-002).
+
+### The path budget grows with the program
+
+An ordinary script must be analyzed completely: the budget scales with program size, so a longer file keeps producing findings instead of silently dropping them once a fixed work budget is spent (FINDINGS.md PER-003).
+
+### Constant logical operands select the reachable branch
+
+A query in the necessarily evaluated operand of a constant `&&`, `||`, or `??` counts as definite, a call in the skipped operand is never reported, and an unknown or interpolated operand keeps the join (FINDINGS.md COR-003).
+
+### Alias writes resolve identically on every offset shape
+
+A range-only host must resolve a rebound Fluent alias exactly like an offset host in both write directions, and a host with no offsets must suppress the alias fact rather than choose the first initializer (FINDINGS.md COR-007).
+
+### Initialized var redeclarations are alias writes
+
+`var T = A; var T = B;` resolves to `B` in both directions, a bare `var T;` changes nothing, and conditional or function-boundary redeclarations stay uncertain (FINDINGS.md COR-009).
 
 ## Scripts and tooling
 
@@ -92,6 +142,18 @@ The repository's own tooling carries invariants separate from the plugin's behav
 ### Scripts are checked JavaScript with no separate declarations
 
 JSDoc-typed `scripts/*.mjs` is the single source of truth: `tsconfig.scripts.json` runs `checkJs` in the validate chain and no `scripts/*.d.mts` may exist (FINDINGS.md MNT-005).
+
+### Benchmark output records the measured source state
+
+A benchmark summary carries `sourceState`, and a dirty worktree lists the differing `dirtyFiles`, so a clean checkout and a modified one at the same HEAD produce distinguishable metadata (FINDINGS.md DX-001).
+
+### Benchmark outputs never mark their own run dirty
+
+The run's output path and the reviewed baseline path are excluded from the porcelain scan, and untracked files count only under source, script, test, and manifest paths (FINDINGS.md DX-001).
+
+### Source state is required for new runs and tolerated in old baselines
+
+`validateBenchmarkSummary` rejects a newly written summary without `sourceState` and accepts the reviewed baseline that predates the field, so older readers keep working (FINDINGS.md DX-001).
 
 ### Cleanup rejects symlinked artifact paths
 
@@ -139,13 +201,21 @@ Claims made about a release must be reconstructible from the repository, not ass
 
 Each atomic requirement in the PR #51 acceptance ledger must map to exactly one proof entry bound to a content hash, with no missing, duplicate, changed, or orphaned mappings. Concurrent verifier runs must use different temporary report paths.
 
+### Hosted jobs run every static gate
+
+The CI `test` job and the release `validate` job must both invoke `typecheck`, `typecheck:fixtures`, and `typecheck:scripts`, so a script-body type error cannot pass hosted validation while failing the local chain (FINDINGS.md TST-006).
+
+### The migration guide quotes the declared peer ranges
+
+`docs/migration-3.0.md` must state the exact `oxlint` and `oxfmt` peer ranges from `package.json`, use an install example inside them, and link the compatibility table (FINDINGS.md DOC-006).
+
 ### Foreign package execution is isolated from release inputs
 
 Registry-installed package code runs only after the release tarball is immutable and cannot provide an artifact to the npm publish or GitHub release jobs.
 
 ## Fluent manifest
 
-The SDK model's two trust boundaries: the reviewed API inventory, and the published artifact it was read from.
+The SDK model has two trust boundaries: the reviewed API inventory, and the published artifact it was read from.
 
 ### The manifest matches the pinned fixture
 

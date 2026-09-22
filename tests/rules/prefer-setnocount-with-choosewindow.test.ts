@@ -1,5 +1,10 @@
 import { describe, it } from "node:test";
-import { assertInvalid, assertValid } from "../helpers/rule-tester.js";
+import {
+  assertInvalid,
+  assertSkipped,
+  assertValid,
+  assertValidActive,
+} from "../helpers/rule-tester.js";
 
 const RULE = "prefer-setnocount-with-choosewindow" as const;
 
@@ -35,7 +40,7 @@ rec.query();`,
   });
 
   it("stays silent when getRowCount is used", () => {
-    assertValid(
+    assertValidActive(
       `var rec = new GlideRecord("incident");
 rec.chooseWindow(0, 20);
 rec.query();
@@ -45,7 +50,7 @@ gs.info(rec.getRowCount());`,
   });
 
   it("stays silent when chooseWindow forces a count", () => {
-    assertValid(
+    assertValidActive(
       `var rec = new GlideRecord("incident");
 rec.chooseWindow(0, 20, true);
 rec.query();`,
@@ -54,7 +59,7 @@ rec.query();`,
   });
 
   it("stays silent when the forceCount argument is not a literal", () => {
-    assertValid(
+    assertValidActive(
       `var rec = new GlideRecord("incident");
 var force = cond;
 rec.chooseWindow(0, 20, force);
@@ -78,7 +83,7 @@ rec = other;`,
   });
 
   it("stays silent after the record escapes", () => {
-    assertValid(
+    assertValidActive(
       `var rec = new GlideRecord("incident");
 rec.chooseWindow(0, 20);
 helper(rec);
@@ -120,7 +125,7 @@ if (useCount) rec.getRowCount();`,
   });
 
   it("ignores a shadowed GlideRecord", () => {
-    assertValid(
+    assertValidActive(
       `function GlideRecord() {}
 var rec = new GlideRecord("incident");
 rec.chooseWindow(0, 20);
@@ -130,14 +135,14 @@ rec.query();`,
   });
 
   it("skips client and Fluent files", () => {
-    assertValid(
+    assertSkipped(
       `var rec = new GlideRecord("incident");
 rec.chooseWindow(0, 20);
 rec.query();`,
       RULE,
       { filename: "catalog.client.js" },
     );
-    assertValid(
+    assertSkipped(
       `var rec = new GlideRecord("incident");
 rec.chooseWindow(0, 20);
 rec.query();`,

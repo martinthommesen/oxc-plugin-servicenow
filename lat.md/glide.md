@@ -29,7 +29,7 @@ It builds the cartesian product of admissible releases and admissible API scopes
 - `methods` — documented for **every** admissible combination. These are the facts the plugin will act on.
 - `possibleMethods` — documented for **at least one** combination.
 
-The view derives these sets under `byKind` for both `GlideRecord` and `GlideAggregate`: `filters`, `modifiers`, `executors`, `possibleExecutors`, `consumers`, `cursorAdvancers`, `bulk`, `systemBypass`, and `valueExtractors`. Flat fields alias the `GlideRecord` entry for compatibility.
+The view derives these sets under `byKind` for both `GlideRecord` and `GlideAggregate`: `filters`, `modifiers`, `executors`, `possibleExecutors`, `consumers`, `cursorAdvancers`, `bulk`, `systemBypass`, and `valueExtractors`. `byKind` is the only home for a role set; a caller that wants the GlideRecord answer writes `byKind.GlideRecord`.
 
 `modeledMethods` contains the GlideRecord methods whose effects analysis models. `knownMethods` is a complete documented-name firewall and does not imply a modeled effect.
 

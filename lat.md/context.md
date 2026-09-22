@@ -10,6 +10,8 @@ The context's overall `confidence` is the *weakest* of the four dimensions, not 
 
 `ContextSourceMap` records each dimension. `confidenceAtLeast(source, minimum)` compares one dimension against the shared ordering, so applicability checks cannot substitute the weaker overall confidence.
 
+`Minimum surface confidence` on a generated rule page is a `ContextConfidence` value: the floor that rule's own gate enforces, which is `inferred` unless the rule passes a stronger `minimum`. The gate check in `scripts/lib/catalog-gates.mjs` verifies the pair, so a page cannot advertise a floor the rule does not apply.
+
 ## Authoring
 
 `resolveAuthoring` decides `"classic"` or `"fluent"` in this order:
@@ -34,12 +36,13 @@ For classic files, in order:
 4. AST inference — confidence `inferred`.
 5. Otherwise the set is empty, confidence `unknown`.
 
-`surfacesFromFilename` in [[src/context/filename.ts#surfacesFromFilename]] matches the basename against seven filename patterns and the path against seven directory patterns. Four rules make it deterministic:
+`surfacesFromFilename` in [[src/context/filename.ts#surfacesFromFilename]] matches the basename against seven subtype filename patterns plus two server patterns, and the path against seven subtype directory patterns plus a server directory pattern. Five rules make it deterministic:
 
 - **Project-relative directory evidence.** `directoryEvidencePath` strips everything above the host `cwd`, so a checkout that happens to live under `~/client/` contributes no client evidence. A path outside the project contributes only its basename.
 - **Specific beats generic.** A generic `server` hit is dropped when a specific subtype also matched, keeping `src/server/helper.si.js` a Script Include instead of an ambiguous file.
 - **Ambiguity is not evidence.** If more than one surface matched and `ui-action` is not among them, the function returns `[]` rather than guessing.
 - **UI Actions compose.** A bare `ui-action` hit names the record type, so it is kept and AST inference runs to decide whether to add `client`, `server`, or neither. The confidence rises to `inferred` only if the AST supplied one of them.
+- **Explicit server naming survives for UI Actions.** The compound suffix `*.server.ui-action.js` (`SERVER_UI_ACTION_FILE`) and a project-relative `server/` directory add `server` to a UI Action instead of being dropped as generic evidence, so `approve.server.ui-action.js` resolves `["ui-action", "server"]` at confidence `filename` and engine rules run on it. Generic server evidence still yields to Business Rule, Script Include, ACL, and the other specific subtypes (FINDINGS.md COR-017).
 
 AST inference (`inferSurfacesFromAst` in [[src/analysis/file-analysis.ts#inferSurfacesFromAst]]) walks the program and counts a reference only when `bindings.isPlatformGlobal` confirms it is the platform global rather than a local shadow. A strong client global (`CLIENT_GLOBALS_STRONG`) marks the file client-capable; `current` or `previous` mark it server. Name matching alone is never sufficient — see [[analysis#Lexical bindings]].
 
@@ -62,7 +65,7 @@ Scope comes straight from `settings.servicenow.scope`, at confidence `explicit` 
 
 ## How rules consume the context
 
-Rules do not read `ctx.surfaces` and decide for themselves. They call the predicates exported from [[src/context/resolve.ts#appliesOnSurface]], which require both membership *and* a minimum source confidence, `inferred` by default:
+Rules do not read `ctx.surfaces` and decide for themselves. They call the predicates exported from [[src/context/resolve.ts#appliesOnSurface]], which require both membership *and* a minimum source confidence, `inferred` by default.
 
 - `appliesOnSurface(ctx, surface, minimum)` — one surface, with a confidence floor.
 - `isServerInstanceContext(ctx, minimum)` — any of the six server-only surfaces, or a UI Action that also has explicit server evidence.
@@ -70,6 +73,8 @@ Rules do not read `ctx.surfaces` and decide for themselves. They call the predic
 - `appliesToInstanceScripts(ctx)` — any non-Fluent file with at least one known dimension. Used by rules for features ServiceNow documents as unavailable in every mode.
 
 The confidence floor is per call site, so a rule that changes behavior on weak evidence can demand `explicit` while a conservative rule accepts `inferred`. `Minimum surface confidence` in each `docs/rules/*.md` page records the floor a rule chose.
+
+`src/context/index.ts` exposes only the eight predicates — the seven in `resolve.ts` plus `isFluentFile`. The context record itself is reached through `getScriptContext` on the analysis entry point, not from here.
 
 ## Related
 

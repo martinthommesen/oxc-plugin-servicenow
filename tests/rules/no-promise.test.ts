@@ -269,7 +269,7 @@ Promise.resolve(1);`,
   });
 
   it("stays silent under dynamic-scope uncertainty", () => {
-    assertValid(
+    assertValidActive(
       `eval(source);
 Promise.resolve(1);`,
       RULE,
@@ -301,6 +301,17 @@ Promise.resolve(1);`,
         settings: ES5,
       },
     );
+  });
+
+  // @lat: [[tests#Context evidence#Engine rules run on server-named UI Actions]]
+  it("runs on a documented server UI Action filename (FINDINGS.md COR-017)", () => {
+    const code = `var p = new Promise(function (resolve) { resolve(1); });`;
+    for (const filename of ["approve.server.ui-action.js", "src/server/approve.ui-action.js"]) {
+      assertInvalid(code, RULE, { messageId: "construct" }, { filename, settings: ES5 });
+    }
+    // A bare UI Action still names a record type rather than a surface, so the
+    // engine gate keeps declining it.
+    assertSkipped(code, RULE, { filename: "approve.ui-action.js", settings: ES5 });
   });
 
   it("skips unknown JavaScript mode", () => {

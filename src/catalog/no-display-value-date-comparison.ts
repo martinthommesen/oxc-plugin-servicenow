@@ -20,7 +20,7 @@ export const noDisplayValueDateComparisonEntry = entry(
           "2026-08-20",
         ),
         metadata.evidenceRecord(
-          "src/catalog.ts",
+          "src/catalog/no-display-value-date-comparison.ts",
           "Catalog examples cover display-value comparison versus getNumericValue.",
           "fixture",
           "2026-08-20",
@@ -31,7 +31,7 @@ export const noDisplayValueDateComparisonEntry = entry(
         overlaps: ["servicenow/no-gs-now"],
       },
     ),
-    placements: [{ profile: "strict", severity: "warn" }] as const,
+    placements: [{ profile: "strict", severity: "warn" }],
     optionDescriptor: undefined,
     limitationCases: [
       {

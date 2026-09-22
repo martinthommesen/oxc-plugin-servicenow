@@ -6,13 +6,6 @@ import plugin from "../../src/index.js";
 import { BINDING_MATRIX_CASES } from "../helpers/binding-matrix.js";
 import { createTemporaryProject, eslintFlatConfig, runOxlintProcess } from "./helpers.js";
 
-function offsetAt(code: string, point: { line: number; column: number }): number {
-  const lines = code.split("\n");
-  return (
-    lines.slice(0, point.line - 1).reduce((size, line) => size + line.length + 1, 0) + point.column
-  );
-}
-
 describe("exact binding matrix contracts in real hosts", () => {
   for (const testCase of BINDING_MATRIX_CASES) {
     it(testCase.id, () => {
@@ -73,9 +66,8 @@ describe("exact binding matrix contracts in real hosts", () => {
         assert.deepEqual(diagnostic?.labels, [
           {
             span: {
-              offset: offsetAt(testCase.code, testCase.start),
-              length:
-                offsetAt(testCase.code, testCase.end) - offsetAt(testCase.code, testCase.start),
+              offset: testCase.offset,
+              length: testCase.length,
               line: testCase.start.line,
               column: testCase.start.column + 1,
             },

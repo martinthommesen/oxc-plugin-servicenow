@@ -1,8 +1,12 @@
 import { describe, it } from "node:test";
-import { assertInvalid, assertValid } from "../helpers/rule-tester.js";
+import {
+  assertInvalid,
+  assertSkipped,
+  assertValid,
+  assertValidActive,
+} from "../helpers/rule-tester.js";
 
 const RULE = "validate-glideaggregate-calls" as const;
-const SERVER = { filename: "incident.br.js" };
 
 describe("validate-glideaggregate-calls", () => {
   it("flags next before query", () => {
@@ -14,7 +18,6 @@ if (count.next()) {
 }`,
       RULE,
       { messageId: "missingQuery", count: 2 },
-      SERVER,
     );
   });
 
@@ -25,7 +28,6 @@ count.addAggregate("COUNT");
 gs.info(count.getAggregate("COUNT"));`,
       RULE,
       { messageId: "missingQuery" },
-      SERVER,
     );
   });
 
@@ -38,7 +40,6 @@ if (count.next()) {
   gs.info(count.getAggregate("COUNT"));
 }`,
       RULE,
-      SERVER,
     );
   });
 
@@ -53,7 +54,6 @@ if (totals.next()) {
   gs.info(totals.getAggregate("COUNT"));
 }`,
       RULE,
-      SERVER,
     );
   });
 
@@ -67,7 +67,6 @@ if (totals.next()) {
 }`,
       RULE,
       { messageId: "unknownAggregate" },
-      SERVER,
     );
   });
 
@@ -78,14 +77,12 @@ var agg = totals;
 agg.next();`,
       RULE,
       { messageId: "missingQuery" },
-      SERVER,
     );
     assertValid(
       `var totals = new GlideAggregate("incident");
 totals = other;
 totals.next();`,
       RULE,
-      SERVER,
     );
   });
 
@@ -99,7 +96,6 @@ if (ready) {
 count.next();`,
       RULE,
       { messageId: "missingQuery" },
-      SERVER,
     );
   });
 
@@ -113,17 +109,15 @@ b.next();
 a.next();`,
       RULE,
       { count: 1, messageId: "missingQuery" },
-      SERVER,
     );
   });
 
   it("ignores a shadowed GlideAggregate", () => {
-    assertValid(
+    assertValidActive(
       `function GlideAggregate() { this.next = function () {}; }
 var count = new GlideAggregate("incident");
 count.next();`,
       RULE,
-      SERVER,
     );
   });
 
@@ -133,12 +127,11 @@ count.next();`,
 count["next"]();`,
       RULE,
       { messageId: "missingQuery" },
-      SERVER,
     );
   });
 
   it("stays silent for dynamic aggregate names", () => {
-    assertValid(
+    assertValidActive(
       `var totals = new GlideAggregate("x_acme_order");
 totals.addAggregate(type, field);
 totals.query();
@@ -146,18 +139,17 @@ if (totals.next()) {
   gs.info(totals.getAggregate("COUNT"));
 }`,
       RULE,
-      SERVER,
     );
   });
 
   it("skips client and Fluent files", () => {
-    assertValid(
+    assertSkipped(
       `var count = new GlideAggregate("incident");
 count.next();`,
       RULE,
       { filename: "form.client.js" },
     );
-    assertValid(
+    assertSkipped(
       `var count = new GlideAggregate("incident");
 count.next();`,
       RULE,

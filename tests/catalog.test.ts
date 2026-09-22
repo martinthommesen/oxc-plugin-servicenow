@@ -17,7 +17,7 @@ import {
 } from "../src/configs/maps.js";
 import { optionDocsFromDescriptor, schemaFromDescriptor } from "../src/options/index.js";
 import { rules } from "../src/rules/index.js";
-import { lint } from "./helpers/rule-tester.js";
+import { lint, lintWithSkipFlag } from "./helpers/rule-tester.js";
 
 const profileMaps = {
   recommended: recommendedRules,
@@ -51,6 +51,13 @@ describe("catalog authority", () => {
       );
       for (const placement of entry.placements) {
         assert.equal(profileMaps[placement.profile][entry.ruleId], placement.severity);
+        // The documented severity is the entry's, so a placement that
+        // disagreed would publish a severity no profile actually applies.
+        assert.equal(
+          placement.severity,
+          entry.severity,
+          `${entry.name} ${placement.profile} severity`,
+        );
       }
       if (!entry.optionDescriptor) {
         assert.deepEqual(entry.options, []);
@@ -69,7 +76,7 @@ describe("catalog authority", () => {
     const sources = [
       "../src/catalog.ts",
       "../src/catalog-metadata.ts",
-      "../src/options/descriptors.ts",
+      "../src/options/rule-options.ts",
     ].map((file) => readFileSync(new URL(file, import.meta.url), "utf8"));
     assert.doesNotMatch(
       sources.join("\n"),
@@ -138,13 +145,9 @@ describe("rule catalog examples", () => {
 
       for (const example of entry.good) {
         it(`allows: ${example.name}`, () => {
-          let skipped = false;
-          const messages = lint(example.code, entry.name, {
+          const { messages, skipped } = lintWithSkipFlag(example.code, entry.name, {
             filename: example.filename ?? "test.js",
             settings: example.settings,
-            onRuleSkipped: () => {
-              skipped = true;
-            },
           });
           assert.equal(
             messages.length,

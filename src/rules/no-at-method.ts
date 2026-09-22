@@ -1,12 +1,13 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
 import { ruleDocsUrl } from "../constants.js";
-import { isInvocationAvailabilityGuarded } from "../analysis/availability.js";
-import { resolvePlatformGlobalName } from "../analysis/globals.js";
 import {
   hasAuthoritativeConstructedMethod,
+  isInvocationAvailabilityGuarded,
   resolveConstValue,
+  resolvePlatformGlobalName,
   staticPropertyName,
+  type ProvenanceQuery,
 } from "../analysis/internal.js";
 import { beginRuleFile } from "./helpers.js";
 import { shouldDiagnoseFeature } from "../engine/index.js";
@@ -14,10 +15,7 @@ import { isNode } from "../utils/ast.js";
 
 type AtConstructor = "Array" | "String";
 
-function builtInAtReceiver(
-  node: unknown,
-  analysis: ReturnType<typeof beginRuleFile>["analysis"],
-): AtConstructor | null {
+function builtInAtReceiver(node: unknown, analysis: ProvenanceQuery): AtConstructor | null {
   const value = resolveConstValue(node, analysis.bindings);
   if (!isNode(value)) return null;
   if (value.type === "ArrayExpression") return "Array";
@@ -29,7 +27,7 @@ function builtInAtReceiver(
 function isPrototypeAtAccess(
   node: unknown,
   constructorName: AtConstructor,
-  analysis: ReturnType<typeof beginRuleFile>["analysis"],
+  analysis: ProvenanceQuery,
 ): boolean {
   const access = resolveConstValue(node, analysis.bindings);
   if (!access || access.type !== "MemberExpression" || staticPropertyName(access) !== "at") {
@@ -41,7 +39,7 @@ function isPrototypeAtAccess(
 function isBuiltInPrototype(
   node: unknown,
   constructorName: AtConstructor,
-  analysis: ReturnType<typeof beginRuleFile>["analysis"],
+  analysis: ProvenanceQuery,
 ): boolean {
   const owner = resolveConstValue(node, analysis.bindings);
   return Boolean(
@@ -66,16 +64,16 @@ export const noAtMethod = defineRule({
   createOnce(context) {
     return {
       before() {
-        const { context: script } = beginRuleFile(context);
+        const { script } = beginRuleFile(context);
         if (!shouldDiagnoseFeature(script, "at-method")) return false;
         return undefined;
       },
       CallExpression(node) {
-        const { analysis, file } = beginRuleFile(context);
+        const file = beginRuleFile(context);
         const call = node as ESTree.CallExpression;
         if (call.callee.type !== "MemberExpression") return;
         if (staticPropertyName(call.callee) !== "at") return;
-        const constructorName = builtInAtReceiver(call.callee.object, analysis);
+        const constructorName = builtInAtReceiver(call.callee.object, file.provenance);
         if (!constructorName) return;
         if (!hasAuthoritativeConstructedMethod(file, call.callee.object, constructorName, "at")) {
           return;
@@ -84,12 +82,11 @@ export const noAtMethod = defineRule({
           isInvocationAvailabilityGuarded(
             context,
             call,
-            analysis,
-            (candidate) => isPrototypeAtAccess(candidate, constructorName, analysis),
+            file.provenance,
+            (candidate) => isPrototypeAtAccess(candidate, constructorName, file.provenance),
             {
-              guardCacheKey: `no-at-method:${constructorName}`,
               isPropertyExistenceTest: (property, object) =>
-                property === "at" && isBuiltInPrototype(object, constructorName, analysis),
+                property === "at" && isBuiltInPrototype(object, constructorName, file.provenance),
               isOptionalInvocation: (invocation) =>
                 invocation === call && invocation.type === "CallExpression" && invocation.optional,
             },

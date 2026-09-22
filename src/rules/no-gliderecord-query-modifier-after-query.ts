@@ -1,9 +1,9 @@
 import { defineRule } from "@oxlint/plugins";
 import type { ESTree } from "@oxlint/plugins";
-import { findQueryModifiersAfterQuery } from "../analysis/glide-query-lifecycle.js";
 import { isServerInstanceContext } from "../context/index.js";
 import { ruleDocsUrl } from "../constants.js";
 import { beginRuleFile } from "./helpers.js";
+import { findQueryModifiersAfterQuery } from "../analysis/internal.js";
 
 export const noGliderecordQueryModifierAfterQuery = defineRule({
   meta: {
@@ -21,13 +21,17 @@ export const noGliderecordQueryModifierAfterQuery = defineRule({
   createOnce(context) {
     return {
       before() {
-        const { context: script } = beginRuleFile(context);
+        const { script } = beginRuleFile(context);
         if (!isServerInstanceContext(script)) return false;
         return undefined;
       },
       Program(node) {
-        const { analysis, file } = beginRuleFile(context);
-        for (const finding of findQueryModifiersAfterQuery(node as ESTree.Node, analysis, file)) {
+        const file = beginRuleFile(context);
+        for (const finding of findQueryModifiersAfterQuery(
+          node as ESTree.Node,
+          file.provenance,
+          file,
+        )) {
           context.report({
             node: finding.node,
             messageId: "lateModifier",

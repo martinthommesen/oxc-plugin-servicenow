@@ -271,7 +271,7 @@ new WeakRef(value);`,
   });
 
   it("stays silent under direct-eval uncertainty", () => {
-    assertValid(
+    assertValidActive(
       `eval(source);
 const ref = new WeakRef(value);`,
       "no-weak-references",

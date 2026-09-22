@@ -13,7 +13,7 @@ export const noSyncGlideajaxEntry = entry("no-sync-glideajax", noSyncGlideajax, 
         "2026-08-20",
       ),
       metadata.evidenceRecord(
-        "src/catalog.ts",
+        "src/catalog/no-sync-glideajax.ts",
         "Catalog examples cover getXMLWait versus getXMLAnswer.",
         "fixture",
         "2026-08-20",
@@ -32,7 +32,7 @@ export const noSyncGlideajaxEntry = entry("no-sync-glideajax", noSyncGlideajax, 
   placements: [
     { profile: "recommended", severity: "error" },
     { profile: "client", severity: "error" },
-  ] as const,
+  ],
   optionDescriptor: undefined,
   limitationCases: [
     {

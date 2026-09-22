@@ -3,17 +3,16 @@ import { createHash } from "node:crypto";
 import { gunzipSync } from "node:zlib";
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
 import { parseSync } from "oxc-parser";
+import { FLUENT_SDK_ARTIFACTS } from "../src/fluent/registry.js";
 import {
-  CURRENT_FLUENT_SDK_VERSION,
-  FLUENT_SDK_ARTIFACTS,
+  DEFAULT_FLUENT_SDK_VERSION,
   SUPPORTED_FLUENT_SDK_VERSIONS,
-} from "../src/fluent/registry.js";
+} from "../src/fluent/sdk-versions.js";
 import { FLUENT_DECLARATION_SNAPSHOTS } from "../src/fluent/declaration-snapshots.js";
 import { compareFluentVersions } from "../src/fluent/evidence.js";
 import { DEFAULT_FLUENT_MANIFEST } from "../src/fluent/manifest.js";
-import { root } from "./lib/repo.mjs";
+import { isMainModule, root } from "./lib/repo.mjs";
 
 const fixturePath = path.join(root, "tests/fixtures/fluent-sdk-declarations.json");
 const generatedPath = path.join(root, "src/fluent/declaration-snapshots.ts");
@@ -61,6 +60,25 @@ function sha256(value) {
 }
 
 /**
+ * First reviewed SDK version whose audit discovered `name`, or null when no
+ * reviewed version exports it.
+ *
+ * @param {Record<string, { discoveredCapabilities?: unknown } | undefined>} allVersions
+ * @param {string} name
+ * @returns {string | null}
+ */
+function firstVersionExporting(allVersions, name) {
+  return (
+    SUPPORTED_FLUENT_SDK_VERSIONS.find(
+      (candidate) =>
+        /** @type {Record<string, unknown> | undefined} */ (
+          allVersions[candidate]?.discoveredCapabilities
+        )?.[name] !== undefined,
+    ) ?? null
+  );
+}
+
+/**
  * Lifecycle evidence for one version, derived from the audited versions.
  *
  * `allVersions` supplies the first reviewed version that exported a name, which
@@ -83,12 +101,7 @@ function lifecycleSnapshot(version, capabilities, discoveredCapabilities, allVer
         const api = DEFAULT_FLUENT_MANIFEST.apis.find((item) => item.name === name);
         if (api?.introduced && !atOrAfter(version, api.introduced)) return null;
         const introduced =
-          api?.introduced ??
-          (api
-            ? null
-            : (SUPPORTED_FLUENT_SDK_VERSIONS.find(
-                (candidate) => allVersions[candidate]?.discoveredCapabilities?.[name],
-              ) ?? null));
+          api?.introduced ?? (api ? null : firstVersionExporting(allVersions, name));
         return [
           name,
           {
@@ -676,7 +689,6 @@ export function withLifecycle(version, item, allVersions) {
  * @returns {Record<string, unknown>}
  */
 export function runtimeSnapshot(snapshot) {
-  const versions = SUPPORTED_FLUENT_SDK_VERSIONS;
   return Object.fromEntries(
     Object.entries(snapshot.versions).map(([version, item]) => {
       const capabilities = /** @type {Record<string, any>} */ (item.capabilities);
@@ -691,13 +703,7 @@ export function runtimeSnapshot(snapshot) {
           name,
           {
             module: capability.module,
-            introduced:
-              versions.find(
-                (candidate) =>
-                  /** @type {Record<string, any> | undefined} */ (
-                    snapshot.versions[candidate]?.discoveredCapabilities
-                  )?.[name] !== undefined,
-              ) ?? null,
+            introduced: firstVersionExporting(snapshot.versions, name),
           },
         ]),
       );
@@ -759,8 +765,8 @@ export async function main() {
     /^\d+\.\d+\.\d+$/u.test(version),
   );
   assert.ok(
-    !published.some((version) => compareFluentVersions(version, CURRENT_FLUENT_SDK_VERSION) > 0),
-    `new stable @servicenow/sdk version published above ${CURRENT_FLUENT_SDK_VERSION}`,
+    !published.some((version) => compareFluentVersions(version, DEFAULT_FLUENT_SDK_VERSION) > 0),
+    `new stable @servicenow/sdk version published above ${DEFAULT_FLUENT_SDK_VERSION}`,
   );
 
   /** @type {Record<string, any>} */
@@ -774,7 +780,7 @@ export async function main() {
   }
   const snapshot = {
     schemaVersion: 1,
-    defaultVersion: CURRENT_FLUENT_SDK_VERSION,
+    defaultVersion: DEFAULT_FLUENT_SDK_VERSION,
     reviewedVersions: [...SUPPORTED_FLUENT_SDK_VERSIONS],
     versions,
   };
@@ -798,10 +804,4 @@ export async function main() {
   }
 }
 
-const invokedScript = process.argv[1];
-if (
-  invokedScript !== undefined &&
-  invokedScript !== "" &&
-  import.meta.url === pathToFileURL(invokedScript).href
-)
-  await main();
+if (isMainModule(import.meta.url)) await main();

@@ -6,34 +6,30 @@ export const noUnsupportedDateFractionEntry = entry(
   "no-unsupported-date-fraction",
   noUnsupportedDateFraction,
   {
-    ...metadata.meta(
-      metadata.engine(metadata.ALL_INSTANCE_MODES),
-      [
-        metadata.evidenceRecord(
-          metadata.SN_JS_ENGINE_UPDATES_AUSTRALIA,
-          "The Australia JavaScript engine update lists Rhino PR 1896, Enhance date string parsing with optional millisecond digits, as a feature applicable to all JavaScript modes.",
-          "manual",
-          "2026-08-24",
-        ),
-        metadata.evidenceRecord(
-          "tests/rules/no-unsupported-date-fraction.test.ts",
-          "Fixtures cover one, two, and more than three fraction digits; calendar, time, and offset validity; all modes; release omission; static aliases; native Date authority; shadowing; and unsupported contexts.",
-          "fixture",
-          "2026-08-24",
-        ),
-        metadata.evidenceRecord(
-          "tests/integration/release-contracts.test.ts",
-          "Real Oxlint and ESLint contracts verify Zurich, Australia, and omitted-release behavior for native Date construction and Date.parse.",
-          "integration-test",
-          "2026-08-24",
-        ),
-      ],
-      { overlaps: [] },
-    ),
+    ...metadata.meta(metadata.engine(metadata.ALL_INSTANCE_MODES), [
+      metadata.evidenceRecord(
+        metadata.SN_JS_ENGINE_UPDATES_AUSTRALIA,
+        "The Australia JavaScript engine update lists Rhino PR 1896, Enhance date string parsing with optional millisecond digits, as a feature applicable to all JavaScript modes.",
+        "manual",
+        "2026-08-24",
+      ),
+      metadata.evidenceRecord(
+        "tests/rules/no-unsupported-date-fraction.test.ts",
+        "Fixtures cover one, two, and more than three fraction digits; calendar, time, and offset validity; all modes; release omission; static aliases; native Date authority; shadowing; and unsupported contexts.",
+        "fixture",
+        "2026-08-24",
+      ),
+      metadata.evidenceRecord(
+        "tests/integration/release-contracts.test.ts",
+        "Real Oxlint and ESLint contracts verify Zurich, Australia, and omitted-release behavior for native Date construction and Date.parse.",
+        "integration-test",
+        "2026-08-24",
+      ),
+    ]),
     placements: [
       { profile: "classic-es5", severity: "error" },
       { profile: "es2021", severity: "error" },
-    ] as const,
+    ],
     optionDescriptor: undefined,
     limitationCases: [
       {

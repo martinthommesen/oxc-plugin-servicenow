@@ -19,6 +19,7 @@ function corpus(blocks: number): string {
   ).join("\n");
 }
 
+// @lat: [[tests#Analysis behavior#The path budget grows with the program]]
 describe("path-analysis budget scaling (FINDINGS.md PER-003)", () => {
   it("analyzes a 60-block script completely without exhausting the budget", () => {
     resetPathBudgetExceededCount();

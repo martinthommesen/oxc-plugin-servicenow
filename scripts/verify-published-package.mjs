@@ -3,8 +3,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, isAbsolute, join } from "node:path";
-import { pathToFileURL } from "node:url";
+import { dirname, join, resolve } from "node:path";
 import { ASN1Obj } from "@sigstore/core";
 import { verify as sigstoreVerify } from "sigstore";
 import {
@@ -12,7 +11,9 @@ import {
   packageTargetPath,
   tarballIntegrity,
 } from "./check-release-artifact.mjs";
-import { root } from "./lib/repo.mjs";
+import { argValue as readArgValue } from "./lib/argv.mjs";
+import { readJson } from "./lib/json-artifact.mjs";
+import { isMainModule, root } from "./lib/repo.mjs";
 
 const TRANSIENT_CODES = new Set(["EAI_AGAIN", "ECONNRESET", "ECONNREFUSED", "EPIPE", "ETIMEDOUT"]);
 const TRANSIENT_STATUSES = new Set([404, 429, 502, 503, 504]);
@@ -73,11 +74,7 @@ function fail(message, kind = "published-package", details = {}) {
  * @returns {string | undefined}
  */
 function argValue(argv, name) {
-  const index = argv.indexOf(name);
-  if (index === -1) return undefined;
-  const value = argv[index + 1];
-  if (!value || value.startsWith("-")) fail(`${name} requires a value`, "arguments");
-  return value;
+  return readArgValue(argv, name, (message) => fail(message, "arguments"));
 }
 
 /**
@@ -88,6 +85,17 @@ function argValue(argv, name) {
 function positiveNumber(raw, name) {
   const value = Number(raw);
   if (!Number.isFinite(value) || value <= 0) fail(`${name} must be a positive number`, "arguments");
+  return value;
+}
+
+/**
+ * @param {unknown} raw
+ * @param {string} name
+ * @returns {number}
+ */
+function positiveInteger(raw, name) {
+  const value = positiveNumber(raw, name);
+  if (!Number.isSafeInteger(value)) fail(`${name} must be a whole number`, "arguments");
   return value;
 }
 
@@ -120,7 +128,7 @@ export function isTransientRegistryError(error) {
  */
 export async function retryBounded(operation, options = {}) {
   const timeoutMs = positiveNumber(options.timeoutMs ?? 180000, "retry timeout");
-  const maxAttempts = positiveNumber(options.maxAttempts ?? 8, "retry attempts");
+  const maxAttempts = positiveInteger(options.maxAttempts ?? 8, "retry attempts");
   const initialDelayMs = positiveNumber(
     options.initialDelayMs ?? options.intervalMs ?? 1000,
     "retry delay",
@@ -152,7 +160,9 @@ export async function retryBounded(operation, options = {}) {
       await sleep(delay);
     }
   }
-  throw lastError;
+  // Unreachable: maxAttempts is a positive integer, so the loop either
+  // returns or records an error.
+  throw lastError ?? new Error("retry finished without an attempt");
 }
 
 /**
@@ -208,12 +218,11 @@ export const OPERATION_TIMEOUT_MS = 120000;
 /**
  * @param {string[]} args
  * @param {any} [options]
- * @param {typeof import("node:child_process").spawnSync} [runner]
  * @returns {any}
  */
-function runNpmJson(args, options = {}, runner = spawnSync) {
+function runNpmJson(args, options = {}) {
   return parseNpmCommandResult(
-    runner("npm", args, {
+    spawnSync("npm", args, {
       timeout: OPERATION_TIMEOUT_MS,
       killSignal: "SIGKILL",
       ...options,
@@ -226,12 +235,11 @@ function runNpmJson(args, options = {}, runner = spawnSync) {
 /**
  * @param {string} name
  * @param {string} version
- * @param {typeof import("node:child_process").spawnSync} [runner]
  * @returns {any}
  */
-function npmView(name, version, runner = spawnSync) {
+function npmView(name, version) {
   const spec = `${name}@${version}`;
-  const parsed = runNpmJson(["view", spec, "--json"], { cwd: root }, runner);
+  const parsed = runNpmJson(["view", spec, "--json"], { cwd: root });
   const view = Array.isArray(parsed) ? parsed[0] : parsed;
   if (!view || typeof view !== "object")
     fail(`npm view returned no metadata for ${spec}`, "registry-schema");
@@ -311,7 +319,7 @@ function packageMetadataFromConsumer(consumer, name) {
     );
   }
   return {
-    pkg: JSON.parse(readFileSync(packageJsonPath, "utf8")),
+    pkg: readJson(packageJsonPath),
     packageJsonPath,
     consumerRequire,
   };
@@ -762,14 +770,14 @@ export async function verifyInstallWithRetry(name, version, options = {}) {
  * @returns {Promise<Record<string, unknown>>}
  */
 export async function main(argv = process.argv) {
-  const localPkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+  const localPkg = readJson(join(root, "package.json"));
   const name = argValue(argv, "--name") ?? localPkg.name;
   const version = argValue(argv, "--version") ?? localPkg.version;
   const timeoutMs = argValue(argv, "--timeout-ms") ?? "180000";
   const intervalMs = argValue(argv, "--interval-ms") ?? "3000";
   const tarballFlag = argValue(argv, "--tarball");
   if (!tarballFlag) fail("--tarball is required for exact registry verification", "arguments");
-  const tarball = isAbsolute(tarballFlag) ? tarballFlag : join(process.cwd(), tarballFlag);
+  const tarball = resolve(tarballFlag);
   const integrity = tarballIntegrity(readFileSync(tarball));
   const repository =
     argValue(argv, "--repository") ?? "https://github.com/martinthommesen/oxc-plugin-servicenow";
@@ -831,12 +839,7 @@ export async function main(argv = process.argv) {
   return result;
 }
 
-const invokedScript = process.argv[1];
-if (
-  invokedScript !== undefined &&
-  invokedScript !== "" &&
-  import.meta.url === pathToFileURL(invokedScript).href
-) {
+if (isMainModule(import.meta.url)) {
   main().catch((error) => {
     console.error(error instanceof Error ? error.message : error);
     process.exit(1);
