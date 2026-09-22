@@ -56,18 +56,18 @@ The plugin reports diagnostics only. No rule ships a fix or a suggestion, and th
 
 ## Changelog
 
-Add a short note under `Unreleased` in `CHANGELOG.md` for user-visible rule, preset, or settings changes. Before you tag a release, move the applicable notes under an exact heading `## <version> — YYYY-MM-DD`. The heading must be the first version heading after `Unreleased`.
+Add a short note under `Unreleased` in `CHANGELOG.md` for user-visible rule, preset, or settings changes. `npm run release:prepare -- <version>` moves those notes under the exact heading `## <version> — YYYY-MM-DD` when a release is cut. The heading must be the first version heading after `Unreleased`.
 
 ## Release
 
-1. Confirm the desired policy and principal IDs in `scripts/release-governance.json`, then run the read-only GitHub audit with `node scripts/check-release-governance.mjs`.
-2. Set the package version and add the exact changelog heading for that version.
-3. Run `npm run validate`.
-4. Merge to `main`. Tag `v<version>` at the exact current protected `main` tip.
-5. Let `.github/workflows/release.yml` validate and publish the uploaded tarball through the protected `release` environment.
-6. Confirm that `validate / Verify release tag is current main tip`, `registry-verify` through `node scripts/verify-published-package.mjs`, and `github-release` through `node scripts/create-github-release.mjs` all pass against the inspected artifact. These gates cover registry integrity, provenance identity, public imports, and the GitHub release asset and commit.
+1. Run `npm run release:prepare -- <version>` in the pull request branch. It sets the package and lockfile version and moves the `Unreleased` notes under the dated heading.
+2. Run `npm run validate`.
+3. Merge to `main`. The `Create release tag` workflow tags `v<version>` at the merged commit, and `.github/workflows/release.yml` validates, publishes through the `release` environment, verifies the registry package, and creates the GitHub release. No manual step or approval follows the merge.
+4. Confirm that `validate / Verify release tag is current main tip`, `registry-verify` through `node scripts/verify-published-package.mjs`, and `github-release` through `node scripts/create-github-release.mjs` all passed. These gates cover registry integrity, provenance identity, public imports, and the GitHub release asset and commit.
 
-Keep `main` unchanged until the release workflow's initial tip check passes. Protected release tags are immutable; never move one to recover from a mismatch.
+A coding agent can run the whole sequence through the repository skill in `.agents/skills/release-oxc-plugin-servicenow`.
+
+Avoid a second merge to `main` until the release workflow's initial tip check passes. Protected release tags are immutable; never move one to recover from a mismatch. Release the next version instead.
 
 The publish job uses npm trusted-publishing OIDC and has only `id-token: write`. Do not set `NPM_TOKEN`. Do not publish from a pull request or a working tree.
 

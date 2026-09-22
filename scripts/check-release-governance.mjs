@@ -123,6 +123,17 @@ function positiveId(value) {
 }
 
 /**
+ * An empty reviewer list is the unattended policy: the tag push alone starts
+ * publication, and the live environment must not prevent self-review because
+ * there is no review.
+ * @param {any} desired
+ * @returns {boolean}
+ */
+function reviewRequired(desired) {
+  return (desired?.principals?.environmentReviewers?.length ?? 0) > 0;
+}
+
+/**
  * @param {any} desired
  * @returns {string[]}
  */
@@ -140,10 +151,9 @@ export function validateDesiredGovernance(desired) {
     errors.push("controlled tag actor is not configured with a stable ID and type");
   if (
     !Array.isArray(reviewers) ||
-    reviewers.length === 0 ||
     reviewers.some(/** @param {any} item */ (item) => !positiveId(item?.id))
   )
-    errors.push("at least one independent reviewer stable ID is required");
+    errors.push("environment reviewers must be a list of stable IDs");
   if (
     Array.isArray(reviewers) &&
     reviewers.some(
@@ -151,11 +161,7 @@ export function validateDesiredGovernance(desired) {
     )
   )
     errors.push("tag actor and environment reviewer must be distinct");
-  if (
-    desired?.environment?.name !== "release" ||
-    desired?.environment?.preventSelfReview !== true ||
-    desired?.environment?.canAdminsBypass !== false
-  )
+  if (desired?.environment?.name !== "release" || desired?.environment?.canAdminsBypass !== false)
     errors.push("release environment review protections are incomplete");
   const policy = desired?.environment?.deploymentPolicy;
   if (
@@ -328,8 +334,8 @@ export function compareGovernance(desired, liveInput) {
   };
   check(live.environment?.name === desired.environment.name, "release environment name drifted");
   check(
-    live.environment?.preventSelfReview === true,
-    "release environment does not prevent self-review",
+    Boolean(live.environment?.preventSelfReview) === reviewRequired(desired),
+    "release environment self-review policy drifted",
   );
   check(
     live.environment?.canAdminsBypass === false,

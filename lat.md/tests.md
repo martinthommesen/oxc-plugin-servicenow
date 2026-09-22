@@ -213,6 +213,24 @@ The CI `test` job and the release `validate` job must both invoke `typecheck`, `
 
 Registry-installed package code runs only after the release tarball is immutable and cannot provide an artifact to the npm publish or GitHub release jobs.
 
+### Merging a version tags it exactly once
+
+The tag script creates one tag at the exact `main` commit, defaults the version to `package.json`, and returns an existing tag without a push.
+
+It refuses a version the changelog does not name before touching `main`. The workflow runs on a push to `main` that changes `package.json` or `CHANGELOG.md`, with a read-only token, no dependency install, and the app token scoped to this repository.
+
+### One command prepares a release pull request
+
+`releaseChangelog` moves the `Unreleased` notes under a dated version heading, leaves `Unreleased` empty, and the result passes the release changelog check.
+
+It refuses an empty `Unreleased` section, a heading the changelog already has, and a changelog without `Unreleased`. The repository changelog prepares cleanly for a hypothetical next version. `prepareRelease` sets the same version in `package.json` and both lockfile entries and rejects a repeated or non-SemVer version.
+
+### The unattended release environment is audited as such
+
+The authoritative policy names no environment reviewers, and the audit holds the live environment to that shape.
+
+The audit accepts a live environment with no protection rules and reports drift when the live environment gains reviewers or a self-review setting.
+
 ## Fluent manifest
 
 The SDK model has two trust boundaries: the reviewed API inventory, and the published artifact it was read from.

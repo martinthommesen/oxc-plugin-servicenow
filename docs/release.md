@@ -12,17 +12,16 @@ npm run validate
 
 This command does not publish, create a tag, or prove live governance. It cleans and inspects a package artifact, runs the packed consumer, and checks the implementation, tests, docs, manifest, benchmark, and workflows.
 
-Release readiness also requires approved external actions:
+A release is one command and one merge. `npm run release:prepare -- <version>` sets the `package.json` and `package-lock.json` version and moves the `Unreleased` notes under the exact dated release heading; it refuses an empty `Unreleased` section, a repeated version, or a version that is not exact SemVer. Open a pull request with those edits. Merging it to protected `main` does the rest:
 
-1. Configure the controlled tag actor and at least one independent environment reviewer in `scripts/release-governance.json`.
-2. Verify the desired policy against live GitHub and npm settings.
-3. Move the applicable `Unreleased` notes under the exact release heading.
-4. Merge the approved stack to protected `main`.
-5. Create `v<version>` at the exact current `origin/main` commit.
-6. Approve the protected `release` environment deployment.
-7. Verify the registry package, provenance, and GitHub release.
+1. `Create release tag` runs when the push changes `package.json` or `CHANGELOG.md`. It reads the version from `package.json`, exits when `v<version>` already exists, checks the changelog heading, confirms `main` still equals the pushed commit, and lets the `Release Sentinel SN` app create the tag.
+2. The tag push starts `.github/workflows/release.yml`, which validates, publishes through the `release` environment, verifies the registry package and provenance, and creates the GitHub release.
 
-Keep `main` unchanged until the release workflow's initial tip check passes. The check runs immediately after checkout and before dependency installation. If the tip changed first, cut a new version after review; protected release tags are immutable and must not be moved.
+The `release` environment has no required reviewers, so nothing waits for a person. `scripts/release-governance.json` records that unattended policy; the governance audit rejects a live environment that gains reviewers, a self-review setting, or administrator bypass. The remaining controls are pull-request-only `main` with required status checks, app-only tag creation, tag immutability, and the artifact identity checks in the release workflow.
+
+A second merge to `main` before the release workflow's tip check runs makes that check fail. The check runs immediately after checkout and before dependency installation. Protected release tags are immutable and must not be moved, so that version number cannot be reused; release the next version.
+
+The manual `Create release tag` dispatch remains as a retry for the same version, for example when the tag job failed before creating the tag. It performs the same checks.
 
 Treat each incomplete step as `Live-pending`. Do not describe a green local check as live release proof.
 
@@ -123,7 +122,7 @@ The recovery workflow fetches the immutable tag and registry package. It verifie
 
 `scripts/release-governance.json` is the desired policy. `docs/release-governance-status.json` is a point-in-time capture, not permanent live proof.
 
-The repository uses an independent tagger and approver flow. The `Release Sentinel SN` GitHub App can create `v*` tags. The app cannot approve the `release` environment. The environment requires approval from `martinthommesen`, prevents self-review, blocks administrator bypass, and accepts only `v*` tag deployments.
+The `Release Sentinel SN` GitHub App is the only principal that can create `v*` tags. The `release` environment has no required reviewers, blocks administrator bypass, and accepts only `v*` tag deployments. `docs/release-governance-status.json` predates the unattended policy and still lists a reviewer; rerun the audit after the environment changes and replace that capture.
 
 Use the read-only manual workflow `Governance audit` to compare current GitHub controls with the desired policy. You can run the same checker locally:
 
@@ -137,7 +136,7 @@ The npm trusted-publisher read API requires an authenticated npm publishing sess
 npm trust list oxc-plugin-servicenow --json
 ```
 
-Check that it names this repository, `release.yml`, and the `release` environment. The GitHub audit checks the main ruleset contexts, tag creation and immutability, reviewer IDs, self-review prevention, administrator bypass, and tag-only deployment policy.
+Check that it names this repository, `release.yml`, and the `release` environment. The GitHub audit checks the main ruleset contexts, tag creation and immutability, the empty reviewer list, the absence of a self-review setting, administrator bypass, and tag-only deployment policy.
 
 Do not change repository or environment settings without explicit approval.
 
@@ -147,7 +146,7 @@ A stable protected-tag run must still prove all of these items:
 
 1. The tag is the exact protected `main` tip.
 2. All validate and compatibility jobs pass.
-3. An independent reviewer approves the release environment.
+3. The `release` environment deployment ran from the `v*` tag without a reviewer.
 4. npm accepts or already contains the exact inspected bytes.
 5. Registry integrity and Sigstore provenance identity pass.
 6. Every public export and declaration works from the registry package.

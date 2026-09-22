@@ -66,6 +66,18 @@ Release artifacts are frozen before validation executes registry-installed packa
 
 The release workflow builds and uploads one tarball before the consumer matrix runs. Recovery fetches and uploads the npm tarball in a read-only job, verifies package installation and imports in a separate read-only job that runs the verifier from the default branch and treats the released commit as an input, and lets the contents-write job consume only the original artifact.
 
+## Merging a version releases it
+
+A merge to `main` that carries a new `package.json` version and its changelog heading is the whole release action. No later step needs a person.
+
+`scripts/prepare-release.mjs` produces that merge's edits: `npm version` sets the package and lockfile version, and `releaseChangelog` moves the `Unreleased` notes under a dated heading that already satisfies the release gate's changelog check. It refuses an empty `Unreleased` section, so a release always has notes.
+
+`.github/workflows/create-release-tag.yml` runs on every push to `main` that changes `package.json` or `CHANGELOG.md`. `createReleaseTag` in `scripts/create-release-tag.mjs` reads the version from `package.json`, exits without changes when `v<version>` already exists, and otherwise checks the changelog heading and that `main` still equals the pushed commit before the Release Sentinel app creates the tag. A retry after `main` moved is the manual dispatch of the same workflow. Every check runs before the immutable tag is pushed, so a failed precondition never leaves a version number unusable.
+
+The tag push starts `release.yml`, which re-verifies the tag against the `main` tip, builds and inspects one tarball, runs the consumer matrix, publishes through the `release` environment with npm trusted publishing, verifies the registry bytes and provenance, and creates the GitHub release. The environment has no required reviewers. Whether the live environment must prevent self-review is derived from the reviewer list by `reviewRequired` in `scripts/check-release-governance.mjs`, so the governance audit treats the unattended shape as the policy and still rejects a live environment that gains reviewers, a self-review setting, or administrator bypass. The remaining controls are pull-request-only `main` with required checks, app-only tag creation, tag immutability, and the artifact identity checks in `release.yml`.
+
+Two merges within the same minute can leave the first tag pointing behind the `main` tip. `release.yml` then fails its tip check and that version number cannot be reused; release the next version.
+
 ## The release and SDK axes never mix
 
 A rule versioned by the Fluent SDK must not claim an instance release, and a rule versioned by instance release must not claim an SDK range. The catalog encodes both and the checker verifies neither is stated for the wrong family. See [[domain#Two independent version axes]].
