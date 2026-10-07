@@ -46,6 +46,7 @@ export class ScopeTree {
   private nextBindingId = 1;
   private readonly byBlock = new Map<ESTree.Node, ScopeNode>();
   private readonly byId = new Map<number, ScopeNode>();
+  private readonly byNode = new WeakMap<ESTree.Node, ScopeNode>();
   private readonly declarationLists = new Map<number, ESTree.Node[]>();
   private current: ScopeNode | null = null;
 
@@ -134,7 +135,13 @@ export class ScopeTree {
     return this.executionBoundaryForScope(this.scopeForNode(node, ancestors));
   }
 
+  recordNodeScope(node: ESTree.Node): void {
+    if (this.current) this.byNode.set(node, this.current);
+  }
+
   scopeForNode(node: ESTree.Node, ancestors: readonly ESTree.Node[] = []): ScopeNode | null {
+    const indexed = this.byNode.get(node);
+    if (indexed) return indexed;
     if (this.byBlock.has(node)) return this.byBlock.get(node) ?? null;
     for (let i = ancestors.length - 1; i >= 0; i--) {
       const ancestor = ancestors[i];
@@ -262,6 +269,9 @@ function declareParams(tree: ScopeTree, node: { params: readonly unknown[] }): v
 export function buildScopeTree(ast: ESTree.Node): ScopeTree {
   const tree = new ScopeTree();
   walk(ast, {
+    "*"(node) {
+      tree.recordNodeScope(node);
+    },
     Program(node) {
       tree.enter("module", node);
     },

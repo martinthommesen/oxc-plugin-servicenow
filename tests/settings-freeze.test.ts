@@ -6,7 +6,10 @@ import {
   getValidatedSettingsResult,
   validateServiceNowSettings,
 } from "../src/settings/index.js";
-import { deriveSettingsDescriptorProducts } from "../src/settings/validate.js";
+import {
+  deriveSettingsDescriptorProducts,
+  structuralFingerprint,
+} from "../src/settings/validate.js";
 import { deepFreeze } from "../src/settings/freeze.js";
 
 function context(filename: string, servicenow?: unknown): Context {
@@ -104,5 +107,168 @@ describe("validated settings immutability", () => {
     const third = getValidatedSettingsResult(context("same.js", raw));
     assert.notEqual(third, second);
     assert.deepEqual(third.settings.surfaces, ["server"]);
+  });
+
+  // @lat: [[tests#State and settings#Settings cache identity preserves structural boundaries]]
+  it("revalidates delimiter and type-tag mutations instead of reusing valid settings", () => {
+    const raw = { surfaces: ["server", "client"] };
+    getValidatedSettingsResult(context("same.js", raw));
+    raw.surfaces = ["server,string:client"];
+    assert.throws(() => validateServiceNowSettings(raw), /surfaces/);
+    assert.throws(() => getValidatedSettingsResult(context("same.js", raw)), /surfaces/);
+  });
+
+  // @lat: [[tests#State and settings#Inherited settings remain equivalent to fresh validation]]
+  it("invalidates cached inherited settings after scalar and nested array mutation", () => {
+    const inherited = { scope: "global", surfaces: ["server", "client"] };
+    const raw: object = Object.create(inherited);
+    const first = getValidatedSettingsResult(context("same.js", raw));
+    assert.equal(first.settings.scope, "global");
+    assert.deepEqual(first.settings.surfaces, ["server", "client"]);
+    inherited.scope = "scoped";
+    const second = getValidatedSettingsResult(context("same.js", raw));
+    assert.notEqual(second, first);
+    assert.equal(second.settings.scope, "scoped");
+    inherited.surfaces[0] = "server,string:client";
+    assert.throws(() => validateServiceNowSettings(raw), /surfaces/);
+    assert.throws(() => getValidatedSettingsResult(context("same.js", raw)), /surfaces/);
+  });
+
+  it("rejects a changed inherited field type instead of reusing its cached array", () => {
+    const inherited: { surfaces: unknown } = { surfaces: ["server"] };
+    const raw: object = Object.create(inherited);
+    getValidatedSettingsResult(context("same.js", raw));
+    inherited.surfaces = 1;
+    assert.throws(() => validateServiceNowSettings(raw), /surfaces/);
+    assert.throws(() => getValidatedSettingsResult(context("same.js", raw)), /surfaces/);
+  });
+
+  it("preserves own settings that shadow invalid inherited values", () => {
+    const inherited: { scope: unknown } = { scope: "global" };
+    const raw: { scope?: unknown } = Object.create(inherited);
+    getValidatedSettingsResult(context("same.js", raw));
+    raw.scope = "scoped";
+    const own = getValidatedSettingsResult(context("same.js", raw));
+    assert.equal(own.settings.scope, "scoped");
+    inherited.scope = 1;
+    assert.equal(getValidatedSettingsResult(context("same.js", raw)), own);
+    delete raw.scope;
+    assert.throws(() => validateServiceNowSettings(raw), /scope/);
+    assert.throws(() => getValidatedSettingsResult(context("same.js", raw)), /scope/);
+  });
+
+  it("revalidates inherited array slots used by settings parsing", () => {
+    const inherited = { 0: "server" };
+    Object.setPrototypeOf(inherited, Array.prototype);
+    const surfaces: string[] = [];
+    surfaces.length = 1;
+    Object.setPrototypeOf(surfaces, inherited);
+    const raw = { surfaces };
+    const first = getValidatedSettingsResult(context("same.js", raw));
+    assert.deepEqual(first.settings.surfaces, ["server"]);
+    inherited[0] = "client";
+    const second = getValidatedSettingsResult(context("same.js", raw));
+    assert.notEqual(second, first);
+    assert.deepEqual(second.settings.surfaces, ["client"]);
+    inherited[0] = "invalid";
+    assert.throws(() => validateServiceNowSettings(raw), /surfaces/);
+    assert.throws(() => getValidatedSettingsResult(context("same.js", raw)), /surfaces/);
+  });
+
+  it("retains unknown own-key rejection when an inherited name becomes an own field", () => {
+    const inherited = { unrelated: "ignored" };
+    const raw: { unrelated?: string } = Object.create(inherited);
+    getValidatedSettingsResult(context("same.js", raw));
+    raw.unrelated = "reject";
+    assert.throws(() => validateServiceNowSettings(raw), /unknown setting/);
+    assert.throws(() => getValidatedSettingsResult(context("same.js", raw)), /unknown setting/);
+  });
+
+  it("does not evaluate inherited getters while fingerprinting raw settings", () => {
+    let reads = 0;
+    const inherited = {
+      get scope() {
+        reads += 1;
+        return "global";
+      },
+    };
+    const raw: object = Object.create(inherited);
+    assert.equal(structuralFingerprint(raw), undefined);
+    assert.equal(reads, 0);
+    const fresh = validateServiceNowSettings(raw);
+    assert.equal(fresh.settings.scope, "global");
+    assert.equal(reads, 2);
+    reads = 0;
+    const cached = getValidatedSettingsResult(context("same.js", raw));
+    assert.equal(cached.settings.scope, "global");
+    assert.equal(reads, 2);
+  });
+
+  it("fingerprints effective values returned by property reads", () => {
+    let scope = "global";
+    const raw = new Proxy(
+      { scope },
+      {
+        get(target, key, receiver) {
+          return key === "scope" ? scope : Reflect.get(target, key, receiver);
+        },
+      },
+    );
+    const first = getValidatedSettingsResult(context("same.js", raw));
+    assert.equal(first.settings.scope, "global");
+    scope = "scoped";
+    const second = getValidatedSettingsResult(context("same.js", raw));
+    assert.notEqual(second, first);
+    assert.equal(second.settings.scope, "scoped");
+  });
+
+  it("revalidates virtual Proxy array slots observed by settings parsing", () => {
+    let surface = "server";
+    const values: string[] = [];
+    values.length = 1;
+    const surfaces = new Proxy(values, {
+      has(target, key) {
+        return key === "0" || Reflect.has(target, key);
+      },
+      get(target, key, receiver) {
+        return key === "0" ? surface : Reflect.get(target, key, receiver);
+      },
+    });
+    const raw = { surfaces };
+    const first = getValidatedSettingsResult(context("same.js", raw));
+    assert.deepEqual(first.settings.surfaces, ["server"]);
+    surface = "client";
+    const second = getValidatedSettingsResult(context("same.js", raw));
+    assert.notEqual(second, first);
+    assert.deepEqual(second.settings.surfaces, ["client"]);
+    surface = "invalid";
+    assert.throws(() => validateServiceNowSettings(raw), /surfaces/);
+    assert.throws(() => getValidatedSettingsResult(context("same.js", raw)), /surfaces/);
+  });
+
+  it("distinguishes actual array holes from invalid present undefined entries", () => {
+    const surfaces: string[] = [];
+    surfaces.length = 1;
+    const raw = { surfaces };
+    const first = getValidatedSettingsResult(context("same.js", raw));
+    assert.equal(getValidatedSettingsResult(context("same.js", raw)), first);
+    Object.defineProperty(surfaces, "0", { value: undefined });
+    assert.throws(() => validateServiceNowSettings(raw), /surfaces/);
+    assert.throws(() => getValidatedSettingsResult(context("same.js", raw)), /surfaces/);
+  });
+
+  it("distinguishes typed structural boundaries and handles cyclic references", () => {
+    for (const [left, right] of [
+      [["server", "client"], ["server,string:client"]],
+      [["value", "null"], ["value,null"]],
+      [["array:[string:x]"], [["x"]]],
+      [["object:{}"], [{}]],
+    ] as const) {
+      assert.notEqual(structuralFingerprint(left), structuralFingerprint(right));
+    }
+    const cycle: { self?: unknown } = {};
+    cycle.self = cycle;
+    assert.equal(typeof structuralFingerprint(cycle), "string");
+    assert.equal(structuralFingerprint(cycle), structuralFingerprint(cycle));
   });
 });

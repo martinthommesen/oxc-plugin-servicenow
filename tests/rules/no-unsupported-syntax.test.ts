@@ -11,6 +11,26 @@ import {
 const RULE = "no-unsupported-syntax" as const;
 
 describe(`${RULE} RegExp identity`, () => {
+  // @lat: [[tests#Analysis behavior#Regex features respect lexical boundaries]]
+  it("allows lookbehind marker text in character classes and escaped literals", () => {
+    for (const pattern of ["[(?<=)]", "[(?<!)]", String.raw`\(\?<=`, String.raw`[(?<=)\]]`]) {
+      assertValidActive(`var re = /${pattern}/;`, RULE, { settings: ES5 });
+      assertValidActive(`new RegExp(${JSON.stringify(pattern)});`, RULE, { settings: ES5 });
+    }
+  });
+
+  it("recognizes real assertions after classes and escaped backslashes", () => {
+    for (const pattern of ["[(?<=)](?<=a)b", "[(?<!)](?<!a)b", String.raw`\\(?<=a)b`]) {
+      assertInvalid(`var re = /${pattern}/;`, RULE, { messageId: "lookbehind" }, { settings: ES5 });
+      assertInvalid(
+        `new RegExp(${JSON.stringify(pattern)});`,
+        RULE,
+        { messageId: "lookbehind" },
+        { settings: ES5 },
+      );
+    }
+  });
+
   it("flags direct and stable same-execution RegExp calls", () => {
     for (const code of [
       `RegExp("(?<=a)b");`,

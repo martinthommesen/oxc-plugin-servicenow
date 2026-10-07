@@ -250,20 +250,12 @@ function firstStdoutLine(host) {
 }
 
 /**
- * @param {{ tree: string, status: number | null, report: OxlintReport | null, parseError: string | null, host?: HostResult, expectations?: ProofExpectation[], expectedFileCount?: number }} input
+ * @param {{ status: number | null, report: OxlintReport | null, parseError: string | null, host?: HostResult, expectedFileCount?: number }} input
  * @returns {OxlintProof}
  */
-export function classifyOxlintProof({
-  tree,
-  status,
-  report,
-  parseError,
-  host,
-  expectations,
-  expectedFileCount,
-}) {
+export function classifyOxlintHost({ status, report, parseError, host, expectedFileCount }) {
   const reasons = hostFailureReasons(host);
-  if (status !== 0 && status !== 1 && status !== null) {
+  if (status !== 0 && status !== 1) {
     reasons.push(`unexpected status ${status}`);
   }
   const stdoutLine = firstStdoutLine(host);
@@ -321,6 +313,18 @@ export function classifyOxlintProof({
   }
 
   const pluginRules = pluginRuleIds(report);
+  return { ok: reasons.length === 0, reasons, pluginRules, hostFaults, unexpectedErrors };
+}
+
+/**
+ * @param {{ tree: string, status: number | null, report: OxlintReport | null, parseError: string | null, host?: HostResult, expectations?: ProofExpectation[], expectedFileCount?: number }} input
+ * @returns {OxlintProof}
+ */
+export function classifyOxlintProof(input) {
+  const { tree, status, report, expectations } = input;
+  const proof = classifyOxlintHost(input);
+  if (!report) return proof;
+  const { reasons, pluginRules, hostFaults, unexpectedErrors } = proof;
   if (tree === "valid") {
     if (status !== 0) reasons.push("valid tree requires status 0");
     if (pluginRules.length > 0) {

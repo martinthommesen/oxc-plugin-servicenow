@@ -67,15 +67,21 @@ function buildIndex(program: ESTree.Node | undefined, bindings: FileBindings): B
     const ancestorTypes = ancestors.slice(0, -1).map((ancestor) => ancestor.type);
     const start = nodeStart(owner);
     const unwrapped = unwrapExpression(target);
-    const simple = isNode(unwrapped) && unwrapped.type === "Identifier";
-    forEachResolvedPatternBinding(target, bindings, ancestors, (binding) => {
-      if (!accepts(binding)) return;
-      written.add(binding.id);
-      const entries = writes.get(binding.id);
-      const entry: BindingWrite = { boundaryId, offset, start, simple, ancestorTypes, ...detail };
-      if (entries) entries.push(entry);
-      else writes.set(binding.id, [entry]);
-    });
+    const targets =
+      isNode(unwrapped) && unwrapped.type === "VariableDeclaration"
+        ? unwrapped.declarations.map((declaration) => declaration.id)
+        : [unwrapped];
+    for (const writeTarget of targets) {
+      const simple = isNode(writeTarget) && writeTarget.type === "Identifier";
+      forEachResolvedPatternBinding(writeTarget, bindings, ancestors, (binding) => {
+        if (!accepts(binding)) return;
+        written.add(binding.id);
+        const entries = writes.get(binding.id);
+        const entry: BindingWrite = { boundaryId, offset, start, simple, ancestorTypes, ...detail };
+        if (entries) entries.push(entry);
+        else writes.set(binding.id, [entry]);
+      });
+    }
   };
 
   walk(

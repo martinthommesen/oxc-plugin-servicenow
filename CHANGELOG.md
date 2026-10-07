@@ -13,6 +13,11 @@
 
 ### Fixed
 
+- Path analysis now skips impossible loop entries, keeps mutable helper identities in branch state, and isolates assignments in uncalled bodies. Aggregate alternatives and retained GlideElement traversal consume deterministic work budgets and discard partial results on exhaustion.
+- Fluent aliases apply writes after RHS completion, invalidate authority after destructuring or loop-head writes, and resolve deep chains iteratively. Fluent ID and naming checks use effective property proofs for spreads and computed keys; directives attach consistently to brace-free `else` branches.
+- Settings cache fingerprints distinguish typed structural boundaries. Regex compatibility checks recognize actual lookbehind outside classes and escapes; sys_id templates inspect static runs after dynamic interpolations with proven token boundaries. Availability guards reject proofs invalidated by later condition effects.
+- Registry verification retries recoverable native timeouts, aborted response reads and HTTP/npm 500 failures. Offline acceptance verification and explicit network capture have separate commands and truthful proof inventories. Test helpers reject parser and host failures before semantic filtering.
+- Public script contexts and source maps are readonly in declarations, matching their frozen runtime values. Lifecycle, platform-support, mixed UI Action and strict optional-settings documentation now describe the implemented contracts.
 - `no-delete-multiple-with-windowing`, `no-unfiltered-gliderecord-bulk-operation`, and `require-glideajax-sysparm-name` now track windowing, filter, and parameter calls on a receiver that is not a bare identifier, such as `(gr = new GlideRecord("incident")).setLimit(10)`, instead of skipping the state update.
 - `prefer-setnocount-with-choosewindow` no longer merges distinct alternatives on a host that supplies no `start` offsets, so it reports the same findings on every host.
 - `fluent-directives` locates statements through portable node offsets and scans the source text when a host exposes no `getAllComments()`, instead of reporting every directive as dangling or finding none.
@@ -54,7 +59,7 @@
 
 - The `oxc-plugin-servicenow/oxfmt` types `OxfmtConfig` and `OxfmtOverride` are type aliases instead of interfaces, and they no longer carry an index signature. A misspelled option such as `printWith` is now a compile error. `defineConfig(recommendedOxfmtConfig)` still type-checks.
 - The path-analysis work budget scales with program size instead of a fixed 50k units. Dense scripts up to roughly 1,200 lines are now analyzed completely, so large legacy files can gain diagnostics that were previously dropped silently when the budget ran out.
-- The TypeScript target and library move from ES2022 to ES2023, and the project enables `exactOptionalPropertyTypes`, `noImplicitReturns`, `noPropertyAccessFromIndexSignature`, `noFallthroughCasesInSwitch`, `noUnusedLocals`, and `noUnusedParameters`. Shipped declaration files spell optional properties with explicit `| undefined`.
+- The TypeScript target and library move from ES2022 to ES2023, and the project enables `exactOptionalPropertyTypes`, `noImplicitReturns`, `noPropertyAccessFromIndexSignature`, `noFallthroughCasesInSwitch`, `noUnusedLocals`, and `noUnusedParameters`. Optional settings may be omitted; their declared values do not include explicit `undefined`.
 - The compatibility matrix tests typescript-eslint 8.70.0 against both ESLint 9.39.5 and ESLint 10.11.0; parser cells on ESLint 10 require typescript-eslint 8.56.0 or later, the first line whose peer range admits ESLint 10.
 
 ### Fixed

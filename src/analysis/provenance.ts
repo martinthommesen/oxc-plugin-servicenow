@@ -74,6 +74,8 @@ export interface ProvenanceQuery {
   bindings: FileBindings;
   /** Glide capabilities for the configured scope and release; also an input. */
   glide: GlideCapabilityView;
+  /** The per-file owner discards its facts when any dependent traversal exhausts work. */
+  onExhausted?: () => void;
 }
 
 /** Host ancestor chain, or empty when the host omits ancestors or the query fails. */

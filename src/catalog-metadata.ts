@@ -175,11 +175,9 @@ export function formatSurfaces(applicability: StructuredApplicability): string {
   if (surfaces.length === 1 && surfaces[0] === "fluent") {
     return "Fluent `.now.ts` metadata only.";
   }
-  const uiActionQualification = !surfaces.includes("ui-action")
-    ? ""
-    : surfaces.includes("server")
-      ? " UI Actions require an explicit server surface; mixed client/server UI Actions stay silent because execution regions are not classified."
-      : " Mixed client/server UI Actions stay silent because execution regions are not classified.";
+  const uiActionQualification = surfaces.includes("ui-action")
+    ? " UI Action applicability also depends on explicit client/server surfaces and the rule's execution-context gate."
+    : "";
   if (javascriptModes !== "n/a") {
     return `Applies to ${surfaces.join(", ")} when those surfaces are known.${uiActionQualification} An explicit javascriptMode also enables documented engine checks in otherwise unclassified files.`;
   }
