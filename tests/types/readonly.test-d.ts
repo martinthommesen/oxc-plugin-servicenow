@@ -27,6 +27,13 @@ import type {
 
 declare const provenance: AnalysisProvenance;
 declare const scriptContext: ServiceNowScriptContext;
+// @lat: [[tests#State and settings#Public contexts reject writes at every frozen level]]
+// @ts-expect-error The returned per-file context is immutable.
+scriptContext.scope = "global";
+// @ts-expect-error The context's source confidence map is immutable.
+scriptContext.sources.scope = "explicit";
+// @ts-expect-error The confidence query cannot be replaced on a frozen context.
+scriptContext.confidenceAtLeast = () => true;
 const provenanceKind: PublicProvenanceKind = provenance.kind;
 const surfaces: ReadonlySet<ScriptSurface> = scriptContext.surfaces;
 // @ts-expect-error The never-computed lifecycle fields were removed in 3.0 (FINDINGS.md API-002).

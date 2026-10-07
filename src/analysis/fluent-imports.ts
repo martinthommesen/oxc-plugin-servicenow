@@ -1,6 +1,13 @@
 import type { ESTree } from "@oxlint/plugins";
 import { apisByName, type FluentApiCapability, type FluentSdkManifest } from "../fluent/index.js";
-import { getName, getStringValue, isNode, nodeStart, unwrapExpression } from "../utils/ast.js";
+import {
+  getName,
+  getStringValue,
+  isNode,
+  nodeEnd,
+  nodeStart,
+  unwrapExpression,
+} from "../utils/ast.js";
 import type { BindingWriteQuery } from "./binding-writes.js";
 import { staticPropertyName } from "./members.js";
 import type { FileBindings, LexicalBinding } from "./bindings.js";
@@ -119,18 +126,17 @@ function latestSimpleValue(
   const indexed = writes.writesFor(binding.id);
   if (indexed.length === 0) return value;
   const useStart = nodeStart(use);
-  let valueOffset = nodeStart(binding.node);
+  let valueOffset = nodeEnd(binding.node);
   if (useStart < 0 || valueOffset < 0) return null;
   for (const write of indexed) {
-    if (write.kind === "for" || !write.simple) continue;
-    if (write.kind === "update") return null;
     if (isFunctionScopedWrite(write.ancestorTypes) || useInsideFunction) return null;
-    if (write.start < 0) return null;
-    if (write.start >= useStart) continue;
+    if (write.offset < 0) return null;
+    if (write.offset > useStart) continue;
+    if (write.kind === "for" || !write.simple || write.kind === "update") return null;
     if (write.operator !== "=" || isConditionalWrite(write.ancestorTypes)) return null;
-    if (write.start > valueOffset) {
+    if (write.offset > valueOffset) {
       value = write.right;
-      valueOffset = write.start;
+      valueOffset = write.offset;
     }
   }
   return value;
@@ -144,46 +150,42 @@ function resolveBindingOrigin(
   seen: Set<number>,
   writes: BindingWriteQuery,
 ): FluentImportBinding | null {
-  const expr = unwrapExpression(node);
-  if (!isNode(expr)) return null;
+  let expr = unwrapExpression(node);
+  const exportedNames: string[] = [];
+  const useInsideFunction = ancestors.some((ancestor) => FUNCTION_ANCESTORS.has(ancestor.type));
+  while (isNode(expr)) {
+    if (expr.type === "Identifier") {
+      const name = getName(expr);
+      if (!name) return null;
+      const binding = bindings.resolve(name, expr, ancestors);
+      if (!binding || seen.has(binding.id)) return null;
+      const imported = imports.get(binding.id);
+      if (imported) {
+        let origin = imported;
+        for (let index = exportedNames.length - 1; index >= 0; index -= 1) {
+          const exportedName = exportedNames[index];
+          if (!exportedName || origin.exportedName !== "*") return null;
+          origin = { ...origin, exportedName };
+        }
+        return origin;
+      }
+      const init = latestSimpleValue(binding, expr, useInsideFunction, writes);
+      if (!init) return null;
+      seen.add(binding.id);
+      // VariableDeclarator nodes do not introduce scopes. Retaining the
+      // original scope ancestors avoids an ever-growing chain of inert nodes.
+      expr = unwrapExpression(init);
+      continue;
+    }
 
-  if (expr.type === "Identifier") {
-    const name = getName(expr);
-    if (!name) return null;
-    const binding = bindings.resolve(name, expr, ancestors);
-    if (!binding || seen.has(binding.id)) return null;
-    const imported = imports.get(binding.id);
-    if (imported) return imported;
-    const useInsideFunction = ancestors.some((ancestor) => FUNCTION_ANCESTORS.has(ancestor.type));
-    const init = latestSimpleValue(binding, expr, useInsideFunction, writes);
-    if (!init) return null;
-    seen.add(binding.id);
-    // The declaration node has enough source/span data for ScopeTree; the
-    // caller's ancestors are retained for hosts with richer scope data.
-    return resolveBindingOrigin(
-      init,
-      [...ancestors, binding.node],
-      bindings,
-      imports,
-      seen,
-      writes,
-    );
+    if (expr.type !== "MemberExpression") return null;
+    const member = expr as ESTree.MemberExpression;
+    const exported = staticPropertyName(member);
+    if (!exported) return null;
+    exportedNames.push(exported);
+    expr = unwrapExpression(member.object);
   }
-
-  if (expr.type !== "MemberExpression") return null;
-  const member = expr as ESTree.MemberExpression;
-  const exported = staticPropertyName(member);
-  if (!exported) return null;
-  const namespace = resolveBindingOrigin(
-    unwrapExpression(member.object) as ESTree.Node,
-    ancestors,
-    bindings,
-    imports,
-    seen,
-    writes,
-  );
-  if (!namespace || namespace.exportedName !== "*") return null;
-  return { ...namespace, exportedName: exported };
+  return null;
 }
 
 /** Resolve a direct import, a program-point alias, or a namespace member. */

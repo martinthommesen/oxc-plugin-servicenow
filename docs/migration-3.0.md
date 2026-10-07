@@ -104,11 +104,26 @@ deprecations; only the pragma is removed.
 - The compile target moves from ES2022 to ES2023. Consumers on
   TypeScript 5.x keep working; the shipped `.d.ts` files use no newer
   declaration syntax.
-- Optional properties in shipped types are now spelled with explicit
-  `| undefined` (`exactOptionalPropertyTypes`). Code that assigns an
-  explicit `undefined` to an optional input keeps compiling; code that
-  passes options through its own `exactOptionalPropertyTypes` types may
-  need the same `| undefined` spelling.
+- With `exactOptionalPropertyTypes`, optional settings may be omitted;
+  their value types do not include explicit `undefined`. Remove a property
+  instead of assigning `undefined`, or conditionally include a defined value:
+
+  ```ts
+  import type { ApplicationScope, ServiceNowSettings } from "oxc-plugin-servicenow";
+
+  declare const scope: ApplicationScope | undefined;
+  const settings: ServiceNowSettings = scope === undefined ? {} : { scope };
+  ```
+
+- `ServiceNowScriptContext` and its `sources` map are now declared read-only,
+  matching the frozen values already returned by `getScriptContext`. Create
+  a local projection if you need to change a value:
+
+  ```ts
+  const local = { ...context, sources: { ...context.sources } };
+  local.scope = "global";
+  local.sources.scope = "explicit";
+  ```
 - `@types/node` follows the engines floor on the 22.x line. Types that
   only exist on newer Node.js releases are no longer visible.
 

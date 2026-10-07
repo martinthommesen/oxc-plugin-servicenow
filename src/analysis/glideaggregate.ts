@@ -65,7 +65,15 @@ function alternativeKey(value: AggregateAlternative): string {
   });
 }
 
-const aggregateDomain = keyedAlternativeDomain(alternativeKey, cloneAlternative);
+function alternativeWork(value: AggregateAlternative): number {
+  const tupleCount = value.committed.size + value.pending.size;
+  let tupleCharacters = 0;
+  for (const tuple of value.committed) tupleCharacters += tuple.length;
+  for (const tuple of value.pending) tupleCharacters += tuple.length;
+  return 1 + tupleCharacters * (1 + Math.ceil(Math.log2(1 + tupleCount)));
+}
+
+const aggregateDomain = keyedAlternativeDomain(alternativeKey, cloneAlternative, alternativeWork);
 
 /**
  * Report `next` / `getAggregate` before `query`, and exact getAggregate
@@ -99,6 +107,7 @@ export function findGlideAggregateIssues(
       cloneData: aggregateDomain.cloneData,
       equalsData: aggregateDomain.equalsData,
       mergeData: aggregateDomain.mergeData,
+      dataWork: aggregateDomain.dataWork,
       onCall({ call, rec, receiver, objectName, property }, report) {
         if (!rec || !receiver || !property) return;
         if (!hasAuthoritativeConstructedMethod(authority, receiver, "GlideAggregate", property)) {

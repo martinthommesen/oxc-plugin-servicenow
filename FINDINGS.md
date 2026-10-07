@@ -2,20 +2,12 @@
 {
   "schema_version": 2,
   "active": {
-    "DX-001": "sha256:70c576840acdd1331cea3d5c9d8a438f63d79b2cc0bd90a31efe8cccfbc782e5",
-    "PER-005": "sha256:08b0fc763807fd8d10ea97cecbbaaa100b7b353911b82ae17b31496a4a659f11",
     "POS-001": "sha256:adc9ac92bda1f1c60bb68ca3b425a6590b86298cb9cab4f1c618c4928946d1a5",
     "POS-002": "sha256:908dc8e6e5e03e194d3dcad7511c33276d2a5f8b18c4ec8efbe5e0bb29dc9717",
     "POS-003": "sha256:3087877db8798eebc67f1589a5d1413e150f8c578e1074bb174a1115fead92bb",
     "POS-004": "sha256:ee1ad71a309725cf40706db3eb903f878c6645f831afa923bfad5fb43d1c945a",
     "POS-005": "sha256:57556824f48f4f622eb690350a76499527a3cac92c05ac23ec5aa155afae2fe1",
-    "REM-002": "sha256:1f88e19dadf25b800cf35e1bafb8701c40062e4b5d338832d2efd3f24af4456b",
-    "TST-004": "sha256:b36a4fd4a971d3cc180a8d69b3c031ed342f6d5a8ea02b66049df2c798321b82",
-    "TST-005": "sha256:5abec988a9c7f27541a7818810d93848109bb3e7f38adeaa2e617b727962ff21",
-    "COR-003": "sha256:01c45fb2d0575575fae8303154fb684dbb3cf7e427d921fd03c1e8bf7f907859",
-    "COR-017": "sha256:a50639e51038f09dcfb551c99a553418d6776cdae0a52abd2b3b7a7fd2db36e3",
-    "TST-006": "sha256:3681425ff2a2cd4be9953950024c8f3b89b3ed7c89812c3e1c94c3be8087cb28",
-    "DOC-006": "sha256:2503d288fe94e2bddfa32c2abb006e7de5aa671e26c8ac1da8359ff991865763"
+    "REM-002": "sha256:1f88e19dadf25b800cf35e1bafb8701c40062e4b5d338832d2efd3f24af4456b"
   },
   "retired": {
     "API-001": {
@@ -33,6 +25,11 @@
       "status": "resolved",
       "replacement_ids": []
     },
+    "API-004": {
+      "fingerprint": "sha256:8513af8544896f36a2dc56838604bf2b64060814577985eeb11426e7c450a75f",
+      "status": "resolved",
+      "replacement_ids": []
+    },
     "COR-001": {
       "fingerprint": "sha256:71f83ae40ac2400985e871afea448c91ee18a6bc5c31ec2bb582955fa578f125",
       "status": "resolved",
@@ -44,6 +41,11 @@
       "replacement_ids": [
         "COR-008"
       ]
+    },
+    "COR-003": {
+      "fingerprint": "sha256:01c45fb2d0575575fae8303154fb684dbb3cf7e427d921fd03c1e8bf7f907859",
+      "status": "resolved",
+      "replacement_ids": []
     },
     "COR-004": {
       "fingerprint": "sha256:259b74931cb08b1ee856cdeed05fefd01a81cd150c5f0153b78b678c5d7b5ce1",
@@ -58,9 +60,7 @@
     "COR-006": {
       "fingerprint": "sha256:18dde035608308ab4ff5c3c9b806c44f09ddd95c3cef29821af5e66587e80bad",
       "status": "resolved",
-      "replacement_ids": [
-        "COR-009"
-      ]
+      "replacement_ids": []
     },
     "COR-007": {
       "fingerprint": "sha256:ac7984c3e51165d87c20640c4656090b01e0c0f5689830c77437d46042230292",
@@ -112,6 +112,46 @@
       "status": "resolved",
       "replacement_ids": []
     },
+    "COR-017": {
+      "fingerprint": "sha256:a50639e51038f09dcfb551c99a553418d6776cdae0a52abd2b3b7a7fd2db36e3",
+      "status": "resolved",
+      "replacement_ids": []
+    },
+    "COR-019": {
+      "fingerprint": "sha256:9112d0bb0c384690ce796cd966d19ba024c8a03eef017dfaf5550039c172b2af",
+      "status": "resolved",
+      "replacement_ids": []
+    },
+    "COR-020": {
+      "fingerprint": "sha256:e8afa694c52bf6a8253162161efe0474a4f3083e06faeeec562e7168d17544df",
+      "status": "resolved",
+      "replacement_ids": []
+    },
+    "COR-021": {
+      "fingerprint": "sha256:1daadf083f34abf494f480f33c71cbfe1b0f80519a64d731e6a86f6c2817bacb",
+      "status": "resolved",
+      "replacement_ids": []
+    },
+    "COR-022": {
+      "fingerprint": "sha256:7f7bfe08842aab106a57136257dd24e32aefee73d0232594943d63d642b2c93f",
+      "status": "resolved",
+      "replacement_ids": []
+    },
+    "COR-023": {
+      "fingerprint": "sha256:be149693372e8bca2bad3bebf19ad74b64f7fcd254d793d9f2fb83abca2fdbf4",
+      "status": "resolved",
+      "replacement_ids": []
+    },
+    "COR-024": {
+      "fingerprint": "sha256:5e9a39fd615792ff73abfb5cc1a55a543fde9e829de6031984e75aa5b4d61697",
+      "status": "resolved",
+      "replacement_ids": []
+    },
+    "COR-025": {
+      "fingerprint": "sha256:3851099cacd0a7316f1336ea80bdd7abcc1bf8ad0405b7c06bd345d4f75eb3cb",
+      "status": "resolved",
+      "replacement_ids": []
+    },
     "DOC-001": {
       "fingerprint": "sha256:3397b0541e26940c3948532d832a0f46a069ed0bccf37404b1615864cc01fe29",
       "status": "resolved",
@@ -137,6 +177,31 @@
       "status": "resolved",
       "replacement_ids": []
     },
+    "DOC-006": {
+      "fingerprint": "sha256:2503d288fe94e2bddfa32c2abb006e7de5aa671e26c8ac1da8359ff991865763",
+      "status": "resolved",
+      "replacement_ids": []
+    },
+    "DOC-007": {
+      "fingerprint": "sha256:c74774f015102d551c436cf8e06aa885f6d2dc3384d227d9c798dd3340ac885b",
+      "status": "resolved",
+      "replacement_ids": []
+    },
+    "DOC-008": {
+      "fingerprint": "sha256:bcc07a13f74e1f76dfe20ca5aa3192aacbcb977ddd8fa6aac95a886b15070a50",
+      "status": "resolved",
+      "replacement_ids": []
+    },
+    "DOC-009": {
+      "fingerprint": "sha256:9b0bef142b5f93fa572758144e8667dac720b56772f3a49de79f1d294eb3d7b4",
+      "status": "resolved",
+      "replacement_ids": []
+    },
+    "DX-001": {
+      "fingerprint": "sha256:70c576840acdd1331cea3d5c9d8a438f63d79b2cc0bd90a31efe8cccfbc782e5",
+      "status": "resolved",
+      "replacement_ids": []
+    },
     "FEAT-001": {
       "fingerprint": "sha256:0b46f56e5e64ffdb895f62be9b926a0c28d6593d438dfd5909ef9eacbaba5323",
       "status": "resolved",
@@ -159,6 +224,11 @@
     },
     "IMP-002": {
       "fingerprint": "sha256:94a22540162ef1ada6c1c0f059909b75f3d602965856c91f5969a2e2fbf43dba",
+      "status": "resolved",
+      "replacement_ids": []
+    },
+    "IMP-003": {
+      "fingerprint": "sha256:8485c41bfcfba1e0aacf91df5236c47b6ae1fc406a88a3d5853fe995abe664ed",
       "status": "resolved",
       "replacement_ids": []
     },
@@ -269,9 +339,7 @@
     "PER-002": {
       "fingerprint": "sha256:7e3f85e5775af0fb15ca98e698cab5e1e581b07633a9f388514db2659a6e1fad",
       "status": "resolved",
-      "replacement_ids": [
-        "PER-003"
-      ]
+      "replacement_ids": []
     },
     "PER-003": {
       "fingerprint": "sha256:b76e46af37f0b4d83044be71c81064a6d3f4ceda6f9380652d6b5ccbb0bd4c13",
@@ -285,8 +353,18 @@
       "status": "resolved",
       "replacement_ids": []
     },
+    "PER-005": {
+      "fingerprint": "sha256:08b0fc763807fd8d10ea97cecbbaaa100b7b353911b82ae17b31496a4a659f11",
+      "status": "resolved",
+      "replacement_ids": []
+    },
     "PER-006": {
       "fingerprint": "sha256:07a0c4d0e6d81b61a7b118c95cbfd01984d1a228590aabce0133ac59850c51cf",
+      "status": "resolved",
+      "replacement_ids": []
+    },
+    "PER-007": {
+      "fingerprint": "sha256:ac455aba371433ffd4a0164fbe16fe87f248a2ff83fc3e5d0df3096679fcabeb",
       "status": "resolved",
       "replacement_ids": []
     },
@@ -309,6 +387,16 @@
     },
     "REL-004": {
       "fingerprint": "sha256:57aa7755e1ef3ad409bae47cc03bbbad833dd5f5d2bf249fab838fcd100bafcf",
+      "status": "resolved",
+      "replacement_ids": []
+    },
+    "REL-005": {
+      "fingerprint": "sha256:41ff84a3b63eb25986ba7674442580146768d8a083f915978279f966ec6bb4f7",
+      "status": "resolved",
+      "replacement_ids": []
+    },
+    "REL-006": {
+      "fingerprint": "sha256:b1f32a67b3694df45c4cedbd6f9aafd610f8deb0dbcaf7cad4ae456c293798eb",
       "status": "resolved",
       "replacement_ids": []
     },
@@ -336,23 +424,43 @@
       "fingerprint": "sha256:13d3ada3ea7746f16b809978ae1c45ff30197435edc7b07c3480bfab7a85b0e4",
       "status": "resolved",
       "replacement_ids": []
+    },
+    "TST-004": {
+      "fingerprint": "sha256:b36a4fd4a971d3cc180a8d69b3c031ed342f6d5a8ea02b66049df2c798321b82",
+      "status": "resolved",
+      "replacement_ids": []
+    },
+    "TST-005": {
+      "fingerprint": "sha256:5abec988a9c7f27541a7818810d93848109bb3e7f38adeaa2e617b727962ff21",
+      "status": "resolved",
+      "replacement_ids": []
+    },
+    "TST-006": {
+      "fingerprint": "sha256:3681425ff2a2cd4be9953950024c8f3b89b3ed7c89812c3e1c94c3be8087cb28",
+      "status": "resolved",
+      "replacement_ids": []
+    },
+    "TST-007": {
+      "fingerprint": "sha256:f1ed8761399eea431bf769abbfbd77c46cdc548679c3b476c9ab99940955d268",
+      "status": "resolved",
+      "replacement_ids": []
     }
   },
   "next_sequence": {
-    "API": 4,
-    "COR": 18,
-    "DOC": 7,
+    "API": 5,
+    "COR": 26,
+    "DOC": 10,
     "DX": 2,
     "FEAT": 4,
-    "IMP": 3,
+    "IMP": 4,
     "MNT": 9,
     "OPS": 12,
-    "PER": 7,
+    "PER": 8,
     "POS": 6,
-    "REL": 5,
+    "REL": 7,
     "REM": 3,
     "SEC": 2,
-    "TST": 7
+    "TST": 8
   }
 }
 -->
@@ -360,636 +468,137 @@
 # 1. Executive Summary
 
 Canonical root: /Users/t979259/.local/src/oxc-plugin-servicenow
-Reviewed branch and revision: refactor/modernize-codebase at 57e4b536d4983e1f11d6bc207bf9b7b9c518e65f
-Starting repository state: clean tracked and untracked worktree at 57e4b536d4983e1f11d6bc207bf9b7b9c518e65f
-Ending repository state: same revision; only root FINDINGS.md changed by this review
-Review time: 2026-09-21T10:38:29+02:00
-Review mode: REVIEW ONLY
-Starting FINDINGS.md SHA-256: sha256:35c25afddaf0eb1b50c69837b752e44c63714a5ae14e6e21d917b388291a3663
-Existing report revalidated: Partial — all ten previously active records were rechecked; two reproduced retired Fluent defects lack recoverable original identity fields, and live external historical claims were not reverified
+Reviewed branch and revision: docs/split-tag-workflow-spec at 773027da64232df0983ebbb8fb33e6ecfc0e2cd7 plus the remediation worktree
+Starting repository state: FINDINGS.md already modified; user deletions of .codex/hooks.json and .confluence-docs/.gitignore preserved
+Ending repository state: Source, tests, validation wiring and documentation updated; no original-repository commit or remote write
+Review time: 2026-10-07T12:29:09+02:00
+Review mode: REVIEW AND IMPLEMENT APPROVED FIXES
+Starting FINDINGS.md SHA-256: sha256:84f3e0c380f4132cc22c88a6bfa50069652d442f20e800b9e021c7e44f6558cc
+Existing report revalidated: Partial — every active defect and improvement has fresh regression evidence; historical retired remote closures and the unused COR number 18 provenance were not reopened
 Completion status: Partial
-Material limitations: Canonical identity reconstruction is blocked for two reproduced historical recurrences documented in section 16. Their reserved registry entries are preserved, not asserted to be currently resolved. No live GitHub/npm/ServiceNow verification, dependency advisory refresh, or installed compatibility matrix was performed. Acceptance capture failed under offline npm constraints because it explicitly includes the packed consumer. Generated/vendor code was reviewed through its boundaries, not line by line.
+Material limitations: Conditional retirement remains unmet: PR 51 was closed without merge, outstanding criteria remain and complete evidence archival is unproven. No vendor facts, dependency advisories, hosted governance or publication state were refreshed.
 
-## Overall codebase health
+All 19 confirmed defects are fixed, and the optional known-node scope optimization is implemented. The full suite passes 1,701 tests; all eight real-host example projects, strict type projects, lint, format, documentation/evidence, workflow/matrix, offline acceptance, benchmark and packed-consumer checks pass. Section 16 records the exact verification boundaries.
 
-The current clean checkout passed 1,484 offline tests, build, three type projects, lint, formatting, documentation regeneration, catalog evidence, workflow and matrix checks, all eight real-host example projects, and the full benchmark. These results coexist with reproduced correctness defects that the suite does not cover.
+Six records remain active: the conditional removal decision REM-002 and five positive patterns POS-001 through POS-005. Twenty original fingerprints moved to the retired registry as resolved, bringing it to 85 reserved identities; next-sequence values are unchanged. No finding number was recycled.
 
-There are eight active canonical defect/risk records: three Medium and five Low; no Critical or High record is supported. One conditional removal decision and five preservation records also remain active. Two further confirmed Fluent alias recurrences are recorded once in section 16, with repair guidance, but cannot be safely reactivated as canonical records without their original identity fields. This makes the report partial despite completing the review phases.
-
-## Most serious risks
-
-COR-003 produces error-level false positives for constant short-circuit expressions. COR-017 silently skips engine checks for explicitly server-named UI Actions. The identity-blocked Fluent recurrences in section 16 produce stale alias classifications and must also be included in remediation planning.
-
-## Architectural concern and alternative implementation
-
-PER-005 is the principal measured scaling concern: counter analysis still repeats whole-program scans. Reuse per-file indexing and retain the interpreter budget (POS-004). No evidence justifies replacing the analysis architecture or the host framework.
-
-## Simplification and feature portfolio
-
-REM-002 remains the one evidenced simplification/removal candidate, but merge alone does not authorize retirement: pending criteria, archival and durable-gate preservation are separate conditions. No new product feature is justified by the reviewed user journeys. Preserve the catalog as the single source for rule maps and generated documentation (POS-003).
-
-## Immediate actions and limitations
-
-Correct COR-003 and COR-017; address the reproduced Fluent recurrences after identity reconciliation; then handle PER-005 and the smaller verification/documentation gaps. The report does not claim a green hosted CI run, live release readiness, current vendor truth, or absence of vulnerabilities in unrefreshed dependencies. Section 16 records commands, failures, historical revalidation and exact evidence limits.
+The exact pre-remediation report, including its reproductions, original review scope and alternative designs, is preserved in [the 2026-10-07 review snapshot](docs/findings-2026-10-07-review.md). Its defect statements and commands describe that earlier checkout. This document describes the current remediation state.
 
 # 2. Repository and System Overview
 
-The repository is one npm package, version 3.0.0, with 634 tracked paths. There are 183 TypeScript source files, 206 test paths, 41 script paths, 69 documentation paths, 66 example paths, seven plan files, and project instruction/knowledge files. Fifty rule descriptors supply ten profile maps and ten ESLint flat counterparts.
+This TypeScript/ESM package supplies 50 ServiceNow diagnostic rules, portable binding/path analysis, offline engine/Glide/Fluent facts, Oxlint and ESLint adapters, presets and oxfmt configuration. It parses linted source without executing it.
 
-TypeScript source targets Node ESM through strict NodeNext compilation; build/release tools are checked JavaScript. The runtime dependency is @oxlint/plugins; optional peers are Oxlint, oxfmt, ESLint and typescript-eslint. The declared Node floor is 22.12.0. This review ran locally on Node 26.8.2 and npm 11.19.1; it did not execute every supported Node version.
+Public exports remain `.`, `./analysis`, `./oxfmt`, `./oxfmt.recommended.json` and `./package.json`. Readonly context declarations now match already-frozen runtime values; strict optional settings examples use omitted properties. No dependency, package version or runtime applicability gate changed.
 
-The product serves Fluent metadata authors and classic ServiceNow script authors. Its consumer interfaces are lint diagnostics, configuration maps, the read-only analysis API, and a formatter configuration. Maintainers use tests, evidence generation, example verification, benchmarks, package inspection and release/recovery workflows. There is no application server, account system, customer database or browser UI.
-
-The public export map exposes `.`, `./analysis`, `./oxfmt`, `./oxfmt.recommended.json`, and `./package.json`. Rule identifiers, messages, settings, presets and public types are compatibility boundaries. Source/dist deep imports are internal. Version 3.0 migration decisions are documented; the peer-range prose contains DOC-006.
-
-The published plugin is synchronous and has no direct filesystem/network side effects. Development tools do write structured artifacts, lock records and generated documents. Release tooling contacts npm and GitHub and makes privileged publication/tag/release changes. Those external operations were not executed. Persisted file contracts include acceptance mappings, verification manifests, benchmark JSON and publish-input artifacts; there is no database migration contract.
-
-Generated boundaries include the Fluent declaration snapshots, version literal, rule pages, compatibility/engine documentation and selected example configurations. Installed node_modules and dist are third-party/generated output; their boundaries and package contents were checked rather than auditing every generated line. The clean starting checkout was reviewed in place, with write-producing validation in a local clone containing copied existing dependencies.
+The shared path state owns mutable callable alternatives, domain payload work is charged, independent retention traversal is bounded, and known AST nodes have indexed lexical ownership. Fluent proof remains conservative for unsupported writes, unknown spreads and computed properties. Acceptance defaults to offline capture; network consumer capture runs explicitly in the separate CI consumer job.
 
 # 3. Coverage Ledger
 
-| Area | Review depth | Main contents | Risks/focus | Evidence inspected | Reduced-coverage basis |
-| --- | --- | --- | --- | --- | --- |
-| src/analysis | Deeply reviewed | Shared bindings, path interpreter, aliases and domain facts | Reachability, host offsets, writes, caches, budgets | Current call chains, targeted reproductions and analysis tests | Individual unaffected branches sampled; no claim of exhaustive path enumeration |
-| src/rules | Reviewed | Fifty rule implementations and helpers | Gates, lifecycle, diagnostics and repeated scans | Gate helper trace, aggregate rule, Fluent identity and full rule suite | Shared mechanisms traced deeply; every rule was not manually read line by line |
-| src/context, src/settings, src/options, src/types.ts, src/surfaces.ts | Deeply reviewed | Input contracts and context classification | Validation, mutation, precedence, filename composition | Descriptors, resolver, filename rules, context/freeze tests and COR-017 reproduction | None for cited conclusions |
-| src/engine, src/glide | Reviewed | Versioned engine/API knowledge | Release/scope intersection and unknown facts | Capability tables, consumers and version tests | External ServiceNow sources not refreshed |
-| src/fluent excluding declaration-snapshots.ts | Reviewed | SDK registry, lifecycle, evidence and selection | Exact-version support and alias interpretation | Registry/manifest/evidence modules and manifest tests | No new SDK registry fetch |
-| src/fluent/declaration-snapshots.ts | Generated | SDK declaration evidence | Generator and consumer boundary | Snapshot schema, generation/selection and 27-version manifest check | Generated content not reread line by line |
-| src/catalog, src/catalog.ts, src/catalog-metadata.ts, src/configs, src/release-reviews.ts | Reviewed | Catalog, profiles and evidence | Drift, applicability and identity | Descriptor projections, gate check, catalog/evidence tests and regeneration | Per-rule external factual claims not independently re-researched |
-| src/utils, src/index.ts, src/constants.ts, src/version.ts, src/oxfmt | Reviewed | Shared AST helpers and package composition | Portable offsets, public exports, version and preset parity | Accessors, entrypoints, type fixtures and formatter tests | Version literal is generated |
-| tests | Reviewed | Unit, real-host, contract, release, concurrency and scaling tests | Meaningful assertions and missing cases | Full offline suite; targeted host/mutation probes; gate-negative cases | Packed-consumer unavailable offline; fixture data sampled |
-| scripts excluding PR51 apparatus | Deeply reviewed | Build, docs, benchmark, release, governance and host verification | Side effects, provenance, retry, cleanup and command gates | Scripts and transitive helpers, local checks, package inspection | Live API/registry operations not executed |
-| PR51 apparatus: scripts/pr51-acceptance.json, scripts/verify-acceptance-ledger.mjs, docs/pr-51-*, FINDINGS-REMEDIATION.md, plans | Reviewed | One-off acceptance state and plans | Retirement, stale claims, lock/reports | Decision conditions, ledger counts, callers, lock tests and constrained capture attempt | Individual ledger rows sampled; live obligations unresolved |
-| .github | Reviewed | Five workflows, templates, dependency automation | Permissions, pins, gate consistency and release/recovery | YAML, central pin check, workflow tests and TST-006 trace | Hosted settings, approvals and run state not verified |
-| docs excluding PR51 documents and generated pages | Reviewed | Consumer, migration, architecture and operator guidance | Contract accuracy and maintained decisions | README links, migration/release/non-goals/decisions/performance docs | Research notes sampled; historical web evidence not refreshed |
-| docs/rules and generated docs regions | Generated | Fifty rule pages and derived tables | Round-trip consistency | docs:check, fifty catalog records and 192 evidence records | Generation verifies correspondence, not vendor truth |
-| examples | Reviewed | Eight valid/invalid/format projects and loose fixtures | Consumer behavior and configuration parity | All 24 project/tree drives with real Oxlint/oxfmt, doctor and JSON proof | Fresh package installation not repeated |
-| lat.md, AGENTS.md, .agents, .claude, .cursor | Reviewed | Knowledge graph and agent workflows | Current invariants, links and verifier instructions | Semantic search on copied docs, direct graph reads, lat check, skill/config source | Auxiliary integration recipes sampled; no agent-runtime deployment |
-| Root manifests/configuration and remaining root documentation | Reviewed | Package/lock/compiler/lint/format settings and policies | Export contract, dependencies, license, packaging | package.json, lock boundary, tsconfigs, policies and successful local gates | Lock internals sampled; no current advisory/registry scan |
-| node_modules, dist, artifacts | Vendored | Installed dependencies and generated outputs | Execution and package boundaries | Existing dependency metadata; copied modules; rebuilt dist and artifact inspection | Untracked third-party/generated content excluded from handwritten-code review |
+Each active defect was reproduced before its owning change and checked with adjacent controls. Independent agents implemented separate source areas; a read-only final review found no additional actionable defect.
 
-All phases 0–22 were considered in order. Phases 7–15 applied to file-state, library/CLI contracts, subprocess/lock coordination, performance, release operations, terminal interfaces, tests, packaging and configuration. Browser/mobile accessibility, database transactions/migrations, tenant authorization, financial workflows and cloud infrastructure are not applicable: src contains a synchronous lint library, package exports expose no service, and deployment files define npm/GitHub workflows rather than an application. Only the JavaScript/TypeScript stack reference applied. No source behavior or tests were changed, so no lat.md content update was warranted; lat check passed.
+| Area | Remediation coverage | Evidence |
+| --- | --- | --- |
+| Path, bindings, provenance and domains | Constant reachability, callable joins, lexical ownership, bounded domain/retention work | Source regressions, real ESLint/Oxlint contracts, non-exhausted controls and benchmark |
+| Fluent authority, properties and directives | RHS completion, unsupported writes, effective properties, branch attachment and deep aliases | All offset shapes plus real-host regressions; deep-chain lint control |
+| Settings, text, regex and availability | Structural keys, dynamic template tails, lexical regex features and ordered mutation | Exact reproductions, neighboring valid cases and both-host contracts |
+| Release and validation | Native/body transport retry, offline dispatch, raw parser/host failures | Layer7 recovery/exhaustion controls, acceptance inventory and packed consumers |
+| Public types and documentation | Frozen context signatures, strict settings omissions, lifecycle/support and mixed UI Action prose | Emitted declarations under strict exact optional types; semantic source/host controls and generated roundtrip |
+| Conditional retirement | Remote merge state, canonical dispositions and archive requirements | Read-only PR/compare checks; policy remains unmet |
+
+Historical retired reproductions, hosted policy, fresh vendor facts and dependency advisories are outside this remediation. The original review coverage ledger remains in the preserved snapshot.
 
 # 4. Architecture and Data-Flow Map
 
-```text
-host source + filename + settings
-            |
-            v
-settings validation -> context/confidence -> per-file analysis cache
-                                            | bindings / writes / paths
-                                            | engine / Glide / Fluent facts
-                                            v
-                                      rule gates + visitors -> diagnostics
+The repairs preserve existing fact owners and public uncertainty boundaries.
 
-catalog descriptors -> rule registry + profile maps + generated docs/configs
-source -> tsc -> local tarball inspection -> consumer verification
-       -> privileged publication -> registry identity checks -> GitHub release
+```text
+source/AST + filename/settings/options
+  -> structural settings validation + frozen context
+  -> indexed lexical bindings and ordered writes
+  -> copied/joined path state + charged domain payloads
+  -> bounded independent retention and conservative Fluent proofs
+  -> catalog gates and visitors -> diagnostics
+
+required source validation -> offline acceptance report
+separate consumer job      -> explicit network acceptance capture
+exact packed artifact     -> isolated compatibility proof
+                          -> unchanged publication identity controls
 ```
 
-Rules depend on shared analysis and knowledge tables; the catalog composes implementations and metadata. The host owns parsing/source input and reporting. Settings are validated before analysis; rule options have their own schema/descriptor parsing. POS-005 applies to validated settings, not every options object.
-
-File analysis owns WeakMap caches by source identity, explicit AST identity and configuration/context fingerprint. Mutable settings are fingerprinted before reuse; SDK/capability views use finite reviewed version/scope domains. No arbitrary customer-data persistence exists in the plugin.
-
-Development tooling owns artifact directories and temporary files. Acceptance captures use a local hard-link-based lock and owner checks; direct builds/tests remain outside that lock. Abandoned reclamation claims deliberately require operator inspection, as documented. Generated reports use unique temporary outputs and exact test-proof keys. These are local coordination/file contracts, so the prior report's blanket claim that only npm publication is durable was removed.
-
-The release path has six jobs with separate permissions. Publication models success, existing-version, ambiguous and permanent failure outcomes; registry identity verification reconciles ambiguous results. This is bounded reconciliation around an immutable version, not a claim of unconditional exactly-once delivery. The desired policy is committed data; current deployed GitHub/npm policy is not inferred from it. A compromised publishing runner remains outside what digest checks alone can contain (POS-002).
+Exhaustion discards incomplete findings and shared provenance facts. Unknown execution context, unsupported writes and unresolved effective properties suppress claims that cannot be proved. Transient retries preserve strict schema, signer and artifact identity failures.
 
 # 5. Top Findings
 
-| ID | Title | Record type | Classification or decision | Severity or priority | Confidence | Affected area | Recommended action | Effort |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| COR-003 | Constant logical reachability is incorrect | Defect or risk | Confirmed defect | Medium | Confirmed | Shared path interpreter | Select reachable logical branches | Small |
-| COR-017 | Server UI Action filename evidence is discarded | Defect or risk | Confirmed defect | Medium | Confirmed | Context and engine rules | Preserve explicit server composition | Small |
-| PER-005 | Counter loops repeat full-program scans | Defect or risk | Performance risk | Medium | Confirmed | Aggregate analysis | Index facts and test active scaling | Medium |
-| TST-006 | Hosted validation omits script typechecking | Defect or risk | Testing gap | Low | Confirmed | CI/release | Add the dedicated gate to both jobs | Small |
-| TST-004 | Plain valid assertions hide application outcomes | Defect or risk | Testing gap | Low | Confirmed | Rule tests | Use outcome-aware assertions where intended | Small |
-| TST-005 | Gate checker accepts comments/wrong arguments | Defect or risk | Testing gap | Low | Confirmed | Catalog checks | Inspect executable calls and arguments | Small |
-| DOC-006 | Migration guide promises superseded peer ranges | Defect or risk | Documentation issue | Low | Confirmed | Migration instructions | Match the package contract | Small |
-| DX-001 | Benchmark revision omits dirty-source state | Defect or risk | Confirmed defect | Low | Confirmed | Benchmark provenance | Record measured source identity | Small |
-| REM-002 | PR51 tracking needs conditional retirement | Feature decision | Remove | Next | High | Maintenance workflow | Satisfy all conditions, archive, then remove | Medium |
+There are no remaining active defect or optimization records. The only pending action is conditional lifecycle retirement.
 
-This table indexes active canonical records only. The two identity-blocked, reproduced historical recurrences are fully described in section 16 and are not silently counted as resolved.
+| Active ID | Decision | Priority | Current disposition |
+| --- | --- | --- | --- |
+| REM-002 | Remove PR 51 tracking after all recorded conditions hold | Next | Retain: PR closed without merge; outstanding criteria and archive completeness remain unresolved |
 
 # 6. Detailed Findings
 
-## [COR-003] Constant logical expressions retain impossible control-flow paths
-
-Record type: Defect or risk
-ID category: COR
-Primary component: src analysis path evaluator
-Identity statement: The shared path evaluator merges branch and completion states without preserving JavaScript control-flow semantics for constants, switch tests, branch-local bindings, and finally completion
-Fingerprint: sha256:01c45fb2d0575575fae8303154fb684dbb3cf7e427d921fd03c1e8bf7f907859
-Status: Active
-
-Classification: Confirmed defect
-
-Severity or priority: Medium
-
-Confidence: Confirmed
-
-Affected components: Shared path interpreter and require-query-before-next
-
-Evidence: - `src/analysis/path-state.ts:1198-1204` always evaluates the logical right operand and joins a path that skipped it. The preceding conditional-expression handler prunes known booleans.
-- `tests/analysis/foundation.test.ts:258` covers an unknown logical condition, not the constant cases.
-- Current-source ESLint reproduction produced `missingQuery` for all five constant cases recorded below.
-
-Current behavior: The interpreter both visits unreachable right operands and loses facts from right operands that necessarily execute.
-
-Expected or preferred behavior: Honor reachable JavaScript short-circuit branches for known values, and retain conservative joins for unknown values.
-
-Trigger or scenario: A query or cursor call appears in a constant &&, ||, or ?? expression.
-
-Impact: Correct scripts receive error-level missing-query diagnostics, including diagnostics on unreachable calls.
-
-Reach: Rules consuming this interpreter; the confirmed observable consequence is require-query-before-next.
-
-Root cause: The logical-expression handler does not inspect the operator or known left-hand value before joining states.
-
-Why existing tests did not catch it: The suite covers ambiguous logical paths but misses constant logical reachability. A green suite is not evidence for these inputs.
-
-Minimal reproduction: Prefix each tail with `var gr = new GlideRecord("incident");` and lint as a server script with require-query-before-next. Each should be clean, but each reports `missingQuery`: `true && gr.query(); gr.next();`, `false || gr.query(); gr.next();`, `null ?? gr.query(); gr.next();`, `false && gr.next();`, and `true || gr.next();`.
-
-Recommended action: Prune impossible logical branches using operator-specific truthiness/nullishness checks.
-
-Alternative approaches: 1. Harden the current handler with literal-aware branch selection.
-2. Introduce a small shared constant-value classifier if the existing boolean predicates cannot express nullishness; keep its scope bounded.
-3. Document the false positives and retain them; not preferred because the message claims a reachable missing query.
-
-Preferred option: Option 1, with a small classifier only where needed. Confirmed local control-flow error; no host or instance evidence is required to establish JavaScript reachability.
-
-Implementation outline: Update LogicalExpression handling; add focused &&, ||, and ?? cases for definitely evaluated, definitely skipped, and unknown operands. Preserve effects from evaluating the left operand and abrupt completion.
-
-Compatibility and migration: No public API or data migration. Ship the focused correction and release-note changed diagnostics; revert the change if its regression tests expose unintended behavior.
-
-Validation: Unit tests must assert both facts and diagnostics; a real ESLint or Oxlint regression should exercise at least the guaranteed-query and unreachable-call cases.
-
-Effort: Small
-
-Risk of the proposed change: Medium: shared interpreter changes affect several rules; preserve conservative handling for unknown operands.
-
-Dependencies: Not applicable: the correction can be implemented independently.
-
-Open questions: Not applicable: current code and the reproduction establish the defect.
-
-## [COR-017] Explicit server UI Action filenames lose their server surface
-
-Record type: Defect or risk
-ID category: COR
-Primary component: Server UI Action filename classification
-Identity statement: Explicit server filename evidence is discarded when UI Action subtype evidence is already present
-Fingerprint: sha256:a50639e51038f09dcfb551c99a553418d6776cdae0a52abd2b3b7a7fd2db36e3
-Status: Active
-
-Classification: Confirmed defect
-
-Severity or priority: Medium
-
-Confidence: Confirmed
-
-Affected components: Filename context resolution and instance-engine rules
-
-Evidence: - `README.md:556` advertises `*.server.ui-action.js`.
-- `src/context/filename.ts:74` recognizes server only directly before the extension; `:134-146` adds UI Action first and only adds generic server evidence to an empty set.
-- `src/context/resolve.ts:79-91` falls back to AST evidence for bare UI Actions; `src/analysis/file-analysis.ts:112-129` only recognizes current/previous as server globals.
-- `src/engine/features.ts:429-430` declines bare UI Actions. Both the source harness and real ESLint reproduced the missed diagnostic.
-
-Current behavior: An explicitly server-named UI Action can resolve as a bare UI Action and skip instance-engine checks despite explicit ES5 mode.
-
-Expected or preferred behavior: Retain documented server filename evidence for UI Actions while keeping genuinely bare or mixed UI Actions conservative.
-
-Trigger or scenario: A file named approve.server.ui-action.js, or a UI Action under a project-relative server directory, contains no current/previous reference.
-
-Impact: Consumers following the troubleshooting guide can silently miss unsupported engine features.
-
-Reach: Filename-configured server UI Actions; explicit surfaces settings avoid the problem.
-
-Root cause: The generic-server fallback excludes every already-classified subtype, including the UI Action subtype that legitimately composes with server.
-
-Why existing tests did not catch it: Existing example coverage exercises client compound filenames and server scripts with stronger evidence; it does not test this documented naming-only path.
-
-Minimal reproduction: Lint `new Promise(function(resolve){resolve(1);});` with no-promise and `{javascriptMode:"es5"}`. approve.server.ui-action.js yields no messages; approve.server.js yields `construct`. The source harness also reproduces silence for src/server/approve.ui-action.js.
-
-Recommended action: Recognize compound server UI Action suffixes and retain compatible server-directory evidence for UI Actions.
-
-Alternative approaches: 1. Correct the narrow filename composition rule.
-2. Remove the documented convention and require explicit surfaces; imposes configuration on an already-promised workflow.
-3. Default every UI Action to server; not applicable because mixed/client actions would produce false positives.
-
-Preferred option: Option 1. The contract and reproduction agree; preserve subtype precedence for Business Rules, Script Includes and ACLs.
-
-Implementation outline: Adjust filename predicates and UI Action surface composition. Add filename, context, and engine-rule tests without changing bare/mixed UI Action behavior.
-
-Compatibility and migration: No public API or data migration. Ship the focused correction and release-note changed diagnostics; revert the change if its regression tests expose unintended behavior.
-
-Validation: Cover compound suffixes and project-relative directories for js/cjs/mjs, conflicting evidence, absolute paths outside the project, and explicit settings precedence.
-
-Effort: Small
-
-Risk of the proposed change: Low
-
-Dependencies: Not applicable: the correction can be implemented independently.
-
-Open questions: Not applicable: current code and the reproduction establish the defect.
-
-## [PER-005] Counter analysis repeats full-program scans for each counted loop
-
-Record type: Defect or risk
-ID category: PER
-Primary component: Per-call-site program traversal
-Identity statement: Alias and counter resolution re-walks the whole program per call site without a traversal budget
-Fingerprint: sha256:08b0fc763807fd8d10ea97cecbbaaa100b7b353911b82ae17b31496a4a659f11
-Status: Active
-
-Classification: Performance risk
-
-Severity or priority: Medium
-
-Confidence: Confirmed
-
-Affected components: prefer-glideaggregate counter analysis
-
-Evidence: - `src/rules/prefer-glideaggregate.ts:146-176` and `:178-221` walk the full program for each recognized counter loop.
-- Fluent assignment resolution already uses the per-file write index; this record now concerns the counter scans.
-- Bounded source-harness medians after a warm-up, three runs each, were 34/104/366 ms for 50/100/200 loops without path-budget exhaustion. At 400 loops the prerequisite path analysis exhausted and the run fell to 81 ms.
-- The full real-Oxlint benchmark passed separately; this is a workload-specific scaling risk, not a failed general benchmark.
-
-Current behavior: Two whole-program facts are recomputed per counted loop while prerequisite provenance remains available.
-
-Expected or preferred behavior: Compute declaration/use facts once per file or apply an explicit bound to any remaining traversal.
-
-Trigger or scenario: A classic file contains many cursor-count loops, with post-loop writes as in the benchmark shape.
-
-Impact: Increasing loop count adds avoidable analysis latency. The measured region grows faster than linearly.
-
-Reach: Large classic files using prefer-glideaggregate. No production incident or unbounded curve at all sizes was established.
-
-Root cause: Counter declaration and allowed-use checks are implemented as per-site walks instead of indexed queries.
-
-Why existing tests did not catch it: The alias scaling test does not cover counters, and the benchmark uses one counter size. Exhaustion can make a naive scaling comparison appear faster by disabling analysis.
-
-Minimal reproduction: Generate 50, 100 and 200 independent GlideRecord count loops with post-loop counter updates; time lintWithAnalysis for prefer-glideaggregate and assert pathBudgetExhausted is false. Do not interpret the 400-loop result as successful scaling.
-
-Recommended action: Index the counter declaration/use facts and add an active-analysis scaling regression.
-
-Alternative approaches: 1. Extend the existing per-file index with the exact declaration/use information required.
-2. Budget existing scans; bounds work but preserves repeated cost and can reduce coverage.
-3. Keep current behavior for small files; viable temporarily but inconsistent with the documented traversal invariant.
-
-Preferred option: Option 1. Current measurements support the direction, but the exact speedup must be measured after implementation.
-
-Implementation outline: Migrate the two walks to queries without changing binding, execution-order, or allowed-use semantics. Reuse existing index ownership; do not change the interpreter budget to mask the cost.
-
-Compatibility and migration: No public API or data migration. Ship the focused correction and release-note changed diagnostics; revert the change if its regression tests expose unintended behavior.
-
-Validation: Preserve aggregate diagnostics and no-report controls; measure several sizes while explicitly rejecting exhausted runs as valid scaling evidence.
-
-Effort: Medium: declaration and use indexing plus equivalence and scaling coverage.
-
-Risk of the proposed change: Medium: an incorrect index can change alias and counter semantics.
-
-Dependencies: Not applicable: the correction can be implemented independently.
-
-Open questions: The target practical file-size distribution is not established; retain the existing benchmark and report active-analysis measurements rather than promising a numerical speedup.
-
-## [TST-004] Plain valid assertions do not prove whether a rule applied
-
-Record type: Defect or risk
-ID category: TST
-Primary component: Rule test valid-case assertions
-Identity statement: A valid-case assertion cannot distinguish a rule that found nothing from a rule whose context gate skipped the file
-Fingerprint: sha256:b36a4fd4a971d3cc180a8d69b3c031ed342f6d5a8ea02b66049df2c798321b82
-Status: Active
-
-Classification: Testing gap
-
-Severity or priority: Low
-
-Confidence: Confirmed
-
-Affected components: Negative and deliberate-skip cases under tests/rules
-
-Evidence: - `tests/helpers/rule-tester.ts:106-109` asserts only zero diagnostics; `:118-147` provides active and skipped alternatives.
-- Reopened residue includes no-glideajax-getanswer:91, require-callback-for-getreference:271, require-glideajax-sysparm-name:114, validate-glideaggregate-calls:153, no-delete-multiple-with-windowing:152, phase5:132, fluent-ids:147, glide-and-engine:1209, phase3:268/590/736/1129/1329, and no-map-set:130, all under tests/rules/*.test.ts.
-- Those locations contain 14 test blocks in 10 files and 21 plain assertions; no-map-set:29-35 adds another gate-declined block. This is a checked subset, not a full suite count.
-
-Current behavior: Plain assertions can pass whether before() declined or the rule ran without messages.
-
-Expected or preferred behavior: Deliberate applicability tests should assert a skip; semantic negative tests should assert that the rule was active.
-
-Trigger or scenario: A gate changes while the selected fixture still produces no diagnostics.
-
-Impact: The tests can miss an applicability regression. They still prove absence of diagnostics and do not invalidate unrelated tests.
-
-Reach: The cited rule cases and future plain negative assertions relying on gate behavior.
-
-Root cause: Call sites still use a message-only assertion after the harness gained explicit outcome assertions.
-
-Why existing tests did not catch it: There is no enforcement requiring an outcome-aware assertion for gate-sensitive unit cases.
-
-Minimal reproduction: The server filename in tests/rules/no-glideajax-getanswer.test.ts:91-98 passes assertValid, but assertValidActive rejects it because the client rule declined.
-
-Recommended action: Use assertSkipped for intentional gate skips and assertValidActive for semantic negative coverage.
-
-Alternative approaches: 1. Migrate the known cases in a focused change.
-2. Make assertValid require activation globally; stronger but produces a larger migration.
-3. Retain the assertion when only zero messages is the intended contract; document that narrower purpose.
-
-Preferred option: Option 1. Preserve plain assertions only when their message-only contract is deliberate.
-
-Implementation outline: Edit the cited test cases, retain the harness outcome controls, and audit other gate-sensitive cases as they are touched.
-
-Compatibility and migration: Test-only change with no public contract migration; revert individual assertion changes if the intended contract was misidentified.
-
-Validation: Converted cases should fail when the intended gate outcome is inverted, while existing negative semantic cases must remain active.
-
-Effort: Small
-
-Risk of the proposed change: Low
-
-Dependencies: Not applicable: the correction can be implemented independently.
-
-Open questions: Not applicable: current code and the reproduction establish the defect.
-
-## [TST-005] Catalog gate agreement can be satisfied by comments or wrong client arguments
-
-Record type: Defect or risk
-ID category: TST
-Primary component: Catalog gate-agreement check
-Identity statement: The gate-agreement check matches helper names without verifying placement, surface arguments, or comment exclusion
-Fingerprint: sha256:5abec988a9c7f27541a7818810d93848109bb3e7f38adeaa2e617b727962ff21
-Status: Active
-
-Classification: Testing gap
-
-Severity or priority: Low
-
-Confidence: Confirmed
-
-Affected components: scripts/lib/catalog-gates.mjs
-
-Evidence: - `scripts/lib/catalog-gates.mjs:35-48` scans raw source with regular expressions.
-- `:132-140` accepts appliesOnSurface for client declarations without checking its surface argument.
-- Pure-helper reproductions accepted both a comment-only server helper and appliesOnSurface(script, "server") for a client declaration.
-
-Current behavior: The check proves the presence of helper-looking text, not necessarily an executable gate with the declared surface.
-
-Expected or preferred behavior: Exclude comments and string-only matches and verify required arguments; state whether visitor-inline gating is accepted.
-
-Trigger or scenario: A future gate removal leaves a comment, or a client rule invokes the wrong surface helper.
-
-Impact: The applicability drift check can report success for a defective rule. No current shipped rule was shown to exploit these matcher gaps.
-
-Reach: Catalog validation and future rule refactors.
-
-Root cause: Text matching stands in for code structure, and one alternative omits its required argument.
-
-Why existing tests did not catch it: Negative tests cover missing helpers and one wrong single-surface argument but not comment-only or wrong-client-argument cases.
-
-Minimal reproduction: Call assertRuleGateAgreement with a server declaration and source `// isServerInstanceContext(script)`, then with a client declaration and `appliesOnSurface(script, "server")`; both currently return successfully.
-
-Recommended action: Validate actual call expressions and the declared arguments, using the existing parser where useful.
-
-Alternative approaches: 1. Parse executable calls with the already-installed parser and validate their arguments.
-2. Harden text matching with reliable comment/string exclusion; smaller but more fragile.
-3. Leave the checker as a heuristic and label it so; weaker protection than the intended drift gate.
-
-Preferred option: Option 1 if its implementation remains small. It avoids replacing one brittle regex with several. No dependency addition is needed.
-
-Implementation outline: Extend the gate collector and negative tests; document inline gating separately from before()-skip observability.
-
-Compatibility and migration: Internal validator change only; update the checker and its tests together.
-
-Validation: Comment-only, string-only and wrong-surface fixtures must fail; all actual rule/delegate shapes must still pass.
-
-Effort: Small
-
-Risk of the proposed change: Low
-
-Dependencies: Not applicable: the correction can be implemented independently.
-
-Open questions: Whether visitor-inline gates are accepted is a convention decision; it does not affect the two confirmed bypasses.
-
-## [TST-006] CI and release omit the checked-JavaScript scripts gate
-
-Record type: Defect or risk
-ID category: TST
-Primary component: Hosted script typechecking
-Identity statement: Hosted CI and release validation omit the dedicated checked JavaScript scripts project
-Fingerprint: sha256:3681425ff2a2cd4be9953950024c8f3b89b3ed7c89812c3e1c94c3be8087cb28
-Status: Active
-
-Classification: Testing gap
-
-Severity or priority: Low
-
-Confidence: Confirmed
-
-Affected components: CI and release validation workflows
-
-Evidence: - `.github/workflows/ci.yml:30-35` and `.github/workflows/release.yml:48-54` run project and fixture typechecks but not typecheck:scripts. No workflow runs npm run validate.
-- `tsconfig.scripts.json` enables checkJs; tsconfig.json only enables allowJs.
-- `tests/scripts-typecheck.test.ts:21-35` checks configuration strings.
-- In the isolated copy, a temporary .mjs export annotated number and assigned a string passed the main typecheck but failed the scripts project with TS2322.
-
-Current behavior: The local aggregate command checks script bodies, but hosted pull-request and release gates omit that project.
-
-Expected or preferred behavior: Execute the dedicated scripts typecheck at both validation boundaries.
-
-Trigger or scenario: A script-body type error is introduced without a failing runtime test or incompatible imported signature.
-
-Impact: CI can be green while a required local static gate fails. No existing script-body error was found in this checkout.
-
-Reach: Maintainers and release tooling changes.
-
-Root cause: Workflow command lists were not updated when the separate checked-JavaScript project was added.
-
-Why existing tests did not catch it: The wiring test checks the package aggregate string rather than workflow execution coverage.
-
-Minimal reproduction: Create a temporary scripts/*.mjs file containing `/** @type {number} */ export const probe = "wrong";`. The main tsc project exits 0; the scripts project exits 1. The probe was removed after the isolated test.
-
-Recommended action: Add npm run typecheck:scripts to the CI test and release validate jobs.
-
-Alternative approaches: 1. Add two explicit workflow steps and assert their presence.
-2. Define a shared offline validation command used by both workflows; broader change that may be useful if command lists diverge further.
-3. Rely on local validate; leaves the demonstrated hosted enforcement gap.
-
-Preferred option: Option 1. Two explicit steps solve the current omission without reorganizing the pipeline.
-
-Implementation outline: Update both YAML files and the workflow-wiring test. Keep consumer/network jobs separate.
-
-Compatibility and migration: No consumer migration. A previously unexecuted gate may expose future script errors; fix those errors rather than suppressing the project.
-
-Validation: Check both workflows include the gate and verify the temporary type error is rejected by the same command they invoke.
-
-Effort: Small
-
-Risk of the proposed change: Low
-
-Dependencies: Not applicable: the correction can be implemented independently.
-
-Open questions: Not applicable: current code and the reproduction establish the defect.
-
-## [DOC-006] The 3.0 migration guide promises superseded peer ranges
-
-Record type: Defect or risk
-ID category: DOC
-Primary component: 3.0 migration compatibility guidance
-Identity statement: 3.0 migration instructions retain superseded peer ranges after compatibility narrowing
-Fingerprint: sha256:2503d288fe94e2bddfa32c2abb006e7de5aa671e26c8ac1da8359ff991865763
-Status: Active
-
-Classification: Documentation issue
-
-Severity or priority: Low
-
-Confidence: Confirmed
-
-Affected components: docs/migration-3.0.md
-
-Evidence: - `docs/migration-3.0.md:21-28` promises oxlint 1.83 and subsequent 1.x minors and oxfmt 0.68 and subsequent 0.x minors, and says newer minor lines remain accepted.
-- `package.json` declares only oxlint 1.83.x and oxfmt 0.68.x; the compatibility matrix checker validates that narrower policy.
-
-Current behavior: The hand-written migration guide recommends a broader compatibility contract than the package declares.
-
-Expected or preferred behavior: Describe the same accepted ranges as the package and generated compatibility documentation.
-
-Trigger or scenario: A consumer follows the 3.0 upgrade guide when selecting a newer host minor.
-
-Impact: The documented upgrade can produce peer-range conflicts or unsupported host combinations.
-
-Reach: Consumers upgrading from 2.x using the migration guide.
-
-Root cause: Peer ranges were narrowed without updating the separate migration prose and installation example.
-
-Why existing tests did not catch it: Generated compatibility checks do not inspect this hand-written section.
-
-Minimal reproduction: Compare the two peer rows and the final sentence of migration step 2 with package.json peerDependencies; the upper bounds disagree.
-
-Recommended action: Correct the ranges and use an install example consistent with the supported minor lines.
-
-Alternative approaches: 1. Correct the short migration section and link the generated compatibility table.
-2. Generate the migration section too; unnecessary for a one-time guide.
-3. Broaden package peers to match prose; not justified by the tested matrix.
-
-Preferred option: Option 1. The package manifest and matrix define the intended contract.
-
-Implementation outline: Update migration step 2, its example and the newer-minor claim; reference the maintained compatibility page.
-
-Compatibility and migration: Documentation-only clarification; no package range or public API change.
-
-Validation: Compare the revised examples and bounds with package metadata; a focused doc consistency assertion is sufficient if this section remains maintained.
-
-Effort: Small
-
-Risk of the proposed change: Low
-
-Dependencies: Not applicable: the correction can be implemented independently.
-
-Open questions: Not applicable: current code and the reproduction establish the defect.
-
-## [DX-001] Benchmark metadata records HEAD without the measured worktree state
-
-Record type: Defect or risk
-ID category: DX
-Primary component: Benchmark baseline provenance
-Identity statement: Benchmark baselines stamp the HEAD commit without detecting a dirty worktree
-Fingerprint: sha256:70c576840acdd1331cea3d5c9d8a438f63d79b2cc0bd90a31efe8cccfbc782e5
-Status: Active
-
-Classification: Confirmed defect
-
-Severity or priority: Low
-
-Confidence: Confirmed
-
-Affected components: scripts/benchmark.mjs baseline/current output metadata
-
-Evidence: - `scripts/benchmark.mjs:430` stamps git rev-parse HEAD without a dirty-state check.
-- `docs/performance-baseline.json:10` contains a commit stamp but no worktree provenance. The prior report claimed a specific dirty origin that cannot be reconstructed here, so that claim is not retained.
-
-Current behavior: Clean and modified checkouts at the same HEAD receive the same revision stamp.
-
-Expected or preferred behavior: Record whether measured source differs from HEAD and enough source identity to distinguish runs.
-
-Trigger or scenario: Run the benchmark while developing uncommitted changes.
-
-Impact: A later comparison can misattribute measurements to committed code.
-
-Reach: Consumers of current benchmark JSON and reviewed baseline files.
-
-Root cause: Revision metadata omits worktree state.
-
-Why existing tests did not catch it: Benchmark validation checks measurements and required metadata fields, not their relationship to source state.
-
-Minimal reproduction: Static proof is the unconditional HEAD query; its result is independent of uncommitted source content.
-
-Recommended action: Record source dirt or a source fingerprint alongside HEAD before measuring.
-
-Alternative approaches: 1. Add dirty-state/source identity metadata and permit development runs.
-2. Refuse baseline writes on a dirty tree; simpler but restricts development workflows.
-3. Keep HEAD-only metadata; acceptable only if consumers stop treating it as exact measured-source identity.
-
-Preferred option: Option 1. Include source-relevant dirt rather than letting the benchmark output file itself mark the run dirty.
-
-Implementation outline: Capture source state before generating artifacts; update metadata validation and clean/dirty tests. Regenerate a reviewed baseline only when otherwise warranted.
-
-Compatibility and migration: Additive internal JSON metadata; ensure old baseline readers tolerate it. No need to rerun baselines solely to rename a field.
-
-Validation: Clean and modified source must produce distinguishable metadata; output artifacts must not create a false dirty-source claim.
-
-Effort: Small
-
-Risk of the proposed change: Low
-
-Dependencies: Not applicable: the correction can be implemented independently.
-
-Open questions: Not applicable: current code and the reproduction establish the defect.
+All 19 defect records and the optional improvement are resolved. The table maps each preserved identity to its implemented behavior and primary proof. The exact original reproductions remain in [the review snapshot](docs/findings-2026-10-07-review.md).
+
+| Resolved ID | Implemented behavior | Primary regression or documentation proof |
+| --- | --- | --- |
+| COR-003 | Prune impossible loop entries and backedges; retain correlated callable, return and parameter alternatives with path state, including callee identity before argument effects. | [tests/analysis/path-reachability.test.ts](tests/analysis/path-reachability.test.ts), [tests/integration/path-state-host.test.ts](tests/integration/path-state-host.test.ts) |
+| COR-006 | Apply Fluent assignment effects after RHS completion, preserving calls evaluated during the assignment. | [tests/rules/fluent-proofs.test.ts](tests/rules/fluent-proofs.test.ts), [tests/integration/fluent-proof-contracts.test.ts](tests/integration/fluent-proof-contracts.test.ts) |
+| COR-019 | Encode structural fingerprints with escaped values, graph references and distinct holes; preserve inherited and Proxy-backed effective values and disable caching for accessors. | [tests/settings-freeze.test.ts](tests/settings-freeze.test.ts) |
+| COR-020 | Invalidate Fluent authority on destructuring, updates and indexed loop-head writes. | [tests/rules/fluent-proofs.test.ts](tests/rules/fluent-proofs.test.ts), [tests/integration/fluent-proof-contracts.test.ts](tests/integration/fluent-proof-contracts.test.ts) |
+| COR-021 | Scan regex escapes and character classes before recognizing actual lookbehind syntax. | [tests/rules/no-unsupported-syntax.test.ts](tests/rules/no-unsupported-syntax.test.ts), [tests/integration/findings-rule-contracts.test.ts](tests/integration/findings-rule-contracts.test.ts) |
+| COR-022 | Inspect every static template run after dynamic interpolations while retaining unknown token boundaries. | [tests/rules/no-hardcoded-sysid.test.ts](tests/rules/no-hardcoded-sysid.test.ts), [tests/integration/findings-rule-contracts.test.ts](tests/integration/findings-rule-contracts.test.ts) |
+| COR-023 | Invalidate availability after evaluated condition suffix mutations, ignore unreachable branches and false-loop updates, and permit a subsequent fresh check. | [tests/rules/unsupported-constructors.test.ts](tests/rules/unsupported-constructors.test.ts), [tests/rules/no-unsupported-static-methods.test.ts](tests/rules/no-unsupported-static-methods.test.ts), [tests/integration/findings-rule-contracts.test.ts](tests/integration/findings-rule-contracts.test.ts) |
+| COR-024 | Attach brace-free branch directives using an ordered consequent/alternate statement list. | [tests/rules/fluent-proofs.test.ts](tests/rules/fluent-proofs.test.ts), [tests/integration/fluent-proof-contracts.test.ts](tests/integration/fluent-proof-contracts.test.ts) |
+| COR-025 | Distinguish known, absent and unknown effective properties; respect spread/computed-key precedence for ID and naming proofs. | [tests/rules/fluent-proofs.test.ts](tests/rules/fluent-proofs.test.ts), [tests/integration/fluent-proof-contracts.test.ts](tests/integration/fluent-proof-contracts.test.ts) |
+| PER-002 | Bound independent retention work and depth; memoize cursor states and clear all partial findings on exhaustion. | [tests/analysis/domain-budget.test.ts](tests/analysis/domain-budget.test.ts) |
+| PER-007 | Charge aggregate alternative payload size and sorting work before domain copying, merging, comparisons and calls. | [tests/analysis/domain-budget.test.ts](tests/analysis/domain-budget.test.ts) |
+| REL-005 | Resolve deep Fluent aliases iteratively with cycle checks and indexed lexical ownership. | [tests/rules/fluent-proofs.test.ts](tests/rules/fluent-proofs.test.ts), [tests/integration/fluent-proof-contracts.test.ts](tests/integration/fluent-proof-contracts.test.ts), [tests/analysis/scope-ownership.test.ts](tests/analysis/scope-ownership.test.ts) |
+| REL-006 | Retry bounded HTTP/npm 500, native abort/timeout and Undici transport failures, including response-body faults; keep schema and identity failures permanent. | [tests/release/layer7.test.ts](tests/release/layer7.test.ts) |
+| OPS-004 | Default acceptance to offline tests; expose explicit network capture and run it in the separate CI consumer job. | [tests/acceptance-ledger.test.ts](tests/acceptance-ledger.test.ts) |
+| API-004 | Mark public context fields, source maps and confidence queries readonly to match frozen runtime values. | [tests/types/readonly.test-d.ts](tests/types/readonly.test-d.ts), [tests/integration/public-types.test.ts](tests/integration/public-types.test.ts) |
+| TST-007 | Reject parser errors and raw ESLint/Oxlint host failures before projecting semantic diagnostics; repair three malformed existing fixtures. | [tests/helpers/rule-tester-outcome.test.ts](tests/helpers/rule-tester-outcome.test.ts), [tests/integration/validation-helpers.test.ts](tests/integration/validation-helpers.test.ts), [tests/verify-examples.test.ts](tests/verify-examples.test.ts) |
+| DOC-007 | Correct reusable/per-file lifecycle, partial inventory and unvalidated support claims in the knowledge graph. | [lat.md/analysis.md](lat.md/analysis.md), [lat.md/invariants.md](lat.md/invariants.md), [lat.md/engine.md](lat.md/engine.md), [lat.md/glide.md](lat.md/glide.md) |
+| DOC-008 | Qualify generated mixed UI Action guidance by each rule execution-context gate and document Fluent property uncertainty. | [src/catalog-metadata.ts](src/catalog-metadata.ts), [tests/integration/findings-rule-contracts.test.ts](tests/integration/findings-rule-contracts.test.ts), [docs/rules/require-fluent-id.md](docs/rules/require-fluent-id.md) |
+| DOC-009 | Use omitted optional settings and conditional properties in migration examples; explain readonly local projections. | [docs/migration-3.0.md](docs/migration-3.0.md), [tests/integration/public-types.test.ts](tests/integration/public-types.test.ts) |
+| IMP-003 | Index known AST nodes during the existing scope-construction walk; preserve foreign-node offset fallback and binding parity. | [tests/analysis/scope-ownership.test.ts](tests/analysis/scope-ownership.test.ts) |
 
 # 7. Better and Different Ways to Implement the System
 
-No additional IMP or ALT record is supported. The useful changes correct active defects, and the successful designs have preservation records. The alternatives assessment covers each major subsystem without proposing a rewrite merely to satisfy a template.
+IMP-003 is implemented as a per-tree WeakMap of known node scope ownership. The foreign/synthetic offset fallback remains available, and tests verify indexed ownership with absent offsets and caller ancestry that differs from the target node scope.
 
-| Subsystem | Current strength/limitation | Keep and harden | Incremental or different approach | Decision and migration |
-| --- | --- | --- | --- | --- |
-| Context/settings | Explicit confidence and descriptor validation; compound server naming is lost | POS-001/POS-005 with COR-017 | Replace filename inference with mandatory settings; more consumer setup | Harden the local composition rule; preserve public settings |
-| Shared analysis | Reusable bindings/paths; logical joins and repeated counter walks need correction | COR-003 and POS-004 | Per-file query indexing for PER-005; a new interpreter would increase semantic migration risk | Focused fixes plus equivalence/scaling tests; no rewrite evidence |
-| Fluent/Glide/engine knowledge | Finite reviewed data separate from runtime analysis | Keep version axes independent | Schema/instance fetches would introduce network and ownership requirements absent from this product | Keep offline tables; review new vendor facts separately |
-| Catalog/presets/docs | One source generates several interfaces | POS-003 and TST-005 | Independent registries or generated migration prose add duplication/overhead | Keep derivation; correct DOC-006 by linking maintained guidance |
-| Host/formatter interfaces | One plugin with compatibility wrapper and config-only formatting | Preserve real-host and export tests | Separate host implementations would duplicate rule behavior | Keep current boundary; no formatter-engine replacement justified |
-| Build/release tooling | Exact artifact checks and explicit release outcomes | POS-002 and TST-006 | Shared offline gate command is an option if command drift grows | Add two missing steps now; no pipeline redesign prerequisite |
-| Remediation tracking | Exact proof mapping, but PR-specific lifetime | Keep until obligations are resolved | Read-only archival or removal under REM-002 | Archive/migrate callers together after every recorded condition |
-
-A clean-slate design would retain these same ownership boundaries. No measured scale, coupling, or product requirement justifies a new framework, service, database or cross-file project index. Public compatibility is easier to preserve with focused changes and regression tests.
+Local repository and generated-file profiles showed reduced repeated lookup work with a per-node indexing/heap cost; scope ownership is recorded during the existing construction walk. These measurements justify the implementation choice and do not establish production consumer latency. The existing benchmark passes without changing its baseline. No framework rewrite or host-dependent scope service is needed.
 
 # 8. Feature Portfolio Recommendations
 
+Retain the package capability set and the existing durable checks. Only the PR-specific lifecycle decision remains open.
+
 ## 8.1 Add
 
-No current canonical records supported: setup, diagnostics, host presets, analysis exports, example verification and release recovery already have complete entry paths. No evidence justifies new end-user capability.
+No new capability is required by these findings.
 
 ## 8.2 Improve
 
-No separate feature decision is needed: applicability and diagnostic corrections are canonical defects in section 6; duplicate feature records would obscure ownership.
+The confirmed behavior, proof, work-accounting and validation improvements are implemented and listed in section 6.
 
 ## 8.3 Simplify
 
-No additional decision supported: thin presets remain an explicit 3.x compatibility commitment in docs/decisions.md; the evidenced internal simplification is REM-002 below.
+Keep the existing owners and bounded uncertainty contracts; retirement waits for the recorded prerequisites.
 
 ## 8.4 Merge
 
-No recommendation supported: profile maps share one catalog and implementation. Distinct instance-release and Fluent-SDK axes must remain separate.
+No additional feature merge is supported by the findings.
 
 ## 8.5 Replace
 
-No recommendation supported: the demonstrated issues admit focused corrections. A host/parser/framework replacement lacks supporting evidence.
+No framework or subsystem replacement is required.
 
 ## 8.6 Deprecate
 
-No new deprecation supported: the 3.0 removals are documented and tested; external usage of remaining compatibility settings was not measured.
+No public capability is deprecated by this remediation.
 
 ## 8.7 Remove
+
+The following decision remains conditional rather than authorizing immediate deletion.
 
 ## [REM-002] Retire PR 51 tracking after all recorded conditions are met
 
@@ -1012,7 +621,7 @@ Target actor: Repository maintainers
 
 Problem or opportunity: A one-off acceptance apparatus remains executable maintenance work after its implementation purpose is substantially served.
 
-Repository evidence: Five principal extant artifacts total 17,286 lines: scripts/pr51-acceptance.json, scripts/verify-acceptance-ledger.mjs, docs/pr-51-acceptance-ledger.md, docs/pr-51-validation-report.md and FINDINGS-REMEDIATION.md. The ledger lists 53 pending and 30 live-pending criteria. docs/decisions.md:103-130 records the complete retirement conditions. package.json and both CI/release workflows still invoke the checker.
+Repository evidence: Five principal artifacts remain: scripts/pr51-acceptance.json, scripts/verify-acceptance-ledger.mjs, docs/pr-51-acceptance-ledger.md, docs/pr-51-validation-report.md and FINDINGS-REMEDIATION.md. Canonical dispositions remain 450 Verified, 35 Implemented, 18 Pending and 30 Live-pending. The fresh offline capture reports 448 verified, 53 pending and 32 live-pending because two consumer proofs require explicit network capture. [docs/decisions.md](docs/decisions.md) records the removal conditions. CI and release retain the checker.
 
 Current workaround: Maintain the one-off ledger and regenerate its validation report alongside durable gates.
 
@@ -1028,7 +637,7 @@ Non-goals: No removal of rule tests, evidence checks, package inspection, releas
 
 User or operator workflow: Confirm merge state; satisfy or explicitly abandon each pending item; archive under a tag or history directory as recorded; remove wiring; execute the remaining gates.
 
-Required permissions: An authorized repository change and, if used, an explicitly authorized archive tag. This review performs neither.
+Required permissions: The user authorized source remediation. Publishing an archive tag or changing remote merge/disposition policy is outside this task; no archive tag or REM-002 disposition was changed.
 
 Data-model changes: Not applicable: no customer database exists; only repository evidence is archived.
 
@@ -1052,9 +661,9 @@ Possible hidden or external consumers: External automation usage is not establis
 
 Usage evidence available: The command is wired into active workflows and mutates its generated report; it is not merely archival prose.
 
-Usage evidence missing: Current remote merge state and completion/abandonment of all pending criteria were not established. Inspect those deliberately before removal.
+Usage evidence missing: Completion or explicit abandonment of the outstanding canonical criteria and a complete archive of the actual tracked evidence remain unestablished. Local package-consumer success does not resolve remote or vendor obligations.
 
-Maintenance burden: The apparatus spans 17,286 lines in its five principal files, with proof names/counts that change as tests evolve.
+Maintenance burden: The apparatus spans five large principal files, with proof names/counts that change as tests evolve.
 
 Overlap with other features: Durable lint, type, test, manifest, artifact and evidence gates already protect the product; the ledger coordinates a particular remediation.
 
@@ -1080,7 +689,7 @@ Success indicators: No live PR-specific gate remains; all durable gates pass; hi
 
 Reconsideration or removal criteria: Keep the apparatus if any unresolved criterion still depends on it; reconsider only after that dependency is explicitly resolved.
 
-Final deletion criteria: All conditions in docs/decisions.md:120-130 must hold. Merge alone is insufficient. The named PR51-REMEDIATION-GOAL.md is absent at root, so resolve its actual historical location before claiming the archive is complete.
+Final deletion criteria: Every condition in docs/decisions.md:105-146 must hold. Fresh read-only GitHub evidence on 2026-10-07 shows [PR 51](https://github.com/martinthommesen/oxc-plugin-servicenow/pull/51) CLOSED with mergedAt null; closure is not merge. Comparing b87972a8336d6cf6209801395cad82f72b827436 to main reports diverged, ahead 51 and behind 91. The local archive reference preserves the historical goal, but complete current evidence archival and criterion disposition are not proven. Keep the apparatus active.
 
 Effort: Medium: caller/reference cleanup and evidence disposition dominate file deletion.
 
@@ -1100,171 +709,115 @@ Deprecation notice strategy: Document the retirement in the reviewed change and 
 
 ## 8.8 Keep
 
-Preserve POS-001 through POS-005 and the documented 3.x compatibility decisions. These are design properties already recorded canonically, not duplicate feature records.
+Preserve the positive patterns and their regression controls in section 18.
 
 ## 8.9 Experiment or Investigate
 
-No product experiment is supported by current usage evidence. Historical identity recovery and live release evidence are review limitations in section 17, not speculative product features.
+No separate active experiment is needed to close the reproduced defects.
 
 # 9. Testing and Validation Gaps
 
-TST-004 concerns explicit application outcomes, not the validity of every negative test. TST-005 needs small matcher-negative tests; TST-006 needs workflow wiring coverage. COR-003 needs operator-specific reachable/unreachable cases, and COR-017 needs context plus rule/host assertions. PER-005 requires scaling checks that reject exhausted analysis as a successful measurement. The two reproduced Fluent recurrences in section 16 need alias-write and range-only parity regressions.
+The new regressions cover the previously missing input and state shapes. Negative checks now reject parser errors, fatal/null-ID ESLint messages and Oxlint execution/load/parse failures before asserting diagnostic absence.
 
-The offline suite includes real-host, release, concurrency, malformed-input and contract tests. No generic end-to-end expansion is recommended. Tenant, database migration, browser accessibility and application authentication test categories do not apply to this library. The actual packed installation/multi-version matrix remains unverified in this offline run.
+Three existing fixtures relied on parser recovery: two top-level returns now occur inside valid function bodies, and one typed case has a TypeScript filename. Their semantic assertions remain intact. Distinct aggregate alternatives, independent cursor subsets, same-cursor memoization, deep aliases, malformed host outcomes and strict public declarations have explicit controls.
 
 # 10. Security and Privacy Summary
 
-The main inputs are repository-controlled source ASTs and settings; CI/release additionally consumes registry data, archives, workflow inputs and artifacts. Assets are diagnostic integrity, local file boundaries, release bytes and publication credentials. There is no customer account or tenant boundary in the package itself.
+The remediation preserves parsing without source execution, immutable validated settings, uncertainty and exact release identity. Recoverable transport failures receive bounded retries; authentication, schema, provenance and integrity failures remain permanent.
 
-No new confirmed security vulnerability is reported. POS-002 and POS-005 preserve useful controls; PER-005 is a bounded-work scaling concern, not evidence of a demonstrated remote exploit. Package inspection and local security regressions passed. Current dependency advisories, live rulesets, trusted-publisher configuration, approvals and vendor documentation were not refreshed. Those limits preclude a blanket security-clearance claim. No credentials, customer data or external production systems were accessed for this review.
+Network capture is explicit and assigned to the consumer job. The remediation does not access credentials, publish packages or change privileged release principals. PR creation and stack maintenance preserve release state. Local tests do not establish current hosted governance or dependency-advisory status.
 
 # 11. Performance, Reliability, and Operations Summary
 
-PER-005 is measured on a narrow active-analysis workload. The general real-Oxlint benchmark passed at 2.65x large/small recommended scaling; the 400-loop counter probe exhausted its prerequisite analysis and cannot support a favorable scaling claim. POS-004 is the backstop for the path interpreter, not every traversal. DX-001 concerns measurement provenance.
+Aggregate payload work and independent retention now have deterministic limits and whole-result clearing. Fluent alias traversal is iterative; known-node lexical lookup uses indexed ownership while foreign nodes retain the offset fallback.
 
-Local artifact/lock/recovery code was inspected and tested, including cleanup and owner-liveness cases. Live publication/recovery guarantees were not exercised. No cloud cost, production latency, user workload distribution or service availability target was established. New dashboards, queues, retry infrastructure or distributed locking are not justified by this repository.
+The fresh benchmark passes all 15 cases with 10 measured samples each and resident-memory sampling. Recommended classic small-to-large scaling is 2.65x; the baseline was not rewritten. Performance comparisons retain non-exhausted semantic controls.
+
+Native abort/timeout and Undici connect/header/body timeout/socket failures, HTTP/npm 500 and response-stream failures retry within the configured cap. Offline acceptance does not execute packed-consumer installs; explicit network capture preserves truthful evidence inventories.
 
 # 12. Dependency, Build, Deployment, and Supply-Chain Summary
 
-Local build, lint, formatting, three type projects, workflow pins, manifest and artifact inspection passed. TST-006 is the hosted enforcement gap; DOC-006 is the conflicting upgrade guidance. The package uses one runtime dependency and optional host peers, with release-only verification dependencies outside the published runtime.
+The package builds and its strict public declarations, exports, generated documents, compatibility matrix and workflow/script wiring pass local checks. Packed consumers install fixed host versions and exercise public imports and typed Fluent linting.
 
-POS-002 should remain intact across future release changes. The reviewed tarball/export checks guard unintended paths, links, maps and oversized declarations. No fresh install, dependency upgrade or live compatibility matrix was performed. The lockfile and MIT license were inspected at their package boundary; current vulnerability/advisory status was not assessed. There is no container image, application deployment or database migration to review.
+No dependency or lockfile changed. Artifact inspection and isolated compatibility execution retain exact-byte validation; no npm publication, GitHub release, deployment or hosted-policy modification was performed.
 
 # 13. Documentation and Developer-Experience Summary
 
-DOC-006 directly affects upgrades; COR-017 contradicts a documented naming convention. DX-001 makes benchmark results harder to attribute, while TST-006 makes local and hosted validation disagree. REM-002 should retire only under its full documented conditions.
+The knowledge graph now describes reusable/per-file lifecycle behavior, partial inventories and unvalidated platform support accurately. Generated rule pages qualify mixed UI Action applicability by their execution-context policy, with runtime gates preserved.
 
-The graph, non-goals, migration notes and generated rule pages are useful maintained interfaces. POS-003 protects derived facts; hand-written prose still needs review. lat check passed. No formatting issue remains: the previous report's failing format claim is obsolete. The acceptance report's historical count is not treated as this run's result; current offline and networked inventories differ by design.
+Migration guidance uses omitted optional settings, conditional fields and local mutable projections of readonly contexts. The changelog records the behavior and declaration changes. Semantic controls accompany generated and structural documentation checks.
 
 # 14. Prioritized Roadmap
 
+The implementation work is complete. Remaining work follows the recorded lifecycle policy.
+
 ## Now
 
-| ID | Goal | Dependencies | Expected value | Effort | Risk | Completion or validation criteria |
-| --- | --- | --- | --- | --- | --- | --- |
-| COR-003 | Correct constant logical reachability | None | Remove reproduced false errors | Small | Medium | Operator-specific unit and real-host regressions pass |
-| COR-017 | Preserve explicit server UI Action evidence | None | Restore documented engine coverage | Small | Low | Naming, ambiguity and host cases pass |
-| TST-006 | Execute script typechecking in hosted jobs | None | Match an existing local gate | Small | Low | Both workflows invoke the scripts project; type-error control fails |
-| DOC-006 | Correct upgrade ranges | None | Prevent unsupported upgrade guidance | Small | Low | Guide and install example match manifest/matrix |
+No active defect remediation remains. Preserve passing regression and validation controls.
 
 ## Next
 
-| ID | Goal | Dependencies | Expected value | Effort | Risk | Completion or validation criteria |
-| --- | --- | --- | --- | --- | --- | --- |
-| PER-005 | Index counter declaration/use facts | Non-exhausted baseline | Reduce repeated whole-file work | Medium | Medium | Equivalent diagnostics and active scaling evidence |
-| TST-004 | Make gate-sensitive assertion intent explicit | None | Expose application-outcome regressions | Small | Low | Deliberate skips and active negatives use matching assertions |
-| TST-005 | Check executable gate calls and arguments | Convention for inline gates | Strengthen drift validation | Small | Low | Comment/string/wrong-argument controls fail |
-| REM-002 | Retire one-off acceptance tracking | Merge, criterion disposition and archive | Reduce PR-specific maintenance | Medium | Medium | Archive retrievable; durable gates and references pass |
+| Active ID | Goal | Dependencies | Completion criteria |
+| --- | --- | --- | --- |
+| REM-002 | Retire the PR-specific tracker when authorized prerequisites hold | Merge condition, explicit outstanding criterion disposition, complete retrievable archive and durable gates | Every condition in docs/decisions.md:105-146 is demonstrated before removing files or wiring |
 
 ## Later
 
-| ID | Goal | Dependencies | Expected value | Effort | Risk | Completion or validation criteria |
-| --- | --- | --- | --- | --- | --- | --- |
-| DX-001 | Bind benchmark metadata to measured source | None | Honest run provenance | Small | Low | Clean/dirty source states distinguishable without output-induced dirt |
+No active optimization remains; evaluate future performance changes using representative profiles and non-exhausted controls.
 
 ## Investigate
 
-The identity-blocked recurrences in section 16 need their original record fields before safe canonical reactivation. They are not assigned substitute IDs or hidden among lower-priority canonical work. Section 17 defines the evidence required.
+No separate active finding is assigned here. Hosted/vendor/advisory freshness remains outside this remediation.
 
 ## Do Not Pursue
 
-No additional canonical recommendation: the alternatives assessment does not justify framework replacement, mandatory online analysis, or public preset removal. Preserve POS-001 through POS-005 while making focused corrections.
+Do not remove unresolved acceptance obligations or replace the package architecture to close these findings.
 
 # 15. Suggested Implementation Sequence
 
-COR-003 and COR-017 are independent fixes and can be reviewed separately. TST-006 and DOC-006 are small independent corrections. Reconcile the two Fluent identities and repair those reproduced defects alongside focused alias/parity tests; do not let administrative identity uncertainty obscure their engineering priority.
+The implemented sequence reproduced defects, repaired each owning module, preserved adjacent controls, updated documentation, and ran integration and consumer gates. The local-changes review extended regression coverage for correlated callable continuations, inherited and Proxy-backed settings, and unreachable availability effects. Standards fixes fuse scope indexing into the existing walk and share duplicated test assertions. The final independent review found no remaining actionable defect.
 
-Measure PER-005 before and after its index change without simultaneously raising the budget. TST-004 and TST-005 improve different verification contracts and need not delay correctness repairs. DX-001 can ship independently. REM-002 must wait for all recorded conditions and remain an archival/wiring change rather than carrying unrelated behavior changes. All source changes should be reversible commits with the relevant regression cases; this review implemented none.
+Future tracker retirement must first satisfy the recorded merge and criterion conditions, then preserve complete evidence, repair callers and references, and rerun every durable gate. This remediation does not abandon outstanding obligations or create a remote archive tag.
 
 # 16. Validation Performed
 
-The live root was `/Users/t979259/.local/src/oxc-plugin-servicenow`, clean at `57e4b536d4983e1f11d6bc207bf9b7b9c518e65f`. Read-only inspection and targeted source probes used that root. Write-producing validation ran in `/private/var/folders/jz/1m968c2933j4_mks646qgfjc0000gn/T/oxc-super-review-7fvlhadl/repo`, a local clone of the same revision with copied existing node_modules. Temporary outputs, npm cache/config and TSX cache controls were scoped outside the live repository; the environment was allowlisted and npm configured offline. This was process/file isolation, not a network namespace. No live publication, push, tag, deployment or governance mutation occurred.
+Fresh local verification ran on the isolated main-based PR tree with a writable temporary npm cache. The full suite, examples, consumers, offline acceptance and documentation roundtrip used that tree; later benchmark-fixture corrections did not change production code.
 
-## Commands and results
-
-Commands below ran in the isolated clone unless stated otherwise. Their scripts, configurations and transitive side effects were inspected; checks were cleared with the constraint that writes remain disposable and npm remains offline.
-
-| Exact command | Exit/result | Material output and writes |
+| Check | Result | Evidence boundary |
 | --- | --- | --- |
-| npm run build | 0 | Compiled current source to isolated dist |
-| node scripts/run-tests.mjs --report-json /private/var/folders/jz/1m968c2933j4_mks646qgfjc0000gn/T/oxc-super-review-7fvlhadl/tests.json | 0 | 1,484 tests passed, 186 suites, no skips/failures; about 106 seconds; includes local package artifact inspection |
-| npm run fluent:check | 0 | Reviewed SDK manifest checks passed |
-| npm run typecheck | 0 | Main strict project passed |
-| npm run typecheck:fixtures | 0 | Build plus fixture project passed |
-| npm run typecheck:scripts | 0 | Checked-JavaScript project passed |
-| npm run lint:check | 0 | No reported errors/warnings |
-| npm run format:check | 0 | Formatting passed; previous failure no longer current |
-| npm run workflow:check | 0 | Action pins and tracked script paths passed |
-| npm run compat:check | 0 | Five exact declared matrix cells checked as data; not five installations |
-| npm run verify:examples -- --all | 0 | VERIFY_RUN_ID=super-review-20260921; doctor passed, real oxlint 1.83.0 and oxfmt 0.68.0; eight projects, zero failed drives |
-| npm run docs:check | 0 | Fifty catalog records; generated files round-tripped with no tracked drift |
-| npm run evidence:check | 0 | 192 evidence records, 93 automated; artifact written in isolated copy |
-| npm run bench | 0 | Thirteen real-host cases; large/small recommended ratio 2.65; JSON output in isolated artifacts |
-| node scripts/verify-acceptance-ledger.mjs | 1 | Explicit packed-consumer npm installation failed ENOTCACHED under offline policy; no current acceptance result established |
-| lat expand '$super-review' | 0, live root | No wiki references in prompt |
-| lat locate 'invariants' | 0, live root | Located the reviewed architectural invariants |
-| lat search 'architecture invariants analysis testing release' | 0, copied lat-only directory | Bundled local embeddings indexed 101 sections; cache writes stayed outside repository |
-| lat check | 0, live root | All graph links, refs and section checks passed |
+| npm test | Pass: 1,701 tests, 207 suites, zero failures/skips | /private/tmp/findings-pr-validate.log |
+| Build and all three type projects | Pass | Runtime, valid fixtures and checked scripts; strict emitted-consumer declarations are also tested |
+| Lint and format checks | Pass | No warnings or formatting drift in source/scripts/tests |
+| npm run verify:examples -- --all | Pass: all eight projects | Doctor, host loads, source/dist fingerprint and clean examples; /private/tmp/findings-pr-validate.log |
+| npm run test:consumer | Pass: both packed-consumer tests | Fresh isolated fixed-version installs, public exports, real Oxlint and typed Fluent ESLint |
+| npm run release:check -- --consumer | Pass | 375-file exact tarball inspection and compatibility consumer; /private/tmp/findings-pr-bench-release-summary.log |
+| npm run docs:check | Pass on committed PR tree | 50 catalog records and unchanged generated roundtrip |
+| npm run evidence:check | Pass: 192 records, 93 automated proofs | /private/tmp/findings-pr-validate.log |
+| npm run acceptance:check | Pass, completion remains false | Offline: 1,701 passing tests; 448 verified, 53 pending, 32 live-pending; canonical dispositions unchanged |
+| Manifest, workflow and compatibility checks | Pass | Offline SDK inventory, pinned actions/referenced scripts and five matrix cells |
+| npm run bench | Pass: 15 cases, 10 measured samples per case | Time/RSS gate; 2.65x recommended scaling; artifacts/performance-current.json; baseline unchanged |
+| Independent Standards review | Five findings fixed, none outstanding | Scope traversal, duplicate assertions, named fixture options and private-document exclusion |
+| Independent Spec/regression review | Three defect categories extended, none outstanding | Correlated callable state, effective settings values and availability reachability; 22 bounded regression/control groups pass |
+| lat check and git diff --check | Pass | Required knowledge-graph and whitespace validation |
 
-The acceptance runner at scripts/verify-acceptance-ledger.mjs:438-446 explicitly opts into the networked consumer. The offline npm constraint prevented missing registry resolution, so this failure must not be reported as a regression in the package or as a successful acceptance capture. The existing generated report's 1,486 count includes the consumer path and is historical evidence, not the current 1,484-test offline result. No attempt was made to relax the offline constraint or install dependencies to make it pass.
+The full validate chain initially stopped at an unused declaration/expression in the new scope benchmark fixture. The fixture now uses its bindings and invokes its functions; lint, format and script types were rechecked before rerunning the benchmark and remaining release gate. No checks were weakened. RSS sampling used the authorized process-measurement escalation. No package publication occurred and no linted input was executed. The local compatibility consumer used node24-host tool pins under actual Node 26.8.2 (`sameRuntimeSmoke=true`); supported-runtime coverage remains the CI matrix.
 
-Additional reproductions used `node --import ./scripts/register-tsx.mjs --input-type=module -e <probe>` with the exact probe source retained in tool evidence/logs. Real ESLint confirmed COR-003's five constant cases and COR-017's filename differential. Pure gate-helper probes confirmed TST-005. A temporary isolated scripts/review-type-probe.mjs produced main-project exit 0 and scripts-project TS2322/exit 1 for TST-006, then was removed. The bounded counter probe for PER-005 checked exhaustion as well as elapsed time. An independent narrow 171-test analysis/rule run also passed before the full suite.
-
-Not run successfully were packed-consumer installation, the installed multi-runtime compatibility matrix, current registry drift, live governance/provenance verification and dependency advisory queries. Those require external resolution or credentials outside this review. No source fixes, formatter writes to the live tree, commits or pushes were performed. The attempted clone command with a hooksPath override was rejected by the local safety hook; the ordinary clone subsequently ran with the configured hooks preserved.
-
-## Prior report revalidation
-
-All ten previously active records were reopened against current source. TST-004 is narrowed to a Low assertion-outcome gap rather than a claim that negative tests prove nothing. PER-005 now includes measurements and the exhaustion caveat. TST-005 and DX-001 remain; the latter no longer asserts an unverified dirty origin for the old baseline. REM-002 now states every retirement condition, including pending obligations and archival. POS-001 through POS-005 remain with limits on source confidence, publishing-runner compromise, catalog factual accuracy, traversal-budget scope and options immutability.
-
-COR-003 is reactivated with its exact original identity and fingerprint recovered from `6c2ddce:FINDINGS.md`. Three new identities are COR-017, TST-006 and DOC-006. The other 61 retired entries remain reserved; their historical status is not proof of current correctness. Two of those entries have reproduced recurrences whose exact identity fields are unavailable, detailed below. No retired identifier was recycled or assigned a guessed fingerprint.
-
-Current regression evidence supports the remaining relevant retirement decisions in these groups:
-
-- API-001 through API-003 retain alternate-AST handling, removed never-computed lifecycle fields and nameable public types. FEAT-001 is a completed decision to keep thin presets through 3.x, FEAT-002 retains legacy settings while retiring the pragma, FEAT-003 supplies flat parity, and REM-001 removes the deprecated rule with migration guidance. These are verified in current source/type/host tests, not inferred from the old report.
-- COR-001 retains project-root-bounded directory evidence; COR-002/COR-008 retain anchored digest-name handling; COR-010 retains cycle-aware iterative alias resolution; COR-011 retains lifecycle reset coverage; COR-012 retains both-scope selection; COR-013 retains loop-head rebinding; COR-014 retains Fluent filename gating; COR-015 retains the implemented catalog check with its separate active TST-005 limits; COR-016 retains node-identity deduplication. COR-004/COR-005/COR-006 historical claims were examined through current analysis tests and source, without claiming exhaustive path equivalence.
-- PER-001/PER-004 retain compact declarations, package budgets and lazy finite manifests; PER-002/PER-003 retain cursor memoization and size-scaled budgets; PER-006 retains exhaustion observability. The current benchmark and budget tests passed.
-- MNT-001 through MNT-008 retain the recorded removal, generated-version, safe-lookup, publisher binding, checked-JavaScript, lifecycle evidence, example and shared-helper corrections. TST-006 is a separate hosted enforcement gap, not a claim that the checked-JavaScript implementation disappeared.
-- OPS-001/OPS-010 track configurations/scripts; OPS-004/TST-003 preserve default offline test exclusion and missing-path failures; OPS-006 validates public exports; OPS-007 retains offline/scheduled drift controls; the exact historical identity of OPS-008 was unavailable, so its mapping to current controls remains uncertain; OPS-009 preserves matrix failure status; OPS-011 narrows peer ranges. OPS-002/OPS-005 desired controls exist, but deployed rulesets/principals are not current proof. OPS-003's code is committed locally; remote backup state was not checked.
-- REL-001/REL-003 retain SemVer prerelease handling; REL-002 retains operation bounds; REL-004's desired governance omits the benchmark required status. SEC-001 retains missing-ruleset failure. TST-001 uses clock-relative local signature fixtures; TST-002 retains required history fetches. IMP-001 uses YAML parsing and IMP-002 bounds publishing npm.
-- DOC-001 retains reproducible acceptance-input hashing; DOC-002 validates evidence URL forms, not live pages; DOC-003 has restored changelog assertions and local ancestry; DOC-004 clarifies warning/command semantics; DOC-005 supplies quiet-run troubleshooting. DOC-006 is a distinct current peer-range prose mismatch.
-
-The missing historical identity fields and unrefreshed external assertions prevent a claim of complete identity-level revalidation. MNT-004 publisher-binding controls were verified, but its full historical identity text was also unavailable in the inspected revisions. Registry reservations are kept intact rather than replaced with guessed identities.
-
-## Historical COR-007: reproduced range-only alias recurrence, reactivation blocked
-
-The squash message of e01ac13 describes this exact earlier portability defect and its intended portable-offset repair. The current registry retains its original fingerprint, but all available FINDINGS history contains no original primary-component/identity fields, so canonical reactivation cannot be validated safely.
-
-Current evidence is `src/analysis/fluent-imports.ts:117,119,162` and `src/analysis/binding-writes.ts:59`: raw start offsets default to infinity. For a host with range/loc but no start/end, the reassignment can be skipped by the ordering comparison and the initial factory target retained.
-
-A real ESLint run with an explicit range-only Espree adapter reproduces the issue. For `import { BusinessRule } from "@servicenow/sdk/core"; function local() {} let T = BusinessRule; T = local; T({name:"x_test",table:"incident"});`, ordinary Espree is clean but the range-only adapter reports require-fluent-id/missing. This proves the range-only contract defect, not a live typescript-eslint installation; that parser was unavailable locally. The impact is Medium and confirmed for the adapter scenario.
-
-The smallest repair is consistent portable nodeStart access with genuinely unknown ordering suppressing the fact, never choosing the first initializer. Preserve range-only and offset-bearing parity for both alias directions and uncertain offsets. No public setting migration is needed; risk is Medium because ordering feeds several Fluent rules. This recurrence should receive the original identifier once the identity fields are recovered, not a competing new ID.
-
-## Historical COR-009: reproduced repeated-var recurrence, reactivation blocked
-
-The same squash message describes repeated initialized var declarations as alias writes and the exact false-positive/false-negative pair. Only the reserved fingerprint survives in available report history; its original identity fields cannot be reconstructed exactly.
-
-`src/analysis/bindings.ts:77-80` coalesces var declarations, while `src/analysis/fluent-imports.ts:117-119` starts with the first initializer. `src/analysis/binding-writes.ts:71-120` and the fallback traversal at fluent-imports.ts:149-186 omit initialized VariableDeclarator writes.
-
-Real ESLint reproduces `import { BusinessRule } from "@servicenow/sdk/core"; function local() {} var T = BusinessRule; var T = local; T({name:"x_test",table:"incident"});` reporting a false missing ID. Reversing the initializers misses the real missing ID. Impact is Medium; both directions are confirmed on the real host.
-
-Represent initialized redeclarations in the indexed and fallback write model, preserving conditional/function uncertainty, execution order and bare-var no-op semantics. Add both-direction, no-initializer and conditional-redeclaration regressions. The change is internal and Small-to-Medium effort with Medium semantic risk. Canonical reactivation awaits original fields; the historical resolved registry entry is explicitly not a current resolution claim.
-
-## Artifacts and report publication
-
-Temporary review artifacts are retained at `/private/var/folders/jz/1m968c2933j4_mks646qgfjc0000gn/T/oxc-super-review-7fvlhadl`: the isolated clone and its host proof, logs, test JSON, reproductions, benchmark output, prior exact report snapshot, candidate and validation/write logs. They are outside the repository. Source and tracked configuration remained unchanged in the live checkout; only this report is published. No protected human annotation blocks were present in the initial report.
-
-The starting exact-byte report SHA-256 is `35c25afddaf0eb1b50c69837b752e44c63714a5ae14e6e21d917b388291a3663`. The candidate must pass the trusted skill validator; digest-gated publication uses commit_findings.py with that expected digest. Candidate and committed-file validation, root checks and final digest equality are recorded in `/private/var/folders/jz/1m968c2933j4_mks646qgfjc0000gn/T/oxc-super-review-7fvlhadl/report-validation.log` and `/private/var/folders/jz/1m968c2933j4_mks646qgfjc0000gn/T/oxc-super-review-7fvlhadl/report-write.log`. The final report digest belongs in those external logs because embedding its own digest would change it. Any concurrent change causes publication to fail rather than overwrite it.
+The registry preserves every original identity and next-sequence value. The exact starting report has SHA-256 84f3e0c380f4132cc22c88a6bfa50069652d442f20e800b9e021c7e44f6558cc and is archived byte-for-byte in docs/findings-2026-10-07-review.md. Current report validation checks its six active records and 85 retired identities.
 
 # 17. Open Questions and Missing Evidence
 
-The immediate missing evidence is the original common identity headers for the two historical Fluent recurrences in section 16. Their implementation defects are reproduced; what is unavailable is the exact text needed to reproduce the reserved fingerprints. Recover the earlier report from an authorized archive, verify those fingerprints, then reactivate the existing IDs. Without that evidence, preserve the registry and keep revalidation partial; do not silently assign duplicate identities.
+The remaining questions concern lifecycle or external evidence rather than unresolved reproduced defects.
 
-Current deployed release governance, npm publisher identity, publication state and vendor evidence were not observed. Treat committed configuration and historical captures as desired/historical evidence. Authorized read-only verification is needed before release; results could change operational conclusions without changing the reproduced local defects.
-
-Actual workload distribution is unknown. PER-005's priority rests on a demonstrated scaling mechanism, not a claim that all users encounter it. Representative non-exhausted file measurements would refine urgency and assess the proposed index improvement.
+| Question | Current evidence | Required disposition |
+| --- | --- | --- |
+| Can the PR tracker retire? | PR 51 closed without merge; canonical criteria remain outstanding; complete current evidence archive unproven | Satisfy every recorded condition or obtain an explicit policy/disposition change before retirement |
+| Are hosted governance, vendor facts and dependency advisories current? | Local controls pass; these external boundaries were not refreshed | Separate primary-source verification when needed |
+| What original identity used the reserved COR number 18? | Historical provenance was not recovered | Preserve the unused number; do not invent or recycle an identity |
+| Do measured scope gains represent production consumers? | Local repository/synthetic profiles and baseline benchmark support the implementation | Representative consumer data would be needed for a production latency claim |
 
 # 18. Positive Patterns Worth Preserving
+
+The five original positive identities remain active with updated evidence and limits.
 
 ## [POS-001] Unknown context remains unknown
 
@@ -1281,23 +834,23 @@ Severity or priority: Informational
 
 Confidence: Confirmed
 
-Affected components: src/context/resolve.ts and context-aware rules
+Affected components: Context resolution, engine/Glide/Fluent applicability and context-aware rules.
 
-Evidence: `src/context/resolve.ts:157-168,194-234` preserves confidence and applicability checks; context and real-host contract tests passed.
+Evidence: Context resolution and finite capability manifests retain independent evidence axes and explicit uncertainty. Context-contracts and mixed UI Action source/host regressions pass without changing runtime policy.
 
-Why it is valuable: Suppressing guesses prevents false diagnostics on unclassified scripts.
+Why it is valuable: Conservative uncertainty prevents diagnostics based on invented execution context.
 
-Why the current design is appropriate: Independent context axes let each rule demand only the evidence it needs.
+Why the current design is appropriate: Independent mode/surface/release/SDK axes let each rule require only the facts it needs.
 
-Invariants to preserve: Do not default unknown mode or surface to a concrete runtime; preserve bare/mixed UI Action uncertainty.
+Invariants to preserve: Keep unknown evidence unknown and retain bare/mixed engine-context uncertainty; do not infer runtime support from unvalidated vendor claims.
 
-Tests and controls that protect it: tests/context.test.ts and tests/integration/context-contracts.test.ts.
+Tests and controls that protect it: Context/filename/manifest tests and real-host context-contracts.
 
-Risks of changing it: Convenience defaults create false positives across consumers.
+Risks of changing it: Convenience defaults can report on the wrong mode, surface or release.
 
-Reuse opportunities: Use the same confidence discipline when correcting COR-017.
+Reuse opportunities: Preserve the same uncertainty discipline in availability and catalog-policy corrections.
 
-Scope limits: This is an applicability policy, not a guarantee of correct control-flow facts; COR-003 remains active.
+Scope limits: Context certainty does not alone establish control-flow, runtime vendor support or effective property authority; those remain independent proof boundaries.
 
 ## [POS-002] Release verification binds artifacts to exact workflow identity
 
@@ -1314,23 +867,23 @@ Severity or priority: Informational
 
 Confidence: Confirmed
 
-Affected components: Release, publish, registry verification and recovery tooling
+Affected components: Build artifacts, publishing, registry/provenance verification and recovery.
 
-Evidence: `scripts/verify-published-package.mjs:424-456` checks subject and certificate fields; publish helpers verify file/tarball digests; release.yml separates six jobs. Local release regression and artifact tests passed.
+Evidence: Release artifact, layer7, publication and recovery tests pass. Retry normalization preserves exact tarball, signer, workflow, commit, environment and certificate validation. No live publication or hosted governance change was performed.
 
-Why it is valuable: Artifact identity and bounded recovery reduce mismatched or ambiguous publication risk.
+Why it is valuable: Exact artifact/signer identity and immutable-version reconciliation reduce mismatched or ambiguous publication risk.
 
-Why the current design is appropriate: A publish side effect can partially succeed, so explicit outcomes and registry reconciliation are appropriate.
+Why the current design is appropriate: Publication can succeed before downstream verification fails; explicit outcomes and separate privilege jobs support bounded recovery.
 
-Invariants to preserve: Preserve exact digests, workflow/commit/environment binding, redirect rejection, least privilege, and publish without checkout.
+Invariants to preserve: Keep exact bytes, digests, workflow/commit/environment/certificate checks, redirect refusal, least privilege and publish without checkout.
 
-Tests and controls that protect it: tests/release/layer7.test.ts and tests/release/artifact.test.ts; live deployed controls remain unverified.
+Tests and controls that protect it: Local layer7/artifact/publish/recovery regression suites; current deployed GitHub/npm controls remain unverified.
 
-Risks of changing it: Relaxing identity checks or combining credentials with more untrusted execution increases exposure.
+Risks of changing it: Relaxed identity checks or more foreign code in privileged jobs increases exposure.
 
-Reuse opportunities: The recovery path reuses registry and GitHub-release verification.
+Reuse opportunities: Manual recovery reuses registry and exact GitHub-release asset verification.
 
-Scope limits: These controls reduce attack surface; they do not contain an already-compromised OIDC-authorized publishing runner or prove live governance.
+Scope limits: These controls do not contain a compromised authorized runner or establish current hosted governance. Transient recovery remains bounded and never relaxes exact identity rejection.
 
 ## [POS-003] One catalog supplies rules, presets and generated documentation
 
@@ -1347,23 +900,23 @@ Severity or priority: Informational
 
 Confidence: Confirmed
 
-Affected components: Catalog, configurations, rule pages and examples
+Affected components: Fifty catalog entries, ten profile/flat maps, rule pages and generated consumer configurations.
 
-Evidence: `src/catalog.ts:125-163` validates descriptors and derives projections; `src/configs/maps.ts:4-13` derives maps. Fifty catalog records and byte-for-byte docs regeneration passed; all ten flat counterparts passed tests.
+Evidence: Catalog/profile tests, the 50-record documentation check and a clean generated roundtrip pass. The documentation evidence check verifies 192 records and 93 executable proofs. Applicability wording is generated from its existing owner.
 
-Why it is valuable: Single ownership reduces list drift across fifty rules and multiple interfaces.
+Why it is valuable: One source reduces independent list drift across the runtime/configuration/documentation surfaces.
 
-Why the current design is appropriate: Descriptors separate domain facts from reporting while small projections serve each consumer.
+Why the current design is appropriate: Reviewable descriptors separate domain facts from small deterministic projections.
 
-Invariants to preserve: Keep derived registries, maps, schemas and documentation deterministic; keep source facts reviewable.
+Invariants to preserve: Keep generated registries/maps/docs/config ownership, schema checks and byte-for-byte roundtrip; review source facts separately.
 
-Tests and controls that protect it: tests/catalog.test.ts, tests/plugin.test.ts, docs:check and evidence:check.
+Tests and controls that protect it: catalog/plugin/profile tests, docs:check, evidence:check and generated roundtrip.
 
-Risks of changing it: Duplicating derived lists creates inconsistent public surfaces and generated overwrites.
+Risks of changing it: Duplicated lists produce divergent public surfaces and generated overwrite churn.
 
-Reuse opportunities: TST-005 can strengthen the applicability agreement check without duplicating catalog ownership.
+Reuse opportunities: Keep accurate applicability and property-proof limitations in their existing catalog owners.
 
-Scope limits: Derivation does not prove the catalog facts are correct and should not replace human migration/troubleshooting prose.
+Scope limits: Derivation proves correspondence rather than vendor factual truth. Manual prose and runtime policy still require semantic review.
 
 ## [POS-004] Path analysis has a deterministic degradation budget
 
@@ -1380,23 +933,23 @@ Severity or priority: Informational
 
 Confidence: Confirmed
 
-Affected components: Shared path-sensitive interpreter
+Affected components: Shared path-sensitive interpreter and file-analysis fact maps.
 
-Evidence: `src/analysis/path-state.ts:55-64,100-102,531-536,1064,1640-1643` scales and enforces work/depth limits and catches exhaustion. Budget and scaling tests passed.
+Evidence: Path-budget and domain-budget tests pass. Aggregate payload work is charged before traversal hooks; independent retention has its own deterministic work/depth limits. FileAnalysis clears shared facts when either pass exhausts. Same-cursor memoization controls remain non-exhausted.
 
-Why it is valuable: Unusual source inputs degrade to unknown facts instead of hanging in the path interpreter.
+Why it is valuable: Deterministic work/depth counters make exhaustion reproducible and discard incomplete findings and shared facts, including combinatorial domain and independent retention work.
 
-Why the current design is appropriate: Deterministic work limits keep behavior reproducible; an explicit exhausted flag distinguishes degradation in the harness.
+Why the current design is appropriate: Deterministic limits and explicit exhausted outcomes support reproducible conservative analysis.
 
-Invariants to preserve: Preserve bounded work/depth, fail-safe fact removal and exhaustion observability.
+Invariants to preserve: Keep bounded work/depth, whole-result fact clearing and exhaustion observability; performance comparisons must reject exhausted fast results.
 
-Tests and controls that protect it: tests/analysis/path-budget-exhaustion.test.ts, path-budget-scaling.test.ts and cursor-loop scaling tests.
+Tests and controls that protect it: path-budget-exhaustion/path-budget-scaling and non-exhausted counter/alias fixtures.
 
-Risks of changing it: Increasing ceilings without measurement trades reduced coverage for latency; removing limits reopens pathological work.
+Risks of changing it: Raising ceilings without measurement increases latency; dropping partial-result clearing creates unsound facts.
 
-Reuse opportunities: PER-005 should index its repeated scans and measure only non-exhausted comparisons.
+Reuse opportunities: Preserve explicit charging and complete-result suppression when extending path domains or independent traversals.
 
-Scope limits: The interpreter budget is not a bound on every AST traversal; the flag is not a user-visible host diagnostic.
+Scope limits: Limits cover the charged path/domain and independent retention passes, not every parser, lexical-index or host operation. Fluent aliases are stack-safe and known-node scope lookups are indexed, but exhaustion remains an analysis outcome rather than a host diagnostic.
 
 ## [POS-005] Settings are validated and frozen before analysis
 
@@ -1413,20 +966,20 @@ Severity or priority: Informational
 
 Confidence: Confirmed
 
-Affected components: Settings descriptor, validator, cache and freeze helper
+Affected components: Settings descriptors, fresh validation, shared normalized defaults/output and consumers.
 
-Evidence: `src/settings/validate.ts:287-308` rejects unknown keys/conflicts and freezes results; `src/settings/freeze.ts:5-18` handles cycles. settings-freeze tests, including mutation invalidation, passed.
+Evidence: Settings cache collision, fresh invalid-input, graph/hole fingerprint and frozen-output controls pass. Closed-key validation and immutable normalized settings remain intact.
 
-Why it is valuable: Typos fail explicitly, and immutable shared settings avoid cross-file contamination.
+Why it is valuable: Configuration mistakes fail explicitly and immutable normalized values avoid accidental shared-state mutation.
 
-Why the current design is appropriate: A closed configuration contract benefits from centralized descriptors and structural cache invalidation.
+Why the current design is appropriate: A closed settings contract benefits from centralized descriptors and one normalized immutable result.
 
-Invariants to preserve: Reject unknown keys and conflicts; keep validated settings and shared defaults immutable; preserve own-property lookups for source-controlled names.
+Invariants to preserve: Reject unknown keys/conflicts, freeze normalized defaults/output and keep own-property lookup for source-controlled names.
 
-Tests and controls that protect it: tests/settings-freeze.test.ts and tests/context.test.ts.
+Tests and controls that protect it: settings-freeze/context/Fluent manifest tests; ordinary mutation invalidation tests pass.
 
-Risks of changing it: Relaxed parsing or mutable shared defaults can silently change rule applicability.
+Risks of changing it: Relaxed parsing or mutable shared defaults can silently alter applicability across files.
 
-Reuse opportunities: Preserve the same safe lookup discipline in Fluent version selection.
+Reuse opportunities: Reuse exact structural fingerprints and centralized immutable settings validation when extending configuration.
 
-Scope limits: Rule-option parsers return local mutable copies; this record does not claim every options object or external registry response is deeply frozen.
+Scope limits: Cache structure is now unambiguous for the supported input graph. Rule options and external registry responses have separate validation/immutability contracts.

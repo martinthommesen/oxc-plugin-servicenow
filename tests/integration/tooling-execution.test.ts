@@ -57,7 +57,14 @@ describe("tooling execution", () => {
     const commands = Object.values(pkg.scripts).join("\n");
     assert.doesNotMatch(commands, TSX_CLI_EXECUTION_PATTERN);
     assert.equal(pkg.scripts["compat"], "node scripts/compat-consumer.mjs");
-    assert.equal(pkg.scripts["acceptance:check"], "node scripts/verify-acceptance-ledger.mjs");
+    assert.equal(
+      pkg.scripts["acceptance:check"],
+      "node scripts/verify-acceptance-ledger.mjs --offline",
+    );
+    assert.equal(
+      pkg.scripts["acceptance:capture"],
+      "node scripts/verify-acceptance-ledger.mjs --capture-network",
+    );
     assert.match(
       pkg.scripts["evidence:check"] ?? "",
       /^node --import \.\/scripts\/register-tsx\.mjs /,

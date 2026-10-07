@@ -53,7 +53,8 @@ export const requireFluentId = defineRule({
         if (!arg || arg.type !== "ObjectExpression") return;
 
         const idProp = objectProperty(arg, "$id");
-        if (!idProp) {
+        if (idProp.kind === "unknown") return;
+        if (idProp.kind === "absent") {
           context.report({
             node: call.callee as unknown as ESTree.Node,
             messageId: "missing",
@@ -62,7 +63,7 @@ export const requireFluentId = defineRule({
           return;
         }
 
-        const value = idProp.value as ESTree.Node;
+        const value = idProp.property.value;
         const literal = getStringValue(value);
         if (literal && isSysId(literal)) {
           context.report({ node: value, messageId: "rawSysId" });
@@ -80,7 +81,7 @@ export const requireFluentId = defineRule({
 
 function hintFrom(arg: ESTree.ObjectExpression, api: string): string {
   const name = objectProperty(arg, "name");
-  const nameValue = name ? getStringValue(name.value) : null;
+  const nameValue = name.kind === "known" ? getStringValue(name.property.value) : null;
   if (nameValue)
     return nameValue
       .toLowerCase()
