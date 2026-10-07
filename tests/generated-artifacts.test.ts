@@ -44,7 +44,7 @@ describe("generated artifact manifest", () => {
     assert.throws(() => replaceMarkedSection("", "unknown", "new"), /Unknown generated section/);
   });
 
-  it("uses a generated release-pinned reference for both README formatter guide links", () => {
+  it("uses generated release-pinned references for README formatter and compatibility guides", () => {
     const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
     const links = readme.match(
       /<!-- generated:repository-links:start -->([\s\S]*?)<!-- generated:repository-links:end -->/,
@@ -54,10 +54,17 @@ describe("generated artifact manifest", () => {
         `[repository-formatter-guide]: ${REPOSITORY_URL}/blob/${PACKAGE_GIT_REF}/docs/oxfmt.md`,
       ),
     );
+    assert.ok(
+      links?.includes(
+        `[repository-compatibility]: ${REPOSITORY_URL}/blob/${PACKAGE_GIT_REF}/docs/compatibility.md`,
+      ),
+    );
     assert.equal(
       (readme.match(/\[formatter guide\]\[repository-formatter-guide\]/gi) ?? []).length,
       2,
     );
+    assert.equal((readme.match(/\[compatibility\]\[repository-compatibility\]/gi) ?? []).length, 1);
     assert.doesNotMatch(readme, /\[[^\]]+\]\([^)\n]*\/docs\/oxfmt\.md\)/);
+    assert.doesNotMatch(readme, /\[[^\]]+\]\([^)\n]*\/docs\/compatibility\.md\)/);
   });
 });
