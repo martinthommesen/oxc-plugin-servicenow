@@ -174,7 +174,8 @@ function nestedScopes(depth) {
 function scopeRich(count) {
   return Array.from(
     { length: count },
-    (_, index) => `function scoped${index}(value) { { var local = value; local; } return value; }`,
+    (_, index) =>
+      `function scoped${index}(value) { { var local = value; gs.info(local); } return value; }\ngs.info(scoped${index}("scope"));`,
   ).join("\n");
 }
 
