@@ -12,6 +12,79 @@ const AUSTRALIA_ES2021 = {
 } satisfies RunOptions;
 
 describe("unsupported constructor provenance", () => {
+  // @lat: [[tests#Analysis behavior#Availability proofs ignore unreachable suffix effects]]
+  it("preserves availability across unreachable condition writes", () => {
+    for (const suffix of [
+      "false && (WeakRef = undefined)",
+      "true || (WeakRef = undefined)",
+      "1 ?? (WeakRef = undefined)",
+      "true ? true : (WeakRef = undefined)",
+      "false ? (WeakRef = undefined) : true",
+      'false && Object.defineProperty(globalThis, "WeakRef", { value: null })',
+      "(function () { for (; false; WeakRef = undefined) {} })()",
+      "(function () { for (; false;) { WeakRef = undefined; } })()",
+    ]) {
+      assertValidActive(
+        `if (typeof WeakRef === "function" && (${suffix}, true)) { new WeakRef(value); }`,
+        "no-weak-references",
+        AUSTRALIA_ES2021,
+      );
+    }
+    for (const suffix of [
+      "true && (WeakRef = undefined)",
+      "false || (WeakRef = undefined)",
+      "null ?? (WeakRef = undefined)",
+      "false ? true : (WeakRef = undefined)",
+      "flag ? true : (WeakRef = undefined)",
+      "(function () { for (; flag; WeakRef = undefined) {} })()",
+    ]) {
+      assertInvalid(
+        `if (typeof WeakRef === "function" && (${suffix}, true)) { new WeakRef(value); }`,
+        "no-weak-references",
+        { messageId: "weak" },
+        AUSTRALIA_ES2021,
+      );
+    }
+  });
+
+  // @lat: [[tests#Analysis behavior#Availability proofs respect condition effect order]]
+  it("invalidates availability after later effects in compound conditions", () => {
+    for (const mutation of [
+      "WeakRef = undefined",
+      'Object.defineProperty(globalThis, "WeakRef", { value: null })',
+      "Object.assign(globalThis, { WeakRef: null })",
+    ]) {
+      for (const code of [
+        `if (typeof WeakRef === "function" && (${mutation}, true)) { new WeakRef(value); }`,
+        `while (typeof WeakRef === "function" && (${mutation}, true)) { new WeakRef(value); break; }`,
+        `for (; typeof WeakRef === "function" && (${mutation}, true);) { new WeakRef(value); break; }`,
+        `typeof WeakRef === "function" && (${mutation}, true) ? new WeakRef(value) : null;`,
+        `function run() { if (typeof WeakRef !== "function" || (${mutation}, false)) return; new WeakRef(value); }`,
+      ]) {
+        assertInvalid(code, "no-weak-references", { messageId: "weak" }, AUSTRALIA_ES2021);
+      }
+      assertValidActive(
+        `if ((${mutation}, true) && typeof WeakRef === "function") { new WeakRef(value); }`,
+        "no-weak-references",
+        AUSTRALIA_ES2021,
+      );
+    }
+  });
+
+  it("uses the latest availability check within an ordered sequence", () => {
+    assertInvalid(
+      'if ((typeof WeakRef === "function", WeakRef = null, true)) { new WeakRef(value); }',
+      "no-weak-references",
+      { messageId: "weak" },
+      AUSTRALIA_ES2021,
+    );
+    assertValidActive(
+      'if ((WeakRef = null, typeof WeakRef === "function")) { new WeakRef(value); }',
+      "no-weak-references",
+      AUSTRALIA_ES2021,
+    );
+  });
+
   it("reports stable aliases of unavailable constructors", () => {
     assertInvalid(
       `const Ref = WeakRef;

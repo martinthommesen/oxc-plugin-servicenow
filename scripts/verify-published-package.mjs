@@ -15,8 +15,18 @@ import { argValue as readArgValue } from "./lib/argv.mjs";
 import { readJson } from "./lib/json-artifact.mjs";
 import { isMainModule, root } from "./lib/repo.mjs";
 
-const TRANSIENT_CODES = new Set(["EAI_AGAIN", "ECONNRESET", "ECONNREFUSED", "EPIPE", "ETIMEDOUT"]);
-const TRANSIENT_STATUSES = new Set([404, 429, 502, 503, 504]);
+const TRANSIENT_CODES = new Set([
+  "EAI_AGAIN",
+  "ECONNRESET",
+  "ECONNREFUSED",
+  "EPIPE",
+  "ETIMEDOUT",
+  "UND_ERR_CONNECT_TIMEOUT",
+  "UND_ERR_HEADERS_TIMEOUT",
+  "UND_ERR_BODY_TIMEOUT",
+  "UND_ERR_SOCKET",
+]);
+const TRANSIENT_STATUSES = new Set([404, 429, 500, 502, 503, 504]);
 const STATEMENT_TYPE = "https://in-toto.io/Statement/v1";
 const PREDICATE_TYPE = "https://slsa.dev/provenance/v1";
 const BUILD_TYPE = "https://slsa-framework.github.io/github-actions-buildtypes/workflow/v1";
@@ -26,6 +36,7 @@ const NPM_ERROR_STATUSES = new Map([
   ["E403", 403],
   ["E404", 404],
   ["E429", 429],
+  ["E500", 500],
   ["E502", 502],
   ["E503", 503],
   ["E504", 504],
@@ -113,10 +124,19 @@ function defaultSleep(ms) {
  */
 export function isTransientRegistryError(error) {
   if (!error || typeof error !== "object") return false;
-  const record = /** @type {Record<string, unknown>} */ (error);
-  if (record["retryable"] === true) return true;
-  if (TRANSIENT_CODES.has(String(record["code"] ?? ""))) return true;
-  return TRANSIENT_STATUSES.has(Number(record["status"]));
+  if ("retryable" in error && error.retryable === true) return true;
+  if ("name" in error && (error.name === "TimeoutError" || error.name === "AbortError"))
+    return true;
+  if ("code" in error && TRANSIENT_CODES.has(String(error.code))) return true;
+  if (
+    "cause" in error &&
+    error.cause &&
+    typeof error.cause === "object" &&
+    "code" in error.cause &&
+    TRANSIENT_CODES.has(String(error.cause.code))
+  )
+    return true;
+  return "status" in error && TRANSIENT_STATUSES.has(Number(error.status));
 }
 
 /**
@@ -689,9 +709,8 @@ export async function fetchAttestations(view, name, version, fetchFn = fetch, no
       signal: AbortSignal.timeout(OPERATION_TIMEOUT_MS),
     });
   } catch (error) {
-    const failure = /** @type {{ cause?: { code?: unknown }, code?: unknown }} */ (error);
-    throw Object.assign(new Error("attestation fetch failed"), {
-      code: failure?.cause?.code ?? failure?.code,
+    throw Object.assign(new Error("attestation fetch failed", { cause: error }), {
+      retryable: isTransientRegistryError(error),
     });
   }
   if (response.status >= 300 && response.status < 400)
@@ -708,7 +727,12 @@ export async function fetchAttestations(view, name, version, fetchFn = fetch, no
     const result = await response.json();
     if (!result || typeof result !== "object" || Array.isArray(result)) throw new Error();
     return /** @type {Record<string, unknown>} */ (result);
-  } catch {
+  } catch (error) {
+    if (isTransientRegistryError(error)) {
+      throw Object.assign(new Error("attestation response read failed", { cause: error }), {
+        retryable: true,
+      });
+    }
     fail("attestation endpoint returned malformed JSON", "registry-schema");
   }
 }

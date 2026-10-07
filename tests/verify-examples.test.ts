@@ -461,6 +461,7 @@ describe("verify-examples host classification", () => {
       "spawn: timed out",
       "signal: SIGTERM",
       "timed out",
+      "unexpected status null",
       "oxlint did not emit JSON",
     ]);
     const withStdout = classifyOxlintProof({

@@ -11,6 +11,25 @@ import {
 const RULE = "no-unsupported-static-methods" as const;
 
 describe(RULE, () => {
+  it("invalidates method availability after later compound-condition writes", () => {
+    for (const mutation of [
+      "Error.isError = undefined",
+      'Object.defineProperty(Error, "isError", { value: null })',
+    ]) {
+      assertInvalid(
+        `if (typeof Error.isError === "function" && (${mutation}, true)) { Error.isError(value); }`,
+        RULE,
+        { messageId: "unsupported" },
+        ZURICH_ES2021,
+      );
+      assertValidActive(
+        `if ((${mutation}, true) && typeof Error.isError === "function") { Error.isError(value); }`,
+        RULE,
+        ZURICH_ES2021,
+      );
+    }
+  });
+
   it("follows the Zurich and Australia release delta", () => {
     for (const code of [
       `Error.isError(value);`,

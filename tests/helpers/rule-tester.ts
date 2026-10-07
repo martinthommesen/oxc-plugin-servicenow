@@ -51,6 +51,11 @@ export const FULL_SCRIPT = {
 export function parse(code: string, filename = "test.js") {
   const lang = filename.endsWith(".ts") || filename.endsWith(".tsx") ? "ts" : "js";
   const result = parseSync(filename, code, { sourceType: "module", lang });
+  assert.equal(
+    result.errors.length,
+    0,
+    `Parser rejected ${filename}: ${result.errors.map((error) => error.message).join("; ")}`,
+  );
   return {
     ast: result.program,
     comments: (result.comments ?? []).map((comment) => ({

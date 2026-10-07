@@ -115,8 +115,12 @@ function collectStatementContainers(program: ESTree.Node, lines: LineIndex): Sta
     },
     IfStatement(node) {
       const statement = node as ESTree.IfStatement;
-      addBody(node, statement.consequent);
-      addBody(node, statement.alternate);
+      add(
+        node,
+        [statement.consequent, statement.alternate].filter(
+          (body): body is ESTree.Statement => isNode(body) && body.type !== "BlockStatement",
+        ),
+      );
     },
     ForStatement(node) {
       addBody(node, (node as ESTree.ForStatement).body);

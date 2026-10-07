@@ -6,7 +6,7 @@ import { describe, it } from "node:test";
 import { Linter } from "eslint";
 import plugin from "../../src/index.js";
 import type { ServiceNowSettings } from "../../src/types.js";
-import { pluginRuleId, repoRoot, runOxlint } from "./helpers.js";
+import { assertEslintSuccess, pluginRuleId, repoRoot, runOxlint } from "./helpers.js";
 
 const fixtureDir = path.join(repoRoot, "tests/integration/context-fixtures");
 const configDir = path.join(repoRoot, "tests/integration/context-configs");
@@ -199,20 +199,21 @@ describe("real-host context contracts", () => {
       );
 
       const linter = new Linter({ configType: "flat" });
+      const messages = linter.verify(
+        code,
+        [
+          {
+            files: ["**/*.js"],
+            plugins: { servicenow: plugin as unknown as import("eslint").ESLint.Plugin },
+            settings: { servicenow: testCase.settings },
+            rules: testCase.rules,
+          },
+        ],
+        { filename: testCase.fixture },
+      );
+      assertEslintSuccess(messages, testCase.fixture);
       const eslint = sorted(
-        linter
-          .verify(
-            code,
-            [
-              {
-                files: ["**/*.js"],
-                plugins: { servicenow: plugin as unknown as import("eslint").ESLint.Plugin },
-                settings: { servicenow: testCase.settings },
-                rules: testCase.rules,
-              },
-            ],
-            { filename: testCase.fixture },
-          )
+        messages
           .filter((message) => message.ruleId?.startsWith("servicenow/"))
           .map((message) => ({
             ruleId: message.ruleId!,

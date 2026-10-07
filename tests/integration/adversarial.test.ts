@@ -5,6 +5,7 @@ import { describe, it } from "node:test";
 import { Linter } from "eslint";
 import { configs } from "../../src/index.js";
 import {
+  assertEslintSuccess,
   pluginRuleId,
   pluginRulesFor,
   repoRoot,
@@ -19,11 +20,13 @@ const validDir = path.join(profilesDir, "valid");
 
 function eslintMessages(code: string, filename: string) {
   const linter = new Linter({ configType: "flat" });
-  return linter.verify(
+  const messages = linter.verify(
     code,
     [configs.flat.recommended as unknown as import("eslint").Linter.Config],
     { filename },
   );
+  assertEslintSuccess(messages, filename);
+  return messages;
 }
 
 function oxlintPluginDiagnostics(file: string, filenamePart: string): OxlintDiagnostic[] {
@@ -75,6 +78,10 @@ function assertHostFinding(input: {
 }
 
 describe("adversarial host binding and control-flow", () => {
+  it("rejects malformed source before filtering plugin diagnostics", () => {
+    assert.throws(() => eslintMessages("var = ;", "invalid.server.js"), /parser|parsing/i);
+  });
+
   it("keeps recommended silent on alias, join, escape, and temporal valid fixtures", () => {
     const files = [
       "alias-query-consume.br.js",

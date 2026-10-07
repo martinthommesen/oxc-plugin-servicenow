@@ -5,7 +5,12 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { packTarball as buildTarball } from "./check-release-artifact.mjs";
 import { argValue as readArgValue } from "./lib/argv.mjs";
-import { parseOxlintStdout, pluginRuleIds, runHostProcess } from "./lib/host-verifier.mjs";
+import {
+  classifyOxlintHost,
+  parseOxlintStdout,
+  pluginRuleIds,
+  runHostProcess,
+} from "./lib/host-verifier.mjs";
 import { readJson } from "./lib/json-artifact.mjs";
 import { isMainModule, root } from "./lib/repo.mjs";
 
@@ -77,13 +82,19 @@ function oxlintReport(consumer, args, errorKind, message) {
     args,
     cwd: consumer,
   });
+  return compatibilityOxlintReport(host, errorKind, message);
+}
+
+/**
+ * @param {import("./lib/host-verifier.mjs").HostResult} host
+ * @param {string} errorKind
+ * @param {string} message
+ * @returns {import("./lib/host-verifier.mjs").OxlintReport}
+ */
+export function compatibilityOxlintReport(host, errorKind, message) {
   const { report, parseError } = parseOxlintStdout(host.stdout);
-  if (!report) {
-    const detail = [parseError, host.error?.message, host.stderr.slice(0, 400)]
-      .filter(Boolean)
-      .join("; ");
-    fail(errorKind, `${message}: ${detail}`);
-  }
+  const proof = classifyOxlintHost({ host, status: host.status, report, parseError });
+  if (!proof.ok || !report) fail(errorKind, `${message}: ${proof.reasons.join("; ")}`);
   return report;
 }
 

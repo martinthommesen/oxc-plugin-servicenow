@@ -11,10 +11,10 @@ Client scripts execute in the browser and Fluent files are not instance-executed
 | Value | Meaning |
 | --- | --- |
 | `supported` | The mode allows the feature |
-| `unsupported` | The feature is absent, so using it fails |
+| `unsupported` | The platform does not claim validated support in that mode |
 | `disallowed` | The feature exists but is forbidden in that mode |
 
-The distinction matters because a rule's message differs. "Not supported" describes something that will not work; "disallowed" describes something that works and is not permitted. `README.md` explains the same distinction for users.
+The distinction governs rule messages. "Not Supported" records a lack of validated platform support; it alone does not prove runtime failure. "Disallowed" records a platform restriction even when the feature exists. `README.md` uses the same distinction.
 
 Lowercase `supported`, `unsupported`, and `disallowed` are plugin `FeatureSupport` values. Capitalized "Supported" and "Not Supported" quote ServiceNow's official capability table. Never mix the two casings for one claim.
 

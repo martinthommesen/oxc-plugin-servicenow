@@ -36,6 +36,17 @@ export const fluentNamingConventionEntry = entry(
     hasSuggestions: false,
     description:
       "`.now.ts` files and `Now.ID` keys should be kebab-case. Exported `Table` bindings should match the table `name`.",
+    limitationCases: [
+      {
+        caseId: "fluent-naming-convention-unknown-spread-name",
+        kind: "scope-boundary",
+        name: "unresolved table-name overwrite",
+        description:
+          "Table-name checks require an effective explicit `name`; a later unresolved spread or computed key suppresses them. File and `Now.ID` key checks remain independent.",
+        filename: "composed.now.ts",
+        code: 'import { Table } from "@servicenow/sdk/core";\nconst config = { name: "x_test" };\nexport const x_test = Table({ name: "Bad Name", ...config });',
+      },
+    ],
     bad: [
       {
         name: "PascalCase file + id",

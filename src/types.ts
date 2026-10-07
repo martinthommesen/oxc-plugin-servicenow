@@ -36,10 +36,10 @@ export type BusinessRuleWhen = "before" | "after" | "async" | "display" | "unkno
  * `unknown` means no evidence was found.
  */
 export interface ContextSourceMap {
-  authoring: ContextConfidence;
-  surfaces: ContextConfidence;
-  javascriptMode: ContextConfidence;
-  scope: ContextConfidence;
+  readonly authoring: ContextConfidence;
+  readonly surfaces: ContextConfidence;
+  readonly javascriptMode: ContextConfidence;
+  readonly scope: ContextConfidence;
 }
 
 /**
@@ -48,17 +48,20 @@ export interface ContextSourceMap {
  * Authoring form, surfaces, JavaScript mode, and scope are independent.
  */
 export interface ServiceNowScriptContext {
-  authoring: ScriptAuthoring;
-  surfaces: ReadonlySet<ScriptSurface>;
-  javascriptMode: JavaScriptMode;
-  scope: ApplicationScope;
-  confidence: ContextConfidence;
-  sources: ContextSourceMap;
-  confidenceAtLeast(source: keyof ContextSourceMap, minimum: ContextConfidence): boolean;
-  businessRuleSourceFormat: BusinessRuleSourceFormat;
-  businessRuleWhen: BusinessRuleWhen;
-  settings: ValidatedServiceNowSettings;
-  deprecations: readonly SettingsDeprecation[];
+  readonly authoring: ScriptAuthoring;
+  readonly surfaces: ReadonlySet<ScriptSurface>;
+  readonly javascriptMode: JavaScriptMode;
+  readonly scope: ApplicationScope;
+  readonly confidence: ContextConfidence;
+  readonly sources: ContextSourceMap;
+  readonly confidenceAtLeast: (
+    source: keyof ContextSourceMap,
+    minimum: ContextConfidence,
+  ) => boolean;
+  readonly businessRuleSourceFormat: BusinessRuleSourceFormat;
+  readonly businessRuleWhen: BusinessRuleWhen;
+  readonly settings: ValidatedServiceNowSettings;
+  readonly deprecations: readonly SettingsDeprecation[];
 }
 
 export interface SettingsDeprecation {

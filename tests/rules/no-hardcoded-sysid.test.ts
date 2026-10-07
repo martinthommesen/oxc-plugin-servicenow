@@ -14,6 +14,31 @@ describe(RULE, () => {
     assertInvalid(`var id = \`${ID}\`;`, RULE, { messageId: "hardcoded" });
   });
 
+  // @lat: [[tests#Analysis behavior#Template tokens require known boundaries]]
+  it("checks static template runs after unknown interpolations", () => {
+    for (const code of [
+      `var url = \`\${prefix}/${ID}\`;`,
+      `var url = \`\${prefix}/${ID}/\${suffix}\`;`,
+      `var url = \`\${prefix}/\${middle}/${ID}\`;`,
+      'var url = `${prefix}/97c04b3b${"1b12100043ab85e5bd0713e2"}`;',
+    ]) {
+      assertInvalid(code, RULE, { messageId: "hardcoded", count: 1 });
+    }
+  });
+
+  it("requires known token boundaries at dynamic template edges", () => {
+    for (const code of [
+      `var url = \`\${prefix}${ID}\`;`,
+      `var url = \`${ID}\${suffix}\`;`,
+      `var url = \`\${prefix}${ID}\${suffix}\`;`,
+      "var url = `97c04b3b${unknown}1b12100043ab85e5bd0713e2`;",
+    ]) {
+      assertValidActive(code, RULE);
+    }
+    assertInvalid(`var url = \`${ID}/\${suffix}\`;`, RULE, { messageId: "hardcoded", count: 1 });
+    assertInvalid(`var digest = \`\${prefix}/${ID}\`;`, RULE, { messageId: "hardcoded", count: 1 });
+  });
+
   it("allows gs.getProperty", () => {
     assertValid(`var id = gs.getProperty("x_acme.group");`, RULE);
   });

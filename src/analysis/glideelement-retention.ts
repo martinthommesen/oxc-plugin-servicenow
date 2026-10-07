@@ -5,7 +5,15 @@ import { definitelySkipsDoWhileTest, truthyPathRequiredCursorIds } from "./curso
 import { analyzeGlideElementAliases, type GlideElementAliasFacts } from "./glideelement-aliases.js";
 import { staticPropertyName } from "./members.js";
 import { visitChildren } from "../utils/ast.js";
-import { dedupePathFindings } from "./path-state.js";
+import {
+  BUDGET_EXCEEDED,
+  MAX_PATH_DEPTH,
+  dedupePathFindings,
+  defaultMaxWork,
+  exhaustedPathAnalysis,
+  spendWork,
+  type WorkBudget,
+} from "./path-state.js";
 import {
   hasAuthoritativeGlideRecordMethod,
   provenReceiver,
@@ -55,16 +63,6 @@ function isCursorAdvanceCall(
   return objectIdOfCursor(analysis, call.callee.object);
 }
 
-function cursorIdsRequiredForBody(
-  node: unknown,
-  analysis: ProvenanceQuery,
-  authority: PlatformMethodAuthorityFacts,
-): ReadonlySet<number> {
-  return truthyPathRequiredCursorIds(node, (candidate) =>
-    isCursorAdvanceCall(candidate, analysis, authority),
-  );
-}
-
 function directGlideElementCursorId(
   node: unknown,
   analysis: ProvenanceQuery,
@@ -111,9 +109,32 @@ export function findRetainedElements(
   authority: PlatformMethodAuthorityFacts,
 ): RetainedElementFinding[] {
   const findings: RetainedElementFinding[] = [];
+  const budget: WorkBudget = { remaining: defaultMaxWork(program) };
+  let depth = 0;
+  const requiredCursorIds = new WeakMap<ESTree.Node, ReadonlySet<number>>();
+  const skipsDoWhileTest = new WeakMap<ESTree.Node, boolean>();
   const aliases = analyzeGlideElementAliases(program, analysis, (node) =>
     directGlideElementCursorId(node, analysis, authority),
   );
+
+  function cursorIdsRequiredForBody(node: ESTree.Node): ReadonlySet<number> {
+    const known = requiredCursorIds.get(node);
+    if (known) return known;
+    const ids = truthyPathRequiredCursorIds(node, (candidate) => {
+      spendWork(budget);
+      return isCursorAdvanceCall(candidate, analysis, authority);
+    });
+    requiredCursorIds.set(node, ids);
+    return ids;
+  }
+
+  function skipsTest(body: ESTree.Node): boolean {
+    const known = skipsDoWhileTest.get(body);
+    if (known !== undefined) return known;
+    const skips = definitelySkipsDoWhileTest(body);
+    skipsDoWhileTest.set(body, skips);
+    return skips;
+  }
 
   function retainedName(node: ESTree.Node): string {
     const expr = unwrapExpression(node);
@@ -138,6 +159,7 @@ export function findRetainedElements(
   }
 
   function retainedInValue(node: unknown, cursorIds: ReadonlySet<number>): ESTree.Node[] {
+    spendWork(budget, 1 + cursorIds.size);
     const expr = unwrapExpression(node);
     if (!isNode(expr) || isExtracted(expr, analysis)) return [];
     if (glideElementCursorId(expr, cursorIds, analysis, aliases, authority) !== null) return [expr];
@@ -179,6 +201,7 @@ export function findRetainedElements(
   function idSetKey(ids: ReadonlySet<number>): string {
     let key = idSetKeys.get(ids);
     if (key === undefined) {
+      spendWork(budget, ids.size * (1 + Math.ceil(Math.log2(1 + ids.size))));
       key = [...ids].sort((left, right) => left - right).join(",");
       idSetKeys.set(ids, key);
     }
@@ -187,87 +210,93 @@ export function findRetainedElements(
 
   function visit(node: unknown, cursorIds: ReadonlySet<number>): void {
     if (!isNode(node)) return;
-    // The visit is deterministic for a given (node, cursor-id set), so each
-    // pair needs one traversal. Without this memo the do/while and for
-    // branches re-visit each loop body, which composes exponentially for
-    // nested loops (FINDINGS.md PER-002).
-    const key = idSetKey(cursorIds);
-    const seenKeys = visitedIdSets.get(node);
-    if (seenKeys?.has(key)) return;
-    if (seenKeys) seenKeys.add(key);
-    else visitedIdSets.set(node, new Set([key]));
-    if (node.type === "CallExpression") {
-      const call = node as ESTree.CallExpression;
-      const callee = unwrapExpression(call.callee);
-      if (isNode(callee) && isFunctionLike(callee)) {
-        for (const argument of call.arguments) visit(argument, cursorIds);
-        visit((callee as unknown as { body: ESTree.Node }).body, cursorIds);
+    spendWork(budget, 1 + cursorIds.size);
+    if (depth >= MAX_PATH_DEPTH) throw BUDGET_EXCEEDED;
+    depth += 1;
+    try {
+      // The visit is deterministic for a given (node, cursor-id set), so each
+      // pair needs one traversal. Without this memo the do/while and for
+      // branches re-visit each loop body, which composes exponentially for
+      // nested loops (FINDINGS.md PER-002).
+      const key = idSetKey(cursorIds);
+      const seenKeys = visitedIdSets.get(node);
+      if (seenKeys?.has(key)) return;
+      if (seenKeys) seenKeys.add(key);
+      else visitedIdSets.set(node, new Set([key]));
+      if (node.type === "CallExpression") {
+        const call = node as ESTree.CallExpression;
+        const callee = unwrapExpression(call.callee);
+        if (isNode(callee) && isFunctionLike(callee)) {
+          for (const argument of call.arguments) visit(argument, cursorIds);
+          visit((callee as unknown as { body: ESTree.Node }).body, cursorIds);
+          return;
+        }
+      }
+      if (isFunctionLike(node)) {
+        visitChildren(node, (child) => visit(child, emptyIds));
         return;
       }
-    }
-    if (isFunctionLike(node)) {
-      visitChildren(node, (child) => visit(child, emptyIds));
-      return;
-    }
-    if (node.type === "WhileStatement") {
-      const statement = node as ESTree.WhileStatement;
-      const nextIds = new Set([
-        ...cursorIds,
-        ...cursorIdsRequiredForBody(statement.test, analysis, authority),
-      ]);
-      visit(statement.test, cursorIds);
-      // A while body is entered only after its test succeeds, even when that
-      // first iteration exits unconditionally.
-      visit(statement.body, nextIds);
-      return;
-    }
-    if (node.type === "DoWhileStatement") {
-      const statement = node as ESTree.DoWhileStatement;
-      const nextIds = new Set([
-        ...cursorIds,
-        ...cursorIdsRequiredForBody(statement.test, analysis, authority),
-      ]);
-      visit(statement.body, cursorIds);
-      visit(statement.test, cursorIds);
-      if (!definitelySkipsDoWhileTest(statement.body)) visit(statement.body, nextIds);
-      return;
-    }
-    if (node.type === "ForStatement") {
-      const statement = node as ESTree.ForStatement;
-      const nextIds = new Set(cursorIds);
-      if (statement.test) {
-        for (const id of cursorIdsRequiredForBody(statement.test, analysis, authority))
-          nextIds.add(id);
+      if (node.type === "WhileStatement") {
+        const statement = node as ESTree.WhileStatement;
+        const nextIds = new Set([...cursorIds, ...cursorIdsRequiredForBody(statement.test)]);
+        visit(statement.test, cursorIds);
+        // A while body is entered only after its test succeeds, even when that
+        // first iteration exits unconditionally.
+        visit(statement.body, nextIds);
+        return;
       }
-      const updateIds = statement.update
-        ? cursorIdsRequiredForBody(statement.update, analysis, authority)
-        : new Set<number>();
-      if (statement.init) visit(statement.init, cursorIds);
-      if (statement.test) visit(statement.test, cursorIds);
-      if (statement.update) visit(statement.update, nextIds);
-      visit(statement.body, nextIds);
-      if (updateIds.size > 0) visit(statement.body, new Set([...nextIds, ...updateIds]));
-      return;
-    }
-    if (node.type === "CallExpression" && cursorIds.size > 0) {
-      const call = node as ESTree.CallExpression;
-      if (call.callee.type === "MemberExpression") {
-        const method = staticPropertyName(call.callee);
-        if (method && COLLECTION_METHODS.has(method)) {
-          for (const argument of call.arguments) {
-            for (const retained of retainedInValue(argument, cursorIds)) {
-              findings.push({
-                node: retained,
-                name: retainedName(retained),
-              });
+      if (node.type === "DoWhileStatement") {
+        const statement = node as ESTree.DoWhileStatement;
+        const nextIds = new Set([...cursorIds, ...cursorIdsRequiredForBody(statement.test)]);
+        visit(statement.body, cursorIds);
+        visit(statement.test, cursorIds);
+        if (!skipsTest(statement.body)) visit(statement.body, nextIds);
+        return;
+      }
+      if (node.type === "ForStatement") {
+        const statement = node as ESTree.ForStatement;
+        const nextIds = new Set(cursorIds);
+        if (statement.test) {
+          for (const id of cursorIdsRequiredForBody(statement.test)) nextIds.add(id);
+        }
+        const updateIds = statement.update
+          ? cursorIdsRequiredForBody(statement.update)
+          : new Set<number>();
+        if (statement.init) visit(statement.init, cursorIds);
+        if (statement.test) visit(statement.test, cursorIds);
+        if (statement.update) visit(statement.update, nextIds);
+        visit(statement.body, nextIds);
+        if (updateIds.size > 0) visit(statement.body, new Set([...nextIds, ...updateIds]));
+        return;
+      }
+      if (node.type === "CallExpression" && cursorIds.size > 0) {
+        const call = node as ESTree.CallExpression;
+        if (call.callee.type === "MemberExpression") {
+          const method = staticPropertyName(call.callee);
+          if (method && COLLECTION_METHODS.has(method)) {
+            for (const argument of call.arguments) {
+              for (const retained of retainedInValue(argument, cursorIds)) {
+                findings.push({
+                  node: retained,
+                  name: retainedName(retained),
+                });
+              }
             }
           }
         }
       }
+      visitChildren(node, (child) => visit(child, cursorIds));
+    } finally {
+      depth -= 1;
     }
-    visitChildren(node, (child) => visit(child, cursorIds));
   }
 
-  visit(program, emptyIds);
-  return dedupePathFindings(findings);
+  try {
+    visit(program, emptyIds);
+    return dedupePathFindings(findings);
+  } catch (error) {
+    if (error !== BUDGET_EXCEEDED) throw error;
+    exhaustedPathAnalysis(analysis);
+    return [];
+  }
 }
