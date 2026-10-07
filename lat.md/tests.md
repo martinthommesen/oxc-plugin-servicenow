@@ -267,7 +267,7 @@ The Cloud Agent installs Bun at the exact version and integrity recorded in its 
 
 The documentation generators, the catalog checker, and `docs:check` must use one path list. README marker replacement must reject unregistered section names.
 
-Both README formatter-guide links and the compatibility link must use generated repository references, whose URLs track the package release tag rather than a hand-written version.
+Both README formatter-guide links, the compatibility link, and the Australia engine-update ledger link must use generated repository references, whose URLs track the package release tag rather than a hand-written version.
 
 ### Test report queries use one clean-pass rule
 
@@ -345,7 +345,7 @@ The workflow runs on a push to `main` that changes `package.json` or `CHANGELOG.
 
 `releaseChangelog` moves the `Unreleased` notes under a dated version heading, leaves `Unreleased` empty, and the result passes the release changelog check.
 
-It refuses an empty `Unreleased` section, a heading the changelog already has, and a changelog without `Unreleased`. The repository changelog prepares cleanly for a hypothetical next version. `prepareRelease` sets the same version in `package.json` and both lockfile entries and rejects a repeated or non-SemVer version.
+It refuses an empty `Unreleased` section, a heading the changelog already has, and a changelog without `Unreleased`. Isolated fixtures cover consecutive releases after new notes are added, so the tests also pass when the repository's `Unreleased` section is empty after preparation. `prepareRelease` sets the same version in `package.json` and both lockfile entries and rejects a repeated or non-SemVer version.
 
 ### The unattended release environment is audited as such
 

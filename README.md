@@ -188,7 +188,7 @@ export default defineConfig({
 
 </details>
 
-Release-specific coverage is documented in the [Australia engine update ledger](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/australia-engine-updates.md). “Not Supported” means not validated by ServiceNow for that release and mode; “Disallowed” means a platform error. Compatibility uses ES5 feature-table cells as package policy, not as an official Compatibility table.
+Release-specific coverage is documented in the [Australia engine update ledger][repository-australia-engine-updates]. “Not Supported” means not validated by ServiceNow for that release and mode; “Disallowed” means a platform error. Compatibility uses ES5 feature-table cells as package policy, not as an official Compatibility table.
 
 ## Rules
 
@@ -469,6 +469,7 @@ See [Contributing][repository-contributing] for the full validation workflow.
 [repository-rule-authoring]: https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rule-authoring.md
 [repository-formatter-guide]: https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/oxfmt.md
 [repository-compatibility]: https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/compatibility.md
+[repository-australia-engine-updates]: https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/australia-engine-updates.md
 [repository-non-goals]: https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/non-goals.md
 <!-- generated:repository-links:end -->
 

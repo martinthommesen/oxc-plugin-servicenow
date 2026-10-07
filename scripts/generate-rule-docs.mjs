@@ -189,6 +189,7 @@ function repositoryLinks() {
     `[repository-rule-authoring]: ${blob}/docs/rule-authoring.md`,
     `[repository-formatter-guide]: ${blob}/docs/oxfmt.md`,
     `[repository-compatibility]: ${blob}/docs/compatibility.md`,
+    `[repository-australia-engine-updates]: ${blob}/docs/australia-engine-updates.md`,
     `[repository-non-goals]: ${blob}/docs/non-goals.md`,
   ].join("\n");
 }
