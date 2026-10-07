@@ -5,7 +5,6 @@ import path from "node:path";
 import { describe, it } from "node:test";
 import { changelogHasVersionHeading } from "../../scripts/check-release-artifact.mjs";
 import { prepareRelease, releaseChangelog } from "../../scripts/prepare-release.mjs";
-import { repoRoot } from "../integration/helpers.js";
 
 const CHANGELOG = `# Changelog
 
@@ -61,9 +60,35 @@ describe("release preparation", () => {
     );
   });
 
-  it("prepares the repository changelog for the next version", () => {
-    const text = readFileSync(path.join(repoRoot, "CHANGELOG.md"), "utf8");
-    assert.ok(changelogHasVersionHeading(releaseChangelog(text, "99.0.0", "2026-02-02"), "99.0.0"));
+  it("prepares consecutive releases after new Unreleased notes are added", () => {
+    const firstRelease = releaseChangelog(CHANGELOG, "1.1.0", "2026-02-02");
+    const withNewNotes = firstRelease.replace(
+      "## Unreleased\n\n",
+      "## Unreleased\n\n### Fixed\n\n- a fix\n\n",
+    );
+    assert.equal(
+      releaseChangelog(withNewNotes, "1.1.1", "2026-02-03"),
+      `# Changelog
+
+## Unreleased
+
+## 1.1.1 — 2026-02-03
+
+### Fixed
+
+- a fix
+
+## 1.1.0 — 2026-02-02
+
+### Added
+
+- a feature
+
+## 1.0.0 — 2026-01-01
+
+- first
+`,
+    );
   });
 
   it("sets the package and lockfile version alongside the changelog", () => {

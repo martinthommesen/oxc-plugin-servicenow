@@ -44,7 +44,7 @@ describe("generated artifact manifest", () => {
     assert.throws(() => replaceMarkedSection("", "unknown", "new"), /Unknown generated section/);
   });
 
-  it("uses generated release-pinned references for README formatter and compatibility guides", () => {
+  it("uses generated release-pinned references for current README guides and ledger", () => {
     const readme = readFileSync(new URL("../README.md", import.meta.url), "utf8");
     const links = readme.match(
       /<!-- generated:repository-links:start -->([\s\S]*?)<!-- generated:repository-links:end -->/,
@@ -59,12 +59,26 @@ describe("generated artifact manifest", () => {
         `[repository-compatibility]: ${REPOSITORY_URL}/blob/${PACKAGE_GIT_REF}/docs/compatibility.md`,
       ),
     );
+    assert.ok(
+      links?.includes(
+        `[repository-australia-engine-updates]: ${REPOSITORY_URL}/blob/${PACKAGE_GIT_REF}/docs/australia-engine-updates.md`,
+      ),
+    );
     assert.equal(
       (readme.match(/\[formatter guide\]\[repository-formatter-guide\]/gi) ?? []).length,
       2,
     );
     assert.equal((readme.match(/\[compatibility\]\[repository-compatibility\]/gi) ?? []).length, 1);
+    assert.equal(
+      (
+        readme.match(
+          /\[Australia engine update ledger\]\[repository-australia-engine-updates\]/g,
+        ) ?? []
+      ).length,
+      1,
+    );
     assert.doesNotMatch(readme, /\[[^\]]+\]\([^)\n]*\/docs\/oxfmt\.md\)/);
     assert.doesNotMatch(readme, /\[[^\]]+\]\([^)\n]*\/docs\/compatibility\.md\)/);
+    assert.doesNotMatch(readme, /\[[^\]]+\]\([^)\n]*\/docs\/australia-engine-updates\.md\)/);
   });
 });
