@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 3.1.0 — 2026-10-07
+
 ### Added
 
 - `configs.flat.policy` and `configs.flat.security` bring the ESLint flat presets to parity with the oxlint preset maps, and the README preset table names each flat configuration (FINDINGS.md FEAT-003).

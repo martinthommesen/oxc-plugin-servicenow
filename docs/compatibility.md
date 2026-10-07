@@ -39,4 +39,4 @@ Consumer applications use the same Node floor. There is no separate older consum
 
 ## Documentation URLs
 
-Rule `docs.url` values point at the immutable `v3.0.0` release tag. The protected release workflow verifies that tag before publishing the corresponding package.
+Rule `docs.url` values point at the immutable `v3.1.0` release tag. The protected release workflow verifies that tag before publishing the corresponding package.
