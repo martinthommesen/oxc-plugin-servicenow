@@ -188,6 +188,7 @@ function repositoryLinks() {
     `[repository-contributing]: ${blob}/CONTRIBUTING.md`,
     `[repository-rule-authoring]: ${blob}/docs/rule-authoring.md`,
     `[repository-formatter-guide]: ${blob}/docs/oxfmt.md`,
+    `[repository-compatibility]: ${blob}/docs/compatibility.md`,
     `[repository-non-goals]: ${blob}/docs/non-goals.md`,
   ].join("\n");
 }

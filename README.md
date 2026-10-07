@@ -311,7 +311,7 @@ Try one rule against one file and compare with its [rule page](#rules). oxlint J
 
 - [Examples](#examples) — runnable projects for each script context.
 - [Migration to 3.0.0](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/migration-3.0.md) — breaking changes and replacements.
-- [Compatibility](https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/compatibility.md) — supported toolchains and tested combinations.
+- [Compatibility][repository-compatibility] — supported toolchains and tested combinations.
 - [Formatter guide][repository-formatter-guide] — configuration and styles.
 - [Contributing][repository-contributing] · [Rule authoring][repository-rule-authoring] · [Non-goals][repository-non-goals].
 
@@ -468,6 +468,7 @@ See [Contributing][repository-contributing] for the full validation workflow.
 [repository-contributing]: https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/CONTRIBUTING.md
 [repository-rule-authoring]: https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/rule-authoring.md
 [repository-formatter-guide]: https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/oxfmt.md
+[repository-compatibility]: https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/compatibility.md
 [repository-non-goals]: https://github.com/martinthommesen/oxc-plugin-servicenow/blob/v3.0.0/docs/non-goals.md
 <!-- generated:repository-links:end -->
 
