@@ -46,18 +46,50 @@ export function structuralFingerprint(value: object): string | undefined {
   try {
     const seen = new WeakMap<object, number>();
     let nextReference = 0;
+    function dataProperty(item: object, key: PropertyKey): PropertyDescriptor | undefined {
+      let owner: object | null = item;
+      while (owner) {
+        const property = Object.getOwnPropertyDescriptor(owner, key);
+        if (property) {
+          if (!Object.hasOwn(property, "value")) {
+            throw new TypeError("Accessor properties cannot be cached structurally");
+          }
+          return property;
+        }
+        owner = Object.getPrototypeOf(owner);
+      }
+      return undefined;
+    }
     function visit(item: unknown): string {
-      if (item === null) return "null";
-      if (typeof item !== "object") return `${typeof item}:${String(item)}`;
+      if (item === null) return JSON.stringify(["null"]);
+      if (typeof item !== "object") return JSON.stringify([typeof item, String(item)]);
       const prior = seen.get(item);
-      if (prior !== undefined) return `ref:${prior}`;
+      if (prior !== undefined) return JSON.stringify(["ref", prior]);
       seen.set(item, nextReference);
       nextReference += 1;
-      if (Array.isArray(item)) return `array:[${item.map(visit).join(",")}]`;
-      return `object:{${Object.keys(item)
-        .sort()
-        .map((key) => `${JSON.stringify(key)}:${visit((item as Record<string, unknown>)[key])}`)
-        .join(",")}}`;
+      if (Array.isArray(item)) {
+        return JSON.stringify([
+          "array",
+          Array.from({ length: item.length }, (_, index) => {
+            if (!Reflect.has(item, index)) return JSON.stringify(["hole"]);
+            dataProperty(item, index);
+            return visit(Reflect.get(item, index));
+          }),
+        ]);
+      }
+      const ownKeys = Object.keys(item).sort();
+      // Validation rejects unknown own keys but reads every declared field,
+      // including inherited values. Preserve both parts of that input.
+      const keys =
+        item === value ? [...new Set([...ownKeys, ...SETTINGS_PRODUCTS.keys])].sort() : ownKeys;
+      return JSON.stringify([
+        "object",
+        ownKeys,
+        keys.map((key) => {
+          dataProperty(item, key);
+          return [key, visit(Reflect.get(item, key))];
+        }),
+      ]);
     }
     return visit(value);
   } catch {

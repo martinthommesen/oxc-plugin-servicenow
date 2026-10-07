@@ -168,6 +168,37 @@ function nestedScopes(depth) {
 }
 
 /**
+ * @param {number} count
+ * @returns {string}
+ */
+function scopeRich(count) {
+  return Array.from(
+    { length: count },
+    (_, index) => `function scoped${index}(value) { { var local = value; local; } return value; }`,
+  ).join("\n");
+}
+
+/**
+ * @param {number} count
+ * @returns {string}
+ */
+function correlatedHelpers(count) {
+  return Array.from(
+    { length: count },
+    (_, index) =>
+      `function worker${index}() {
+  var rec = new GlideRecord("incident");
+  var run;
+  if (flag) run = function () { rec.query(); };
+  else { rec.query(); run = function () {}; }
+  run();
+  rec.next();
+}
+worker${index}();`,
+  ).join("\n");
+}
+
+/**
  * @param {string} directory
  * @param {Record<string, unknown>} rules
  * @param {boolean} jsPlugins
@@ -215,6 +246,8 @@ function generateFixtures(directory) {
     Array.from({ length: 200 * repeat }, (_, index) => aclAnalysisBlock(index)).join("\n"),
   );
   writeFileSync(join(directory, "classic/nested.br.js"), nestedScopes(12));
+  writeFileSync(join(directory, "classic/scopes.br.js"), scopeRich(100));
+  writeFileSync(join(directory, "classic/helpers.br.js"), correlatedHelpers(20));
   writeFileSync(join(directory, "fluent/large.now.ts"), fluentRecords(80));
   writeFileSync(join(directory, "fluent/aliases.now.ts"), fluentAliases(120));
   writeFileSync(join(directory, "classic/counters.br.js"), counterBlocks(40));
@@ -414,6 +447,18 @@ async function main() {
         "recommended",
         configs.recommended,
         [join(work, "classic/nested.br.js")],
+      ],
+      [
+        "scope-rich/recommended",
+        "recommended",
+        configs.recommended,
+        [join(work, "classic/scopes.br.js")],
+      ],
+      [
+        "correlated-helpers/recommended",
+        "recommended",
+        configs.recommended,
+        [join(work, "classic/helpers.br.js")],
       ],
       [
         "fluent-large/recommended",

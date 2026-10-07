@@ -232,17 +232,27 @@ export function propertyKeyName(property: ESTree.ObjectProperty): string | null 
     : (getName(property.key) ?? getStringValue(property.key));
 }
 
-export function objectProperty(object: unknown, key: string): ESTree.ObjectProperty | null {
-  if (!isNode(object) || object.type !== "ObjectExpression") return null;
-  for (const prop of object.properties) {
-    if (prop.type !== "Property") continue;
-    if (propertyKeyName(prop) === key) return prop;
+export type ObjectPropertyProof =
+  | { readonly kind: "known"; readonly property: ESTree.ObjectProperty }
+  | { readonly kind: "absent" }
+  | { readonly kind: "unknown" };
+
+/** Prove the effective own property after object-literal writes, without evaluating spreads. */
+export function objectProperty(object: unknown, key: string): ObjectPropertyProof {
+  if (!isNode(object) || object.type !== "ObjectExpression") return { kind: "unknown" };
+  for (let index = object.properties.length - 1; index >= 0; index -= 1) {
+    const prop = object.properties[index];
+    if (!prop || prop.type !== "Property") return { kind: "unknown" };
+    const name = propertyKeyName(prop);
+    if (name === null) return { kind: "unknown" };
+    if (name === key) return { kind: "known", property: prop };
   }
-  return null;
+  return { kind: "absent" };
 }
 
 export function objectPropertyValue(object: unknown, key: string): ESTree.Node | null {
-  return objectProperty(object, key)?.value ?? null;
+  const proof = objectProperty(object, key);
+  return proof.kind === "known" ? proof.property.value : null;
 }
 
 /** A host comment with source offsets. */
@@ -392,6 +402,7 @@ export function walk(
     ancestorIndex?.set(frame.node, ancestors.slice());
     ancestors.push(frame.node);
     visitors[frame.node.type]?.(frame.node);
+    visitors["*"]?.(frame.node);
     stack.push({ node: frame.node, exit: true });
 
     const children: ESTree.Node[] = [];

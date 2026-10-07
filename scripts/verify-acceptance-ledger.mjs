@@ -443,36 +443,51 @@ export function acceptanceTestReportPath(base = tmpdir()) {
   return join(mkdtempSync(join(base, "oxc-plugin-servicenow-acceptance-")), "test-results.json");
 }
 
+/** @typedef {"offline" | "network"} AcceptanceCapture */
+
 /**
- * @returns {any}
+ * @param {{capture?: AcceptanceCapture, run?: (bin: string, args: string[], options: {cwd: string, encoding: "utf8", stdio: ["ignore", "inherit", "inherit"]}) => {status: number | null}}} [options]
+ * @returns {ReturnType<typeof readJson>}
  */
-function runTests() {
+export function runAcceptanceTests(options = {}) {
   const testReportPath = acceptanceTestReportPath();
   try {
-    const result = spawnSync(
-      process.execPath,
-      // Naming the networked packed-consumer test explicitly opts it back in
-      // (FINDINGS.md TST-003): directory arguments stay hermetic, and the
-      // acceptance capture is the complete evidence run.
-      [
-        join(root, "scripts/run-tests.mjs"),
-        "--report-json",
-        testReportPath,
-        "tests",
-        "tests/integration/packed-consumer.test.ts",
-      ],
-      {
-        cwd: root,
-        encoding: "utf8",
-        stdio: ["ignore", "inherit", "inherit"],
-      },
-    );
+    const args = [join(root, "scripts/run-tests.mjs"), "--report-json", testReportPath, "tests"];
+    if (options.capture === "network") args.push("tests/integration/packed-consumer.test.ts");
+    const run = options.run ?? spawnSync;
+    const result = run(process.execPath, args, {
+      cwd: root,
+      encoding: "utf8",
+      stdio: ["ignore", "inherit", "inherit"],
+    });
     if (result.status !== 0)
       throw new Error(`node:test inventory failed with status ${result.status}`);
     return readJson(testReportPath);
   } finally {
     rmSync(dirname(testReportPath), { recursive: true, force: true });
   }
+}
+
+/**
+ * @template {{criteria: Array<{disposition: string, proofs: Array<{file: string}>, evidence?: string}>}} T
+ * @param {T} mapping
+ * @param {AcceptanceCapture} capture
+ */
+export function acceptanceCaptureMapping(mapping, capture) {
+  return {
+    ...mapping,
+    criteria: mapping.criteria.map((item) =>
+      capture === "offline" &&
+      item.disposition === "Verified at exact head" &&
+      item.proofs.some((proof) => proof.file === "tests/integration/packed-consumer.test.ts")
+        ? {
+            ...item,
+            disposition: "Live-pending",
+            evidence: "Network consumer proof requires an explicit --capture-network capture.",
+          }
+        : item,
+    ),
+  };
 }
 
 /**
@@ -586,6 +601,9 @@ function generateDocs(mapping, artifact) {
  * @returns {Promise<any>}
  */
 async function runAcceptance(argv) {
+  if (argv.includes("--offline") && argv.includes("--capture-network"))
+    throw new Error("--offline and --capture-network are mutually exclusive");
+  const capture = argv.includes("--capture-network") ? "network" : "offline";
   const update = argv.includes("--update");
   if (update && !existsSync(goalPath))
     throw new Error("--update requires PR51-REMEDIATION-GOAL.md from the tracking branch");
@@ -602,26 +620,28 @@ async function runAcceptance(argv) {
     (mapping.goal.sha256 !== sha256(source) || mapping.goal.criteria !== parsed?.length)
   )
     errors.push("goal identity or criterion count changed");
-  const report = update ? { tests: [] } : runTests();
-  if (!update) errors.push(...verifyProofs(mapping, report));
+  const report = update ? { tests: [] } : runAcceptanceTests({ capture });
+  const capturedMapping = acceptanceCaptureMapping(mapping, capture);
+  if (!update) errors.push(...verifyProofs(capturedMapping, report));
   const identity = worktreeIdentity();
   if (process.env["CI"] && (!identity.clean || process.env["GITHUB_SHA"] !== identity.head))
     errors.push("CI acceptance evidence requires a clean exact GITHUB_SHA");
   const summary = {
-    verified: mapping.criteria.filter(
+    verified: capturedMapping.criteria.filter(
       /** @param {any} item */ (item) => item.disposition === "Verified at exact head",
     ).length,
-    pending: mapping.criteria.filter(
+    pending: capturedMapping.criteria.filter(
       /** @param {any} item */ (item) =>
         ["Pending", "Reproduced", "Implemented"].includes(item.disposition),
     ).length,
-    livePending: mapping.criteria.filter(
+    livePending: capturedMapping.criteria.filter(
       /** @param {any} item */ (item) => item.disposition === "Live-pending",
     ).length,
   };
   const testResults = outcomeSummary(report);
   const artifact = {
     schemaVersion: 1,
+    capture,
     ok: errors.length === 0,
     complete: errors.length === 0 && summary.pending === 0 && summary.livePending === 0,
     capturedAt: new Date().toISOString(),
@@ -635,8 +655,8 @@ async function runAcceptance(argv) {
       release: release(),
     },
     commands: [
-      "node scripts/run-tests.mjs --report-json <unique-temporary-report> tests tests/integration/packed-consumer.test.ts",
-      "node scripts/verify-acceptance-ledger.mjs",
+      `node scripts/run-tests.mjs --report-json <unique-temporary-report> tests${capture === "network" ? " tests/integration/packed-consumer.test.ts" : ""}`,
+      `node scripts/verify-acceptance-ledger.mjs ${capture === "network" ? "--capture-network" : "--offline"}`,
     ],
     testResults,
     summary,
@@ -644,7 +664,7 @@ async function runAcceptance(argv) {
   };
   mkdirSync(artifactsDir, { recursive: true });
   writeJsonArtifact(join(artifactsDir, "pr51-acceptance.json"), artifact);
-  generateDocs(mapping, artifact);
+  generateDocs(capturedMapping, artifact);
   if (errors.length > 0) throw new Error(errors.join("\n"));
   console.log(
     JSON.stringify(

@@ -86,6 +86,46 @@ function rawLiveGovernance(protectionRules: unknown[]) {
   };
 }
 
+async function assertAttestationRetryBounds(
+  failure: () => Promise<Response>,
+  options: { timeoutMs?: number } = {},
+): Promise<void> {
+  const view = {
+    dist: {
+      attestations: [
+        {
+          url: "https://registry.npmjs.org/-/npm/v1/attestations/pkg@2.0.0",
+          provenance: { predicateType: "https://slsa.dev/provenance/v1" },
+        },
+      ],
+    },
+  };
+  for (const recovers of [true, false]) {
+    let attempts = 0;
+    const delays: number[] = [];
+    const result = retryBounded(
+      () =>
+        fetchAttestations(view, "pkg", "2.0.0", async () => {
+          attempts += 1;
+          return recovers && attempts === 3 ? new Response('{"ready":true}') : failure();
+        }),
+      {
+        ...options,
+        maxAttempts: 3,
+        initialDelayMs: 10,
+        now: () => 0,
+        sleep: async (ms) => {
+          delays.push(ms);
+        },
+      },
+    );
+    if (recovers) assert.deepEqual(await result, { ready: true });
+    else await assert.rejects(result, isTransientRegistryError);
+    assert.equal(attempts, 3);
+    assert.deepEqual(delays, [10, 20]);
+  }
+}
+
 describe("release automation gates", () => {
   it("enforces one full-SHA action pin set across workflows", () => {
     const result = checkActionPins();
@@ -701,6 +741,16 @@ describe("release automation gates", () => {
     }
   });
 
+  it("keeps complete acceptance capture inside the CI consumer boundary", () => {
+    const commands = (job: { steps: Array<{ run?: string }> }) =>
+      job.steps.flatMap((step) => (step.run ? [step.run] : []));
+    assert.ok(commands(ciWorkflow.jobs.test).includes("npm run acceptance:check"));
+    assert.equal(commands(ciWorkflow.jobs.test).includes("npm run acceptance:capture"), false);
+    assert.ok(commands(ciWorkflow.jobs.consumer).includes("npm run acceptance:capture"));
+    assert.ok(commands(workflow.jobs.validate).includes("npm run acceptance:check"));
+    assert.equal(commands(workflow.jobs.validate).includes("npm run acceptance:capture"), false);
+  });
+
   it("bounds every job and network operation (FINDINGS.md REL-002)", async () => {
     // The retry deadline only stops scheduling; each job needs a final guard
     // and each fetch its own abort signal so a hang cannot stall a release.
@@ -892,7 +942,7 @@ describe("release automation gates", () => {
       isTransientRegistryError(Object.assign(new Error("forbidden"), { status: 403 })),
       false,
     );
-    for (const code of ["E502", "E503", "E504"]) {
+    for (const code of ["E500", "E502", "E503", "E504"]) {
       assert.throws(
         () =>
           parseNpmCommandResult(
@@ -902,7 +952,7 @@ describe("release automation gates", () => {
         (error: any) => error.code === code && isTransientRegistryError(error),
       );
     }
-    for (const code of ["E502", "E503", "E504"]) {
+    for (const code of ["E500", "E502", "E503", "E504"]) {
       let npmAttempts = 0;
       const npmSleeps: number[] = [];
       const value = await retryBounded(
@@ -934,6 +984,21 @@ describe("release automation gates", () => {
       assert.deepEqual(value, { ok: true });
       assert.equal(npmAttempts, 2);
       assert.deepEqual(npmSleeps, [10]);
+      npmAttempts = 0;
+      await assert.rejects(
+        retryBounded(
+          () => {
+            npmAttempts += 1;
+            return parseNpmCommandResult(
+              { status: 1, signal: null, stdout: JSON.stringify({ error: { code } }), stderr: "" },
+              "npm view",
+            );
+          },
+          { maxAttempts: 3, now: () => 0, sleep: async () => {} },
+        ),
+        isTransientRegistryError,
+      );
+      assert.equal(npmAttempts, 3);
     }
     await assert.rejects(
       retryBounded(
@@ -981,6 +1046,94 @@ describe("release automation gates", () => {
       undefined,
     );
   });
+
+  // @lat: [[tests#Release governance#Recoverable registry failures retain bounded retries]]
+  it("recovers from HTTP 500 and native fetch or body timeouts within the retry cap", async () => {
+    const timeout = new DOMException("operation timed out", "TimeoutError");
+    const failures: Array<() => Promise<Response>> = [
+      async () => new Response("temporary", { status: 500 }),
+      async () => {
+        throw timeout;
+      },
+      async () => {
+        return new Response(
+          new ReadableStream({
+            start(controller) {
+              controller.error(timeout);
+            },
+          }),
+        );
+      },
+      async () => {
+        return new Response(
+          new ReadableStream({
+            start(controller) {
+              controller.error(
+                Object.assign(new TypeError("terminated"), {
+                  cause: Object.assign(new Error("socket closed"), { code: "ECONNRESET" }),
+                }),
+              );
+            },
+          }),
+        );
+      },
+    ];
+    for (const failure of failures) {
+      await assertAttestationRetryBounds(failure, { timeoutMs: 100 });
+    }
+  });
+
+  it("keeps malformed attestation JSON permanent", async () => {
+    const view = {
+      dist: {
+        attestations: [
+          {
+            url: "https://registry.npmjs.org/-/npm/v1/attestations/pkg@2.0.0",
+            provenance: { predicateType: "https://slsa.dev/provenance/v1" },
+          },
+        ],
+      },
+    };
+    let attempts = 0;
+    await assert.rejects(
+      retryBounded(
+        () =>
+          fetchAttestations(view, "pkg", "2.0.0", async () => {
+            attempts += 1;
+            return new Response("not JSON");
+          }),
+        { maxAttempts: 3, sleep: async () => assert.fail("malformed JSON must not retry") },
+      ),
+      /malformed JSON/,
+    );
+    assert.equal(attempts, 1);
+  });
+
+  for (const failure of [
+    { code: "UND_ERR_CONNECT_TIMEOUT", name: "ConnectTimeoutError", phase: "fetch" },
+    { code: "UND_ERR_HEADERS_TIMEOUT", name: "HeadersTimeoutError", phase: "fetch" },
+    { code: "UND_ERR_BODY_TIMEOUT", name: "BodyTimeoutError", phase: "body" },
+    { code: "UND_ERR_SOCKET", name: "SocketError", phase: "body" },
+  ]) {
+    it(`retries native ${failure.code} failures without exceeding the attempt cap`, async () => {
+      const error = new TypeError(failure.phase === "body" ? "terminated" : "fetch failed", {
+        cause: Object.assign(new Error("transport interrupted"), {
+          name: failure.name,
+          code: failure.code,
+        }),
+      });
+      await assertAttestationRetryBounds(async () => {
+        if (failure.phase === "fetch") throw error;
+        return new Response(
+          new ReadableStream({
+            start(controller) {
+              controller.error(error);
+            },
+          }),
+        );
+      });
+    });
+  }
 
   it("uses a fresh consumer for each transient registry install attempt", async () => {
     const directories: string[] = [];

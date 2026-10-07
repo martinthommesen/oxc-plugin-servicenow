@@ -67,7 +67,7 @@ BusinessRule({
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-boundary: An unresolved spread or computed key that may supply or overwrite `$id` suppresses ID diagnostics. An explicit `$id` after that property remains checked.
 
 ## Known false positives
 
@@ -79,7 +79,7 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
 
 ## Intentional scope boundaries
 
-- None recorded.
+- An unresolved spread or computed key that may supply or overwrite `$id` suppresses ID diagnostics. An explicit `$id` after that property remains checked.
 
 ## Overlaps
 

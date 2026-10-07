@@ -1,6 +1,6 @@
 Fifty rules ship in 3.0.0 across three families and ten profiles. This file describes registration, rule shape, and reference documentation.
 
-Per-rule semantics, applicability, options, false positives and negatives, and evidence live in `docs/rules/*.md`. Those pages are generated from the catalog, so they cannot drift from the implementation. Do not restate their content here.
+Per-rule semantics, applicability, options, false positives and negatives, and evidence live in `docs/rules/*.md`. Pages derive from the catalog; their claims still need verification against runtime behavior. Do not restate their content here.
 
 ## The catalog is the registry
 
@@ -32,13 +32,13 @@ A rule can appear in several placements with different severities. `RuleProfile`
 
 ## The rule shape
 
-Every rule is built with `defineRule` (from `@oxlint/plugins`) and implements `createOnce`, which runs once per file rather than once per node.
+Every rule uses `defineRule` from `@oxlint/plugins` and a reusable `createOnce` factory. Its visitors can serve several files; `before()` resets closure state and initializes each file.
 
-A rule returns visitors from `createOnce`, and every visitor calls `beginRuleFile` from [[src/rules/helpers.ts#beginRuleFile]] before doing anything else. A representative minimal rule is `src/rules/no-gs-now.ts`.
+A rule returns visitors from `createOnce`. Hooks and visitors that need per-file analysis call [[src/rules/helpers.ts#beginRuleFile]]. A representative minimal rule is `src/rules/no-gs-now.ts`.
 
 The calls stay inside the visitors on purpose: oxlint throws when a rule touches `context.sourceCode` during `createOnce` itself, so hoisting the call to the top of `createOnce` breaks the real host even though the unit harness tolerates it. Do not merge the per-visitor calls.
 
-The shape exists for three reasons. `createOnce` computes per-file work once. A `before()` hook returning `false` lets the host skip a file entirely, which is the cheapest possible outcome for a rule that does not apply. And whole-file concerns need a `Program` visitor, which cannot be expressed as a per-node visitor.
+The shape separates reusable visitor construction from per-file setup. A `before()` hook returning `false` lets the host skip a file entirely. Whole-file concerns use a `Program` visitor. [[tests/rules/multi-file-lifecycle.test.ts]] verifies reuse.
 
 The `before()` hook is where applicability is decided, using the predicates in [[context#How rules consume the context]]. Returning `false` is how a rule declines a file; it is part of the rule contract, and the test harness distinguishes it from finding nothing — see [[invariants#Declining is not the same as passing]].
 
@@ -57,6 +57,8 @@ Each descriptor carries an applicability block built by `classic(...)`, `engine(
 These produce the *documented* applicability — surfaces, JavaScript modes, scopes, releases, and `minimumSurfaceConfidence` — which the generated rule pages render.
 
 The documented applicability and the runtime predicates in [[context]] must agree, but they are separate artifacts: the metadata is what users read, the predicates are what runs. `Minimum surface confidence` on a rule page is where the two meet, and it is a `ContextConfidence` value — `inferred` unless the rule passes a stronger floor to its gate.
+
+Mixed UI Action behavior is rule-specific. Explicit client/server surfaces can enable classic checks; engine gates suppress mixed execution regions. [[src/catalog-metadata.ts#formatSurfaces]] qualifies common prose without promising universal silence.
 
 `scripts/lib/catalog-gates.mjs`, run from the catalog check, asserts the agreement structurally (FINDINGS.md COR-015). It reads the structured `surfaces` list rather than the rendered prose; it requires the matching gate helper, so removing a gate fails the check; it skips the surface half for a mode-restricted rule, which gates on `shouldDiagnoseFeature` and has no surface argument; and it verifies that a declared confidence floor stronger than the default is the value passed at every surface gate.
 

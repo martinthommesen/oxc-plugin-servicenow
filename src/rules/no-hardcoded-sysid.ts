@@ -102,6 +102,7 @@ function reportStaticSegments(
   segments: readonly StaticSegment[],
   allowed: Set<string>,
   ignoreHashNames: boolean,
+  boundaries: { leadingUnknown?: boolean; trailingUnknown?: boolean } = {},
 ): void {
   const value = segments.map((segment) => segment.value).join("");
   const matches = matchSysIds(value);
@@ -121,6 +122,11 @@ function reportStaticSegments(
     if (allowed.has(id.toLowerCase())) continue;
     const start = match.index;
     const end = start + id.length;
+    if (
+      (boundaries.leadingUnknown && start === 0) ||
+      (boundaries.trailingUnknown && end === value.length)
+    )
+      continue;
     const segment = ranges.find((candidate) => start >= candidate.start && end <= candidate.end);
     if (segment?.child) continue;
     context.report({
@@ -168,6 +174,7 @@ export const noHardcodedSysid = defineRule({
       TemplateLiteral(node) {
         const template = node as ESTree.TemplateLiteral;
         const segments: StaticSegment[] = [];
+        let leadingUnknown = false;
         for (let index = 0; index < template.quasis.length; index += 1) {
           const quasi = template.quasis[index];
           if (!quasi) return;
@@ -180,18 +187,17 @@ export const noHardcodedSysid = defineRule({
           if (!expression) continue;
           const value = getStaticStringValue(expression);
           if (value === null) {
-            reportSysIds(
-              context,
-              quasi as unknown as ESTree.Node,
-              quasi.value.cooked ?? quasi.value.raw,
-              allowed,
-              ignoreHashNames,
-            );
-            return;
+            reportStaticSegments(context, node, segments, allowed, ignoreHashNames, {
+              leadingUnknown,
+              trailingUnknown: true,
+            });
+            segments.length = 0;
+            leadingUnknown = true;
+            continue;
           }
           segments.push({ node: expression, value, child: true });
         }
-        reportStaticSegments(context, node, segments, allowed, ignoreHashNames);
+        reportStaticSegments(context, node, segments, allowed, ignoreHashNames, { leadingUnknown });
       },
       BinaryExpression(node) {
         const expression = node as ESTree.BinaryExpression;

@@ -7,8 +7,30 @@ import { beginRuleFile } from "./helpers.js";
 import { shouldDiagnoseFeature, type EngineFeatureId } from "../engine/index.js";
 
 const LOGICAL_ASSIGN = new Set(["||=", "&&=", "??="]);
-const LOOKBEHIND = /\(\?<[=!]/;
 const REGEXP_NAMES = ["RegExp"] as const;
+
+function hasLookbehind(pattern: string): boolean {
+  let inClass = false;
+  for (let index = 0; index < pattern.length; index += 1) {
+    const character = pattern[index];
+    if (character === "\\") {
+      index += 1;
+    } else if (character === "[") {
+      inClass = true;
+    } else if (character === "]") {
+      inClass = false;
+    } else if (
+      !inClass &&
+      character === "(" &&
+      pattern[index + 1] === "?" &&
+      pattern[index + 2] === "<" &&
+      (pattern[index + 3] === "=" || pattern[index + 3] === "!")
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
 
 function regexPattern(node: ESTree.Node): string | null {
   const rec = node as {
@@ -101,7 +123,7 @@ export const noUnsupportedSyntax = defineRule({
       Literal(node) {
         if (!featureOn("lookbehind")) return;
         const pattern = regexPattern(node);
-        if (pattern && LOOKBEHIND.test(pattern)) {
+        if (pattern && hasLookbehind(pattern)) {
           context.report({ node, messageId: "lookbehind" });
         }
       },
@@ -118,7 +140,7 @@ export const noUnsupportedSyntax = defineRule({
           const first = finding.node.arguments[0];
           if (!first || first.type === "SpreadElement") continue;
           const value = getStringValue(first);
-          if (value && LOOKBEHIND.test(value)) {
+          if (value && hasLookbehind(value)) {
             context.report({ node: finding.node, messageId: "lookbehind" });
           }
         }

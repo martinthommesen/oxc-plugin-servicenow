@@ -4,7 +4,7 @@ import path from "node:path";
 import { describe, it } from "node:test";
 import { Linter } from "eslint";
 import plugin, { configs } from "../../src/index.js";
-import { repoRoot } from "./helpers.js";
+import { assertEslintSuccess, repoRoot } from "./helpers.js";
 
 const badBusinessRule = readFileSync(
   path.join(repoRoot, "tests/integration/fixtures/bad-business-rule.br.js"),
@@ -29,11 +29,16 @@ function verify(code: string, filename: string) {
   );
 }
 
-function ruleIds(messages: Array<{ ruleId: string | null }>): string[] {
+function ruleIds(messages: import("eslint").Linter.LintMessage[]): string[] {
+  assertEslintSuccess(messages);
   return messages.map((message) => message.ruleId).filter((id): id is string => id !== null);
 }
 
 describe("eslint host integration", () => {
+  it("rejects malformed JavaScript before interpreting absent rule ids", () => {
+    assert.throws(() => ruleIds(verify("var = ;", "invalid.server.js")), /parser|parsing/i);
+  });
+
   it("loads every catalogued rule with a create shim", () => {
     const names = Object.keys(plugin.rules);
     for (const name of names) {
