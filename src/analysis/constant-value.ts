@@ -1,0 +1,51 @@
+import type { ESTree } from "@oxlint/plugins";
+import { isNode, unwrapExpression } from "../utils/ast.js";
+
+/**
+ * Truthiness and nullishness of an expression whose value is known from its
+ * syntax alone. Anything that depends on a binding, a call, or a coercion of
+ * an unknown operand stays `null` so the interpreter keeps the conservative
+ * join. Constant tests decide which short-circuit branch and which `if`,
+ * conditional, and loop arm can execute (FINDINGS.md COR-003).
+ */
+export interface ConstantValue {
+  readonly truthy: boolean;
+  readonly nullish: boolean;
+}
+
+const ALWAYS_OBJECT_EXPRESSIONS = new Set([
+  "ObjectExpression",
+  "ArrayExpression",
+  "FunctionExpression",
+  "ArrowFunctionExpression",
+  "ClassExpression",
+]);
+
+export function constantValue(node: unknown): ConstantValue | null {
+  const expr = unwrapExpression(node);
+  if (!isNode(expr)) return null;
+  if (expr.type === "Literal") {
+    const literal = expr as unknown as { value?: unknown; regex?: unknown; bigint?: string };
+    if (literal.regex !== undefined) return { truthy: true, nullish: false };
+    const value = literal.value;
+    if (value === null) return { truthy: false, nullish: true };
+    if (typeof literal.bigint === "string") {
+      return { truthy: /[1-9]/.test(literal.bigint), nullish: false };
+    }
+    if (typeof value === "boolean" || typeof value === "number" || typeof value === "string") {
+      return { truthy: Boolean(value), nullish: false };
+    }
+    return null;
+  }
+  if (expr.type === "TemplateLiteral") {
+    const template = expr as ESTree.TemplateLiteral;
+    if (template.expressions.length > 0) return null;
+    const cooked = template.quasis.map((quasi) => quasi.value.cooked ?? "").join("");
+    return { truthy: cooked.length > 0, nullish: false };
+  }
+  if (expr.type === "UnaryExpression" && (expr as ESTree.UnaryExpression).operator === "void") {
+    return { truthy: false, nullish: true };
+  }
+  if (ALWAYS_OBJECT_EXPRESSIONS.has(expr.type)) return { truthy: true, nullish: false };
+  return null;
+}

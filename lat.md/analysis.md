@@ -10,11 +10,17 @@ Rules reach it through `beginRuleFile` in [[src/rules/helpers.ts#beginRuleFile]]
 
 One lookup owns both cache stores. Its structured identity names the filename, physical filename, host `cwd`, and settings fingerprint — the four inputs that can differ for one `SourceCode`. Host and explicit AST entries stay separate.
 
+[[src/settings/validate.ts#structuralFingerprint]] encodes tagged, escaped structural values and reference identities. Reusing a raw settings object after mutation revalidates it; delimiter text cannot impersonate array or object structure.
+
 ## Lexical bindings
 
 `createFileBindings` in [[src/analysis/bindings.ts#createFileBindings]] builds a scope tree. `FileBindings` in [[src/analysis/bindings.ts#FileBindings]] exposes lexical resolution, node and id scope lookup, execution-boundary lookup, and `isPlatformGlobal`.
 
 Callers do not walk `ScopeTree`. The module defines module, function, and static-block execution boundaries once. Its platform-global answer accounts for block scoping, function parameters, declaration order, and host scope data.
+
+Known AST nodes carry indexed lexical ownership, so repeated ancestor-free queries avoid scanning every scope and caller ancestors cannot replace an initializer's scope. Foreign or synthetic nodes retain the containing-offset fallback.
+
+[[src/analysis/bindings.ts#buildScopeTree]] records ownership during its existing construction walk through [[src/analysis/bindings.ts#ScopeTree#recordNodeScope]]. The shared `walk` entry callback `*` runs after type-specific visitors enter each scope.
 
 ## Provenance
 
@@ -46,6 +52,10 @@ Three rules keep that write model honest:
 - **Initialized `var` redeclarations are writes.** `createFileBindings` coalesces `var T = A; var T = B;` into one binding, so the second declarator is recorded as an `=` write to it. A bare `var T;` is a runtime no-op and records nothing. The same conditional and function-boundary uncertainty applies as for assignments (FINDINGS.md COR-009).
 - **References are indexed once.** `bindingReferences` in [[src/analysis/binding-references.ts#createBindingReferenceQuery]] lazily indexes every value reference and every declarator by binding id. A rule that must inspect all uses of a binding, such as the counter check in `prefer-glideaggregate`, queries it instead of walking the program per call site (FINDINGS.md PER-005).
 
+Fluent aliases apply writes at their completion offsets, so a call inside a pending RHS retains the prior origin. Applicable pattern, loop-head, update and uncertain writes invalidate authority. [[src/analysis/fluent-imports.ts#importedBindingFor]] walks aliases iteratively with cycle checks.
+
+[[src/utils/ast.ts#objectProperty]] proves known, absent or unknown effective properties by scanning backward. Later spreads or unresolved computed keys stop certainty; trailing exact properties remain provable for ID and naming checks.
+
 ## Path-sensitive analysis
 
 A method call's meaning can depend on what ran before it. `analyzePathBindings` in [[src/analysis/path-state.ts#analyzePathBindings]] is an abstract interpreter that walks the program with a per-point environment, merges states at control-flow joins, and iterates loops to a fixpoint.
@@ -56,8 +66,18 @@ Four properties matter for reading rule behavior:
 
 - **Joins converge or give up.** When two incoming branches disagree, `mergeDistinctData` returns `undefined` and the fact becomes unknown rather than picking a branch.
 - **Constant tests select the reachable branch.** A literal, template without substitutions, `void` expression, or object/array/function expression has known truthiness and nullishness. `if`, conditional, loop, and logical expressions use it to visit only the branch JavaScript can execute: `true && f()` always runs `f()`, `false && f()` never does, and `null ?? f()` always does. An operand whose value depends on a binding or call keeps the conservative join (FINDINGS.md COR-003).
-- **Work is budgeted.** The default budget is `WORK_PER_NODE` (128) per program node, clamped to the `MIN_WORK_BUDGET` floor and the `MAX_WORK_BUDGET` ceiling in [[src/analysis/path-state.ts#analyzePathBindings]], with `MAX_PATH_DEPTH` bounding traversal depth.
+- **Work is budgeted.** [[src/analysis/path-state.ts#defaultMaxWork]] scales work with program size under a floor and ceiling. Payload work is charged before domain cloning, joins, equality and call hooks; traversal depth is bounded.
 - **Exhaustion is explicit.** `analyzePathBindings` returns `complete` or `exhausted`. `collectPathFindings` in [[src/analysis/path-state.ts#collectPathFindings]] owns the findings array and the exhaustion tail for every finder built on it, and file analysis clears its provenance maps. No callback can forget the silence rule. `FileAnalysis` republishes the shared outcome as `pathBudgetExhausted` so hosts can distinguish a fully analyzed file from a budget-truncated one (FINDINGS.md PER-006).
+
+Mutable callable bindings belong to path snapshots and joins, while hoisted declarations form the initial environment. Uncalled-body inspection is isolated; direct helper calls project captured effects back. Constant false loop tests prune entries and backedges after header effects.
+
+States with different callable bindings retain their corresponding record states through following statements and helper invocation. Matching callable maps compact into one state. Reference hooks join repeated source points conservatively, and all extra path work consumes the shared budget.
+
+Expression-selected callable values remain correlated until the enclosing statement completes. Post-RHS assignments, parameter bindings and post-argument invocation effects execute on each normal alternative before joining; saved callee values retain JavaScript's evaluation order.
+
+[[src/analysis/constant-value.ts#constantValue]] supplies syntax-only truthiness and nullishness to path and availability analysis. It never infers runtime binding values. Benchmarks exercise used lexical bindings and correlated helper branches alongside nested scopes.
+
+Retention has its own deterministic counter for `(node, cursor-state)` traversal and set construction, because distinct cursors can defeat memoization. [[src/analysis/path-state.ts#exhaustedPathAnalysis]] notifies the file owner and the finder discards its complete result.
 
 ## Per-domain finders
 
@@ -69,7 +89,7 @@ Each analysis domain has its own module exposing one finder, so the logic is tes
 - `src/analysis/glideaggregate.ts` and `src/analysis/glide-setnocount.ts` — aggregate and `chooseWindow` usage.
 - `src/analysis/glideajax-params.ts` — `GlideAjax` parameter contracts.
 - `src/analysis/now-id.ts` — canonical `Now.ID` facts and duplicate ids.
-- `src/analysis/availability.ts` — `typeof X !== "undefined"`, `"x" in owner`, and optional-call guards, so a guarded use is not reported as an unguarded one. One structural index is shared per block; receiver-specific proof checks scan only bounded guard candidates.
+- [[src/analysis/availability.ts#isAvailabilityGuarded]] — availability proofs follow evaluation order. Later condition or body mutations invalidate them; a trailing recheck can restore them. A structural block index bounds preceding-exit guard queries.
 - `src/analysis/glideelement-retention.ts` — GlideElement values pushed into a collection while a cursor loop still advances.
 - `src/analysis/array-from-thisarg.ts` — `Array.from` mapper `this` semantics.
 - `src/analysis/stable-invocations.ts` — one callable resolver with explicit possible-value or dominating-value time policy. Callers separately require immediate body execution, as cursor-loop expansion does, without rejecting stable generator callbacks or mappers.

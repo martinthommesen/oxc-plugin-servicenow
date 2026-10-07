@@ -29,6 +29,12 @@ The same construct is tested with `release: "zurich"`, with `release: "australia
 
 `BINDING_MATRIX_CASES` in `tests/helpers/binding-matrix.ts` drives each rule with direct use, alias, reassignment, shadowing, and computed member access, asserting the exact message id and source range.
 
+### Parser failures cannot prove semantic silence
+
+Recovered ASTs with parser errors and fatal or unclassified ESLint messages are rejected before checking rule diagnostics. Invalid input cannot satisfy either a presence or an absence expectation.
+
+Guarded early-return fixtures use valid function bodies; TypeScript-only fixtures select a TypeScript filename.
+
 ## The catalog
 
 `ruleCatalog` is the single registry, and its evidence must be checkable. These specs hold the registry closed and the evidence honest.
@@ -81,6 +87,18 @@ One rule instance processed across several files must not carry bindings or coun
 
 Freezing must survive cyclic objects, and the shared empty default must never be mutable or shared between two contexts. Keys, defaults, parsing, freezing, and fingerprints all derive from one descriptor.
 
+### Settings cache identity preserves structural boundaries
+
+Mutating a reused raw settings object into delimiter-containing invalid input must throw exactly as fresh validation does. Typed structural fingerprints distinguish nested arrays, objects and scalar text, including cycles.
+
+### Inherited settings remain equivalent to fresh validation
+
+Inherited fields and effective array slots participate in cache identity. Prototype and Proxy changes revalidate; own values win, actual holes stay distinct, unknown own keys fail, and getters add no fingerprint reads.
+
+### Public contexts reject writes at every frozen level
+
+Strict consumer compilation rejects top-level context writes, nested source-confidence writes and query-method replacement. The declared context matches its existing deeply frozen runtime value.
+
 ## Context evidence
 
 A file's surface may come from its name or from its directory, and the two must not conflict. These specs fix the order.
@@ -117,7 +135,7 @@ The measured growth is about n^1.5 against a 9x budget for 4x input, so the guar
 
 ### Nested cursor loops stay linear
 
-Deeply nested `do`/`while` cursor loops must complete without exponential re-traversal, proving the cursor walkers memoize each (node, cursor-state) pair instead of revisiting a body once per mode (FINDINGS.md PER-002).
+Nested loops sharing one cursor avoid repeated traversal through `(node, cursor-state)` memoization. Distinct cursor subsets instead obey [[tests#Analysis behavior#Independent retention work is bounded]] and can explicitly exhaust.
 
 ### The path budget grows with the program
 
@@ -134,6 +152,88 @@ A range-only host must resolve a rebound Fluent alias exactly like an offset hos
 ### Initialized var redeclarations are alias writes
 
 `var T = A; var T = B;` resolves to `B` in both directions, a bare `var T;` changes nothing, and conditional or function-boundary redeclarations stay uncertain (FINDINGS.md COR-009).
+
+### Regex features respect lexical boundaries
+
+Lookbehind-like characters inside classes or escaped literals produce no compatibility diagnostic. Actual assertions after those forms remain diagnosed in literals and stable RegExp constructor calls.
+
+### Template tokens require known boundaries
+
+Each static run after a dynamic interpolation is inspected for delimited sys_ids. Unknown text cannot supply a token boundary or join separated fragments; known interpolation joins and digest-owner exceptions remain intact.
+
+### Availability proofs respect condition effect order
+
+Later condition writes and authoritative mutators invalidate earlier constructor or static-method availability checks. A trailing recheck restores proof across if, loop, conditional and preceding-exit guards.
+
+### Availability proofs ignore unreachable suffix effects
+
+Constant branches and false-loop bodies or updates do not invalidate an earlier availability check. Evaluated or unknown suffix writes still invalidate the proof before invocation.
+
+### Alternative payload work consumes the path budget
+
+Distinct aggregate alternatives charge clone, join, equality and enumeration work. Exhaustion discards the complete findings set; repeating equivalent tuples avoids distinct-state growth.
+
+### Independent retention work is bounded
+
+Distinct nested cursor states cannot multiply retention traversal indefinitely. A deterministic work cap records exhaustion, suppresses all partial findings and preserves ordinary retention diagnostics.
+
+### Constant loop entries respect runtime reachability
+
+False while and for conditions execute header effects but skip bodies. A false do-while test permits exactly one body execution, preserving cursor facts and unreachable-call suppression.
+
+### Callable identities follow their execution paths
+
+Mutable helper identities are cloned and joined with path state. Conditional reassignments cannot become definite, and inspecting uncalled bodies cannot change the enclosing callable binding.
+
+### Callable alternatives retain branch state correlations
+
+A query performed before a no-op helper stays paired with that helper. Querying helpers retain the unopened branch they repair. Both branch orders and helper aliases prove every actual path queries without budget exhaustion.
+
+Conditional expression results retain their selected callable through outer assignments and aliases. Argument-created alternatives receive parameter bindings and call effects before joining; unopened controls continue to report.
+
+### Callable correlations remain bounded
+
+Independent helper choices exhaust deterministic work and suppress earlier findings. Replacing one helper repeatedly compacts equivalent callable states, preserving ordinary diagnostics without exhaustion.
+
+### Known-node scope construction and lookup scale together
+
+Quadrupling function and block scopes keeps scope construction plus ancestor-free identifier resolution below quadratic growth. Every identifier must retain a binding, so early termination cannot satisfy the scaling check.
+
+### Constant expressions retain the selected alias
+
+Constant conditional and logical expressions preserve the selected value's identity while ignoring unreachable writes. Unknown choices continue to join conservatively.
+
+### Fluent alias writes preserve execution order and invalidate unknown values
+
+Pending RHS uses retain the pre-write factory; completed pattern and loop-head writes invalidate it, including var targets. Earlier uses, lexical shadows, function uncertainty and host offset shapes stay consistent.
+
+### Fluent properties require effective value proof
+
+ID and table-name checks scan properties backward, suppressing uncertain spreads and computed keys while preserving trailing explicit properties and exact missing/raw diagnostics.
+
+### Fluent directives attach to brace-free branches
+
+Previous-line directives attach symmetrically to consequent and alternate statements, including mixed and nested branches. Blank-line placement and actual block tails still report.
+
+### Deep Fluent alias chains are stack safe
+
+A 6000-binding Fluent alias chain resolves without native recursion. Initializers retain their lexical scope across caller shadows, cycles stay unknown, and namespace module/member authority remains intact on source and real hosts.
+
+### Known AST nodes retain lexical scope ownership
+
+Known nodes resolve through their indexed lexical scope even when callers supply unrelated ancestors or hosts omit offsets. Foreign nodes retain conservative offset-based containment and root fallback.
+
+## Integration
+
+Real lint hosts must agree on conservative fact boundaries and applicability, with parser and process success established before semantic filtering.
+
+### Correctness proofs agree across lint hosts
+
+ESLint and Oxlint agree on dynamic template boundaries, lexical regex features and condition-ordered availability, including unreachable suffix writes. Each case checks exact diagnostics with host failures rejected.
+
+### Mixed UI Action gates remain rule-specific
+
+Explicit client/server UI Actions still run query, aggregate, getReference and GlideAjax checks while engine rules suppress mixed regions. Generated common applicability must preserve this distinction.
 
 ## Scripts and tooling
 
@@ -167,6 +267,8 @@ The Cloud Agent installs Bun at the exact version and integrity recorded in its 
 
 The documentation generators, the catalog checker, and `docs:check` must use one path list. README marker replacement must reject unregistered section names.
 
+Both README formatter-guide links must use the generated repository reference, whose URL tracks the package release tag rather than a hand-written version.
+
 ### Test report queries use one clean-pass rule
 
 A proof passes only when its `file::fullName` key occurs once and the outcome is a clean pass.
@@ -193,6 +295,10 @@ If a process dies while holding a reclamation claim, a later verifier must time 
 
 Evidence tests use unique temporary report directories, remove them after capture, and leave a complete JSON artifact after replacement.
 
+### Compatibility reports reject raw host failures
+
+Malformed JSON, parser/plugin-load diagnostics, nonstandard exit statuses, signals, spawn errors and timeouts fail compatibility validation before diagnostic filtering, even if stdout contains plausible JSON.
+
 ## Release governance
 
 Claims made about a release must be reconstructible from the repository, not asserted in prose.
@@ -201,6 +307,14 @@ Claims made about a release must be reconstructible from the repository, not ass
 
 Each atomic requirement in the PR #51 acceptance ledger must map to exactly one proof entry bound to a content hash, with no missing, duplicate, changed, or orphaned mappings. Concurrent verifier runs must use different temporary report paths.
 
+### Acceptance capture exposes the network boundary
+
+Default acceptance verification dispatches offline gates only and records uncaptured consumer proofs as pending. Explicit capture includes network-dependent consumer and release checks with truthful evidence inventories.
+
+### Recoverable registry failures retain bounded retries
+
+Native aborts/timeouts, Undici socket and connection/header/body timeouts, response-read transport failures and HTTP/npm 500 errors recover within bounded attempts. Malformed JSON and identity or integrity failures remain permanent.
+
 ### Hosted jobs run every static gate
 
 The CI `test` job and the release `validate` job must both invoke `typecheck`, `typecheck:fixtures`, and `typecheck:scripts`, so a script-body type error cannot pass hosted validation while failing the local chain (FINDINGS.md TST-006).
@@ -208,6 +322,10 @@ The CI `test` job and the release `validate` job must both invoke `typecheck`, `
 ### The migration guide quotes the declared peer ranges
 
 `docs/migration-3.0.md` must state the exact `oxlint` and `oxfmt` peer ranges from `package.json`, use an install example inside them, and link the compatibility table (FINDINGS.md DOC-006).
+
+### Strict consumers distinguish omitted settings from undefined
+
+A strict consumer compiles omitted settings and mutable context projections through emitted package exports. It rejects explicit undefined optional settings and writes through both public context entry points.
 
 ### Foreign package execution is isolated from release inputs
 

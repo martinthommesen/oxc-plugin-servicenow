@@ -36,6 +36,17 @@ export const requireFluentIdEntry = entry("require-fluent-id", requireFluentId, 
   hasSuggestions: false,
   description:
     "Fluent entities must declare `$id` when the selected SDK manifest marks the imported factory as requiring an id. Prefer canonical `Now.ID['descriptive-key']`.",
+  limitationCases: [
+    {
+      caseId: "require-fluent-id-unknown-spread-property",
+      kind: "scope-boundary",
+      name: "unresolved configuration spread",
+      description:
+        "An unresolved spread or computed key that may supply or overwrite `$id` suppresses ID diagnostics. An explicit `$id` after that property remains checked.",
+      filename: "composed.now.ts",
+      code: 'import { BusinessRule } from "@servicenow/sdk/core";\nconst config = { $id: Now.ID["test"], name: "x_test", table: "incident" };\nBusinessRule({ ...config });',
+    },
+  ],
   bad: [
     {
       name: "missing $id",

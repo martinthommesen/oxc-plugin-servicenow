@@ -107,10 +107,24 @@ export function eslintFlatConfig(options: {
 
 /** Rule ids ESLint reports for `code` under one flat preset. */
 export function eslintRuleIds(config: unknown, code: string, filename: string): string[] {
-  return new Linter({ configType: "flat" })
-    .verify(code, [config as import("eslint").Linter.Config], { filename })
-    .map((message) => message.ruleId)
-    .filter((id): id is string => Boolean(id));
+  const messages = new Linter({ configType: "flat" }).verify(
+    code,
+    [config as import("eslint").Linter.Config],
+    { filename },
+  );
+  assertEslintSuccess(messages, filename);
+  return messages.map((message) => message.ruleId).filter((id): id is string => Boolean(id));
+}
+
+/** Reject failures before treating absent rule diagnostics as evidence. */
+export function assertEslintSuccess(
+  messages: readonly import("eslint").Linter.LintMessage[],
+  filename = "lint input",
+): void {
+  const failure = messages.find(
+    (message) => message.fatal || (!message.ruleId && message.severity === 2),
+  );
+  if (failure) throw new Error(`ESLint parser or host failure in ${filename}: ${failure.message}`);
 }
 
 export type OxlintProcessResult = {

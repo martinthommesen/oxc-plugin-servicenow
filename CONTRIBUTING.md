@@ -28,6 +28,8 @@ That command checks workflow action pins and the compatibility matrix; runs lint
 
 `npm test` is hermetic: it does not reach the network. The packed-consumer test installs packages from the live npm registry, so it runs separately as `npm run test:consumer`. CI and the release workflow run it as their own jobs, and `npm run validate` includes it.
 
+`npm run acceptance:check` inventories the offline suite and leaves criteria requiring the packed consumer as `Live-pending`. `npm run acceptance:capture` explicitly includes the network consumer and can prove those criteria. CI runs complete capture in its consumer job; release validation uses offline acceptance and isolates exact-tarball checks in its consumer matrix. Both captures retain the authoritative criterion and proof mappings.
+
 ## Add a rule
 
 1. Create `src/rules/<name>.ts` with `defineRule` and `createOnce`.

@@ -1,6 +1,7 @@
 import type { Context, ESTree } from "@oxlint/plugins";
 import { getName, getStringValue, nodeEnd, nodeStart, walk } from "../utils/ast.js";
 import { isFunctionLike } from "./bindings.js";
+import { constantValue } from "./constant-value.js";
 import { resolveConstValue } from "./members.js";
 import { getAncestors, type ProvenanceQuery } from "./provenance.js";
 
@@ -46,14 +47,16 @@ function guardProvesAvailability(node: unknown, whenTruthy: boolean, guard: Guar
   if (value.type === "LogicalExpression") {
     if (value.operator === "&&" && whenTruthy) {
       return (
-        guardProvesAvailability(value.left, true, guard) ||
-        guardProvesAvailability(value.right, true, guard)
+        guardProvesAvailability(value.right, true, guard) ||
+        (guardProvesAvailability(value.left, true, guard) &&
+          !containsAccessInvalidation(value.right, guard))
       );
     }
     if (value.operator === "||" && !whenTruthy) {
       return (
-        guardProvesAvailability(value.left, false, guard) ||
-        guardProvesAvailability(value.right, false, guard)
+        guardProvesAvailability(value.right, false, guard) ||
+        (guardProvesAvailability(value.left, false, guard) &&
+          !containsAccessInvalidation(value.right, guard))
       );
     }
     return false;
@@ -69,6 +72,9 @@ function guardProvesAvailability(node: unknown, whenTruthy: boolean, guard: Guar
     [value.right as ESTree.Node, value.left as ESTree.Node],
   ];
   for (const [candidate, expected] of operands) {
+    if (candidate === value.left && containsAccessInvalidation(value.right as ESTree.Node, guard)) {
+      continue;
+    }
     if (candidate.type === "UnaryExpression" && candidate.operator === "typeof") {
       if (!isAccess(candidate.argument)) continue;
       const expectedType = getStringValue(resolveConstValue(expected, analysis.bindings));
@@ -153,41 +159,60 @@ function containsAccessInvalidation(root: ESTree.Node, guard: GuardContext): boo
   const { isAccess, isCallInvalidation } = guard;
   let invalidated = false;
   const ancestors: ESTree.Node[] = [];
-  const isDeferred = (): boolean => {
+  const isUnevaluated = (): boolean => {
     for (let index = 0; index < ancestors.length - 1; index += 1) {
-      const node = ancestors[index]!;
-      if (isFunctionLike(node) && !isImmediatelyInvoked(node, ancestors)) return true;
+      const parent = ancestors[index];
+      const child = ancestors[index + 1];
+      if (!parent || !child) continue;
+      if (isFunctionLike(parent) && !isImmediatelyInvoked(parent, ancestors)) return true;
+      if (parent.type === "LogicalExpression" && sameNode(parent.right, child)) {
+        const left = constantValue(parent.left);
+        if (
+          (parent.operator === "&&" && left?.truthy === false) ||
+          (parent.operator === "||" && left?.truthy === true) ||
+          (parent.operator === "??" && left?.nullish === false)
+        ) {
+          return true;
+        }
+      }
+      if (parent.type === "ConditionalExpression" || parent.type === "IfStatement") {
+        const test = constantValue(parent.test);
+        if (
+          (test?.truthy === true && sameNode(parent.alternate, child)) ||
+          (test?.truthy === false && sameNode(parent.consequent, child))
+        ) {
+          return true;
+        }
+      }
+      if (
+        (parent.type === "WhileStatement" || parent.type === "ForStatement") &&
+        (sameNode(parent.body, child) ||
+          (parent.type === "ForStatement" && sameNode(parent.update, child))) &&
+        constantValue(parent.test)?.truthy === false
+      ) {
+        return true;
+      }
     }
     return false;
   };
   walk(
     root,
     {
-      AssignmentExpression(node) {
-        if (!isDeferred() && isAccess((node as ESTree.AssignmentExpression).left)) {
+      "*"(node) {
+        if (invalidated || isUnevaluated()) return;
+        if (
+          ((node.type === "AssignmentExpression" ||
+            node.type === "ForInStatement" ||
+            node.type === "ForOfStatement") &&
+            isAccess(node.left)) ||
+          (node.type === "UpdateExpression" && isAccess(node.argument)) ||
+          (node.type === "UnaryExpression" &&
+            node.operator === "delete" &&
+            isAccess(node.argument)) ||
+          (node.type === "CallExpression" && isCallInvalidation(node))
+        ) {
           invalidated = true;
         }
-      },
-      UpdateExpression(node) {
-        if (!isDeferred() && isAccess((node as ESTree.UpdateExpression).argument)) {
-          invalidated = true;
-        }
-      },
-      UnaryExpression(node) {
-        const unary = node as ESTree.UnaryExpression;
-        if (!isDeferred() && unary.operator === "delete" && isAccess(unary.argument)) {
-          invalidated = true;
-        }
-      },
-      ForInStatement(node) {
-        if (!isDeferred() && isAccess((node as ESTree.ForInStatement).left)) invalidated = true;
-      },
-      ForOfStatement(node) {
-        if (!isDeferred() && isAccess((node as ESTree.ForOfStatement).left)) invalidated = true;
-      },
-      CallExpression(node) {
-        const call = node as ESTree.CallExpression;
-        if (!isDeferred() && isCallInvalidation(call)) invalidated = true;
       },
     },
     ancestors,
