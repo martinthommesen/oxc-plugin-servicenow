@@ -65,7 +65,7 @@ BusinessRule({
 
 ## Limitations
 
-Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
+Unknown, escaped, or ambiguous bindings stay silent instead of guessing. scope-boundary: Table-name checks require an effective explicit `name`; a later unresolved spread or computed key suppresses them. File and `Now.ID` key checks remain independent.
 
 ## Known false positives
 
@@ -77,7 +77,7 @@ Unknown, escaped, or ambiguous bindings stay silent instead of guessing.
 
 ## Intentional scope boundaries
 
-- None recorded.
+- Table-name checks require an effective explicit `name`; a later unresolved spread or computed key suppresses them. File and `Now.ID` key checks remain independent.
 
 ## Overlaps
 

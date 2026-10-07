@@ -106,6 +106,7 @@ export function findChooseWindowWithoutNoCount(
     cloneData: countDomain.cloneData,
     equalsData: countDomain.equalsData,
     mergeData: countDomain.mergeData,
+    dataWork: countDomain.dataWork,
     onCall({ call, rec, receiver, objectName, property }) {
       if (!rec || !receiver || !property) return;
       if (!hasAuthoritativeGlideRecordMethod(authority, receiver, property)) {

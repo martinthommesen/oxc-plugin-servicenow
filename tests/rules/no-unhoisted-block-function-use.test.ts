@@ -170,7 +170,7 @@ function helper() { return 1; }`,
   function helper() { return 1; }
 }`,
       RULE,
-      ZURICH_ES2021,
+      { ...ZURICH_ES2021, filename: "test.server.ts" },
     );
   });
 

@@ -6,6 +6,7 @@ import {
   analyzePathBindings,
   dedupePathFindings,
   type PathCallInput,
+  type PathRefInput,
 } from "../../src/analysis/path-state.js";
 import { findGlideAjaxParamIssues } from "../../src/analysis/glideajax-params.js";
 import type { PlatformMethodAuthorityFacts } from "../../src/analysis/platform-method-authority.js";
@@ -64,6 +65,7 @@ function run(
   code: string,
   maxWork = 50_000,
   nonConverging = false,
+  onRef?: (input: PathRefInput<Data>) => void,
 ): Data & { outcome: "complete" | "exhausted" } {
   const program = parse(code).ast as any;
   const result: Data = {
@@ -113,6 +115,7 @@ function run(
       if (property === "next") result.calls.push(`${property}:${rec.data.queryState}`);
     },
     maxWork,
+    ...(onRef ? { onRef } : {}),
   });
   if (outcome.outcome === "exhausted") {
     result.calls.length = 0;
@@ -122,6 +125,20 @@ function run(
 }
 
 describe("path-state evaluator", () => {
+  it("publishes a conservative reference join across callable-correlated object identities", () => {
+    let lastReference: PathRefInput<Data> | undefined;
+    const result = run(
+      `var gr, run; if (flag) { gr = new GlideRecord("incident"); run = function () {}; } else { gr = new GlideRecord("problem"); run = function () {}; } gr.next();`,
+      50_000,
+      false,
+      (input) => {
+        if (input.name === "gr") lastReference = input;
+      },
+    );
+    assert.equal(result.outcome, "complete");
+    assert.equal(lastReference?.rec?.invalid, true);
+  });
+
   it("keeps case-test effects on a switch no-match path", () => {
     const result = run(`
       const gr = new GlideRecord("incident");

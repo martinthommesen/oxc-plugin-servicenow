@@ -7,3 +7,5 @@ artifacts
 *.log
 *.tgz
 artifacts/
+/lat.md/.cache/vectors.db*
+/.confluence-docs/

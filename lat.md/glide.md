@@ -31,7 +31,7 @@ It builds the cartesian product of admissible releases and admissible API scopes
 
 The view derives these sets under `byKind` for both `GlideRecord` and `GlideAggregate`: `filters`, `modifiers`, `executors`, `possibleExecutors`, `consumers`, `cursorAdvancers`, `bulk`, `systemBypass`, and `valueExtractors`. `byKind` is the only home for a role set; a caller that wants the GlideRecord answer writes `byKind.GlideRecord`.
 
-`modeledMethods` contains the GlideRecord methods whose effects analysis models. `knownMethods` is a complete documented-name firewall and does not imply a modeled effect.
+`modeledMethods` contains GlideRecord methods whose effects analysis models. `knownMethods` is a release-qualified documented-name firewall and does not imply a modeled effect; Zurich retains the smaller role-bearing inventory pending a complete audit.
 
 The two directions are both useful. `executors` and `possibleExecutors` differ exactly when the answer is scope-dependent, so a rule can choose to report only on the definite set.
 

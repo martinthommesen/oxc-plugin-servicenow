@@ -9,7 +9,7 @@ ServiceNow Australia enforces ECMAScript's non-constructible shorthand object me
 - **Fix safety:** diagnostic only
 - **Suggestions:** no
 - **Authoring:** classic
-- **Surfaces:** Applies to server, acl, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. UI Actions require an explicit server surface; mixed client/server UI Actions stay silent because execution regions are not classified. An explicit javascriptMode also enables documented engine checks in otherwise unclassified files.
+- **Surfaces:** Applies to server, acl, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. UI Action applicability also depends on explicit client/server surfaces and the rule's execution-context gate. An explicit javascriptMode also enables documented engine checks in otherwise unclassified files.
 - **JavaScript mode:** Runs when javascriptMode is es2021. Unknown mode stays silent.
 - **Last verified:** 2026-08-24
 - **Implementation:** [`src/rules/no-object-method-constructor.ts`](../../src/rules/no-object-method-constructor.ts)
@@ -19,7 +19,7 @@ ServiceNow Australia enforces ECMAScript's non-constructible shorthand object me
 | Dimension | Value |
 | --- | --- |
 | Authoring | classic |
-| Surfaces | Applies to server, acl, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. UI Actions require an explicit server surface; mixed client/server UI Actions stay silent because execution regions are not classified. An explicit javascriptMode also enables documented engine checks in otherwise unclassified files. |
+| Surfaces | Applies to server, acl, business-rule, script-include, ui-action, scheduled-script, fix-script when those surfaces are known. UI Action applicability also depends on explicit client/server surfaces and the rule's execution-context gate. An explicit javascriptMode also enables documented engine checks in otherwise unclassified files. |
 | Minimum surface confidence | inferred |
 | JavaScript modes | es2021 |
 | Application scopes | global, scoped, unknown |

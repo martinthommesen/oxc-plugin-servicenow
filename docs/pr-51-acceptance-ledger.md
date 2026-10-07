@@ -4,9 +4,9 @@ This file is generated from the authoritative goal and `scripts/pr51-acceptance.
 
 - Goal SHA-256: `22f9e1d3d370eaa88001d8c7587f2878b7955a8d9b80922de5848696096a2dc1`
 - Atomic requirements: 533
-- Verified at exact head: 450
+- Verified at exact head: 448
 - Pending: 53
-- Live-pending: 30
+- Live-pending: 32
 
 | Finding ID | Owner | Source | Exact requirement | Disposition | Exact proof |
 | --- | ---: | --- | --- | --- | --- |
@@ -354,12 +354,12 @@ This file is generated from the authoritative goal and `scripts/pr51-acceptance.
 | PR51-1A077BC56F86 | #84 | ## 9.2 One executable compatibility source | A local one-process `--all` mode must be named/documented as a same-runtime dependency smoke test, not multi-runtime proof. | Verified at exact head | `tests/integration/compat-matrix.test.ts` — compatibility matrix > keeps CI and release consumer cells sourced from the matrix |
 | PR51-70080C7DA716 | #84 | ## 9.2 One executable compatibility source | Authoritative installs use normal npm peer resolution, not `--legacy-peer-deps`. | Verified at exact head | `tests/integration/compat-matrix.test.ts` — compatibility matrix > keeps CI and release consumer cells sourced from the matrix |
 | PR51-687B0ED6BA2D | #84 | ## 9.2 One executable compatibility source | Test the actual declared peer floors or raise the peer ranges to the oldest versions genuinely proven. | Verified at exact head | `tests/integration/compat-matrix.test.ts` — compatibility matrix > keeps CI and release consumer cells sourced from the matrix |
-| PR51-39EFB3C1A42A | #84 | ## 9.2 One executable compatibility source | Exercise the plugin’s exported ESLint config/rules on real `.ts` and `.tsx` Fluent files, not only the parser in isolation. | Verified at exact head | `tests/integration/packed-consumer.test.ts` — packed package consumer > packs, installs, imports public exports, and lints with oxlint |
+| PR51-39EFB3C1A42A | #84 | ## 9.2 One executable compatibility source | Exercise the plugin’s exported ESLint config/rules on real `.ts` and `.tsx` Fluent files, not only the parser in isolation. | Live-pending | `tests/integration/packed-consumer.test.ts` — packed package consumer > packs, installs, imports public exports, and lints with oxlint |
 | PR51-E07D3777BCFD | #84 | ## 9.2 One executable compatibility source | Pin release-critical support cells. | Verified at exact head | `tests/integration/compat-matrix.test.ts` — compatibility matrix > keeps CI and release consumer cells sourced from the matrix |
 | PR51-5E074677ABC9 | #84 | ## 9.2 One executable compatibility source | Put floating `latest`/`current` canaries in scheduled or non-blocking maintenance jobs. | Verified at exact head | `tests/integration/compat-matrix.test.ts` — compatibility matrix > keeps CI and release consumer cells sourced from the matrix |
 | PR51-745F37181198 | #84 | ## 9.2 One executable compatibility source | Avoid a `generatedFrom` field pointing to the file itself. | Verified at exact head | `tests/integration/compat-matrix.test.ts` — compatibility matrix > keeps CI and release consumer cells sourced from the matrix |
 | PR51-47BF38D48F1D | #84 | ## 9.2 One executable compatibility source | Rebuild from a clean `dist` before packing. | Verified at exact head | `tests/integration/compat-matrix.test.ts` — compatibility matrix > keeps CI and release consumer cells sourced from the matrix |
-| PR51-9FEE7685CA94 | #84 | ## 9.2 One executable compatibility source | Install and execute the exact tarball produced from the current source. | Verified at exact head | `tests/integration/packed-consumer.test.ts` — packed package consumer > packs, installs, imports public exports, and lints with oxlint |
+| PR51-9FEE7685CA94 | #84 | ## 9.2 One executable compatibility source | Install and execute the exact tarball produced from the current source. | Live-pending | `tests/integration/packed-consumer.test.ts` — packed package consumer > packs, installs, imports public exports, and lints with oxlint |
 | PR51-4590FD05CABC | #84 | ## 9.2 One executable compatibility source | Do not let #84’s checker require release-workflow cells introduced only in #85. | Verified at exact head | `tests/integration/compat-matrix.test.ts` — compatibility matrix > keeps CI and release consumer cells sourced from the matrix |
 | PR51-7FB1729CF718 | #84 | ## 9.2 One executable compatibility source | Every advertised `npm run validate` command must be executable at #84’s exact head. Move #85-owned steps out or provide the required nonprivileged implementation at #84. | Verified at exact head | `tests/integration/compat-matrix.test.ts` — compatibility matrix > keeps CI and release consumer cells sourced from the matrix |
 | PR51-39C77BA0EA19 | #84 | ## 9.3 Benchmark correctness | Emit a shared Fluent import once rather than redeclaring it in every generated record. | Verified at exact head | `tests/benchmark-gate.test.ts` — benchmark regression gate > accepts only a clean, complete Oxlint result |

@@ -65,7 +65,7 @@ export interface FileAnalysis {
    * the degraded state observable instead of indistinguishable from clean
    * (FINDINGS.md PER-006).
    */
-  pathBudgetExhausted: boolean;
+  readonly pathBudgetExhausted: boolean;
 }
 
 interface FilePathData {
@@ -140,7 +140,12 @@ function buildFileAnalysis(context: Context, tree: AnalysisTree): FileAnalysis {
   const nowIdAt = new Map<ESTree.Node, NowIdFact>();
   let pathBudgetExhausted = false;
 
-  const provenance = makeQuery(bindings, provenanceAtNode, identifierAtNode, glide);
+  const provenance = makeQuery(bindings, provenanceAtNode, identifierAtNode, glide, () => {
+    provenanceAtNode.clear();
+    identifierAtNode.clear();
+    nowIdAt.clear();
+    pathBudgetExhausted = true;
+  });
 
   if (program) {
     const kindByObject = new Map<number, ProvenanceKind>();
@@ -250,7 +255,9 @@ function buildFileAnalysis(context: Context, tree: AnalysisTree): FileAnalysis {
     mutations,
     browserMutations,
     nowIdAt,
-    pathBudgetExhausted,
+    get pathBudgetExhausted() {
+      return pathBudgetExhausted;
+    },
     fluent: {
       manifest,
       imports,
@@ -269,8 +276,10 @@ function makeQuery(
   provenanceAtNode: Map<ESTree.Node, Provenance>,
   identifierAtNode: Map<ESTree.Node, Provenance>,
   glide: GlideCapabilityView,
+  onExhausted: () => void,
 ): ProvenanceQuery {
   return {
+    onExhausted,
     bindings,
     glide,
     ofIdentifier(node) {

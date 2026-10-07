@@ -15,6 +15,8 @@ import {
   validateMapping,
   validateSnapshot,
   worktreeIdentity,
+  runAcceptanceTests,
+  acceptanceCaptureMapping,
 } from "../scripts/verify-acceptance-ledger.mjs";
 import { withAcceptanceLock } from "../scripts/lib/acceptance-lock.mjs";
 import { repoRoot } from "./integration/helpers.js";
@@ -22,6 +24,56 @@ import { repoRoot } from "./integration/helpers.js";
 const mapping = JSON.parse(
   readFileSync(path.join(repoRoot, "scripts/pr51-acceptance.json"), "utf8"),
 );
+
+// @lat: [[tests#Release governance#Acceptance capture exposes the network boundary]]
+describe("acceptance capture modes", () => {
+  it("dispatches the source inventory without the network consumer by default", () => {
+    const inventory = { tests: [] };
+    const captures: string[][] = [];
+    const run = (_binary: string, args: string[]) => {
+      captures.push(args);
+      const reportPath = args[2];
+      assert.ok(reportPath);
+      writeFileSync(reportPath, JSON.stringify(inventory));
+      return { status: 0 };
+    };
+    assert.deepEqual(runAcceptanceTests({ run }), inventory);
+    assert.equal(captures.length, 1);
+    assert.deepEqual(captures[0]?.slice(3), ["tests"]);
+    assert.deepEqual(runAcceptanceTests({ capture: "network", run }), inventory);
+    assert.deepEqual(captures[1]?.slice(3), ["tests", "tests/integration/packed-consumer.test.ts"]);
+  });
+
+  it("records uncaptured consumer proofs as live-pending without changing authority", () => {
+    const fixture = {
+      goal: { sha256: "authority" },
+      criteria: [
+        {
+          id: "source",
+          disposition: "Verified at exact head",
+          proofs: [{ file: "tests/source.test.ts" }],
+        },
+        {
+          id: "consumer",
+          disposition: "Verified at exact head",
+          proofs: [{ file: "tests/integration/packed-consumer.test.ts" }],
+        },
+        { id: "pending", disposition: "Pending", proofs: [] },
+      ],
+    };
+    const sourceSnapshot = structuredClone(fixture);
+    const offline = acceptanceCaptureMapping(fixture, "offline");
+    assert.equal(offline.criteria[0]?.disposition, "Verified at exact head");
+    assert.equal(offline.criteria[1]?.disposition, "Live-pending");
+    assert.match(offline.criteria[1]?.evidence ?? "", /network.*capture/i);
+    assert.deepEqual(offline.criteria[1]?.proofs, [
+      { file: "tests/integration/packed-consumer.test.ts" },
+    ]);
+    assert.deepEqual(offline.goal, { sha256: "authority" });
+    assert.deepEqual(fixture, sourceSnapshot);
+    assert.deepEqual(acceptanceCaptureMapping(fixture, "network"), fixture);
+  });
+});
 
 const lockWorkerSource = `
 import { appendFile, access, writeFile } from "node:fs/promises";
