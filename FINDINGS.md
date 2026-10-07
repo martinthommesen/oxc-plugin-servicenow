@@ -478,7 +478,7 @@ Existing report revalidated: Partial — every active defect and improvement has
 Completion status: Partial
 Material limitations: Conditional retirement remains unmet: PR 51 was closed without merge, outstanding criteria remain and complete evidence archival is unproven. No vendor facts, dependency advisories, hosted governance or publication state were refreshed.
 
-All 19 confirmed defects are fixed, and the optional known-node scope optimization is implemented. The full suite passes 1,673 tests; all eight real-host example projects, strict type projects, lint, format, documentation/evidence, workflow/matrix, offline acceptance, benchmark and packed-consumer checks pass. Section 16 records the exact verification boundaries.
+All 19 confirmed defects are fixed, and the optional known-node scope optimization is implemented. The full suite passes 1,701 tests; all eight real-host example projects, strict type projects, lint, format, documentation/evidence, workflow/matrix, offline acceptance, benchmark and packed-consumer checks pass. Section 16 records the exact verification boundaries.
 
 Six records remain active: the conditional removal decision REM-002 and five positive patterns POS-001 through POS-005. Twenty original fingerprints moved to the retired registry as resolved, bringing it to 85 reserved identities; next-sequence values are unchanged. No finding number was recycled.
 
@@ -637,7 +637,7 @@ Non-goals: No removal of rule tests, evidence checks, package inspection, releas
 
 User or operator workflow: Confirm merge state; satisfy or explicitly abandon each pending item; archive under a tag or history directory as recorded; remove wiring; execute the remaining gates.
 
-Required permissions: The user authorized source remediation. Publishing an archive tag or changing remote merge/disposition policy is outside this task; no tag or remote repository state was changed.
+Required permissions: The user authorized source remediation. Publishing an archive tag or changing remote merge/disposition policy is outside this task; no archive tag or REM-002 disposition was changed.
 
 Data-model changes: Not applicable: no customer database exists; only repository evidence is archived.
 
@@ -725,13 +725,13 @@ Three existing fixtures relied on parser recovery: two top-level returns now occ
 
 The remediation preserves parsing without source execution, immutable validated settings, uncertainty and exact release identity. Recoverable transport failures receive bounded retries; authentication, schema, provenance and integrity failures remain permanent.
 
-Network capture is explicit and assigned to the consumer job. No credential access, publication, remote write or change to privileged release principals was performed. Local tests do not establish current hosted governance or dependency-advisory status.
+Network capture is explicit and assigned to the consumer job. The remediation does not access credentials, publish packages or change privileged release principals. PR creation and stack maintenance preserve release state. Local tests do not establish current hosted governance or dependency-advisory status.
 
 # 11. Performance, Reliability, and Operations Summary
 
 Aggregate payload work and independent retention now have deterministic limits and whole-result clearing. Fluent alias traversal is iterative; known-node lexical lookup uses indexed ownership while foreign nodes retain the offset fallback.
 
-The fresh benchmark passes all 13 cases with 10 measured samples each and resident-memory sampling. Recommended classic small-to-large scaling is 2.56x; the baseline was not rewritten. Performance comparisons retain non-exhausted semantic controls.
+The fresh benchmark passes all 15 cases with 10 measured samples each and resident-memory sampling. Recommended classic small-to-large scaling is 2.65x; the baseline was not rewritten. Performance comparisons retain non-exhausted semantic controls.
 
 Native abort/timeout and Undici connect/header/body timeout/socket failures, HTTP/npm 500 and response-stream failures retry within the configured cap. Offline acceptance does not execute packed-consumer installs; explicit network capture preserves truthful evidence inventories.
 
@@ -775,31 +775,32 @@ Do not remove unresolved acceptance obligations or replace the package architect
 
 # 15. Suggested Implementation Sequence
 
-The implemented sequence reproduced defects, repaired each owning module, preserved adjacent controls, updated documentation, and ran integration and consumer gates. The final independent review found no additional actionable defect.
+The implemented sequence reproduced defects, repaired each owning module, preserved adjacent controls, updated documentation, and ran integration and consumer gates. The local-changes review extended regression coverage for correlated callable continuations, inherited and Proxy-backed settings, and unreachable availability effects. Standards fixes fuse scope indexing into the existing walk and share duplicated test assertions. The final independent review found no remaining actionable defect.
 
 Future tracker retirement must first satisfy the recorded merge and criterion conditions, then preserve complete evidence, repair callers and references, and rerun every durable gate. This remediation does not abandon outstanding obligations or create a remote archive tag.
 
 # 16. Validation Performed
 
-Fresh local verification used the remediation worktree and a writable temporary npm cache. Documentation roundtrip used an exact clean temporary Git snapshot so intentional generated-document changes remained reviewable in the original worktree.
+Fresh local verification ran on the isolated main-based PR tree with a writable temporary npm cache. The full suite, examples, consumers, offline acceptance and documentation roundtrip used that tree; later benchmark-fixture corrections did not change production code.
 
 | Check | Result | Evidence boundary |
 | --- | --- | --- |
-| npm test | Pass: 1,673 tests, 206 suites, zero failures/skips | /private/tmp/findings-full-test-final.log |
+| npm test | Pass: 1,701 tests, 207 suites, zero failures/skips | /private/tmp/findings-pr-validate.log |
 | Build and all three type projects | Pass | Runtime, valid fixtures and checked scripts; strict emitted-consumer declarations are also tested |
 | Lint and format checks | Pass | No warnings or formatting drift in source/scripts/tests |
-| npm run verify:examples -- --all | Pass: all eight projects | Doctor, host loads, source/dist fingerprint and clean examples; /private/tmp/findings-examples-final.log |
-| npm run test:consumer | Pass: both packed-consumer tests | Fresh isolated fixed-version installs, public exports, real Oxlint and typed Fluent ESLint; /private/tmp/findings-consumer.log |
-| npm run release:check -- --consumer | Pass | Exact tarball inspection and compatibility consumer; /private/tmp/findings-release-consumer.log |
-| npm run docs:check | Pass in clean temporary snapshot | 50 catalog records and unchanged generated roundtrip; no original Git index or commit change |
-| npm run evidence:check | Pass: 192 records, 93 automated proofs | /private/tmp/findings-evidence.log |
-| npm run acceptance:check | Pass, completion remains false | Offline: 1,673 passing tests; 448 verified, 53 pending, 32 live-pending; canonical dispositions unchanged |
+| npm run verify:examples -- --all | Pass: all eight projects | Doctor, host loads, source/dist fingerprint and clean examples; /private/tmp/findings-pr-validate.log |
+| npm run test:consumer | Pass: both packed-consumer tests | Fresh isolated fixed-version installs, public exports, real Oxlint and typed Fluent ESLint |
+| npm run release:check -- --consumer | Pass | 375-file exact tarball inspection and compatibility consumer; /private/tmp/findings-pr-bench-release-summary.log |
+| npm run docs:check | Pass on committed PR tree | 50 catalog records and unchanged generated roundtrip |
+| npm run evidence:check | Pass: 192 records, 93 automated proofs | /private/tmp/findings-pr-validate.log |
+| npm run acceptance:check | Pass, completion remains false | Offline: 1,701 passing tests; 448 verified, 53 pending, 32 live-pending; canonical dispositions unchanged |
 | Manifest, workflow and compatibility checks | Pass | Offline SDK inventory, pinned actions/referenced scripts and five matrix cells |
-| npm run bench | Pass: 13 cases, 10 samples per case | Time/RSS gate; 2.56x recommended scaling; /private/tmp/findings-bench-final.log; baseline unchanged |
-| Independent read-only review | No additional actionable defect | Production diff, controls and lat validation reviewed independently |
+| npm run bench | Pass: 15 cases, 10 measured samples per case | Time/RSS gate; 2.65x recommended scaling; artifacts/performance-current.json; baseline unchanged |
+| Independent Standards review | Five findings fixed, none outstanding | Scope traversal, duplicate assertions, named fixture options and private-document exclusion |
+| Independent Spec/regression review | Three defect categories extended, none outstanding | Correlated callable state, effective settings values and availability reachability; 22 bounded regression/control groups pass |
 | lat check and git diff --check | Pass | Required knowledge-graph and whitespace validation |
 
-Initial failures were corrected without weakening checks: the stricter parser harness exposed three malformed fixtures, the artifact run needed a writable npm cache, and the first examples check overlapped a dist-cleaning artifact test. The successful full-suite/examples reruns are sequential. Benchmark RSS sampling required sandbox escalation for ps and then passed. No live publication occurred and no linted input was executed.
+The full validate chain initially stopped at an unused declaration/expression in the new scope benchmark fixture. The fixture now uses its bindings and invokes its functions; lint, format and script types were rechecked before rerunning the benchmark and remaining release gate. No checks were weakened. RSS sampling used the authorized process-measurement escalation. No package publication occurred and no linted input was executed. The local compatibility consumer used node24-host tool pins under actual Node 26.8.2 (`sameRuntimeSmoke=true`); supported-runtime coverage remains the CI matrix.
 
 The registry preserves every original identity and next-sequence value. The exact starting report has SHA-256 84f3e0c380f4132cc22c88a6bfa50069652d442f20e800b9e021c7e44f6558cc and is archived byte-for-byte in docs/findings-2026-10-07-review.md. Current report validation checks its six active records and 85 retired identities.
 

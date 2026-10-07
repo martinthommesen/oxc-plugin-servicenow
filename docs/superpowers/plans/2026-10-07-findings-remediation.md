@@ -39,6 +39,5 @@ The subsequent Standards and Spec reviews reproduce edge cases before preparing 
 
 - [x] Correct Standards findings: fuse scope indexing into the existing walk, share host and retry assertions, name fixture options and retain the private document exclusion.
 - [x] Extend Spec proofs for inherited and Proxy-backed settings, unreachable availability writes, and correlated callable results, argument continuations and callee capture.
-- [ ] Run fresh full validation on the main-based PR tree and record its exact results.
-- [ ] Create the findings PR, then stack existing PRs in order #140, #141, #142, #143; preserve each existing branch history.
-- [ ] Verify final PR bases, ancestry, focused diffs and the combined stack.
+- [x] Run fresh full validation on the main-based PR tree: 1,701 tests, eight examples, packed consumers, offline acceptance, generated roundtrip and 15 time/RSS cases pass. Correct the scope fixture and rerun its benchmark/release gates.
+The approved integration order is findings, #140, #141, #142, #143. Parent merges preserve existing branch history. Final integration checks require each parent to be an ancestor, correct PR bases, focused diffs and a passing combined tree.
