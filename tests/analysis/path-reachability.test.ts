@@ -346,6 +346,193 @@ describe("logical assignment values", () => {
   }
 });
 
+// @lat: [[tests#Analysis behavior#Logical assignment headers release transient correlations]]
+describe("logical assignment statement boundaries", () => {
+  for (const statement of [
+    (name: string) => `if (${name} ||= true) {}`,
+    (name: string) => `switch (${name} ||= true) { default: break; }`,
+    (name: string) => `while (${name} ||= true) { break; }`,
+    (name: string) => `class ${name}Class { [${name} ||= "key"]() {} }`,
+  ]) {
+    it(`finishes independent headers in ${statement("selector")}`, () => {
+      const names = Array.from({ length: 50 }, (_, index) => `selector${index}`);
+      const declarations = names.map((name) => `${name} = external`).join(", ");
+      assert.equal(
+        missingQueries(
+          `var gr = new GlideRecord("task"); var ${declarations}; ${names.map(statement).join("\n")} gr.next();`,
+        ),
+        1,
+      );
+    });
+  }
+});
+
+// @lat: [[tests#Analysis behavior#Logical assignment parameters retain evaluated scalars]]
+describe("logical assignment helper parameters", () => {
+  for (const [params, argumentsCode, expected] of [
+    ["flag", "false", 0],
+    ["flag", "true", 1],
+    ["flag", "external", 1],
+    ["flag = false", "", 0],
+    ["flag = false", "void 0", 0],
+    ["flag = true", "null", 0],
+    ["flag = true", "false", 0],
+    ["flag = true", "external", 1],
+    ["flag = false", "external", 1],
+    ["flag = (outer = true)", "false", 0],
+    ["flag = (outer = false)", "", 0],
+  ] as const) {
+    it(`selects the evaluated flag for (${params}) called with (${argumentsCode})`, () => {
+      assert.equal(
+        missingQueries(
+          `var gr = new GlideRecord("task"); var outer = false; function use(${params}) { flag &&= (gr.next(), gr); } use(${argumentsCode});`,
+        ),
+        expected,
+      );
+    });
+  }
+  for (const [initial, replacement, expected] of [
+    ["false", "true", 0],
+    ["true", "false", 1],
+  ] as const) {
+    it(`captures ${initial} before a later argument replaces it with ${replacement}`, () => {
+      assert.equal(
+        missingQueries(
+          `var gr = new GlideRecord("task"); var flag = ${initial}; function use(value, unused) { value &&= (gr.next(), gr); } use(flag, flag = ${replacement});`,
+        ),
+        expected,
+      );
+    });
+  }
+  for (const [argument, expected] of [
+    ["external", 1],
+    ["...external", 1],
+    ["false", 0],
+    ["void 0", 1],
+  ] as const) {
+    it(`includes possible default effects for (${argument})`, () => {
+      assert.equal(
+        missingQueries(
+          `var gr = new GlideRecord("task"); var flag = false; function use(value = (flag = true)) {} use(${argument}); flag &&= (gr.next(), gr);`,
+        ),
+        expected,
+      );
+    });
+  }
+  for (const [initial, later, expected] of [
+    ["function () { gr.query(); }", "function () {}", 0],
+    ["function () {}", "function () { gr.query(); }", 1],
+  ] as const) {
+    it(`retains a callback parameter captured before replacement with ${later}`, () => {
+      assert.equal(
+        missingQueries(
+          `var gr = new GlideRecord("task"); var cb = ${initial}; function expose(fn, unused) { return (fn ||= function () { gr.query(); }); } expose(cb, cb = ${later}); gr.next();`,
+        ),
+        expected,
+      );
+    });
+  }
+  it("retains a hoisted callback parameter selected by nullish assignment", () => {
+    assert.equal(
+      missingQueries(
+        `var gr = new GlideRecord("task"); function cb() { gr.query(); } function expose(fn) { return (fn ??= function () {}); } expose(cb); gr.next();`,
+      ),
+      0,
+    );
+  });
+  for (const expression of ["(flag &&= true) ? gr : 0", "(flag &&= true) && gr"]) {
+    it(`exports only the selected value from ${expression}`, () => {
+      assert.equal(
+        missingQueries(
+          `var gr = new GlideRecord("task"); var flag = false; function expose() { return ${expression}; } expose(); gr.next();`,
+        ),
+        1,
+      );
+    });
+  }
+  it("keeps nullish aliases uncertain when a default may select true", () => {
+    assert.equal(
+      missingQueries(
+        `var gr = new GlideRecord("task"); var flag = void 0; function use(value = true) { value &&= (gr.next(), gr); } use(flag); flag ??= 0;`,
+      ),
+      1,
+    );
+  });
+});
+
+// @lat: [[tests#Analysis behavior#Hoisted callable logical selectors are defined values]]
+describe("hoisted callable logical selectors", () => {
+  for (const [operator, expected] of [
+    ["||=", 0],
+    ["??=", 0],
+    ["&&=", 1],
+  ] as const) {
+    it(`selects the hoisted function value for ${operator}`, () => {
+      assert.equal(
+        missingQueries(
+          `var gr = new GlideRecord("task"); fn ${operator} (gr.next(), gr); function fn() {}`,
+        ),
+        expected,
+      );
+    });
+  }
+  for (const effect of [
+    "fn = false;",
+    "if (external) fn = false;",
+    "function mutate() { fn = false; } external(mutate);",
+  ]) {
+    it(`retains uncertainty after ${effect}`, () => {
+      assert.equal(
+        missingQueries(
+          `var gr = new GlideRecord("task"); function fn() {} ${effect} fn ||= (gr.next(), gr);`,
+        ),
+        1,
+      );
+    });
+  }
+});
+
+// @lat: [[tests#Analysis behavior#Class definitions evaluate only immediate class effects]]
+describe("class evaluation boundaries", () => {
+  for (const [element, expected] of [
+    ["value = gr.query();", 1],
+    ["value = gr.next();", 0],
+    ["[gr.query()]() {}", 0],
+    ["static value = gr.query();", 0],
+    ["static { gr.query(); }", 0],
+  ] as const) {
+    it(`evaluates definition-time effects for ${element}`, () => {
+      const tail = element === "value = gr.next();" ? "" : "gr.next();";
+      assert.equal(
+        missingQueries(`var gr = new GlideRecord("task"); class C { ${element} } ${tail}`),
+        expected,
+      );
+    });
+  }
+  it("escapes unknown class instance effects at construction", () => {
+    assert.equal(
+      missingQueries(
+        `var gr = new GlideRecord("task"); class C { value = gr.query(); } new C(); gr.next();`,
+      ),
+      0,
+    );
+  });
+});
+
+// @lat: [[tests#Analysis behavior#Logical member receivers retain path-specific values]]
+describe("logical assignment member receivers", () => {
+  for (const effect of [".next()", ".next(alias = {})", '["next"](alias = {})']) {
+    it(`retains the selected receiver before ${effect}`, () => {
+      assert.equal(
+        missingQueries(
+          `var gr = new GlideRecord("task"); var alias = external; (alias ||= gr)${effect};`,
+        ),
+        1,
+      );
+    });
+  }
+});
+
 // @lat: [[tests#Analysis behavior#Return and throw escape evaluated values]]
 describe("return and throw escape order", () => {
   for (const completion of ["return", "throw"]) {

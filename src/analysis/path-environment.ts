@@ -91,6 +91,7 @@ export function snapshotState<T>(
       state.objects.size +
       state.functions.size +
       state.constants.size +
+      state.exposedCallables.size +
       state.assignmentResults.size +
       state.callableResults.size,
   );
@@ -102,6 +103,7 @@ export function snapshotState<T>(
     env: new Map(state.env),
     functions: new Map(state.functions),
     constants: new Map(state.constants),
+    exposedCallables: new Set(state.exposedCallables),
     assignmentResults: new Map(state.assignmentResults),
     callableResults: new Map(state.callableResults),
     objects,
@@ -178,6 +180,8 @@ export function mergeFlatStates<T>(
     spendWork(policy.budget, leftValues.length + rightValues.length);
     callableResults.set(node, [...new Set([...leftValues, ...rightValues])]);
   }
+  spendWork(policy.budget, left.exposedCallables.size + right.exposedCallables.size);
+  const exposedCallables = new Set([...left.exposedCallables, ...right.exposedCallables]);
   const constants = new Map<BindingId, ConstantValue | null>();
   spendWork(policy.budget, left.constants.size + right.constants.size);
   for (const id of new Set([...left.constants.keys(), ...right.constants.keys()])) {
@@ -265,6 +269,7 @@ export function mergeFlatStates<T>(
     env,
     functions,
     constants,
+    exposedCallables,
     assignmentResults,
     callableResults,
     objects,
@@ -388,9 +393,14 @@ export function statesEqual<T>(
     left.objects.size !== right.objects.size ||
     left.functions.size !== right.functions.size ||
     left.constants.size !== right.constants.size ||
+    left.exposedCallables.size !== right.exposedCallables.size ||
     !sameAssignmentResults(left.assignmentResults, right.assignmentResults, budget)
   )
     return false;
+  spendWork(budget, left.exposedCallables.size + right.exposedCallables.size);
+  for (const id of left.exposedCallables) {
+    if (!right.exposedCallables.has(id)) return false;
+  }
   spendWork(budget, left.constants.size + right.constants.size);
   for (const [id, value] of left.constants) {
     if (!sameConstant(value, right.constants.get(id))) return false;
@@ -429,6 +439,7 @@ export function replaceWith<T>(target: EnvState<T>, source: EnvState<T>): void {
   for (const [id, objectId] of source.env) target.env.set(id, objectId);
   target.functions = new Map(source.functions);
   target.constants = new Map(source.constants);
+  target.exposedCallables = new Set(source.exposedCallables);
   target.assignmentResults = new Map(source.assignmentResults);
   target.callableResults = new Map(source.callableResults);
   target.callablePaths = source.callablePaths;

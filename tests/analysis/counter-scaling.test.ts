@@ -78,3 +78,17 @@ describe("counter scaling (FINDINGS.md PER-005)", () => {
     assert.equal(messages.length, 20);
   });
 });
+
+// @lat: [[tests#Analysis behavior#Unrelated callback scalars do not enlarge selector snapshots]]
+it("keeps all counted-loop findings after two hundred unrelated scalar captures", () => {
+  const callbacks = Array.from(
+    { length: 200 },
+    (_, index) => `var scalar${index} = 0; external(function () { scalar${index} += 1; });`,
+  ).join("\n");
+  const code = `var selector = false; selector &&= 0; ${callbacks} ${counterFixture(200).replaceAll(/\ncount\d+ \+= 1;/g, "")}`;
+  const { messages, analysis } = lintWithAnalysis(code, "prefer-glideaggregate", {
+    filename: "captured-counters.br.js",
+  });
+  assert.equal(analysis.pathBudgetExhausted, false);
+  assert.equal(messages.length, 200);
+});

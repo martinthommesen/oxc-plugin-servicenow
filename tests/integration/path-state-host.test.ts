@@ -6,6 +6,31 @@ import { createTemporaryProject, eslintRuleIds, runOxlintProcess } from "./helpe
 
 const cases = [
   {
+    name: "logical-helper-false-argument",
+    code: `var gr = new GlideRecord("task"); function use(flag) { flag &&= (gr.next(), gr); } use(false);`,
+    expected: [],
+  },
+  {
+    name: "hoisted-logical-selector",
+    code: `var gr = new GlideRecord("task"); fn ||= (gr.next(), gr); function fn() {}`,
+    expected: [],
+  },
+  {
+    name: "selected-logical-if",
+    code: `var gr = new GlideRecord("task"); var flag = false; if (flag &&= true) gr.next();`,
+    expected: [],
+  },
+  {
+    name: "deferred-instance-field-query",
+    code: `var gr = new GlideRecord("task"); class C { value = gr.query(); } gr.next();`,
+    expected: ["servicenow/require-query-before-next"],
+  },
+  {
+    name: "path-selected-member-receiver",
+    code: `var gr = new GlideRecord("task"); var alias = external; (alias ||= gr).next(alias = {});`,
+    expected: ["servicenow/require-query-before-next"],
+  },
+  {
     name: "false-while",
     code: `var gr = new GlideRecord("incident"); while (false) { gr.next(); }`,
     expected: [],
@@ -174,5 +199,38 @@ describe("path-state reachability agrees in real hosts", () => {
         project.cleanup();
       }
     });
+  }
+});
+
+it("invalidates mapped script parameters in real hosts", () => {
+  const code = `var gr = new GlideRecord("task"); function use(run) { run = false; arguments[0] = true; run &&= gr.next(); } use(true);`;
+  const project = createTemporaryProject({
+    prefix: "sn-mapped-host-",
+    filename: "mapped.br.cjs",
+    code,
+    rules: { "servicenow/require-query-before-next": "error" },
+  });
+  try {
+    const report = runOxlintProcess(project.config, [project.source]);
+    assert.equal(report.stderr, "");
+    assert.equal(
+      report.report.diagnostics.filter((diagnostic) => diagnostic.code.startsWith("servicenow("))
+        .length,
+      1,
+    );
+    assert.deepEqual(
+      eslintRuleIds(
+        {
+          languageOptions: { sourceType: "script" },
+          plugins: { servicenow: plugin },
+          rules: { "servicenow/require-query-before-next": "error" },
+        },
+        code,
+        path.basename(project.source),
+      ),
+      ["servicenow/require-query-before-next"],
+    );
+  } finally {
+    project.cleanup();
   }
 });

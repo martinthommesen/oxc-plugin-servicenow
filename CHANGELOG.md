@@ -8,7 +8,7 @@
 
 ### Fixed
 
-- Evaluate return and throw expressions before marking their resulting platform objects escaped, preventing false positives on escaped allocations while preserving diagnostics for scalar results and expression effects. Select the executed `||=`, `&&=` and `??=` value and skip unreachable right-hand operands.
+- Evaluate return and throw expressions before marking their resulting platform objects escaped, preventing false positives on escaped allocations while preserving diagnostics for scalar results and expression effects. Select the executed `||=`, `&&=` and `??=` value across helper parameters and enclosing control flow, skip unreachable right-hand operands, and discard stale selector facts after mapped arguments writes. Defer class instance fields until construction while retaining immediate static and computed-key effects.
 - Treat platform objects captured by escaping function and arrow literals as untrusted, matching named callbacks and suppressing false positives after an unknown callee receives them.
 
 ## 3.1.0 — 2026-10-07

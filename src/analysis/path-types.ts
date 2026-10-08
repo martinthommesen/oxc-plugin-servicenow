@@ -45,6 +45,8 @@ export interface EnvState<T> {
   functions: Map<BindingId, CallableValues>;
   /** Null marks a capture whose future writes cannot restore scalar certainty. */
   constants: Map<BindingId, ConstantValue | null>;
+  /** Captured callable bindings whose later replacements are externally visible. */
+  exposedCallables: Set<BindingId>;
   /** Selected logical-assignment values retained until their statement completes. */
   assignmentResults: Map<ESTree.Node, EvaluatedValue>;
   /** Callable values selected by expressions in the current statement. */

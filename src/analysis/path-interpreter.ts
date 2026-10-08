@@ -1,10 +1,11 @@
-import { createPathValueResolver, resolveBinding } from "./path-values.js";
+import { createPathValueResolver, evaluatedConstantValue, resolveBinding } from "./path-values.js";
 import { createControlFlowVisitor } from "./path-control-flow.js";
 import type {
   AbruptCompletion,
   BindingId,
   CallableValues,
   EnvState,
+  EvaluatedValue,
   ObjectId,
   PathAnalysisOptions,
   PathAnalysisOutcome,
@@ -46,7 +47,6 @@ import {
   type ScopeNode,
 } from "./bindings.js";
 import { isDefinitelyUndefinedValue, staticPropertyName } from "./members.js";
-import { constantValue, logicalRightOperandRuns } from "./constant-value.js";
 
 function scopeContains(scope: ScopeNode | null, block: ESTree.Node): boolean {
   let current = scope;
@@ -61,6 +61,7 @@ function capturedBindings(
   fn: ESTree.Node,
   bindings: FileBindings,
   budget?: WorkBudget,
+  implicitCapture?: (node: ESTree.Node) => BindingId | undefined,
 ): BindingId[] {
   const found = new Set<BindingId>();
   const ancestors: ESTree.Node[] = [];
@@ -72,8 +73,10 @@ function capturedBindings(
     if (node.type === "Identifier" && isValueReference(node, ancestors)) {
       const binding = bindings.resolve(getName(node) ?? "", node, ancestors);
       const declared = binding ? bindings.scopeById(binding.scopeId) : null;
-      if (binding && !scopeContains(declared, fn)) {
-        found.add(binding.id);
+      if (binding && !scopeContains(declared, fn)) found.add(binding.id);
+      else if (!binding) {
+        const captured = implicitCapture?.(node);
+        if (captured !== undefined) found.add(captured);
       }
     }
     visitChildren(node, (child) => visit(child));
@@ -139,12 +142,80 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
   const retainedPlatformObjectIds = new Set<ObjectId>();
   const hoistedFunctions = new Map<BindingId, CallableValues>();
   const declaredFunctions = new Map<BindingId, ImmediateFunction>();
+  const callableBindings = new Set<BindingId>();
+  const referencedBindings = new Set<BindingId>();
+  const prepassAncestors: ESTree.Node[] = [];
+  let referenceWork = 0;
   const directlyCalledFunctions = new WeakSet<ESTree.Node>();
   const activeFunctions = new Set<ESTree.Node>();
   const functionCaptures = new WeakMap<ESTree.Node, readonly BindingId[]>();
+  const argumentObjectIds = new WeakMap<ImmediateFunction, ObjectId>();
+  const mappedArguments = new Map<ObjectId, readonly BindingId[]>();
+  const argumentsBinding = (node: ESTree.Node): BindingId | undefined => {
+    if (getName(node) !== "arguments" || resolveBinding(bindings, node, ancestors))
+      return undefined;
+    let scope = bindings.scopeForNode(node, ancestors);
+    while (scope) {
+      if (isFunctionLike(scope.block) && scope.block.type !== "ArrowFunctionExpression") {
+        const objectId = argumentObjectIds.get(scope.block);
+        return objectId === undefined ? undefined : -objectId;
+      }
+      scope = scope.parent;
+    }
+    return undefined;
+  };
+  const forgetMappedArguments = (
+    state: EnvState<T>,
+    objectId: ObjectId | undefined,
+    escaped = false,
+  ): void => {
+    if (objectId === undefined) return;
+    for (const id of mappedArguments.get(objectId) ?? []) {
+      spendWork(budget);
+      state.env.set(id, undefined);
+      state.functions.delete(id);
+      if (escaped) state.constants.set(id, null);
+      else if (state.constants.get(id) !== null) state.constants.delete(id);
+    }
+  };
+  const hasStrictDirective = (node: unknown): boolean => {
+    if (!isNode(node)) return false;
+    const body = node.type === "Program" || node.type === "BlockStatement" ? node.body : [];
+    for (const statement of body) {
+      spendWork(budget);
+      if (
+        statement.type !== "ExpressionStatement" ||
+        statement.expression.type !== "Literal" ||
+        typeof statement.expression.value !== "string"
+      )
+        break;
+      if (statement.expression.value === "use strict") return true;
+    }
+    return false;
+  };
+  const hasMappedArguments = (fn: ImmediateFunction): boolean => {
+    if (
+      fn.type === "ArrowFunctionExpression" ||
+      (program.type === "Program" && program.sourceType === "module")
+    )
+      return false;
+    spendWork(budget, fn.params.length);
+    if (!fn.params.every((param) => param.type === "Identifier" && param.name !== "arguments"))
+      return false;
+    let scope = bindings.scopeForNode(fn);
+    while (scope) {
+      spendWork(budget);
+      if (scope.kind === "class") return false;
+      const block = isFunctionLike(scope.block) ? scope.block.body : scope.block;
+      if (hasStrictDirective(block)) return false;
+      scope = scope.parent;
+    }
+    return true;
+  };
   let hasLogicalAssignments = false;
   const constantBindings = new Set<BindingId>();
   const constantSources: Array<{ left: ESTree.Node; right: ESTree.Node | null }> = [];
+  const constantCalls: ESTree.CallExpression[] = [];
   const tryThrowPaths: EnvState<T>[][] = [];
   const mergePolicy: MergePolicy<T> = {
     budget,
@@ -168,47 +239,87 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
   const capturesOf = (fn: ESTree.Node): readonly BindingId[] => {
     const existing = functionCaptures.get(fn);
     if (existing) return existing;
-    const captures = capturedBindings(fn, bindings, hasLogicalAssignments ? budget : undefined);
+    const captures = capturedBindings(
+      fn,
+      bindings,
+      hasLogicalAssignments ? budget : undefined,
+      (node) => {
+        const id = argumentsBinding(node);
+        const own = isFunctionLike(fn) ? argumentObjectIds.get(fn) : undefined;
+        return id !== undefined && id !== (own === undefined ? undefined : -own) ? id : undefined;
+      },
+    );
     functionCaptures.set(fn, captures);
     return captures;
   };
 
   // Function declarations are callable before their source position. Record
   // only callable identity here; captured runtime values remain temporal.
-  walk(program, {
-    AssignmentExpression(node) {
-      if (node.type !== "AssignmentExpression") return;
-      if (["&&=", "||=", "??="].includes(node.operator)) {
-        hasLogicalAssignments = true;
-        const binding = resolveBinding(bindings, node.left, []);
-        if (binding) constantBindings.add(binding.id);
-      } else if (node.operator === "=") {
-        constantSources.push({ left: node.left, right: node.right });
-      }
+  walk(
+    program,
+    {
+      Identifier(node) {
+        referenceWork += 1;
+        const parent = prepassAncestors.at(-2);
+        if (
+          (parent?.type === "ClassDeclaration" || parent?.type === "ClassExpression") &&
+          parent.id === node
+        )
+          return;
+        if (!isValueReference(node, prepassAncestors)) return;
+        const binding = resolveBinding(bindings, node, prepassAncestors);
+        if (binding) referencedBindings.add(binding.id);
+      },
+      AssignmentPattern(node) {
+        if (node.type === "AssignmentPattern")
+          constantSources.push({ left: node.left, right: node.right });
+      },
+      AssignmentExpression(node) {
+        if (node.type !== "AssignmentExpression") return;
+        if (["&&=", "||=", "??="].includes(node.operator)) {
+          hasLogicalAssignments = true;
+          const binding = resolveBinding(bindings, node.left, []);
+          if (binding) constantBindings.add(binding.id);
+        } else if (node.operator === "=") {
+          constantSources.push({ left: node.left, right: node.right });
+        }
+        const value = unwrapExpression(node.right);
+        if (isNode(value) && (isFunctionLike(value) || value.type === "ClassExpression")) {
+          const binding = resolveBinding(bindings, node.left, []);
+          if (binding) callableBindings.add(binding.id);
+        }
+      },
+      FunctionDeclaration(node) {
+        if (!isFunctionLike(node)) return;
+        const id = node.id;
+        const name = getName(id);
+        if (!id || !name) return;
+        const binding = bindings.resolve(name, id);
+        if (binding) {
+          hoistedFunctions.set(binding.id, [node]);
+          declaredFunctions.set(binding.id, node);
+          callableBindings.add(binding.id);
+        }
+      },
+      VariableDeclarator(node) {
+        const declaration = node as ESTree.VariableDeclarator;
+        constantSources.push({ left: declaration.id, right: declaration.init });
+        const id = unwrapExpression(declaration.id);
+        const init = unwrapExpression(declaration.init);
+        if (!isNode(id) || id.type !== "Identifier" || !isNode(init) || !isFunctionLike(init))
+          return;
+        const binding = bindings.resolve(getName(id) ?? "", id);
+        if (binding) {
+          declaredFunctions.set(binding.id, init);
+          callableBindings.add(binding.id);
+        }
+      },
     },
-    FunctionDeclaration(node) {
-      if (!isFunctionLike(node)) return;
-      const id = node.id;
-      const name = getName(id);
-      if (!id || !name) return;
-      const binding = bindings.resolve(name, id);
-      if (binding) {
-        hoistedFunctions.set(binding.id, [node]);
-        declaredFunctions.set(binding.id, node);
-      }
-    },
-    VariableDeclarator(node) {
-      const declaration = node as ESTree.VariableDeclarator;
-      constantSources.push({ left: declaration.id, right: declaration.init });
-      const id = unwrapExpression(declaration.id);
-      const init = unwrapExpression(declaration.init);
-      if (!isNode(id) || id.type !== "Identifier" || !isNode(init) || !isFunctionLike(init)) return;
-      const binding = bindings.resolve(getName(id) ?? "", id);
-      if (binding) declaredFunctions.set(binding.id, init);
-    },
-  });
+    prepassAncestors,
+  );
   walk(program, {
     CallExpression(node) {
+      constantCalls.push(node as ESTree.CallExpression);
       const callee = unwrapExpression((node as ESTree.CallExpression).callee);
       if (!isNode(callee)) return;
       if (isFunctionLike(callee)) {
@@ -295,12 +406,14 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
     publishRef,
     onValue,
     stopAtAwait,
+    argumentsBinding,
   });
 
   const markEscape = (state: EnvState<T>, node: unknown): void => {
     if (runCorrelated(state, (path) => markEscape(path, node))) return;
     const expr = unwrapExpression(node);
     if (!isNode(expr)) return;
+    forgetMappedArguments(state, objectFromExpr(state, expr), true);
     const result = state.assignmentResults.get(expr);
     if (result) {
       const rec = result.objectId === undefined ? undefined : state.objects.get(result.objectId);
@@ -357,7 +470,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
         return;
       case "ConditionalExpression": {
         const cond = expr as ESTree.ConditionalExpression;
-        const selected = constantValue(cond.test);
+        const selected = evaluatedConstantValue(state, cond.test, budget);
         if (selected) {
           markEscape(state, selected.truthy ? cond.consequent : cond.alternate);
           return;
@@ -368,7 +481,14 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
       }
       case "LogicalExpression": {
         const logical = expr as ESTree.LogicalExpression;
-        const rightRuns = logicalRightOperandRuns(logical);
+        const selected = evaluatedConstantValue(state, logical.left, budget);
+        const rightRuns = selected
+          ? logical.operator === "&&"
+            ? selected.truthy
+            : logical.operator === "||"
+              ? !selected.truthy
+              : selected.nullish
+          : null;
         if (rightRuns !== null) {
           markEscape(state, rightRuns ? logical.right : logical.left);
           return;
@@ -400,9 +520,15 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
       const captures = capturesOf(current);
       spendWork(budget, captures.length);
       for (const capturedId of captures) {
-        state.constants.set(capturedId, null);
+        forgetMappedArguments(state, state.env.get(capturedId), true);
+        if (constantBindings.has(capturedId)) state.constants.set(capturedId, null);
         const functions = state.functions.get(capturedId) ?? [];
-        spendWork(budget, functions.length);
+        spendWork(budget, functions.length * 2);
+        if (
+          callableBindings.has(capturedId) ||
+          functions.some((callable) => callable !== undefined)
+        )
+          state.exposedCallables.add(capturedId);
         for (const callable of functions) {
           if (callable) pending.push(callable);
         }
@@ -465,6 +591,8 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
     if (!isNode(inner)) return;
     if (inner.type === "Identifier") {
       const binding = resolveBinding(bindings, inner, ancestors);
+      const argumentId = argumentsBinding(inner);
+      if (!binding && argumentId !== undefined) state.env.set(argumentId, objectId);
       if (binding) {
         state.env.set(binding.id, objectId);
         if (state.constants.get(binding.id) !== null) state.constants.delete(binding.id);
@@ -528,6 +656,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
     if (runCorrelated(state, (path) => assignFrom(path, left, right))) return;
     const target = unwrapExpression(left);
     if (isNode(target) && target.type === "MemberExpression") {
+      forgetMappedArguments(state, objectFromExpr(state, target.object));
       markEscape(state, right);
       return;
     }
@@ -556,12 +685,35 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
         const values = functionsFromExpr(state, right);
         if (values.some((value) => value !== undefined)) state.functions.set(binding.id, values);
         else state.functions.delete(binding.id);
-        if (state.constants.get(binding.id) === null) {
+        if (state.constants.get(binding.id) === null || state.exposedCallables.has(binding.id)) {
           for (const fn of values) {
             if (fn) forgetCapturedConstants(state, fn);
           }
         }
       }
+    }
+  };
+
+  const bindParameterValue = (
+    state: EnvState<T>,
+    pattern: unknown,
+    value: EvaluatedValue,
+  ): void => {
+    if (runCorrelated(state, (path) => bindParameterValue(path, pattern, value))) return;
+    bindPattern(state, pattern, value.objectId);
+    const target = unwrapExpression(pattern);
+    if (!isNode(target) || target.type !== "Identifier") return;
+    const binding = resolveBinding(bindings, target, ancestors);
+    if (!binding) return;
+    if (value.functions.some((fn) => fn !== undefined))
+      state.functions.set(binding.id, value.functions);
+    else state.functions.delete(binding.id);
+    if (
+      constantBindings.has(binding.id) &&
+      value.constant &&
+      state.constants.get(binding.id) !== null
+    ) {
+      state.constants.set(binding.id, value.constant);
     }
   };
 
@@ -606,16 +758,24 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
   };
 
   const finishExpressionResults = (state: EnvState<T>): void => {
-    if (state.callablePaths.length || state.abrupt.size) {
-      const paths = completionPaths(state, cloneData, budget);
-      for (const path of paths) {
-        path.callableResults.clear();
-        path.assignmentResults.clear();
+    if (
+      !state.callablePaths.length &&
+      !state.abrupt.size &&
+      !state.callableResults.size &&
+      !state.assignmentResults.size
+    )
+      return;
+    const clear = (path: EnvState<T>): void => {
+      spendWork(budget, 1 + path.callableResults.size + path.assignmentResults.size);
+      path.callableResults.clear();
+      path.assignmentResults.clear();
+      for (const alternative of path.callablePaths) clear(alternative);
+      for (const paths of path.abrupt.values()) {
+        for (const alternative of paths) clear(alternative);
       }
-      joinInto(state, paths);
-    }
-    state.callableResults.clear();
-    state.assignmentResults.clear();
+    };
+    clear(state);
+    if (state.callablePaths.length || state.abrupt.size) joinInto(state, [state]);
   };
 
   const runCorrelated = (state: EnvState<T>, action: (path: EnvState<T>) => void): boolean => {
@@ -646,6 +806,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
     joinInto,
     invalidatePattern,
     rememberCallableResult,
+    finishExpressionResults,
   });
 
   const visit = (node: unknown, state: EnvState<T>, traverseRoot: boolean): void => {
@@ -658,7 +819,15 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
     if (isFunctionLike(node) && !traverseRoot) {
       // Analyze local syntax once, without definition-time outer values. A
       // proven direct call below replays it with invocation-time arguments.
-      if (analyzeUncalledFunctions && !directlyCalledFunctions.has(node)) {
+      if (
+        analyzeUncalledFunctions &&
+        !directlyCalledFunctions.has(node) &&
+        !(
+          node.params.length === 0 &&
+          node.body?.type === "BlockStatement" &&
+          node.body.body.length === 0
+        )
+      ) {
         const local = snapshotState(state, cloneData, budget);
         local.env.clear();
         local.constants.clear();
@@ -673,17 +842,26 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
 
     ancestors.push(node);
     if (visitControlFlow(node, state)) {
+      if (node.type.endsWith("Statement")) finishExpressionResults(state);
       ancestors.pop();
       return;
     }
     switch (node.type) {
+      case "WithStatement":
+        visit(node.object, state, false);
+        finishExpressionResults(state);
+        visit(node.body, state, false);
+        break;
+      case "ClassExpression":
       case "ClassDeclaration": {
-        if (node.id) {
-          assignFrom(state, node.id, node);
+        if (node.type === "ClassDeclaration" && node.id) {
+          const innerBinding = resolveBinding(bindings, node.id, ancestors);
+          if (innerBinding && referencedBindings.has(innerBinding.id))
+            assignFrom(state, node.id, node);
           const binding = bindings
             .scopeForNode(node, ancestors)
             ?.parent?.bindings.get(node.id.name);
-          if (binding) {
+          if (binding && referencedBindings.has(binding.id)) {
             state.env.set(binding.id, undefined);
             state.functions.set(binding.id, [node]);
             if (state.constants.get(binding.id) === null) forgetCapturedConstants(state, node);
@@ -693,7 +871,19 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
             }
           }
         }
-        visitChildren(node, (child) => visit(child, state, false));
+        if (node.superClass) visit(node.superClass, state, false);
+        if (node.type === "ClassDeclaration") finishExpressionResults(state);
+        for (const element of node.body.body) {
+          spendWork(budget);
+          if ("computed" in element && element.computed) visit(element.key, state, false);
+          if (node.type === "ClassDeclaration") finishExpressionResults(state);
+        }
+        for (const element of node.body.body) {
+          spendWork(budget);
+          if (element.type === "StaticBlock") visit(element, state, false);
+          else if ("value" in element && (element.type === "MethodDefinition" || element.static))
+            visit(element.value, state, false);
+        }
         break;
       }
       case "ObjectExpression":
@@ -815,7 +1005,16 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
             receiver = isNode(object) ? object : null;
             objectName = getName(object);
             receiverId = objectFromExpr(state, object);
-            if (hasLogicalAssignments) receiverFunctions = functionsFromExpr(state, object);
+            if (
+              hasLogicalAssignments &&
+              isNode(object) &&
+              (state.callablePaths.length > 0 || state.assignmentResults.has(object))
+            ) {
+              const captureReceiver = (path: EnvState<T>): void => {
+                path.assignmentResults.set(object, valueFromExpr(path, object));
+              };
+              if (!runCorrelated(state, captureReceiver)) captureReceiver(state);
+            } else if (hasLogicalAssignments) receiverFunctions = functionsFromExpr(state, object);
             if (member.computed) visit(member.property, state, false);
           }
           ancestors.pop();
@@ -830,21 +1029,32 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
           if (!runCorrelated(state, captureCallee)) captureCallee(state);
         }
         const argumentIds: Array<ObjectId | undefined> = [];
+        const saveArguments =
+          hasLogicalAssignments &&
+          functionsFromExpr(state, call.callee).some((fn) => fn && isFunctionLike(fn));
         for (const arg of call.arguments) {
           visit(arg, state, false);
           if (state.completion !== "normal") break;
           argumentIds.push(objectFromExpr(state, arg));
+          if (saveArguments) {
+            const captureArgument = (path: EnvState<T>): void => {
+              path.assignmentResults.set(arg, valueFromExpr(path, arg));
+            };
+            if (!runCorrelated(state, captureArgument)) captureArgument(state);
+          }
         }
         if (state.completion !== "normal") break;
         const invoke = (state: EnvState<T>): void => {
           if (runCorrelated(state, invoke)) return;
           const functions = functionsFromExpr(state, call.callee);
+          const receiverValue = receiver && state.assignmentResults.get(receiver);
+          receiverFunctions = receiverValue?.functions ?? receiverFunctions;
           for (const fn of receiverFunctions) {
             if (fn) forgetCapturedConstants(state, fn);
           }
           // Invocation remains able to throw after all argument effects complete.
           recordPossibleThrow(state);
-          const rec = recordOf(state, receiverId);
+          const rec = recordOf(state, receiverValue ? receiverValue.objectId : receiverId);
           if (rec) chargeData(rec.data);
           onCall?.({ call, rec, receiver, objectName, property });
           if (rec && property === null) {
@@ -865,29 +1075,83 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
                 (argument) => argument.type === "SpreadElement",
               );
               ancestors.push(fn);
+              if (hasLogicalAssignments && fn.type !== "ArrowFunctionExpression") {
+                let argumentObject = argumentObjectIds.get(fn);
+                if (argumentObject === undefined) {
+                  argumentObject = alloc();
+                  argumentObjectIds.set(fn, argumentObject);
+                }
+                const mapped: BindingId[] = [];
+                if (hasMappedArguments(fn)) {
+                  for (
+                    let index = 0;
+                    index <
+                    Math.min(
+                      params.length,
+                      hasSpreadArgument ? params.length : call.arguments.length,
+                    );
+                    index += 1
+                  ) {
+                    spendWork(budget);
+                    const binding = resolveBinding(bindings, params[index], ancestors);
+                    if (binding && constantBindings.has(binding.id)) mapped.push(binding.id);
+                  }
+                }
+                mappedArguments.set(argumentObject, mapped);
+                invocation.env.set(-argumentObject, argumentObject);
+                const declaredArguments = fn.body
+                  ? bindings.resolve("arguments", fn.body, ancestors)
+                  : null;
+                if (declaredArguments?.kind === "var")
+                  invocation.env.set(declaredArguments.id, argumentObject);
+              }
               for (let index = 0; index < params.length; index += 1) {
                 const param = unwrapExpression(params[index]);
-                if (
-                  !hasSpreadArgument &&
-                  isNode(param) &&
-                  param.type === "AssignmentPattern" &&
-                  (index >= call.arguments.length ||
-                    isDefinitelyUndefinedValue(call.arguments[index], bindings))
-                ) {
-                  const assignment = param as ESTree.AssignmentPattern;
-                  visit(assignment.right, invocation, false);
-                  bindPattern(
-                    invocation,
-                    assignment.left,
-                    objectFromExpr(invocation, assignment.right),
-                  );
-                } else {
-                  bindPattern(
-                    invocation,
-                    params[index],
-                    hasSpreadArgument ? undefined : argumentIds[index],
-                  );
-                }
+                const argument = call.arguments[index];
+                const value: EvaluatedValue = hasSpreadArgument
+                  ? { objectId: undefined, functions: [undefined], constant: null }
+                  : ((argument && invocation.assignmentResults.get(argument)) ?? {
+                      objectId: argumentIds[index],
+                      functions: [undefined],
+                      constant: argument ? null : { truthy: false, nullish: true },
+                    });
+                const bindParameter = (path: EnvState<T>): void => {
+                  if (runCorrelated(path, bindParameter)) return;
+                  if (isNode(param) && param.type === "AssignmentPattern") {
+                    const defaultRuns =
+                      !hasSpreadArgument &&
+                      (!argument || isDefinitelyUndefinedValue(argument, bindings));
+                    const provided =
+                      !hasSpreadArgument &&
+                      argument &&
+                      (value.constant?.nullish === false ||
+                        (argument.type === "Literal" && argument.value === null));
+                    if (!defaultRuns && provided) {
+                      bindParameterValue(path, param.left, value);
+                      return;
+                    }
+                    const withDefault = defaultRuns ? path : snapshotState(path, cloneData, budget);
+                    visit(param.right, withDefault, false);
+                    const bindDefault = (result: EnvState<T>): void => {
+                      bindParameterValue(result, param.left, valueFromExpr(result, param.right));
+                    };
+                    if (
+                      !runCorrelated(withDefault, bindDefault) &&
+                      withDefault.completion === "normal"
+                    )
+                      bindDefault(withDefault);
+                    if (!defaultRuns) {
+                      bindParameterValue(path, param.left, value);
+                      joinInto(path, [
+                        pathWithoutAlternatives(path, cloneData, budget),
+                        withDefault,
+                      ]);
+                    }
+                  } else {
+                    bindParameterValue(path, params[index], value);
+                  }
+                };
+                bindParameter(invocation);
               }
               const { body } = fn;
               visit(body, invocation, false);
@@ -903,10 +1167,18 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
                   setCompletion(path, "normal");
                 }
               }
-              const capturedIds = capturesOf(fn);
+              const capturedIds = new Set(capturesOf(fn));
+              for (const id of capturedIds) {
+                if (id >= 0) continue;
+                for (const mapped of mappedArguments.get(-id) ?? []) {
+                  spendWork(budget);
+                  capturedIds.add(mapped);
+                }
+              }
               const projected = returned.map((path) => {
                 const result = snapshotState(caller, cloneData, budget);
                 result.objects = new Map(path.objects);
+                result.exposedCallables = new Set(path.exposedCallables);
                 if (hasLogicalAssignments) {
                   const scalarIds = new Set([...caller.env.keys(), ...capturedIds]);
                   spendWork(budget, scalarIds.size);
@@ -959,10 +1231,10 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
         if (prior !== undefined) state.objects.delete(prior);
         visit(expr.callee, state, false);
         if (state.completion !== "normal") break;
-        if (hasLogicalAssignments) {
-          for (const fn of functionsFromExpr(state, expr.callee)) {
-            if (fn) forgetCapturedConstants(state, fn);
-          }
+        for (const fn of functionsFromExpr(state, expr.callee)) {
+          if (fn?.type === "ClassDeclaration" || fn?.type === "ClassExpression")
+            escapeCaptured(state, fn);
+          else if (fn) forgetCapturedConstants(state, fn);
         }
         for (const arg of expr.arguments) {
           visit(arg, state, false);
@@ -1022,10 +1294,9 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
         visitChildren(node, (child) => visit(child, state, false));
     }
     if (
-      node.type === "ExpressionStatement" ||
+      node.type.endsWith("Statement") ||
       node.type === "VariableDeclaration" ||
-      node.type === "ReturnStatement" ||
-      node.type === "ThrowStatement"
+      node.type === "ClassDeclaration"
     )
       finishExpressionResults(state);
     ancestors.pop();
@@ -1035,6 +1306,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
     env: new Map(),
     functions: new Map(hoistedFunctions),
     constants: new Map(),
+    exposedCallables: new Set(),
     assignmentResults: new Map(),
     callableResults: new Map(),
     objects: new Map(),
@@ -1043,6 +1315,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
     abrupt: new Map(),
   };
   try {
+    spendWork(budget, referenceWork);
     if (hasLogicalAssignments) {
       const dependencies = new Map<BindingId, Set<BindingId>>();
       for (const source of constantSources) {
@@ -1063,6 +1336,43 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
         const sources = dependencies.get(target.id) ?? new Set<BindingId>();
         sources.add(origin.id);
         dependencies.set(target.id, sources);
+      }
+      for (const call of constantCalls) {
+        spendWork(budget);
+        const callee = unwrapExpression(call.callee);
+        const functions = new Set<ImmediateFunction>();
+        if (isNode(callee) && isFunctionLike(callee)) functions.add(callee);
+        const binding = resolveBinding(bindings, callee, []);
+        const pending = binding ? [binding.id] : [];
+        const seen = new Set<BindingId>();
+        while (pending.length) {
+          spendWork(budget);
+          const id = pending.pop();
+          if (id === undefined || seen.has(id)) continue;
+          seen.add(id);
+          const fn = declaredFunctions.get(id);
+          if (fn) functions.add(fn);
+          for (const source of dependencies.get(id) ?? []) {
+            spendWork(budget);
+            pending.push(source);
+          }
+        }
+        for (const fn of functions) {
+          for (let index = 0; index < fn.params.length; index += 1) {
+            spendWork(budget);
+            const param = unwrapExpression(fn.params[index]);
+            const target = resolveBinding(
+              bindings,
+              isNode(param) && param.type === "AssignmentPattern" ? param.left : param,
+              [],
+            );
+            const origin = resolveBinding(bindings, call.arguments[index], []);
+            if (!target || !origin) continue;
+            const sources = dependencies.get(target.id) ?? new Set<BindingId>();
+            sources.add(origin.id);
+            dependencies.set(target.id, sources);
+          }
+        }
       }
       const pending = [...constantBindings];
       while (pending.length) {

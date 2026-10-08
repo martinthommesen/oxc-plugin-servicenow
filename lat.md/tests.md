@@ -207,6 +207,44 @@ Returned and thrown logical assignments export only the selected object or callb
 
 Direct and nested helper writes update captured selectors. Updates, destructuring, differing branch facts, escaped callbacks and unmodeled constructor or callable-method invocation discard certainty. Escaped captures remain uncertain after later scalar writes; constructor arguments cannot replace the callee before its capture effects are considered. Wrapper callbacks, cycles, exposed helper replacements and opaque class effects cannot restore false scalar certainty. Unused and unreachable class bodies preserve surrounding selector facts. Real ESLint and Oxlint fixtures exercise selected objects, skipped effects and captures, and callback invalidation.
 
+### Logical assignment headers release transient correlations
+
+Independent logical-assignment headers discard selected expression results after statement or loop-header consumption, keeping ordinary if, switch, loop, with and class traversal within its deterministic budget.
+
+With uses a fixed-authority low-level fixture because dynamic scope deliberately suppresses rule diagnostics. Fifty independent class headers retain the final finding; evaluated header effects remain visible.
+
+### Logical assignment parameters retain evaluated scalars
+
+Known helpers receive scalar, object and callable arguments captured before later argument effects. Missing or undefined parameters evaluate defaults in order; uncertain arguments preserve possible default effects and explicit null skips defaults.
+
+Callback parameters export the selected callable, and enclosing conditional or logical consumers escape only the selected result.
+
+### Hoisted callable logical selectors are defined values
+
+Hoisted functions are truthy and non-nullish before their declaration position. Reassignments, unknown alternatives and escaped capture markers prevent stale certainty from suppressing reachable operands.
+
+### Unrelated callback scalars do not enlarge selector snapshots
+
+Two hundred unrelated scalar captures preserve all two hundred counted-loop findings without exhausting analysis. Callback exposure follows callable dependencies without retaining nonselector scalar facts.
+
+### Evaluated logical selectors choose reachable control flow
+
+Produced logical-assignment values select the reachable if, conditional, logical and loop paths. Header effects and abrupt alternatives survive consumption, while ordinary unresolved identifiers remain conservative.
+
+### Class definitions evaluate only immediate class effects
+
+Class extends expressions, computed keys and static initialization run at definition time. Instance field values stay deferred; constructing an opaque class discards trust in its captured effects.
+
+### Logical member receivers retain path-specific values
+
+A member call uses the object selected on each correlated path before computed keys or arguments can replace its binding. Unknown receiver alternatives retain reachable cursor diagnostics.
+
+### Mapped arguments writes invalidate scalar selectors
+
+Sloppy simple-parameter functions invalidate mapped selector facts when arguments aliases mutate or escape. Strict, non-simple, absent arguments and shadowed or replaced aliases preserve separate parameter values.
+
+Arrows inherit the nearest ordinary function's arguments owner; nested ordinary functions own separate arguments. A hoisted no-op var declaration preserves mapping in fixed-authority traversal, while unknown bound aliases retain conservative method-authority silence.
+
 ### Return and throw escape evaluated values
 
 Returned and thrown allocations lose trust after expression evaluation, including captured assignments and sequences. Cursor advances within those expressions remain diagnosed; exporting another value retains the captured object's trust.

@@ -6,18 +6,13 @@ import {
   completionPaths,
   mergeMany,
   mergeStates,
-  replaceWith,
   setCompletion,
   snapshotState,
   statesEqual,
   type MergePolicy,
 } from "./path-environment.js";
-import {
-  constantValue,
-  isDefinitelyTrue,
-  isDefinitelyFalse,
-  logicalRightOperandRuns,
-} from "./constant-value.js";
+import type { ConstantValue } from "./constant-value.js";
+import { evaluatedConstantValue } from "./path-values.js";
 
 interface ControlFlowContext<T> {
   visit: (node: unknown, state: EnvState<T>, traverseRoot: boolean) => void;
@@ -31,6 +26,7 @@ interface ControlFlowContext<T> {
   joinInto: (state: EnvState<T>, paths: EnvState<T>[]) => void;
   invalidatePattern: (state: EnvState<T>, pattern: unknown) => void;
   rememberCallableResult: (state: EnvState<T>, node: ESTree.Node, value: unknown) => void;
+  finishExpressionResults: (state: EnvState<T>) => void;
 }
 
 /** Statement branches, loop fixpoints and abrupt completions share one policy. */
@@ -47,54 +43,90 @@ export function createControlFlowVisitor<T>(context: ControlFlowContext<T>) {
     joinInto,
     invalidatePattern,
     rememberCallableResult,
+    finishExpressionResults,
   } = context;
+  const rightRuns = (
+    operator: ESTree.LogicalExpression["operator"],
+    value: ConstantValue,
+  ): boolean =>
+    operator === "&&" ? value.truthy : operator === "||" ? !value.truthy : value.nullish;
+  const evaluatedPaths = (state: EnvState<T>): EnvState<T>[] =>
+    state.callablePaths.length || state.abrupt.size
+      ? completionPaths(state, cloneData, budget)
+      : [state];
   return (node: ESTree.Node, state: EnvState<T>): boolean => {
     switch (node.type) {
       case "IfStatement":
       case "ConditionalExpression": {
         visit(node.test, state, false);
-        if (state.completion !== "normal") break;
         const remember = (path: EnvState<T>, branch: ESTree.Node | null): void => {
           if (node.type === "ConditionalExpression") rememberCallableResult(path, node, branch);
         };
-        const selected = constantValue(node.test);
-        if (selected) {
-          const branch = selected.truthy ? node.consequent : node.alternate;
-          if (branch) visit(branch, state, false);
-          remember(state, branch);
-          break;
+        const groups = new Map<boolean | null, EnvState<T>[]>();
+        const results: EnvState<T>[] = [];
+        for (const path of evaluatedPaths(state)) {
+          if (path.completion !== "normal") {
+            results.push(path);
+            continue;
+          }
+          const selected = evaluatedConstantValue(path, node.test, budget)?.truthy ?? null;
+          if (node.type === "IfStatement") finishExpressionResults(path);
+          const paths = groups.get(selected) ?? [];
+          paths.push(path);
+          groups.set(selected, paths);
         }
-        const consequent = snapshotState(state, cloneData, budget);
-        visit(node.consequent, consequent, false);
-        remember(consequent, node.consequent);
-        const alternate = snapshotState(state, cloneData, budget);
-        if (node.alternate) visit(node.alternate, alternate, false);
-        remember(alternate, node.alternate);
-        joinInto(state, [consequent, alternate]);
+        for (const [selected, paths] of groups) {
+          const entry = mergeMany(paths, mergePolicy);
+          if (!entry) continue;
+          if (selected !== null) {
+            const branch = selected ? node.consequent : node.alternate;
+            if (branch) visit(branch, entry, false);
+            remember(entry, branch);
+            results.push(entry);
+          } else {
+            const consequent = snapshotState(entry, cloneData, budget);
+            visit(node.consequent, consequent, false);
+            remember(consequent, node.consequent);
+            const alternate = snapshotState(entry, cloneData, budget);
+            if (node.alternate) visit(node.alternate, alternate, false);
+            remember(alternate, node.alternate);
+            results.push(consequent, alternate);
+          }
+        }
+        joinInto(state, results);
         break;
       }
       case "LogicalExpression": {
         const expr = node as ESTree.LogicalExpression;
         visit(expr.left, state, false);
-        if (state.completion !== "normal") break;
-        // A constant left operand fixes which short-circuit branch executes:
-        // `true && f()` always evaluates `f()` and `false && f()` never does.
-        // Only an unknown operand keeps the join of both paths (FINDINGS.md COR-003).
-        const rightRuns = logicalRightOperandRuns(expr);
-        if (rightRuns === false) {
-          rememberCallableResult(state, expr, expr.left);
-          break;
+        const groups = new Map<boolean | null, EnvState<T>[]>();
+        const results: EnvState<T>[] = [];
+        for (const path of evaluatedPaths(state)) {
+          if (path.completion !== "normal") {
+            results.push(path);
+            continue;
+          }
+          const value = evaluatedConstantValue(path, expr.left, budget);
+          const selected = value ? rightRuns(expr.operator, value) : null;
+          const paths = groups.get(selected) ?? [];
+          paths.push(path);
+          groups.set(selected, paths);
         }
-        if (rightRuns === true) {
-          visit(expr.right, state, false);
-          rememberCallableResult(state, expr, expr.right);
-          break;
+        for (const [selected, paths] of groups) {
+          const entry = mergeMany(paths, mergePolicy);
+          if (!entry) continue;
+          if (selected !== true) {
+            const skipped = selected === false ? entry : snapshotState(entry, cloneData, budget);
+            rememberCallableResult(skipped, expr, expr.left);
+            results.push(skipped);
+          }
+          if (selected !== false) {
+            visit(expr.right, entry, false);
+            rememberCallableResult(entry, expr, expr.right);
+            results.push(entry);
+          }
         }
-        const afterLeft = snapshotState(state, cloneData, budget);
-        rememberCallableResult(afterLeft, expr, expr.left);
-        visit(expr.right, state, false);
-        rememberCallableResult(state, expr, expr.right);
-        joinInto(state, [afterLeft, snapshotState(state, cloneData, budget)]);
+        joinInto(state, results);
         break;
       }
       case "LabeledStatement": {
@@ -113,6 +145,7 @@ export function createControlFlowVisitor<T>(context: ControlFlowContext<T>) {
       case "SwitchStatement": {
         const stmt = node as ESTree.SwitchStatement;
         visit(stmt.discriminant, state, false);
+        finishExpressionResults(state);
         if (state.completion !== "normal") break;
         const before = snapshotState(state, cloneData, budget);
         const exits: EnvState<T>[] = [];
@@ -123,6 +156,7 @@ export function createControlFlowVisitor<T>(context: ControlFlowContext<T>) {
         for (const switchCase of stmt.cases) {
           if (!switchCase.test) hasDefault = true;
           if (switchCase.test) visit(switchCase.test, directState, false);
+          finishExpressionResults(directState);
           const direct = snapshotState(directState, cloneData, budget);
           const entry = fall ? mergeStates(direct, fall, mergePolicy) : direct;
           for (const consequent of switchCase.consequent) visit(consequent, entry, false);
@@ -152,10 +186,12 @@ export function createControlFlowVisitor<T>(context: ControlFlowContext<T>) {
         // yields false, so the post-test state is the loop's zero-body path.
         if (node.type === "ForStatement" && (node as ESTree.ForStatement).init) {
           visit((node as ESTree.ForStatement).init, state, false);
+          finishExpressionResults(state);
         }
         if (node.type === "ForInStatement" || node.type === "ForOfStatement") {
           const iterable = node as ESTree.ForInStatement | ESTree.ForOfStatement;
           if (iterable.right) visit(iterable.right, state, false);
+          finishExpressionResults(state);
           if (
             node.type === "ForOfStatement" &&
             (node as ESTree.ForOfStatement).await &&
@@ -193,14 +229,31 @@ export function createControlFlowVisitor<T>(context: ControlFlowContext<T>) {
             : isDoWhile
               ? (node as ESTree.DoWhileStatement).test
               : undefined;
-        if (!isDoWhile && (isFor || isWhile) && isDefinitelyFalse(test)) {
-          replaceWith(state, testState);
+        const loopTest = (path: EnvState<T>): ConstantValue | null =>
+          isFor && !test
+            ? { truthy: true, nullish: false }
+            : isFor || isWhile || isDoWhile
+              ? evaluatedConstantValue(path, test, budget)
+              : null;
+        const exits: EnvState<T>[] = [];
+        const entries: EnvState<T>[] = [];
+        for (const path of evaluatedPaths(isDoWhile ? beforeTest : testState)) {
+          if (path.completion !== "normal") {
+            exits.push(path);
+            continue;
+          }
+          const selected = isDoWhile ? null : loopTest(path);
+          finishExpressionResults(path);
+          if (!isDoWhile && selected?.truthy !== true) {
+            exits.push(snapshotState(path, cloneData, budget));
+          }
+          if (isDoWhile || selected?.truthy !== false) entries.push(path);
+        }
+        const initialHeader = mergeMany(entries, mergePolicy);
+        if (!initialHeader) {
+          joinInto(state, exits);
           break;
         }
-        const infinite = (isFor || isWhile || isDoWhile) && isDefinitelyTrue(test);
-        const exits: EnvState<T>[] =
-          isDoWhile || infinite ? [] : [snapshotState(testState, cloneData, budget)];
-        const initialHeader = snapshotState(isDoWhile ? beforeTest : testState, cloneData, budget);
         let header = snapshotState(initialHeader, cloneData, budget);
         let converged = false;
         const body = (node as { body: ESTree.Node }).body;
@@ -235,14 +288,25 @@ export function createControlFlowVisitor<T>(context: ControlFlowContext<T>) {
             if (isFor) {
               const update = (node as ESTree.ForStatement).update;
               if (update) visit(update, path, false);
+              finishExpressionResults(path);
             }
             if (isDoWhile) {
               visit((node as ESTree.DoWhileStatement).test, path, false);
             } else if (test) {
               visit(test, path, false);
             }
-            if (!infinite) exits.push(snapshotState(path, cloneData, budget));
-            if (!isDefinitelyFalse(test)) backEdges.push(path);
+            for (const evaluated of evaluatedPaths(path)) {
+              if (evaluated.completion !== "normal") {
+                exits.push(evaluated);
+                continue;
+              }
+              const selected = loopTest(evaluated);
+              finishExpressionResults(evaluated);
+              if (selected?.truthy !== true) {
+                exits.push(snapshotState(evaluated, cloneData, budget));
+              }
+              if (selected?.truthy !== false) backEdges.push(evaluated);
+            }
           }
           const back = mergeMany(backEdges, mergePolicy);
           if (!back) {
@@ -256,9 +320,9 @@ export function createControlFlowVisitor<T>(context: ControlFlowContext<T>) {
           }
           header = nextHeader;
         }
+        if (!converged) throw BUDGET_EXCEEDED;
         if (exits.length === 0) setCompletion(state, "unreachable");
-        else if (converged) joinInto(state, exits);
-        else throw BUDGET_EXCEEDED;
+        else joinInto(state, exits);
         break;
       }
 
