@@ -29,7 +29,6 @@ describe("nested cursor-loop scaling (FINDINGS.md PER-002)", () => {
     assertInvalid(nestedDoWhile(12, inner), "no-gliderecord-query-in-loop");
   });
 
-  it("still reports a retained element inside the re-entered do/while body", () => {
-    assertInvalid(nestedDoWhile(12, "arr.push(gr.sys_id);"), "no-glideelement-in-collection");
-  });
+  it("still reports a retained element inside the re-entered do/while body", () =>
+    void assertInvalid(nestedDoWhile(12, "arr.push(gr.sys_id);"), "no-glideelement-in-collection"));
 });

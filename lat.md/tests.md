@@ -5,7 +5,9 @@ lat:
 
 Test specifications for the properties in [[invariants]]. Each leaf names what it verifies and the test that verifies it; `lat check` fails when a leaf loses its backlink.
 
-Unit rules run through the harness in `tests/helpers/rule-tester.ts`, which parses with `oxc-parser` and applies selected rules in process. Integration rules run the real `oxlint` binary and a real ESLint `Linter`, and are the only proof of production behavior — see `plans/001-real-host-integration-tests.md`.
+`ruleTester` binds a suite's rule, context and expected diagnostic once; explicit overrides replace defaults. Skip assertions and active-negative assertions keep distinct contracts.
+
+Unit rules run through the harness in `tests/helpers/rule-tester.ts`, which parses with `oxc-parser` and applies selected rules in process. Integration rules run the real `oxlint` binary and a real ESLint `Linter`, and are the only proof of production behavior.
 
 ## Silence on unknown facts
 
@@ -50,6 +52,8 @@ Each rule's evidence entries carry a unique verification id and must resolve to 
 ### The export surface is exactly the supported API
 
 The package exports named `servicenow`, `PACKAGE_VERSION` matches `package.json`, every catalogued rule is present, and every rule's documentation URL is pinned to the release tag rather than a branch.
+
+Version 3.1.0 preserves historical per-rule pages; a simulated 3.1.1 module targets the consolidated anchor.
 
 ### Declared applicability implies an implemented gate
 
@@ -273,23 +277,7 @@ Both README formatter-guide links, the compatibility link, and the Australia eng
 
 A proof passes only when its `file::fullName` key occurs once and the outcome is a clean pass.
 
-A clean pass has status `passed` without skip or todo. Summary counts use the same definition. Concurrent acceptance runs use different report paths and serialize their full build-and-test phase.
-
-### Acceptance runs serialize across processes
-
-Two acceptance verifiers started as separate Node processes must not overlap while they rebuild the shared `dist` tree; the child-process test proves the lock serializes them.
-
-### Stale reclamation keeps one owner
-
-Two processes that observe the same dead owner must not delete a replacement lock; the inter-process test holds one reclamation claim while the other waits.
-
-### Publication does not expose an ownerless lock
-
-A publisher paused before final publication must leave no visible lock, and it must not enter the protected operation after another process acquires the lock.
-
-### Abandoned reclamation claims fail closed
-
-If a process dies while holding a reclamation claim, a later verifier must time out without deleting the claim or the lock.
+A clean pass has status `passed` without skip or todo. Summary counts use the same definition.
 
 ### Evidence captures use private reports and atomic artifacts
 
@@ -302,14 +290,6 @@ Malformed JSON, parser/plugin-load diagnostics, nonstandard exit statuses, signa
 ## Release governance
 
 Claims made about a release must be reconstructible from the repository, not asserted in prose.
-
-### Every acceptance criterion maps to one proof
-
-Each atomic requirement in the PR #51 acceptance ledger must map to exactly one proof entry bound to a content hash, with no missing, duplicate, changed, or orphaned mappings. Concurrent verifier runs must use different temporary report paths.
-
-### Acceptance capture exposes the network boundary
-
-Default acceptance verification dispatches offline gates only and records uncaptured consumer proofs as pending. Explicit capture includes network-dependent consumer and release checks with truthful evidence inventories.
 
 ### Recoverable registry failures retain bounded retries
 
@@ -364,3 +344,11 @@ The reviewed manifest must match `tests/fixtures/fluent-manifest-current.json`, 
 ### The SDK tarball trust boundary holds
 
 The audit script must accept only the exact npm registry artifact URL, cap declared, streamed, and decompressed byte counts, verify the pinned SHA-512 digest, and reject unsafe, duplicate, or linked tar entries.
+
+### Shared declaration evidence expands without loss
+
+The canonical fixture round-trips every reviewed version, keeps expanded versions independent and rejects missing references or unsupported schemas.
+
+### Malformed shared evidence cannot erase verification
+
+Missing lifecycle inventory entries and malformed lists, declarations, lifecycle records or references must be rejected, so damaged fixtures cannot silently remove manifest verification coverage.

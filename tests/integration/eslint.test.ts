@@ -35,9 +35,8 @@ function ruleIds(messages: import("eslint").Linter.LintMessage[]): string[] {
 }
 
 describe("eslint host integration", () => {
-  it("rejects malformed JavaScript before interpreting absent rule ids", () => {
-    assert.throws(() => ruleIds(verify("var = ;", "invalid.server.js")), /parser|parsing/i);
-  });
+  it("rejects malformed JavaScript before interpreting absent rule ids", () =>
+    void assert.throws(() => ruleIds(verify("var = ;", "invalid.server.js")), /parser|parsing/i));
 
   it("loads every catalogued rule with a create shim", () => {
     const names = Object.keys(plugin.rules);

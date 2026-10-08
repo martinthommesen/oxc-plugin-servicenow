@@ -1,33 +1,28 @@
+import { ruleTester } from "../helpers/rule-tester.js";
 import { describe, it } from "node:test";
-import {
-  assertDeclinesNonServerSurfaces,
-  assertInvalid,
-  assertValid,
-  assertValidActive,
-  ES2021,
-  ES5,
-} from "../helpers/rule-tester.js";
+import { assertDeclinesNonServerSurfaces, ES2021, ES5 } from "../helpers/rule-tester.js";
 
 const RULE = "no-unsupported-syntax" as const;
 
 describe(`${RULE} RegExp identity`, () => {
+  const { expectActive, expectInvalid, expectValid } = ruleTester(
+    "no-unsupported-syntax",
+    { settings: ES5 },
+    { messageId: "lookbehind" },
+  );
+
   // @lat: [[tests#Analysis behavior#Regex features respect lexical boundaries]]
   it("allows lookbehind marker text in character classes and escaped literals", () => {
     for (const pattern of ["[(?<=)]", "[(?<!)]", String.raw`\(\?<=`, String.raw`[(?<=)\]]`]) {
-      assertValidActive(`var re = /${pattern}/;`, RULE, { settings: ES5 });
-      assertValidActive(`new RegExp(${JSON.stringify(pattern)});`, RULE, { settings: ES5 });
+      expectActive(`var re = /${pattern}/;`);
+      expectActive(`new RegExp(${JSON.stringify(pattern)});`);
     }
   });
 
   it("recognizes real assertions after classes and escaped backslashes", () => {
     for (const pattern of ["[(?<=)](?<=a)b", "[(?<!)](?<!a)b", String.raw`\\(?<=a)b`]) {
-      assertInvalid(`var re = /${pattern}/;`, RULE, { messageId: "lookbehind" }, { settings: ES5 });
-      assertInvalid(
-        `new RegExp(${JSON.stringify(pattern)});`,
-        RULE,
-        { messageId: "lookbehind" },
-        { settings: ES5 },
-      );
+      expectInvalid(`var re = /${pattern}/;`);
+      expectInvalid(`new RegExp(${JSON.stringify(pattern)});`);
     }
   });
 
@@ -41,7 +36,7 @@ describe(`${RULE} RegExp identity`, () => {
       `const Base = RegExp; const Regex = Base; Regex("(?<=a)b");`,
       `const { RegExp: Regex } = globalThis; Regex("(?<!a)b");`,
     ]) {
-      assertInvalid(code, RULE, { messageId: "lookbehind" }, { settings: ES5 });
+      expectInvalid(code);
     }
   });
 
@@ -52,13 +47,13 @@ describe(`${RULE} RegExp identity`, () => {
       `const Regex = RegExp; function later() { return Regex("(?<=a)b"); } later();`,
       `eval(source); RegExp("(?<=a)b");`,
     ]) {
-      assertValid(code, RULE, { settings: ES5 });
+      expectValid(code);
     }
   });
 
   it("stays silent after visible RegExp authority loss", () => {
     for (const replacement of ["LocalRegExp", "null", "{}"]) {
-      assertValidActive(`RegExp = ${replacement}; RegExp("(?<=a)b");`, RULE, { settings: ES5 });
+      expectActive(`RegExp = ${replacement}; RegExp("(?<=a)b");`);
     }
   });
 
@@ -67,39 +62,28 @@ describe(`${RULE} RegExp identity`, () => {
       { length: 2_000 },
       (_, index) => `const Alias${index + 1} = Alias${index};`,
     );
-    assertInvalid(
-      `const Alias0 = RegExp;\n${aliases.join("\n")}\nAlias2000("(?<=a)b");`,
-      RULE,
-      { messageId: "lookbehind" },
-      { settings: ES5 },
-    );
+    expectInvalid(`const Alias0 = RegExp;\n${aliases.join("\n")}\nAlias2000("(?<=a)b");`);
   });
 
-  it("does not treat constructor availability as lookbehind support", () => {
-    assertInvalid(
-      `if (typeof RegExp === "function") { RegExp("(?<=a)b"); }`,
-      RULE,
-      { messageId: "lookbehind" },
-      { settings: ES5 },
-    );
-  });
+  it("does not treat constructor availability as lookbehind support", () =>
+    void expectInvalid(`if (typeof RegExp === "function") { RegExp("(?<=a)b"); }`));
 
-  it("keeps literal syntax diagnostics independent of constructor authority", () => {
-    assertInvalid(
-      `RegExp = LocalRegExp; var value = /(?<=a)b/;`,
-      RULE,
-      { messageId: "lookbehind" },
-      { settings: ES5 },
-    );
-  });
+  it("keeps literal syntax diagnostics independent of constructor authority", () =>
+    void expectInvalid(`RegExp = LocalRegExp; var value = /(?<=a)b/;`));
 
   it("allows constructor lookbehind in ES2021 and unknown mode", () => {
-    assertValid(`new RegExp("(?<=a)b");`, RULE, { settings: ES2021 });
-    assertValid(`new RegExp("(?<=a)b");`, RULE);
+    expectValid(`new RegExp("(?<=a)b");`, { settings: ES2021 });
+    expectValid(`new RegExp("(?<=a)b");`, {});
   });
 });
 
 describe(`${RULE} object method syntax`, () => {
+  const { expectInvalid, expectValid } = ruleTester(
+    "no-unsupported-syntax",
+    { settings: ES5 },
+    { messageId: "objectMethod" },
+  );
+
   it("flags shorthand object methods in classic modes", () => {
     for (const javascriptMode of ["compatibility", "es5"] as const) {
       for (const code of [
@@ -108,7 +92,7 @@ describe(`${RULE} object method syntax`, () => {
         `var definitions = { *create() { yield 1; } };`,
         `var definitions = { async create() {} };`,
       ]) {
-        assertInvalid(code, RULE, { messageId: "objectMethod" }, { settings: { javascriptMode } });
+        expectInvalid(code, undefined, { settings: { javascriptMode } });
       }
     }
   });
@@ -119,10 +103,10 @@ describe(`${RULE} object method syntax`, () => {
       `var definitions = { get create() { return value; } };`,
       `var definitions = { set create(value) { stored = value; } };`,
     ]) {
-      assertValid(code, RULE, { settings: ES5 });
+      expectValid(code);
     }
-    assertValid(`const definitions = { create() {} };`, RULE, { settings: ES2021 });
-    assertValid(`const definitions = { create() {} };`, RULE);
+    expectValid(`const definitions = { create() {} };`, { settings: ES2021 });
+    expectValid(`const definitions = { create() {} };`, {});
   });
 
   it("does not apply server syntax restrictions to client or Fluent files", () => {

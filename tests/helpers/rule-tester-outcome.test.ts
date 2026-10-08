@@ -14,13 +14,11 @@ describe("rule-tester activity assertions (FINDINGS.md TST-004)", () => {
     assert.throws(() => assertInvalid("var = ;", "no-gs-now"), /parse/i);
   });
 
-  it("assertValidActive fails when the rule's gate declined the file", () => {
-    assert.throws(() => assertValidActive("var n = 10;", "no-bigint"), /declined/);
-  });
+  it("assertValidActive fails when the rule's gate declined the file", () =>
+    void assert.throws(() => assertValidActive("var n = 10;", "no-bigint"), /declined/));
 
-  it("assertValidActive passes when the rule ran and stayed silent", () => {
-    assertValidActive("var n = 10;", "no-bigint", { settings: { javascriptMode: "es5" } });
-  });
+  it("assertValidActive passes when the rule ran and stayed silent", () =>
+    void assertValidActive("var n = 10;", "no-bigint", { settings: { javascriptMode: "es5" } }));
 
   it("assertSkipped passes only for a declined file", () => {
     assertSkipped("var n = 10;", "no-bigint");

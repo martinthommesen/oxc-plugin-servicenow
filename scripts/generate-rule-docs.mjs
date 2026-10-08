@@ -1,4 +1,4 @@
-import { mkdir, readdir, readFile, unlink, writeFile } from "node:fs/promises";
+import { readdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { replaceMarkedSection } from "./lib/generated-artifacts.mjs";
@@ -15,9 +15,6 @@ const { PACKAGE_GIT_REF, REPOSITORY_URL } = await import(
 const presets110 = JSON.parse(
   await readFile(join(root, "tests/fixtures/presets-1.1.0.json"), "utf8"),
 );
-/** @type {{ DEFAULT_FLUENT_MANIFEST: import("../src/fluent/index.js").FluentSdkManifest, SUPPORTED_FLUENT_SDK_VERSIONS: typeof import("../src/fluent/index.js").SUPPORTED_FLUENT_SDK_VERSIONS, DEFAULT_FLUENT_SDK_VERSION: typeof import("../src/fluent/index.js").DEFAULT_FLUENT_SDK_VERSION }} */
-const { DEFAULT_FLUENT_MANIFEST, SUPPORTED_FLUENT_SDK_VERSIONS, DEFAULT_FLUENT_SDK_VERSION } =
-  await import(pathToFileURL(join(root, "src/fluent/index.ts")).href);
 /** @type {{ businessRuleRules: typeof import("../src/configs/maps.js").businessRuleRules, classicEs5Rules: typeof import("../src/configs/maps.js").classicEs5Rules, clientRules: typeof import("../src/configs/maps.js").clientRules, es2021Rules: typeof import("../src/configs/maps.js").es2021Rules, fluentRules: typeof import("../src/configs/maps.js").fluentRules, recommendedRules: typeof import("../src/configs/maps.js").recommendedRules, strictRules: typeof import("../src/configs/maps.js").strictRules }} */
 const {
   businessRuleRules,
@@ -29,8 +26,7 @@ const {
   strictRules,
 } = await import(pathToFileURL(join(root, "src/configs/maps.ts")).href);
 
-const docsDir = join(root, "docs/rules");
-await mkdir(docsDir, { recursive: true });
+const rulesPath = join(root, "docs/rules.md");
 
 /**
  * @param {CatalogRule} rule
@@ -65,7 +61,7 @@ function renderExamples(examples, heading) {
   return examples
     .map(
       (example) =>
-        `### ${heading}: ${example.name}\n\n\`\`\`${fenceLang(example.filename)}\n${example.code}\n\`\`\`\n`,
+        `#### ${heading}: ${example.name}\n\n\`\`\`${fenceLang(example.filename)}\n${example.code}\n\`\`\`\n`,
     )
     .join("\n");
 }
@@ -198,141 +194,64 @@ function repositoryLinks() {
  * @returns {Promise<void>}
  */
 async function writeRuleDocs() {
-  /** @type {Set<string>} */
-  const keep = new Set();
+  const pages = [
+    "# Rule reference\n\nGenerated from the rule catalog. Rules report diagnostics only; none rewrites code. Each section records applicability, examples, boundaries and evidence.\n\nSee [rule authoring](rule-authoring.md) and [non-goals](non-goals.md).\n",
+  ];
   for (const rule of ruleCatalog) {
-    keep.add(`${rule.name}.md`);
-    const bad = renderExamples(rule.bad, "Incorrect");
-    const good = renderExamples(rule.good, "Correct");
-    const evidence =
-      rule.evidence.length > 0
-        ? rule.evidence
-            .map(
-              (item) =>
-                `- **${item.claim}**\n  - Verification ID: \`${item.verificationId}\`\n  - URL: ${item.url}\n  - Verified by: ${item.verifiedBy}\n  - Verified at: ${item.verifiedAt}`,
-            )
-            .join("\n")
-        : "- None recorded. Add an authoritative ServiceNow or Oxc link before expanding this rule.";
-    const falsePositives = bulletList(rule.falsePositives);
-    const falseNegatives = bulletList(rule.falseNegatives);
-    const scopeBoundaries = bulletList(rule.scopeBoundaries);
-    const overlaps = bulletList(rule.overlaps, (item) => `- \`${item}\``);
     const modes =
       rule.applicability.javascriptModes === "n/a"
         ? "n/a"
         : rule.applicability.javascriptModes.join(", ");
-    const sdkRange = rule.applicability.fluentSdkRange ?? "n/a";
-    const serviceNowReleaseRange =
-      rule.family === "fluent"
-        ? "n/a (Fluent SDK-versioned)"
-        : rule.applicability.serviceNowReleases.join(", ");
-    const lifecycle = rule.lifecycleAssumptions ?? "No extra lifecycle assumptions.";
     const placements = rule.placements
-      .map((placement) => `${placement.profile} (${placement.severity})`)
+      .map((item) => `${item.profile} (${item.severity})`)
       .join(", ");
-    const options =
-      rule.options.length > 0
-        ? rule.options
-            .map(
-              (option) =>
-                `| \`${cell(option.name)}\` | ${cell(option.type)} | \`${cell(option.default)}\` | ${cell(option.description)} |`,
-            )
-            .join("\n")
-        : "| _(none)_ | | | This rule has no options. |";
-    const md = `# ${rule.ruleId}
+    const releases =
+      rule.family === "fluent" ? "SDK-versioned" : rule.applicability.serviceNowReleases.join(", ");
+    const options = rule.options.length
+      ? `### Options\n\n| Name | Type | Default | Description |\n| --- | --- | --- | --- |\n${rule.options.map((item) => `| \`${cell(item.name)}\` | ${cell(item.type)} | \`${cell(item.default)}\` | ${cell(item.description)} |`).join("\n")}\n`
+      : "";
+    const boundaries = [
+      ...rule.falsePositives.map((item) => `False positive: ${item}`),
+      ...rule.falseNegatives.map((item) => `False negative: ${item}`),
+      ...rule.scopeBoundaries.map((item) => `Scope: ${item}`),
+    ];
+    const evidence = rule.evidence
+      .map((item) => {
+        const url = /^https?:/u.test(item.url) ? item.url : `../${item.url}`;
+        return `- [${item.claim}](${url}) — ${item.verifiedBy}, ${item.verifiedAt}; \`${item.verificationId}\`.`;
+      })
+      .join("\n");
+    pages.push(`## ${rule.name}
 
 ${rule.description}
 
-- **Family:** ${rule.family}
-- **Profile:** ${profileLabel(rule)}
-- **Placements:** ${placements || "off"}
-- **Default severity:** ${rule.severity}
-- **Fix safety:** ${rule.fixKind === "none" ? "diagnostic only" : rule.fixKind}
-- **Suggestions:** ${rule.hasSuggestions ? "yes" : "no"}
-- **Authoring:** ${rule.applicability.authoring}
-- **Surfaces:** ${rule.applicability.surfacesText}
-- **JavaScript mode:** ${rule.applicability.javascriptMode}
-- **Last verified:** ${rule.lastVerified}
-- **Implementation:** [\`src/rules/${rule.name}.ts\`](../../src/rules/${rule.name}.ts)${
-      rule.family === "fluent"
-        ? `\n- **Fluent manifest:** ${DEFAULT_FLUENT_MANIFEST.version}\n- **Fluent SDK versions:** ${SUPPORTED_FLUENT_SDK_VERSIONS.join(", ")} (unspecified selects ${DEFAULT_FLUENT_SDK_VERSION})`
-        : ""
-    }
+**Placements:** ${placements || "off"}. **Last verified:** ${rule.lastVerified}
 
-## Applicability
+### Applicability
 
-| Dimension | Value |
-| --- | --- |
-| Authoring | ${cell(rule.applicability.authoring)} |
-| Surfaces | ${cell(rule.applicability.surfacesText)} |
-| Minimum surface confidence | ${cell(rule.applicability.minimumSurfaceConfidence)} |
-| JavaScript modes | ${cell(modes)} |
-| Application scopes | ${cell(rule.applicability.scopes.join(", "))} |
-| ServiceNow releases | ${cell(serviceNowReleaseRange)} |
-| Fluent SDK range | ${cell(sdkRange)} |
+${rule.applicability.authoring}; surfaces: ${rule.applicability.surfacesText}; confidence: ${rule.applicability.minimumSurfaceConfidence}; modes: ${modes}; scopes: ${rule.applicability.scopes.join(", ")}; releases: ${releases}; SDK: ${rule.applicability.fluentSdkRange ?? "n/a"}.
 
-## Options
-
-| Name | Type | Default | Description |
-| --- | --- | --- | --- |
 ${options}
-
-## Incorrect
-
-${bad}
-## Correct
-
-${good}
-## Limitations
+${renderExamples(rule.bad, "Incorrect")}
+${renderExamples(rule.good, "Correct")}
+### Boundaries
 
 ${rule.limitations}
 
-## Known false positives
-
-${falsePositives}
-
-## Known false negatives
-
-${falseNegatives}
-
-## Intentional scope boundaries
-
-${scopeBoundaries}
-
-## Overlaps
-
-${overlaps}
-
-## Fix safety
-
-- Classification: ${rule.fixKind === "none" ? "diagnostic only" : rule.fixKind}
-- Lifecycle assumptions: ${lifecycle}
-
-## Evidence
+${bulletList(boundaries)}
+${rule.lifecycleAssumptions ? `\nLifecycle: ${rule.lifecycleAssumptions}\n` : ""}
+${rule.overlaps.length ? `\nOverlaps: ${rule.overlaps.map((item) => `\`${item}\``).join(", ")}.\n` : ""}
+### Evidence
 
 ${evidence}
 
-## See also
-
-- [Contributor rule-authoring guide](../rule-authoring.md)
-- [Project non-goals](../non-goals.md)
-- [oxlint JS plugins](https://oxc.rs/docs/guide/usage/linter/js-plugins.html)
-`;
-    await writeFile(join(docsDir, `${rule.name}.md`), md);
-    console.log("wrote", rule.name);
+[Catalog source](../src/catalog/${rule.name}.ts).
+`);
   }
-
-  for (const file of await readdir(docsDir)) {
-    if (file.endsWith(".md") && !keep.has(file)) {
-      await unlink(join(docsDir, file));
-      console.log("removed stale", file);
-    }
-  }
+  await writeFile(rulesPath, pages.join("\n"));
+  console.log("wrote docs/rules.md");
 }
 
-/**
- * @returns {Promise<void>}
- */
 async function writeReadmeTables() {
   const readmePath = join(root, "README.md");
   let readme = await readFile(readmePath, "utf8");

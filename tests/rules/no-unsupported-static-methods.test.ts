@@ -1,9 +1,7 @@
+import { ruleTester } from "../helpers/rule-tester.js";
 import { describe, it } from "node:test";
 import {
   assertDeclinesNonServerSurfaces,
-  assertInvalid,
-  assertValid,
-  assertValidActive,
   AUSTRALIA_ES2021,
   ZURICH_ES2021,
 } from "../helpers/rule-tester.js";
@@ -11,21 +9,22 @@ import {
 const RULE = "no-unsupported-static-methods" as const;
 
 describe(RULE, () => {
+  const { expectInvalid, expectActive, expectValid } = ruleTester(
+    "no-unsupported-static-methods",
+    ZURICH_ES2021,
+    { messageId: "unsupported" },
+  );
+
   it("invalidates method availability after later compound-condition writes", () => {
     for (const mutation of [
       "Error.isError = undefined",
       'Object.defineProperty(Error, "isError", { value: null })',
     ]) {
-      assertInvalid(
+      expectInvalid(
         `if (typeof Error.isError === "function" && (${mutation}, true)) { Error.isError(value); }`,
-        RULE,
-        { messageId: "unsupported" },
-        ZURICH_ES2021,
       );
-      assertValidActive(
+      expectActive(
         `if ((${mutation}, true) && typeof Error.isError === "function") { Error.isError(value); }`,
-        RULE,
-        ZURICH_ES2021,
       );
     }
   });
@@ -36,21 +35,18 @@ describe(RULE, () => {
       `Promise.try(load);`,
       `Promise.withResolvers();`,
     ]) {
-      assertInvalid(code, RULE, { messageId: "unsupported" }, ZURICH_ES2021);
-      assertValid(code, RULE, AUSTRALIA_ES2021);
-      assertValid(code, RULE, { settings: { javascriptMode: "es2021" } });
+      expectInvalid(code);
+      expectValid(code, AUSTRALIA_ES2021);
+      expectValid(code, { settings: { javascriptMode: "es2021" } });
     }
   });
 
   it("reports Error.isError in classic modes without duplicating no-promise", () => {
     for (const javascriptMode of ["compatibility", "es5"] as const) {
-      assertInvalid(
-        `Error.isError(value);`,
-        RULE,
-        { messageId: "unsupported" },
-        { settings: { javascriptMode, release: "australia" } },
-      );
-      assertValid(`Promise.try(load); Promise.withResolvers();`, RULE, {
+      expectInvalid(`Error.isError(value);`, undefined, {
+        settings: { javascriptMode, release: "australia" },
+      });
+      expectValid(`Promise.try(load); Promise.withResolvers();`, {
         settings: { javascriptMode, release: "australia" },
       });
     }
@@ -66,7 +62,7 @@ describe(RULE, () => {
       `const { Error: PlatformError } = globalThis; PlatformError.isError(value);`,
       `const { Promise: PlatformPromise } = globalThis; PlatformPromise.try(load);`,
     ]) {
-      assertInvalid(code, RULE, { messageId: "unsupported" }, ZURICH_ES2021);
+      expectInvalid(code);
     }
   });
 
@@ -80,7 +76,7 @@ describe(RULE, () => {
       `helper.isError(value);`,
       `eval(source); Error.isError(value);`,
     ]) {
-      assertValidActive(code, RULE, ZURICH_ES2021);
+      expectActive(code);
     }
   });
 
@@ -100,7 +96,7 @@ describe(RULE, () => {
       `const PlatformPromise = Promise; typeof PlatformPromise.try === "function" && PlatformPromise.try(load);`,
       `const { Error: PlatformError } = globalThis; "isError" in PlatformError && PlatformError.isError(value);`,
     ]) {
-      assertValid(code, RULE, ZURICH_ES2021);
+      expectValid(code);
     }
   });
 
@@ -117,7 +113,7 @@ describe(RULE, () => {
 }`,
       `if (Error.isError) { function later() { return Error.isError(value); } later(); }`,
     ]) {
-      assertInvalid(code, RULE, { messageId: "unsupported" }, ZURICH_ES2021);
+      expectInvalid(code);
     }
   });
 
@@ -128,20 +124,20 @@ describe(RULE, () => {
       `Object.assign(Promise, { try: localTry }); Promise.try(load);`,
       `installPolyfills(Error); Error.isError(value);`,
     ]) {
-      assertValid(code, RULE, ZURICH_ES2021);
+      expectValid(code);
     }
     for (const code of [
       `Error.isError = undefined; Error.isError(value);`,
       `Object.defineProperty(Error, "isError", { value: null }); Error.isError(value);`,
       `Promise.try = {}; Promise.try(load);`,
     ]) {
-      assertInvalid(code, RULE, { messageId: "unsupported" }, ZURICH_ES2021);
+      expectInvalid(code);
     }
   });
 
   it("does not report method values, browser scripts, Fluent metadata, or unknown mode", () => {
-    assertValid(`const check = Error.isError;`, RULE, ZURICH_ES2021);
+    expectValid(`const check = Error.isError;`);
     assertDeclinesNonServerSurfaces(`Error.isError(value);`, RULE, ZURICH_ES2021.settings);
-    assertValid(`Error.isError(value);`, RULE);
+    expectValid(`Error.isError(value);`, {});
   });
 });

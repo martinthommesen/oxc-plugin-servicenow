@@ -37,71 +37,62 @@ describe("rule option descriptors", () => {
     assertDefaultOptionsStillReportSysIds();
   });
 
-  it("rejects a boolean string without coercion", () => {
-    assert.throws(
+  it("rejects a boolean string without coercion", () =>
+    void assert.throws(
       () => parseRuleOptions(noHardcodedSysidOptions, [{ ignoreHashNames: "false" }]),
       (error: unknown) =>
         error instanceof ServiceNowConfigError &&
         error.path === "options[0].ignoreHashNames" &&
         /boolean/.test(error.message),
-    );
-  });
+    ));
 
-  it("rejects spreading a string as allowedSysIds", () => {
-    assert.throws(
+  it("rejects spreading a string as allowedSysIds", () =>
+    void assert.throws(
       () => parseRuleOptions(noHardcodedSysidOptions, [{ allowedSysIds: "abc" }]),
       /options\[0\]\.allowedSysIds: expected an array of strings, got string/,
-    );
-  });
+    ));
 
-  it("rejects a non-string array item with a complete path", () => {
-    assert.throws(
+  it("rejects a non-string array item with a complete path", () =>
+    void assert.throws(
       () => parseRuleOptions(noHardcodedSysidOptions, [{ allowedSysIds: [SYS_ID, SYS_ID, 2] }]),
       /options\[0\]\.allowedSysIds\[2\]: expected a string, got number/,
-    );
-  });
+    ));
 
-  it("rejects a numeric string for maxLines", () => {
-    assert.throws(
+  it("rejects a numeric string for maxLines", () =>
+    void assert.throws(
       () => parseRuleOptions(preferNowIncludeOptions, [{ maxLines: "8" }]),
       /options\[0\]\.maxLines: expected an integer/,
-    );
-  });
+    ));
 
-  it("rejects maxLines below the documented minimum", () => {
-    assert.throws(
+  it("rejects maxLines below the documented minimum", () =>
+    void assert.throws(
       () => parseRuleOptions(preferNowIncludeOptions, [{ maxLines: 0 }]),
       /options\[0\]\.maxLines: expected an integer >= 1/,
-    );
-  });
+    ));
 
-  it("rejects allowedTables that are not an array", () => {
-    assert.throws(
+  it("rejects allowedTables that are not an array", () =>
+    void assert.throws(
       () => parseRuleOptions(noHardcodedTableNamesOptions, [{ allowedTables: 42 }]),
       /options\[0\]\.allowedTables: expected an array of strings, got number/,
-    );
-  });
+    ));
 
-  it("rejects an unknown key", () => {
-    assert.throws(
+  it("rejects an unknown key", () =>
+    void assert.throws(
       () => parseRuleOptions(requireFluentIdOptions, [{ extra: true }]),
       /options\[0\]\.extra: unknown option/,
-    );
-  });
+    ));
 
-  it("rejects an invalid naming enum", () => {
-    assert.throws(
+  it("rejects an invalid naming enum", () =>
+    void assert.throws(
       () => parseRuleOptions(fluentNamingConventionOptions, [{ idStyle: "PascalCase" }]),
       /options\[0\]\.idStyle: expected one of kebab-case, snake_case, either/,
-    );
-  });
+    ));
 
-  it("rejects a second positional option", () => {
-    assert.throws(
+  it("rejects a second positional option", () =>
+    void assert.throws(
       () => parseRuleOptions(requireFluentIdOptions, [{ preferNowId: false }, true]),
       /options\[1\]: unexpected extra option value/,
-    );
-  });
+    ));
 
   it("applyRules uses the same parser as the descriptor", () => {
     assert.throws(

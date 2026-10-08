@@ -741,14 +741,11 @@ describe("release automation gates", () => {
     }
   });
 
-  it("keeps complete acceptance capture inside the CI consumer boundary", () => {
+  it("keeps registry-dependent tests inside the CI consumer boundary", () => {
     const commands = (job: { steps: Array<{ run?: string }> }) =>
       job.steps.flatMap((step) => (step.run ? [step.run] : []));
-    assert.ok(commands(ciWorkflow.jobs.test).includes("npm run acceptance:check"));
-    assert.equal(commands(ciWorkflow.jobs.test).includes("npm run acceptance:capture"), false);
-    assert.ok(commands(ciWorkflow.jobs.consumer).includes("npm run acceptance:capture"));
-    assert.ok(commands(workflow.jobs.validate).includes("npm run acceptance:check"));
-    assert.equal(commands(workflow.jobs.validate).includes("npm run acceptance:capture"), false);
+    assert.ok(commands(ciWorkflow.jobs.consumer).includes("npm run test:consumer"));
+    assert.equal(commands(ciWorkflow.jobs.test).includes("npm run test:consumer"), false);
   });
 
   it("bounds every job and network operation (FINDINGS.md REL-002)", async () => {

@@ -1,3 +1,4 @@
+import { decodeFluentFixture } from "../scripts/lib/fluent-fixture.mjs";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
@@ -12,8 +13,13 @@ import { assertFluentLifecycleMatches } from "../src/fluent/lifecycle.js";
 
 // Lifecycle and declaration evidence live in the fixture, which is the review
 // artifact. The shipped snapshot carries only what `registry.ts` reads.
-const DECLARATION_EVIDENCE = JSON.parse(
-  readFileSync(new URL("../tests/fixtures/fluent-sdk-declarations.json", import.meta.url), "utf8"),
+const DECLARATION_EVIDENCE = decodeFluentFixture(
+  JSON.parse(
+    readFileSync(
+      new URL("../tests/fixtures/fluent-sdk-declarations.json", import.meta.url),
+      "utf8",
+    ),
+  ),
 ) as {
   versions: Record<
     string,

@@ -38,7 +38,7 @@ function coverage(update) {
   if (disposition.kind === "metadata-only") {
     return `${features}. ${disposition.rationale}`;
   }
-  const rules = disposition.ruleIds.map((id) => `[\`${id}\`](rules/${id}.md)`).join(", ");
+  const rules = disposition.ruleIds.map((id) => `[\`${id}\`](rules.md#${id})`).join(", ");
   return `${features}; ${rules}. ${disposition.rationale}`;
 }
 

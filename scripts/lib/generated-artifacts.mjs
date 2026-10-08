@@ -1,6 +1,6 @@
 export const GENERATED_ARTIFACT_PATHS = Object.freeze([
   "src/version.ts",
-  "docs/rules",
+  "docs/rules.md",
   "README.md",
   "docs/compatibility.md",
   "docs/australia-engine-updates.md",

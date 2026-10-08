@@ -215,3 +215,18 @@ export function assertInvalid(
   }
   return messages;
 }
+
+/** Bind a suite's rule and defaults once; explicit overrides replace defaults. */
+export function ruleTester(
+  rule: RuleName,
+  options: RunOptions = {},
+  expected: Parameters<typeof assertInvalid>[2] = {},
+) {
+  return {
+    expectInvalid: (code: string, expectation = expected, overrides = options) =>
+      assertInvalid(code, rule, expectation, overrides),
+    expectValid: (code: string, overrides = options) => assertValid(code, rule, overrides),
+    expectActive: (code: string, overrides = options) => assertValidActive(code, rule, overrides),
+    expectSkipped: (code: string, overrides = options) => assertSkipped(code, rule, overrides),
+  };
+}

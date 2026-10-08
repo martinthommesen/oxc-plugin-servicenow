@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Changed
+
+- Consolidate generated rule documentation into one anchored reference, deduplicate Fluent SDK evidence, and split path and mutation analysis into focused modules. Retire historical PR #51 tracking and bind reusable test defaults without changing rule behavior.
+
 ## 3.1.0 — 2026-10-07
 
 ### Added

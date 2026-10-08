@@ -41,7 +41,7 @@ Results are memoized in `CAPABILITY_CACHE` keyed by `scope:release`, so the inte
 
 ## Evidence
 
-GlideRecord methods cite `GLIDE_RECORD_EVIDENCE`; GlideAggregate roles cite `GLIDE_AGGREGATE_EVIDENCE`. Both inventories have scoped and global pages for Zurich and Australia. `docs/rules/*.md` renders rule applicability.
+GlideRecord methods cite `GLIDE_RECORD_EVIDENCE`; GlideAggregate roles cite `GLIDE_AGGREGATE_EVIDENCE`. Both inventories have scoped and global pages for Zurich and Australia. The [rule-reference sections](../docs/rules.md) render rule applicability.
 
 ## Related
 

@@ -1,161 +1,108 @@
+import { ruleTester } from "../helpers/rule-tester.js";
 import { describe, it } from "node:test";
-import {
-  assertInvalid,
-  assertSkipped,
-  assertValid,
-  assertValidActive,
-} from "../helpers/rule-tester.js";
-
-const RULE = "require-glideajax-sysparm-name" as const;
+import {} from "../helpers/rule-tester.js";
 
 describe("require-glideajax-sysparm-name", () => {
-  it("allows a correct sysparm_name", () => {
-    assertValid(
-      `var ajax = new GlideAjax("x_acme.UserLookup");
+  const { expectValid, expectInvalid, expectActive, expectSkipped } = ruleTester(
+    "require-glideajax-sysparm-name",
+    {},
+    { messageId: "missingName" },
+  );
+
+  it("allows a correct sysparm_name", () =>
+    void expectValid(`var ajax = new GlideAjax("x_acme.UserLookup");
 ajax.addParam("sysparm_name", "getManager");
 ajax.addParam("sysparm_user_id", g_form.getValue("caller_id"));
-ajax.getXMLAnswer(handleAnswer);`,
-      RULE,
-    );
-  });
+ajax.getXMLAnswer(handleAnswer);`));
 
   it("counts addParam applied through a non-identifier receiver", () => {
     // `(ajax = new GlideAjax(...))` has no object name. The finder used to skip
     // such calls, losing the sysparm_name fact and reporting the later request
     // as unconfigured.
-    assertValid(
-      `var ajax;
+    expectValid(`var ajax;
 (ajax = new GlideAjax("x_acme.UserLookup")).addParam("sysparm_name", "getManager");
-ajax.getXMLAnswer(handleAnswer);`,
-      RULE,
-    );
+ajax.getXMLAnswer(handleAnswer);`);
   });
 
-  it("flags a missing parameter", () => {
-    assertInvalid(
-      `var ajax = new GlideAjax("x_acme.UserLookup");
+  it("flags a missing parameter", () =>
+    void expectInvalid(`var ajax = new GlideAjax("x_acme.UserLookup");
 ajax.addParam("sysparm_user_id", "abc");
-ajax.getXMLAnswer(handleAnswer);`,
-      RULE,
-      { messageId: "missingName" },
-    );
-  });
+ajax.getXMLAnswer(handleAnswer);`));
 
-  it("flags a wrong literal key", () => {
-    assertInvalid(
+  it("flags a wrong literal key", () =>
+    void expectInvalid(
       `var ajax = new GlideAjax("x_acme.UserLookup");
 ajax.addParam("method", "getManager");
 ajax.getXMLAnswer(handleAnswer);`,
-      RULE,
       { messageId: "badPrefix", count: 2 },
-    );
-  });
+    ));
 
-  it("stays silent for a dynamic key", () => {
-    assertValidActive(
-      `var ajax = new GlideAjax("x_acme.UserLookup");
+  it("stays silent for a dynamic key", () =>
+    void expectActive(`var ajax = new GlideAjax("x_acme.UserLookup");
 ajax.addParam(nameKey, "getManager");
-ajax.getXMLAnswer(handleAnswer);`,
-      RULE,
-    );
-  });
+ajax.getXMLAnswer(handleAnswer);`));
 
-  it("reports when the parameter is in only one branch", () => {
-    assertInvalid(
-      `var ajax = new GlideAjax("x_acme.UserLookup");
+  it("reports when the parameter is in only one branch", () =>
+    void expectInvalid(`var ajax = new GlideAjax("x_acme.UserLookup");
 if (ready) {
   ajax.addParam("sysparm_name", "getManager");
 }
-ajax.getXMLAnswer(handleAnswer);`,
-      RULE,
-      { messageId: "missingName" },
-    );
-  });
+ajax.getXMLAnswer(handleAnswer);`));
 
-  it("flags a parameter after the terminal call", () => {
-    assertInvalid(
+  it("flags a parameter after the terminal call", () =>
+    void expectInvalid(
       `var ajax = new GlideAjax("x_acme.UserLookup");
 ajax.addParam("sysparm_name", "getManager");
 ajax.getXMLAnswer(handleAnswer);
 ajax.addParam("sysparm_user_id", "abc");`,
-      RULE,
       { messageId: "afterTerminal" },
-    );
-  });
+    ));
 
   it("tracks aliases and resets on reassignment", () => {
-    assertInvalid(
-      `var ajax = new GlideAjax("x_acme.UserLookup");
+    expectInvalid(`var ajax = new GlideAjax("x_acme.UserLookup");
 var req = ajax;
-req.getXML(handleAnswer);`,
-      RULE,
-      { messageId: "missingName" },
-    );
-    assertValid(
-      `var ajax = new GlideAjax("x_acme.UserLookup");
+req.getXML(handleAnswer);`);
+    expectValid(`var ajax = new GlideAjax("x_acme.UserLookup");
 ajax = other;
-ajax.getXMLAnswer(handleAnswer);`,
-      RULE,
-    );
+ajax.getXMLAnswer(handleAnswer);`);
   });
 
-  it("supports static computed methods", () => {
-    assertInvalid(
-      `var ajax = new GlideAjax("x_acme.UserLookup");
-ajax["getXMLAnswer"](handleAnswer);`,
-      RULE,
-      { messageId: "missingName" },
-    );
-  });
+  it("supports static computed methods", () =>
+    void expectInvalid(`var ajax = new GlideAjax("x_acme.UserLookup");
+ajax["getXMLAnswer"](handleAnswer);`));
 
-  it("ignores a non-GlideAjax object with addParam", () => {
-    assertValidActive(
-      `var ajax = { addParam: function () {}, getXMLAnswer: function () {} };
+  it("ignores a non-GlideAjax object with addParam", () =>
+    void expectActive(`var ajax = { addParam: function () {}, getXMLAnswer: function () {} };
 ajax.addParam("method", "getManager");
-ajax.getXMLAnswer(handleAnswer);`,
-      RULE,
-    );
-  });
+ajax.getXMLAnswer(handleAnswer);`));
 
-  it("skips server files", () => {
-    assertSkipped(
+  it("skips server files", () =>
+    void expectSkipped(
       `var ajax = new GlideAjax("x_acme.UserLookup");
 ajax.getXMLAnswer(handleAnswer);`,
-      RULE,
       { filename: "helper.si.js" },
-    );
-  });
+    ));
 
   it("covers every supported terminal request call", () => {
     for (const method of ["getXML", "getXMLAnswer", "getXMLWait"]) {
-      assertInvalid(
-        `var ajax = new GlideAjax("x_acme.UserLookup");
-ajax.${method}(handleAnswer);`,
-        RULE,
-        { messageId: "missingName" },
-      );
+      expectInvalid(`var ajax = new GlideAjax("x_acme.UserLookup");
+ajax.${method}(handleAnswer);`);
     }
   });
 
-  it("flags additional parameter prefix mistakes", () => {
-    assertInvalid(
+  it("flags additional parameter prefix mistakes", () =>
+    void expectInvalid(
       `var ajax = new GlideAjax("x_acme.UserLookup");
 ajax.addParam("sysparm_name", "getManager");
 ajax.addParam("user_id", "abc");
 ajax.getXMLAnswer(handleAnswer);`,
-      RULE,
       { messageId: "badPrefix" },
-    );
-  });
+    ));
 
-  it("stays silent after the object escapes", () => {
-    assertValidActive(
-      `var ajax = new GlideAjax("x_acme.UserLookup");
+  it("stays silent after the object escapes", () =>
+    void expectActive(`var ajax = new GlideAjax("x_acme.UserLookup");
 prepare(ajax);
-ajax.getXMLAnswer(handleAnswer);`,
-      RULE,
-    );
-  });
+ajax.getXMLAnswer(handleAnswer);`));
 
   it("stays silent when GlideAjax method identity is uncertain", () => {
     for (const code of [
@@ -176,7 +123,7 @@ ajax.getXMLAnswer(handleAnswer);`,
 var ajax = new GlideAjax("x_acme.UserLookup");
 ajax.getXMLAnswer(handleAnswer);`,
     ]) {
-      assertValidActive(code, RULE);
+      expectActive(code);
     }
   });
 });

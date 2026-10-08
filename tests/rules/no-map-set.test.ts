@@ -1,34 +1,28 @@
+import { ruleTester } from "../helpers/rule-tester.js";
 import { describe, it } from "node:test";
-import {
-  assertDeclinesNonServerSurfaces,
-  assertInvalid,
-  assertSkipped,
-  assertValid,
-  assertValidActive,
-  ES5,
-} from "../helpers/rule-tester.js";
+import { assertDeclinesNonServerSurfaces, ES5 } from "../helpers/rule-tester.js";
 
 const RULE = "no-map-set" as const;
 const CLASSIC_MODES = ["compatibility", "es5"] as const;
 const RELEASES = [undefined, "zurich", "australia"] as const;
 
 describe(RULE, () => {
+  const { expectInvalid, expectSkipped, expectValid, expectActive } = ruleTester(
+    "no-map-set",
+    { settings: ES5 },
+    { messageId: "unsupported", includes: "Set" },
+  );
+
   it("reports Map and Set in both classic modes for every reviewed release", () => {
     for (const javascriptMode of CLASSIC_MODES) {
       for (const release of RELEASES) {
         const settings = release === undefined ? { javascriptMode } : { javascriptMode, release };
-        assertInvalid(
+        expectInvalid(
           `var cache = new Map();`,
-          RULE,
           { messageId: "unsupported", includes: "Map" },
           { settings },
         );
-        assertInvalid(
-          `var seen = new Set();`,
-          RULE,
-          { messageId: "unsupported", includes: "Set" },
-          { settings },
-        );
+        expectInvalid(`var seen = new Set();`, undefined, { settings });
       }
     }
   });
@@ -39,7 +33,7 @@ describe(RULE, () => {
         release === undefined
           ? { javascriptMode: "es2021" as const }
           : { javascriptMode: "es2021" as const, release };
-      assertSkipped(`const cache = new Map(); const seen = new Set();`, RULE, { settings });
+      expectSkipped(`const cache = new Map(); const seen = new Set();`, { settings });
     }
   });
 
@@ -52,26 +46,20 @@ describe(RULE, () => {
       `const { Map: NativeMap } = globalThis; NativeMap();`,
       `const NativeSet = Set; { const alias = NativeSet; new alias(); }`,
     ]) {
-      assertInvalid(code, RULE, { messageId: "unsupported" }, { settings: ES5 });
+      expectInvalid(code, { messageId: "unsupported" });
     }
   });
 
   it("requires a bare alias to be captured inside its availability guard", () => {
-    assertInvalid(
+    expectInvalid(
       `const NativeMap = Map;
 if (typeof Map === "function") new NativeMap();`,
-      RULE,
       { messageId: "unsupported" },
-      { settings: ES5 },
     );
-    assertValid(
-      `if (typeof Map === "function") {
+    expectValid(`if (typeof Map === "function") {
   const NativeMap = Map;
   new NativeMap();
-}`,
-      RULE,
-      { settings: ES5 },
-    );
+}`);
   });
 
   it("honors dominating availability guards without protecting sibling features", () => {
@@ -83,34 +71,19 @@ if (typeof Map === "function") new NativeMap();`,
   new globalThis.Map();
 }`,
     ]) {
-      assertValid(code, RULE, { settings: ES5 });
+      expectValid(code);
     }
-    assertInvalid(
-      `if (typeof Map === "function") new Set();`,
-      RULE,
-      { messageId: "unsupported", includes: "Set" },
-      { settings: ES5 },
-    );
+    expectInvalid(`if (typeof Map === "function") new Set();`);
   });
 
   it("allows visible callable polyfills but not non-callable replacements", () => {
     for (const code of [`Map = LocalMap; new Map();`, `new Set(); Set = LocalSet;`]) {
-      assertValid(code, RULE, { settings: ES5 });
+      expectValid(code);
     }
     for (const replacement of ["null", "{}", "[]"]) {
-      assertInvalid(
-        `Set = ${replacement}; new Set();`,
-        RULE,
-        { messageId: "unsupported", includes: "Set" },
-        { settings: ES5 },
-      );
+      expectInvalid(`Set = ${replacement}; new Set();`);
     }
-    assertInvalid(
-      `Map = LocalMap; new Set();`,
-      RULE,
-      { messageId: "unsupported", includes: "Set" },
-      { settings: ES5 },
-    );
+    expectInvalid(`Map = LocalMap; new Set();`);
   });
 
   it("keeps shadows, unstable aliases, cross-execution aliases, and dynamic scope silent", () => {
@@ -125,12 +98,12 @@ if (typeof Map === "function") new NativeMap();`,
       `const NativeSet = Set; function create() { return new NativeSet(); } create();`,
       `eval(source); new Map();`,
     ]) {
-      assertValidActive(code, RULE, { settings: ES5 });
+      expectActive(code);
     }
   });
 
   it("stays silent outside proven classic server execution", () => {
-    assertSkipped(`new Map();`, RULE);
+    expectSkipped(`new Map();`, {});
     assertDeclinesNonServerSurfaces(`new Map();`, RULE, ES5);
     assertDeclinesNonServerSurfaces(`new Set();`, RULE, ES5);
   });

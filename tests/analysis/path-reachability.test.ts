@@ -12,38 +12,34 @@ function missingQueries(code: string): number {
 // @lat: [[tests#Analysis behavior#Constant loop entries respect runtime reachability]]
 describe("constant loop reachability", () => {
   for (const loop of ["while (false)", "for (; false; gr.next())"]) {
-    it(`skips an unreachable cursor advance in ${loop}`, () => {
-      assert.equal(
+    it(`skips an unreachable cursor advance in ${loop}`, () =>
+      void assert.equal(
         missingQueries(`var gr = new GlideRecord("incident"); ${loop} { gr.next(); }`),
         0,
-      );
-    });
+      ));
 
-    it(`preserves the receiver after an unreachable mutation in ${loop}`, () => {
-      assert.equal(
+    it(`preserves the receiver after an unreachable mutation in ${loop}`, () =>
+      void assert.equal(
         missingQueries(`var gr = new GlideRecord("incident"); ${loop} { gr = {}; } gr.next();`),
         1,
-      );
-    });
+      ));
   }
 
-  it("keeps header effects before a false while entry", () => {
-    assert.equal(
+  it("keeps header effects before a false while entry", () =>
+    void assert.equal(
       missingQueries(
         `var gr = new GlideRecord("incident"); while ((gr.query(), false)) { gr.next(); } gr.next();`,
       ),
       0,
-    );
-  });
+    ));
 
-  it("executes a false do-while body once", () => {
-    assert.equal(
+  it("executes a false do-while body once", () =>
+    void assert.equal(
       missingQueries(
         `var gr = new GlideRecord("incident"); do { gr.next(); gr.query(); } while (false); gr.next();`,
       ),
       1,
-    );
-  });
+    ));
 });
 
 // @lat: [[tests#Analysis behavior#Callable identities follow their execution paths]]
@@ -63,14 +59,13 @@ describe("callable execution state", () => {
     }
   });
 
-  it("retains an unopened path after optional helper replacement", () => {
-    assert.equal(
+  it("retains an unopened path after optional helper replacement", () =>
+    void assert.equal(
       missingQueries(
         `var gr = new GlideRecord("incident"); var run = function () {}; if (flag) { run = function () { gr.query(); }; } run(); gr.next();`,
       ),
       1,
-    );
-  });
+    ));
 
   it("keeps conditional callable results correlated until their outer binding is assigned", () => {
     for (const expression of [
@@ -147,41 +142,37 @@ describe("callable execution state", () => {
     }
   });
 
-  it("keeps a definite query when both helper alternatives open the cursor", () => {
-    assert.equal(
+  it("keeps a definite query when both helper alternatives open the cursor", () =>
+    void assert.equal(
       missingQueries(
         `var gr = new GlideRecord("incident"); var run; if (flag) { run = function () { gr.query(); }; } else { run = function () { gr.get("sys_id"); }; } run(); gr.next();`,
       ),
       0,
-    );
-  });
+    ));
 
-  it("isolates helper writes in an uncalled body", () => {
-    assert.equal(
+  it("isolates helper writes in an uncalled body", () =>
+    void assert.equal(
       missingQueries(
         `var gr = new GlideRecord("incident"); var run = function () {}; function deferred() { run = function () { gr.query(); }; } run(); gr.next();`,
       ),
       1,
-    );
-  });
+    ));
 
-  it("publishes captured helper replacement from a direct call", () => {
-    assert.equal(
+  it("publishes captured helper replacement from a direct call", () =>
+    void assert.equal(
       missingQueries(
         `var gr = new GlideRecord("incident"); var run = function () {}; function replace() { run = function () { gr.query(); }; } replace(); run(); gr.next();`,
       ),
       0,
-    );
-  });
+    ));
 
-  it("does not reinstall a hoisted declaration at its source position", () => {
-    assert.equal(
+  it("does not reinstall a hoisted declaration at its source position", () =>
+    void assert.equal(
       missingQueries(
         `var gr = new GlideRecord("incident"); run = function () {}; function run() { gr.query(); } run(); gr.next();`,
       ),
       1,
-    );
-  });
+    ));
 });
 
 // @lat: [[tests#Analysis behavior#Constant expressions retain the selected alias]]
@@ -193,13 +184,12 @@ describe("constant expression identities", () => {
     "false || gr",
     "null ?? gr",
   ]) {
-    it(`retains the selected identity of ${expression}`, () => {
-      assert.equal(
+    it(`retains the selected identity of ${expression}`, () =>
+      void assert.equal(
         missingQueries(
           `var gr = new GlideRecord("incident"); var alias = ${expression}; alias.next();`,
         ),
         1,
-      );
-    });
+      ));
   }
 });

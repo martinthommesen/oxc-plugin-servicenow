@@ -1,9 +1,7 @@
+import { ruleTester } from "../helpers/rule-tester.js";
 import { describe, it } from "node:test";
 import {
   assertDeclinesNonServerSurfaces,
-  assertInvalid,
-  assertSkipped,
-  assertValidActive,
   AUSTRALIA_ES2021,
   ES2021,
   ZURICH_ES2021,
@@ -13,47 +11,42 @@ const RULE = "no-unsupported-date-fraction" as const;
 const SHORT_FRACTION = `new Date("2025-05-07T09:05:20.78Z");`;
 
 describe(RULE, () => {
+  const { expectInvalid, expectSkipped, expectActive } = ruleTester(
+    "no-unsupported-date-fraction",
+    ZURICH_ES2021,
+    { messageId: "unsupported" },
+  );
+
   it("follows the all-modes Zurich and Australia release delta", () => {
     for (const javascriptMode of ["compatibility", "es5", "es2021"] as const) {
-      assertInvalid(
+      expectInvalid(
         SHORT_FRACTION,
-        RULE,
         { messageId: "unsupported", includes: "2 digits" },
         { settings: { javascriptMode, release: "zurich" } },
       );
       // Australia supports the shorter fraction and an unresolved release
       // proves nothing, so the engine gate declines the file in both cases.
-      assertSkipped(SHORT_FRACTION, RULE, {
+      expectSkipped(SHORT_FRACTION, {
         settings: { javascriptMode, release: "australia" },
       });
-      assertSkipped(SHORT_FRACTION, RULE, { settings: { javascriptMode } });
+      expectSkipped(SHORT_FRACTION, { settings: { javascriptMode } });
     }
     const parse = `Date.parse("2025-05-07T09:05:20.78Z");`;
-    assertInvalid(
-      parse,
-      RULE,
-      { messageId: "unsupported", includes: "Date.parse()" },
-      ZURICH_ES2021,
-    );
-    assertSkipped(parse, RULE, AUSTRALIA_ES2021);
-    assertSkipped(parse, RULE, { settings: ES2021 });
+    expectInvalid(parse, { messageId: "unsupported", includes: "Date.parse()" });
+    expectSkipped(parse, AUSTRALIA_ES2021);
+    expectSkipped(parse, { settings: ES2021 });
   });
 
   it("uses the all-modes update for a known server surface with unknown mode", () => {
-    assertInvalid(
-      SHORT_FRACTION,
-      RULE,
-      { messageId: "unsupported" },
-      {
-        filename: "dates.server.js",
-        settings: { release: "zurich" },
-      },
-    );
-    assertSkipped(SHORT_FRACTION, RULE, {
+    expectInvalid(SHORT_FRACTION, undefined, {
+      filename: "dates.server.js",
+      settings: { release: "zurich" },
+    });
+    expectSkipped(SHORT_FRACTION, {
       filename: "dates.server.js",
       settings: { release: "australia" },
     });
-    assertSkipped(SHORT_FRACTION, RULE, { filename: "unknown.js" });
+    expectSkipped(SHORT_FRACTION, { filename: "unknown.js" });
   });
 
   it("reports every variable fraction length accepted by the Australia parser", () => {
@@ -65,7 +58,7 @@ describe(RULE, () => {
       `new Date("2024-02-29T23:59:59.123456789Z");`,
       `new Date("2025-05-07T24:00:00.0001Z");`,
     ]) {
-      assertInvalid(code, RULE, { messageId: "unsupported" }, ZURICH_ES2021);
+      expectInvalid(code);
     }
   });
 
@@ -90,7 +83,7 @@ describe(RULE, () => {
       `installRuntime(Date); new Date("2025-05-07T09:05:20.78Z");`,
       `const NativeDate = Date; installRuntime(NativeDate); new NativeDate("2025-05-07T09:05:20.78Z");`,
     ]) {
-      assertInvalid(code, RULE, { messageId: "unsupported" }, ZURICH_ES2021);
+      expectInvalid(code);
     }
   });
 
@@ -115,7 +108,7 @@ describe(RULE, () => {
       `Date("2025-05-07T09:05:20.78Z");`,
       `Reflect.construct(Date, ["2025-05-07T09:05:20.78Z"]);`,
     ]) {
-      assertValidActive(code, RULE, ZURICH_ES2021);
+      expectActive(code);
     }
   });
 
@@ -143,11 +136,10 @@ describe(RULE, () => {
       `class LocalDate extends Date {} new LocalDate("2025-05-07T09:05:20.78Z");`,
       `eval(source); new Date("2025-05-07T09:05:20.78Z");`,
     ]) {
-      assertValidActive(code, RULE, ZURICH_ES2021);
+      expectActive(code);
     }
   });
 
-  it("does not apply the server engine contract to browser or Fluent code", () => {
-    assertDeclinesNonServerSurfaces(SHORT_FRACTION, RULE, ZURICH_ES2021.settings);
-  });
+  it("does not apply the server engine contract to browser or Fluent code", () =>
+    void assertDeclinesNonServerSurfaces(SHORT_FRACTION, RULE, ZURICH_ES2021.settings));
 });

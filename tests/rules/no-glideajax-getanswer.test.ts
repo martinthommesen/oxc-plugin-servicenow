@@ -1,107 +1,69 @@
+import { ruleTester } from "../helpers/rule-tester.js";
 import { describe, it } from "node:test";
-import {
-  assertInvalid,
-  assertSkipped,
-  assertValid,
-  assertValidActive,
-} from "../helpers/rule-tester.js";
-
-const RULE = "no-glideajax-getanswer" as const;
+import {} from "../helpers/rule-tester.js";
 
 describe("no-glideajax-getanswer", () => {
-  it("flags a direct getAnswer call", () => {
-    assertInvalid(
-      `var ajax = new GlideAjax("x_acme.UserLookup");
+  const { expectInvalid, expectValid, expectActive, expectSkipped } = ruleTester(
+    "no-glideajax-getanswer",
+    {},
+    { messageId: "getAnswer" },
+  );
+
+  it("flags a direct getAnswer call", () =>
+    void expectInvalid(`var ajax = new GlideAjax("x_acme.UserLookup");
 ajax.addParam("sysparm_name", "getManager");
 ajax.getXML(handleResponse);
-var answer = ajax.getAnswer();`,
-      RULE,
-      { messageId: "getAnswer" },
-    );
-  });
+var answer = ajax.getAnswer();`));
 
-  it("flags the documented synchronous sequence", () => {
-    assertInvalid(
-      `var ajax = new GlideAjax("x_acme.UserLookup");
+  it("flags the documented synchronous sequence", () =>
+    void expectInvalid(`var ajax = new GlideAjax("x_acme.UserLookup");
 ajax.addParam("sysparm_name", "getManager");
 ajax.getXMLWait();
-var answer = ajax.getAnswer();`,
-      RULE,
-      { messageId: "getAnswer" },
-    );
-  });
+var answer = ajax.getAnswer();`));
 
-  it("allows getXMLAnswer with a callback", () => {
-    assertValid(
-      `var ajax = new GlideAjax("x_acme.UserLookup");
+  it("allows getXMLAnswer with a callback", () =>
+    void expectValid(`var ajax = new GlideAjax("x_acme.UserLookup");
 ajax.addParam("sysparm_name", "getManager");
 ajax.getXMLAnswer(function (answer) {
   g_form.setValue("u_manager", answer);
-});`,
-      RULE,
-    );
-  });
+});`));
 
-  it("ignores an unrelated object with getAnswer", () => {
-    assertValidActive(
-      `var ajax = { getAnswer: function () { return "x"; } };
-var answer = ajax.getAnswer();`,
-      RULE,
-    );
-  });
+  it("ignores an unrelated object with getAnswer", () =>
+    void expectActive(`var ajax = { getAnswer: function () { return "x"; } };
+var answer = ajax.getAnswer();`));
 
   it("tracks aliases and ignores reassignment", () => {
-    assertInvalid(
-      `var ajax = new GlideAjax("x_acme.UserLookup");
+    expectInvalid(`var ajax = new GlideAjax("x_acme.UserLookup");
 var req = ajax;
-req.getAnswer();`,
-      RULE,
-      { messageId: "getAnswer" },
-    );
-    assertValid(
-      `var ajax = new GlideAjax("x_acme.UserLookup");
+req.getAnswer();`);
+    expectValid(`var ajax = new GlideAjax("x_acme.UserLookup");
 ajax = other;
-ajax.getAnswer();`,
-      RULE,
-    );
+ajax.getAnswer();`);
   });
 
-  it("ignores a shadowed GlideAjax", () => {
-    assertValidActive(
-      `function GlideAjax() { this.getAnswer = function () { return ""; }; }
+  it("ignores a shadowed GlideAjax", () =>
+    void expectActive(`function GlideAjax() { this.getAnswer = function () { return ""; }; }
 var ajax = new GlideAjax("x_acme.UserLookup");
-ajax.getAnswer();`,
-      RULE,
-    );
-  });
+ajax.getAnswer();`));
 
-  it("flags a client UI Action", () => {
-    assertInvalid(
+  it("flags a client UI Action", () =>
+    void expectInvalid(
       `var ajax = new GlideAjax("x_acme.UserLookup");
 ajax.getAnswer();`,
-      RULE,
-      { messageId: "getAnswer" },
+      undefined,
       { filename: "approve.client.ui-action.js" },
-    );
-  });
+    ));
 
-  it("skips server files", () => {
-    assertSkipped(
+  it("skips server files", () =>
+    void expectSkipped(
       `var ajax = new GlideAjax("x_acme.UserLookup");
 ajax.getAnswer();`,
-      RULE,
       { filename: "helper.si.js" },
-    );
-  });
+    ));
 
-  it("supports a static computed member", () => {
-    assertInvalid(
-      `var ajax = new GlideAjax("x_acme.UserLookup");
-ajax["getAnswer"]();`,
-      RULE,
-      { messageId: "getAnswer" },
-    );
-  });
+  it("supports a static computed member", () =>
+    void expectInvalid(`var ajax = new GlideAjax("x_acme.UserLookup");
+ajax["getAnswer"]();`));
 
   it("stays silent when getAnswer no longer has platform identity", () => {
     for (const code of [
@@ -134,7 +96,7 @@ ajax.getAnswer();`,
 var ajax = new GlideAjax("x_acme.UserLookup");
 ajax.getAnswer();`,
     ]) {
-      assertValidActive(code, RULE);
+      expectActive(code);
     }
   });
 
@@ -151,7 +113,7 @@ ajax.getAnswer();`,
 Object.assign(ajax, { getAnswer: localAnswer });
 ajax.getAnswer();`,
     ]) {
-      assertValid(code, RULE, options);
+      expectValid(code, options);
     }
   });
 });

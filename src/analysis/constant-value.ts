@@ -49,3 +49,31 @@ export function constantValue(node: unknown): ConstantValue | null {
   if (ALWAYS_OBJECT_EXPRESSIONS.has(expr.type)) return { truthy: true, nullish: false };
   return null;
 }
+
+export function isDefinitelyTrue(node: unknown): boolean {
+  if (node == null) return true;
+  return constantValue(node)?.truthy === true;
+}
+
+export function isDefinitelyFalse(node: unknown): boolean {
+  return constantValue(node)?.truthy === false;
+}
+
+/**
+ * Whether a logical expression's right operand definitely runs, definitely
+ * does not run, or depends on a value the interpreter cannot see.
+ */
+export function logicalRightOperandRuns(expr: ESTree.LogicalExpression): boolean | null {
+  const left = constantValue(expr.left);
+  if (!left) return null;
+  switch (expr.operator) {
+    case "&&":
+      return left.truthy;
+    case "||":
+      return !left.truthy;
+    case "??":
+      return left.nullish;
+    default:
+      return null;
+  }
+}

@@ -385,23 +385,20 @@ for (const rule of ruleCatalog) {
   } catch (error) {
     fail(error instanceof Error ? error.message : String(error));
   }
-  const page = await readFile(join(root, "docs/rules", `${rule.name}.md`), "utf8");
-  checkMarkdownTables(page, `docs/rules/${rule.name}.md`);
-  for (const heading of [
-    "## Applicability",
-    "## Known false positives",
-    "## Known false negatives",
-    "## Intentional scope boundaries",
-    "## Overlaps",
-    "## Fix safety",
-    "## Evidence",
-  ]) {
+  const reference = await readFile(join(root, "docs/rules.md"), "utf8");
+  const marker = `## ${rule.name}\n`;
+  const start = reference.indexOf(marker);
+  if (start < 0) throw new Error(`rule reference is missing ${rule.name}`);
+  const end = reference.indexOf("\n## ", start + marker.length);
+  const page = reference.slice(start, end < 0 ? undefined : end);
+  checkMarkdownTables(page, `docs/rules.md#${rule.name}`);
+  for (const heading of ["### Applicability", "### Boundaries", "### Evidence"]) {
     if (!page.includes(heading)) {
-      fail(`${rule.name}.md is missing ${heading}`);
+      fail(`docs/rules.md#${rule.name} is missing ${heading}`);
     }
   }
   if (!page.includes(`**Last verified:** ${rule.lastVerified}`)) {
-    fail(`${rule.name}.md lastVerified is stale`);
+    fail(`docs/rules.md#${rule.name} lastVerified is stale`);
   }
 }
 

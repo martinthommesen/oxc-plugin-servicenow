@@ -34,13 +34,17 @@ describe("settings validation", () => {
     assert.equal(result.settings.scope, "unknown");
   });
 
-  it("rejects unknown keys", () => {
-    assert.throws(() => validateServiceNowSettings({ ecamLatest: true }), ServiceNowSettingsError);
-  });
+  it("rejects unknown keys", () =>
+    void assert.throws(
+      () => validateServiceNowSettings({ ecamLatest: true }),
+      ServiceNowSettingsError,
+    ));
 
-  it("rejects an invalid javascriptMode", () => {
-    assert.throws(() => validateServiceNowSettings({ javascriptMode: "es6" }), /javascriptMode/);
-  });
+  it("rejects an invalid javascriptMode", () =>
+    void assert.throws(
+      () => validateServiceNowSettings({ javascriptMode: "es6" }),
+      /javascriptMode/,
+    ));
 
   it("maps ecmaLatest true to a deprecation", () => {
     const result = validateServiceNowSettings({ ecmaLatest: true });
@@ -48,35 +52,35 @@ describe("settings validation", () => {
     assert.ok(result.deprecations.some((item) => item.path.includes("ecmaLatest")));
   });
 
-  it("rejects ecmaLatest true with javascriptMode es5", () => {
-    assert.throws(
+  it("rejects ecmaLatest true with javascriptMode es5", () =>
+    void assert.throws(
       () => validateServiceNowSettings({ ecmaLatest: true, javascriptMode: "es5" }),
       /conflicts/,
-    );
-  });
+    ));
 
-  it("rejects a malformed sys_id", () => {
-    assert.throws(
+  it("rejects a malformed sys_id", () =>
+    void assert.throws(
       () => validateServiceNowSettings({ allowedSysIds: ["NOT-A-SYS-ID"] }),
       /allowedSysIds/,
-    );
-  });
+    ));
 
-  it("rejects duplicate surfaces", () => {
-    assert.throws(() => validateServiceNowSettings({ surfaces: ["client", "client"] }), /surfaces/);
-  });
+  it("rejects duplicate surfaces", () =>
+    void assert.throws(
+      () => validateServiceNowSettings({ surfaces: ["client", "client"] }),
+      /surfaces/,
+    ));
 
-  it("accepts ACL as an explicit server-side surface", () => {
-    assert.deepEqual(validateServiceNowSettings({ surfaces: ["acl"] }).settings.surfaces, ["acl"]);
-  });
+  it("accepts ACL as an explicit server-side surface", () =>
+    void assert.deepEqual(validateServiceNowSettings({ surfaces: ["acl"] }).settings.surfaces, [
+      "acl",
+    ]));
 
-  it("rejects empty surfaces", () => {
-    assert.throws(
+  it("rejects empty surfaces", () =>
+    void assert.throws(
       () => validateServiceNowSettings({ surfaces: [] }),
       (error: unknown) =>
         error instanceof ServiceNowSettingsError && error.message.includes(".surfaces"),
-    );
-  });
+    ));
 
   it("rejects legacy scriptType combined with extra surfaces", () => {
     for (const settings of [
@@ -105,33 +109,29 @@ describe("settings validation", () => {
     }
   });
 
-  it("rejects a conflicting scriptType and surfaces pair", () => {
-    assert.throws(
+  it("rejects a conflicting scriptType and surfaces pair", () =>
+    void assert.throws(
       () => validateServiceNowSettings({ scriptType: "client", surfaces: ["business-rule"] }),
       /scriptType/,
-    );
-  });
+    ));
 
-  it("rejects Fluent authoring with instance surfaces", () => {
-    assert.throws(
+  it("rejects Fluent authoring with instance surfaces", () =>
+    void assert.throws(
       () => validateServiceNowSettings({ authoring: "fluent", surfaces: ["client"] }),
       /surfaces/,
-    );
-  });
+    ));
 
-  it("rejects scriptType fluent with instance surfaces", () => {
-    assert.throws(
+  it("rejects scriptType fluent with instance surfaces", () =>
+    void assert.throws(
       () => validateServiceNowSettings({ scriptType: "fluent", surfaces: ["server"] }),
       /scriptType/,
-    );
-  });
+    ));
 
-  it("rejects scriptType client with authoring fluent", () => {
-    assert.throws(
+  it("rejects scriptType client with authoring fluent", () =>
+    void assert.throws(
       () => validateServiceNowSettings({ scriptType: "client", authoring: "fluent" }),
       /scriptType/,
-    );
-  });
+    ));
 
   it("defaults Business Rule timing to unknown", () => {
     const result = validateServiceNowSettings({});
@@ -144,12 +144,11 @@ describe("settings validation", () => {
     assert.equal(result.settings.businessRuleWhen, "async");
   });
 
-  it("rejects an invalid Business Rule timing", () => {
-    assert.throws(
+  it("rejects an invalid Business Rule timing", () =>
+    void assert.throws(
       () => validateServiceNowSettings({ businessRuleWhen: "sometime" }),
       /businessRuleWhen/,
-    );
-  });
+    ));
   it("deep-freezes nested settings and does not share mutable arrays", () => {
     const first = validateServiceNowSettings({
       allowedSysIds: ["97c04b3b1b12100043ab85e5bd0713e2"],
@@ -189,14 +188,13 @@ describe("release and context resolution", () => {
     assert.throws(() => validateServiceNowSettings({ release: "zurichx" }), /release.*one of/);
   });
 
-  it("keeps explicit legacy scriptType ahead of a .now.ts filename", () => {
-    assertInvalid(
+  it("keeps explicit legacy scriptType ahead of a .now.ts filename", () =>
+    void assertInvalid(
       `var gr = new GlideRecord("incident");`,
       "no-client-gliderecord",
       { messageId: "glideRecord" },
       { filename: "incident.now.ts", settings: { scriptType: "client", scope: "scoped" } },
-    );
-  });
+    ));
 
   it("reports the weakest independent context confidence", () => {
     const context = fakeContext("incident.br.js", { javascriptMode: "es2021" });
@@ -293,158 +291,141 @@ describe("context-aware engine rules", () => {
     });
   });
 
-  it("ES2021 still flags async iteration", () => {
-    assertInvalid(
+  it("ES2021 still flags async iteration", () =>
+    void assertInvalid(
       "async function drain(items) { for await (const item of items) { gs.info(item); } }",
       "no-async-iterators",
       { messageId: "forAwait" },
       { settings: ES2021 },
-    );
-  });
+    ));
 
-  it("uses an explicit mode for engine-wide bans on an unclassified file", () => {
-    assertInvalid(
+  it("uses an explicit mode for engine-wide bans on an unclassified file", () =>
+    void assertInvalid(
       "async function drain(items) { for await (const item of items) {} }",
       "no-async-iterators",
       { messageId: "forAwait" },
       { filename: "plain.js", settings: ES2021 },
-    );
-  });
+    ));
 
   it("unknown mode does not assume ES5", () => {
     assertValid("var p = new Promise(function () {});", "no-promise");
     assertValid("var x = current?.name;", "no-unsupported-syntax");
   });
 
-  it("Compatibility mode uses the ES5 engine bans", () => {
-    assertInvalid(
+  it("Compatibility mode uses the ES5 engine bans", () =>
+    void assertInvalid(
       "var p = new Promise(function () {});",
       "no-promise",
       { messageId: "construct" },
       { settings: { javascriptMode: "compatibility" } },
-    );
-  });
+    ));
 });
 
 describe("require-query-before-next", () => {
-  it("flags next without query", () => {
-    assertInvalid(
+  it("flags next without query", () =>
+    void assertInvalid(
       `var gr = new GlideRecord("incident");\ngr.addActiveQuery();\ngr.next();`,
       "require-query-before-next",
       { messageId: "missingQuery" },
-    );
-  });
+    ));
 
-  it("does not treat chooseWindow as opening the cursor", () => {
-    assertInvalid(
+  it("does not treat chooseWindow as opening the cursor", () =>
+    void assertInvalid(
       `var gr = new GlideRecord("incident");\ngr.chooseWindow(0, 10);\ngr.next();`,
       "require-query-before-next",
       { messageId: "missingQuery" },
-    );
-  });
+    ));
 
-  it("allows next after query", () => {
-    assertValid(
+  it("allows next after query", () =>
+    void assertValid(
       `var gr = new GlideRecord("incident");\ngr.query();\nwhile (gr.next()) { gs.info(gr.number); }`,
       "require-query-before-next",
-    );
-  });
+    ));
 
-  it("follows a simple alias", () => {
-    assertInvalid(
+  it("follows a simple alias", () =>
+    void assertInvalid(
       `var gr = new GlideRecord("incident");\nvar rec = gr;\nrec.next();`,
       "require-query-before-next",
       { messageId: "missingQuery" },
-    );
-  });
+    ));
 
-  it("does not flag a shadowed local GlideRecord", () => {
-    assertValid(
+  it("does not flag a shadowed local GlideRecord", () =>
+    void assertValid(
       `function GlideRecord() {}\nvar gr = new GlideRecord("incident");\ngr.next();`,
       "require-query-before-next",
-    );
-  });
+    ));
 
-  it("suppresses when a helper receives the record", () => {
-    assertValid(
+  it("suppresses when a helper receives the record", () =>
+    void assertValid(
       `var gr = new GlideRecord("incident");\ndoQuery(gr);\ngr.next();`,
       "require-query-before-next",
-    );
-  });
+    ));
 
-  it("reports when only one branch queries", () => {
-    assertInvalid(
+  it("reports when only one branch queries", () =>
+    void assertInvalid(
       `var gr = new GlideRecord("incident");\nif (flag) { gr.query(); }\ngr.next();`,
       "require-query-before-next",
       { messageId: "missingQuery" },
-    );
-  });
+    ));
 
-  it("does not leak state across functions", () => {
-    assertInvalid(
+  it("does not leak state across functions", () =>
+    void assertInvalid(
       `function a() { var gr = new GlideRecord("incident"); gr.query(); }\nfunction b() { var gr = new GlideRecord("incident"); gr.next(); }`,
       "require-query-before-next",
       { messageId: "missingQuery" },
-    );
-  });
+    ));
 
-  it("understands computed query and next", () => {
-    assertValid(
+  it("understands computed query and next", () =>
+    void assertValid(
       `var gr = new GlideRecord("incident");\ngr["query"]();\ngr["next"]();`,
       "require-query-before-next",
-    );
-  });
+    ));
 });
 
 describe("UI Action surfaces", () => {
-  it("does not run client GlideRecord on a UI Action filename alone", () => {
-    assertValid(`var gr = new GlideRecord("incident");`, "no-client-gliderecord", {
+  it("does not run client GlideRecord on a UI Action filename alone", () =>
+    void assertValid(`var gr = new GlideRecord("incident");`, "no-client-gliderecord", {
       filename: "close.ui-action.js",
-    });
-  });
+    }));
 
-  it("continues AST inference for a bare UI Action with client evidence", () => {
-    assertInvalid(
+  it("continues AST inference for a bare UI Action with client evidence", () =>
+    void assertInvalid(
       `g_form.setValue("state", "closed");
 var gr = new GlideRecord("incident");`,
       "no-client-gliderecord",
       { messageId: "glideRecord" },
       { filename: "close.ui-action.js", settings: { scope: "scoped" } },
-    );
-  });
+    ));
 
-  it("does not assume a bare UI Action is server-side", () => {
-    assertValid(
+  it("does not assume a bare UI Action is server-side", () =>
+    void assertValid(
       `var gr = new GlideRecord("incident");
 gr.next();`,
       "require-query-before-next",
       { filename: "close.ui-action.js" },
-    );
-  });
+    ));
 
-  it("recognizes the documented server suffix", () => {
-    assertInvalid(
+  it("recognizes the documented server suffix", () =>
+    void assertInvalid(
       `var gr = new GlideRecord("incident");
 gr.next();`,
       "require-query-before-next",
       { messageId: "missingQuery" },
       { filename: "close.server.js" },
-    );
-  });
+    ));
 
-  it("rejects contradictory legacy UI Action settings", () => {
-    assert.throws(
+  it("rejects contradictory legacy UI Action settings", () =>
+    void assert.throws(
       () =>
         lint(`var gr = new GlideRecord("incident");`, "no-client-gliderecord", {
           filename: "close.ui-action.js",
           settings: { scriptType: "server", surfaces: ["ui-action", "client"] },
         }),
       /scriptType.*conflicts/,
-    );
-  });
+    ));
 
-  it("runs client GlideRecord when the UI Action is explicitly client", () => {
-    assertInvalid(
+  it("runs client GlideRecord when the UI Action is explicitly client", () =>
+    void assertInvalid(
       `var gr = new GlideRecord("incident");`,
       "no-client-gliderecord",
       { messageId: "glideRecord" },
@@ -452,22 +433,19 @@ gr.next();`,
         filename: "close.ui-action.js",
         settings: { surfaces: ["ui-action", "client"], scope: "scoped" },
       },
-    );
-  });
+    ));
 
-  it("does not run client GlideRecord on an explicitly server UI Action", () => {
-    assertValid(`var gr = new GlideRecord("incident");`, "no-client-gliderecord", {
+  it("does not run client GlideRecord on an explicitly server UI Action", () =>
+    void assertValid(`var gr = new GlideRecord("incident");`, "no-client-gliderecord", {
       filename: "close.ui-action.js",
       settings: { surfaces: ["ui-action", "server"] },
-    });
-  });
+    }));
 
-  it("suppresses client GlideRecord on a mixed client/server UI Action", () => {
-    assertValid(`var gr = new GlideRecord("incident");`, "no-client-gliderecord", {
+  it("suppresses client GlideRecord on a mixed client/server UI Action", () =>
+    void assertValid(`var gr = new GlideRecord("incident");`, "no-client-gliderecord", {
       filename: "close.ui-action.js",
       settings: { surfaces: ["ui-action", "client", "server"] },
-    });
-  });
+    }));
 
   it("keeps surface rules silent when only JavaScript mode is known", () => {
     const settings = { javascriptMode: "es5" as const };

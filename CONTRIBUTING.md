@@ -22,23 +22,21 @@ Run every local gate with one command:
 npm run validate
 ```
 
-That command checks workflow action pins and the compatibility matrix; runs lint, format, project and fixture typechecking, build, tests, `verify:examples -- --all`, and Fluent-manifest verification; then checks evidence, acceptance, generated-documentation consistency, benchmarks, and the release artifact with a packed consumer.
+That command checks workflow action pins and the compatibility matrix; runs lint, format, project and fixture typechecking, build, tests, `verify:examples -- --all`, and Fluent-manifest verification; then checks evidence, generated-documentation consistency, benchmarks, and the release artifact with a packed consumer.
 
 `npm test` runs the serial TypeScript suite through `scripts/run-tests.mjs`, then runs `npm run fluent:check`. The test runner lists every `*.test.ts` file and passes the list to Node's test runner with the project-local `tsx` loader. Do not use a quoted `tests/**/*.test.ts` glob. Node test runners without glob expansion treat that path as one missing file.
 
 `npm test` is hermetic: it does not reach the network. The packed-consumer test installs packages from the live npm registry, so it runs separately as `npm run test:consumer`. CI and the release workflow run it as their own jobs, and `npm run validate` includes it.
-
-`npm run acceptance:check` inventories the offline suite and leaves criteria requiring the packed consumer as `Live-pending`. `npm run acceptance:capture` explicitly includes the network consumer and can prove those criteria. CI runs complete capture in its consumer job; release validation uses offline acceptance and isolates exact-tarball checks in its consumer matrix. Both captures retain the authoritative criterion and proof mappings.
 
 ## Add a rule
 
 1. Create `src/rules/<name>.ts` with `defineRule` and `createOnce`.
 2. Add one descriptor module in `src/catalog/<name>.ts` that imports that implementation, and register it in `src/catalog.ts`. Identity, placements, examples, options, and evidence live in the descriptor. `src/rules/index.ts` derives the rule record from the catalog at load time.
 3. Add tests in `tests/rules/` using the matrix in [Write a ServiceNow lint rule](docs/rule-authoring.md).
-4. Run `npm run docs`. It regenerates `docs/rules/`, README rule tables, and recommended oxlintrc copies.
+4. Run `npm run docs`. It regenerates `docs/rules.md`, README rule tables, and recommended oxlintrc copies.
 5. Run `npm run validate`.
 
-Do not edit generated rule pages, README rule tables, or recommended `.oxlintrc.json` copies by hand.
+Do not edit the generated [rule reference](docs/rules.md), README rule tables, or recommended `.oxlintrc.json` copies by hand.
 
 Read [Non-goals and rejected rule ideas](docs/non-goals.md) before you propose a rule. The proposal must say why it is not a documented non-goal.
 

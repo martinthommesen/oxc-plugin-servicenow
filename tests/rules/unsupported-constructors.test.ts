@@ -1,3 +1,4 @@
+import { ruleTester } from "../helpers/rule-tester.js";
 import { describe, it } from "node:test";
 import {
   assertInvalid,
@@ -12,6 +13,12 @@ const AUSTRALIA_ES2021 = {
 } satisfies RunOptions;
 
 describe("unsupported constructor provenance", () => {
+  const { expectActive, expectInvalid, expectValid } = ruleTester(
+    "no-weak-references",
+    AUSTRALIA_ES2021,
+    { messageId: "weak" },
+  );
+
   // @lat: [[tests#Analysis behavior#Availability proofs ignore unreachable suffix effects]]
   it("preserves availability across unreachable condition writes", () => {
     for (const suffix of [
@@ -24,10 +31,8 @@ describe("unsupported constructor provenance", () => {
       "(function () { for (; false; WeakRef = undefined) {} })()",
       "(function () { for (; false;) { WeakRef = undefined; } })()",
     ]) {
-      assertValidActive(
+      expectActive(
         `if (typeof WeakRef === "function" && (${suffix}, true)) { new WeakRef(value); }`,
-        "no-weak-references",
-        AUSTRALIA_ES2021,
       );
     }
     for (const suffix of [
@@ -38,11 +43,8 @@ describe("unsupported constructor provenance", () => {
       "flag ? true : (WeakRef = undefined)",
       "(function () { for (; flag; WeakRef = undefined) {} })()",
     ]) {
-      assertInvalid(
+      expectInvalid(
         `if (typeof WeakRef === "function" && (${suffix}, true)) { new WeakRef(value); }`,
-        "no-weak-references",
-        { messageId: "weak" },
-        AUSTRALIA_ES2021,
       );
     }
   });
@@ -61,44 +63,31 @@ describe("unsupported constructor provenance", () => {
         `typeof WeakRef === "function" && (${mutation}, true) ? new WeakRef(value) : null;`,
         `function run() { if (typeof WeakRef !== "function" || (${mutation}, false)) return; new WeakRef(value); }`,
       ]) {
-        assertInvalid(code, "no-weak-references", { messageId: "weak" }, AUSTRALIA_ES2021);
+        expectInvalid(code);
       }
-      assertValidActive(
+      expectActive(
         `if ((${mutation}, true) && typeof WeakRef === "function") { new WeakRef(value); }`,
-        "no-weak-references",
-        AUSTRALIA_ES2021,
       );
     }
   });
 
   it("uses the latest availability check within an ordered sequence", () => {
-    assertInvalid(
+    expectInvalid(
       'if ((typeof WeakRef === "function", WeakRef = null, true)) { new WeakRef(value); }',
-      "no-weak-references",
-      { messageId: "weak" },
-      AUSTRALIA_ES2021,
     );
-    assertValidActive(
-      'if ((WeakRef = null, typeof WeakRef === "function")) { new WeakRef(value); }',
-      "no-weak-references",
-      AUSTRALIA_ES2021,
-    );
+    expectActive('if ((WeakRef = null, typeof WeakRef === "function")) { new WeakRef(value); }');
   });
 
   it("reports stable aliases of unavailable constructors", () => {
-    assertInvalid(
+    expectInvalid(
       `const Ref = WeakRef;
 const ref = new Ref(value);`,
-      "no-weak-references",
       { messageId: "weak", includes: "WeakRef" },
-      AUSTRALIA_ES2021,
     );
-    assertInvalid(
+    expectInvalid(
       `const { FinalizationRegistry: Registry } = globalThis;
 const registry = new Registry(cleanup);`,
-      "no-weak-references",
       { messageId: "weak", includes: "FinalizationRegistry" },
-      AUSTRALIA_ES2021,
     );
     assertInvalid(
       `const Cache = WeakMap;
@@ -110,43 +99,27 @@ const cache = new Cache();`,
   });
 
   it("keeps lexical shadows and cross-execution aliases silent", () => {
-    assertValidActive(
-      `function WeakRef(value) { this.value = value; }
-const ref = new WeakRef(value);`,
-      "no-weak-references",
-      AUSTRALIA_ES2021,
-    );
+    expectActive(`function WeakRef(value) { this.value = value; }
+const ref = new WeakRef(value);`);
     assertValidActive(
       `function WeakMap() {}
 const cache = new WeakMap();`,
       "no-weak-collections",
       { settings: ES5 },
     );
-    assertValid(
-      `const Ref = WeakRef;
+    expectValid(`const Ref = WeakRef;
 function create(value) { return new Ref(value); }
-create(value);`,
-      "no-weak-references",
-      AUSTRALIA_ES2021,
-    );
+create(value);`);
   });
 
   it("allows structurally dominating availability guards", () => {
-    assertValid(
-      `if (typeof WeakRef === "function") {
+    expectValid(`if (typeof WeakRef === "function") {
   new WeakRef(value);
-}`,
-      "no-weak-references",
-      AUSTRALIA_ES2021,
-    );
-    assertValid(
-      `if ("FinalizationRegistry" in globalThis) {
+}`);
+    expectValid(`if ("FinalizationRegistry" in globalThis) {
   new globalThis.FinalizationRegistry(cleanup);
-}`,
-      "no-weak-references",
-      AUSTRALIA_ES2021,
-    );
-    assertValid(`globalThis.WeakRef?.(value);`, "no-weak-references", AUSTRALIA_ES2021);
+}`);
+    expectValid(`globalThis.WeakRef?.(value);`);
     assertValid(`typeof WeakMap === "function" && new WeakMap();`, "no-weak-collections", {
       settings: ES5,
     });
@@ -192,31 +165,18 @@ if (typeof globalThis !== "undefined" && "WeakMap" in root) {
   });
 
   it("requires a bare alias origin to be guarded before capture", () => {
-    assertInvalid(
-      `const Ref = WeakRef;
+    expectInvalid(`const Ref = WeakRef;
 if (typeof WeakRef === "function") {
   new Ref(value);
-}`,
-      "no-weak-references",
-      { messageId: "weak" },
-      AUSTRALIA_ES2021,
-    );
-    assertValid(
-      `if (typeof WeakRef === "function") {
+}`);
+    expectValid(`if (typeof WeakRef === "function") {
   const Ref = WeakRef;
   new Ref(value);
-}`,
-      "no-weak-references",
-      AUSTRALIA_ES2021,
-    );
-    assertValid(
-      `const Ref = globalThis.WeakRef;
+}`);
+    expectValid(`const Ref = globalThis.WeakRef;
 if (typeof Ref === "function") {
   new Ref(value);
-}`,
-      "no-weak-references",
-      AUSTRALIA_ES2021,
-    );
+}`);
     assertInvalid(
       `const Cache = globalThis.WeakMap;
 if (typeof Cache === "function") {
@@ -229,15 +189,10 @@ if (typeof Cache === "function") {
   });
 
   it("does not accept guards invalidated before invocation", () => {
-    assertInvalid(
-      `if (typeof WeakRef === "function") {
+    expectInvalid(`if (typeof WeakRef === "function") {
   WeakRef = null;
   new WeakRef(value);
-}`,
-      "no-weak-references",
-      { messageId: "weak" },
-      AUSTRALIA_ES2021,
-    );
+}`);
     for (const mutation of [
       `Object.defineProperty(globalThis, "WeakRef", { value: null });`,
       `Object.defineProperties(globalThis, { WeakRef: { value: null } });`,
@@ -251,78 +206,38 @@ define(globalThis, "WeakRef", { value: null });`,
       `const define = Object.defineProperty.bind(Object);
 define(globalThis, "WeakRef", { value: null });`,
     ]) {
-      assertInvalid(
-        `if (typeof WeakRef === "function") {
+      expectInvalid(`if (typeof WeakRef === "function") {
   ${mutation}
   new WeakRef(value);
-}`,
-        "no-weak-references",
-        { messageId: "weak" },
-        AUSTRALIA_ES2021,
-      );
+}`);
     }
-    assertValid(
-      `if (typeof WeakRef === "function") {
+    expectValid(`if (typeof WeakRef === "function") {
   new WeakRef(value);
   Object.defineProperty(globalThis, "WeakRef", { value: null });
-}`,
-      "no-weak-references",
-      AUSTRALIA_ES2021,
-    );
-    assertValid(
-      `Object.defineProperty = function () {};
+}`);
+    expectValid(`Object.defineProperty = function () {};
 if (typeof WeakRef === "function") {
   Object.defineProperty(globalThis, "WeakRef", { value: null });
   new WeakRef(value);
-}`,
-      "no-weak-references",
-      AUSTRALIA_ES2021,
-    );
-    assertValid(
-      `if (typeof WeakRef === "function") {
+}`);
+    expectValid(`if (typeof WeakRef === "function") {
   Object.assign(globalThis, "text", null);
   new WeakRef(value);
-}`,
-      "no-weak-references",
-      AUSTRALIA_ES2021,
-    );
+}`);
   });
 
   it("allows visible callable polyfills but not non-callable replacements", () => {
-    assertValid(
-      `WeakRef = LocalWeakRef;
-const ref = new WeakRef(value);`,
-      "no-weak-references",
-      AUSTRALIA_ES2021,
-    );
-    assertValid(
-      `Object.defineProperty(globalThis, "FinalizationRegistry", { value: LocalRegistry });
-const registry = new globalThis.FinalizationRegistry(cleanup);`,
-      "no-weak-references",
-      AUSTRALIA_ES2021,
-    );
-    assertInvalid(
-      `WeakRef = null;
-const ref = new WeakRef(value);`,
-      "no-weak-references",
-      { messageId: "weak" },
-      AUSTRALIA_ES2021,
-    );
+    expectValid(`WeakRef = LocalWeakRef;
+const ref = new WeakRef(value);`);
+    expectValid(`Object.defineProperty(globalThis, "FinalizationRegistry", { value: LocalRegistry });
+const registry = new globalThis.FinalizationRegistry(cleanup);`);
+    expectInvalid(`WeakRef = null;
+const ref = new WeakRef(value);`);
     for (const replacement of ["{}", "[]"]) {
-      assertInvalid(
-        `WeakRef = ${replacement};
-const ref = new WeakRef(value);`,
-        "no-weak-references",
-        { messageId: "weak" },
-        AUSTRALIA_ES2021,
-      );
-      assertInvalid(
-        `Object.defineProperty(globalThis, "WeakRef", { value: ${replacement} });
-const ref = new globalThis.WeakRef(value);`,
-        "no-weak-references",
-        { messageId: "weak" },
-        AUSTRALIA_ES2021,
-      );
+      expectInvalid(`WeakRef = ${replacement};
+const ref = new WeakRef(value);`);
+      expectInvalid(`Object.defineProperty(globalThis, "WeakRef", { value: ${replacement} });
+const ref = new globalThis.WeakRef(value);`);
     }
     for (const descriptor of [
       `{ value: LocalWeakRef, set: LocalSetter }`,
@@ -331,34 +246,19 @@ const ref = new globalThis.WeakRef(value);`,
       `{ set get(next) {} }`,
       `{ value: null, set value(next) {} }`,
     ]) {
-      assertInvalid(
-        `try {
+      expectInvalid(`try {
   Object.defineProperty(globalThis, "WeakRef", ${descriptor});
 } catch (error) {}
-new WeakRef(value);`,
-        "no-weak-references",
-        { messageId: "weak" },
-        AUSTRALIA_ES2021,
-      );
+new WeakRef(value);`);
     }
   });
 
-  it("stays silent under direct-eval uncertainty", () => {
-    assertValidActive(
-      `eval(source);
-const ref = new WeakRef(value);`,
-      "no-weak-references",
-      AUSTRALIA_ES2021,
-    );
-  });
+  it("stays silent under direct-eval uncertainty", () =>
+    void expectActive(`eval(source);
+const ref = new WeakRef(value);`));
 
   it("keeps direct constructor diagnostics after the alias-analysis budget", () => {
     const calls = Array.from({ length: 20_000 }, () => "noop();").join("\n");
-    assertInvalid(
-      `${calls}\nnew WeakRef(value);`,
-      "no-weak-references",
-      { messageId: "weak" },
-      AUSTRALIA_ES2021,
-    );
+    expectInvalid(`${calls}\nnew WeakRef(value);`);
   });
 });

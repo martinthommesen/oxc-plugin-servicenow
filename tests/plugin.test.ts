@@ -1,4 +1,8 @@
 import assert from "node:assert/strict";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { readPackageJson } from "./integration/helpers.js";
 import { describe, it } from "node:test";
 import plugin, { configs } from "../src/index.js";
@@ -16,18 +20,16 @@ import { rules } from "../src/rules/index.js";
 
 // @lat: [[tests#The catalog#The export surface is exactly the supported API]]
 describe("plugin export", () => {
-  it("exports only the supported runtime API", () => {
-    assert.deepEqual(Object.keys(publicApi).sort(), ["configs", "default", "plugin"]);
-  });
+  it("exports only the supported runtime API", () =>
+    void assert.deepEqual(Object.keys(publicApi).sort(), ["configs", "default", "plugin"]));
 
   it("has the servicenow plugin name", () => {
     assert.equal(plugin.meta.name, PLUGIN_NAME);
     assert.equal(PACKAGE_NAME, "oxc-plugin-servicenow");
   });
 
-  it("PACKAGE_VERSION matches package.json", () => {
-    assert.equal(PACKAGE_VERSION, readPackageJson().version);
-  });
+  it("PACKAGE_VERSION matches package.json", () =>
+    void assert.equal(PACKAGE_VERSION, readPackageJson().version));
 
   it("every rule implements createOnce", () => {
     for (const [name, rule] of Object.entries(rules)) {
@@ -46,11 +48,44 @@ describe("plugin export", () => {
     assert.equal(PACKAGE_GIT_REF, `v${PACKAGE_VERSION}`);
     assert.equal(DOCS_BASE_URL, `${REPOSITORY_URL}/blob/v${PACKAGE_VERSION}/docs/rules`);
     for (const entry of ruleCatalog) {
-      const expected = `${DOCS_BASE_URL}/${entry.name}.md`;
+      const expected =
+        String(PACKAGE_VERSION) === "3.1.0"
+          ? `${DOCS_BASE_URL}/${entry.name}.md`
+          : `${DOCS_BASE_URL}.md#${entry.name}`;
       const rule = rules[entry.name] as { meta?: { docs?: { url?: string } } };
       assert.equal(entry.docsUrl, expected, entry.name);
       assert.equal(rule.meta?.docs?.url, expected, entry.name);
       assert.equal(entry.docsUrl.includes("/blob/main/"), false, entry.name);
+    }
+  });
+
+  it("preserves the published 3.1.0 layout and advances consolidated links with a release", async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "rule-docs-version-"));
+    try {
+      writeFileSync(path.join(dir, "package.json"), '{"type":"module"}');
+      const source = readFileSync(new URL("../src/constants.ts", import.meta.url), "utf8");
+      for (const [version, target] of [
+        ["3.1.0", "rules/no-promise.md"],
+        ["3.1.1", "rules.md#no-promise"],
+      ]) {
+        writeFileSync(
+          path.join(dir, `version-${version}.ts`),
+          `export const PACKAGE_VERSION = "${version}";`,
+        );
+        const modulePath = path.join(dir, `constants-${version}.ts`);
+        writeFileSync(modulePath, source.replace("./version.js", `./version-${version}.js`));
+        const versioned = await import(pathToFileURL(modulePath).href);
+        assert.equal(
+          versioned.ruleDocsUrl("no-promise"),
+          `${REPOSITORY_URL}/blob/v${version}/docs/${target}`,
+        );
+      }
+      assert.match(
+        readFileSync(new URL("../docs/rules.md", import.meta.url), "utf8"),
+        /^## no-promise$/m,
+      );
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
     }
   });
 
@@ -111,9 +146,8 @@ describe("plugin export", () => {
     }
   });
 
-  it("the client flat config includes compound UI Action filenames", () => {
-    assert.ok(configs.flat.client.files.includes("**/*.client.ui-action.js"));
-  });
+  it("the client flat config includes compound UI Action filenames", () =>
+    void assert.ok(configs.flat.client.files.includes("**/*.client.ui-action.js")));
 
   it("the ACL flat config selects ACL names and preserves filename conflict checks", () => {
     assert.ok(configs.flat.acl.files.includes("**/{acl,*[-_.]acl}.{js,cjs,mjs}"));

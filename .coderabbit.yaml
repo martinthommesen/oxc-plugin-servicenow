@@ -85,7 +85,7 @@ reviews:
         and prose that describes behavior the code does not have.
     - path: "docs/**"
       instructions: |
-        Rule pages under `docs/rules/` are generated; edits belong in the
+        The rule reference at `docs/rules.md` is generated; edits belong in the
         catalog. For hand-written docs, check that commands and file paths
         exist and that version and peer-range claims match `package.json`.
 

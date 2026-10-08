@@ -29,9 +29,8 @@ describe("alias write parity across host offset shapes (FINDINGS.md COR-007)", (
     assert.deepEqual(lintShape(restored, stripOffsets), []);
   });
 
-  it("still resolves an unwritten alias without offsets", () => {
-    assert.deepEqual(lintShape(`${HEAD}\nlet T = BusinessRule;\n${CALL}`, stripOffsets), [
+  it("still resolves an unwritten alias without offsets", () =>
+    void assert.deepEqual(lintShape(`${HEAD}\nlet T = BusinessRule;\n${CALL}`, stripOffsets), [
       "missing",
-    ]);
-  });
+    ]));
 });

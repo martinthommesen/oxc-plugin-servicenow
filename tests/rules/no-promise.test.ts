@@ -1,58 +1,43 @@
+import { ruleTester } from "../helpers/rule-tester.js";
 import { describe, it } from "node:test";
-import {
-  assertInvalid,
-  assertSkipped,
-  assertValid,
-  assertValidActive,
-  ES5,
-  ES2021,
-} from "../helpers/rule-tester.js";
+import { ES5, ES2021 } from "../helpers/rule-tester.js";
 
 const RULE = "no-promise" as const;
 
 describe(RULE, () => {
-  it("flags new Promise in ES5", () => {
-    assertInvalid(
-      `var p = new Promise(function (resolve) { resolve(1); });`,
-      RULE,
-      {
-        messageId: "construct",
-      },
-      { settings: ES5 },
-    );
-  });
+  const { expectInvalid, expectValid, expectActive, expectSkipped } = ruleTester(
+    "no-promise",
+    {
+      settings: ES5,
+    },
+    { messageId: "staticMethod" },
+  );
 
-  it("flags Promise.resolve in ES5", () => {
-    assertInvalid(`Promise.resolve(1);`, RULE, { messageId: "staticMethod" }, { settings: ES5 });
-  });
+  it("flags new Promise in ES5", () =>
+    void expectInvalid(`var p = new Promise(function (resolve) { resolve(1); });`, {
+      messageId: "construct",
+    }));
+
+  it("flags Promise.resolve in ES5", () => void expectInvalid(`Promise.resolve(1);`));
 
   it("continues to own Australia-added Promise methods in classic modes", () => {
     for (const code of [`Promise.try(load);`, `Promise.withResolvers();`]) {
-      assertInvalid(code, RULE, { messageId: "staticMethod" }, { settings: ES5 });
+      expectInvalid(code);
     }
   });
 
   it("reports stable constructor and static-method owner aliases", () => {
-    assertInvalid(
+    expectInvalid(
       `const P = Promise;
 const value = new P(function (resolve) { resolve(1); });`,
-      RULE,
       { messageId: "construct", count: 1 },
-      { settings: ES5 },
     );
-    assertInvalid(
+    expectInvalid(
       `const P = Promise;
 P.resolve(1);`,
-      RULE,
       { messageId: "staticMethod", count: 1 },
-      { settings: ES5 },
     );
-    assertInvalid(
-      `globalThis.Promise.resolve(1);`,
-      RULE,
-      { messageId: "staticMethod", count: 1 },
-      { settings: ES5 },
-    );
+    expectInvalid(`globalThis.Promise.resolve(1);`, { messageId: "staticMethod", count: 1 });
   });
 
   it("reports static method calls through Function helpers", () => {
@@ -62,125 +47,77 @@ P.resolve(1);`,
       `Promise.resolve.bind(Promise)(1);`,
       `Reflect.apply(Promise.resolve, Promise, [1]);`,
     ]) {
-      assertInvalid(code, RULE, { messageId: "staticMethod", count: 1 }, { settings: ES5 });
+      expectInvalid(code, { messageId: "staticMethod", count: 1 });
     }
     for (const code of [
       `Reflect = localReflect; Reflect.apply(Promise.resolve, Promise, [1]);`,
       `Reflect.apply = localApply; Reflect.apply(Promise.resolve, Promise, [1]);`,
     ]) {
-      assertValid(code, RULE, { settings: ES5 });
+      expectValid(code);
     }
   });
 
   it("treats bound built-in arguments as namespace escapes", () => {
     for (const argument of ["Promise", "...[Promise]"]) {
-      assertValid(
-        `Proxy.revocable.bind(Proxy, ${argument});
-Promise.resolve(1);`,
-        RULE,
-        { settings: ES5 },
-      );
+      expectValid(`Proxy.revocable.bind(Proxy, ${argument});
+Promise.resolve(1);`);
     }
   });
 
   it("keeps mutable and cross-execution aliases silent", () => {
-    assertValid(
-      `let P = Promise;
+    expectValid(`let P = Promise;
 if (custom) P = LocalPromise;
-new P(function () {});`,
-      RULE,
-      { settings: ES5 },
-    );
-    assertValid(
-      `const P = Promise;
+new P(function () {});`);
+    expectValid(`const P = Promise;
 function later() { return P.resolve(1); }
-later();`,
-      RULE,
-      { settings: ES5 },
-    );
+later();`);
   });
 
   it("allows structurally dominating availability guards", () => {
-    assertValid(
-      `if (typeof Promise === "function") {
+    expectValid(`if (typeof Promise === "function") {
   new Promise(function () {});
-}`,
-      RULE,
-      { settings: ES5 },
-    );
-    assertValid(
-      `if (typeof Promise === "function" && typeof Promise.resolve === "function") {
+}`);
+    expectValid(`if (typeof Promise === "function" && typeof Promise.resolve === "function") {
   Promise.resolve(1);
-}`,
-      RULE,
-      { settings: ES5 },
-    );
-    assertInvalid(
-      `if (typeof Promise.resolve === "function") {
+}`);
+    expectInvalid(`if (typeof Promise.resolve === "function") {
   Promise.resolve(1);
-}`,
-      RULE,
-      { messageId: "staticMethod" },
-      { settings: ES5 },
-    );
+}`);
   });
 
   it("requires bare owner aliases to be captured inside a guard", () => {
-    assertInvalid(
+    expectInvalid(
       `const P = Promise;
 if (typeof Promise === "function") {
   new P(function () {});
 }`,
-      RULE,
       { messageId: "construct" },
-      { settings: ES5 },
     );
-    assertInvalid(
-      `const P = Promise;
+    expectInvalid(`const P = Promise;
 if (typeof Promise === "function") {
   P.resolve(1);
-}`,
-      RULE,
-      { messageId: "staticMethod" },
-      { settings: ES5 },
-    );
-    assertValid(
-      `if (typeof Promise === "function" && typeof Promise.resolve === "function") {
+}`);
+    expectValid(`if (typeof Promise === "function" && typeof Promise.resolve === "function") {
   const P = Promise;
   P.resolve(1);
-}`,
-      RULE,
-      { settings: ES5 },
-    );
-    assertInvalid(
-      `const P = globalThis.Promise;
+}`);
+    expectInvalid(`const P = globalThis.Promise;
 if (typeof P === "function" && typeof P.resolve === "function") {
   P.resolve(1);
-}`,
-      RULE,
-      { messageId: "staticMethod" },
-      { settings: ES5 },
-    );
+}`);
   });
 
   it("does not accept guards invalidated before the invocation", () => {
-    assertInvalid(
-      `if (typeof Promise === "function" && typeof Promise.resolve === "function") {
+    expectInvalid(`if (typeof Promise === "function" && typeof Promise.resolve === "function") {
   Promise.resolve = null;
   Promise.resolve(1);
-}`,
-      RULE,
-      { messageId: "staticMethod" },
-      { settings: ES5 },
-    );
-    assertInvalid(
+}`);
+    expectInvalid(
       `if (typeof Promise === "function") {
   Object.defineProperty(globalThis, "Promise", { value: null });
   new Promise(function () {});
 }`,
-      RULE,
       { messageId: "construct" },
-      { settings: ES5 },
     );
     for (const mutation of [
       `Object.defineProperty(Promise, "resolve", { value: null });`,
@@ -188,145 +125,83 @@ if (typeof P === "function" && typeof P.resolve === "function") {
       `const define = Object.defineProperty;
 define.call(Object, Promise, "resolve", { value: null });`,
     ]) {
-      assertInvalid(
-        `if (typeof Promise === "function" && typeof Promise.resolve === "function") {
+      expectInvalid(`if (typeof Promise === "function" && typeof Promise.resolve === "function") {
   ${mutation}
   Promise.resolve(1);
-}`,
-        RULE,
-        { messageId: "staticMethod" },
-        { settings: ES5 },
-      );
+}`);
     }
-    assertValid(
-      `if (typeof Promise === "function" && typeof Promise.resolve === "function") {
+    expectValid(`if (typeof Promise === "function" && typeof Promise.resolve === "function") {
   Promise.resolve(1);
   Object.defineProperty(Promise, "resolve", { value: null });
-}`,
-      RULE,
-      { settings: ES5 },
-    );
-    assertValid(
-      `Object.defineProperty = function () {};
+}`);
+    expectValid(`Object.defineProperty = function () {};
 if (typeof Promise === "function" && typeof Promise.resolve === "function") {
   Object.defineProperty(Promise, "resolve", { value: null });
   Promise.resolve(1);
-}`,
-      RULE,
-      { settings: ES5 },
-    );
+}`);
   });
 
   it("allows callable polyfills but reports non-callable replacements", () => {
-    assertValid(
-      `Promise = LocalPromise;
-new Promise(function () {});`,
-      RULE,
-      { settings: ES5 },
-    );
-    assertValid(
-      `Promise.resolve = localResolve;
-Promise.resolve(1);`,
-      RULE,
-      { settings: ES5 },
-    );
-    assertValid(
-      `Promise = { resolve: localResolve };
-Promise.resolve(1);`,
-      RULE,
-      { settings: ES5 },
-    );
-    assertInvalid(
+    expectValid(`Promise = LocalPromise;
+new Promise(function () {});`);
+    expectValid(`Promise.resolve = localResolve;
+Promise.resolve(1);`);
+    expectValid(`Promise = { resolve: localResolve };
+Promise.resolve(1);`);
+    expectInvalid(
       `Promise = null;
 new Promise(function () {});`,
-      RULE,
       { messageId: "construct" },
-      { settings: ES5 },
     );
-    assertInvalid(
-      `Promise.resolve = undefined;
-Promise.resolve(1);`,
-      RULE,
-      { messageId: "staticMethod" },
-      { settings: ES5 },
-    );
+    expectInvalid(`Promise.resolve = undefined;
+Promise.resolve(1);`);
     for (const replacement of ["{}", "[]"]) {
-      assertInvalid(
+      expectInvalid(
         `Promise = ${replacement};
 new Promise(function () {});`,
-        RULE,
         { messageId: "construct" },
-        { settings: ES5 },
       );
-      assertInvalid(
-        `Object.defineProperty(Promise, "resolve", { value: ${replacement} });
-Promise.resolve(1);`,
-        RULE,
-        { messageId: "staticMethod" },
-        { settings: ES5 },
-      );
+      expectInvalid(`Object.defineProperty(Promise, "resolve", { value: ${replacement} });
+Promise.resolve(1);`);
     }
   });
 
-  it("stays silent under dynamic-scope uncertainty", () => {
-    assertValidActive(
-      `eval(source);
-Promise.resolve(1);`,
-      RULE,
-      { settings: ES5 },
-    );
-  });
+  it("stays silent under dynamic-scope uncertainty", () =>
+    void expectActive(`eval(source);
+Promise.resolve(1);`));
 
-  it("does not flag unrelated .then chains", () => {
-    assertValid(`fetchThing().then(function () {});`, RULE, { settings: ES5 });
-  });
+  it("does not flag unrelated .then chains", () =>
+    void expectValid(`fetchThing().then(function () {});`));
 
   it("keeps direct Promise diagnostics after the alias-analysis budget", () => {
     const calls = Array.from({ length: 20_000 }, () => "noop();").join("\n");
-    assertInvalid(
-      `${calls}\nPromise.resolve(1);`,
-      RULE,
-      { messageId: "staticMethod" },
-      {
-        settings: ES5,
-      },
-    );
+    expectInvalid(`${calls}\nPromise.resolve(1);`);
   });
 
-  it("does not flag a shadowed Promise binding", () => {
-    assertValidActive(
-      `function Promise(fn) { fn(); }\nvar p = new Promise(function () {});`,
-      RULE,
-      {
-        settings: ES5,
-      },
-    );
-  });
+  it("does not flag a shadowed Promise binding", () =>
+    void expectActive(`function Promise(fn) { fn(); }\nvar p = new Promise(function () {});`));
 
   // @lat: [[tests#Context evidence#Engine rules run on server-named UI Actions]]
   it("runs on a documented server UI Action filename (FINDINGS.md COR-017)", () => {
     const code = `var p = new Promise(function (resolve) { resolve(1); });`;
     for (const filename of ["approve.server.ui-action.js", "src/server/approve.ui-action.js"]) {
-      assertInvalid(code, RULE, { messageId: "construct" }, { filename, settings: ES5 });
+      expectInvalid(code, { messageId: "construct" }, { filename, settings: ES5 });
     }
     // A bare UI Action still names a record type rather than a surface, so the
     // engine gate keeps declining it.
-    assertSkipped(code, RULE, { filename: "approve.ui-action.js", settings: ES5 });
+    expectSkipped(code, { filename: "approve.ui-action.js", settings: ES5 });
   });
 
-  it("skips unknown JavaScript mode", () => {
-    assertSkipped(`var p = new Promise(function (resolve) { resolve(1); });`, RULE);
-  });
+  it("skips unknown JavaScript mode", () =>
+    void expectSkipped(`var p = new Promise(function (resolve) { resolve(1); });`, {}));
 
-  it("skips ES2021", () => {
-    assertSkipped(`var p = new Promise(function (resolve) { resolve(1); });`, RULE, {
+  it("skips ES2021", () =>
+    void expectSkipped(`var p = new Promise(function (resolve) { resolve(1); });`, {
       settings: ES2021,
-    });
-  });
+    }));
 
-  it("skips Fluent metadata files", () => {
-    assertSkipped(`const p = new Promise((resolve) => resolve(1));`, RULE, {
+  it("skips Fluent metadata files", () =>
+    void expectSkipped(`const p = new Promise((resolve) => resolve(1));`, {
       filename: "table.now.ts",
-    });
-  });
+    }));
 });

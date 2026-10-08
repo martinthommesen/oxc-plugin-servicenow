@@ -1,10 +1,9 @@
+import { ruleTester } from "../helpers/rule-tester.js";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   assertInvalid,
-  assertSkipped,
   assertValid,
-  assertValidActive,
   AUSTRALIA_ES2021,
   AUSTRALIA_ES5,
   ES2021,
@@ -14,42 +13,42 @@ import {
 } from "../helpers/rule-tester.js";
 
 describe("no-gs-now", () => {
-  it("flags gs.now()", () => {
-    assertInvalid(`var when = gs.now();`, "no-gs-now", { messageId: "server" });
-  });
+  const { expectInvalid, expectValid, expectActive } = ruleTester(
+    "no-gs-now",
+    {},
+    {
+      messageId: "server",
+    },
+  );
 
-  it("flags gs.nowDateTime()", () => {
-    assertInvalid(`var when = gs.nowDateTime();`, "no-gs-now", { messageId: "nowDateTime" });
-  });
+  it("flags gs.now()", () => void expectInvalid(`var when = gs.now();`));
 
-  it("uses the client message in client files", () => {
-    assertInvalid(
+  it("flags gs.nowDateTime()", () =>
+    void expectInvalid(`var when = gs.nowDateTime();`, { messageId: "nowDateTime" }));
+
+  it("uses the client message in client files", () =>
+    void expectInvalid(
       `var when = gs.now();`,
-      "no-gs-now",
       { messageId: "client" },
       {
         filename: "form.client.js",
       },
-    );
-  });
+    ));
 
-  it("allows GlideDateTime", () => {
-    assertValid(`var when = new GlideDateTime();`, "no-gs-now");
-  });
+  it("allows GlideDateTime", () => void expectValid(`var when = new GlideDateTime();`));
 
-  it("does not flag a shadowed gs binding", () => {
-    assertValid("var gs = { now: function () { return 'x'; } }; var when = gs.now();", "no-gs-now");
-  });
+  it("does not flag a shadowed gs binding", () =>
+    void expectValid("var gs = { now: function () { return 'x'; } }; var when = gs.now();"));
 
   it("stays silent when the gs method identity can change", () => {
-    assertValidActive(`gs = localGs;\ngs.now();`, "no-gs-now");
-    assertValidActive(`gs = null;\ngs.now();`, "no-gs-now");
-    assertValidActive(`gs.now = localNow;\ngs.now();`, "no-gs-now");
-    assertValidActive(`gs.now = undefined;\ngs.now();`, "no-gs-now");
-    assertValidActive(`Object.defineProperty(gs, "now", { value: null });\ngs.now();`, "no-gs-now");
-    assertValidActive(`prepare(gs);\ngs.now();`, "no-gs-now");
-    assertValidActive(`var platform = gs;\nprepare(platform);\ngs.now();`, "no-gs-now");
-    assertInvalid(`prepare(gs.now);\ngs.now();`, "no-gs-now", { messageId: "server" });
+    expectActive(`gs = localGs;\ngs.now();`);
+    expectActive(`gs = null;\ngs.now();`);
+    expectActive(`gs.now = localNow;\ngs.now();`);
+    expectActive(`gs.now = undefined;\ngs.now();`);
+    expectActive(`Object.defineProperty(gs, "now", { value: null });\ngs.now();`);
+    expectActive(`prepare(gs);\ngs.now();`);
+    expectActive(`var platform = gs;\nprepare(platform);\ngs.now();`);
+    expectInvalid(`prepare(gs.now);\ngs.now();`);
   });
 
   it("keeps gs authority across nullish Object.assign sources", () => {
@@ -59,27 +58,19 @@ describe("no-gs-now", () => {
       "let absent = undefined;",
       "let absent = void 0;",
     ]) {
-      assertInvalid(
-        `${declaration}\nObject.assign(gs, absent, undefined);\ngs.now();`,
-        "no-gs-now",
-        { messageId: "server" },
-        { settings: ES2021 },
-      );
+      expectInvalid(`${declaration}\nObject.assign(gs, absent, undefined);\ngs.now();`, undefined, {
+        settings: ES2021,
+      });
     }
   });
 
-  it("keeps a stable gs object alias after the global binding changes", () => {
-    assertInvalid(`var service = gs;\ngs = localGs;\nservice.now();`, "no-gs-now", {
-      messageId: "server",
-    });
-  });
+  it("keeps a stable gs object alias after the global binding changes", () =>
+    void expectInvalid(`var service = gs;\ngs = localGs;\nservice.now();`));
 
   it("does not let a provably later top-level write suppress an earlier call", () => {
-    assertInvalid(`gs.now();\ngs.now = localNow;`, "no-gs-now", { messageId: "server" });
-    assertInvalid(`function run() { gs.now(); gs.now = localNow; } run();`, "no-gs-now", {
-      messageId: "server",
-    });
-    assertValid(`gs.now();\nfunction later() { gs.now = localNow; }`, "no-gs-now");
+    expectInvalid(`gs.now();\ngs.now = localNow;`);
+    expectInvalid(`function run() { gs.now(); gs.now = localNow; } run();`);
+    expectValid(`gs.now();\nfunction later() { gs.now = localNow; }`);
   });
 
   it("bounds deeply destructured mutation aliases conservatively", () => {
@@ -90,142 +81,101 @@ describe("no-gs-now", () => {
         (_, index) => `const { missing: alias${index + 1} = alias${index} } = {};`,
       ),
     ];
-    assertValid(`${aliases.join("\n")}\nalias512.gs.now = localNow;\ngs.now();`, "no-gs-now", {
+    expectValid(`${aliases.join("\n")}\nalias512.gs.now = localNow;\ngs.now();`, {
       settings: ES2021,
     });
   });
 });
 
 describe("no-br-current-update", () => {
-  it("flags current.update()", () => {
-    assertInvalid(
-      `current.state = 2;\ncurrent.update();`,
-      "no-br-current-update",
-      { messageId: "update" },
-      { filename: "incident.br.js" },
-    );
-  });
+  const { expectInvalid, expectValid, expectActive } = ruleTester(
+    "no-br-current-update",
+    { filename: "incident.br.js" },
+    { messageId: "update" },
+  );
 
-  it("does not treat src/server as a Business Rule", () => {
-    assertValid("current.update();", "no-br-current-update", {
+  it("flags current.update()", () => void expectInvalid(`current.state = 2;\ncurrent.update();`));
+
+  it("does not treat src/server as a Business Rule", () =>
+    void expectValid("current.update();", {
       filename: "src/server/incident.js",
-    });
-  });
+    }));
 
-  it("allows current.update() in unclassified files", () => {
-    assertValid("current.update();", "no-br-current-update", { filename: "utils.js" });
-  });
+  it("allows current.update() in unclassified files", () =>
+    void expectValid("current.update();", { filename: "utils.js" }));
 
-  it("allows current.update() in a Script Include", () => {
-    assertValid("current.update();", "no-br-current-update", { filename: "helper.si.js" });
-  });
+  it("allows current.update() in a Script Include", () =>
+    void expectValid("current.update();", { filename: "helper.si.js" }));
 
-  it("flags current.update() when scriptType forces a Business Rule", () => {
-    assertInvalid(
-      "current.update();",
-      "no-br-current-update",
-      { messageId: "update" },
-      { filename: "misc.js", settings: { scriptType: "business-rule" } },
-    );
-  });
+  it("flags current.update() when scriptType forces a Business Rule", () =>
+    void expectInvalid("current.update();", undefined, {
+      filename: "misc.js",
+      settings: { scriptType: "business-rule" },
+    }));
 
-  it("allows field assignment", () => {
-    assertValidActive(`current.state = 2;`, "no-br-current-update", {
-      filename: "incident.br.js",
-    });
-  });
+  it("allows field assignment", () => void expectActive(`current.state = 2;`));
 
-  it("allows current.update() in a UI Action", () => {
-    assertValid(`current.state = 2;\ncurrent.update();`, "no-br-current-update", {
+  it("allows current.update() in a UI Action", () =>
+    void expectValid(`current.state = 2;\ncurrent.update();`, {
       filename: "close-incident.ui-action.js",
-    });
-  });
+    }));
 
   it("stays silent when the body-only current identity can change", () => {
-    assertValidActive(`current = getOtherRecord();\ncurrent.update();`, "no-br-current-update", {
-      filename: "incident.br.js",
-    });
-    assertValidActive(`current = null;\ncurrent.update();`, "no-br-current-update", {
-      filename: "incident.br.js",
-    });
-    assertValidActive(`current.update = localUpdate;\ncurrent.update();`, "no-br-current-update", {
-      filename: "incident.br.js",
-    });
-    assertValidActive(`current.update = undefined;\ncurrent.update();`, "no-br-current-update", {
-      filename: "incident.br.js",
-    });
-    assertValidActive(
-      `Object.defineProperty(current, "update", { value: null });\ncurrent.update();`,
-      "no-br-current-update",
-      { filename: "incident.br.js" },
-    );
-    assertValidActive(`prepare(current);\ncurrent.update();`, "no-br-current-update", {
-      filename: "incident.br.js",
-    });
-    assertValidActive(
-      `var record = current;\nprepare(record);\ncurrent.update();`,
-      "no-br-current-update",
-      { filename: "incident.br.js" },
-    );
+    expectActive(`current = getOtherRecord();\ncurrent.update();`);
+    expectActive(`current = null;\ncurrent.update();`);
+    expectActive(`current.update = localUpdate;\ncurrent.update();`);
+    expectActive(`current.update = undefined;\ncurrent.update();`);
+    expectActive(`Object.defineProperty(current, "update", { value: null });\ncurrent.update();`);
+    expectActive(`prepare(current);\ncurrent.update();`);
+    expectActive(`var record = current;\nprepare(record);\ncurrent.update();`);
   });
 
   it("does not let a provably later top-level write suppress an earlier update", () => {
-    assertInvalid(
-      `current.update();\ncurrent.update = localUpdate;`,
-      "no-br-current-update",
-      { messageId: "update" },
-      { filename: "incident.br.js" },
-    );
-    assertInvalid(
-      `function run() { current.update(); current.update = localUpdate; } run();`,
-      "no-br-current-update",
-      { messageId: "update" },
-      { filename: "incident.br.js" },
-    );
-    assertValid(
-      `current.update();\nfunction later() { current.update = localUpdate; }`,
-      "no-br-current-update",
-      { filename: "incident.br.js" },
-    );
+    expectInvalid(`current.update();\ncurrent.update = localUpdate;`);
+    expectInvalid(`function run() { current.update(); current.update = localUpdate; } run();`);
+    expectValid(`current.update();\nfunction later() { current.update = localUpdate; }`);
   });
 });
 
 describe("no-hardcoded-table-names", () => {
-  it("flags string table names", () => {
-    assertInvalid(`var gr = new GlideRecord("x_acme_widget");`, "no-hardcoded-table-names", {
+  const { expectInvalid, expectSkipped, expectValid } = ruleTester(
+    "no-hardcoded-table-names",
+    {},
+    {
       messageId: "literal",
-    });
-  });
+    },
+  );
+
+  it("flags string table names", () =>
+    void expectInvalid(`var gr = new GlideRecord("x_acme_widget");`));
 
   it("gates on known classic server-side surfaces (FINDINGS.md COR-015)", () => {
     // The catalog and the generated page declare classic authoring and known
     // instance surfaces; Fluent metadata and unclassified files stay silent.
-    assertSkipped(`var gr = new GlideRecord("incident");`, "no-hardcoded-table-names", {
+    expectSkipped(`var gr = new GlideRecord("incident");`, {
       filename: "table.now.ts",
     });
-    assertSkipped(`var gr = new GlideRecord("incident");`, "no-hardcoded-table-names", {
+    expectSkipped(`var gr = new GlideRecord("incident");`, {
       filename: "foo.js",
     });
   });
 
-  it("flags string table names on GlideRecordSecure", () => {
-    assertInvalid('var gr = new GlideRecordSecure("incident");', "no-hardcoded-table-names", {
-      messageId: "literal",
-    });
-  });
+  it("flags string table names on GlideRecordSecure", () =>
+    void expectInvalid('var gr = new GlideRecordSecure("incident");'));
 
-  it("allows identifiers", () => {
-    assertValid(`var gr = new GlideRecord(TABLE.WIDGET);`, "no-hardcoded-table-names");
-  });
+  it("allows identifiers", () => void expectValid(`var gr = new GlideRecord(TABLE.WIDGET);`));
 
-  it("allows builtins when configured", () => {
-    assertValid(`var gr = new GlideRecord("incident");`, "no-hardcoded-table-names", {
+  it("allows builtins when configured", () =>
+    void expectValid(`var gr = new GlideRecord("incident");`, {
       options: { "no-hardcoded-table-names": [{ allowBuiltins: true }] },
-    });
-  });
+    }));
 });
 
 describe("engine feature availability by mode and release", () => {
+  const { expectInvalid, expectValid } = ruleTester("no-typed-arrays", ZURICH_ES2021, {
+    messageId: "ctor",
+  });
+
   it("no-at-method flags .at() in ES5", () => {
     assertInvalid(
       `var last = [1, 2].at(-1);`,
@@ -268,25 +218,23 @@ describe("engine feature availability by mode and release", () => {
     );
   });
 
-  it("no-packages-calls flags Packages", () => {
-    assertInvalid(
+  it("no-packages-calls flags Packages", () =>
+    void assertInvalid(
       `var n = Packages.java.lang.System.nanoTime();`,
       "no-packages-calls",
       {
         messageId: "packages",
       },
       { filename: "src/server/test.js" },
-    );
-  });
+    ));
 
-  it("no-packages-calls reports a Packages chain once", () => {
-    assertInvalid(
+  it("no-packages-calls reports a Packages chain once", () =>
+    void assertInvalid(
       'var s = new Packages.java.lang.String("x");',
       "no-packages-calls",
       { count: 1 },
       { filename: "src/server/test.js" },
-    );
-  });
+    ));
 
   it("no-packages-calls reports Packages aliases at their source", () => {
     for (const code of [
@@ -298,30 +246,27 @@ describe("engine feature availability by mode and release", () => {
     }
   });
 
-  it("no-packages-calls flags dynamic computed access", () => {
-    assertInvalid(
+  it("no-packages-calls flags dynamic computed access", () =>
+    void assertInvalid(
       "var value = Packages[name][member];",
       "no-packages-calls",
       { count: 1 },
       { filename: "src/server/test.js" },
-    );
-  });
+    ));
 
-  it("no-packages-calls allows Packages as an object key", () => {
-    assertValid("var o = { Packages: 1 };", "no-packages-calls");
-  });
+  it("no-packages-calls allows Packages as an object key", () =>
+    void assertValid("var o = { Packages: 1 };", "no-packages-calls"));
 
-  it("no-packages-calls allows a Packages member on another object", () => {
-    assertValid("var x = lib.Packages;", "no-packages-calls");
-  });
+  it("no-packages-calls allows a Packages member on another object", () =>
+    void assertValid("var x = lib.Packages;", "no-packages-calls"));
 
-  it("no-packages-calls allows a local Packages binding", () => {
-    assertValid("var Packages = 2; var y = Packages;", "no-packages-calls");
-  });
+  it("no-packages-calls allows a local Packages binding", () =>
+    void assertValid("var Packages = 2; var y = Packages;", "no-packages-calls"));
 
-  it("no-packages-calls ignores an unclassified file", () => {
-    assertValid("var value = Packages.example;", "no-packages-calls", { filename: "plain.js" });
-  });
+  it("no-packages-calls ignores an unclassified file", () =>
+    void assertValid("var value = Packages.example;", "no-packages-calls", {
+      filename: "plain.js",
+    }));
 
   it("no-packages-calls stays silent on browser-only and mixed UI Action surfaces", () => {
     assertValid(`var value = Packages.example;`, "no-packages-calls", {
@@ -334,11 +279,10 @@ describe("engine feature availability by mode and release", () => {
     });
   });
 
-  it("does not assume an ordinary unknown-context JavaScript file is ServiceNow", () => {
-    assertValid(`var n = Packages.java.lang.System.nanoTime();`, "no-packages-calls", {
+  it("does not assume an ordinary unknown-context JavaScript file is ServiceNow", () =>
+    void assertValid(`var n = Packages.java.lang.System.nanoTime();`, "no-packages-calls", {
       filename: "index.js",
-    });
-  });
+    }));
 
   it("treats the documented _next cursor equivalent as requiring a query", () => {
     for (const scope of ["global", "scoped"] as const) {
@@ -351,50 +295,35 @@ describe("engine feature availability by mode and release", () => {
     }
   });
 
-  it("no-weak-references flags WeakRef in any instance mode", () => {
-    assertInvalid(`var ref = new WeakRef(obj);`, "no-weak-references", { messageId: "weak" });
-  });
+  it("no-weak-references flags WeakRef in any instance mode", () =>
+    void assertInvalid(`var ref = new WeakRef(obj);`, "no-weak-references", { messageId: "weak" }));
 
-  it("no-weak-collections flags WeakMap in ES5", () => {
-    assertInvalid(
+  it("no-weak-collections flags WeakMap in ES5", () =>
+    void assertInvalid(
       `var cache = new WeakMap();`,
       "no-weak-collections",
       { messageId: "weak" },
       {
         settings: ES5,
       },
-    );
-  });
+    ));
 
-  it("no-async-iterators flags for await", () => {
-    assertInvalid(
+  it("no-async-iterators flags for await", () =>
+    void assertInvalid(
       `async function drain(items) { for await (const item of items) { gs.info(item); } }`,
       "no-async-iterators",
       { messageId: "forAwait" },
-    );
-  });
+    ));
 
-  it("no-typed-arrays flags Int8Array", () => {
-    assertInvalid(
-      `var bytes = new Int8Array(16);`,
-      "no-typed-arrays",
-      { messageId: "ctor" },
-      {
-        settings: ES5,
-      },
-    );
-  });
+  it("no-typed-arrays flags Int8Array", () =>
+    void expectInvalid(`var bytes = new Int8Array(16);`, undefined, {
+      settings: ES5,
+    }));
 
-  it("no-typed-arrays flags DataView", () => {
-    assertInvalid(
-      `var view = new DataView(buffer);`,
-      "no-typed-arrays",
-      { messageId: "ctor" },
-      {
-        settings: ES5,
-      },
-    );
-  });
+  it("no-typed-arrays flags DataView", () =>
+    void expectInvalid(`var view = new DataView(buffer);`, undefined, {
+      settings: ES5,
+    }));
 
   it("flags typed-array static factories when their constructor is unavailable", () => {
     for (const code of [
@@ -402,31 +331,20 @@ describe("engine feature availability by mode and release", () => {
       `Uint8Array.of(1, 2);`,
       `const fromBytes = Int8Array.from; fromBytes(values);`,
     ]) {
-      assertInvalid(code, "no-typed-arrays", { messageId: "factory" }, AUSTRALIA_ES5);
+      expectInvalid(code, { messageId: "factory" }, AUSTRALIA_ES5);
     }
-    assertInvalid(
-      `BigInt64Array.from(values);`,
-      "no-typed-arrays",
-      { messageId: "factory" },
-      ZURICH_ES2021,
-    );
-    assertValid(`BigInt64Array.from(values);`, "no-typed-arrays", {
+    expectInvalid(`BigInt64Array.from(values);`, { messageId: "factory" });
+    expectValid(`BigInt64Array.from(values);`, {
       settings: AUSTRALIA_ES2021.settings,
     });
-    assertValid(
-      `typeof BigInt64Array !== "undefined" && BigInt64Array.from(values);`,
-      "no-typed-arrays",
-      ZURICH_ES2021,
-    );
-    assertValid(`Int8Array.from = polyfill; Int8Array.from(values);`, "no-typed-arrays", {
+    expectValid(`typeof BigInt64Array !== "undefined" && BigInt64Array.from(values);`);
+    expectValid(`Int8Array.from = polyfill; Int8Array.from(values);`, {
       settings: AUSTRALIA_ES5.settings,
     });
-    assertValid(
+    expectValid(
       `const { BigInt64Array: Words } = globalThis; Words.from = polyfill; Words.from(values);`,
-      "no-typed-arrays",
-      ZURICH_ES2021,
     );
-    assertValid(`const Int8Array = { from: custom }; Int8Array.from(values);`, "no-typed-arrays", {
+    expectValid(`const Int8Array = { from: custom }; Int8Array.from(values);`, {
       settings: AUSTRALIA_ES5.settings,
     });
   });
@@ -438,10 +356,10 @@ describe("engine feature availability by mode and release", () => {
       `const Bytes = Int8Array; Bytes.from(values);`,
       `const fromBytes = Int8Array.from; fromBytes(values);`,
     ]) {
-      assertInvalid(code, "no-typed-arrays", { messageId: "factory" }, ZURICH_ES2021);
-      assertValid(code, "no-typed-arrays", AUSTRALIA_ES2021);
+      expectInvalid(code, { messageId: "factory" });
+      expectValid(code, AUSTRALIA_ES2021);
     }
-    assertValid(`Int8Array.from(values);`, "no-typed-arrays", {
+    expectValid(`Int8Array.from(values);`, {
       settings: ES2021,
     });
   });
@@ -458,141 +376,88 @@ describe("engine feature availability by mode and release", () => {
       `Object.getPrototypeOf(Int8Array).from = polyfill; Int8Array.from(values);`,
       `const Int8Array = { from: custom }; Int8Array.from(values);`,
     ]) {
-      assertValid(code, "no-typed-arrays", ZURICH_ES2021);
+      expectValid(code);
     }
-    assertInvalid(
-      `typeof Int8Array !== "undefined" && Int8Array.from(values);`,
-      "no-typed-arrays",
-      { messageId: "factory" },
-      ZURICH_ES2021,
-    );
+    expectInvalid(`typeof Int8Array !== "undefined" && Int8Array.from(values);`, {
+      messageId: "factory",
+    });
   });
 
   it("models the BigInt typed-array Australia delta conservatively", () => {
     const code = `var values = new BigInt64Array(4);`;
-    assertInvalid(code, "no-typed-arrays", { messageId: "bigintCtor" }, ZURICH_ES2021);
-    assertValid(code, "no-typed-arrays", {
+    expectInvalid(code, { messageId: "bigintCtor" });
+    expectValid(code, {
       settings: AUSTRALIA_ES2021.settings,
     });
-    assertValid(code, "no-typed-arrays", { settings: ES2021 });
-    assertInvalid(code, "no-typed-arrays", { messageId: "bigintCtor" }, { settings: ES5 });
+    expectValid(code, { settings: ES2021 });
+    expectInvalid(code, { messageId: "bigintCtor" }, { settings: ES5 });
   });
 
   it("flags documented DataView BigInt getters through object aliases", () => {
-    assertInvalid(
+    expectInvalid(
       `const view = new DataView(buffer); const alias = view; alias["getBigInt64"](0);`,
-      "no-typed-arrays",
       { messageId: "bigintGetter" },
       AUSTRALIA_ES2021,
     );
-    assertInvalid(
+    expectInvalid(
       `new DataView(buffer).getBigUint64(0);`,
-      "no-typed-arrays",
       { messageId: "bigintGetter" },
       { settings: { release: "australia" } },
     );
-    assertInvalid(
+    expectInvalid(
       `const DV = DataView; const view = new DV(buffer); view.getBigInt64(0);`,
-      "no-typed-arrays",
       { messageId: "bigintGetter" },
       AUSTRALIA_ES2021,
     );
-    assertInvalid(
+    expectInvalid(
       `const view = new globalThis.DataView(buffer); view.getBigInt64(0);`,
-      "no-typed-arrays",
       { messageId: "bigintGetter" },
       AUSTRALIA_ES2021,
     );
   });
 
   it("follows immutable aliases to typed-array constructors", () => {
-    assertInvalid(
-      `const Bytes = Int8Array; new Bytes(4);`,
-      "no-typed-arrays",
-      { messageId: "ctor" },
-      AUSTRALIA_ES5,
-    );
-    assertInvalid(
-      `const Words = BigInt64Array; new Words(4);`,
-      "no-typed-arrays",
-      { messageId: "bigintCtor" },
-      ZURICH_ES2021,
-    );
-    assertInvalid(
-      `const DV = DataView; new DV(buffer);`,
-      "no-typed-arrays",
-      { messageId: "ctor" },
-      AUSTRALIA_ES5,
-    );
-    assertInvalid(
-      `const Bytes = globalThis.Int8Array; new Bytes(4);`,
-      "no-typed-arrays",
-      { messageId: "ctor" },
-      AUSTRALIA_ES5,
-    );
-    assertInvalid(
-      `const Bytes = (0, Int8Array); new Bytes(4);`,
-      "no-typed-arrays",
-      { messageId: "ctor" },
-      AUSTRALIA_ES5,
-    );
-    assertInvalid(
-      `new (0, Int8Array)(4);`,
-      "no-typed-arrays",
-      { messageId: "ctor" },
-      AUSTRALIA_ES5,
-    );
-    assertInvalid(
-      `const { BigInt64Array: Words } = globalThis; new Words(4);`,
-      "no-typed-arrays",
-      { messageId: "bigintCtor" },
-      ZURICH_ES2021,
-    );
-    assertInvalid(
+    expectInvalid(`const Bytes = Int8Array; new Bytes(4);`, undefined, AUSTRALIA_ES5);
+    expectInvalid(`const Words = BigInt64Array; new Words(4);`, { messageId: "bigintCtor" });
+    expectInvalid(`const DV = DataView; new DV(buffer);`, undefined, AUSTRALIA_ES5);
+    expectInvalid(`const Bytes = globalThis.Int8Array; new Bytes(4);`, undefined, AUSTRALIA_ES5);
+    expectInvalid(`const Bytes = (0, Int8Array); new Bytes(4);`, undefined, AUSTRALIA_ES5);
+    expectInvalid(`new (0, Int8Array)(4);`, undefined, AUSTRALIA_ES5);
+    expectInvalid(`const { BigInt64Array: Words } = globalThis; new Words(4);`, {
+      messageId: "bigintCtor",
+    });
+    expectInvalid(
       `const { DataView: DV } = globalThis; new DV(buffer).getBigInt64(0);`,
-      "no-typed-arrays",
       { messageId: "bigintGetter" },
       AUSTRALIA_ES2021,
     );
   });
 
   it("keeps guarded typed-array features silent", () => {
-    assertValid(`if (typeof Int8Array !== "undefined") new Int8Array(4);`, "no-typed-arrays", {
+    expectValid(`if (typeof Int8Array !== "undefined") new Int8Array(4);`, {
       settings: AUSTRALIA_ES5.settings,
     });
-    assertValid(`typeof Int8Array !== "undefined" && new Int8Array(4);`, "no-typed-arrays", {
+    expectValid(`typeof Int8Array !== "undefined" && new Int8Array(4);`, {
       settings: AUSTRALIA_ES5.settings,
     });
-    assertValid(`typeof Int8Array !== "function" || new Int8Array(4);`, "no-typed-arrays", {
+    expectValid(`typeof Int8Array !== "function" || new Int8Array(4);`, {
       settings: AUSTRALIA_ES5.settings,
     });
-    assertInvalid(
+    expectInvalid(
       `const Bytes = globalThis.Int8Array; if (typeof Bytes === "function") new Bytes(4);`,
-      "no-typed-arrays",
-      { messageId: "ctor" },
+      undefined,
       AUSTRALIA_ES5,
     );
-    assertInvalid(
-      `globalThis.Int8Array?.(4);`,
-      "no-typed-arrays",
-      { messageId: "ctor" },
-      AUSTRALIA_ES5,
-    );
-    assertValid(
+    expectInvalid(`globalThis.Int8Array?.(4);`, undefined, AUSTRALIA_ES5);
+    expectValid(
       `typeof globalThis !== "undefined" && globalThis.Int8Array && new globalThis.Int8Array(4);`,
-      "no-typed-arrays",
       AUSTRALIA_ES5,
     );
-    assertValid(
+    expectValid(
       `const Bytes = globalThis.Int8Array; if (typeof Bytes === "function") new Bytes(4);`,
-      "no-typed-arrays",
       AUSTRALIA_ES2021,
     );
-    assertValid(
-      `"BigInt64Array" in globalThis && new globalThis.BigInt64Array(4);`,
-      "no-typed-arrays",
-      ZURICH_ES2021,
-    );
+    expectValid(`"BigInt64Array" in globalThis && new globalThis.BigInt64Array(4);`);
     for (const code of [
       `Int8Array && new Int8Array(4);`,
       `if (Int8Array) new Int8Array(4);`,
@@ -602,7 +467,7 @@ describe("engine feature availability by mode and release", () => {
       `const Bytes = Int8Array; if (typeof Int8Array !== "undefined") new Bytes(4);`,
       `if (typeof Int8Array === "function") { Int8Array = undefined; new Int8Array(4); }`,
     ]) {
-      assertInvalid(code, "no-typed-arrays", { messageId: "ctor" }, AUSTRALIA_ES5);
+      expectInvalid(code, undefined, AUSTRALIA_ES5);
     }
     for (const code of [
       `const view = new DataView(buffer); view.getBigInt64?.(0);`,
@@ -614,17 +479,15 @@ describe("engine feature availability by mode and release", () => {
       `const view = new DataView(buffer); !view.getBigInt64 || view.getBigInt64(0);`,
       `const view = new DataView(buffer); "getBigInt64" in DataView.prototype && view.getBigInt64(0);`,
     ]) {
-      assertValid(code, "no-typed-arrays", AUSTRALIA_ES2021);
+      expectValid(code, AUSTRALIA_ES2021);
     }
-    assertInvalid(
+    expectInvalid(
       `const view = new DataView(buffer); view?.getBigInt64(0);`,
-      "no-typed-arrays",
       { messageId: "bigintGetter" },
       AUSTRALIA_ES2021,
     );
-    assertInvalid(
+    expectInvalid(
       `const view = new DataView(buffer); if (view.getBigInt64) { view.getBigInt64 = undefined; view.getBigInt64(0); }`,
-      "no-typed-arrays",
       { messageId: "bigintGetter" },
       AUSTRALIA_ES2021,
     );
@@ -642,49 +505,30 @@ describe("engine feature availability by mode and release", () => {
       `const view = new DataView(buffer); const { getBigInt64: get } = view; get.call(view, 0);`,
       `const view = new DataView(buffer); const { getBigInt64: get } = DataView.prototype; get.call(view, 0);`,
     ]) {
-      assertInvalid(code, "no-typed-arrays", { messageId: "bigintGetter" }, AUSTRALIA_ES2021);
+      expectInvalid(code, { messageId: "bigintGetter" }, AUSTRALIA_ES2021);
     }
   });
 
   it("keeps unproven DataView-like receivers and undocumented setters silent", () => {
-    assertValid(`new DataView(buffer).setBigInt64(0, value);`, "no-typed-arrays", {
+    expectValid(`new DataView(buffer).setBigInt64(0, value);`, {
       settings: ZURICH_ES2021.settings,
     });
-    assertValid(`view.getBigInt64(0);`, "no-typed-arrays", {
+    expectValid(`view.getBigInt64(0);`, {
       settings: ZURICH_ES2021.settings,
     });
-    assertValid(
-      `function DataView() {} const view = new DataView(); view.getBigInt64(0);`,
-      "no-typed-arrays",
-      ZURICH_ES2021,
-    );
-    assertValid(
-      `let view = new DataView(buffer); view = customView; view.getBigInt64(0);`,
-      "no-typed-arrays",
-      ZURICH_ES2021,
-    );
-    assertValid(
-      `DataView = CustomView; const view = new DataView(buffer); view.getBigInt64(0);`,
-      "no-typed-arrays",
-      ZURICH_ES2021,
-    );
-    assertValid(
+    expectValid(`function DataView() {} const view = new DataView(); view.getBigInt64(0);`);
+    expectValid(`let view = new DataView(buffer); view = customView; view.getBigInt64(0);`);
+    expectValid(`DataView = CustomView; const view = new DataView(buffer); view.getBigInt64(0);`);
+    expectValid(
       `const view = new DataView(buffer); view.getBigInt64 = custom; view.getBigInt64(0);`,
-      "no-typed-arrays",
-      ZURICH_ES2021,
     );
-    assertValid(
-      `DataView.prototype.getBigInt64 = custom; new DataView(buffer).getBigInt64(0);`,
-      "no-typed-arrays",
-      ZURICH_ES2021,
-    );
-    assertValid(`Int8Array = CustomArray; new Int8Array(1);`, "no-typed-arrays", {
+    expectValid(`DataView.prototype.getBigInt64 = custom; new DataView(buffer).getBigInt64(0);`);
+    expectValid(`Int8Array = CustomArray; new Int8Array(1);`, {
       settings: AUSTRALIA_ES5.settings,
     });
-    assertValid(
+    expectValid(
       `globalThis.DataView.prototype.getBigInt64 = custom;
 new DataView(buffer).getBigInt64(0);`,
-      "no-typed-arrays",
       {
         filename: "incident.br.js",
         settings: { javascriptMode: "unknown", release: "australia" },
@@ -730,34 +574,31 @@ new DataView(buffer).getBigInt64(0);`,
 prototype.getBigInt64 = custom;
 new DataView(buffer).getBigInt64(0);`,
     ]) {
-      assertValid(code, "no-typed-arrays", AUSTRALIA_ES2021);
+      expectValid(code, AUSTRALIA_ES2021);
     }
-    assertValid(`install(Int8Array); Int8Array.from(values);`, "no-typed-arrays", {
+    expectValid(`install(Int8Array); Int8Array.from(values);`, {
       settings: AUSTRALIA_ES5.settings,
     });
-    assertValid(`new Int8Array(1); Int8Array = CustomArray;`, "no-typed-arrays", {
+    expectValid(`new Int8Array(1); Int8Array = CustomArray;`, {
       settings: AUSTRALIA_ES5.settings,
     });
-    assertInvalid(
+    expectInvalid(
       `globalThis.Int8Array = CustomArray; new Int8Array(1);`,
-      "no-typed-arrays",
-      { messageId: "ctor" },
+      undefined,
       AUSTRALIA_ES5,
     );
   });
 
   it("keeps DataView method replacement tied to object identity", () => {
-    assertInvalid(
+    expectInvalid(
       `const first = new DataView(a); first.getBigInt64 = custom; first.getBigInt64(0);
 const second = new DataView(b); second.getBigInt64(0);`,
-      "no-typed-arrays",
       { messageId: "bigintGetter", count: 1 },
       AUSTRALIA_ES2021,
     );
-    assertInvalid(
+    expectInvalid(
       `const cache = {}; cache[key] = value;
 const view = new DataView(buffer); view.getBigInt64(0);`,
-      "no-typed-arrays",
       { messageId: "bigintGetter", count: 1 },
       AUSTRALIA_ES2021,
     );
@@ -768,36 +609,29 @@ const view = new DataView(buffer); view.getBigInt64(0);`,
       `const view = new DataView(buffer); view.__proto__ = { getBigInt64: custom }; view.getBigInt64(0);`,
       `inspect(DataView.prototype.getBigInt64); new DataView(buffer).getBigInt64(0);`,
     ]) {
-      assertInvalid(
-        code,
-        "no-typed-arrays",
-        { messageId: "bigintGetter", count: 1 },
-        AUSTRALIA_ES2021,
-      );
+      expectInvalid(code, { messageId: "bigintGetter", count: 1 }, AUSTRALIA_ES2021);
     }
   });
 
-  it("no-proxy flags new Proxy", () => {
-    assertInvalid(
+  it("no-proxy flags new Proxy", () =>
+    void assertInvalid(
       `var p = new Proxy(target, handler);`,
       "no-proxy",
       { messageId: "construct" },
       {
         settings: ES5,
       },
-    );
-  });
+    ));
 
-  it("no-proxy flags Proxy.revocable", () => {
-    assertInvalid(
+  it("no-proxy flags Proxy.revocable", () =>
+    void assertInvalid(
       `var p = Proxy.revocable(target, handler);`,
       "no-proxy",
       {
         messageId: "revocable",
       },
       { settings: ES5 },
-    );
-  });
+    ));
 });
 
 describe("server engine surface gating", () => {
@@ -821,45 +655,37 @@ describe("server engine surface gating", () => {
   });
 });
 describe("no-object-hasown", () => {
+  const { expectInvalid, expectValid } = ruleTester("no-object-hasown", AUSTRALIA_ES5, {
+    messageId: "unsupported",
+  });
+
   it("follows the Zurich and Australia release matrix", () => {
     const code = `var owns = Object.hasOwn(record, "number");`;
-    assertInvalid(code, "no-object-hasown", { messageId: "unsupported" }, ZURICH_ES2021);
-    assertValid(code, "no-object-hasown", {
+    expectInvalid(code, undefined, ZURICH_ES2021);
+    expectValid(code, {
       settings: AUSTRALIA_ES2021.settings,
     });
-    assertValid(code, "no-object-hasown", { settings: ES2021 });
-    assertInvalid(code, "no-object-hasown", { messageId: "unsupported" }, { settings: ES5 });
+    expectValid(code, { settings: ES2021 });
+    expectInvalid(code, undefined, { settings: ES5 });
   });
 
   it("keeps callable facts across stable nullish Object.assign sources", () => {
     for (const declaration of ["var absent = null;", "let absent = undefined;"]) {
-      assertInvalid(
+      expectInvalid(
         `${declaration}\nObject.assign(Object, absent);\nObject.hasOwn(record, "number");`,
-        "no-object-hasown",
-        { messageId: "unsupported" },
+        undefined,
         ZURICH_ES2021,
       );
     }
   });
 
-  it("keeps unrelated apply mutations precise for a stable ES5 array alias", () => {
-    assertInvalid(
-      `var args = [Object, "keys", { value: custom }];
+  it("keeps unrelated apply mutations precise for a stable ES5 array alias", () =>
+    void expectInvalid(`var args = [Object, "keys", { value: custom }];
 Object.defineProperty.apply(Object, args);
-Object.hasOwn(record, "number");`,
-      "no-object-hasown",
-      { messageId: "unsupported" },
-      AUSTRALIA_ES5,
-    );
-  });
+Object.hasOwn(record, "number");`));
 
   it("recognizes static computed access and proven aliases", () => {
-    assertInvalid(
-      `const BuiltinObject = Object; BuiltinObject["hasOwn"](record, "number");`,
-      "no-object-hasown",
-      { messageId: "unsupported" },
-      AUSTRALIA_ES5,
-    );
+    expectInvalid(`const BuiltinObject = Object; BuiltinObject["hasOwn"](record, "number");`);
     for (const code of [
       `const owns = Object.hasOwn; owns(record, "number");`,
       `const { hasOwn } = Object; hasOwn(record, "number");`,
@@ -871,72 +697,44 @@ Object.hasOwn(record, "number");`,
       `const { Object: BuiltinObject } = globalThis; BuiltinObject.hasOwn(record, "number");`,
       `const { hasOwn: owns } = globalThis.Object; owns(record, "number");`,
     ]) {
-      assertInvalid(code, "no-object-hasown", { messageId: "unsupported" }, AUSTRALIA_ES5);
+      expectInvalid(code);
     }
-    assertValid(
-      `const { hasOwn = fallback } = Object; hasOwn(record, "number");`,
-      "no-object-hasown",
-      AUSTRALIA_ES5,
-    );
+    expectValid(`const { hasOwn = fallback } = Object; hasOwn(record, "number");`);
     for (const code of [
       `const { hasOwn = undefined } = Object; hasOwn(record, "number");`,
       `const { hasOwn = null } = Object; hasOwn(record, "number");`,
     ]) {
-      assertInvalid(code, "no-object-hasown", { messageId: "unsupported" }, ZURICH_ES2021);
+      expectInvalid(code, undefined, ZURICH_ES2021);
     }
-    assertValid(
+    expectValid(
       `const { Object: BuiltinObject = CustomObject } = globalThis; BuiltinObject.hasOwn(record, "number");`,
-      "no-object-hasown",
       ZURICH_ES2021,
     );
   });
 
   it("keeps shadowed, reassigned, dynamic, and unrelated receivers silent", () => {
-    assertValid(
+    expectValid(
       `const Object = { hasOwn: function () { return true; } }; Object.hasOwn(record, "x");`,
-      "no-object-hasown",
-      AUSTRALIA_ES5,
     );
-    assertValid(
+    expectValid(
       `let BuiltinObject = Object; BuiltinObject = helper; BuiltinObject.hasOwn(record, "x");`,
-      "no-object-hasown",
-      AUSTRALIA_ES5,
     );
-    assertValid(`Object[method](record, "x");`, "no-object-hasown", AUSTRALIA_ES5);
-    assertValid(`helper.hasOwn(record, "x");`, "no-object-hasown", AUSTRALIA_ES5);
-    assertValid(
-      `const { local } = Object; local.hasOwn(record, "x");`,
-      "no-object-hasown",
-      AUSTRALIA_ES5,
-    );
-    assertValid(
-      `Object.hasOwn = polyfill; Object.hasOwn(record, "x");`,
-      "no-object-hasown",
-      AUSTRALIA_ES5,
-    );
-    assertValid(`Object = custom; Object.hasOwn(record, "x");`, "no-object-hasown", AUSTRALIA_ES5);
-    assertValid(
+    expectValid(`Object[method](record, "x");`);
+    expectValid(`helper.hasOwn(record, "x");`);
+    expectValid(`const { local } = Object; local.hasOwn(record, "x");`);
+    expectValid(`Object.hasOwn = polyfill; Object.hasOwn(record, "x");`);
+    expectValid(`Object = custom; Object.hasOwn(record, "x");`);
+    expectValid(
       `const BuiltinObject = Object; BuiltinObject.hasOwn = polyfill; BuiltinObject.hasOwn(record, "x");`,
-      "no-object-hasown",
-      AUSTRALIA_ES5,
     );
-    assertValid(
+    expectValid(
       `const { Object: BuiltinObject } = globalThis; BuiltinObject.hasOwn = polyfill; BuiltinObject.hasOwn(record, "x");`,
-      "no-object-hasown",
       ZURICH_ES2021,
     );
-    assertValid(
-      `Object.hasOwn(record, "x"); Object.hasOwn = polyfill;`,
-      "no-object-hasown",
-      AUSTRALIA_ES5,
-    );
-    assertValid(
-      `const { Object: First } = Second;
+    expectValid(`Object.hasOwn(record, "x"); Object.hasOwn = polyfill;`);
+    expectValid(`const { Object: First } = Second;
 const { Object: Second } = First;
-First.hasOwn(record, "x");`,
-      "no-object-hasown",
-      AUSTRALIA_ES5,
-    );
+First.hasOwn(record, "x");`);
   });
 
   it("keeps release-portable availability guards silent", () => {
@@ -960,14 +758,9 @@ First.hasOwn(record, "x");`,
       `Object.hasOwn !== void 0 && Object.hasOwn(record, "x");`,
       `"hasOwn" in Object && Object.hasOwn(record, "x");`,
     ]) {
-      assertValid(code, "no-object-hasown", ZURICH_ES2021);
+      expectValid(code, ZURICH_ES2021);
     }
-    assertInvalid(
-      `Object.hasOwn || Object.hasOwn(record, "x");`,
-      "no-object-hasown",
-      { messageId: "unsupported" },
-      ZURICH_ES2021,
-    );
+    expectInvalid(`Object.hasOwn || Object.hasOwn(record, "x");`, undefined, ZURICH_ES2021);
     for (const code of [
       `if (Object.hasOwn !== null) Object.hasOwn(record, "x");`,
       `Object.hasOwn !== null && Object.hasOwn(record, "x");`,
@@ -979,20 +772,18 @@ First.hasOwn(record, "x");`,
       `if (Object.hasOwn) { (function () { Object.hasOwn = undefined; })(); Object.hasOwn(record, "x"); }`,
       `for (; Object.hasOwn; Object.hasOwn(record, "x")) { Object.hasOwn = undefined; }`,
     ]) {
-      assertInvalid(code, "no-object-hasown", { messageId: "unsupported" }, ZURICH_ES2021);
+      expectInvalid(code, undefined, ZURICH_ES2021);
     }
   });
 
-  it("does not apply a definition-site guard across a function boundary", () => {
-    assertInvalid(
+  it("does not apply a definition-site guard across a function boundary", () =>
+    void expectInvalid(
       `if (Object.hasOwn) {
   function owns(record) { return Object.hasOwn(record, "x"); }
 }`,
-      "no-object-hasown",
-      { messageId: "unsupported" },
+      undefined,
       ZURICH_ES2021,
-    );
-  });
+    ));
 
   it("conservatively treats possible Object replacements as whole-file taint", () => {
     for (const code of [
@@ -1025,7 +816,7 @@ Object.defineProperty(Object, "hasOwn", { value: polyfill }); Object.hasOwn(reco
       `const targets = { primary: Object }; install(targets); Object.hasOwn(record, "x");`,
       `new Installer(Object); Object.hasOwn(record, "x");`,
     ]) {
-      assertValid(code, "no-object-hasown", ZURICH_ES2021);
+      expectValid(code, ZURICH_ES2021);
     }
     for (const code of [
       `Reflect.set(Object, "hasOwn", polyfill); Object.hasOwn(record, "x");`,
@@ -1042,137 +833,86 @@ Object.defineProperty(Object, "hasOwn", { value: polyfill }); Object.hasOwn(reco
       `inspect(Object.hasOwn); Object.hasOwn(record, "x");`,
       `Object.freeze(Object); Object.hasOwn(record, "x");`,
     ]) {
-      assertInvalid(code, "no-object-hasown", { messageId: "unsupported" }, ZURICH_ES2021);
+      expectInvalid(code, undefined, ZURICH_ES2021);
     }
-    assertInvalid(
+    expectInvalid(
       `globalThis.Object.defineProperty(Object, "hasOwn", { value: function () {} }); Object.hasOwn(record, "x");`,
-      "no-object-hasown",
-      { messageId: "unsupported" },
-      AUSTRALIA_ES5,
     );
   });
 });
 
 describe("no-unsupported-syntax", () => {
-  it("flags optional chaining", () => {
-    assertInvalid(
-      `var name = current.caller_id?.name;`,
-      "no-unsupported-syntax",
-      {
-        messageId: "optional",
-      },
-      { settings: ES5 },
-    );
-  });
+  const { expectInvalid, expectValid, expectSkipped } = ruleTester(
+    "no-unsupported-syntax",
+    { settings: ES5 },
+    { messageId: "privateInstance" },
+  );
 
-  it("flags nullish coalescing", () => {
-    assertInvalid(
-      `var name = value ?? "unknown";`,
-      "no-unsupported-syntax",
-      {
-        messageId: "nullish",
-      },
-      { settings: ES5 },
-    );
-  });
+  it("flags optional chaining", () =>
+    void expectInvalid(`var name = current.caller_id?.name;`, {
+      messageId: "optional",
+    }));
 
-  it("flags logical assignment", () => {
-    assertInvalid(
-      `cache ||= {};`,
-      "no-unsupported-syntax",
-      { messageId: "logicalAssign" },
-      {
-        settings: ES5,
-      },
-    );
-  });
+  it("flags nullish coalescing", () =>
+    void expectInvalid(`var name = value ?? "unknown";`, {
+      messageId: "nullish",
+    }));
 
-  it("flags private class members", () => {
-    assertInvalid(
-      `class C { #hidden = 1; }`,
-      "no-unsupported-syntax",
-      {
-        messageId: "privateInstance",
-      },
-      { settings: ES5 },
-    );
-  });
+  it("flags logical assignment", () =>
+    void expectInvalid(`cache ||= {};`, { messageId: "logicalAssign" }));
+
+  it("flags private class members", () => void expectInvalid(`class C { #hidden = 1; }`));
 
   it("flags private instance members in both ES2021 releases and with omitted mode", () => {
     for (const release of ["zurich", "australia"] as const) {
-      assertInvalid(
-        `class C { #hidden() {} }`,
-        "no-unsupported-syntax",
-        { messageId: "privateInstance" },
-        { settings: { javascriptMode: "es2021", release } },
-      );
+      expectInvalid(`class C { #hidden() {} }`, undefined, {
+        settings: { javascriptMode: "es2021", release },
+      });
     }
-    assertInvalid(
-      `class C { get #hidden() { return 1; } }`,
-      "no-unsupported-syntax",
-      { messageId: "privateInstance" },
-      { settings: { release: "australia" } },
-    );
+    expectInvalid(`class C { get #hidden() { return 1; } }`, undefined, {
+      settings: { release: "australia" },
+    });
   });
 
   it("allows private static members in ES2021", () => {
     for (const release of ["zurich", "australia"] as const) {
-      assertValid(`class C { static #hidden = 1; }`, "no-unsupported-syntax", {
+      expectValid(`class C { static #hidden = 1; }`, {
         settings: { javascriptMode: "es2021", release },
       });
     }
   });
 
-  it("flags regexp lookbehind", () => {
-    assertInvalid(
-      `var r = /(?<=@)\\w+/;`,
-      "no-unsupported-syntax",
-      { messageId: "lookbehind" },
-      {
-        settings: ES5,
-      },
-    );
-  });
+  it("flags regexp lookbehind", () =>
+    void expectInvalid(`var r = /(?<=@)\\w+/;`, { messageId: "lookbehind" }));
 
-  it("flags new RegExp lookbehind", () => {
-    assertInvalid(
-      `var r = new RegExp("(?<=a)b");`,
-      "no-unsupported-syntax",
-      {
-        messageId: "lookbehind",
-      },
-      { settings: ES5 },
-    );
-  });
+  it("flags new RegExp lookbehind", () =>
+    void expectInvalid(`var r = new RegExp("(?<=a)b");`, {
+      messageId: "lookbehind",
+    }));
 
-  it("allows named capture groups and lookahead", () => {
-    assertValid(`var r = /(?<name>a)(?=b)/;`, "no-unsupported-syntax");
-  });
+  it("allows named capture groups and lookahead", () =>
+    void expectValid(`var r = /(?<name>a)(?=b)/;`, {}));
 
-  it("skips Fluent metadata files", () => {
-    assertSkipped(`const name = current?.caller_id ?? "x";`, "no-unsupported-syntax", {
+  it("skips Fluent metadata files", () =>
+    void expectSkipped(`const name = current?.caller_id ?? "x";`, {
       filename: "table.now.ts",
-    });
-  });
+    }));
 });
 
 describe("no-sync-glideajax", () => {
-  it("flags getXMLWait", () => {
-    assertInvalid(
-      `var ga = new GlideAjax("x_acme.UserUtils");\nvar xml = ga.getXMLWait();`,
-      "no-sync-glideajax",
-      { messageId: "wait" },
-      { filename: "incident.client.js" },
-    );
-  });
+  const { expectInvalid, expectValid, expectActive } = ruleTester(
+    "no-sync-glideajax",
+    { filename: "incident.client.js" },
+    { messageId: "wait" },
+  );
 
-  it("allows getXMLAnswer", () => {
-    assertValid(
+  it("flags getXMLWait", () =>
+    void expectInvalid(`var ga = new GlideAjax("x_acme.UserUtils");\nvar xml = ga.getXMLWait();`));
+
+  it("allows getXMLAnswer", () =>
+    void expectValid(
       `var ga = new GlideAjax("x_acme.UserUtils");\nga.getXMLAnswer(function (answer) { g_form.setValue("x", answer); });`,
-      "no-sync-glideajax",
-      { filename: "incident.client.js" },
-    );
-  });
+    ));
 
   it("stays silent when getXMLWait no longer has platform identity", () => {
     for (const code of [
@@ -1189,7 +929,7 @@ ga.getXMLWait();`,
 var ga = new GlideAjax("x_acme.UserUtils");
 ga.getXMLWait();`,
     ]) {
-      assertValidActive(code, "no-sync-glideajax", { filename: "incident.client.js" });
+      expectActive(code);
     }
   });
 });

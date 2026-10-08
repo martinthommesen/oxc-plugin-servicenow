@@ -9,26 +9,24 @@ describe("surfacesFromFilename", () => {
     assert.equal(authoringFromFilename("incident.br.js"), undefined);
   });
 
-  it("keeps a UI Action bare rather than guessing a client surface", () => {
-    assert.deepEqual(surfacesFromFilename("src/ui-actions/close.ui-action.js"), ["ui-action"]);
-  });
+  it("keeps a UI Action bare rather than guessing a client surface", () =>
+    void assert.deepEqual(surfacesFromFilename("src/ui-actions/close.ui-action.js"), [
+      "ui-action",
+    ]));
 
-  it("recognizes client scripts from the filename", () => {
-    assert.deepEqual(surfacesFromFilename("incident.client.js"), ["client"]);
-  });
+  it("recognizes client scripts from the filename", () =>
+    void assert.deepEqual(surfacesFromFilename("incident.client.js"), ["client"]));
 
   it("recognizes business rules", () => {
     assert.deepEqual(surfacesFromFilename("incident.br.js"), ["business-rule"]);
     assert.deepEqual(surfacesFromFilename("display-stuff.br.js"), ["business-rule"]);
   });
 
-  it("returns no surface for a name that carries no evidence", () => {
-    assert.deepEqual(surfacesFromFilename("misc.js"), []);
-  });
+  it("returns no surface for a name that carries no evidence", () =>
+    void assert.deepEqual(surfacesFromFilename("misc.js"), []));
 
-  it("recognizes ServiceNow client-script export filenames", () => {
-    assert.deepEqual(surfacesFromFilename("sys_script_client_onchange.js"), ["client"]);
-  });
+  it("recognizes ServiceNow client-script export filenames", () =>
+    void assert.deepEqual(surfacesFromFilename("sys_script_client_onchange.js"), ["client"]));
 
   it("classifies sys_script.js as a Business Rule", () => {
     assert.deepEqual(surfacesFromFilename("export/sys_script.js"), ["business-rule"]);
@@ -93,13 +91,11 @@ describe("surfacesFromFilename", () => {
     assert.deepEqual(surfacesFromFilename("/home/alice/client/app/src/list.js"), []);
   });
 
-  it("recognizes Script Include filenames", () => {
-    assert.deepEqual(surfacesFromFilename("util.si.js"), ["script-include"]);
-  });
+  it("recognizes Script Include filenames", () =>
+    void assert.deepEqual(surfacesFromFilename("util.si.js"), ["script-include"]));
 
-  it("classifies Windows server paths", () => {
-    assert.deepEqual(surfacesFromFilename("src\\server\\thing.js"), ["server"]);
-  });
+  it("classifies Windows server paths", () =>
+    void assert.deepEqual(surfacesFromFilename("src\\server\\thing.js"), ["server"]));
 
   it("prefers a specific subtype over a generic server directory", () => {
     assert.deepEqual(surfacesFromFilename("src/server/incident.br.js"), ["business-rule"]);

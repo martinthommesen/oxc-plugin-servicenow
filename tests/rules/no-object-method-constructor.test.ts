@@ -1,9 +1,7 @@
+import { ruleTester } from "../helpers/rule-tester.js";
 import { describe, it } from "node:test";
 import {
   assertDeclinesNonServerSurfaces,
-  assertInvalid,
-  assertValid,
-  assertValidActive,
   AUSTRALIA_ES2021,
   ZURICH_ES2021,
 } from "../helpers/rule-tester.js";
@@ -11,6 +9,12 @@ import {
 const RULE = "no-object-method-constructor" as const;
 
 describe(RULE, () => {
+  const { expectInvalid, expectValid, expectActive } = ruleTester(
+    "no-object-method-constructor",
+    AUSTRALIA_ES2021,
+    { messageId: "notConstructor" },
+  );
+
   it("reports direct and stable object-method constructions in Australia", () => {
     for (const code of [
       `new ({ create() {} }).create();`,
@@ -32,45 +36,37 @@ new definitions.create();`,
       `const definitions = { [dynamicKey]: replacement, create() {} };
 new definitions.create();`,
     ]) {
-      assertInvalid(code, RULE, { messageId: "notConstructor" }, AUSTRALIA_ES2021);
+      expectInvalid(code);
     }
   });
 
-  it("reports every proven construction from one stable object", () => {
-    assertInvalid(
+  it("reports every proven construction from one stable object", () =>
+    void expectInvalid(
       `const definitions = { create() {} };
 new definitions.create();
 const Constructor = definitions.create;
 new Constructor();`,
-      RULE,
       { messageId: "notConstructor", count: 2 },
-      AUSTRALIA_ES2021,
-    );
-  });
+    ));
 
   it("propagates long object alias chains in one pass", () => {
     const aliases = Array.from(
       { length: 1_000 },
       (_, index) => `const alias${index + 1} = alias${index};`,
     );
-    assertInvalid(
+    expectInvalid(
       `const alias0 = { create() {} };\n${aliases.join("\n")}\nnew alias1000.create();`,
-      RULE,
-      { messageId: "notConstructor" },
-      AUSTRALIA_ES2021,
     );
   });
 
-  it("ignores erased TypeScript references when proving object stability", () => {
-    assertInvalid(
+  it("ignores erased TypeScript references when proving object stability", () =>
+    void expectInvalid(
       `const definitions = { create() {} };
 type Definitions = typeof definitions;
 new definitions.create();`,
-      RULE,
-      { messageId: "notConstructor" },
+      undefined,
       { filename: "factory.server.ts", settings: AUSTRALIA_ES2021.settings },
-    );
-  });
+    ));
 
   it("distinguishes constructible function-valued properties and final overrides", () => {
     for (const code of [
@@ -87,7 +83,7 @@ new definitions.create();`,
       `function Constructor() {}
 new Constructor();`,
     ]) {
-      assertValid(code, RULE, AUSTRALIA_ES2021);
+      expectValid(code);
     }
   });
 
@@ -129,20 +125,20 @@ new Definitions.prototype.create();`,
 const definitions = { create() {} };
 new definitions.create();`,
     ]) {
-      assertValidActive(code, RULE, AUSTRALIA_ES2021);
+      expectActive(code);
     }
   });
 
   it("follows the Australia ES2021 release boundary", () => {
     const code = `const definitions = { create() {} };
 new definitions.create();`;
-    assertInvalid(code, RULE, { messageId: "notConstructor" }, AUSTRALIA_ES2021);
-    assertValid(code, RULE, ZURICH_ES2021);
-    assertValid(code, RULE, { settings: { javascriptMode: "es2021" } });
-    assertValid(code, RULE, {
+    expectInvalid(code);
+    expectValid(code, ZURICH_ES2021);
+    expectValid(code, { settings: { javascriptMode: "es2021" } });
+    expectValid(code, {
       settings: { javascriptMode: "es5", release: "australia" },
     });
-    assertValid(code, RULE, {
+    expectValid(code, {
       settings: { javascriptMode: "compatibility", release: "australia" },
     });
   });

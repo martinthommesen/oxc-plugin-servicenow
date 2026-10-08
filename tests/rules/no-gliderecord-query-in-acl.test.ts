@@ -1,91 +1,61 @@
+import { ruleTester } from "../helpers/rule-tester.js";
 import { describe, it } from "node:test";
-import {
-  ACL,
-  assertInvalid,
-  assertSkipped,
-  assertValid,
-  assertValidActive,
-} from "../helpers/rule-tester.js";
-
-const RULE = "no-gliderecord-query-in-acl" as const;
+import { ACL } from "../helpers/rule-tester.js";
 
 describe("no-gliderecord-query-in-acl", () => {
+  const { expectInvalid, expectValid, expectSkipped, expectActive } = ruleTester(
+    "no-gliderecord-query-in-acl",
+    ACL,
+    { messageId: "query" },
+  );
+
   it("reports documented GlideRecord query executors", () => {
     for (const method of ["query", "_query", "get"] as const) {
-      assertInvalid(
+      expectInvalid(
         `var user = new GlideRecord("sys_user");
 user.${method}("abc");`,
-        RULE,
         { messageId: "query", includes: method },
-        ACL,
       );
     }
   });
 
   it("reports GlideRecordSecure and GlideAggregate queries", () => {
-    assertInvalid(
+    expectInvalid(
       `var user = new GlideRecordSecure("sys_user");
 user.query();`,
-      RULE,
       { messageId: "query", includes: "GlideRecord" },
-      ACL,
     );
-    assertInvalid(
+    expectInvalid(
       `var count = new GlideAggregate("incident");
 count.addAggregate("COUNT");
 count.query();`,
-      RULE,
       { messageId: "query", includes: "GlideAggregate" },
-      ACL,
     );
   });
 
-  it("reports query executors on the authoritative current record and its aliases", () => {
-    assertInvalid(
+  it("reports query executors on the authoritative current record and its aliases", () =>
+    void expectInvalid(
       `current.query();
 var record = current;
 record.get("abc");`,
-      RULE,
       { messageId: "query", count: 2, includes: "GlideRecord" },
-      ACL,
-    );
-  });
+    ));
 
   it("tracks aliases, static computed members, and all-path object joins", () => {
-    assertInvalid(
-      `var user = new GlideRecord("sys_user");
+    expectInvalid(`var user = new GlideRecord("sys_user");
 var record = user;
-record["query"]();`,
-      RULE,
-      { messageId: "query" },
-      ACL,
-    );
-    assertInvalid(
-      `var record;
+record["query"]();`);
+    expectInvalid(`var record;
 if (active) record = new GlideRecord("incident");
 else record = new GlideRecord("task");
-record.query();`,
-      RULE,
-      { messageId: "query" },
-      ACL,
-    );
+record.query();`);
   });
 
   it("follows directly invoked helpers with call-time aliases", () => {
-    assertInvalid(
-      `function load(record) { record.query(); }
+    expectInvalid(`function load(record) { record.query(); }
 var user = new GlideRecord("sys_user");
-load(user);`,
-      RULE,
-      { messageId: "query" },
-      ACL,
-    );
-    assertInvalid(
-      `(function (record) { record.get("abc"); })(new GlideRecord("sys_user"));`,
-      RULE,
-      { messageId: "query" },
-      ACL,
-    );
+load(user);`);
+    expectInvalid(`(function (record) { record.get("abc"); })(new GlideRecord("sys_user"));`);
   });
 
   it("uses filename and explicit ACL surface evidence", () => {
@@ -95,37 +65,27 @@ load(user);`,
       "sys_security_acl_read.mjs",
       "src/access-controls/read.js",
     ]) {
-      assertInvalid(
-        `var user = new GlideRecord("sys_user"); user.query();`,
-        RULE,
-        { messageId: "query" },
-        { filename },
-      );
+      expectInvalid(`var user = new GlideRecord("sys_user"); user.query();`, undefined, {
+        filename,
+      });
     }
-    assertInvalid(
-      `var user = new GlideRecord("sys_user"); user.query();`,
-      RULE,
-      { messageId: "query" },
-      { filename: "exported-script.js", settings: { surfaces: ["acl"] } },
-    );
+    expectInvalid(`var user = new GlideRecord("sys_user"); user.query();`, undefined, {
+      filename: "exported-script.js",
+      settings: { surfaces: ["acl"] },
+    });
   });
 
   it("recognizes global-only queryNoDomain only with proven scope and release", () => {
     const code = `var user = new GlideRecord("sys_user"); user.queryNoDomain();`;
-    assertInvalid(
-      code,
-      RULE,
-      { messageId: "query" },
-      {
-        ...ACL,
-        settings: { scope: "global", release: "australia" },
-      },
-    );
-    assertValid(code, RULE, {
+    expectInvalid(code, undefined, {
+      ...ACL,
+      settings: { scope: "global", release: "australia" },
+    });
+    expectValid(code, {
       ...ACL,
       settings: { scope: "unknown", release: "australia" },
     });
-    assertValid(code, RULE, {
+    expectValid(code, {
       ...ACL,
       settings: { scope: "scoped", release: "australia" },
     });
@@ -133,85 +93,53 @@ load(user);`,
 
   it("stays silent outside a known ACL surface", () => {
     const code = `var user = new GlideRecord("sys_user"); user.query();`;
-    assertSkipped(code, RULE, { filename: "helper.server.js" });
-    assertSkipped(code, RULE, { filename: "unknown.js" });
-    assertSkipped(code, RULE, { filename: "table.now.ts" });
+    expectSkipped(code, { filename: "helper.server.js" });
+    expectSkipped(code, { filename: "unknown.js" });
+    expectSkipped(code, { filename: "table.now.ts" });
   });
 
   it("ignores unrelated and shadowed constructors", () => {
-    assertValidActive(`var user = { query: function () {} }; user.query();`, RULE, ACL);
-    assertValidActive(
-      `function GlideRecord() { this.query = function () {}; }
+    expectActive(`var user = { query: function () {} }; user.query();`);
+    expectActive(`function GlideRecord() { this.query = function () {}; }
 var user = new GlideRecord("sys_user");
-user.query();`,
-      RULE,
-      ACL,
-    );
-    assertValidActive(
-      `function check(GlideAggregate) {
+user.query();`);
+    expectActive(`function check(GlideAggregate) {
   var count = new GlideAggregate("incident");
   count.query();
 }
-check(LocalAggregate);`,
-      RULE,
-      ACL,
-    );
+check(LocalAggregate);`);
   });
 
   it("stays silent after reassignment or escape", () => {
-    assertValidActive(
-      `var user = new GlideRecord("sys_user");
+    expectActive(`var user = new GlideRecord("sys_user");
 user = customRecord;
-user.query();`,
-      RULE,
-      ACL,
-    );
-    assertValidActive(
-      `var user = new GlideRecord("sys_user");
+user.query();`);
+    expectActive(`var user = new GlideRecord("sys_user");
 prepare(user);
-user.query();`,
-      RULE,
-      ACL,
-    );
-    assertValidActive(
-      `var user = new GlideRecord("sys_user");
+user.query();`);
+    expectActive(`var user = new GlideRecord("sys_user");
 holder.record = user;
-user.query();`,
-      RULE,
-      ACL,
-    );
+user.query();`);
   });
 
   it("skips uncalled, generator, and deferred helper bodies", () => {
-    assertValidActive(
-      `function load() {
+    expectActive(`function load() {
   var user = new GlideRecord("sys_user");
   user.query();
-}`,
-      RULE,
-      ACL,
-    );
-    assertValidActive(
-      `function* load() {
+}`);
+    expectActive(`function* load() {
   var user = new GlideRecord("sys_user");
   user.query();
 }
-load();`,
-      RULE,
-      ACL,
-    );
-    assertValidActive(
-      `scheduleLater(function () {
+load();`);
+    expectActive(`scheduleLater(function () {
   var user = new GlideRecord("sys_user");
   user.query();
-});`,
-      RULE,
-      ACL,
-    );
+});`);
   });
 
   it("stops directly invoked async helpers at their first suspension", () => {
-    assertInvalid(
+    expectInvalid(
       `async function load() {
   var before = new GlideRecord("sys_user");
   before.query();
@@ -220,24 +148,18 @@ load();`,
   after.query();
 }
 load();`,
-      RULE,
       { messageId: "query", count: 1, includes: "before" },
-      ACL,
     );
-    assertValid(
-      `async function load() {
+    expectValid(`async function load() {
   await later();
   var user = new GlideRecord("sys_user");
   user.query();
 }
-load();`,
-      RULE,
-      ACL,
-    );
+load();`);
   });
 
   it("treats for-await iteration as an asynchronous suspension", () => {
-    assertInvalid(
+    expectInvalid(
       `async function load() {
   var before = new GlideRecord("sys_user");
   before.query();
@@ -247,26 +169,21 @@ load();`,
   current.query();
 }
 load();`,
-      RULE,
       { messageId: "query", count: 1, includes: "before" },
-      ACL,
     );
-    assertInvalid(
+    expectInvalid(
       `async function load() {
   for await (var row of (current.query(), rows)) {
     current.query();
   }
 }
 load();`,
-      RULE,
       { messageId: "query", count: 1, includes: "current" },
-      ACL,
     );
   });
 
   it("keeps suspended calls out of the immediate path and resumes the caller", () => {
-    assertValid(
-      `async function load() {
+    expectValid(`async function load() {
   var user = new GlideRecord("sys_user");
   try {
     await pending;
@@ -274,27 +191,18 @@ load();`,
     user.query();
   }
 }
-load();`,
-      RULE,
-      ACL,
-    );
-    assertValid(
-      `async function load() {
+load();`);
+    expectValid(`async function load() {
   var user = new GlideRecord("sys_user");
   user.get(await id());
 }
-load();`,
-      RULE,
-      ACL,
-    );
-    assertInvalid(
+load();`);
+    expectInvalid(
       `async function load() { await later(); }
 load();
 var user = new GlideRecord("sys_user");
 user.query();`,
-      RULE,
       { messageId: "query", count: 1, includes: "user" },
-      ACL,
     );
     for (const assignment of [
       "user = await later()",
@@ -304,55 +212,39 @@ user.query();`,
       "user = first ? (second ? await later() : user) : user",
       "user = user && (condition ? await later() : user)",
     ]) {
-      assertInvalid(
+      expectInvalid(
         `var user = new GlideRecord("sys_user");
 async function replace() {
   ${assignment};
 }
 replace();
 user.query();`,
-        RULE,
         { messageId: "query", count: 1, includes: "user" },
-        ACL,
       );
     }
     for (const operator of ["=", "&&="] as const) {
-      assertValid(
-        `var user = new GlideRecord("sys_user");
+      expectValid(`var user = new GlideRecord("sys_user");
 async function replace() {
   user ${operator} condition ? await later() : replacement;
 }
 replace();
-user.query();`,
-        RULE,
-        ACL,
-      );
+user.query();`);
     }
-    assertInvalid(
+    expectInvalid(
       `async function load() { throw failure; }
 load();
 var user = new GlideRecord("sys_user");
 user.query();`,
-      RULE,
       { messageId: "query", count: 1, includes: "user" },
-      ACL,
     );
   });
 
   it("does not guess undocumented aggregate executors", () => {
-    assertValid(
-      `var count = new GlideAggregate("incident");
+    expectValid(`var count = new GlideAggregate("incident");
 count.get("abc");
-count._query();`,
-      RULE,
-      ACL,
-    );
-    assertValid(
-      `var user = new GlideRecord("sys_user");
-user.getAsync("abc");`,
-      RULE,
-      ACL,
-    );
+count._query();`);
+    expectValid(`var user = new GlideRecord("sys_user");
+user.getAsync("abc");`);
   });
 
   it("suppresses current diagnostics after its method authority is lost", () => {
@@ -366,7 +258,7 @@ current.query();`,
       `function check(current) { current.query(); }
 check(localRecord);`,
     ]) {
-      assertValid(code, RULE, ACL);
+      expectValid(code);
     }
   });
 
@@ -379,27 +271,19 @@ current.query();`,
 if (condition) gs.info("branch");
 current.query();`,
     ]) {
-      assertValid(code, RULE, ACL);
+      expectValid(code);
     }
   });
 
   it("does not report unreachable query calls", () => {
-    assertValid(
-      `if (false) {
+    expectValid(`if (false) {
   var user = new GlideRecord("sys_user");
   user.query();
-}`,
-      RULE,
-      ACL,
-    );
-    assertValid(
-      `(function () {
+}`);
+    expectValid(`(function () {
   return;
   var user = new GlideRecord("sys_user");
   user.query();
-})();`,
-      RULE,
-      ACL,
-    );
+})();`);
   });
 });
