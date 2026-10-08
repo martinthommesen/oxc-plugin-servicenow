@@ -112,6 +112,8 @@ Destructive verifier cleanup checks every existing component from the repository
 
 The `oxlint` and `oxfmt` peer ranges span only the tested minor lines, and every `typescript-eslint` floor the matrix forbids with ESLint 10 stays documented on the compatibility page (FINDINGS.md OPS-011).
 
+Root peer-dependency metadata in [package-lock.json](../package-lock.json) must match [package.json](../package.json), including the narrow Oxlint range. Contributor toolchain updates must preserve the consumer ranges validated by [the compatibility matrix](../scripts/compat-matrix.json).
+
 Hand-written upgrade prose is bound to the same contract: `docs/migration-3.0.md` quotes the declared ranges and links the compatibility page rather than promising newer minor lines (FINDINGS.md DOC-006).
 
 `scripts/check-compat-matrix.mjs` pins each published TypeScript value to a proving cell. The nightly `compat-advisory` CI job re-resolves the top of each declared range through `node scripts/compat-consumer.mjs --top` without gating, and the range-coverage test asserts every declared endpoint has a cell.
