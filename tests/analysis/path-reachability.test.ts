@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { lintWithAnalysis } from "../helpers/rule-tester.js";
+import { lintWithAnalysis, parse } from "../helpers/rule-tester.js";
+import { constantValue } from "../../src/analysis/constant-value.js";
 
 function missingQueries(code: string): number {
   const { messages, analysis } = lintWithAnalysis(code, "require-query-before-next");
@@ -107,12 +108,15 @@ describe("callable execution state", () => {
   });
 
   it("captures unknown and known callees before arguments replace their bindings", () => {
-    for (const init of ["external", "function () {}"])
+    for (const [init, expected] of [
+      ["external", 0],
+      ["function () {}", 1],
+    ] as const)
       assert.equal(
         missingQueries(
           `var gr = new GlideRecord("incident"); var run = ${init}; run(run = function () { gr.query(); }); gr.next();`,
         ),
-        1,
+        expected,
       );
     assert.equal(
       missingQueries(
@@ -173,6 +177,83 @@ describe("callable execution state", () => {
       ),
       1,
     ));
+});
+
+// @lat: [[tests#Analysis behavior#Return and throw escape evaluated values]]
+describe("return and throw escape order", () => {
+  for (const completion of ["return", "throw"]) {
+    const invocation =
+      completion === "return"
+        ? "allocate(); gr.next();"
+        : "try { allocate(); } catch (error) { gr.next(); }";
+    for (const expression of [
+      '(gr = new GlideRecord("task"))',
+      '(gr = new GlideRecord("task"), gr)',
+      'true ? (gr = new GlideRecord("task")) : 0',
+      'false ? 0 : (gr = new GlideRecord("task"))',
+      'true && (gr = new GlideRecord("task"))',
+      'false || (gr = new GlideRecord("task"))',
+      'null ?? (gr = new GlideRecord("task"))',
+    ]) {
+      it(`escapes a captured allocation in ${completion} ${expression}`, () => {
+        assert.equal(
+          missingQueries(
+            `var gr; function allocate() { ${completion} ${expression}; } ${invocation}`,
+          ),
+          0,
+        );
+      });
+    }
+
+    it(`diagnoses cursor advances evaluated before ${completion} escapes the value`, () => {
+      assert.equal(
+        missingQueries(
+          `var gr = new GlideRecord("task"); function expose() { ${completion} (gr.next(), gr); } try { expose(); } catch (error) {}`,
+        ),
+        1,
+      );
+    });
+
+    for (const body of [
+      `gr = new GlideRecord("task"); ${completion} 0;`,
+      `${completion} (gr = new GlideRecord("task"), 0);`,
+      `${completion} true ? (gr = new GlideRecord("task"), 0) : gr;`,
+      `${completion} false ? gr : (gr = new GlideRecord("task"), 0);`,
+      `${completion} ((gr = new GlideRecord("task"), true) || gr);`,
+      `${completion} ((gr = new GlideRecord("task"), false) && gr);`,
+      `${completion} ((gr = new GlideRecord("task"), 0) ?? gr);`,
+      `${completion} ((0, (gr = new GlideRecord("task"), true)) || gr);`,
+      `var scalar = 0; ${completion} (scalar += (gr = new GlideRecord("task")));`,
+      `var scalar = 0; ${completion} (scalar -= (gr = new GlideRecord("task")));`,
+    ]) {
+      it(`retains a captured allocation in ${body}`, () => {
+        assert.equal(missingQueries(`var gr; function allocate() { ${body} } ${invocation}`), 1);
+      });
+    }
+  }
+
+  it("recognizes nested sequence values within bounded work", () => {
+    for (const [depth, expected] of [
+      [3, { truthy: true, nullish: false }],
+      [256, null],
+    ] as const) {
+      const statement = parse(`${"(0, ".repeat(depth)}true${")".repeat(depth)};`).ast.body[0];
+      assert.ok(statement?.type === "ExpressionStatement");
+      assert.deepEqual(constantValue(statement.expression), expected);
+    }
+  });
+
+  for (const completion of ["return", "throw"]) {
+    for (const closure of ["function () { gr.query(); }", "() => gr.query()"])
+      it(`escapes captures when ${completion} selects ${closure}`, () => {
+        assert.equal(
+          missingQueries(
+            `var gr = new GlideRecord("task"); var fn = function () { gr.query(); }; function expose() { try { ${completion} (fn, ${closure}); } finally { gr.next(); } } expose();`,
+          ),
+          0,
+        );
+      });
+  }
 });
 
 // @lat: [[tests#Analysis behavior#Constant expressions retain the selected alias]]

@@ -46,6 +46,7 @@ import {
   type ScopeNode,
 } from "./bindings.js";
 import { isDefinitelyUndefinedValue, staticPropertyName } from "./members.js";
+import { constantValue, logicalRightOperandRuns } from "./constant-value.js";
 
 function scopeContains(scope: ScopeNode | null, block: ESTree.Node): boolean {
   let current = scope;
@@ -275,6 +276,10 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
     const expr = unwrapExpression(node);
     if (!isNode(expr)) return;
     switch (expr.type) {
+      case "FunctionExpression":
+      case "ArrowFunctionExpression":
+        escapeCaptured(state, expr);
+        return;
       case "Identifier": {
         const binding = resolveBinding(bindings, expr, ancestors);
         if (!binding) return;
@@ -321,21 +326,31 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
         return;
       case "ConditionalExpression": {
         const cond = expr as ESTree.ConditionalExpression;
+        const selected = constantValue(cond.test);
+        if (selected) {
+          markEscape(state, selected.truthy ? cond.consequent : cond.alternate);
+          return;
+        }
         markEscape(state, cond.consequent);
         markEscape(state, cond.alternate);
         return;
       }
       case "LogicalExpression": {
         const logical = expr as ESTree.LogicalExpression;
+        const rightRuns = logicalRightOperandRuns(logical);
+        if (rightRuns !== null) {
+          markEscape(state, rightRuns ? logical.right : logical.left);
+          return;
+        }
         markEscape(state, logical.left);
         markEscape(state, logical.right);
         return;
       }
       case "AssignmentExpression":
-        markEscape(state, (expr as ESTree.AssignmentExpression).right);
+        if (["=", "&&=", "||=", "??="].includes(expr.operator)) markEscape(state, expr.right);
         return;
       case "SequenceExpression":
-        for (const item of (expr as ESTree.SequenceExpression).expressions) markEscape(state, item);
+        markEscape(state, (expr as ESTree.SequenceExpression).expressions.at(-1));
         return;
       default:
         return;
@@ -829,14 +844,18 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
         break;
       }
       case "ReturnStatement":
-        markEscape(state, (node as ESTree.ReturnStatement).argument);
         visit((node as ESTree.ReturnStatement).argument, state, false);
-        if (state.completion === "normal") setCompletion(state, "return");
+        if (state.completion === "normal") {
+          markEscape(state, (node as ESTree.ReturnStatement).argument);
+          setCompletion(state, "return");
+        }
         break;
       case "ThrowStatement":
-        markEscape(state, (node as ESTree.ThrowStatement).argument);
         visit((node as ESTree.ThrowStatement).argument, state, false);
-        if (state.completion === "normal") setCompletion(state, "throw");
+        if (state.completion === "normal") {
+          markEscape(state, (node as ESTree.ThrowStatement).argument);
+          setCompletion(state, "throw");
+        }
         break;
       case "BreakStatement":
         setCompletion(state, "break", getName((node as ESTree.BreakStatement).label));

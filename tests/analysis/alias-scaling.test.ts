@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import type { ESTree } from "@oxlint/plugins";
 import { buildScopeTree } from "../../src/analysis/bindings.js";
 import { isNode, walk } from "../../src/utils/ast.js";
-import { lint, parse } from "../helpers/rule-tester.js";
+import { lint, lintWithAnalysis, parse } from "../helpers/rule-tester.js";
 import { assertSubQuadratic } from "../helpers/scaling.js";
 
 function aliasFixture(count: number): string {
@@ -39,6 +39,38 @@ function resolveScopeFixture(fixture: ReturnType<typeof scopeFixture>): void {
   for (const node of fixture.uses) assert.ok(tree.resolve(node.name, node));
 }
 
+function sequenceSelectorFixture(count: number): string {
+  let condition = "true";
+  for (let depth = 0; depth < 8; depth += 1) condition = `(0, ${condition})`;
+  return Array.from(
+    { length: count },
+    (_, index) => `function selector${index}() {
+  var queried = new GlideRecord("incident");
+  if (${condition}) queried.query();
+  queried.next();
+  var unopened${index} = new GlideRecord("task");
+  unopened${index}.next();
+}
+selector${index}();`,
+  ).join("\n");
+}
+
+function lintSequenceSelectors(source: string, count: number): void {
+  const { messages, analysis } = lintWithAnalysis(source, "require-query-before-next", {
+    filename: "selectors.br.js",
+  });
+  assert.equal(analysis.pathBudgetExhausted, false, "path budget exhausted; not a valid sample");
+  assert.equal(messages.length, count);
+  const reported = new Set(
+    messages.map(({ message, messageId }) => {
+      assert.equal(messageId, "missingQuery");
+      return /^`(unopened\d+)\.next\(\)`/u.exec(message)?.[1];
+    }),
+  );
+  assert.equal(reported.size, count);
+  for (let index = 0; index < count; index += 1) assert.ok(reported.has(`unopened${index}`));
+}
+
 // @lat: [[tests#Analysis behavior#Alias resolution scales linearly]]
 describe("alias scaling (FINDINGS.md PER-005)", () => {
   it("stays sub-quadratic when aliases and call sites quadruple", () => {
@@ -63,6 +95,19 @@ describe("alias scaling (FINDINGS.md PER-005)", () => {
       largeLabel: "2000 functions",
       small: () => resolveScopeFixture(small),
       large: () => resolveScopeFixture(large),
+    });
+  });
+
+  // @lat: [[tests#Analysis behavior#Nested sequence selectors scale with complete findings]]
+  it("stays sub-quadratic when nested sequence selectors quadruple with analysis active", () => {
+    const small = sequenceSelectorFixture(50);
+    const large = sequenceSelectorFixture(200);
+    assertSubQuadratic({
+      label: "nested sequence selector scaling",
+      smallLabel: "50 functions",
+      largeLabel: "200 functions",
+      small: () => lintSequenceSelectors(small, 50),
+      large: () => lintSequenceSelectors(large, 200),
     });
   });
 });

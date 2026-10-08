@@ -141,6 +141,10 @@ The measured growth is about n^1.5 against a 9x budget for 4x input, so the guar
 
 Nested loops sharing one cursor avoid repeated traversal through `(node, cursor-state)` memoization. Distinct cursor subsets instead obey [[tests#Analysis behavior#Independent retention work is bounded]] and can explicitly exhaust.
 
+### Nested sequence selectors scale with complete findings
+
+Quadrupling independent functions with nested sequence conditions stays sub-quadratic without exhausting path analysis. Every unopened cursor still reports once, while a query in the selected branch prevents a second finding.
+
 ### The path budget grows with the program
 
 An ordinary script must be analyzed completely: the budget scales with program size, so a longer file keeps producing findings instead of silently dropping them once a fixed work budget is spent (FINDINGS.md PER-003).
@@ -194,6 +198,18 @@ Mutable helper identities are cloned and joined with path state. Conditional rea
 A query performed before a no-op helper stays paired with that helper. Querying helpers retain the unopened branch they repair. Both branch orders and helper aliases prove every actual path queries without budget exhaustion.
 
 Conditional expression results retain their selected callable through outer assignments and aliases. Argument-created alternatives receive parameter bindings and call effects before joining; unopened controls continue to report.
+
+### Return and throw escape evaluated values
+
+Returned and thrown allocations lose trust after expression evaluation, including captured assignments and sequences. Cursor advances within those expressions remain diagnosed; exporting another value retains the captured object's trust.
+
+Real ESLint and Oxlint fixtures verify escaping allocations, cursor advances evaluated before escape, and retained trust when a sequence exports another value.
+
+Constant conditional and logical selectors export only the selected value, preserving trust when newly allocated records occur in evaluated operands but the result is scalar.
+
+Nested sequence classification is bounded and becomes unknown beyond the depth limit. Arithmetic compound assignments export primitive results, retaining trust in captured objects allocated on their right-hand side.
+
+Selected function and arrow literals escape their captured platform objects, including when they are returned or thrown through a sequence or passed to an unknown callee. Known no-op callees retain trusted captured state and remain diagnosable.
 
 ### Callable correlations remain bounded
 

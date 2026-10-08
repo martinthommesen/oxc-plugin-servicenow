@@ -1,5 +1,6 @@
 import type { ESTree } from "@oxlint/plugins";
 import { isNode, unwrapExpression } from "../utils/ast.js";
+import { MAX_PATH_DEPTH } from "./path-budget.js";
 
 /**
  * Truthiness and nullishness of an expression whose value is known from its
@@ -22,7 +23,11 @@ const ALWAYS_OBJECT_EXPRESSIONS = new Set([
 ]);
 
 export function constantValue(node: unknown): ConstantValue | null {
-  const expr = unwrapExpression(node);
+  let expr = unwrapExpression(node);
+  for (let depth = 0; isNode(expr) && expr.type === "SequenceExpression"; depth += 1) {
+    if (depth >= MAX_PATH_DEPTH) return null;
+    expr = unwrapExpression(expr.expressions.at(-1));
+  }
   if (!isNode(expr)) return null;
   if (expr.type === "Literal") {
     const literal = expr as unknown as { value?: unknown; regex?: unknown; bigint?: string };

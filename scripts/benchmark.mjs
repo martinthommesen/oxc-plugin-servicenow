@@ -200,6 +200,25 @@ worker${index}();`,
 }
 
 /**
+ * @param {number} count
+ * @returns {string}
+ */
+function sequenceSelectors(count) {
+  let condition = "flag";
+  for (let depth = 0; depth < 8; depth += 1) condition = `(0, ${condition})`;
+  return Array.from(
+    { length: count },
+    (_, index) => `function selector${index}(flag) {
+  var rec = new GlideRecord("incident");
+  if (${condition}) rec.setLimit(10);
+  rec.query();
+  rec.next();
+}
+selector${index}();`,
+  ).join("\n");
+}
+
+/**
  * @param {string} directory
  * @param {Record<string, unknown>} rules
  * @param {boolean} jsPlugins
@@ -249,6 +268,7 @@ function generateFixtures(directory) {
   writeFileSync(join(directory, "classic/nested.br.js"), nestedScopes(12));
   writeFileSync(join(directory, "classic/scopes.br.js"), scopeRich(100));
   writeFileSync(join(directory, "classic/helpers.br.js"), correlatedHelpers(20));
+  writeFileSync(join(directory, "classic/sequence-selectors.br.js"), sequenceSelectors(50));
   writeFileSync(join(directory, "fluent/large.now.ts"), fluentRecords(80));
   writeFileSync(join(directory, "fluent/aliases.now.ts"), fluentAliases(120));
   writeFileSync(join(directory, "classic/counters.br.js"), counterBlocks(40));
@@ -460,6 +480,12 @@ async function main() {
         "recommended",
         configs.recommended,
         [join(work, "classic/helpers.br.js")],
+      ],
+      [
+        "sequence-selectors/recommended",
+        "recommended",
+        configs.recommended,
+        [join(work, "classic/sequence-selectors.br.js")],
       ],
       [
         "fluent-large/recommended",

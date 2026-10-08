@@ -6,6 +6,11 @@
 
 - Consolidate generated rule documentation into one anchored reference, deduplicate Fluent SDK evidence, and split path and mutation analysis into focused modules. Retire historical PR #51 tracking and bind reusable test defaults without changing rule behavior.
 
+### Fixed
+
+- Evaluate return and throw expressions before marking their resulting platform objects escaped, preventing false positives on escaped allocations while preserving diagnostics for scalar results and expression effects.
+- Treat platform objects captured by escaping function and arrow literals as untrusted, matching named callbacks and suppressing false positives after an unknown callee receives them.
+
 ## 3.1.0 — 2026-10-07
 
 ### Added

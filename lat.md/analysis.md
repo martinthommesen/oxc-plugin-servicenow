@@ -79,7 +79,11 @@ States with different callable bindings retain their corresponding record states
 
 Expression-selected callable values remain correlated until the enclosing statement completes. Post-RHS assignments, parameter bindings and post-argument invocation effects execute on each normal alternative before joining; saved callee values retain JavaScript's evaluation order.
 
-[[src/analysis/constant-value.ts#constantValue]] supplies syntax-only truthiness and nullishness to path and availability analysis. It never infers runtime binding values. Benchmarks exercise used lexical bindings and correlated helper branches alongside nested scopes.
+Return and throw expressions are evaluated before their values escape. This preserves diagnostics during evaluation and prevents newly allocated captured objects from becoming trusted again after crossing a function or exception boundary. Escape tracking follows a sequence's final operand and statically selected conditional or logical values.
+
+Escaping function and arrow literals make their captured platform objects untrusted, just as named callbacks do. This applies both to exported values and callbacks passed to unknown callees; a known directly invoked helper retains its modeled effects.
+
+[[src/analysis/constant-value.ts#constantValue]] supplies syntax-only truthiness and nullishness to path and availability analysis, including nested sequence final operands within [[src/analysis/path-budget.ts#MAX_PATH_DEPTH]]. Deeper sequences and runtime binding values remain unknown; earlier operand effects still execute before branch selection. Benchmarks exercise used lexical bindings and correlated helper branches alongside nested scopes.
 
 Retention has its own deterministic counter for `(node, cursor-state)` traversal and set construction, because distinct cursors can defeat memoization. [[src/analysis/path-budget.ts#exhaustedPathAnalysis]] notifies the file owner and the finder discards its complete result.
 

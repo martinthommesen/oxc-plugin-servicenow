@@ -58,7 +58,52 @@ const cases = [
   {
     name: "unknown-callee-before-argument-write",
     code: `var gr = new GlideRecord("incident"); var run = external; run(run = function () { gr.query(); }); gr.next();`,
+    expected: [],
+  },
+  {
+    name: "returned-captured-allocation",
+    code: `var gr; function allocate() { return (gr = new GlideRecord("task")); } allocate(); gr.next();`,
+    expected: [],
+  },
+  {
+    name: "thrown-captured-allocation",
+    code: `var gr; function allocate() { throw (gr = new GlideRecord("task")); } try { allocate(); } catch (error) { gr.next(); }`,
+    expected: [],
+  },
+  {
+    name: "return-expression-cursor-advance",
+    code: `var gr = new GlideRecord("task"); function expose() { return (gr.next(), gr); } expose(); gr.next();`,
     expected: ["servicenow/require-query-before-next"],
+  },
+  {
+    name: "throw-expression-cursor-advance",
+    code: `var gr = new GlideRecord("task"); function expose() { throw (gr.next(), gr); } try { expose(); } catch (error) {}`,
+    expected: ["servicenow/require-query-before-next"],
+  },
+  {
+    name: "returned-sequence-keeps-captured-allocation",
+    code: `var gr; function allocate() { return (gr = new GlideRecord("task"), 0); } allocate(); gr.next();`,
+    expected: ["servicenow/require-query-before-next"],
+  },
+  {
+    name: "thrown-sequence-keeps-captured-allocation",
+    code: `var gr; function allocate() { throw (gr = new GlideRecord("task"), 0); } try { allocate(); } catch (error) { gr.next(); }`,
+    expected: ["servicenow/require-query-before-next"],
+  },
+  {
+    name: "returned-selected-allocation",
+    code: `var gr; function allocate() { return true ? (gr = new GlideRecord("task")) : 0; } allocate(); gr.next();`,
+    expected: [],
+  },
+  {
+    name: "thrown-logical-scalar-keeps-captured-allocation",
+    code: `var gr; function allocate() { throw ((gr = new GlideRecord("task"), 0) ?? gr); } try { allocate(); } catch (error) { gr.next(); }`,
+    expected: ["servicenow/require-query-before-next"],
+  },
+  {
+    name: "returned-selected-closure-escapes-capture",
+    code: `var gr = new GlideRecord("task"); var fn = function () { gr.query(); }; function expose() { return (fn, function () { gr.query(); }); } var exported = expose(); exported(); gr.next();`,
+    expected: [],
   },
 ];
 
