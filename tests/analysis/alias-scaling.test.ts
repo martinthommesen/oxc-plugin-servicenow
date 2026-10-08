@@ -150,6 +150,26 @@ function completeWithCalls(source: string): void {
   assert.equal(bulkCalls, 1);
 }
 
+function guardedHelperLookups(count: number): string {
+  return `function helper(run) { run &&= new GlideRecord("task").deleteMultiple(); }
+var gr = new GlideRecord("incident"); var alias;
+${"try { helper((alias = gr, false)); helper.call(null, true); void helper``; } catch {}\n".repeat(count)}
+alias.deleteMultiple();`;
+}
+
+function lintGuardedHelperLookups(source: string): void {
+  const { messages, analysis } = lintWithAnalysis(
+    source,
+    "no-unfiltered-gliderecord-bulk-operation",
+  );
+  assert.equal(analysis.pathBudgetExhausted, false, "path budget exhausted; not a valid sample");
+  assert.ok(messages.every((message) => message.messageId === "unfiltered"));
+  assert.deepEqual(
+    messages.map((message) => message.line).sort((left, right) => left - right),
+    [1, source.split("\n").length],
+  );
+}
+
 // @lat: [[tests#Analysis behavior#Alias resolution scales linearly]]
 describe("alias scaling (FINDINGS.md PER-005)", () => {
   it("stays sub-quadratic when aliases and call sites quadruple", () => {
@@ -217,6 +237,19 @@ describe("alias scaling (FINDINGS.md PER-005)", () => {
       largeLabel: "500 bodies",
       small: () => completeWithCalls(small),
       large: () => completeWithCalls(large),
+    });
+  });
+
+  // @lat: [[tests#Analysis behavior#Guarded local and opaque helper paths scale with complete findings]]
+  it("keeps guarded direct and opaque helper paths sub-quadratic with both findings", () => {
+    const small = guardedHelperLookups(125);
+    const large = guardedHelperLookups(500);
+    assertSubQuadratic({
+      label: "guarded helper lookup and inspection",
+      smallLabel: "125 handlers",
+      largeLabel: "500 handlers",
+      small: () => lintGuardedHelperLookups(small),
+      large: () => lintGuardedHelperLookups(large),
     });
   });
 });

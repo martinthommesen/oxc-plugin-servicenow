@@ -359,6 +359,19 @@ records.deleteMultiple();`;
  * @param {number} count
  * @returns {string}
  */
+function guardedHelperLookups(count) {
+  return `var selected = false;
+function helper(run) { run &&= gs.info(run); }
+${"try { helper(selected = false); helper.call(null, true); void helper``; } catch {}\n".repeat(count)}
+gs.info(selected);
+${glideRecordBlock(0)}
+rec0.deleteMultiple();`;
+}
+
+/**
+ * @param {number} count
+ * @returns {string}
+ */
 function sequenceSelectors(count) {
   let condition = "flag";
   for (let depth = 0; depth < 8; depth += 1) condition = `(0, ${condition})`;
@@ -453,6 +466,7 @@ function generateFixtures(directory) {
     inheritedStaticAccessorLookups(128, 500),
   );
   writeFileSync(join(directory, "classic/with-selector-scopes.br.js"), withSelectorScopes(500));
+  writeFileSync(join(directory, "classic/guarded-helper-lookups.br.js"), guardedHelperLookups(500));
   writeFileSync(join(directory, "fluent/large.now.ts"), fluentRecords(80));
   writeFileSync(join(directory, "fluent/aliases.now.ts"), fluentAliases(120));
   writeFileSync(join(directory, "classic/counters.br.js"), counterBlocks(40));
@@ -730,6 +744,12 @@ async function main() {
         "recommended",
         configs.recommended,
         [join(work, "classic/with-selector-scopes.br.js")],
+      ],
+      [
+        "guarded-helper-lookups/recommended",
+        "recommended",
+        configs.recommended,
+        [join(work, "classic/guarded-helper-lookups.br.js")],
       ],
       [
         "fluent-large/recommended",

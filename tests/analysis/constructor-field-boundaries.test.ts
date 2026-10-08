@@ -35,17 +35,17 @@ describe("explicit constructor field boundaries", () => {
       0,
     );
   });
-  for (const [name, constructor] of [
-    ["body throw", "constructor() { throw 0; }"],
-    ["parameter default throw", "constructor(value = fail()) {}"],
-    ["object return", "constructor() { return {}; }"],
-    ["destructured parameter", "constructor({value}) {}"],
-    ["rest parameter", "constructor(...values) {}"],
+  for (const [name, constructor, expected] of [
+    ["body throw", "constructor() { throw 0; }", 1],
+    ["parameter default throw", "constructor(value = fail()) {}", 1],
+    ["safe object return", "constructor() { return {}; }", 2],
+    ["destructured parameter", "constructor({value}) {}", 1],
+    ["rest parameter", "constructor(...values) {}", 1],
   ] as const) {
-    it(`retains base fields before an opaque ${name} but stops derived replay`, () => {
+    it(`retains base fields before ${name} and ${expected === 1 ? "stops" : "continues"} derived replay`, () => {
       findings(
         `function fail() { throw 0; } class Base { ${baseField} ${constructor} } class Derived extends Base { ${derivedField} } new Derived();`,
-        1,
+        expected,
       );
     });
   }

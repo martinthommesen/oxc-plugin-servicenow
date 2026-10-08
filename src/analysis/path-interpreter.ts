@@ -126,6 +126,7 @@ interface OwnStaticAccessors extends StaticAccessors {
 
 type ClassFieldReplay = "continue" | "opaque";
 type ClassConstructorReplay = ClassFieldReplay | "opaque-after-fields";
+type CallableEscapePolicy = "inspect" | "captures-only";
 
 interface ClassFieldPath<T> {
   readonly state: EnvState<T>;
@@ -244,6 +245,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
   let referenceWork = 0;
   const invokedFunctions = new WeakSet<ImmediateFunction>();
   const inspectedFunctions = new WeakSet<ImmediateFunction>();
+  const requiredFunctionInspections = new WeakSet<ImmediateFunction>();
   const inspectionFunctions = new WeakMap<ImmediateFunction, Map<BindingId, CallableValues>>();
   const pendingFunctions = new Map<ImmediateFunction, number>();
   const readyFunctions: ImmediateFunction[] = [];
@@ -394,6 +396,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
     return true;
   };
   let hasLogicalAssignments = false;
+  let hasWithStatement = false;
   let arrayIterationUncertain = false;
   let objectPrototypeUncertain = false;
   const constantBindings = new Set<BindingId>();
@@ -557,6 +560,10 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
         if (node.type === "AssignmentPattern")
           constantSources.push({ left: node.left, right: node.right });
       },
+      WithStatement() {
+        referenceWork += 1;
+        hasWithStatement = true;
+      },
       MemberExpression(node) {
         referenceWork += 1;
         if (node.type !== "MemberExpression") return;
@@ -706,8 +713,15 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
     }
   };
 
+  const hasInspectableFunctionSyntax = (fn: ImmediateFunction): boolean =>
+    fn.params.length > 0 || fn.body?.type !== "BlockStatement" || fn.body.body.length > 0;
+
   const deferFunctionInspection = (fn: ImmediateFunction, state: EnvState<T>): void => {
-    if (invokedFunctions.has(fn) || inspectedFunctions.has(fn)) return;
+    if (
+      (invokedFunctions.has(fn) && !requiredFunctionInspections.has(fn)) ||
+      inspectedFunctions.has(fn)
+    )
+      return;
     rememberInspectionFunctions(state, fn);
     if (pendingFunctions.has(fn)) return;
     let callers = 0;
@@ -722,6 +736,13 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
       if (count !== undefined) pendingFunctions.set(callee, count + 1);
     }
     if (!callers) readyFunctions.push(fn);
+  };
+
+  const requireFunctionInspection = (state: EnvState<T>, fn: ImmediateFunction): void => {
+    if (!analyzeUncalledFunctions || !hasInspectableFunctionSyntax(fn)) return;
+    spendWork(budget);
+    requiredFunctionInspections.add(fn);
+    deferFunctionInspection(fn, state);
   };
 
   const ensure = (state: EnvState<T>, objectId: ObjectId): SharedRecord<T> => {
@@ -956,8 +977,15 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
     }
   };
 
-  const escapeCaptured = (state: EnvState<T>, fn: ESTree.Node | ClassValue): void => {
-    if (isFunctionLike(fn)) rememberInspectionFunctions(state, fn);
+  const escapeCaptured = (
+    state: EnvState<T>,
+    fn: ESTree.Node | ClassValue,
+    inspection: CallableEscapePolicy = "inspect",
+  ): void => {
+    if (isFunctionLike(fn)) {
+      if (inspection === "inspect") requireFunctionInspection(state, fn);
+      else rememberInspectionFunctions(state, fn);
+    }
     forgetCapturedConstants(state, fn);
     const pending = captureRoots(state, fn);
     const seen = new Set<ESTree.Node | ClassValue>();
@@ -1218,7 +1246,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
       spendWork(budget, functions.size);
       for (const fn of functions) {
         capturesOf(fn, budget);
-        escapeCaptured(path, fn);
+        escapeCaptured(path, fn, "captures-only");
       }
       recordPossibleThrow(path);
     };
@@ -1742,6 +1770,26 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
     return true;
   };
 
+  const hasSafeLocalCalleeLookup = (state: EnvState<T>, callee: unknown): boolean => {
+    spendWork(budget);
+    if (!isNode(callee)) return false;
+    if (isFunctionLike(callee)) return true;
+    // A closure may retain a With environment after its creation scope exits.
+    // Keep identifier lookup conservative whenever this file can expose one.
+    if (hasWithStatement || callee.type !== "Identifier") return false;
+    const functions = functionsFromExpr(state, callee);
+    spendWork(budget, functions.length);
+    return functions.length > 0 && functions.every((fn) => fn !== undefined);
+  };
+
+  const recordCalleeLookupThrow = (state: EnvState<T>, callee: unknown): void => {
+    if (!tryThrowPaths.length) return;
+    const record = (path: EnvState<T>): void => {
+      if (!hasSafeLocalCalleeLookup(path, callee)) recordPossibleThrow(path);
+    };
+    if (!runCorrelated(state, record)) record(state);
+  };
+
   const visitMemberReference = (
     state: EnvState<T>,
     member: ESTree.MemberExpression,
@@ -1949,6 +1997,29 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
     ancestors.pop();
   };
 
+  const safeBaseConstructorReturn = (argument: ESTree.Node | null): boolean => {
+    let expression = argument;
+    for (let depth = 0; depth < MAX_PATH_DEPTH; depth += 1) {
+      spendWork(budget);
+      if (expression === null) return true;
+      if (TRANSPARENT_WRAPPER_TYPES.has(expression.type) && "expression" in expression) {
+        const inner = expression.expression;
+        if (!isNode(inner)) return false;
+        expression = inner;
+        continue;
+      }
+      if (expression.type === "Literal") return !("regex" in expression);
+      if (expression.type === "ObjectExpression") return expression.properties.length === 0;
+      if (expression.type === "ArrayExpression") return expression.elements.length === 0;
+      return (
+        isFunctionLike(expression) &&
+        expression.body?.type === "BlockStatement" &&
+        expression.body.body.length === 0
+      );
+    }
+    throw BUDGET_EXCEEDED;
+  };
+
   const constructorFieldReplay = (cls: ESTree.Class): ClassConstructorReplay => {
     spendWork(budget);
     const cached = classConstructorReplay.get(cls);
@@ -1976,6 +2047,15 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
           getStringValue(expression) !== null
         )
           continue;
+        if (
+          !cls.superClass &&
+          statement.type === "ReturnStatement" &&
+          safeBaseConstructorReturn(statement.argument)
+        ) {
+          replay = "continue";
+          harmless = false;
+          break;
+        }
         if (
           cls.superClass &&
           isNode(expression) &&
@@ -2119,14 +2199,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
     if (isFunctionLike(node) && !traverseRoot) {
       // Wait for actual invocation before deciding whether local syntax needs
       // separate inspection without outer values or invocation-time arguments.
-      if (
-        analyzeUncalledFunctions &&
-        !(
-          node.params.length === 0 &&
-          node.body?.type === "BlockStatement" &&
-          node.body.body.length === 0
-        )
-      ) {
+      if (analyzeUncalledFunctions && hasInspectableFunctionSyntax(node)) {
         deferFunctionInspection(node, state);
       }
       return;
@@ -2486,17 +2559,8 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
       case "TaggedTemplateExpression": {
         const tagged = node as ESTree.TaggedTemplateExpression;
         const tag = unwrapExpression(tagged.tag);
-        const recordLookupThrow = (path: EnvState<T>): void => {
-          if (isNode(tag) && isFunctionLike(tag)) return;
-          if (isNode(tag) && tag.type === "Identifier") {
-            const functions = functionsFromExpr(path, tag);
-            spendWork(budget, functions.length);
-            if (functions.length && functions.every((fn) => fn !== undefined)) return;
-          }
-          recordPossibleThrow(path);
-        };
         const memberTag = isNode(tag) && tag.type === "MemberExpression";
-        if (!memberTag && !runCorrelated(state, recordLookupThrow)) recordLookupThrow(state);
+        if (!memberTag) recordCalleeLookupThrow(state, tag);
         let receiver: ESTree.Node | null = null;
         if (memberTag) {
           visitMemberReference(
@@ -2516,7 +2580,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
         if (state.completion !== "normal" || !isNode(tag)) break;
         // Member GetValue follows receiver and computed-key effects, while
         // substitutions are evaluated only after the lookup succeeds.
-        if (memberTag && !runCorrelated(state, recordLookupThrow)) recordLookupThrow(state);
+        if (memberTag) recordCalleeLookupThrow(state, tag);
         const captureTag = (path: EnvState<T>): void => {
           const functions = functionsFromExpr(path, tag);
           spendWork(budget, functions.length);
@@ -2558,11 +2622,16 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
               projected = invokeKnownFunction(caller, fn, args, "parameters");
               if (!isDefinitelyDiscarded(tagged)) {
                 for (const result of projected) {
-                  if (result.completion === "normal") escapeCaptured(result, fn);
+                  if (result.completion === "normal") escapeCaptured(result, fn, "captures-only");
                 }
               }
             } else {
-              if (fn) escapeCaptured(caller, fn);
+              if (fn)
+                escapeCaptured(
+                  caller,
+                  fn,
+                  isFunctionLike(fn) && fn.generator ? "captures-only" : "inspect",
+                );
               projected = [caller];
             }
             for (const result of projected) {
@@ -2581,8 +2650,8 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
       }
       case "CallExpression": {
         const call = node as ESTree.CallExpression;
-        recordPossibleThrow(state);
         const callee = unwrapExpression(call.callee);
+        recordCalleeLookupThrow(state, callee);
         const property = staticPropertyName(callee);
         let objectName: string | null = null;
         let receiver: ESTree.Node | null = null;
@@ -2635,7 +2704,10 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
           const receiverValue = receiver && state.assignmentResults.get(receiver);
           receiverFunctions = receiverValue?.functions ?? receiverFunctions;
           for (const fn of receiverFunctions) {
-            if (fn) forgetCapturedConstants(state, fn);
+            if (fn) {
+              if (isFunctionLike(fn)) requireFunctionInspection(state, fn);
+              forgetCapturedConstants(state, fn);
+            }
           }
           // Invocation remains able to throw after all argument effects complete.
           recordPossibleThrow(state);
@@ -2662,13 +2734,18 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
                 const discarded = isDefinitelyDiscarded(call);
                 for (const path of projected) {
                   if (path.completion !== "normal") continue;
-                  if (!discarded) escapeCaptured(path, fn);
+                  if (!discarded) escapeCaptured(path, fn, "captures-only");
                   for (const arg of call.arguments) markEscape(path, arg);
                 }
               }
               callPaths.push(...projected);
             } else {
-              if (fn) escapeCaptured(caller, fn);
+              if (fn)
+                escapeCaptured(
+                  caller,
+                  fn,
+                  isFunctionLike(fn) && activeFunctions.has(fn) ? "captures-only" : "inspect",
+                );
               for (const arg of call.arguments) markEscape(caller, arg);
               callPaths.push(caller);
             }
@@ -2686,12 +2763,12 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
       }
       case "NewExpression": {
         const expr = node as ESTree.NewExpression;
-        recordPossibleThrow(state);
+        const callee = unwrapExpression(expr.callee);
+        recordCalleeLookupThrow(state, callee);
         const prior = newExpressionIds.get(expr);
         if (prior !== undefined) state.objects.delete(prior);
         visit(expr.callee, state, false);
         if (state.completion !== "normal") break;
-        const callee = unwrapExpression(expr.callee);
         if (isNode(callee)) {
           const captureConstructor = (path: EnvState<T>): void => {
             const functions = functionsFromExpr(path, callee);
@@ -2713,6 +2790,9 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
         }
         const construct = (path: EnvState<T>): void => {
           if (runCorrelated(path, construct)) return;
+          // Constructor invocation may fail after all arguments complete,
+          // before any body or instance initializer effects are established.
+          recordPossibleThrow(path);
           const functions = functionsFromExpr(path, expr.callee);
           spendWork(budget, functions.length);
           const constructed: EnvState<T>[] = [];
@@ -3029,7 +3109,11 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
         pendingFunctions.set(callee, callers - 1);
         if (callers === 1) readyFunctions.push(callee);
       }
-      if (invokedFunctions.has(fn) || inspectedFunctions.has(fn)) continue;
+      if (
+        (invokedFunctions.has(fn) && !requiredFunctionInspections.has(fn)) ||
+        inspectedFunctions.has(fn)
+      )
+        continue;
       inspectedFunctions.add(fn);
       spendWork(budget, finalState.functions.size + finalState.exposedCallables.size);
       const local: EnvState<T> = {

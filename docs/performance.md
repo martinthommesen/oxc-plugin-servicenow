@@ -24,6 +24,7 @@ The command generates deterministic fixtures and times the real `oxlint` executa
 - five hundred private own-constructor prototype accesses
 - an initial cached own-field lookup, one shadow deletion, and five hundred inherited static accessor lookups through an alias of a 128-level class hierarchy
 - five hundred `with` bodies followed by a possible query and a filtered bulk operation
+- five hundred try blocks invoking a local helper directly, through `.call(null, true)` and as an ordinary template tag
 - large Fluent metadata
 - Fluent factory calls through mutable aliases
 - classic cursor-count loops with post-loop writes

@@ -333,13 +333,25 @@ With scopes cannot prove which outer selector binding a body read or write reach
 
 Shadowed, empty and unknown objects keep intercepted selectors and callable captures uncertain through continuation, including initialized outer var writes. Body assignments cannot restore certainty; unrelated selectors, body lexical bindings and helper defaults remain precise, and abrupt headers skip body effects. Tests count real shared traversal query operations independently of the public authority gate.
 
+### Safe local call lookup preserves completed argument effects
+
+Safe local Call and New lookup cannot throw before arguments establish alias facts. Actual abrupt arguments and possible invocation throws retain completed effects without widening unknown or dynamic lookup authority.
+
+Declarations, initialized expressions, literals, aliases and represented alternatives retain later findings; scalar constructor arguments and arguments that throw after assignment preserve the same boundary. Existing constructor argument exports remain conservative. Unknown, rebound, TDZ, member and complex lookups retain early uncertainty. A cached whole-file With hazard covers captured environments for Call, New and Tag, while direct literals remain safe under fixed-authority traversal. Every case requires complete analysis.
+
 ### Explicit constructor boundaries constrain field replay
 
 Implicit and trivial constructors retain field replay. A proven first zero-argument super initializes base and own fields before opaque trailing code; earlier opaque derived effects defer the chain.
 
 Before-super effects, missing or argumented super calls and non-simple parameters remain opaque before the chain. Plain parameters and harmless statements can prove the first zero-argument super call. Later throws, returns, scalar writes or calls do not hide completed own fields, but invalidate captures and stop grandchild replay without interpreting constructor completion. Abrupt initializers skip that later capture boundary.
 
-Base alternatives keep eligibility correlated with scalar facts; saved constructors and frozen superclass versions remain authoritative. Opaque base constructors retain their own fields before parameter/body effects. Chains of 129 and 1,024 descendants preserve the post-super boundary and later diagnostics within the unchanged work budget.
+Base alternatives keep eligibility correlated with scalar facts; saved constructors and frozen superclass versions remain authoritative. Opaque base constructors retain their own fields before parameter/body effects. A safe bare, primitive or empty-container/function return after harmless statements instead permits derived initialization. Chains of 129 and 1,024 descendants preserve the post-super boundary and later diagnostics within the unchanged work budget.
+
+### Safe base constructor returns continue field replay
+
+Ordinary-parameter base constructors with harmless prefixes and safe returns preserve base-before-derived fields. Literal, empty-container and empty-function returns complete normally without interpreting arbitrary constructor bodies or defaults.
+
+Bare returns and primitive literals use base-constructor return semantics; empty objects, arrays and function literals are safe object-producing expressions. Transparent wrappers retain the proof, while non-simple parameters, opaque prefixes, effectful return expressions and unproven derived super calls retain prior boundaries. Frozen constructor choices, mixed bases and 129-to-1,024-level hierarchies preserve ordered fields within the existing budget.
 
 ### Class definitions evaluate only immediate class effects
 
@@ -421,6 +433,14 @@ Direct and aliased calls use actual false arguments, including hoisted declarati
 
 Deferred opaque callbacks retain callable captures observed at definition and exposure, including an intermediate replacement hidden by the final callable state. One or two wrappers and cycles preserve transitive captures; a dominating body write replaces imported targets, and disabled nested arguments remain quiet. Actual direct calls before and after replacement still replay their selected temporal target.
 
+### Opaque helper invocations retain isolated inspection
+
+Opaque function methods, ordinary tags and callback exposure retain isolated body inspection after precise invocations, preserving possible local record effects without changing known argument replay.
+
+Call/apply, tags and exposure before or after a disabled direct call preserve one local unfiltered bulk finding. Aliases and exposed wrappers retain the same eligibility. Existing opaque method argument policy remains conservative, while known false calls, skipped boundaries, abrupt arguments or substitutions, body-established false facts and replaced safe callbacks stay quiet.
+
+Retained generator values keep bodies deferred and do not invent skipped defaults; exposing the actual generator function follows the existing opaque callback policy. Five hundred exposed empty zero-parameter functions preserve a later security finding without exhausting the shared budget.
+
 ### Known default patterns preserve argument facts
 
 Known Call and generator Tag pattern defaults distinguish definite null from undefined even when their target has no single binding identity, preserving literal and aliased argument facts.
@@ -482,6 +502,12 @@ Private constructors prevent global prototype uncertainty from short-circuiting 
 Quadrupling dynamic-scope bodies from 125 to 500 keeps capture scanning subquadratic and analysis complete, with one possible query and bulk call still reached under fixed method authority.
 
 The real script parser accepts the repeated `with` statements. Public bulk diagnostics retain established dynamic-scope opacity, while the shared interpreter independently proves query and bulk reachability. The quiet host benchmark scopes only a built-in `no-with` exemption and retains parsing and other diagnostic checks.
+
+### Guarded local and opaque helper paths scale with complete findings
+
+Quadrupling try blocks from 125 to 500 preserves both a helper-body bulk finding and a later argument-alias bulk finding with completed analysis under the existing subquadratic gate.
+
+Each handler calls a known helper with a false selected argument after assigning the alias, then invokes `.call(null, true)` and an ordinary tag. The opaque uses require isolated body inspection even after a precise direct invocation; one finding per actual sink distinguishes that work from alias preservation. The quiet host fixture replaces the unsafe operation with used selector logging and filters its final bulk operation.
 
 ### Constant expressions retain the selected alias
 

@@ -136,6 +136,8 @@ The [benchmark runner](../scripts/benchmark.mjs) fixtures `private-constructor-p
 
 The [benchmark runner](../scripts/benchmark.mjs) fixture `with-selector-scopes/recommended` measures 500 dynamic-scope bodies before a possible query and a filtered bulk operation. Only the built-in `no-with` rule is exempted; script parsing and all other diagnostics remain checked. [[tests#Analysis behavior#With body walks scale with complete operation reachability]] quadruples body density from 125 to 500, requires completed analysis and one reachable query and bulk call under fixed authority, and preserves the public rule's existing dynamic-scope opacity.
 
+The [benchmark runner](../scripts/benchmark.mjs) fixture `guarded-helper-lookups/recommended` measures 500 try blocks containing direct local calls, `.call(null, true)` and ordinary tags. Neutral selector logging and a filtered final bulk call keep host measurements quiet. [[tests#Analysis behavior#Guarded local and opaque helper paths scale with complete findings]] quadruples handlers from 125 to 500, requires complete analysis and both the opaque helper-body and completed argument-alias findings, and applies the existing subquadratic gate.
+
 ## Test reports are isolated and queried consistently
 
 Each test run writes to its own report path when concurrent execution could occur, and report consumers share one exact-proof definition.
