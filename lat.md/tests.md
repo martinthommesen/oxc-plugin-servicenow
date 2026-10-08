@@ -137,9 +137,15 @@ Quadrupling counted cursor loops with post-loop counter writes must stay well be
 
 The measured growth is about n^1.5 against a 9x budget for 4x input, so the guard proves sub-quadratic rather than strictly linear scaling.
 
+Logical-assignment selectors stay within budget when counted loops grow from fifty to two hundred, retain all expected findings, and meet the same subquadratic timing gate.
+
 ### Nested cursor loops stay linear
 
 Nested loops sharing one cursor avoid repeated traversal through `(node, cursor-state)` memoization. Distinct cursor subsets instead obey [[tests#Analysis behavior#Independent retention work is bounded]] and can explicitly exhaust.
+
+### Nested sequence selectors scale with complete findings
+
+Quadrupling independent functions with nested sequence conditions stays sub-quadratic without exhausting path analysis. Every unopened cursor still reports once, while a query in the selected branch prevents a second finding.
 
 ### The path budget grows with the program
 
@@ -195,6 +201,342 @@ A query performed before a no-op helper stays paired with that helper. Querying 
 
 Conditional expression results retain their selected callable through outer assignments and aliases. Argument-created alternatives receive parameter bindings and call effects before joining; unopened controls continue to report.
 
+### Template tags invalidate captured selectors after substitutions
+
+Template tags retain their selected callable before substitutions and expose capture effects after normal evaluation. Saved receivers, rebinding, throwing substitutions and immediate generator defaults preserve execution order.
+
+### Generator tags initialize parameters before deferring the body
+
+Known generator tags bind the supplied strings array and saved substitutions before evaluating applicable defaults. Parameter effects reach the caller while discarded iterator bodies stay deferred.
+
+The strings argument skips its default. Missing or undefined substitutions execute defaults; null and non-nullish substitutions skip them, while unknown values join possible effects. Saved scalar, callable and record arguments retain their identities across later substitutions. Ordered defaults stop on throws; nested patterns stay conservative and retained iterators expose captures. Repeated invocation preserves diagnostics within the existing work budget.
+
+### Proven template tag lookups retain substitution effects on catches
+
+Proven local callable lookups and function literals do not create catch paths before substitutions. Invocation throws retain completed substitution effects, while unknown and member lookups preserve possible earlier throws.
+
+An alias assigned inside a scalar substitution remains trusted across catch joins. Passing the record value itself retains the existing argument escape policy; callable rebinding and parameter initialization do not change the selected tag.
+
+### Member template tag lookup preserves receiver and key effects
+
+Member tag lookups create catch paths after completed receiver and computed-key effects. Substitutions remain later, and abrupt operand evaluation skips the lookup while preserving earlier effects.
+
+Receiver and key alias assignments remain trusted through catch joins, including without logical assignment selectors. Getter and proxy lookup throws retain these earlier effects. Throwing receiver and key helpers stop later evaluation; no-catch and passed-record controls preserve existing diagnostics and escape behavior.
+
+### Logical assignments export their selected values
+
+Returned and thrown logical assignments export only the selected object or callback on each path. Skipped operands neither execute cursor advances nor escape captures; retained aliases and mutable scalar selectors keep their runtime facts.
+
+Direct and nested helper writes update captured selectors. Updates, destructuring, differing branch facts, escaped callbacks and unmodeled constructor or callable-method invocation discard certainty. Escaped captures remain uncertain after later scalar writes; constructor arguments cannot replace the callee before its capture effects are considered. Wrapper callbacks, cycles, exposed helper replacements and opaque class effects cannot restore false scalar certainty. Unused and unreachable class bodies preserve surrounding selector facts. Real ESLint and Oxlint fixtures exercise selected objects, skipped effects and captures, and callback invalidation.
+
+### Logical assignment headers release transient correlations
+
+Independent logical-assignment headers discard selected expression results after statement or loop-header consumption, keeping ordinary if, switch, loop, with and class traversal within its deterministic budget.
+
+With uses a fixed-authority low-level fixture because dynamic scope deliberately suppresses rule diagnostics. Fifty independent class headers retain the final finding; evaluated header effects remain visible.
+
+### Logical assignment parameters retain evaluated scalars
+
+Known helpers receive scalar, object and callable arguments captured before later argument effects. Missing or undefined parameters evaluate defaults in order; uncertain arguments preserve possible default effects and explicit null skips defaults.
+
+Callback parameters export the selected callable, and enclosing conditional or logical consumers escape only the selected result.
+
+### Nullish helper arguments select only applicable defaults
+
+Evaluated null arguments skip defaults, while undefined arguments run them. Aliases, selected expressions and saved helper parameters retain this distinction without losing shared truthiness and nullishness at mixed joins.
+
+Null arguments preserve a later unfiltered bulk finding and skip operations placed in defaults. Unknown null-or-undefined values retain possible default effects; later arguments cannot change an earlier captured argument value.
+
+### Hoisted callable logical selectors are defined values
+
+Hoisted functions are truthy and non-nullish before their declaration position. Reassignments, unknown alternatives and escaped capture markers prevent stale certainty from suppressing reachable operands.
+
+### Unrelated callback scalars do not enlarge selector snapshots
+
+Two hundred unrelated scalar captures preserve all two hundred counted-loop findings without exhausting analysis. Callback exposure follows callable dependencies without retaining nonselector scalar facts.
+
+### Evaluated logical selectors choose reachable control flow
+
+Produced logical-assignment values select the reachable if, conditional, logical and loop paths. Header effects and abrupt alternatives survive consumption, while ordinary unresolved identifiers remain conservative.
+
+### Generator invocation evaluates parameters before deferring bodies
+
+Known generator calls bind saved arguments and execute applicable defaults before producing their iterator. Null skips defaults, undefined runs them, and possible defaults keep diagnostics and synchronous throws without replaying the body.
+
+Earlier parameters feed later defaults, argument replacements cannot rewrite saved values, and definite default writes project back to the caller. Nested pattern defaults and computed keys retain possible immediate effects. Retained iterators preserve the existing capture boundary; ordinary and async generator default throws skip later caller effects.
+
+### Discarded generator values keep bodies deferred
+
+Generator calls and tags discard iterator values through void, parentheses and non-final sequences while preserving immediate parameter effects. Enclosing discarded logical and conditional results also keep their body captures deferred.
+
+Retained bindings, arguments, condition tests and assignments inside void preserve the conservative capture boundary. Defaults still query, mutate selectors or throw synchronously; transparent TypeScript wrappers preserve whether a result is retained.
+
+### External consumers escape evaluated argument values
+
+Calls, construction and template tags consume argument values saved before later arguments replace their bindings. Unknown and wrapped values retain their own object and callable identities on each completed path.
+
+Saved callbacks still observe capture bindings after all arguments run. Abrupt arguments skip exports, and generator invocation executes parameter initialization while leaving its ordinary body deferred.
+
+### Mapped receiver alternatives retain evaluated identities
+
+Conditional and logical member receivers preserve each selected arguments-object identity before joins. Writes invalidate only possibly mapped parameters; definitely skipped receiver arms retain selector facts.
+
+Fixed-authority execution tests isolate mapping from the existing conservative method-authority policy for unresolved compound receivers. Prefix, compound and direct writes all retain the evaluated receiver before the write occurs.
+
+### Strict directives retain their original spelling
+
+Only unescaped use-strict string literals enable strict mode. Hex, Unicode and line-continuation spellings remain sloppy, while later exact directives and prologue boundaries retain mapped-arguments semantics.
+
+### Lexical arguments captures allocate stable owner identities
+
+Nested arrows retain the owning function’s mapped arguments even when captures are cached before invocation. Sequence and alias calls must reuse that owner identity; ordinary nested functions and strict scopes stay isolated.
+
+### Strict directives belong to script and function prologues
+
+Only script and function-body directive prologues enable strict argument semantics. A string expression at the start of an ordinary, nested, conditional or catch block leaves sloppy parameter mapping intact.
+
+Inherited actual strict directives and modules keep parameters independent from argument-object writes. An explicit strict function inside an ordinary block remains strict even when the block itself is not a directive scope.
+
+### Constructor capture effects follow argument evaluation
+
+Construction saves its callable identity before arguments run and applies capture effects on each completed argument path. Earlier aliases retain trust; newly installed captured records escape, and throwing arguments skip invocation effects.
+
+Spread arguments and replacement of the constructor binding preserve evaluation order. Unknown constructors cannot acquire the capture effects of a class installed by an argument, and no-capture constructors retain record diagnostics.
+
+### Known construction evaluates instance field initializers
+
+Known construction runs instance field values in source order after normal arguments. Saved constructor alternatives retain their class; unconstructed fields stay deferred, and static values and computed keys execute only at definition.
+
+Ordered scalar fields preserve reachable operations; abrupt arguments skip every field, and a throwing initializer skips later fields while retaining earlier effects. Each constructor alternative keeps its own record state, recursion terminates conservatively, and locally queried initializers stay quiet. Completed field values escape before later fields, and fifty independent selectors release temporary correlations while preserving enclosing argument snapshots. Instance properties and constructor bodies retain their existing opaque policy.
+
+### Known construction retains evaluated superclass field chains
+
+Known superclass fields run before derived fields using the heritage value saved at class definition. Rebinding, keys and static effects cannot replace that value; unknown bases retain their existing opaque policy.
+
+Alternative and correlated bases run on separate paths; helper-created and repeated class sites preserve each evaluated class value's heritage. Abrupt arguments skip every field, while a thrown base initializer skips derived fields and retains prior effects. Static values and computed keys remain definition-only. Recursive construction and fifty known hierarchy levels complete within the existing budget, and field cleanup preserves enclosing constructor and argument values.
+
+### Class heritage snapshots and long chains preserve unrelated findings
+
+Unused class definitions share immutable evaluated heritage values across helper calls and branches. Long known superclass chains execute without exhausting the syntax depth limit or dropping unrelated later diagnostics.
+
+The exact fifteen-hundred-class and fifteen-hundred-helper workload retains its later bulk-operation finding, as do branch snapshots. Chains of 128, 129, 257 and 1,024 classes retain both base-field and later findings within the unchanged work budget. Repeated sites preserve saved and current class bases in both directions, equal definitions converge at loop fixpoints, and helper-created class values retain scalar correlations. Record and scalar capture effects follow frozen bases and their callable aliases rather than replacements; array, object, return and throw exports preserve the same boundary.
+
+### Known ordinary constructors replay selected invocation effects
+
+Ordinary function construction replays saved arguments, defaults and body effects after prior direct calls. Scalar and callable alternatives stay paired; abrupt arguments and nonconstructible function kinds retain their existing boundaries.
+
+Truthy and false arguments, aliases saved before later writes, null and undefined default eligibility, query and scalar capture effects, and saved versus replacement constructors produce the expected findings without budget exhaustion. Known body replay replaces isolated inspection rather than hiding a later constructor invocation.
+
+### With scopes retain intercepted selector uncertainty
+
+With scopes cannot prove which outer selector binding a body read or write reaches. The shared traversal retains possible operations while public platform-method authority preserves its established dynamic-scope policy.
+
+Shadowed, empty and unknown objects keep intercepted selectors and callable captures uncertain through continuation, including initialized outer var writes. Body assignments cannot restore certainty; unrelated selectors, body lexical bindings and helper defaults remain precise, and abrupt headers skip body effects. Tests count real shared traversal query operations independently of the public authority gate.
+
+### Safe local call lookup preserves completed argument effects
+
+Safe local Call and New lookup cannot throw before arguments establish alias facts. Actual abrupt arguments and possible invocation throws retain completed effects without widening unknown or dynamic lookup authority.
+
+Declarations, initialized expressions, literals, aliases and represented alternatives retain later findings; scalar constructor arguments and arguments that throw after assignment preserve the same boundary. Existing constructor argument exports remain conservative. Unknown, rebound, TDZ, member and complex lookups retain early uncertainty. A cached whole-file With hazard covers captured environments for Call, New and Tag, while direct literals remain safe under fixed-authority traversal. Every case requires complete analysis.
+
+### Explicit constructor boundaries constrain field replay
+
+Implicit and trivial constructors retain field replay. A proven first super with harmless arguments initializes base and own fields before opaque trailing code; earlier opaque derived effects defer the chain.
+
+Before-super effects, missing super, unproven or spread arguments and parameter defaults or destructuring remain opaque before the chain. Plain parameters and harmless statements can prove the first super call with no arguments or harmless literal and empty-creation arguments. Later throws, returns, scalar writes or calls do not hide completed own fields, but invalidate captures and stop grandchild replay without interpreting constructor completion. Abrupt initializers skip that later capture boundary.
+
+Base alternatives keep eligibility correlated with scalar facts; saved constructors and frozen superclass versions remain authoritative. Opaque base constructors retain their own fields before parameter/body effects. A safe bare, primitive or empty-container/function return after harmless statements instead permits derived initialization. Chains of 129 and 1,024 descendants preserve the post-super boundary and later diagnostics within the unchanged work budget.
+
+### Safe base constructor returns continue field replay
+
+Ordinary-parameter base constructors with harmless prefixes and safe returns preserve base-before-derived fields. Literal, empty-container, function and proven harmless-class creation complete without interpreting constructor bodies or defaults.
+
+Bare returns and primitive literals use base-constructor return semantics; empty objects and arrays, function literals and proven harmless class creation are safe object-producing expressions. Transparent wrappers retain the proof, while non-simple parameters, opaque prefixes, effectful return expressions and unproven derived super calls retain prior boundaries. Frozen constructor choices, mixed bases and 129-to-1,024-level hierarchies preserve ordered fields within the existing budget.
+
+### Returned super completes field initialization
+
+A first returned super with harmless arguments initializes base and own fields, then permits descendant replay. Charged transparent-wrapper proof stops at that return without inspecting unreachable statements.
+
+Returned calls preserve saved constructors, frozen bases, branch eligibility and source order. A reachable earlier super leaves a returned second call opaque after completed own fields; defaults, destructuring, pre-super effects, impure or spread arguments, other derived returns and sequence or conditional returns keep prior boundaries. TypeScript and dynamic-scope controls use direct traversal where public authority is opaque. Abrupt initializers stop later fields, and long returned-super hierarchies finish within the existing budget.
+
+### Plain rest constructor parameters preserve field replay
+
+Identifier rest parameters allocate argument arrays without evaluating defaults or destructuring. Their cached constructor proof retains harmless base returns and first standalone or returned super field initialization.
+
+Ordinary-plus-rest and rest-only parameters retain base-before-derived order, saved choices and descendant continuation. Rest patterns, preceding defaults or destructuring, spread super arguments and opaque prefixes remain unproven. Abrupt outer arguments skip construction, and post-super opaque code still stops descendants after completed own fields.
+
+### Safe super arguments preserve field initialization
+
+A first super with proven harmless literal or creation arguments initializes known base and own fields. Charged cached syntax proof preserves opaque boundaries without interpreting argument or constructor bodies.
+
+Primitive literals, empty objects and arrays, function creation and proven harmless class creation pass through bounded transparent wrappers. Ordinary parameters and harmless prefixes retain source order; post-super opaque code invalidates captures after own fields and stops descendants. Lookups including TDZ or With interception, calls, assignments, spreads, effectful creations, defaults and earlier opaque effects remain unproven. Saved constructors, frozen bases and mixed outcomes stay selected; 129-to-1,024-level forwarding and 1,500 safe arguments finish within the existing budget. Direct path traversal checks TypeScript wrappers and dynamic-scope controls independently of public authority.
+
+### Opaque superclass captures precede derived fields
+
+Unmodeled function superclasses invalidate their own captures before derived fields. Unknown superclass paths retain descendant capture uncertainty and a possible throw while preserving possible normal field replay.
+
+Saved superclass identities survive rebinding, and known or unknown alternatives keep separate paths. Parameter-default effects, completed arguments and long unknown heritage graphs retain reachable selector operations within the unchanged budget. Known ordinary superclasses use the existing helper invocation; unknown captures lose stale lifecycle certainty without arbitrary constructor body replay. No heritage, known empty functions, unrelated selectors, deferred construction and abrupt arguments preserve their prior boundaries. Recognized nonconstructible arrow, async and generator bases retain false-selector certainty without new class-definition abrupt inference; captures-only escape does not force isolated body inspection.
+
+### Ordinary superclasses receive saved constructor arguments
+
+Known ordinary superclasses receive saved arguments through proven class forwarding. True values retain reachable operations; false, zero, null and saved aliases stay quiet, and only normal superclass completions reach derived fields.
+
+Implicit constructors share immutable argument values through the heritage chain. Cached safe standalone or returned super prefixes replace them with their actual primitive or creation arguments; omitted arguments retain ordinary defaults. Frozen superclass and constructor identities survive rebinding. Ordinary helper replay preserves query and scalar effects, body/default throws and skipped argument paths. Safe creations remain deferred unless the ordinary superclass consumes them; class constructor parameter/body facts remain opaque.
+
+### Harmless class creation preserves constructor proof
+
+A class expression with only deferred elements completes creation before arguments and may be returned by a base constructor. A charged cached syntax proof preserves these boundaries without widening immediate class effects.
+
+Noncomputed undecorated methods and non-static fields or auto-accessors create deferred bodies, defaults and initializers. Charged method-parameter metadata checks reject decorators on ordinary, default, rest and TypeScript parameter-property nodes without replaying defaults. Their captured false selectors remain false before later fields. Heritage, decorators, computed keys, static fields or blocks and unsupported elements remain outside the proof. Named and wrapped classes preserve selected alternatives and completed arguments; actual argument or instance-field throws keep earlier writes, while possible invocation throws and exports retain their existing policy. Dynamic-scope identifier capture stays uncertain; direct harmless creation is independent of lookup interception. Wide class bodies and five hundred independent lookups complete within the existing budget.
+
+### Function creation keeps constructor bodies deferred
+
+Function literals create callable values without executing their bodies or defaults. Constructor return and safe-super proofs preserve subsequent fields while retaining false selectors captured by those deferred bodies.
+
+Ordinary, generator, async and expression-arrow functions use creation semantics without scanning or replaying bodies. Default expressions and scalar writes remain deferred; unconditional fields still execute. The existing constructor parameter, prefix, post-super and capture boundaries remain in force.
+
+### Class definitions evaluate only immediate class effects
+
+Class extends expressions, computed keys and static initialization run at definition time. Instance field values stay deferred; constructing an opaque class discards trust in its captured effects.
+
+### Class expressions consume headers and initialize names in order
+
+Class expressions discard temporary header results while retaining enclosing values. Inner class names become truthy after keys and before static initialization; declaration outer names initialize after the definition completes.
+
+Fifty independent unknown keys complete within the existing work budget, both without heritage and with a definite selected base. A separate unknown base stays conservative. Heritage and key self-references remain uncertain; static names retain their own class identity instead of an enclosing binding.
+
+Earlier scalar, callable and logical-assignment arguments survive class keys that replace their bindings. Constructor callee values likewise remain available after a class expression argument completes.
+
+### Class decorator expressions preserve evaluation effects
+
+Class and member decorator expressions retain their calls and scalar effects. Class decorators precede heritage; member decorators precede their keys in source order, before static initialization.
+
+Real TypeScript parser nodes run through an active server rule context. Decorator queries open the record before later cursor advances, decorator advances remain diagnosed, and member ordering cannot retroactively repair an earlier cursor use.
+
+### Decorator applications retain saved captures through static initialization
+
+Decorator applications consume saved identities after keys, before static initialization. Capture uncertainty survives static writes; empty synchronous non-generator functions with ordinary unused parameters preserve deferred class facts.
+
+Named and member decorators invalidate selector captures even without an explicit call in source. Computed keys cannot replace an earlier selected decorator; opaque factory returns and unknown decorators conservatively expose target captures. Application uses current captured records after keys.
+
+Raw traversal proves that affected static selectors execute even when target exposure suppresses rule authority. Possible decorator throws retain catch paths before and after capture effects. Empty synchronous non-generator bodies with only ordinary unused parameters retain records and scalar facts and do not invent catch paths. Defaults, destructuring and rest parameters, plus async and generator returns, remain conservative.
+
+Fifty independent discarded keys complete under the existing work budget while one decorator value stays live. Capture scans and transient-map work are charged, with no budget increase.
+
+### Static class accessors invalidate captures in evaluation order
+
+Known static getters and setters expose captures at their read or completed write boundary. Saved receivers, inherited descriptors, shadowing, abrupt keys and RHS effects keep accessor selection and analysis within budget.
+
+Receiver alternatives are captured before computed keys and right-hand sides can replace class bindings. Getters run before compound or logical RHS effects; setters apply only on normal write paths. Calls and tags perform getter effects before arguments or substitutions. Plain data and method descriptors, setter-only reads, getter-only writes and delete references do not invoke unrelated accessors.
+
+Frozen superclass values retain their selected descriptors. Exact own properties mask inherited accessors; unknown keys and opaque static blocks retain possible inherited effects. Executed deletes reveal possible inherited descriptors to subsequent lookups, including cached descendants, aliases and RHS deletes. Skipped or abrupt deletes, different properties and class values, and deletes without later lookups retain unrelated selector facts. Getter return values and accessor bodies remain opaque. Fifty-to-two-hundred distinct plain reads and deep inherited lookups complete without increasing the work budget, while captured-record assertions distinguish getter and setter evaluation order.
+
+### Logical member receivers retain path-specific values
+
+A member call uses the object selected on each correlated path before computed keys or arguments can replace its binding. Unknown receiver alternatives retain reachable cursor diagnostics.
+
+### Mapped arguments writes invalidate scalar selectors
+
+Sloppy simple-parameter functions invalidate mapped selector facts when arguments aliases mutate or escape. Strict, non-simple, absent arguments and shadowed or replaced aliases preserve separate parameter values.
+
+Arrows inherit the nearest ordinary function's arguments owner; nested ordinary functions own separate arguments. A hoisted no-op var declaration preserves mapping in fixed-authority traversal, while unknown bound aliases retain conservative method-authority silence.
+
+### Mapped member writes obey evaluation order
+
+A mapped member write retains its receiver before computed-key and RHS effects, and runs only after normal RHS completion. Throwing or suspended expressions skip the write while keeping effects that already occurred.
+
+Fixed-authority tests distinguish an unknown receiver later replaced by arguments from a mapped receiver later replaced by an array. Computed-key throws and normal prefix, postfix, direct and compound writes retain their expected execution paths.
+
+### Mapped arguments compound writes invalidate selectors
+
+Mapped prefix, postfix and compound writes discard stale selector facts in sloppy simple-parameter helpers. Strict, non-simple and absent-argument cases remain independent, and writes retain their receiver before key or right-hand-side effects.
+
+### Mapped arguments retain positional ownership
+
+Only supplied last-occurrence parameter positions map to arguments. Earlier duplicates, missing final positions and unrelated properties retain selector facts; known mapped indices invalidate only their owning selector.
+
+Numeric and canonical string indices, aliases, lexical arrows, unknown keys and unknown arity obey positional ownership. Direct, compound and update writes preserve the evaluated receiver; right-hand-side key rewrites cannot introduce stale precision. Strict and non-simple functions remain independent. Duplicate initialization uses the final parameter value, and every public-rule control asserts complete analysis.
+
+### Selector alias dependencies reuse callable origins
+
+Repeated calls through a deep alias chain retain security findings within budget. Quadrupling aliases and calls stays subquadratic; cycles, diamonds and distinct helper arguments preserve dependency facts.
+
+### Assigned helpers preserve every callable origin
+
+Assigned function and arrow expressions retain helper argument facts. Branches and replacements preserve every origin without hoisting runtime values; repeated calls remain active within bounded subquadratic work.
+
+Disabled arguments skip cursor effects for named expressions, defaults, aliases and selected sequence, conditional or logical results. Distinct parameter positions and scalar bindings distinguish successive origins. Enabled and unknown arguments retain reachable diagnostics, while five hundred calls preserve the final cursor finding without exhaustion.
+
+### Assigned helper inspection follows actual invocation
+
+Selected runtime invocations suppress isolated body inspection; static origins alone cannot hide a function assigned after a call, overwritten before its only call, or reached only by skipped or opaque calls.
+
+Direct and aliased calls use actual false arguments, including hoisted declarations and later nested invocation. Uncalled callers precede their known callees regardless of declaration order, preserving helper arguments without losing genuinely uncalled local cursor and bulk-operation findings. Cycles and diamonds terminate conservatively. Five hundred calls inside a pending caller retain a positive finding within the default budget, and quadrupling calls remains subquadratic.
+
+Deferred opaque callbacks retain callable captures observed at definition and exposure, including an intermediate replacement hidden by the final callable state. One or two wrappers and cycles preserve transitive captures; a dominating body write replaces imported targets, and disabled nested arguments remain quiet. Actual direct calls before and after replacement still replay their selected temporal target.
+
+### Helper definitions retain direct capture snapshots within budget
+
+Two hundred and 375 assigned helpers with precisely skipped nested calls retain a later unfiltered bulk finding. Each definition snapshots direct captures; actual exposure still refreshes transitive callable targets.
+
+The complete traversal and exact later source line prevent silent budget exhaustion from passing as a quiet result. Existing exposure, intermediate replacement, cycle and dominating-write controls preserve temporal inspection semantics.
+
+### Opaque helper invocations retain isolated inspection
+
+Opaque function methods, ordinary tags and callback exposure retain isolated body inspection after precise invocations, preserving possible local record effects without changing known argument replay.
+
+Call/apply, tags and exposure before or after a disabled direct call preserve one local unfiltered bulk finding. Aliases and exposed wrappers retain the same eligibility. Existing opaque method argument policy remains conservative, while known false calls, skipped boundaries, abrupt arguments or substitutions, body-established false facts and replaced safe callbacks stay quiet.
+
+Retained generator values keep bodies deferred and do not invent skipped defaults; exposing the actual generator function follows the existing opaque callback policy. Five hundred exposed empty zero-parameter functions preserve a later security finding without exhausting the shared budget.
+
+### Nullish parameter patterns stop invocation before later effects
+
+Definite null or undefined object and array bindings throw before computed keys, nested defaults, later parameters or body operations. Completed arguments and applicable defaults remain visible to catch continuations.
+
+Ordinary calls, known constructors and generator Call or Tag parameter replay use the same completion boundary. Empty and nested patterns, saved tracked aliases and mixed nullish paths cannot invent later operations; scalar null, rest arrays, safe outer defaults and unknown arguments retain possible normal paths.
+
+### Known default patterns preserve argument facts
+
+Known Call and generator Tag pattern defaults distinguish definite null from undefined even when their target has no single binding identity, preserving literal and aliased argument facts.
+
+Object and array patterns skip defaults for supplied null and evaluate defaults for undefined. Transparent sequences and selected conditional or logical argument values keep their facts, while skipped logical right operands remain skipped. Catch paths retain the final cursor finding, and every case completes within the default budget.
+
+### Literal argument shapes skip impossible pattern defaults
+
+Supplied literal properties and array elements skip nested defaults, retaining record trust when an impossible default would escape it. Missing or undefined values run defaults; uncertain values preserve possible effects.
+
+False, zero and null remain supplied values. Nested patterns, rest bindings, literal defaults, accessors, computed keys and spread boundaries retain conservative eligibility and abrupt completion. Shapes are captured before later argument replacement and survive unrelated joins without inferring ordinary property facts. A one-hundred-level array shape stays within the existing traversal limit; five hundred repeated calls retain the security warning and active subquadratic scaling.
+
+Missing standard Object.prototype names retain possible inherited values rather than forcing defaults; explicit own properties still determine eligibility.
+
+Explicit Array.prototype or Symbol.iterator references retain possible custom iteration defaults, including aliases, defineProperty, exposure and later-argument replacement. Local shadows and ordinary Array builtin calls preserve literal element proofs.
+
+Global constructor aliases, exposure, unknown computed members and globalThis-qualified accesses retain prototype uncertainty. Namespace aliases, value exposure and unknown namespace members retain both array and object uncertainty. Object prototype hazards affect absent keys while preserving explicit own values. Safe member reads through transparent wrappers and local shadows retain ordinary literal proofs.
+
+Literal-derived constructor, prototype accessor and proven Object or Reflect prototype-call exposure preserve normal continuation beside a possible throwing default. Constructor and prototype aliases stay uncertain without prototype-value inference; explicit own values, safe constructor builtin reads and local shadows retain their prior eligibility. Unknown inherited values may still execute an escaping default conservatively.
+
+Proven own object, primitive and function-literal constructors preserve ordinary absent-key defaults, including known trailing data properties. Getters, unknown values and later spreads retain uncertainty; explicit private prototype ancestry and prototype lookups remain conservative. Five hundred private constructor accesses retain a later security finding, and quadrupling the workload remains subquadratic.
+
+Unknown computed receiver writes keep the existing rule authority policy; direct path-call assertions isolate reachable defaults when that policy suppresses diagnostics.
+
+### Return and throw escape evaluated values
+
+Returned and thrown allocations lose trust after expression evaluation, including captured assignments and sequences. Cursor advances within those expressions remain diagnosed; exporting another value retains the captured object's trust.
+
+Real ESLint and Oxlint fixtures verify escaping allocations, cursor advances evaluated before escape, and retained trust when a sequence exports another value.
+
+Constant conditional and logical selectors export only the selected value, preserving trust when newly allocated records occur in evaluated operands but the result is scalar.
+
+Nested sequence classification is bounded and becomes unknown beyond the depth limit. Arithmetic compound assignments export primitive results, retaining trust in captured objects allocated on their right-hand side.
+
+Selected function and arrow literals escape their captured platform objects, including when they are returned or thrown through a sequence or passed to an unknown callee. Known no-op callees retain trusted captured state and remain diagnosable.
+
+### Selected logical assignment literals escape constructed payloads
+
+Constructed array and object payloads escape before their selected logical assignment value is exported. A skipped literal leaves its captured records trusted, preventing structural recursion from changing the selected value.
+
+Returned array, object and nested callback literals preserve construction-time escape effects for selected `||=`, `&&=` and `??=` results. Skipped right-hand sides retain cursor diagnostics; thrown array and object payloads likewise escape their records without budget exhaustion.
+
 ### Callable correlations remain bounded
 
 Independent helper choices exhaust deterministic work and suppress earlier findings. Replacing one helper repeatedly compacts equivalent callable states, preserving ordinary diagnostics without exhaustion.
@@ -202,6 +544,42 @@ Independent helper choices exhaust deterministic work and suppress earlier findi
 ### Known-node scope construction and lookup scale together
 
 Quadrupling function and block scopes keeps scope construction plus ancestor-free identifier resolution below quadratic growth. Every identifier must retain a binding, so early termination cannot satisfy the scaling check.
+
+### Literal prototype and inherited accessor walks scale with complete findings
+
+Quadrupling private own-constructor prototype accesses and inherited static accessor hierarchy/lookup density from 125 to 500 retains one later unfiltered bulk finding with complete analysis under the existing subquadratic gate.
+
+Private constructors prevent global prototype uncertainty from short-circuiting the measured ancestry walk. Real classes, inherited getters and a used receiver alias exercise charged class-graph lookup and capture work. An initial cached own-field read and one executed shadow deletion exercise affected-cache invalidation before repeated inherited reads. Quiet benchmark counterparts use 500 accesses and a 128-level class hierarchy; positive tests ensure exhaustion cannot masquerade as clean output.
+
+### With body walks scale with complete operation reachability
+
+Quadrupling dynamic-scope bodies from 125 to 500 keeps capture scanning subquadratic and analysis complete, with one possible query and bulk call still reached under fixed method authority.
+
+The real script parser accepts the repeated `with` statements. Public bulk diagnostics retain established dynamic-scope opacity, while the shared interpreter independently proves query and bulk reachability. The quiet host benchmark scopes only a built-in `no-with` exemption and retains parsing and other diagnostic checks.
+
+### Safe super argument proofs scale with every reached field finding
+
+Quadrupling classes from 125 to 500 preserves every derived field's unfiltered bulk finding and a later independent finding. Empty known bases separate safe argument proof work from opaque superclass effects.
+
+Each distinct constructor alternates standalone or returned super with ordinary or plain-rest parameters and supplies six harmless literal or creation arguments, exercising the cached, charged proof. Complete budgets and exact finding lines accompany the existing subquadratic timing gate.
+
+### Ordinary superclass calls scale with selected body and field findings
+
+Quadrupling constructions from 125 to 500 retains precise ordinary-base body effects, three derived field sites and an independent later finding. False arguments keep their base body quiet after earlier pruned calls.
+
+The positive fixture alternates an implicit two-link hierarchy and explicit returned true or standalone false super arguments. Complete budgets and exact diagnostic lines accompany the subquadratic gate; the real-host counterpart uses quiet body sinks and field values with a filtered later bulk operation. Returned-super benchmark class lines exempt only the built-in constructor-super false positive; parsing, plugin diagnostics and the clean-sample gate remain required.
+
+### Pruned helper call density scales with complete findings
+
+A fixed 64-helper capture chain followed by 125 and 500 disabled helper calls preserves a later bulk finding. Completed analysis and the existing subquadratic gate exercise call density without growing unrelated binding snapshots.
+
+The separate definition-chain regression covers the removed per-definition transitive walk. These bounded shapes do not assert that arbitrarily dense whole-environment invocation snapshots complete within the work ceiling.
+
+### Guarded local and opaque helper paths scale with complete findings
+
+Quadrupling try blocks from 125 to 500 preserves a helper-body finding and later direct-call and class-constructor argument-alias findings. Completed analysis and the existing subquadratic gate cover both lookup proofs.
+
+Each handler constructs a class with a noncomputed method and nonstatic field after assigning one alias, calls a known helper with a false argument after assigning another alias, then invokes `.call(null, true)` and an ordinary tag. The method uses one ordinary parameter, exercising the cached decorator metadata proof. The opaque uses require isolated body inspection even after a precise direct invocation; one finding per actual sink distinguishes that work from each lookup's alias preservation. The quiet host fixture replaces the unsafe operation with used selector logging and filters its final bulk operation.
 
 ### Constant expressions retain the selected alias
 
@@ -226,6 +604,22 @@ A 6000-binding Fluent alias chain resolves without native recursion. Initializer
 ### Known AST nodes retain lexical scope ownership
 
 Known nodes resolve through their indexed lexical scope even when callers supply unrelated ancestors or hosts omit offsets. Foreign nodes retain conservative offset-based containment and root fallback.
+
+### Mapped arguments identities survive preceding joins
+
+Implicit arguments objects and aliases retain their owner identity through branches, catches and loops without becoming domain records. Replaced and strict arguments remain independent; possible mapped receivers retain correlated paths.
+
+### Empty argument results do not enlarge invocation snapshots
+
+Wide call, constructor and tag argument lists preserve later diagnostics without retaining stable domain-empty results. Explicit unknown snapshots still prevent later arguments from changing earlier binding-based values.
+
+Five hundred and fifteen hundred empty helper results complete within the normal analysis budget. Consumed conditional and logical results share the sparse policy when selectors are active; known callbacks, undefined defaults and selected unknown alternatives keep their evaluated facts.
+
+### Known parameter replay retains evaluated arguments without selectors
+
+Earlier callable arguments retain their evaluated identities when later arguments replace their bindings, even without logical assignments. Known ordinary calls and generator defaults invoke the original callback without executing deferred bodies.
+
+Provided second arguments skip their defaults, including the exact reviewed example. Missing and explicit undefined defaults execute; explicit null skips them. Selected sequence, conditional and logical values retain callbacks, generator tags evaluate defaults, and unknown or originally empty callbacks remain conservative. Five hundred repeated saved-argument defaults retain the final bulk-operation finding within the existing budget.
 
 ## Integration
 

@@ -126,6 +126,8 @@ The NUL-terminated form is required: the line form octal-escapes non-ASCII paths
 
 `classifySourceState` in `scripts/benchmark-gate.mjs` excludes the run's own output and baseline paths and counts untracked files only under `src/`, `scripts/`, `tests/`, and `package.json`. The field is required on newly written summaries and tolerated when absent from the reviewed baseline.
 
+The [benchmark runner](../scripts/benchmark.mjs) requires clean host results and preserves its sampling, baseline, mandatory classic scale and absolute gates. Positive scaling regressions independently require completed analysis and reachable operations, so quiet budget exhaustion cannot satisfy the performance contract. The fixture catalog and sizes live in the [performance documentation](../docs/performance.md).
+
 ## Test reports are isolated and queried consistently
 
 Each test run writes to its own report path when concurrent execution could occur, and report consumers share one exact-proof definition.

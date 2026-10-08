@@ -1,5 +1,6 @@
 import type { ESTree } from "@oxlint/plugins";
 import { isNode, unwrapExpression } from "../utils/ast.js";
+import { MAX_PATH_DEPTH } from "./path-budget.js";
 
 /**
  * Truthiness and nullishness of an expression whose value is known from its
@@ -8,10 +9,11 @@ import { isNode, unwrapExpression } from "../utils/ast.js";
  * join. Constant tests decide which short-circuit branch and which `if`,
  * conditional, and loop arm can execute (FINDINGS.md COR-003).
  */
-export interface ConstantValue {
-  readonly truthy: boolean;
-  readonly nullish: boolean;
-}
+export type NullishValue = "null" | "undefined";
+
+export type ConstantValue =
+  | { readonly truthy: boolean; readonly nullish: false }
+  | { readonly truthy: false; readonly nullish: true; readonly nullishValue?: NullishValue };
 
 const ALWAYS_OBJECT_EXPRESSIONS = new Set([
   "ObjectExpression",
@@ -19,16 +21,22 @@ const ALWAYS_OBJECT_EXPRESSIONS = new Set([
   "FunctionExpression",
   "ArrowFunctionExpression",
   "ClassExpression",
+  "ClassDeclaration",
+  "NewExpression",
 ]);
 
 export function constantValue(node: unknown): ConstantValue | null {
-  const expr = unwrapExpression(node);
+  let expr = unwrapExpression(node);
+  for (let depth = 0; isNode(expr) && expr.type === "SequenceExpression"; depth += 1) {
+    if (depth >= MAX_PATH_DEPTH) return null;
+    expr = unwrapExpression(expr.expressions.at(-1));
+  }
   if (!isNode(expr)) return null;
   if (expr.type === "Literal") {
     const literal = expr as unknown as { value?: unknown; regex?: unknown; bigint?: string };
     if (literal.regex !== undefined) return { truthy: true, nullish: false };
     const value = literal.value;
-    if (value === null) return { truthy: false, nullish: true };
+    if (value === null) return { truthy: false, nullish: true, nullishValue: "null" };
     if (typeof literal.bigint === "string") {
       return { truthy: /[1-9]/.test(literal.bigint), nullish: false };
     }
@@ -44,7 +52,7 @@ export function constantValue(node: unknown): ConstantValue | null {
     return { truthy: cooked.length > 0, nullish: false };
   }
   if (expr.type === "UnaryExpression" && (expr as ESTree.UnaryExpression).operator === "void") {
-    return { truthy: false, nullish: true };
+    return { truthy: false, nullish: true, nullishValue: "undefined" };
   }
   if (ALWAYS_OBJECT_EXPRESSIONS.has(expr.type)) return { truthy: true, nullish: false };
   return null;

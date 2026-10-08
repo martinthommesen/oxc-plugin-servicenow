@@ -8,11 +8,26 @@ Stateful GlideRecord analysis must keep the recommended large/small scale ratio 
 npm run bench
 ```
 
-The command generates deterministic fixtures and times the real `oxlint` executable. It measures:
+The command generates deterministic fixtures and times 30 registered cases with the real `oxlint` executable. It measures:
 
 - small, medium, and large classic GlideRecord files
 - branch-heavy alias and try/catch analysis
 - nested scopes
+- fifty independent functions with eight nested sequence wrappers around a conditional selector
+- five hundred callable aliases followed by five hundred calls through the final alias
+- five hundred calls to an assigned helper with a false logical-assignment parameter
+- five hundred discarded tagged templates with a captured logical selector
+- assigned helper calls replayed from an uncalled caller
+- generator Call and Tag parameter defaults alongside mapped arguments branch joins
+- 1,500 derived class definitions followed by 1,500 known helper calls
+- a single external invocation with 1,500 empty known-call argument values
+- five hundred private own-constructor prototype accesses
+- an initial cached own-field lookup, one shadow deletion, and five hundred inherited static accessor lookups through an alias of a 128-level class hierarchy
+- five hundred `with` bodies followed by a possible query and a filtered bulk operation
+- five hundred try blocks invoking a local helper directly, through `.call(null, true)`, as an ordinary template tag and through class-expression construction with a deferred method and field
+- five hundred distinct derived constructors alternating standalone and returned super calls with plain or rest parameters, supplying six harmless literal or creation arguments
+- five hundred constructions alternating an implicit ordinary-superclass chain and explicit true or false super arguments after earlier pruned base calls
+- three hundred assigned helpers whose false arguments skip calls through a linear capture chain
 - large Fluent metadata
 - Fluent factory calls through mutable aliases
 - classic cursor-count loops with post-loop writes
@@ -20,6 +35,10 @@ The command generates deterministic fixtures and times the real `oxlint` executa
 - a mixed repository
 
 Each case records raw samples, median elapsed time, and peak RSS after one warm-up run and ten samples. A sample is rejected unless Oxlint exits successfully, emits one complete JSON document, and reports no diagnostics. A missed raw RSS measurement is recorded as `null`. The case fails when every sample lacks RSS evidence.
+
+The `with-selector-scopes/recommended` script scopes an exemption to the built-in `no-with` rule because dynamic scope is the workload. The real host must still parse the script and emit no other diagnostics. Positive scaling controls independently check completed traversal and possible query and bulk calls; the public rule retains its existing dynamic-scope authority policy.
+
+The two superclass fixtures scope `constructor-super` exemptions to individual returned-super class lines. The host rule misses legal `return super(...)` initialization; runtime controls confirm those constructors complete normally. Parsing, all plugin rules and the zero-diagnostic sample gate remain enforced.
 
 Profiles compared:
 
@@ -49,6 +68,8 @@ CI also reports trend warnings when:
 Absolute measurements from uncontrolled public runners are trend evidence. The blocking limits detect repeated full-file analysis and quadratic scans.
 
 The path-sensitive interpreter also has a deterministic per-pass work budget and a maximum traversal depth. If either limit is reached, the pass stops and returns unknown facts. This fail-safe bounds adversarial machine-generated input without inventing a definite result.
+
+The capture-chain fixture targets repeated definition-time capture traversal. Positive controls retain a later finding at 375 helper definitions, and quadruple calls through a fixed 64-helper chain from 125 to 500. Growing whole-environment snapshots remain bounded by the existing work ceiling; this change does not promise completion for 500 or 1,500 distinct helper bindings.
 
 CI uploads the current result as `performance-current`. The checked-in baseline is never uploaded under a current-result name.
 

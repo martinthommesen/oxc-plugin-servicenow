@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { parseSync } from "oxc-parser";
 import { parse } from "../helpers/rule-tester.js";
 import { createFileBindings } from "../../src/analysis/bindings.js";
 import {
@@ -66,8 +67,11 @@ function run(
   maxWork = 50_000,
   nonConverging = false,
   onRef?: (input: PathRefInput<Data>) => void,
+  sourceType: "module" | "script" = "module",
 ): Data & { outcome: "complete" | "exhausted" } {
-  const program = parse(code).ast as any;
+  const parsed = parseSync("test.js", code, { sourceType });
+  assert.deepEqual(parsed.errors, []);
+  const program = parsed.program as any;
   const result: Data = {
     calls: [],
     queryState: "unopened",
@@ -125,6 +129,27 @@ function run(
 }
 
 describe("path-state evaluator", () => {
+  it("preserves mapped arguments through a hoisted no-op var declaration", () => {
+    const result = run(
+      `var gr = new GlideRecord("task"); function use(run) { run = false; var arguments; arguments[0] = true; run &&= gr.query(); } use(true);`,
+      50_000,
+      false,
+      undefined,
+      "script",
+    );
+    assert.equal(result.outcome, "complete");
+    assert.equal(result.queryEvents, 1);
+  });
+  it("finishes with-statement header correlations before the next statement", () => {
+    const names = Array.from({ length: 50 }, (_, index) => `selector${index}`);
+    const declarations = names.map((name) => `${name} = external`).join(", ");
+    const result = run(
+      `var gr = new GlideRecord("task"); var ${declarations}; ${names.map((name) => `with (${name} ||= {}) {}`).join("\n")} gr.next();`,
+      100_000,
+    );
+    assert.equal(result.outcome, "complete");
+    assert.deepEqual(result.calls, ["next:unopened"]);
+  });
   it("publishes a conservative reference join across callable-correlated object identities", () => {
     let lastReference: PathRefInput<Data> | undefined;
     const result = run(
@@ -306,7 +331,8 @@ describe("path-state evaluator", () => {
       use(outer);
       gr.next();
     `);
-    assert.deepEqual(result.calls, ["query:none", "next:none"]);
+    // Isolated uncalled bodies follow normal execution, retaining both unknown records.
+    assert.deepEqual(result.calls, ["next:none", "query:none"]);
   });
 
   it("escapes an enclosing function local captured by an escaping callback", () => {
@@ -319,7 +345,8 @@ describe("path-state evaluator", () => {
       }
       factory();
     `);
-    assert.deepEqual(result.calls, ["query:none", "next:none"]);
+    // The opaque callback is inspected after the directly invoked factory returns.
+    assert.deepEqual(result.calls, ["next:none", "query:none"]);
   });
 
   it("does not escape an enclosing function local when its callback is direct-only", () => {

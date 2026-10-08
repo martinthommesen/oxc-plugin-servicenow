@@ -1,14 +1,18 @@
+import type { ConstantValue } from "./constant-value.js";
 import type { ESTree } from "@oxlint/plugins";
 import type {
   AbruptCompletion,
   BindingId,
   CallableValues,
   EnvState,
+  EvaluatedValue,
   InternalCompletion,
+  LiteralArgumentShape,
+  LiteralArgumentValue,
   ObjectId,
   SharedRecord,
 } from "./path-types.js";
-import { spendWork, type WorkBudget } from "./path-budget.js";
+import { BUDGET_EXCEEDED, MAX_PATH_DEPTH, spendWork, type WorkBudget } from "./path-budget.js";
 
 export function cloneAbrupt<T>(
   abrupt: Map<AbruptCompletion, EnvState<T>[]>,
@@ -84,7 +88,14 @@ export function snapshotState<T>(
 ): EnvState<T> {
   spendWork(
     budget,
-    1 + state.env.size + state.objects.size + state.functions.size + state.callableResults.size,
+    1 +
+      state.env.size +
+      state.objects.size +
+      state.functions.size +
+      state.constants.size +
+      state.exposedCallables.size +
+      state.assignmentResults.size +
+      state.callableResults.size,
   );
   const objects = new Map<ObjectId, SharedRecord<T>>();
   for (const [id, rec] of state.objects) {
@@ -93,6 +104,9 @@ export function snapshotState<T>(
   return {
     env: new Map(state.env),
     functions: new Map(state.functions),
+    constants: new Map(state.constants),
+    exposedCallables: new Set(state.exposedCallables),
+    assignmentResults: new Map(state.assignmentResults),
     callableResults: new Map(state.callableResults),
     objects,
     callablePaths: state.callablePaths.map((path) => snapshotState(path, cloneData, budget)),
@@ -133,6 +147,8 @@ export interface MergePolicy<T> {
   readonly alloc: () => ObjectId;
   readonly retainUnboundRecords: boolean;
   readonly retainedObjectIds: ReadonlySet<ObjectId>;
+  /** Arguments objects carry binding identities without domain record payloads. */
+  readonly argumentIdentities: ReadonlySet<ObjectId>;
 }
 
 /**
@@ -167,6 +183,43 @@ export function mergeFlatStates<T>(
     const rightValues = right.callableResults.get(node) ?? [undefined];
     spendWork(policy.budget, leftValues.length + rightValues.length);
     callableResults.set(node, [...new Set([...leftValues, ...rightValues])]);
+  }
+  spendWork(policy.budget, left.exposedCallables.size + right.exposedCallables.size);
+  const exposedCallables = new Set([...left.exposedCallables, ...right.exposedCallables]);
+  const constants = new Map<BindingId, ConstantValue | null>();
+  spendWork(policy.budget, left.constants.size + right.constants.size);
+  for (const id of new Set([...left.constants.keys(), ...right.constants.keys()])) {
+    const value = left.constants.get(id);
+    const other = right.constants.get(id);
+    if (value === null || other === null) constants.set(id, null);
+    else {
+      const merged = mergeConstant(value, other);
+      if (merged) constants.set(id, merged);
+    }
+  }
+  const assignmentResults = new Map<ESTree.Node, EvaluatedValue>();
+  for (const node of new Set([
+    ...left.assignmentResults.keys(),
+    ...right.assignmentResults.keys(),
+  ])) {
+    const leftValue = left.assignmentResults.get(node);
+    const rightValue = right.assignmentResults.get(node);
+    const leftFunctions = leftValue?.functions ?? [undefined];
+    const rightFunctions = rightValue?.functions ?? [undefined];
+    spendWork(policy.budget, 1 + leftFunctions.length + rightFunctions.length);
+    const literalShape = sameLiteralShape(
+      leftValue?.literalShape,
+      rightValue?.literalShape,
+      policy.budget,
+    )
+      ? leftValue?.literalShape
+      : undefined;
+    assignmentResults.set(node, {
+      objectId: leftValue?.objectId === rightValue?.objectId ? leftValue?.objectId : undefined,
+      functions: [...new Set([...leftFunctions, ...rightFunctions])],
+      constant: mergeConstant(leftValue?.constant, rightValue?.constant),
+      ...(literalShape ? { literalShape } : {}),
+    });
   }
   const objects = new Map<ObjectId, SharedRecord<T>>();
   const objectIds = new Set([...left.objects.keys(), ...right.objects.keys()]);
@@ -210,7 +263,7 @@ export function mergeFlatStates<T>(
       }
       continue;
     }
-    if (!objects.has(leftId)) {
+    if (!objects.has(leftId) && !policy.argumentIdentities.has(leftId)) {
       env.set(bindingId, undefined);
       continue;
     }
@@ -218,6 +271,7 @@ export function mergeFlatStates<T>(
   }
   if (!retainUnboundRecords) {
     const boundObjectIds = new Set(env.values());
+    for (const value of assignmentResults.values()) boundObjectIds.add(value.objectId);
     for (const objectId of objects.keys()) {
       if (!boundObjectIds.has(objectId) && !retainedObjectIds.has(objectId)) {
         objects.delete(objectId);
@@ -227,6 +281,9 @@ export function mergeFlatStates<T>(
   return {
     env,
     functions,
+    constants,
+    exposedCallables,
+    assignmentResults,
     callableResults,
     objects,
     callablePaths: [],
@@ -261,18 +318,119 @@ export function sameCallableMap<K>(
   return true;
 }
 
-export function sameCallables<T>(
-  left: EnvState<T>,
-  right: EnvState<T>,
-  budget: WorkBudget,
+function sameConstant(
+  left: ConstantValue | null | undefined,
+  right: ConstantValue | null | undefined,
 ): boolean {
+  if (left == null || right == null) return left === right;
   return (
-    sameCallableMap(left.functions, right.functions, budget) &&
-    sameCallableMap(left.callableResults, right.callableResults, budget)
+    left.truthy === right.truthy &&
+    left.nullish === right.nullish &&
+    (!left.nullish || (right.nullish && left.nullishValue === right.nullishValue))
   );
 }
 
-/** Keep records paired with their callable identity until those identities agree. */
+function mergeConstant(
+  left: ConstantValue | null | undefined,
+  right: ConstantValue | null | undefined,
+): ConstantValue | null {
+  if (!left || !right || left.truthy !== right.truthy || left.nullish !== right.nullish)
+    return null;
+  if (sameConstant(left, right)) return left;
+  return { truthy: false, nullish: true };
+}
+
+function sameLiteralArgumentValue(
+  left: LiteralArgumentValue,
+  right: LiteralArgumentValue | undefined,
+  budget: WorkBudget,
+  depth: number,
+): boolean {
+  spendWork(budget);
+  if (!right || left.kind !== right.kind) return false;
+  return (
+    left.kind !== "defined" ||
+    right.kind !== "defined" ||
+    sameLiteralShape(left.literalShape, right.literalShape, budget, depth)
+  );
+}
+
+function sameLiteralShape(
+  left: LiteralArgumentShape | undefined,
+  right: LiteralArgumentShape | undefined,
+  budget: WorkBudget,
+  depth = 0,
+): boolean {
+  spendWork(budget);
+  if (left === right) return true;
+  if (!left || !right || left.kind !== right.kind || left.rest !== right.rest) return false;
+  if (depth >= MAX_PATH_DEPTH) throw BUDGET_EXCEEDED;
+  if (left.kind === "object" && right.kind === "object") {
+    if (left.properties.size !== right.properties.size) return false;
+    for (const [name, value] of left.properties) {
+      if (!sameLiteralArgumentValue(value, right.properties.get(name), budget, depth + 1))
+        return false;
+    }
+    return true;
+  }
+  if (left.kind === "array" && right.kind === "array") {
+    if (left.elements.length !== right.elements.length) return false;
+    for (const [index, value] of left.elements.entries()) {
+      if (!sameLiteralArgumentValue(value, right.elements[index], budget, depth + 1)) return false;
+    }
+    return true;
+  }
+  return false;
+}
+
+function sameAssignmentResults(
+  left: Map<ESTree.Node, EvaluatedValue>,
+  right: Map<ESTree.Node, EvaluatedValue>,
+  budget: WorkBudget,
+): boolean {
+  spendWork(budget, 1 + left.size + right.size);
+  if (left.size !== right.size) return false;
+  for (const [node, value] of left) {
+    const other = right.get(node);
+    if (
+      !other ||
+      value.objectId !== other.objectId ||
+      !sameConstant(value.constant, other.constant) ||
+      !sameLiteralShape(value.literalShape, other.literalShape, budget) ||
+      !sameCallableValues(value.functions, other.functions, budget)
+    )
+      return false;
+  }
+  return true;
+}
+
+export function sameCorrelatedValues<T>(
+  left: EnvState<T>,
+  right: EnvState<T>,
+  policy: MergePolicy<T>,
+): boolean {
+  const { budget, argumentIdentities } = policy;
+  if (argumentIdentities.size) {
+    spendWork(budget, left.env.size + right.env.size);
+    for (const bindingId of new Set([...left.env.keys(), ...right.env.keys()])) {
+      const value = left.env.get(bindingId);
+      const other = right.env.get(bindingId);
+      if (
+        value !== other &&
+        ((value !== undefined && argumentIdentities.has(value)) ||
+          (other !== undefined && argumentIdentities.has(other)))
+      )
+        return false;
+    }
+  }
+  return (
+    sameCallableMap(left.functions, right.functions, budget) &&
+    sameCallableMap(left.callableResults, right.callableResults, budget) &&
+    sameAssignmentResults(left.assignmentResults, right.assignmentResults, budget)
+  );
+}
+
+/** Keep records paired with callable and selected assignment values until they agree. */
 export function mergeStates<T>(
   left: EnvState<T>,
   right: EnvState<T>,
@@ -281,7 +439,7 @@ export function mergeStates<T>(
   if (
     !left.callablePaths.length &&
     !right.callablePaths.length &&
-    sameCallables(left, right, policy.budget)
+    sameCorrelatedValues(left, right, policy)
   )
     return mergeFlatStates(left, right, policy);
   const groups: EnvState<T>[] = [];
@@ -289,7 +447,7 @@ export function mergeStates<T>(
     ...(left.callablePaths.length ? left.callablePaths : [left]),
     ...(right.callablePaths.length ? right.callablePaths : [right]),
   ]) {
-    const index = groups.findIndex((other) => sameCallables(path, other, policy.budget));
+    const index = groups.findIndex((other) => sameCorrelatedValues(path, other, policy));
     if (index === -1) groups.push(pathWithoutAlternatives(path, policy.cloneData, policy.budget));
     else groups[index] = mergeFlatStates(groups[index]!, path, policy);
   }
@@ -303,22 +461,36 @@ export function statesEqual<T>(
   left: EnvState<T>,
   right: EnvState<T>,
   equalsData: (left: T, right: T) => boolean,
-  budget: WorkBudget,
+  policy: MergePolicy<T>,
 ): boolean {
+  const { budget } = policy;
   if (left.completion !== right.completion || left.completionLabel !== right.completionLabel)
     return false;
   if (left.callablePaths.length !== right.callablePaths.length) return false;
   for (const path of left.callablePaths) {
-    const other = right.callablePaths.find((candidate) => sameCallables(path, candidate, budget));
-    if (!other || !statesEqual(path, other, equalsData, budget)) return false;
+    const other = right.callablePaths.find((candidate) =>
+      sameCorrelatedValues(path, candidate, policy),
+    );
+    if (!other || !statesEqual(path, other, equalsData, policy)) return false;
   }
   if (!sameCallableMap(left.callableResults, right.callableResults, budget)) return false;
   if (
     left.env.size !== right.env.size ||
     left.objects.size !== right.objects.size ||
-    left.functions.size !== right.functions.size
+    left.functions.size !== right.functions.size ||
+    left.constants.size !== right.constants.size ||
+    left.exposedCallables.size !== right.exposedCallables.size ||
+    !sameAssignmentResults(left.assignmentResults, right.assignmentResults, budget)
   )
     return false;
+  spendWork(budget, left.exposedCallables.size + right.exposedCallables.size);
+  for (const id of left.exposedCallables) {
+    if (!right.exposedCallables.has(id)) return false;
+  }
+  spendWork(budget, left.constants.size + right.constants.size);
+  for (const [id, value] of left.constants) {
+    if (!sameConstant(value, right.constants.get(id))) return false;
+  }
   for (const [id, values] of left.functions) {
     const other = right.functions.get(id);
     if (!sameCallableValues(values, other, budget)) return false;
@@ -352,6 +524,9 @@ export function replaceWith<T>(target: EnvState<T>, source: EnvState<T>): void {
   target.env.clear();
   for (const [id, objectId] of source.env) target.env.set(id, objectId);
   target.functions = new Map(source.functions);
+  target.constants = new Map(source.constants);
+  target.exposedCallables = new Set(source.exposedCallables);
+  target.assignmentResults = new Map(source.assignmentResults);
   target.callableResults = new Map(source.callableResults);
   target.callablePaths = source.callablePaths;
   target.objects.clear();

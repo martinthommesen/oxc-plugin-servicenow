@@ -9,11 +9,13 @@ import {
   type ProvenanceKind,
   type ProvenanceQuery,
 } from "./provenance.js";
-import { constantValue, logicalRightOperandRuns } from "./constant-value.js";
-import { spendWork, type WorkBudget } from "./path-budget.js";
+import { constantValue, type ConstantValue } from "./constant-value.js";
+import { MAX_PATH_DEPTH, spendWork, type WorkBudget } from "./path-budget.js";
 import type {
+  BindingId,
   CallableValues,
   EnvState,
+  EvaluatedValue,
   ObjectId,
   PathRefInput,
   SharedRecord,
@@ -47,6 +49,62 @@ export function resolveBinding(
   return bindings.resolve(name, expr, ancestors);
 }
 
+/** Read a saved value before unwrapping, so argument wrappers keep their own evaluation. */
+export function savedExpressionValue<T>(
+  state: EnvState<T>,
+  node: unknown,
+): EvaluatedValue | undefined {
+  const saved = isNode(node) ? state.assignmentResults.get(node) : undefined;
+  if (saved) return saved;
+  const expr = unwrapExpression(node);
+  return isNode(expr) ? state.assignmentResults.get(expr) : undefined;
+}
+
+/** Syntax selectors can also consume values already selected during this expression. */
+export function evaluatedConstantValue<T>(
+  state: EnvState<T>,
+  node: unknown,
+  budget: WorkBudget,
+  depth = 0,
+): ConstantValue | null {
+  if (depth >= MAX_PATH_DEPTH) return null;
+  spendWork(budget);
+  const expr = unwrapExpression(node);
+  if (!isNode(expr)) return null;
+  const selected = savedExpressionValue(state, node);
+  if (selected) return selected.constant;
+  const syntax = constantValue(expr);
+  if (syntax) return syntax;
+  switch (expr.type) {
+    case "SequenceExpression":
+      return evaluatedConstantValue(state, expr.expressions.at(-1), budget, depth + 1);
+    case "AssignmentExpression":
+      return expr.operator === "="
+        ? evaluatedConstantValue(state, expr.right, budget, depth + 1)
+        : null;
+    case "ConditionalExpression": {
+      const test = evaluatedConstantValue(state, expr.test, budget, depth + 1);
+      return test
+        ? evaluatedConstantValue(
+            state,
+            test.truthy ? expr.consequent : expr.alternate,
+            budget,
+            depth + 1,
+          )
+        : null;
+    }
+    case "LogicalExpression": {
+      const left = evaluatedConstantValue(state, expr.left, budget, depth + 1);
+      if (!left) return null;
+      const rightRuns =
+        expr.operator === "&&" ? left.truthy : expr.operator === "||" ? !left.truthy : left.nullish;
+      return evaluatedConstantValue(state, rightRuns ? expr.right : expr.left, budget, depth + 1);
+    }
+    default:
+      return null;
+  }
+}
+
 interface PathValueContext<T> {
   bindings: FileBindings;
   analysis: ProvenanceQuery;
@@ -61,6 +119,7 @@ interface PathValueContext<T> {
   publishRef: (input: PathRefInput<T>) => void;
   onValue: ((node: ESTree.Node) => T | undefined) | undefined;
   stopAtAwait: boolean;
+  argumentsBinding: (node: ESTree.Node) => BindingId | undefined;
 }
 
 /** Resolve expression values without owning statement traversal or state joins. */
@@ -79,15 +138,20 @@ export function createPathValueResolver<T>(context: PathValueContext<T>) {
     publishRef,
     onValue,
     stopAtAwait,
+    argumentsBinding,
   } = context;
   const platformObjects = new Map<string, ObjectId>();
   const objectFromExpr = (state: EnvState<T>, node: unknown): ObjectId | undefined => {
     const expr = unwrapExpression(node);
     if (!isNode(expr)) return undefined;
+    const result = savedExpressionValue(state, node);
+    if (result) return result.objectId;
     switch (expr.type) {
       case "Identifier": {
         const binding = resolveBinding(bindings, expr, ancestors);
         if (binding) return state.env.get(binding.id);
+        const argumentId = argumentsBinding(expr);
+        if (argumentId !== undefined) return state.env.get(argumentId);
         const name = getName(expr);
         if (name && isPlatformAliasGlobal(name) && analysis.isPlatformGlobal(expr)) {
           let objectId = platformObjects.get(name);
@@ -132,7 +196,7 @@ export function createPathValueResolver<T>(context: PathValueContext<T>) {
       }
       case "ConditionalExpression": {
         const conditional = expr as ESTree.ConditionalExpression;
-        const selected = constantValue(conditional.test);
+        const selected = evaluatedConstantValue(state, conditional.test, budget);
         if (selected)
           return objectFromExpr(
             state,
@@ -144,7 +208,14 @@ export function createPathValueResolver<T>(context: PathValueContext<T>) {
       }
       case "LogicalExpression": {
         const logical = expr as ESTree.LogicalExpression;
-        const evaluateRight = logicalRightOperandRuns(logical);
+        const selected = evaluatedConstantValue(state, logical.left, budget);
+        const evaluateRight = selected
+          ? logical.operator === "&&"
+            ? selected.truthy
+            : logical.operator === "||"
+              ? !selected.truthy
+              : selected.nullish
+          : null;
         if (evaluateRight !== null)
           return objectFromExpr(state, evaluateRight ? logical.right : logical.left);
         const left = objectFromExpr(state, logical.left);
@@ -207,6 +278,8 @@ export function createPathValueResolver<T>(context: PathValueContext<T>) {
     spendWork(budget);
     const expr = unwrapExpression(node);
     if (!isNode(expr)) return [undefined];
+    const assignment = savedExpressionValue(state, node);
+    if (assignment) return assignment.functions;
     const result = state.callableResults.get(expr);
     if (result) return result;
     if (isFunctionLike(expr)) return [expr];
@@ -225,7 +298,7 @@ export function createPathValueResolver<T>(context: PathValueContext<T>) {
         break;
       }
       case "ConditionalExpression": {
-        const selected = constantValue(expr.test);
+        const selected = evaluatedConstantValue(state, expr.test, budget);
         if (selected)
           return functionsFromExpr(state, selected.truthy ? expr.consequent : expr.alternate);
         return [
@@ -236,7 +309,14 @@ export function createPathValueResolver<T>(context: PathValueContext<T>) {
         ];
       }
       case "LogicalExpression": {
-        const rightRuns = logicalRightOperandRuns(expr);
+        const selected = evaluatedConstantValue(state, expr.left, budget);
+        const rightRuns = selected
+          ? expr.operator === "&&"
+            ? selected.truthy
+            : expr.operator === "||"
+              ? !selected.truthy
+              : selected.nullish
+          : null;
         if (rightRuns !== null) return functionsFromExpr(state, rightRuns ? expr.right : expr.left);
         return [
           ...new Set([
@@ -249,10 +329,52 @@ export function createPathValueResolver<T>(context: PathValueContext<T>) {
     return [undefined];
   };
 
+  const constantFromExpr = (state: EnvState<T>, node: unknown): ConstantValue | null => {
+    let expr = unwrapExpression(node);
+    for (let depth = 0; isNode(expr) && depth < MAX_PATH_DEPTH; depth += 1) {
+      spendWork(budget);
+      const result = savedExpressionValue(state, depth === 0 ? node : expr);
+      if (result) return result.constant;
+      const constant = constantValue(expr);
+      if (constant) return constant;
+      if (expr.type === "Identifier") {
+        const binding = resolveBinding(bindings, expr, ancestors);
+        if (!binding) {
+          return expr.name === "undefined" && bindings.isPlatformGlobal(expr)
+            ? { truthy: false, nullish: true, nullishValue: "undefined" }
+            : null;
+        }
+        const scalar = state.constants.get(binding.id);
+        if (scalar !== undefined) return scalar;
+        const functions = state.functions.get(binding.id);
+        spendWork(budget, functions?.length ?? 0);
+        return functions?.length && functions.every((fn) => fn !== undefined)
+          ? { truthy: true, nullish: false }
+          : null;
+      }
+      if (expr.type === "SequenceExpression") {
+        expr = unwrapExpression(expr.expressions.at(-1));
+      } else if (expr.type === "AssignmentExpression" && expr.operator === "=") {
+        expr = unwrapExpression(expr.right);
+      } else if (expr.type === "ConditionalExpression" || expr.type === "LogicalExpression") {
+        return evaluatedConstantValue(state, expr, budget, depth);
+      } else {
+        return null;
+      }
+    }
+    return null;
+  };
+
+  const valueFromExpr = (state: EnvState<T>, node: unknown): EvaluatedValue => ({
+    objectId: objectFromExpr(state, node),
+    functions: functionsFromExpr(state, node),
+    constant: constantFromExpr(state, node),
+  });
+
   const normalValueFromExpr = (state: EnvState<T>, node: unknown): ESTree.Node | null => {
     const expr = unwrapExpression(node);
     if (!isNode(expr)) return null;
-    if (!stopAtAwait) return expr;
+    if (!stopAtAwait || savedExpressionValue(state, node)) return expr;
     switch (expr.type) {
       case "AwaitExpression": {
         return null;
@@ -266,7 +388,7 @@ export function createPathValueResolver<T>(context: PathValueContext<T>) {
       }
       case "ConditionalExpression": {
         const conditional = expr as ESTree.ConditionalExpression;
-        const selected = constantValue(conditional.test);
+        const selected = evaluatedConstantValue(state, conditional.test, budget);
         if (selected)
           return normalValueFromExpr(
             state,
@@ -283,7 +405,14 @@ export function createPathValueResolver<T>(context: PathValueContext<T>) {
       }
       case "LogicalExpression": {
         const logical = expr as ESTree.LogicalExpression;
-        const rightRuns = logicalRightOperandRuns(logical);
+        const selected = evaluatedConstantValue(state, logical.left, budget);
+        const rightRuns = selected
+          ? logical.operator === "&&"
+            ? selected.truthy
+            : logical.operator === "||"
+              ? !selected.truthy
+              : selected.nullish
+          : null;
         if (rightRuns !== null)
           return normalValueFromExpr(state, rightRuns ? logical.right : logical.left);
         const left = normalValueFromExpr(state, logical.left);
@@ -305,5 +434,11 @@ export function createPathValueResolver<T>(context: PathValueContext<T>) {
     return expr;
   };
 
-  return { objectFromExpr, functionsFromExpr, normalValueFromExpr };
+  return {
+    objectFromExpr,
+    functionsFromExpr,
+    constantFromExpr,
+    valueFromExpr,
+    normalValueFromExpr,
+  };
 }

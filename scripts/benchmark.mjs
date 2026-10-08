@@ -200,6 +200,244 @@ worker${index}();`,
 }
 
 /**
+ * @param {number} count
+ * @returns {string}
+ */
+function selectorAliasCalls(count) {
+  const declarations = Array.from(
+    { length: count },
+    (_, index) => `var alias${index + 1} = alias${index};`,
+  );
+  const calls = Array.from({ length: count }, () => `alias${count}();`);
+  return `var alias0 = external;
+${declarations.join("\n")}
+${calls.join("\n")}
+var selector = false; selector &&= true; if (selector) alias0();
+var gr = new GlideRecord("task"); gr.addQuery("active", true); gr.deleteMultiple();`;
+}
+
+/**
+ * @param {number} count
+ * @returns {string}
+ */
+function assignedSelectorCalls(count) {
+  const calls = Array.from({ length: count }, () => "use(disabled);");
+  return `var gr = new GlideRecord("task"); gr.query();
+var use; use = function(flag) { return flag &&= gr.next(); }; var disabled = false;
+${calls.join("\n")}
+gr.next();`;
+}
+
+/**
+ * @param {number} count
+ * @returns {string}
+ */
+function uncalledAssignedSelectorCalls(count) {
+  return `var use = function(flag) {
+  var gr = new GlideRecord("task");
+  gr.query();
+  return flag &&= gr.next();
+};
+var trigger = function() {
+${Array.from({ length: count }, () => "  use(false);").join("\n")}
+};
+void trigger;
+`;
+}
+
+/**
+ * @param {number} count
+ * @returns {string}
+ */
+function taggedSelectorCalls(count) {
+  const calls = Array.from({ length: count }, () => "void tag`value`;");
+  return `var gr = new GlideRecord("task"); gr.query();
+var selector = false; function tag() { selector = true; }
+${calls.join("\n")}
+selector &&= gr.next(); if (selector) gr.next();`;
+}
+
+/**
+ * @param {number} count
+ * @returns {string}
+ */
+function generatorParameterJoins(count) {
+  const calls = Array.from(
+    { length: count },
+    () => "mapped(true); called(true); void tag`${false}`; selector &&= rec.next();",
+  );
+  return `var rec = new GlideRecord("incident");
+rec.addQuery("active", true); rec.query();
+var selector = false;
+function mapped(enabled) {
+  if (flag) gs.info("left"); else gs.info("right");
+  var args = arguments; args[0] = false;
+  return enabled &&= rec.next();
+}
+function* called(enabled = false, result = (selector = enabled)) {
+  yield result; selector &&= rec.next();
+}
+function* tag(strings = (selector = true), enabled = false, result = (selector = enabled)) {
+  yield result; selector &&= rec.next();
+}
+${calls.join("\n")}
+rec.next();`;
+}
+
+/**
+ * @param {number} count
+ * @returns {string}
+ */
+function derivedClassHelperCalls(count) {
+  const classes = Array.from(
+    { length: count },
+    (_, index) => `class Child${index} extends Base {}`,
+  );
+  const calls = Array.from({ length: count }, () => "use();");
+  return `/* eslint-disable no-unused-vars -- Unused class declarations are the measured workload. */
+class Base {}
+${classes.join("\n")}
+function use() {}
+${calls.join("\n")}
+${glideRecordBlock(0)}`;
+}
+
+/**
+ * @param {number} count
+ * @returns {string}
+ */
+function emptyArgumentCalls(count) {
+  const argumentsCode = Array.from({ length: count }, () => "use()").join(", ");
+  return `function use() {}
+external(${argumentsCode});
+${glideRecordBlock(0)}`;
+}
+
+/**
+ * @param {number} count
+ * @returns {string}
+ */
+function privateConstructorPrototypes(count) {
+  return `${"({ constructor: { prototype: {} } }).constructor.prototype.value = true;\n".repeat(count)}
+${glideRecordBlock(0)}
+rec0.deleteMultiple();`;
+}
+
+/**
+ * @param {number} levels
+ * @param {number} count
+ * @returns {string}
+ */
+function inheritedStaticAccessorLookups(levels, count) {
+  const classes = Array.from(
+    { length: levels },
+    (_, index) =>
+      `class Child${index + 1} extends ${index === 0 ? "Base" : `Child${index}`} { ${index === levels - 1 ? "static flag = false;" : ""} }`,
+  );
+  return `class Base { static get flag() { return false; } }
+${classes.join("\n")}
+var Alias = Child${levels}; var read = Alias.flag; gs.info(read);
+delete Alias.flag;
+${"read = Alias.flag; gs.info(read);\n".repeat(count)}
+${glideRecordBlock(0)}
+rec0.deleteMultiple();`;
+}
+
+/**
+ * @param {number} count
+ * @returns {string}
+ */
+function withSelectorScopes(count) {
+  return `/* eslint-disable no-with -- Dynamic scope is the measured workload. */
+var run = true; var records = new GlideRecord("task"); records.addQuery("active", true);
+${"with ({ run: 0 }) { run = false; }\n".repeat(count)}
+run &&= records.query(); gs.info(run);
+records.deleteMultiple();`;
+}
+
+/**
+ * @param {number} count
+ * @returns {string}
+ */
+function guardedHelperLookups(count) {
+  return `var selected = false;
+function helper(run) { run &&= gs.info(run); }
+${"try { helper(selected = false); helper.call(null, true); void helper``; new (class { method(value) { return value; } field = 0; })((selected = false, 0)); } catch {}\n".repeat(count)}
+gs.info(selected);
+${glideRecordBlock(0)}
+rec0.deleteMultiple();`;
+}
+
+/**
+ * @param {number} count
+ * @returns {string}
+ */
+function safeSuperArguments(count) {
+  return `class Base {}
+${Array.from(
+  { length: count },
+  (_, index) =>
+    `${index % 2 ? "// eslint-disable-next-line constructor-super -- Returned super is the measured legal constructor form.\n" : ""}class Derived${index} extends Base { constructor(${index % 4 >= 2 ? "..._values" : "_value"}) { ${index % 2 ? "return " : ""}super(0, false, null, {}, [], function() {}); } field = 0; } new Derived${index}();`,
+).join("\n")}
+${glideRecordBlock(0)}
+rec0.deleteMultiple();`;
+}
+
+/**
+ * @param {number} count
+ * @returns {string}
+ */
+function ordinarySuperclassCalls(count) {
+  const calls = ["new Implicit(true);", "new ExplicitTrue();", "new ExplicitFalse();"];
+  return `function BaseTrue(run) { run &&= gs.info(run); }
+function BaseFalse(run) { run &&= gs.info(run); }
+BaseTrue(false); BaseFalse(false);
+class LinkOne extends BaseTrue {}
+class LinkTwo extends LinkOne {}
+class Implicit extends LinkTwo { field = 0; }
+// eslint-disable-next-line constructor-super -- Returned super is the measured legal constructor form.
+class ExplicitTrue extends BaseTrue { constructor() { return super(true); } field = 0; }
+class ExplicitFalse extends BaseFalse { constructor(..._values) { super(false); } field = 0; }
+${Array.from({ length: count }, (_, index) => calls[index % calls.length]).join("\n")}
+${glideRecordBlock(0)}
+rec0.deleteMultiple();`;
+}
+
+/**
+ * @param {number} count
+ * @returns {string}
+ */
+function prunedHelperCaptures(count) {
+  return `var f0 = function() {}; f0(false);
+${Array.from(
+  { length: count },
+  (_, index) =>
+    `var f${index + 1} = function(flag) { flag &&= f${index}(); gs.info(flag); }; f${index + 1}(false);`,
+).join("\n")}
+${glideRecordBlock(0)}
+rec0.deleteMultiple();`;
+}
+
+/**
+ * @param {number} count
+ * @returns {string}
+ */
+function sequenceSelectors(count) {
+  let condition = "flag";
+  for (let depth = 0; depth < 8; depth += 1) condition = `(0, ${condition})`;
+  return Array.from(
+    { length: count },
+    (_, index) => `function selector${index}(flag) {
+  var rec = new GlideRecord("incident");
+  if (${condition}) rec.setLimit(10);
+  rec.query();
+  rec.next();
+}
+selector${index}();`,
+  ).join("\n");
+}
+
+/**
  * @param {string} directory
  * @param {Record<string, unknown>} rules
  * @param {boolean} jsPlugins
@@ -249,6 +487,42 @@ function generateFixtures(directory) {
   writeFileSync(join(directory, "classic/nested.br.js"), nestedScopes(12));
   writeFileSync(join(directory, "classic/scopes.br.js"), scopeRich(100));
   writeFileSync(join(directory, "classic/helpers.br.js"), correlatedHelpers(20));
+  writeFileSync(join(directory, "classic/sequence-selectors.br.js"), sequenceSelectors(50));
+  writeFileSync(join(directory, "classic/selector-alias-calls.br.js"), selectorAliasCalls(500));
+  writeFileSync(
+    join(directory, "classic/assigned-selector-calls.br.js"),
+    assignedSelectorCalls(500),
+  );
+  writeFileSync(join(directory, "classic/tagged-selector-calls.br.js"), taggedSelectorCalls(500));
+  writeFileSync(
+    join(directory, "classic/uncalled-assigned-selector-calls.br.js"),
+    uncalledAssignedSelectorCalls(500),
+  );
+  writeFileSync(
+    join(directory, "classic/generator-parameter-joins.br.js"),
+    generatorParameterJoins(100),
+  );
+  writeFileSync(
+    join(directory, "classic/derived-class-helper-calls.br.js"),
+    derivedClassHelperCalls(1500),
+  );
+  writeFileSync(join(directory, "classic/empty-argument-calls.br.js"), emptyArgumentCalls(1500));
+  writeFileSync(
+    join(directory, "classic/private-constructor-prototypes.br.js"),
+    privateConstructorPrototypes(500),
+  );
+  writeFileSync(
+    join(directory, "classic/inherited-static-accessor-lookups.br.js"),
+    inheritedStaticAccessorLookups(128, 500),
+  );
+  writeFileSync(join(directory, "classic/with-selector-scopes.br.js"), withSelectorScopes(500));
+  writeFileSync(join(directory, "classic/guarded-helper-lookups.br.js"), guardedHelperLookups(500));
+  writeFileSync(join(directory, "classic/safe-super-arguments.br.js"), safeSuperArguments(500));
+  writeFileSync(
+    join(directory, "classic/ordinary-superclass-calls.br.js"),
+    ordinarySuperclassCalls(500),
+  );
+  writeFileSync(join(directory, "classic/pruned-helper-captures.br.js"), prunedHelperCaptures(300));
   writeFileSync(join(directory, "fluent/large.now.ts"), fluentRecords(80));
   writeFileSync(join(directory, "fluent/aliases.now.ts"), fluentAliases(120));
   writeFileSync(join(directory, "classic/counters.br.js"), counterBlocks(40));
@@ -460,6 +734,96 @@ async function main() {
         "recommended",
         configs.recommended,
         [join(work, "classic/helpers.br.js")],
+      ],
+      [
+        "sequence-selectors/recommended",
+        "recommended",
+        configs.recommended,
+        [join(work, "classic/sequence-selectors.br.js")],
+      ],
+      [
+        "selector-alias-calls/recommended",
+        "recommended",
+        configs.recommended,
+        [join(work, "classic/selector-alias-calls.br.js")],
+      ],
+      [
+        "assigned-selector-calls/recommended",
+        "recommended",
+        configs.recommended,
+        [join(work, "classic/assigned-selector-calls.br.js")],
+      ],
+      [
+        "tagged-selector-calls/recommended",
+        "recommended",
+        configs.recommended,
+        [join(work, "classic/tagged-selector-calls.br.js")],
+      ],
+      [
+        "uncalled-assigned-selector-calls/recommended",
+        "recommended",
+        configs.recommended,
+        [join(work, "classic/uncalled-assigned-selector-calls.br.js")],
+      ],
+      [
+        "derived-class-helper-calls/recommended",
+        "recommended",
+        configs.recommended,
+        [join(work, "classic/derived-class-helper-calls.br.js")],
+      ],
+      [
+        "empty-argument-calls/recommended",
+        "recommended",
+        configs.recommended,
+        [join(work, "classic/empty-argument-calls.br.js")],
+      ],
+      [
+        "generator-parameter-joins/recommended",
+        "recommended",
+        configs.recommended,
+        [join(work, "classic/generator-parameter-joins.br.js")],
+      ],
+      [
+        "private-constructor-prototypes/recommended",
+        "recommended",
+        configs.recommended,
+        [join(work, "classic/private-constructor-prototypes.br.js")],
+      ],
+      [
+        "inherited-static-accessor-lookups/recommended",
+        "recommended",
+        configs.recommended,
+        [join(work, "classic/inherited-static-accessor-lookups.br.js")],
+      ],
+      [
+        "with-selector-scopes/recommended",
+        "recommended",
+        configs.recommended,
+        [join(work, "classic/with-selector-scopes.br.js")],
+      ],
+      [
+        "guarded-helper-lookups/recommended",
+        "recommended",
+        configs.recommended,
+        [join(work, "classic/guarded-helper-lookups.br.js")],
+      ],
+      [
+        "safe-super-arguments/recommended",
+        "recommended",
+        configs.recommended,
+        [join(work, "classic/safe-super-arguments.br.js")],
+      ],
+      [
+        "ordinary-superclass-calls/recommended",
+        "recommended",
+        configs.recommended,
+        [join(work, "classic/ordinary-superclass-calls.br.js")],
+      ],
+      [
+        "pruned-helper-captures/recommended",
+        "recommended",
+        configs.recommended,
+        [join(work, "classic/pruned-helper-captures.br.js")],
       ],
       [
         "fluent-large/recommended",
