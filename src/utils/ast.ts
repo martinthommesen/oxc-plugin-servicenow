@@ -226,7 +226,9 @@ export function propertyName(node: unknown): string | null {
   return node.computed ? getStringValue(node.property) : getName(node.property);
 }
 
-export function propertyKeyName(property: ESTree.ObjectProperty): string | null {
+export function propertyKeyName(
+  property: Pick<ESTree.ObjectProperty, "key" | "computed">,
+): string | null {
   return property.computed
     ? getStringValue(property.key)
     : (getName(property.key) ?? getStringValue(property.key));

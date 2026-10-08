@@ -32,13 +32,37 @@ export interface PathRefInput<T> {
 }
 
 export type AbruptCompletion = Exclude<InternalCompletion, "normal">;
-export type CallableValues = readonly (ImmediateFunction | ESTree.Class | undefined)[];
+export interface ClassValue {
+  readonly type: "ClassValue";
+  readonly node: ESTree.Class;
+  readonly bases: CallableValues;
+}
+
+export type CallableValues = readonly (ImmediateFunction | ClassValue | undefined)[];
 
 export interface EvaluatedValue {
   readonly objectId: ObjectId | undefined;
   readonly functions: CallableValues;
   readonly constant: ConstantValue | null;
+  readonly literalShape?: LiteralArgumentShape;
 }
+
+export type LiteralArgumentValue =
+  | { readonly kind: "unknown" }
+  | { readonly kind: "undefined" }
+  | { readonly kind: "defined"; readonly literalShape?: LiteralArgumentShape };
+
+export type LiteralArgumentShape =
+  | {
+      readonly kind: "object";
+      readonly properties: ReadonlyMap<string, LiteralArgumentValue>;
+      readonly rest: "unknown" | "undefined";
+    }
+  | {
+      readonly kind: "array";
+      readonly elements: readonly LiteralArgumentValue[];
+      readonly rest: "unknown" | "undefined";
+    };
 
 export interface EnvState<T> {
   env: Map<BindingId, ObjectId | undefined>;

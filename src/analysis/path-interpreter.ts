@@ -9,8 +9,11 @@ import type {
   AbruptCompletion,
   BindingId,
   CallableValues,
+  ClassValue,
   EnvState,
   EvaluatedValue,
+  LiteralArgumentShape,
+  LiteralArgumentValue,
   ObjectId,
   PathAnalysisOptions,
   PathAnalysisOutcome,
@@ -41,6 +44,7 @@ import {
   getName,
   isNode,
   isValueReference,
+  propertyKeyName,
   TRANSPARENT_WRAPPER_TYPES,
   unwrapExpression,
   visitChildren,
@@ -54,12 +58,47 @@ import {
 } from "./bindings.js";
 import { isDefinitelyUndefinedValue, staticPropertyName } from "./members.js";
 import { constantValue } from "./constant-value.js";
+import { directPlatformGlobalName, GLOBAL_OBJECT_NAMES } from "./globals.js";
 
 type InvocationArguments =
   | { readonly kind: "positional"; readonly values: readonly EvaluatedValue[] }
   | { readonly kind: "uncertain" };
 
 type FunctionExecution = "body" | "parameters";
+
+const OBJECT_PROTOTYPE_KEYS: ReadonlySet<string> = new Set([
+  "constructor",
+  "hasOwnProperty",
+  "isPrototypeOf",
+  "propertyIsEnumerable",
+  "toLocaleString",
+  "toString",
+  "valueOf",
+  "__proto__",
+  "__defineGetter__",
+  "__defineSetter__",
+  "__lookupGetter__",
+  "__lookupSetter__",
+]);
+const LITERAL_INTRINSIC_PROPERTIES: ReadonlyMap<string, string> = new Map([
+  ["Array", "prototype"],
+  ["Symbol", "iterator"],
+  ["Object", "prototype"],
+]);
+
+interface ClassValueCache {
+  readonly choices: Map<ImmediateFunction | ClassValue | undefined, ClassValueCache>;
+  value?: ClassValue;
+}
+
+interface ClassFieldFrame<T> {
+  readonly state: EnvState<T>;
+  readonly value: ClassValue;
+  readonly bases: CallableValues;
+  readonly paths: EnvState<T>[];
+  nextBase: number;
+  current: EnvState<T> | undefined;
+}
 
 function scopeContains(scope: ScopeNode | null, block: ESTree.Node): boolean {
   let current = scope;
@@ -82,6 +121,8 @@ function capturedBindings(
     if (!isNode(node)) return;
     if (ancestors.length >= MAX_PATH_DEPTH) throw BUDGET_EXCEEDED;
     if (budget) spendWork(budget);
+    if ((fn.type === "ClassDeclaration" || fn.type === "ClassExpression") && node === fn.superClass)
+      return;
     ancestors.push(node);
     if (node.type === "Identifier" && isValueReference(node, ancestors)) {
       const binding = bindings.resolve(getName(node) ?? "", node, ancestors);
@@ -171,16 +212,40 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
   const functionCaptures = new WeakMap<ESTree.Node, readonly BindingId[]>();
   const argumentObjectIds = new WeakMap<ImmediateFunction, ObjectId>();
   const argumentIdentities = new Set<ObjectId>();
-  const classHeritageIds = new WeakMap<ESTree.Class, BindingId>();
-  const classHeritageBindings = new Set<BindingId>();
-  const classHeritageBinding = (cls: ESTree.Class): BindingId => {
-    let id = classHeritageIds.get(cls);
+  const classValues = new WeakMap<ESTree.Class, ClassValueCache>();
+  const callableIdentities = new WeakMap<ImmediateFunction | ClassValue, ObjectId>();
+  const activeClasses = new Set<ClassValue>();
+  const callableIdentity = (value: ImmediateFunction | ClassValue | undefined): ObjectId => {
+    if (!value) return 0;
+    let id = callableIdentities.get(value);
     if (id === undefined) {
-      id = -alloc();
-      classHeritageIds.set(cls, id);
-      classHeritageBindings.add(id);
+      id = alloc();
+      callableIdentities.set(value, id);
     }
     return id;
+  };
+  // Equivalent definitions must reuse their value identity for loop fixpoints.
+  const classValue = (node: ESTree.Class, selected: CallableValues): ClassValue => {
+    spendWork(budget, 1 + selected.length);
+    const bases = [...new Set(selected)];
+    for (const base of bases) callableIdentity(base);
+    bases.sort((left, right) => {
+      spendWork(budget);
+      return callableIdentity(left) - callableIdentity(right);
+    });
+    const root: ClassValueCache = classValues.get(node) ?? { choices: new Map() };
+    classValues.set(node, root);
+    let cache = root;
+    for (const base of bases) {
+      spendWork(budget);
+      let next: ClassValueCache | undefined = cache.choices.get(base);
+      if (!next) {
+        next = { choices: new Map() };
+        cache.choices.set(base, next);
+      }
+      cache = next;
+    }
+    return (cache.value ??= { type: "ClassValue", node, bases });
   };
   const mappedArguments = new Map<ObjectId, ReadonlyMap<number, BindingId>>();
   const argumentObjectId = (fn: ImmediateFunction): ObjectId => {
@@ -286,6 +351,8 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
     return true;
   };
   let hasLogicalAssignments = false;
+  let arrayIterationUncertain = false;
+  let objectPrototypeUncertain = false;
   const constantBindings = new Set<BindingId>();
   const constantSources: Array<{ left: ESTree.Node; right: ESTree.Node | null }> = [];
   const constantInvocations: Array<ESTree.CallExpression | ESTree.TaggedTemplateExpression> = [];
@@ -311,17 +378,18 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
   };
 
   const capturesOf = (
-    fn: ESTree.Node,
+    fn: ESTree.Node | ClassValue,
     captureBudget = hasLogicalAssignments ? budget : undefined,
   ): readonly BindingId[] => {
-    const existing = functionCaptures.get(fn);
+    const node = fn.type === "ClassValue" ? fn.node : fn;
+    const existing = functionCaptures.get(node);
     if (existing) return existing;
-    const captures = capturedBindings(fn, bindings, captureBudget, (node) => {
-      const id = argumentsBinding(node);
-      const own = isFunctionLike(fn) ? argumentObjectIds.get(fn) : undefined;
+    const captures = capturedBindings(node, bindings, captureBudget, (reference) => {
+      const id = argumentsBinding(reference);
+      const own = isFunctionLike(node) ? argumentObjectIds.get(node) : undefined;
       return id !== undefined && id !== (own === undefined ? undefined : -own) ? id : undefined;
     });
-    functionCaptures.set(fn, captures);
+    functionCaptures.set(node, captures);
     return captures;
   };
 
@@ -329,6 +397,39 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
     const functions = directFunctionOrigins.get(id) ?? new Set<ImmediateFunction>();
     functions.add(fn);
     directFunctionOrigins.set(id, functions);
+  };
+
+  const noteLiteralIntrinsicReference = (node: ESTree.Node): void => {
+    if (arrayIterationUncertain && objectPrototypeUncertain) return;
+    const name = directPlatformGlobalName(node, bindings);
+    const sensitiveProperty = LITERAL_INTRINSIC_PROPERTIES.get(name ?? "");
+    const namespace = GLOBAL_OBJECT_NAMES.has(name ?? "");
+    if (sensitiveProperty === undefined && !namespace) return;
+    let child = node;
+    let index = prepassAncestors.length - 2;
+    let parent = prepassAncestors[index];
+    for (let depth = 0; parent && depth < MAX_PATH_DEPTH; depth += 1) {
+      if (
+        !TRANSPARENT_WRAPPER_TYPES.has(parent.type) ||
+        !("expression" in parent) ||
+        parent.expression !== child
+      )
+        break;
+      referenceWork += 1;
+      child = parent;
+      parent = prepassAncestors[--index];
+    }
+    if (parent?.type === "MemberExpression" && parent.object === child) {
+      const property = staticPropertyName(parent);
+      if (property !== null && (namespace || property !== sensitiveProperty)) return;
+    }
+    if (namespace) {
+      arrayIterationUncertain = true;
+      objectPrototypeUncertain = true;
+      return;
+    }
+    if (name === "Object") objectPrototypeUncertain = true;
+    else arrayIterationUncertain = true;
   };
 
   // Assignment origins are dependency metadata, not hoisted runtime values.
@@ -345,12 +446,23 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
         )
           return;
         if (!isValueReference(node, prepassAncestors)) return;
+        if (
+          node.type === "Identifier" &&
+          (LITERAL_INTRINSIC_PROPERTIES.has(node.name) || GLOBAL_OBJECT_NAMES.has(node.name))
+        )
+          noteLiteralIntrinsicReference(node);
         const binding = resolveBinding(bindings, node, prepassAncestors);
         if (binding) referencedBindings.add(binding.id);
       },
       AssignmentPattern(node) {
         if (node.type === "AssignmentPattern")
           constantSources.push({ left: node.left, right: node.right });
+      },
+      MemberExpression(node) {
+        referenceWork += 1;
+        if (node.type !== "MemberExpression") return;
+        if (LITERAL_INTRINSIC_PROPERTIES.has(staticPropertyName(node) ?? ""))
+          noteLiteralIntrinsicReference(node);
       },
       AssignmentExpression(node) {
         if (node.type !== "AssignmentExpression") return;
@@ -562,10 +674,19 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
     switch (expr.type) {
       case "FunctionExpression":
       case "ArrowFunctionExpression":
-      case "ClassExpression":
-      case "ClassDeclaration":
         escapeCaptured(state, expr);
         return;
+      case "ClassExpression":
+      case "ClassDeclaration": {
+        const values = functionsFromExpr(state, expr);
+        if (values.every((value) => value === undefined)) escapeCaptured(state, expr);
+        else {
+          for (const value of values) {
+            if (value) escapeCaptured(state, value);
+          }
+        }
+        return;
+      }
       case "Identifier": {
         const binding = resolveBinding(bindings, expr, ancestors);
         if (!binding) return;
@@ -644,15 +765,35 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
     }
   };
 
-  const forgetCapturedConstants = (state: EnvState<T>, fn: ESTree.Node): void => {
+  const captureRoots = (
+    state: EnvState<T>,
+    fn: ESTree.Node | ClassValue,
+  ): (ESTree.Node | ClassValue)[] => {
+    if (fn.type !== "ClassDeclaration" && fn.type !== "ClassExpression") return [fn];
+    const values = functionsFromExpr(state, fn);
+    spendWork(budget, values.length);
+    const roots: (ESTree.Node | ClassValue)[] = [];
+    for (const value of values) {
+      if (value) roots.push(value);
+    }
+    return roots.length ? roots : [fn];
+  };
+
+  const forgetCapturedConstants = (state: EnvState<T>, fn: ESTree.Node | ClassValue): void => {
     if (!hasLogicalAssignments) return;
-    const pending = [fn];
-    const seen = new Set<ESTree.Node>();
+    const pending = captureRoots(state, fn);
+    const seen = new Set<ESTree.Node | ClassValue>();
     while (pending.length) {
       spendWork(budget);
       const current = pending.pop();
       if (!current || seen.has(current)) continue;
       seen.add(current);
+      if (current.type === "ClassValue") {
+        spendWork(budget, current.bases.length);
+        for (const base of current.bases) {
+          if (base) pending.push(base);
+        }
+      }
       const captures = capturesOf(current);
       spendWork(budget, captures.length);
       for (const capturedId of captures) {
@@ -672,21 +813,163 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
     }
   };
 
-  const escapeCaptured = (state: EnvState<T>, fn: ESTree.Node): void => {
+  const escapeCaptured = (state: EnvState<T>, fn: ESTree.Node | ClassValue): void => {
     if (isFunctionLike(fn)) rememberInspectionFunctions(state, fn);
     forgetCapturedConstants(state, fn);
-    for (const capturedId of capturesOf(fn)) {
-      const objectId = state.env.get(capturedId);
-      const captured = objectId === undefined ? undefined : state.objects.get(objectId);
-      if (captured) captured.escaped = true;
+    const pending = captureRoots(state, fn);
+    const seen = new Set<ESTree.Node | ClassValue>();
+    while (pending.length) {
+      spendWork(budget);
+      const current = pending.pop();
+      if (!current || seen.has(current)) continue;
+      seen.add(current);
+      if (current.type === "ClassValue") {
+        spendWork(budget, current.bases.length);
+        for (const base of current.bases) {
+          if (base) pending.push(base);
+        }
+      }
+      const captures = capturesOf(current);
+      spendWork(budget, captures.length);
+      for (const capturedId of captures) {
+        const objectId = state.env.get(capturedId);
+        const captured = objectId === undefined ? undefined : state.objects.get(objectId);
+        if (captured) captured.escaped = true;
+      }
     }
+  };
+
+  const literalArgumentValue = (node: unknown, depth: number): LiteralArgumentValue => {
+    spendWork(budget);
+    if (depth >= MAX_PATH_DEPTH) throw BUDGET_EXCEEDED;
+    const inner = unwrapExpression(node);
+    if (!isNode(inner)) return { kind: "undefined" };
+    if (inner.type === "ObjectExpression" || inner.type === "ArrayExpression") {
+      const literalShape = literalShapeFromExpr(inner, depth);
+      return literalShape ? { kind: "defined", literalShape } : { kind: "defined" };
+    }
+    if (
+      inner.type === "Identifier" &&
+      inner.name === "undefined" &&
+      bindings.isPlatformGlobal(inner)
+    )
+      return { kind: "undefined" };
+    const constant = constantValue(inner);
+    if (!constant) return { kind: "unknown" };
+    return constant.nullish && constant.nullishValue === "undefined"
+      ? { kind: "undefined" }
+      : { kind: "defined" };
+  };
+
+  const literalShapeFromExpr = (node: unknown, depth = 0): LiteralArgumentShape | undefined => {
+    spendWork(budget);
+    if (depth >= MAX_PATH_DEPTH) throw BUDGET_EXCEEDED;
+    const inner = unwrapExpression(node);
+    if (!isNode(inner)) return undefined;
+    if (inner.type === "ObjectExpression") {
+      const properties = new Map<string, LiteralArgumentValue>();
+      const getters = new Set<string>();
+      let rest: "unknown" | "undefined" = objectPrototypeUncertain ? "unknown" : "undefined";
+      let unknownOwnProperties = false;
+      for (const property of inner.properties) {
+        spendWork(budget);
+        const name =
+          property.type === "Property" && !property.computed ? propertyKeyName(property) : null;
+        if (name === null || name === "__proto__" || property.type !== "Property") {
+          spendWork(budget, properties.size + getters.size);
+          properties.clear();
+          getters.clear();
+          rest = "unknown";
+          unknownOwnProperties = true;
+          continue;
+        }
+        if (property.kind === "get") {
+          getters.add(name);
+          properties.set(name, { kind: "unknown" });
+        } else if (property.kind === "set") {
+          properties.set(name, {
+            kind: getters.has(name) || unknownOwnProperties ? "unknown" : "undefined",
+          });
+        } else {
+          getters.delete(name);
+          properties.set(name, literalArgumentValue(property.value, depth + 1));
+        }
+      }
+      return { kind: "object", properties, rest };
+    }
+    if (inner.type === "ArrayExpression") {
+      if (arrayIterationUncertain) return undefined;
+      const elements: LiteralArgumentValue[] = [];
+      for (const element of inner.elements) {
+        spendWork(budget);
+        if (element?.type === "SpreadElement") return { kind: "array", elements, rest: "unknown" };
+        elements.push(literalArgumentValue(element, depth + 1));
+      }
+      return { kind: "array", elements, rest: "undefined" };
+    }
+    return undefined;
+  };
+
+  const expressionValueMayChange = (node: unknown, depth = 0): boolean => {
+    if (depth >= MAX_PATH_DEPTH) return true;
+    spendWork(budget);
+    const expr = unwrapExpression(node);
+    if (!isNode(expr)) return false;
+    switch (expr.type) {
+      case "Identifier":
+        return true;
+      case "SequenceExpression":
+        return expressionValueMayChange(expr.expressions.at(-1), depth + 1);
+      case "AssignmentExpression":
+        return expr.operator === "=" && expressionValueMayChange(expr.right, depth + 1);
+      case "ConditionalExpression": {
+        const test = constantValue(expr.test);
+        return test
+          ? expressionValueMayChange(test.truthy ? expr.consequent : expr.alternate, depth + 1)
+          : expressionValueMayChange(expr.consequent, depth + 1) ||
+              expressionValueMayChange(expr.alternate, depth + 1);
+      }
+      case "LogicalExpression": {
+        const left = constantValue(expr.left);
+        const rightRuns = left
+          ? expr.operator === "&&"
+            ? left.truthy
+            : expr.operator === "||"
+              ? !left.truthy
+              : left.nullish
+          : null;
+        return rightRuns !== null
+          ? expressionValueMayChange(rightRuns ? expr.right : expr.left, depth + 1)
+          : expressionValueMayChange(expr.left, depth + 1) ||
+              expressionValueMayChange(expr.right, depth + 1);
+      }
+      case "SpreadElement":
+        return expressionValueMayChange(expr.argument, depth + 1);
+      default:
+        // A different selected arm can contribute a fixed, meaningful value.
+        return constantValue(expr) !== null;
+    }
+  };
+
+  const shouldPreserveExpressionValue = (source: unknown, value: EvaluatedValue): boolean => {
+    spendWork(budget, value.functions.length);
+    return (
+      value.objectId !== undefined ||
+      value.constant !== null ||
+      value.literalShape !== undefined ||
+      value.functions.some((fn) => fn !== undefined) ||
+      expressionValueMayChange(source)
+    );
   };
 
   const preserveArgumentValue = (state: EnvState<T>, node: ESTree.Node): void => {
     const preserve = (path: EnvState<T>): void => {
       spendWork(budget);
-      const value = node.type === "SpreadElement" ? node.argument : node;
-      path.assignmentResults.set(node, valueFromExpr(path, value));
+      const source = node.type === "SpreadElement" ? node.argument : node;
+      const evaluated = valueFromExpr(path, source);
+      const literalShape = literalShapeFromExpr(source);
+      const value = literalShape === undefined ? evaluated : { ...evaluated, literalShape };
+      if (shouldPreserveExpressionValue(source, value)) path.assignmentResults.set(node, value);
     };
     if (!runCorrelated(state, preserve)) preserve(state);
   };
@@ -779,35 +1062,76 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
     }
   };
 
-  const visitPatternExpressions = (state: EnvState<T>, pattern: unknown): void => {
+  const visitPatternExpressions = (
+    state: EnvState<T>,
+    pattern: unknown,
+    value: LiteralArgumentValue = { kind: "unknown" },
+    depth = 0,
+  ): void => {
+    if (state.completion !== "normal") return;
+    if (runCorrelated(state, (path) => visitPatternExpressions(path, pattern, value, depth)))
+      return;
+    spendWork(budget);
+    if (depth >= MAX_PATH_DEPTH) throw BUDGET_EXCEEDED;
     const inner = unwrapExpression(pattern);
     if (!isNode(inner)) return;
     if (inner.type === "AssignmentPattern") {
-      const withDefault = snapshotState(state, cloneData, budget);
-      visit((inner as ESTree.AssignmentPattern).right, withDefault, false);
-      joinInto(state, [snapshotState(state, cloneData, budget), withDefault]);
-      visitPatternExpressions(state, (inner as ESTree.AssignmentPattern).left);
+      if (value.kind === "defined") {
+        visitPatternExpressions(state, inner.left, value, depth + 1);
+        return;
+      }
+      const withDefault =
+        value.kind === "undefined" ? state : snapshotState(state, cloneData, budget);
+      visit(inner.right, withDefault, false);
+      if (withDefault.completion === "normal")
+        visitPatternExpressions(
+          withDefault,
+          inner.left,
+          literalArgumentValue(inner.right, 0),
+          depth + 1,
+        );
+      if (value.kind === "unknown") {
+        const provided = snapshotState(state, cloneData, budget);
+        visitPatternExpressions(provided, inner.left, value, depth + 1);
+        joinInto(state, [provided, withDefault]);
+      }
       return;
     }
     if (inner.type === "RestElement") {
-      visitPatternExpressions(state, inner.argument);
+      visitPatternExpressions(state, inner.argument, { kind: "unknown" }, depth + 1);
       return;
     }
     if (inner.type === "ObjectPattern") {
-      for (const prop of (inner as ESTree.ObjectPattern).properties) {
+      for (const prop of inner.properties) {
+        if (state.completion !== "normal") break;
+        spendWork(budget);
         if (!isNode(prop)) continue;
-        if (prop.type === "RestElement") visitPatternExpressions(state, prop.argument);
+        if (prop.type === "RestElement")
+          visitPatternExpressions(state, prop.argument, { kind: "unknown" }, depth + 1);
         else if (prop.type === "Property") {
-          const property = prop as ESTree.ObjectProperty;
-          if (property.computed) visit(property.key, state, false);
-          visitPatternExpressions(state, property.value);
+          if (prop.computed) visit(prop.key, state, false);
+          const name = prop.computed ? null : propertyKeyName(prop);
+          const selected: LiteralArgumentValue =
+            name !== null && value.kind === "defined" && value.literalShape?.kind === "object"
+              ? (value.literalShape.properties.get(name) ?? {
+                  kind: OBJECT_PROTOTYPE_KEYS.has(name) ? "unknown" : value.literalShape.rest,
+                })
+              : { kind: "unknown" };
+          visitPatternExpressions(state, prop.value, selected, depth + 1);
         }
       }
       return;
     }
     if (inner.type === "ArrayPattern") {
-      for (const element of (inner as ESTree.ArrayPattern).elements)
-        visitPatternExpressions(state, element);
+      for (const [index, element] of inner.elements.entries()) {
+        if (state.completion !== "normal") break;
+        spendWork(budget);
+        const selected: LiteralArgumentValue =
+          value.kind === "defined" && value.literalShape?.kind === "array"
+            ? (value.literalShape.elements[index] ?? { kind: value.literalShape.rest })
+            : { kind: "unknown" };
+        visitPatternExpressions(state, element, selected, depth + 1);
+      }
     }
   };
 
@@ -861,7 +1185,13 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
     if (runCorrelated(state, (path) => bindParameterValue(path, pattern, value))) return;
     const target = unwrapExpression(pattern);
     if (isNode(target) && target.type !== "Identifier") {
-      visitPatternExpressions(state, target);
+      visitPatternExpressions(
+        state,
+        target,
+        value.literalShape
+          ? { kind: "defined", literalShape: value.literalShape }
+          : { kind: "unknown" },
+      );
       if (state.completion !== "normal") return;
     }
     bindPattern(state, pattern, value.objectId);
@@ -980,7 +1310,9 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
 
     if (hasLogicalAssignments && consumesExpressionValue(node)) {
       spendWork(budget);
-      state.assignmentResults.set(node, valueFromExpr(state, value));
+      const selected = valueFromExpr(state, value);
+      if (shouldPreserveExpressionValue(node, selected))
+        state.assignmentResults.set(node, selected);
       return;
     }
     const values = functionsFromExpr(state, value);
@@ -1082,7 +1414,13 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
           const withDefault = defaultRuns ? path : snapshotState(path, cloneData, budget);
           visit(param.right, withDefault, false);
           const bindDefault = (result: EnvState<T>): void => {
-            bindParameterValue(result, param.left, valueFromExpr(result, param.right));
+            const selected = valueFromExpr(result, param.right);
+            const literalShape = literalShapeFromExpr(param.right);
+            bindParameterValue(
+              result,
+              param.left,
+              literalShape ? { ...selected, literalShape } : selected,
+            );
           };
           if (!runCorrelated(withDefault, bindDefault) && withDefault.completion === "normal")
             bindDefault(withDefault);
@@ -1136,11 +1474,6 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
         if (values) result.functions.set(id, values);
         else result.functions.delete(id);
       }
-      for (const id of classHeritageBindings) {
-        const values = path.functions.get(id);
-        spendWork(budget, 1 + (values?.length ?? 0));
-        if (values) result.functions.set(id, values);
-      }
       setCompletion(result, path.completion, path.completionLabel ?? null);
       return result;
     });
@@ -1185,33 +1518,45 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
     ancestors.pop();
   };
 
-  const initializeInstanceFields = (
-    state: EnvState<T>,
-    cls: ESTree.Class,
-    chain = new Set<ESTree.Class>(),
-  ): void => {
+  const initializeInstanceFields = (state: EnvState<T>, value: ClassValue): void => {
     if (state.completion !== "normal") return;
-    if (runCorrelated(state, (path) => initializeInstanceFields(path, cls, chain))) return;
-    spendWork(budget);
-    if (activeFunctions.has(cls) || chain.has(cls)) return;
-    if (chain.size >= MAX_PATH_DEPTH) throw BUDGET_EXCEEDED;
-    activeFunctions.add(cls);
-    chain.add(cls);
-    const heritage = classHeritageIds.get(cls);
-    const bases =
-      heritage === undefined ? [undefined] : (state.functions.get(heritage) ?? [undefined]);
-    spendWork(budget, bases.length);
-    const paths: EnvState<T>[] = [];
-    for (const base of bases) {
-      const path = bases.length === 1 ? state : snapshotState(state, cloneData, budget);
-      if (base?.type === "ClassDeclaration" || base?.type === "ClassExpression")
-        initializeInstanceFields(path, base, chain);
-      initializeOwnInstanceFields(path, cls);
-      paths.push(path);
+    if (runCorrelated(state, (path) => initializeInstanceFields(path, value))) return;
+    // Inheritance length is independent of the syntax nesting depth limit.
+    const frames: ClassFieldFrame<T>[] = [];
+    const enter = (path: EnvState<T>, selected: ClassValue): void => {
+      spendWork(budget, 1 + selected.bases.length);
+      if (activeClasses.has(selected)) return;
+      activeClasses.add(selected);
+      frames.push({
+        state: path,
+        value: selected,
+        bases: selected.bases.length ? selected.bases : [undefined],
+        paths: [],
+        nextBase: 0,
+        current: undefined,
+      });
+    };
+    enter(state, value);
+    while (frames.length) {
+      spendWork(budget);
+      const frame = frames.at(-1);
+      if (!frame) break;
+      if (frame.current) {
+        initializeOwnInstanceFields(frame.current, frame.value.node);
+        frame.paths.push(frame.current);
+        frame.current = undefined;
+      } else if (frame.nextBase >= frame.bases.length) {
+        if (frame.paths.length > 1) joinInto(frame.state, frame.paths);
+        activeClasses.delete(frame.value);
+        frames.pop();
+      } else {
+        const base = frame.bases[frame.nextBase++];
+        const path =
+          frame.bases.length === 1 ? frame.state : snapshotState(frame.state, cloneData, budget);
+        frame.current = path;
+        if (base?.type === "ClassValue") enter(path, base);
+      }
     }
-    if (paths.length > 1) joinInto(state, paths);
-    chain.delete(cls);
-    activeFunctions.delete(cls);
   };
 
   const visitControlFlow = createControlFlowVisitor<T>({
@@ -1272,9 +1617,9 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
         state.callableResults = new Map();
         // Expressions run among keys, but their selected callable identities
         // must survive until the later decorator application phase.
-        const savedDecorators = new Set<ESTree.Node>();
+        const retainedHeaderValues = new Set<ESTree.Node>();
         const finishClassHeader = (path: EnvState<T>): void => {
-          if (!savedDecorators.size) {
+          if (!retainedHeaderValues.size) {
             finishExpressionResults(path);
             return;
           }
@@ -1282,7 +1627,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
             spendWork(budget, 1 + result.callableResults.size + result.assignmentResults.size);
             result.assignmentResults.clear();
             for (const expression of result.callableResults.keys()) {
-              if (!savedDecorators.has(expression)) result.callableResults.delete(expression);
+              if (!retainedHeaderValues.has(expression)) result.callableResults.delete(expression);
             }
             for (const alternative of result.callablePaths) clear(alternative);
             for (const paths of result.abrupt.values()) {
@@ -1294,20 +1639,22 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
         };
         const visitClassHeader = (expression: unknown, decorator?: ESTree.Node): void => {
           const evaluate = (path: EnvState<T>): void => {
+            const definition = path.callableResults.get(node);
+            spendWork(budget, definition?.length ?? 0);
             visit(expression, path, false);
+            if (definition) {
+              const restore = (result: EnvState<T>): void => {
+                spendWork(budget, definition.length);
+                result.callableResults.set(node, definition);
+              };
+              if (!runCorrelated(path, restore)) restore(path);
+            }
             if (decorator || expression === node.superClass) {
               const save = (result: EnvState<T>): void => {
                 if (result.completion !== "normal") return;
                 const selected = functionsFromExpr(result, expression);
                 if (decorator) result.callableResults.set(decorator, selected);
-                else {
-                  const heritage = classHeritageBinding(node);
-                  const previous = result.functions.get(heritage) ?? [];
-                  spendWork(budget, previous.length + selected.length);
-                  // One AST identity can represent repeated definitions; earlier
-                  // aliases must retain the bases selected on those evaluations.
-                  result.functions.set(heritage, [...new Set([...previous, ...selected])]);
-                }
+                else result.callableResults.set(node, selected);
               };
               if (!runCorrelated(path, save)) save(path);
             }
@@ -1322,7 +1669,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
           for (const decorator of decorated.decorators) {
             spendWork(budget);
             if (isNode(decorator) && "expression" in decorator) {
-              savedDecorators.add(decorator);
+              retainedHeaderValues.add(decorator);
               visitClassHeader(decorator.expression, decorator);
               evaluated.push(decorator);
             }
@@ -1332,7 +1679,10 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
         };
         const classDecorators = visitClassDecorators(node);
         const memberDecorators: ESTree.Node[] = [];
-        if (node.superClass) visitClassHeader(node.superClass);
+        if (node.superClass) {
+          retainedHeaderValues.add(node);
+          visitClassHeader(node.superClass);
+        }
         for (const element of node.body.body) {
           spendWork(budget);
           const decorators = visitClassDecorators(element);
@@ -1340,12 +1690,19 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
           for (const decorator of decorators) memberDecorators.push(decorator);
           if ("computed" in element && element.computed) visitClassHeader(element.key);
         }
+        retainedHeaderValues.add(node);
+        const initializeClassValue = (path: EnvState<T>): void => {
+          const bases = node.superClass ? (path.callableResults.get(node) ?? [undefined]) : [];
+          path.callableResults.set(node, [classValue(node, bases)]);
+        };
+        if (!runCorrelated(state, initializeClassValue) && state.completion === "normal")
+          initializeClassValue(state);
         if (node.id && state.completion === "normal") {
           const innerBinding = resolveBinding(bindings, node.id, ancestors);
           if (innerBinding && referencedBindings.has(innerBinding.id))
             assignFrom(state, node.id, node);
         }
-        const escapeDecoratorCaptures = (path: EnvState<T>, fn: ESTree.Node): void => {
+        const escapeDecoratorCaptures = (path: EnvState<T>, fn: ESTree.Node | ClassValue): void => {
           spendWork(budget, capturesOf(fn, budget).length);
           escapeCaptured(path, fn);
         };
@@ -1384,10 +1741,11 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
             }
           }
         };
-        if (savedDecorators.size) {
+        if (memberDecorators.length || classDecorators.length) {
           if (!runCorrelated(state, applyDecorators) && state.completion === "normal")
             applyDecorators(state);
-          savedDecorators.clear();
+          for (const decorator of [...memberDecorators, ...classDecorators])
+            retainedHeaderValues.delete(decorator);
         }
         for (const element of node.body.body) {
           spendWork(budget);
@@ -1403,7 +1761,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
             const binding = bindings.scopeForNode(node, ancestors)?.parent?.bindings.get(id.name);
             if (binding && referencedBindings.has(binding.id)) {
               path.env.set(binding.id, undefined);
-              path.functions.set(binding.id, [node]);
+              path.functions.set(binding.id, functionsFromExpr(path, node));
               if (path.constants.get(binding.id) === null) forgetCapturedConstants(path, node);
               else if (constantBindings.has(binding.id)) {
                 const constant = constantFromExpr(path, node);
@@ -1785,7 +2143,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
           for (const fn of functions) {
             const invocation =
               functions.length === 1 ? path : snapshotState(path, cloneData, budget);
-            const knownClass = fn?.type === "ClassDeclaration" || fn?.type === "ClassExpression";
+            const knownClass = fn?.type === "ClassValue";
             if (knownClass) initializeInstanceFields(invocation, fn);
             const finishConstruction = (result: EnvState<T>): void => {
               if (runCorrelated(result, finishConstruction)) return;

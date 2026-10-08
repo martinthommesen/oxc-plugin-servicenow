@@ -288,6 +288,35 @@ rec.next();`;
  * @param {number} count
  * @returns {string}
  */
+function derivedClassHelperCalls(count) {
+  const classes = Array.from(
+    { length: count },
+    (_, index) => `class Child${index} extends Base {}`,
+  );
+  const calls = Array.from({ length: count }, () => "use();");
+  return `/* eslint-disable no-unused-vars -- Unused class declarations are the measured workload. */
+class Base {}
+${classes.join("\n")}
+function use() {}
+${calls.join("\n")}
+${glideRecordBlock(0)}`;
+}
+
+/**
+ * @param {number} count
+ * @returns {string}
+ */
+function emptyArgumentCalls(count) {
+  const argumentsCode = Array.from({ length: count }, () => "use()").join(", ");
+  return `function use() {}
+external(${argumentsCode});
+${glideRecordBlock(0)}`;
+}
+
+/**
+ * @param {number} count
+ * @returns {string}
+ */
 function sequenceSelectors(count) {
   let condition = "flag";
   for (let depth = 0; depth < 8; depth += 1) condition = `(0, ${condition})`;
@@ -368,6 +397,11 @@ function generateFixtures(directory) {
     join(directory, "classic/generator-parameter-joins.br.js"),
     generatorParameterJoins(100),
   );
+  writeFileSync(
+    join(directory, "classic/derived-class-helper-calls.br.js"),
+    derivedClassHelperCalls(1500),
+  );
+  writeFileSync(join(directory, "classic/empty-argument-calls.br.js"), emptyArgumentCalls(1500));
   writeFileSync(join(directory, "fluent/large.now.ts"), fluentRecords(80));
   writeFileSync(join(directory, "fluent/aliases.now.ts"), fluentAliases(120));
   writeFileSync(join(directory, "classic/counters.br.js"), counterBlocks(40));
@@ -609,6 +643,18 @@ async function main() {
         "recommended",
         configs.recommended,
         [join(work, "classic/uncalled-assigned-selector-calls.br.js")],
+      ],
+      [
+        "derived-class-helper-calls/recommended",
+        "recommended",
+        configs.recommended,
+        [join(work, "classic/derived-class-helper-calls.br.js")],
+      ],
+      [
+        "empty-argument-calls/recommended",
+        "recommended",
+        configs.recommended,
+        [join(work, "classic/empty-argument-calls.br.js")],
       ],
       [
         "generator-parameter-joins/recommended",

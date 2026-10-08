@@ -307,7 +307,13 @@ Ordered scalar fields preserve reachable operations; abrupt arguments skip every
 
 Known superclass fields run before derived fields using the heritage value saved at class definition. Rebinding, keys and static effects cannot replace that value; unknown bases retain their existing opaque policy.
 
-Alternative and correlated bases run on separate paths; helper-created and repeated class sites preserve saved heritage. Abrupt arguments skip every field, while a thrown base initializer skips derived fields and retains prior effects. Static values and computed keys remain definition-only. Recursive construction and fifty known hierarchy levels complete within the existing budget, and field cleanup preserves enclosing constructor and argument values.
+Alternative and correlated bases run on separate paths; helper-created and repeated class sites preserve each evaluated class value's heritage. Abrupt arguments skip every field, while a thrown base initializer skips derived fields and retains prior effects. Static values and computed keys remain definition-only. Recursive construction and fifty known hierarchy levels complete within the existing budget, and field cleanup preserves enclosing constructor and argument values.
+
+### Class heritage snapshots and long chains preserve unrelated findings
+
+Unused class definitions share immutable evaluated heritage values across helper calls and branches. Long known superclass chains execute without exhausting the syntax depth limit or dropping unrelated later diagnostics.
+
+The exact fifteen-hundred-class and fifteen-hundred-helper workload retains its later bulk-operation finding, as do branch snapshots. Chains of 128, 129, 257 and 1,024 classes retain both base-field and later findings within the unchanged work budget. Repeated sites preserve saved and current class bases in both directions, equal definitions converge at loop fixpoints, and helper-created class values retain scalar correlations. Record and scalar capture effects follow frozen bases and their callable aliases rather than replacements; array, object, return and throw exports preserve the same boundary.
 
 ### Class definitions evaluate only immediate class effects
 
@@ -387,6 +393,20 @@ Known Call and generator Tag pattern defaults distinguish definite null from und
 
 Object and array patterns skip defaults for supplied null and evaluate defaults for undefined. Transparent sequences and selected conditional or logical argument values keep their facts, while skipped logical right operands remain skipped. Catch paths retain the final cursor finding, and every case completes within the default budget.
 
+### Literal argument shapes skip impossible pattern defaults
+
+Supplied literal properties and array elements skip nested defaults, retaining record trust when an impossible default would escape it. Missing or undefined values run defaults; uncertain values preserve possible effects.
+
+False, zero and null remain supplied values. Nested patterns, rest bindings, literal defaults, accessors, computed keys and spread boundaries retain conservative eligibility and abrupt completion. Shapes are captured before later argument replacement and survive unrelated joins without inferring ordinary property facts. A one-hundred-level array shape stays within the existing traversal limit; five hundred repeated calls retain the security warning and active subquadratic scaling.
+
+Missing standard Object.prototype names retain possible inherited values rather than forcing defaults; explicit own properties still determine eligibility.
+
+Explicit Array.prototype or Symbol.iterator references retain possible custom iteration defaults, including aliases, defineProperty, exposure and later-argument replacement. Local shadows and ordinary Array builtin calls preserve literal element proofs.
+
+Global constructor aliases, exposure, unknown computed members and globalThis-qualified accesses retain prototype uncertainty. Namespace aliases, value exposure and unknown namespace members retain both array and object uncertainty. Object prototype hazards affect absent keys while preserving explicit own values. Safe member reads through transparent wrappers and local shadows retain ordinary literal proofs.
+
+Unknown computed receiver writes keep the existing rule authority policy; direct path-call assertions isolate reachable defaults when that policy suppresses diagnostics.
+
 ### Return and throw escape evaluated values
 
 Returned and thrown allocations lose trust after expression evaluation, including captured assignments and sequences. Cursor advances within those expressions remain diagnosed; exporting another value retains the captured object's trust.
@@ -440,6 +460,12 @@ Known nodes resolve through their indexed lexical scope even when callers supply
 ### Mapped arguments identities survive preceding joins
 
 Implicit arguments objects and aliases retain their owner identity through branches, catches and loops without becoming domain records. Replaced and strict arguments remain independent; possible mapped receivers retain correlated paths.
+
+### Empty argument results do not enlarge invocation snapshots
+
+Wide call, constructor and tag argument lists preserve later diagnostics without retaining stable domain-empty results. Explicit unknown snapshots still prevent later arguments from changing earlier binding-based values.
+
+Five hundred and fifteen hundred empty helper results complete within the normal analysis budget. Consumed conditional and logical results share the sparse policy when selectors are active; known callbacks, undefined defaults and selected unknown alternatives keep their evaluated facts.
 
 ### Known parameter replay retains evaluated arguments without selectors
 

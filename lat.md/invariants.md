@@ -130,6 +130,8 @@ The NUL-terminated form is required: the line form octal-escapes non-ASCII paths
 
 The same benchmark runner includes five hundred assigned-helper calls inside an uncalled caller. This quiet fixture measures deferred caller-first inspection, alongside the active positive-finding and subquadratic controls in [[tests#Analysis behavior#Assigned helper inspection follows actual invocation]].
 
+`derivedClassHelperCalls` and `emptyArgumentCalls` in [scripts/benchmark.mjs](../scripts/benchmark.mjs) measure 1,500 unused derived definitions alongside 1,500 helper invocations, and one invocation with 1,500 empty call results. The class fixture scopes an unused-variable exemption to its intentionally unreferenced declarations. Positive regression tests independently require completed analysis and a later bulk-operation finding.
+
 ## Test reports are isolated and queried consistently
 
 Each test run writes to its own report path when concurrent execution could occur, and report consumers share one exact-proof definition.

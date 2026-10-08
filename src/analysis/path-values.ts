@@ -282,13 +282,7 @@ export function createPathValueResolver<T>(context: PathValueContext<T>) {
     if (assignment) return assignment.functions;
     const result = state.callableResults.get(expr);
     if (result) return result;
-    if (
-      isFunctionLike(expr) ||
-      expr.type === "ClassExpression" ||
-      expr.type === "ClassDeclaration"
-    ) {
-      return [expr];
-    }
+    if (isFunctionLike(expr)) return [expr];
     switch (expr.type) {
       case "Identifier": {
         const binding = resolveBinding(bindings, expr, ancestors);

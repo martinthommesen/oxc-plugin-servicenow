@@ -7,10 +7,12 @@ import type {
   EnvState,
   EvaluatedValue,
   InternalCompletion,
+  LiteralArgumentShape,
+  LiteralArgumentValue,
   ObjectId,
   SharedRecord,
 } from "./path-types.js";
-import { spendWork, type WorkBudget } from "./path-budget.js";
+import { BUDGET_EXCEEDED, MAX_PATH_DEPTH, spendWork, type WorkBudget } from "./path-budget.js";
 
 export function cloneAbrupt<T>(
   abrupt: Map<AbruptCompletion, EnvState<T>[]>,
@@ -205,10 +207,18 @@ export function mergeFlatStates<T>(
     const leftFunctions = leftValue?.functions ?? [undefined];
     const rightFunctions = rightValue?.functions ?? [undefined];
     spendWork(policy.budget, 1 + leftFunctions.length + rightFunctions.length);
+    const literalShape = sameLiteralShape(
+      leftValue?.literalShape,
+      rightValue?.literalShape,
+      policy.budget,
+    )
+      ? leftValue?.literalShape
+      : undefined;
     assignmentResults.set(node, {
       objectId: leftValue?.objectId === rightValue?.objectId ? leftValue?.objectId : undefined,
       functions: [...new Set([...leftFunctions, ...rightFunctions])],
       constant: mergeConstant(leftValue?.constant, rightValue?.constant),
+      ...(literalShape ? { literalShape } : {}),
     });
   }
   const objects = new Map<ObjectId, SharedRecord<T>>();
@@ -330,6 +340,49 @@ function mergeConstant(
   return { truthy: false, nullish: true };
 }
 
+function sameLiteralArgumentValue(
+  left: LiteralArgumentValue,
+  right: LiteralArgumentValue | undefined,
+  budget: WorkBudget,
+  depth: number,
+): boolean {
+  spendWork(budget);
+  if (!right || left.kind !== right.kind) return false;
+  return (
+    left.kind !== "defined" ||
+    right.kind !== "defined" ||
+    sameLiteralShape(left.literalShape, right.literalShape, budget, depth)
+  );
+}
+
+function sameLiteralShape(
+  left: LiteralArgumentShape | undefined,
+  right: LiteralArgumentShape | undefined,
+  budget: WorkBudget,
+  depth = 0,
+): boolean {
+  spendWork(budget);
+  if (left === right) return true;
+  if (!left || !right || left.kind !== right.kind || left.rest !== right.rest) return false;
+  if (depth >= MAX_PATH_DEPTH) throw BUDGET_EXCEEDED;
+  if (left.kind === "object" && right.kind === "object") {
+    if (left.properties.size !== right.properties.size) return false;
+    for (const [name, value] of left.properties) {
+      if (!sameLiteralArgumentValue(value, right.properties.get(name), budget, depth + 1))
+        return false;
+    }
+    return true;
+  }
+  if (left.kind === "array" && right.kind === "array") {
+    if (left.elements.length !== right.elements.length) return false;
+    for (const [index, value] of left.elements.entries()) {
+      if (!sameLiteralArgumentValue(value, right.elements[index], budget, depth + 1)) return false;
+    }
+    return true;
+  }
+  return false;
+}
+
 function sameAssignmentResults(
   left: Map<ESTree.Node, EvaluatedValue>,
   right: Map<ESTree.Node, EvaluatedValue>,
@@ -343,6 +396,7 @@ function sameAssignmentResults(
       !other ||
       value.objectId !== other.objectId ||
       !sameConstant(value.constant, other.constant) ||
+      !sameLiteralShape(value.literalShape, other.literalShape, budget) ||
       !sameCallableValues(value.functions, other.functions, budget)
     )
       return false;

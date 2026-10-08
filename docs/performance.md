@@ -15,6 +15,8 @@ The command generates deterministic fixtures and times the real `oxlint` executa
 - nested scopes
 - assigned helper calls replayed from an uncalled caller
 - generator Call and Tag parameter defaults alongside mapped arguments branch joins
+- 1,500 derived class definitions followed by 1,500 known helper calls
+- a single external invocation with 1,500 empty known-call argument values
 - large Fluent metadata
 - Fluent factory calls through mutable aliases
 - classic cursor-count loops with post-loop writes
