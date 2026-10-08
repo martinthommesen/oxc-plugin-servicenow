@@ -36,6 +36,8 @@ The registry maps an SDK semver string to the manifest reviewed for it.
 
 Schema 2 shares declarations, lifecycle records, inventories and absence lists through named references. Inventory changes inherit prior versions and preserve removals explicitly.
 
+[decodeFluentFixture](../scripts/lib/fluent-fixture.mjs#decodeFluentFixture) validates unknown fixture input before expanding references. Missing inventory entries, malformed string lists, declaration and lifecycle records, or invalid reference shapes fail instead of erasing verification evidence.
+
 The fixture holds declaration paths, hashes, absent names, and lifecycle evidence. Typos come from `DEFAULT_FLUENT_MANIFEST`, their authored home. The shipped module contains id policies and discovered names with module and introduction version, which is all `registry.ts` reads.
 
 Because the fixture is a complete superset of the audited object, the generated module can be rebuilt offline from it with a deterministic TypeScript serializer; `scripts/audit-fluent-sdk.mjs --update` is only needed to re-audit against npm. `npm run manifest:check` compares the shipped projection against the fixture, and `npm run manifest:drift` re-audits against the live registry.

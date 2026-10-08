@@ -348,3 +348,7 @@ The audit script must accept only the exact npm registry artifact URL, cap decla
 ### Shared declaration evidence expands without loss
 
 The canonical fixture round-trips every reviewed version, keeps expanded versions independent and rejects missing references or unsupported schemas.
+
+### Malformed shared evidence cannot erase verification
+
+Missing lifecycle inventory entries and malformed lists, declarations, lifecycle records or references must be rejected, so damaged fixtures cannot silently remove manifest verification coverage.

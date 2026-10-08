@@ -14,11 +14,14 @@ describe("shared Fluent evidence", () => {
 
   it("keeps expanded versions independent when stored declarations are shared", () => {
     const expanded = decodeFluentFixture(encoded);
-    const before = structuredClone(expanded.versions["3.0.1"].capabilities.Acl);
-    expanded.versions["3.0.0"].capabilities.Acl.idPolicy = "unknown";
-    assert.deepEqual(expanded.versions["3.0.1"].capabilities.Acl, before);
+    const first = expanded.versions["3.0.0"]?.capabilities["Acl"];
+    const second = expanded.versions["3.0.1"]?.capabilities["Acl"];
+    assert.ok(first && second);
+    const before = structuredClone(second);
+    first.idPolicy = "unknown";
+    assert.deepEqual(second, before);
     assert.equal(
-      decodeFluentFixture(encoded).versions["3.0.0"].capabilities.Acl.idPolicy,
+      decodeFluentFixture(encoded).versions["3.0.0"]?.capabilities["Acl"]?.idPolicy,
       "required",
     );
   });
@@ -37,5 +40,50 @@ describe("shared Fluent evidence", () => {
       () => decodeFluentFixture({ ...encoded, schemaVersion: 99 }),
       /unsupported Fluent fixture schema/,
     );
+  });
+
+  // @lat: [[tests#Fluent manifest#Malformed shared evidence cannot erase verification]]
+  it("rejects a lifecycle inventory whose entries are missing", () => {
+    const broken = structuredClone(encoded);
+    delete broken.inventories["3.0.0:lifecycle"].entries;
+    assert.throws(() => decodeFluentFixture(broken), /invalid Fluent fixture/);
+  });
+
+  it("rejects a non-list absence record", () => {
+    const broken = structuredClone(encoded);
+    broken.lists["3.0.0:absent"] = 42;
+    assert.throws(() => decodeFluentFixture(broken), /invalid Fluent fixture/);
+  });
+
+  it("rejects malformed inventory references and evidence records", () => {
+    const malformed = [
+      { declarations: { ...encoded.declarations, "3.0.0:Acl": { idPolicy: "optional" } } },
+      { lifecycles: { ...encoded.lifecycles, "3.0.0:Acl": { introduced: null } } },
+      { lists: { ...encoded.lists, "3.0.0:absent": [42] } },
+      {
+        inventories: {
+          ...encoded.inventories,
+          "3.0.0:lifecycle": { entries: { Acl: 42 } },
+        },
+      },
+      {
+        inventories: {
+          ...encoded.inventories,
+          "3.0.0:lifecycle": { entries: {}, base: 42 },
+        },
+      },
+      {
+        inventories: {
+          ...encoded.inventories,
+          "3.0.0:lifecycle": { entries: {}, removed: [42] },
+        },
+      },
+      {
+        versions: { ...encoded.versions, "3.0.0": { ...encoded.versions["3.0.0"], lifecycle: 42 } },
+      },
+    ];
+    for (const fields of malformed) {
+      assert.throws(() => decodeFluentFixture({ ...encoded, ...fields }), /invalid Fluent fixture/);
+    }
   });
 });

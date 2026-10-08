@@ -422,7 +422,8 @@ export default [
       const fluentCodes = pluginRuleIds(fluentReport);
       const hasMissingId = fluentCodes.some((code) => String(code).includes("require-fluent-id"));
       const requiresListId =
-        fluentEvidence.versions?.[fluentSdkVersion]?.capabilities?.List?.idPolicy === "required";
+        fluentEvidence.versions?.[fluentSdkVersion]?.capabilities?.["List"]?.idPolicy ===
+        "required";
       if (requiresListId !== hasMissingId) {
         fail(
           "runtime",
