@@ -567,7 +567,7 @@ Each distinct constructor alternates standalone or returned super with ordinary 
 
 Quadrupling constructions from 125 to 500 retains precise ordinary-base body effects, three derived field sites and an independent later finding. False arguments keep their base body quiet after earlier pruned calls.
 
-The positive fixture alternates an implicit two-link hierarchy and explicit returned true or standalone false super arguments. Complete budgets and exact diagnostic lines accompany the subquadratic gate; the real-host counterpart uses quiet body sinks and field values with a filtered later bulk operation.
+The positive fixture alternates an implicit two-link hierarchy and explicit returned true or standalone false super arguments. Complete budgets and exact diagnostic lines accompany the subquadratic gate; the real-host counterpart uses quiet body sinks and field values with a filtered later bulk operation. Returned-super benchmark class lines exempt only the built-in constructor-super false positive; parsing, plugin diagnostics and the clean-sample gate remain required.
 
 ### Pruned helper call density scales with complete findings
 

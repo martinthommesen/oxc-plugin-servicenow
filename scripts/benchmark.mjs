@@ -377,7 +377,7 @@ function safeSuperArguments(count) {
 ${Array.from(
   { length: count },
   (_, index) =>
-    `class Derived${index} extends Base { constructor(${index % 4 >= 2 ? "..._values" : "_value"}) { ${index % 2 ? "return " : ""}super(0, false, null, {}, [], function() {}); } field = 0; } new Derived${index}();`,
+    `${index % 2 ? "// eslint-disable-next-line constructor-super -- Returned super is the measured legal constructor form.\n" : ""}class Derived${index} extends Base { constructor(${index % 4 >= 2 ? "..._values" : "_value"}) { ${index % 2 ? "return " : ""}super(0, false, null, {}, [], function() {}); } field = 0; } new Derived${index}();`,
 ).join("\n")}
 ${glideRecordBlock(0)}
 rec0.deleteMultiple();`;
@@ -395,6 +395,7 @@ BaseTrue(false); BaseFalse(false);
 class LinkOne extends BaseTrue {}
 class LinkTwo extends LinkOne {}
 class Implicit extends LinkTwo { field = 0; }
+// eslint-disable-next-line constructor-super -- Returned super is the measured legal constructor form.
 class ExplicitTrue extends BaseTrue { constructor() { return super(true); } field = 0; }
 class ExplicitFalse extends BaseFalse { constructor(..._values) { super(false); } field = 0; }
 ${Array.from({ length: count }, (_, index) => calls[index % calls.length]).join("\n")}

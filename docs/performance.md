@@ -38,6 +38,8 @@ Each case records raw samples, median elapsed time, and peak RSS after one warm-
 
 The `with-selector-scopes/recommended` script scopes an exemption to the built-in `no-with` rule because dynamic scope is the workload. The real host must still parse the script and emit no other diagnostics. Positive scaling controls independently check completed traversal and possible query and bulk calls; the public rule retains its existing dynamic-scope authority policy.
 
+The two superclass fixtures scope `constructor-super` exemptions to individual returned-super class lines. The host rule misses legal `return super(...)` initialization; runtime controls confirm those constructors complete normally. Parsing, all plugin rules and the zero-diagnostic sample gate remain enforced.
+
 Profiles compared:
 
 - oxlint with the plugin disabled
