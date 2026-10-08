@@ -8,7 +8,7 @@ Stateful GlideRecord analysis must keep the recommended large/small scale ratio 
 npm run bench
 ```
 
-The command generates deterministic fixtures and times the real `oxlint` executable. It measures:
+The command generates deterministic fixtures and times 29 registered cases with the real `oxlint` executable. It measures:
 
 - small, medium, and large classic GlideRecord files
 - branch-heavy alias and try/catch analysis
@@ -24,7 +24,9 @@ The command generates deterministic fixtures and times the real `oxlint` executa
 - five hundred private own-constructor prototype accesses
 - an initial cached own-field lookup, one shadow deletion, and five hundred inherited static accessor lookups through an alias of a 128-level class hierarchy
 - five hundred `with` bodies followed by a possible query and a filtered bulk operation
-- five hundred try blocks invoking a local helper directly, through `.call(null, true)` and as an ordinary template tag
+- five hundred try blocks invoking a local helper directly, through `.call(null, true)`, as an ordinary template tag and through class-expression construction with a deferred method and field
+- five hundred distinct derived constructors supplying six harmless literal or empty-creation arguments to a known base
+- three hundred assigned helpers whose false arguments skip calls through a linear capture chain
 - large Fluent metadata
 - Fluent factory calls through mutable aliases
 - classic cursor-count loops with post-loop writes
@@ -63,6 +65,8 @@ CI also reports trend warnings when:
 Absolute measurements from uncontrolled public runners are trend evidence. The blocking limits detect repeated full-file analysis and quadratic scans.
 
 The path-sensitive interpreter also has a deterministic per-pass work budget and a maximum traversal depth. If either limit is reached, the pass stops and returns unknown facts. This fail-safe bounds adversarial machine-generated input without inventing a definite result.
+
+The capture-chain fixture targets repeated definition-time capture traversal. Positive controls retain a later finding at 375 helper definitions, and quadruple calls through a fixed 64-helper chain from 125 to 500. Growing whole-environment snapshots remain bounded by the existing work ceiling; this change does not promise completion for 500 or 1,500 distinct helper bindings.
 
 CI uploads the current result as `performance-current`. The checked-in baseline is never uploaded under a current-result name.
 

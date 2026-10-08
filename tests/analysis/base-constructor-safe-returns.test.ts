@@ -99,10 +99,10 @@ describe("safe base constructor returns", () => {
       0,
     );
   });
-  it("keeps argumented super forwarding opaque", () => {
+  it("continues safe super arguments through a safe base return", () => {
     findings(
       `class Base { constructor() { return {}; } ${baseField} } class Derived extends Base { constructor() { super(0); } ${derivedField} } new Derived();`,
-      0,
+      2,
     );
   });
   it("does not run constructor defaults to prove continuation", () => {

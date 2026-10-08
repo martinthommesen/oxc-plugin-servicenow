@@ -152,9 +152,10 @@ function completeWithCalls(source: string): void {
 
 function guardedHelperLookups(count: number): string {
   return `function helper(run) { run &&= new GlideRecord("task").deleteMultiple(); }
-var gr = new GlideRecord("incident"); var alias;
-${"try { helper((alias = gr, false)); helper.call(null, true); void helper``; } catch {}\n".repeat(count)}
-alias.deleteMultiple();`;
+var gr = new GlideRecord("incident"); var alias; var constructed;
+${"try { new (class { method(value) { return value; } field = 0; })((constructed = gr, 0)); } catch {} try { helper((alias = gr, false)); helper.call(null, true); void helper``; } catch {}\n".repeat(count)}
+alias.deleteMultiple();
+constructed.deleteMultiple();`;
 }
 
 function lintGuardedHelperLookups(source: string): void {
@@ -166,8 +167,41 @@ function lintGuardedHelperLookups(source: string): void {
   assert.ok(messages.every((message) => message.messageId === "unfiltered"));
   assert.deepEqual(
     messages.map((message) => message.line).sort((left, right) => left - right),
-    [1, source.split("\n").length],
+    [1, source.split("\n").length - 1, source.split("\n").length],
   );
+}
+
+function safeSuperArguments(count: number): string {
+  return `class Base {}
+${Array.from(
+  { length: count },
+  (_, index) =>
+    `class Derived${index} extends Base { constructor() { super(0, false, null, {}, [], function() {}); } field = new GlideRecord("task").deleteMultiple(); } new Derived${index}();`,
+).join("\n")}
+var records = new GlideRecord("later"); records.deleteMultiple();`;
+}
+
+function lintSafeSuperArguments(source: string, count: number): void {
+  const { messages, analysis } = lintWithAnalysis(
+    source,
+    "no-unfiltered-gliderecord-bulk-operation",
+  );
+  assert.equal(analysis.pathBudgetExhausted, false, "path budget exhausted; not a valid sample");
+  assert.ok(messages.every((message) => message.messageId === "unfiltered"));
+  assert.deepEqual(
+    messages.map(({ line }) => line).sort((left, right) => left - right),
+    Array.from({ length: count + 1 }, (_, index) => index + 2),
+  );
+}
+
+function prunedHelperDensity(count: number): string {
+  const lines = ["var f0 = function() {}; f0(false);"];
+  for (let index = 1; index <= 64; index += 1) {
+    lines.push(`var f${index} = function(flag) { flag &&= f${index - 1}(); }; f${index}(false);`);
+  }
+  lines.push("f64(false);\n".repeat(count));
+  lines.push('var records = new GlideRecord("task"); records.deleteMultiple();');
+  return lines.join("\n");
 }
 
 // @lat: [[tests#Analysis behavior#Alias resolution scales linearly]]
@@ -241,7 +275,7 @@ describe("alias scaling (FINDINGS.md PER-005)", () => {
   });
 
   // @lat: [[tests#Analysis behavior#Guarded local and opaque helper paths scale with complete findings]]
-  it("keeps guarded direct and opaque helper paths sub-quadratic with both findings", () => {
+  it("keeps guarded direct and opaque helper paths sub-quadratic with all findings", () => {
     const small = guardedHelperLookups(125);
     const large = guardedHelperLookups(500);
     assertSubQuadratic({
@@ -250,6 +284,32 @@ describe("alias scaling (FINDINGS.md PER-005)", () => {
       largeLabel: "500 handlers",
       small: () => lintGuardedHelperLookups(small),
       large: () => lintGuardedHelperLookups(large),
+    });
+  });
+
+  // @lat: [[tests#Analysis behavior#Safe super argument proofs scale with every reached field finding]]
+  it("keeps cached safe super argument proofs sub-quadratic with all field findings", () => {
+    const small = safeSuperArguments(125);
+    const large = safeSuperArguments(500);
+    assertSubQuadratic({
+      label: "safe literal super argument proofs",
+      smallLabel: "125 classes",
+      largeLabel: "500 classes",
+      small: () => lintSafeSuperArguments(small, 125),
+      large: () => lintSafeSuperArguments(large, 500),
+    });
+  });
+
+  // @lat: [[tests#Analysis behavior#Pruned helper call density scales with complete findings]]
+  it("keeps pruned helper call density sub-quadratic with a later finding", () => {
+    const small = prunedHelperDensity(125);
+    const large = prunedHelperDensity(500);
+    assertSubQuadratic({
+      label: "pruned helper calls with direct capture snapshots",
+      smallLabel: "125 calls",
+      largeLabel: "500 calls",
+      small: () => lintCompleteBulk(small),
+      large: () => lintCompleteBulk(large),
     });
   });
 });

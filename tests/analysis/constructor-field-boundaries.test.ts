@@ -261,10 +261,10 @@ describe("explicit constructor field boundaries", () => {
       2,
     );
   });
-  it("keeps nonempty super arguments outside the prefix proof", () => {
+  it("replays fields before opaque trailing code after a safe super argument", () => {
     findings(
       `class Base { ${baseField} } class Derived extends Base { constructor() { super(0); throw 0; } ${derivedField} } new Derived();`,
-      0,
+      2,
     );
   });
   it("keeps supplied default parameters outside the prefix proof", () => {

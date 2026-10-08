@@ -362,8 +362,38 @@ records.deleteMultiple();`;
 function guardedHelperLookups(count) {
   return `var selected = false;
 function helper(run) { run &&= gs.info(run); }
-${"try { helper(selected = false); helper.call(null, true); void helper``; } catch {}\n".repeat(count)}
+${"try { helper(selected = false); helper.call(null, true); void helper``; new (class { method(value) { return value; } field = 0; })((selected = false, 0)); } catch {}\n".repeat(count)}
 gs.info(selected);
+${glideRecordBlock(0)}
+rec0.deleteMultiple();`;
+}
+
+/**
+ * @param {number} count
+ * @returns {string}
+ */
+function safeSuperArguments(count) {
+  return `class Base {}
+${Array.from(
+  { length: count },
+  (_, index) =>
+    `class Derived${index} extends Base { constructor() { super(0, false, null, {}, [], function() {}); } field = 0; } new Derived${index}();`,
+).join("\n")}
+${glideRecordBlock(0)}
+rec0.deleteMultiple();`;
+}
+
+/**
+ * @param {number} count
+ * @returns {string}
+ */
+function prunedHelperCaptures(count) {
+  return `var f0 = function() {}; f0(false);
+${Array.from(
+  { length: count },
+  (_, index) =>
+    `var f${index + 1} = function(flag) { flag &&= f${index}(); gs.info(flag); }; f${index + 1}(false);`,
+).join("\n")}
 ${glideRecordBlock(0)}
 rec0.deleteMultiple();`;
 }
@@ -467,6 +497,8 @@ function generateFixtures(directory) {
   );
   writeFileSync(join(directory, "classic/with-selector-scopes.br.js"), withSelectorScopes(500));
   writeFileSync(join(directory, "classic/guarded-helper-lookups.br.js"), guardedHelperLookups(500));
+  writeFileSync(join(directory, "classic/safe-super-arguments.br.js"), safeSuperArguments(500));
+  writeFileSync(join(directory, "classic/pruned-helper-captures.br.js"), prunedHelperCaptures(300));
   writeFileSync(join(directory, "fluent/large.now.ts"), fluentRecords(80));
   writeFileSync(join(directory, "fluent/aliases.now.ts"), fluentAliases(120));
   writeFileSync(join(directory, "classic/counters.br.js"), counterBlocks(40));
@@ -750,6 +782,18 @@ async function main() {
         "recommended",
         configs.recommended,
         [join(work, "classic/guarded-helper-lookups.br.js")],
+      ],
+      [
+        "safe-super-arguments/recommended",
+        "recommended",
+        configs.recommended,
+        [join(work, "classic/safe-super-arguments.br.js")],
+      ],
+      [
+        "pruned-helper-captures/recommended",
+        "recommended",
+        configs.recommended,
+        [join(work, "classic/pruned-helper-captures.br.js")],
       ],
       [
         "fluent-large/recommended",

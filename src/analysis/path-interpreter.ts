@@ -690,6 +690,27 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
     functionCallers.set(callee, callers);
   };
 
+  const rememberInspectionFunction = (
+    state: EnvState<T>,
+    fn: ImmediateFunction,
+  ): ImmediateFunction[] => {
+    if (!analyzeUncalledFunctions) return [];
+    spendWork(budget);
+    const pending: ImmediateFunction[] = [];
+    const functions = inspectionFunctions.get(fn) ?? new Map<BindingId, CallableValues>();
+    for (const id of capturesOf(fn, budget)) {
+      const prior = functions.get(id) ?? [];
+      const captured = state.functions.get(id) ?? [undefined];
+      spendWork(budget, 1 + prior.length + captured.length * 2);
+      functions.set(id, [...new Set([...prior, ...captured])]);
+      for (const callable of captured) {
+        if (callable && isFunctionLike(callable)) pending.push(callable);
+      }
+    }
+    inspectionFunctions.set(fn, functions);
+    return pending;
+  };
+
   const rememberInspectionFunctions = (state: EnvState<T>, fn: ImmediateFunction): void => {
     if (!analyzeUncalledFunctions) return;
     const pending = [fn];
@@ -699,17 +720,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
       const current = pending.pop();
       if (!current || seen.has(current) || inspectedFunctions.has(current)) continue;
       seen.add(current);
-      const functions = inspectionFunctions.get(current) ?? new Map<BindingId, CallableValues>();
-      for (const id of capturesOf(current, budget)) {
-        const prior = functions.get(id) ?? [];
-        const captured = state.functions.get(id) ?? [undefined];
-        spendWork(budget, 1 + prior.length + captured.length * 2);
-        functions.set(id, [...new Set([...prior, ...captured])]);
-        for (const callable of captured) {
-          if (callable && isFunctionLike(callable)) pending.push(callable);
-        }
-      }
-      inspectionFunctions.set(current, functions);
+      for (const captured of rememberInspectionFunction(state, current)) pending.push(captured);
     }
   };
 
@@ -722,7 +733,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
       inspectedFunctions.has(fn)
     )
       return;
-    rememberInspectionFunctions(state, fn);
+    rememberInspectionFunction(state, fn);
     if (pendingFunctions.has(fn)) return;
     let callers = 0;
     for (const caller of functionCallers.get(fn) ?? []) {
@@ -742,6 +753,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
     if (!analyzeUncalledFunctions || !hasInspectableFunctionSyntax(fn)) return;
     spendWork(budget);
     requiredFunctionInspections.add(fn);
+    rememberInspectionFunctions(state, fn);
     deferFunctionInspection(fn, state);
   };
 
@@ -1770,10 +1782,52 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
     return true;
   };
 
+  const hasNoCreationDecorators = (node: ESTree.Node): boolean =>
+    !("decorators" in node) || (Array.isArray(node.decorators) && node.decorators.length === 0);
+  const classCreationSafety = new WeakMap<ESTree.Class, boolean>();
+  const isSafeClassCreation = (cls: ESTree.Class): boolean => {
+    spendWork(budget);
+    const cached = classCreationSafety.get(cls);
+    if (cached !== undefined) return cached;
+    let safe =
+      cls.type === "ClassExpression" && cls.superClass === null && hasNoCreationDecorators(cls);
+    if (safe) {
+      for (const element of cls.body.body) {
+        spendWork(budget);
+        if (
+          (element.type === "MethodDefinition" ||
+            ((element.type === "PropertyDefinition" || element.type === "AccessorProperty") &&
+              !element.static)) &&
+          !element.computed &&
+          hasNoCreationDecorators(element)
+        ) {
+          if (element.type === "MethodDefinition") {
+            const fn = element.value;
+            if (!isFunctionLike(fn)) {
+              safe = false;
+              break;
+            }
+            spendWork(budget, fn.params.length);
+            if (!fn.params.every(hasNoCreationDecorators)) {
+              safe = false;
+              break;
+            }
+          }
+          continue;
+        }
+        safe = false;
+        break;
+      }
+    }
+    classCreationSafety.set(cls, safe);
+    return safe;
+  };
+
   const hasSafeLocalCalleeLookup = (state: EnvState<T>, callee: unknown): boolean => {
     spendWork(budget);
     if (!isNode(callee)) return false;
     if (isFunctionLike(callee)) return true;
+    if (callee.type === "ClassExpression") return isSafeClassCreation(callee);
     // A closure may retain a With environment after its creation scope exits.
     // Keep identifier lookup conservative whenever this file can expose one.
     if (hasWithStatement || callee.type !== "Identifier") return false;
@@ -1997,7 +2051,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
     ancestors.pop();
   };
 
-  const safeBaseConstructorReturn = (argument: ESTree.Node | null): boolean => {
+  const safeConstructorValue = (argument: ESTree.Node | null): boolean => {
     let expression = argument;
     for (let depth = 0; depth < MAX_PATH_DEPTH; depth += 1) {
       spendWork(budget);
@@ -2012,12 +2066,18 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
       if (expression.type === "ObjectExpression") return expression.properties.length === 0;
       if (expression.type === "ArrayExpression") return expression.elements.length === 0;
       return (
-        isFunctionLike(expression) &&
-        expression.body?.type === "BlockStatement" &&
-        expression.body.body.length === 0
+        isFunctionLike(expression) ||
+        (expression.type === "ClassExpression" && isSafeClassCreation(expression))
       );
     }
     throw BUDGET_EXCEEDED;
+  };
+
+  const safeConstructorArguments = (args: ESTree.CallExpression["arguments"]): boolean => {
+    spendWork(budget, args.length);
+    return args.every(
+      (argument) => argument.type !== "SpreadElement" && safeConstructorValue(argument),
+    );
   };
 
   const constructorFieldReplay = (cls: ESTree.Class): ClassConstructorReplay => {
@@ -2050,7 +2110,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
         if (
           !cls.superClass &&
           statement.type === "ReturnStatement" &&
-          safeBaseConstructorReturn(statement.argument)
+          safeConstructorValue(statement.argument)
         ) {
           replay = "continue";
           harmless = false;
@@ -2061,8 +2121,8 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
           isNode(expression) &&
           expression.type === "CallExpression" &&
           expression.callee.type === "Super" &&
-          expression.arguments.length === 0 &&
-          forwardingCalls === 0
+          forwardingCalls === 0 &&
+          safeConstructorArguments(expression.arguments)
         ) {
           forwardingCalls += 1;
           continue;
@@ -2167,8 +2227,22 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
         const base = frame.bases[frame.nextBase++];
         const path =
           frame.bases.length === 1 ? frame.state : snapshotState(frame.state, cloneData, budget);
-        const initialized: ClassFieldPath<T> | undefined =
-          base?.type === "ClassValue" ? enter(path, base) : { state: path, replay: "continue" };
+        let initialized: ClassFieldPath<T> | undefined;
+        if (base?.type === "ClassValue") {
+          initialized = enter(path, base);
+        } else {
+          if (frame.value.node.superClass) {
+            if (
+              !base ||
+              (base.type !== "ArrowFunctionExpression" && !base.async && !base.generator)
+            ) {
+              // An unknown superclass can reach descendant captures through its constructor target.
+              escapeCaptured(path, base ?? value, "captures-only");
+            }
+            recordPossibleThrow(path);
+          }
+          initialized = { state: path, replay: "continue" };
+        }
         if (initialized) frame.pending.push(initialized);
       }
     }
