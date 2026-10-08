@@ -188,7 +188,10 @@ export function mergeFlatStates<T>(
     const value = left.constants.get(id);
     const other = right.constants.get(id);
     if (value === null || other === null) constants.set(id, null);
-    else if (value && sameConstant(value, other)) constants.set(id, value);
+    else {
+      const merged = mergeConstant(value, other);
+      if (merged) constants.set(id, merged);
+    }
   }
   const assignmentResults = new Map<ESTree.Node, EvaluatedValue>();
   for (const node of new Set([
@@ -203,9 +206,7 @@ export function mergeFlatStates<T>(
     assignmentResults.set(node, {
       objectId: leftValue?.objectId === rightValue?.objectId ? leftValue?.objectId : undefined,
       functions: [...new Set([...leftFunctions, ...rightFunctions])],
-      constant: sameConstant(leftValue?.constant, rightValue?.constant)
-        ? (leftValue?.constant ?? null)
-        : null,
+      constant: mergeConstant(leftValue?.constant, rightValue?.constant),
     });
   }
   const objects = new Map<ObjectId, SharedRecord<T>>();
@@ -310,7 +311,21 @@ function sameConstant(
   right: ConstantValue | null | undefined,
 ): boolean {
   if (left == null || right == null) return left === right;
-  return left.truthy === right.truthy && left.nullish === right.nullish;
+  return (
+    left.truthy === right.truthy &&
+    left.nullish === right.nullish &&
+    (!left.nullish || (right.nullish && left.nullishValue === right.nullishValue))
+  );
+}
+
+function mergeConstant(
+  left: ConstantValue | null | undefined,
+  right: ConstantValue | null | undefined,
+): ConstantValue | null {
+  if (!left || !right || left.truthy !== right.truthy || left.nullish !== right.nullish)
+    return null;
+  if (sameConstant(left, right)) return left;
+  return { truthy: false, nullish: true };
 }
 
 function sameAssignmentResults(

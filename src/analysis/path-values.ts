@@ -334,7 +334,11 @@ export function createPathValueResolver<T>(context: PathValueContext<T>) {
       if (constant) return constant;
       if (expr.type === "Identifier") {
         const binding = resolveBinding(bindings, expr, ancestors);
-        if (!binding) return null;
+        if (!binding) {
+          return expr.name === "undefined" && bindings.isPlatformGlobal(expr)
+            ? { truthy: false, nullish: true, nullishValue: "undefined" }
+            : null;
+        }
         const scalar = state.constants.get(binding.id);
         if (scalar !== undefined) return scalar;
         const functions = state.functions.get(binding.id);
@@ -347,6 +351,8 @@ export function createPathValueResolver<T>(context: PathValueContext<T>) {
         expr = unwrapExpression(expr.expressions.at(-1));
       } else if (expr.type === "AssignmentExpression" && expr.operator === "=") {
         expr = unwrapExpression(expr.right);
+      } else if (expr.type === "ConditionalExpression" || expr.type === "LogicalExpression") {
+        return evaluatedConstantValue(state, expr, budget, depth);
       } else {
         return null;
       }

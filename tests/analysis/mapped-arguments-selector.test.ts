@@ -7,6 +7,7 @@ import { applyRules } from "../helpers/apply-rules.js";
 describe("mapped arguments selectors", () => {
   for (const [params, effect, argument, expected] of [
     ["run", "arguments[0] = true;", "true", 1],
+    // The bound no-init alias loses method authority; path-state.test.ts proves mapping with fixed authority.
     ["run", "var arguments; arguments[0] = true;", "true", 0],
     ["run", "var arguments = []; arguments[0] = true;", "true", 0],
     ["run, arguments", "arguments[0] = true;", "true, []", 0],

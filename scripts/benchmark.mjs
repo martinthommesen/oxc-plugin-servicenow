@@ -203,6 +203,23 @@ worker${index}();`,
  * @param {number} count
  * @returns {string}
  */
+function selectorAliasCalls(count) {
+  const declarations = Array.from(
+    { length: count },
+    (_, index) => `var alias${index + 1} = alias${index};`,
+  );
+  const calls = Array.from({ length: count }, () => `alias${count}();`);
+  return `var alias0 = external;
+${declarations.join("\n")}
+${calls.join("\n")}
+var selector = false; selector &&= true; if (selector) alias0();
+var gr = new GlideRecord("task"); gr.addQuery("active", true); gr.deleteMultiple();`;
+}
+
+/**
+ * @param {number} count
+ * @returns {string}
+ */
 function sequenceSelectors(count) {
   let condition = "flag";
   for (let depth = 0; depth < 8; depth += 1) condition = `(0, ${condition})`;
@@ -269,6 +286,7 @@ function generateFixtures(directory) {
   writeFileSync(join(directory, "classic/scopes.br.js"), scopeRich(100));
   writeFileSync(join(directory, "classic/helpers.br.js"), correlatedHelpers(20));
   writeFileSync(join(directory, "classic/sequence-selectors.br.js"), sequenceSelectors(50));
+  writeFileSync(join(directory, "classic/selector-alias-calls.br.js"), selectorAliasCalls(500));
   writeFileSync(join(directory, "fluent/large.now.ts"), fluentRecords(80));
   writeFileSync(join(directory, "fluent/aliases.now.ts"), fluentAliases(120));
   writeFileSync(join(directory, "classic/counters.br.js"), counterBlocks(40));
@@ -486,6 +504,12 @@ async function main() {
         "recommended",
         configs.recommended,
         [join(work, "classic/sequence-selectors.br.js")],
+      ],
+      [
+        "selector-alias-calls/recommended",
+        "recommended",
+        configs.recommended,
+        [join(work, "classic/selector-alias-calls.br.js")],
       ],
       [
         "fluent-large/recommended",

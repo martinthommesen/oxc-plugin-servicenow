@@ -219,6 +219,12 @@ Known helpers receive scalar, object and callable arguments captured before late
 
 Callback parameters export the selected callable, and enclosing conditional or logical consumers escape only the selected result.
 
+### Nullish helper arguments select only applicable defaults
+
+Evaluated null arguments skip defaults, while undefined arguments run them. Aliases, selected expressions and saved helper parameters retain this distinction without losing shared truthiness and nullishness at mixed joins.
+
+Null arguments preserve a later unfiltered bulk finding and skip operations placed in defaults. Unknown null-or-undefined values retain possible default effects; later arguments cannot change an earlier captured argument value.
+
 ### Hoisted callable logical selectors are defined values
 
 Hoisted functions are truthy and non-nullish before their declaration position. Reassignments, unknown alternatives and escaped capture markers prevent stale certainty from suppressing reachable operands.
@@ -231,9 +237,39 @@ Two hundred unrelated scalar captures preserve all two hundred counted-loop find
 
 Produced logical-assignment values select the reachable if, conditional, logical and loop paths. Header effects and abrupt alternatives survive consumption, while ordinary unresolved identifiers remain conservative.
 
+### Constructor capture effects follow argument evaluation
+
+Construction saves its callable identity before arguments run and applies capture effects on each completed argument path. Earlier aliases retain trust; newly installed captured records escape, and throwing arguments skip invocation effects.
+
+Spread arguments and replacement of the constructor binding preserve evaluation order. Unknown constructors cannot acquire the capture effects of a class installed by an argument, and no-capture constructors retain record diagnostics.
+
 ### Class definitions evaluate only immediate class effects
 
 Class extends expressions, computed keys and static initialization run at definition time. Instance field values stay deferred; constructing an opaque class discards trust in its captured effects.
+
+### Class expressions consume headers and initialize names in order
+
+Class expressions discard temporary header results while retaining enclosing values. Inner class names become truthy after keys and before static initialization; declaration outer names initialize after the definition completes.
+
+Fifty independent unknown keys complete within the existing work budget, both without heritage and with a definite selected base. A separate unknown base stays conservative. Heritage and key self-references remain uncertain; static names retain their own class identity instead of an enclosing binding.
+
+Earlier scalar, callable and logical-assignment arguments survive class keys that replace their bindings. Constructor callee values likewise remain available after a class expression argument completes.
+
+### Class decorator expressions preserve evaluation effects
+
+Class and member decorator expressions retain their calls and scalar effects. Class decorators precede heritage; member decorators precede their keys in source order, before static initialization.
+
+Real TypeScript parser nodes run through an active server rule context. Decorator queries open the record before later cursor advances, decorator advances remain diagnosed, and member ordering cannot retroactively repair an earlier cursor use.
+
+### Decorator applications retain saved captures through static initialization
+
+Decorator applications consume saved callable identities after keys, before static initialization. Capture uncertainty survives static writes; empty synchronous, non-generator decorators without parameters preserve deferred class facts.
+
+Named and member decorators invalidate selector captures even without an explicit call in source. Computed keys cannot replace an earlier selected decorator; opaque factory returns and unknown decorators conservatively expose target captures. Application uses current captured records after keys.
+
+Raw traversal proves that affected static selectors execute even when target exposure suppresses rule authority. Possible decorator throws retain catch paths before and after capture effects; an empty synchronous non-generator decorator invents neither invocation effects nor throw paths. Async and generator returns remain conservative.
+
+Fifty independent discarded keys complete under the existing work budget while one decorator value stays live. Capture scans and transient-map work are charged, with no budget increase.
 
 ### Logical member receivers retain path-specific values
 
@@ -244,6 +280,20 @@ A member call uses the object selected on each correlated path before computed k
 Sloppy simple-parameter functions invalidate mapped selector facts when arguments aliases mutate or escape. Strict, non-simple, absent arguments and shadowed or replaced aliases preserve separate parameter values.
 
 Arrows inherit the nearest ordinary function's arguments owner; nested ordinary functions own separate arguments. A hoisted no-op var declaration preserves mapping in fixed-authority traversal, while unknown bound aliases retain conservative method-authority silence.
+
+### Mapped member writes obey evaluation order
+
+A mapped member write retains its receiver before computed-key and RHS effects, and runs only after normal RHS completion. Throwing or suspended expressions skip the write while keeping effects that already occurred.
+
+Fixed-authority tests distinguish an unknown receiver later replaced by arguments from a mapped receiver later replaced by an array. Computed-key throws and normal prefix, postfix, direct and compound writes retain their expected execution paths.
+
+### Mapped arguments compound writes invalidate selectors
+
+Mapped prefix, postfix and compound writes discard stale selector facts in sloppy simple-parameter helpers. Strict, non-simple and absent-argument cases remain independent, and writes retain their receiver before key or right-hand-side effects.
+
+### Selector alias dependencies reuse callable origins
+
+Repeated calls through a deep alias chain retain security findings within budget. Quadrupling aliases and calls stays subquadratic; cycles, diamonds and distinct helper arguments preserve dependency facts.
 
 ### Return and throw escape evaluated values
 
