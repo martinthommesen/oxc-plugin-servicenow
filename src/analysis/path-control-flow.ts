@@ -314,7 +314,7 @@ export function createControlFlowVisitor<T>(context: ControlFlowContext<T>) {
             break;
           }
           const nextHeader = mergeStates(initialHeader, back, mergePolicy);
-          if (statesEqual(header, nextHeader, equalsData, budget)) {
+          if (statesEqual(header, nextHeader, equalsData, mergePolicy)) {
             converged = true;
             break;
           }

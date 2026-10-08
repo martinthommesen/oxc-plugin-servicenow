@@ -232,12 +232,56 @@ gr.next();`;
  * @param {number} count
  * @returns {string}
  */
+function uncalledAssignedSelectorCalls(count) {
+  return `var use = function(flag) {
+  var gr = new GlideRecord("task");
+  gr.query();
+  return flag &&= gr.next();
+};
+var trigger = function() {
+${Array.from({ length: count }, () => "  use(false);").join("\n")}
+};
+void trigger;
+`;
+}
+
+/**
+ * @param {number} count
+ * @returns {string}
+ */
 function taggedSelectorCalls(count) {
   const calls = Array.from({ length: count }, () => "void tag`value`;");
   return `var gr = new GlideRecord("task"); gr.query();
 var selector = false; function tag() { selector = true; }
 ${calls.join("\n")}
 selector &&= gr.next(); if (selector) gr.next();`;
+}
+
+/**
+ * @param {number} count
+ * @returns {string}
+ */
+function generatorParameterJoins(count) {
+  const calls = Array.from(
+    { length: count },
+    () => "mapped(true); called(true); void tag`${false}`; selector &&= rec.next();",
+  );
+  return `var rec = new GlideRecord("incident");
+rec.addQuery("active", true); rec.query();
+var selector = false;
+function mapped(enabled) {
+  if (flag) gs.info("left"); else gs.info("right");
+  var args = arguments; args[0] = false;
+  return enabled &&= rec.next();
+}
+function* called(enabled = false, result = (selector = enabled)) {
+  yield result; selector &&= rec.next();
+}
+function* tag(strings = (selector = true), enabled = false, result = (selector = enabled)) {
+  yield result; selector &&= rec.next();
+}
+${calls.join("\n")}
+rec.next();`;
 }
 
 /**
@@ -316,6 +360,14 @@ function generateFixtures(directory) {
     assignedSelectorCalls(500),
   );
   writeFileSync(join(directory, "classic/tagged-selector-calls.br.js"), taggedSelectorCalls(500));
+  writeFileSync(
+    join(directory, "classic/uncalled-assigned-selector-calls.br.js"),
+    uncalledAssignedSelectorCalls(500),
+  );
+  writeFileSync(
+    join(directory, "classic/generator-parameter-joins.br.js"),
+    generatorParameterJoins(100),
+  );
   writeFileSync(join(directory, "fluent/large.now.ts"), fluentRecords(80));
   writeFileSync(join(directory, "fluent/aliases.now.ts"), fluentAliases(120));
   writeFileSync(join(directory, "classic/counters.br.js"), counterBlocks(40));
@@ -551,6 +603,18 @@ async function main() {
         "recommended",
         configs.recommended,
         [join(work, "classic/tagged-selector-calls.br.js")],
+      ],
+      [
+        "uncalled-assigned-selector-calls/recommended",
+        "recommended",
+        configs.recommended,
+        [join(work, "classic/uncalled-assigned-selector-calls.br.js")],
+      ],
+      [
+        "generator-parameter-joins/recommended",
+        "recommended",
+        configs.recommended,
+        [join(work, "classic/generator-parameter-joins.br.js")],
       ],
       [
         "fluent-large/recommended",

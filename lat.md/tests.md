@@ -205,6 +205,18 @@ Conditional expression results retain their selected callable through outer assi
 
 Template tags retain their selected callable before substitutions and expose capture effects after normal evaluation. Saved receivers, rebinding, throwing substitutions and immediate generator defaults preserve execution order.
 
+### Generator tags initialize parameters before deferring the body
+
+Known generator tags bind the supplied strings array and saved substitutions before evaluating applicable defaults. Parameter effects reach the caller while discarded iterator bodies stay deferred.
+
+The strings argument skips its default. Missing or undefined substitutions execute defaults; null and non-nullish substitutions skip them, while unknown values join possible effects. Saved scalar, callable and record arguments retain their identities across later substitutions. Ordered defaults stop on throws; nested patterns stay conservative and retained iterators expose captures. Repeated invocation preserves diagnostics within the existing work budget.
+
+### Proven template tag lookups retain substitution effects on catches
+
+Proven local callable lookups and function literals do not create catch paths before substitutions. Invocation throws retain completed substitution effects, while unknown and member lookups preserve possible earlier throws.
+
+An alias assigned inside a scalar substitution remains trusted across catch joins. Passing the record value itself retains the existing argument escape policy; callable rebinding and parameter initialization do not change the selected tag.
+
 ### Logical assignments export their selected values
 
 Returned and thrown logical assignments export only the selected object or callback on each path. Skipped operands neither execute cursor advances nor escape captures; retained aliases and mutable scalar selectors keep their runtime facts.
@@ -241,17 +253,31 @@ Two hundred unrelated scalar captures preserve all two hundred counted-loop find
 
 Produced logical-assignment values select the reachable if, conditional, logical and loop paths. Header effects and abrupt alternatives survive consumption, while ordinary unresolved identifiers remain conservative.
 
+### Generator invocation evaluates parameters before deferring bodies
+
+Known generator calls bind saved arguments and execute applicable defaults before producing their iterator. Null skips defaults, undefined runs them, and possible defaults keep diagnostics and synchronous throws without replaying the body.
+
+Earlier parameters feed later defaults, argument replacements cannot rewrite saved values, and definite default writes project back to the caller. Nested pattern defaults and computed keys retain possible immediate effects. Retained iterators preserve the existing capture boundary; ordinary and async generator default throws skip later caller effects.
+
 ### External consumers escape evaluated argument values
 
 Calls, construction and template tags consume argument values saved before later arguments replace their bindings. Unknown and wrapped values retain their own object and callable identities on each completed path.
 
-Saved callbacks still observe capture bindings after all arguments run. Abrupt arguments skip exports, and invocation of a discarded generator invalidates possible parameter-initialization effects while leaving its ordinary body deferred.
+Saved callbacks still observe capture bindings after all arguments run. Abrupt arguments skip exports, and generator invocation executes parameter initialization while leaving its ordinary body deferred.
 
 ### Mapped receiver alternatives retain evaluated identities
 
 Conditional and logical member receivers preserve each selected arguments-object identity before joins. Writes invalidate only possibly mapped parameters; definitely skipped receiver arms retain selector facts.
 
 Fixed-authority execution tests isolate mapping from the existing conservative method-authority policy for unresolved compound receivers. Prefix, compound and direct writes all retain the evaluated receiver before the write occurs.
+
+### Strict directives retain their original spelling
+
+Only unescaped use-strict string literals enable strict mode. Hex, Unicode and line-continuation spellings remain sloppy, while later exact directives and prologue boundaries retain mapped-arguments semantics.
+
+### Lexical arguments captures allocate stable owner identities
+
+Nested arrows retain the owning function’s mapped arguments even when captures are cached before invocation. Sequence and alias calls must reuse that owner identity; ordinary nested functions and strict scopes stay isolated.
 
 ### Strict directives belong to script and function prologues
 
@@ -264,6 +290,12 @@ Inherited actual strict directives and modules keep parameters independent from 
 Construction saves its callable identity before arguments run and applies capture effects on each completed argument path. Earlier aliases retain trust; newly installed captured records escape, and throwing arguments skip invocation effects.
 
 Spread arguments and replacement of the constructor binding preserve evaluation order. Unknown constructors cannot acquire the capture effects of a class installed by an argument, and no-capture constructors retain record diagnostics.
+
+### Known construction evaluates instance field initializers
+
+Known construction runs instance field values in source order after normal arguments. Saved constructor alternatives retain their class; unconstructed fields stay deferred, and static values and computed keys execute only at definition.
+
+Ordered scalar fields preserve reachable operations; abrupt arguments skip every field, and a throwing initializer skips later fields while retaining earlier effects. Each constructor alternative keeps its own record state, recursion terminates conservatively, and locally queried initializers stay quiet. Completed field values escape before later fields, and fifty independent selectors release temporary correlations while preserving enclosing argument snapshots. Instance properties and constructor bodies retain their existing opaque policy.
 
 ### Class definitions evaluate only immediate class effects
 
@@ -323,6 +355,20 @@ Assigned function and arrow expressions retain helper argument facts. Branches a
 
 Disabled arguments skip cursor effects for named expressions, defaults, aliases and selected sequence, conditional or logical results. Distinct parameter positions and scalar bindings distinguish successive origins. Enabled and unknown arguments retain reachable diagnostics, while five hundred calls preserve the final cursor finding without exhaustion.
 
+### Assigned helper inspection follows actual invocation
+
+Selected runtime invocations suppress isolated body inspection; static origins alone cannot hide a function assigned after a call, overwritten before its only call, or reached only by skipped or opaque calls.
+
+Direct and aliased calls use actual false arguments, including hoisted declarations and later nested invocation. Uncalled callers precede their known callees regardless of declaration order, preserving helper arguments without losing genuinely uncalled local cursor and bulk-operation findings. Cycles and diamonds terminate conservatively. Five hundred calls inside a pending caller retain a positive finding within the default budget, and quadrupling calls remains subquadratic.
+
+Deferred opaque callbacks retain callable captures observed at definition and exposure, including an intermediate replacement hidden by the final callable state. One or two wrappers and cycles preserve transitive captures; a dominating body write replaces imported targets, and disabled nested arguments remain quiet. Actual direct calls before and after replacement still replay their selected temporal target.
+
+### Known default patterns preserve argument facts
+
+Known Call and generator Tag pattern defaults distinguish definite null from undefined even when their target has no single binding identity, preserving literal and aliased argument facts.
+
+Object and array patterns skip defaults for supplied null and evaluate defaults for undefined. Transparent sequences and selected conditional or logical argument values keep their facts, while skipped logical right operands remain skipped. Catch paths retain the final cursor finding, and every case completes within the default budget.
+
 ### Return and throw escape evaluated values
 
 Returned and thrown allocations lose trust after expression evaluation, including captured assignments and sequences. Cursor advances within those expressions remain diagnosed; exporting another value retains the captured object's trust.
@@ -372,6 +418,10 @@ A 6000-binding Fluent alias chain resolves without native recursion. Initializer
 ### Known AST nodes retain lexical scope ownership
 
 Known nodes resolve through their indexed lexical scope even when callers supply unrelated ancestors or hosts omit offsets. Foreign nodes retain conservative offset-based containment and root fallback.
+
+### Mapped arguments identities survive preceding joins
+
+Implicit arguments objects and aliases retain their owner identity through branches, catches and loops without becoming domain records. Replaced and strict arguments remain independent; possible mapped receivers retain correlated paths.
 
 ## Integration
 

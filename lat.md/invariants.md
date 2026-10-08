@@ -126,6 +126,10 @@ The NUL-terminated form is required: the line form octal-escapes non-ASCII paths
 
 `classifySourceState` in `scripts/benchmark-gate.mjs` excludes the run's own output and baseline paths and counts untracked files only under `src/`, `scripts/`, `tests/`, and `package.json`. The field is required on newly written summaries and tolerated when absent from the reviewed baseline.
 
+`generatorParameterJoins` in [scripts/benchmark.mjs](../scripts/benchmark.mjs) measures repeated saved generator Call and Tag parameters with mapped arguments writes after branch joins. It uses the same clean-result, sampling and baseline checks; the mandatory classic scale and absolute gates remain unchanged.
+
+The same benchmark runner includes five hundred assigned-helper calls inside an uncalled caller. This quiet fixture measures deferred caller-first inspection, alongside the active positive-finding and subquadratic controls in [[tests#Analysis behavior#Assigned helper inspection follows actual invocation]].
+
 ## Test reports are isolated and queried consistently
 
 Each test run writes to its own report path when concurrent execution could occur, and report consumers share one exact-proof definition.

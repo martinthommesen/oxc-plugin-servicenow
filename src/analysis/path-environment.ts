@@ -145,6 +145,8 @@ export interface MergePolicy<T> {
   readonly alloc: () => ObjectId;
   readonly retainUnboundRecords: boolean;
   readonly retainedObjectIds: ReadonlySet<ObjectId>;
+  /** Arguments objects carry binding identities without domain record payloads. */
+  readonly argumentIdentities: ReadonlySet<ObjectId>;
 }
 
 /**
@@ -251,7 +253,7 @@ export function mergeFlatStates<T>(
       }
       continue;
     }
-    if (!objects.has(leftId)) {
+    if (!objects.has(leftId) && !policy.argumentIdentities.has(leftId)) {
       env.set(bindingId, undefined);
       continue;
     }
@@ -351,8 +353,22 @@ function sameAssignmentResults(
 export function sameCorrelatedValues<T>(
   left: EnvState<T>,
   right: EnvState<T>,
-  budget: WorkBudget,
+  policy: MergePolicy<T>,
 ): boolean {
+  const { budget, argumentIdentities } = policy;
+  if (argumentIdentities.size) {
+    spendWork(budget, left.env.size + right.env.size);
+    for (const bindingId of new Set([...left.env.keys(), ...right.env.keys()])) {
+      const value = left.env.get(bindingId);
+      const other = right.env.get(bindingId);
+      if (
+        value !== other &&
+        ((value !== undefined && argumentIdentities.has(value)) ||
+          (other !== undefined && argumentIdentities.has(other)))
+      )
+        return false;
+    }
+  }
   return (
     sameCallableMap(left.functions, right.functions, budget) &&
     sameCallableMap(left.callableResults, right.callableResults, budget) &&
@@ -369,7 +385,7 @@ export function mergeStates<T>(
   if (
     !left.callablePaths.length &&
     !right.callablePaths.length &&
-    sameCorrelatedValues(left, right, policy.budget)
+    sameCorrelatedValues(left, right, policy)
   )
     return mergeFlatStates(left, right, policy);
   const groups: EnvState<T>[] = [];
@@ -377,7 +393,7 @@ export function mergeStates<T>(
     ...(left.callablePaths.length ? left.callablePaths : [left]),
     ...(right.callablePaths.length ? right.callablePaths : [right]),
   ]) {
-    const index = groups.findIndex((other) => sameCorrelatedValues(path, other, policy.budget));
+    const index = groups.findIndex((other) => sameCorrelatedValues(path, other, policy));
     if (index === -1) groups.push(pathWithoutAlternatives(path, policy.cloneData, policy.budget));
     else groups[index] = mergeFlatStates(groups[index]!, path, policy);
   }
@@ -391,16 +407,17 @@ export function statesEqual<T>(
   left: EnvState<T>,
   right: EnvState<T>,
   equalsData: (left: T, right: T) => boolean,
-  budget: WorkBudget,
+  policy: MergePolicy<T>,
 ): boolean {
+  const { budget } = policy;
   if (left.completion !== right.completion || left.completionLabel !== right.completionLabel)
     return false;
   if (left.callablePaths.length !== right.callablePaths.length) return false;
   for (const path of left.callablePaths) {
     const other = right.callablePaths.find((candidate) =>
-      sameCorrelatedValues(path, candidate, budget),
+      sameCorrelatedValues(path, candidate, policy),
     );
-    if (!other || !statesEqual(path, other, equalsData, budget)) return false;
+    if (!other || !statesEqual(path, other, equalsData, policy)) return false;
   }
   if (!sameCallableMap(left.callableResults, right.callableResults, budget)) return false;
   if (

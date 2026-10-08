@@ -331,7 +331,8 @@ describe("path-state evaluator", () => {
       use(outer);
       gr.next();
     `);
-    assert.deepEqual(result.calls, ["query:none", "next:none"]);
+    // Isolated uncalled bodies follow normal execution, retaining both unknown records.
+    assert.deepEqual(result.calls, ["next:none", "query:none"]);
   });
 
   it("escapes an enclosing function local captured by an escaping callback", () => {
@@ -344,7 +345,8 @@ describe("path-state evaluator", () => {
       }
       factory();
     `);
-    assert.deepEqual(result.calls, ["query:none", "next:none"]);
+    // The opaque callback is inspected after the directly invoked factory returns.
+    assert.deepEqual(result.calls, ["next:none", "query:none"]);
   });
 
   it("does not escape an enclosing function local when its callback is direct-only", () => {

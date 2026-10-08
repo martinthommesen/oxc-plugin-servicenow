@@ -13,6 +13,8 @@ The command generates deterministic fixtures and times the real `oxlint` executa
 - small, medium, and large classic GlideRecord files
 - branch-heavy alias and try/catch analysis
 - nested scopes
+- assigned helper calls replayed from an uncalled caller
+- generator Call and Tag parameter defaults alongside mapped arguments branch joins
 - large Fluent metadata
 - Fluent factory calls through mutable aliases
 - classic cursor-count loops with post-loop writes

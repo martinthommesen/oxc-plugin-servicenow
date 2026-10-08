@@ -52,6 +52,13 @@ import {
   type ScopeNode,
 } from "./bindings.js";
 import { isDefinitelyUndefinedValue, staticPropertyName } from "./members.js";
+import { constantValue } from "./constant-value.js";
+
+type InvocationArguments =
+  | { readonly kind: "positional"; readonly values: readonly EvaluatedValue[] }
+  | { readonly kind: "uncertain" };
+
+type FunctionExecution = "body" | "parameters";
 
 function scopeContains(scope: ScopeNode | null, block: ESTree.Node): boolean {
   let current = scope;
@@ -151,20 +158,34 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
   const referencedBindings = new Set<BindingId>();
   const prepassAncestors: ESTree.Node[] = [];
   let referenceWork = 0;
-  const directlyCalledFunctions = new WeakSet<ESTree.Node>();
-  const directlyCalledBindings = new Set<BindingId>();
+  const invokedFunctions = new WeakSet<ImmediateFunction>();
+  const inspectedFunctions = new WeakSet<ImmediateFunction>();
+  const inspectionFunctions = new WeakMap<ImmediateFunction, Map<BindingId, CallableValues>>();
+  const pendingFunctions = new Map<ImmediateFunction, number>();
+  const readyFunctions: ImmediateFunction[] = [];
+  let nextReadyFunction = 0;
+  const functionCallees = new Map<ImmediateFunction, Set<ImmediateFunction>>();
+  const functionCallers = new Map<ImmediateFunction, Set<ImmediateFunction>>();
   const activeFunctions = new Set<ESTree.Node>();
   const functionCaptures = new WeakMap<ESTree.Node, readonly BindingId[]>();
   const argumentObjectIds = new WeakMap<ImmediateFunction, ObjectId>();
+  const argumentIdentities = new Set<ObjectId>();
   const mappedArguments = new Map<ObjectId, readonly BindingId[]>();
+  const argumentObjectId = (fn: ImmediateFunction): ObjectId => {
+    const existing = argumentObjectIds.get(fn);
+    if (existing !== undefined) return existing;
+    const objectId = alloc();
+    argumentObjectIds.set(fn, objectId);
+    argumentIdentities.add(objectId);
+    return objectId;
+  };
   const argumentsBinding = (node: ESTree.Node): BindingId | undefined => {
     if (getName(node) !== "arguments" || resolveBinding(bindings, node, ancestors))
       return undefined;
     let scope = bindings.scopeForNode(node, ancestors);
     while (scope) {
       if (isFunctionLike(scope.block) && scope.block.type !== "ArrowFunctionExpression") {
-        const objectId = argumentObjectIds.get(scope.block);
-        return objectId === undefined ? undefined : -objectId;
+        return -argumentObjectId(scope.block);
       }
       scope = scope.parent;
     }
@@ -195,7 +216,8 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
         typeof statement.expression.value !== "string"
       )
         break;
-      if (statement.expression.value === "use strict") return true;
+      const raw = statement.expression.raw;
+      if (raw === '"use strict"' || raw === "'use strict'") return true;
     }
     return false;
   };
@@ -224,7 +246,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
   let hasLogicalAssignments = false;
   const constantBindings = new Set<BindingId>();
   const constantSources: Array<{ left: ESTree.Node; right: ESTree.Node | null }> = [];
-  const constantCalls: ESTree.CallExpression[] = [];
+  const constantInvocations: Array<ESTree.CallExpression | ESTree.TaggedTemplateExpression> = [];
   const tryThrowPaths: EnvState<T>[][] = [];
   const mergePolicy: MergePolicy<T> = {
     budget,
@@ -235,6 +257,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
     alloc,
     retainUnboundRecords,
     retainedObjectIds: retainedPlatformObjectIds,
+    argumentIdentities,
   };
 
   const recordPossibleThrow = (state: EnvState<T>): void => {
@@ -338,24 +361,71 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
   );
   walk(program, {
     CallExpression(node) {
-      constantCalls.push(node as ESTree.CallExpression);
-      const callee = unwrapExpression((node as ESTree.CallExpression).callee);
-      if (!isNode(callee)) return;
-      if (isFunctionLike(callee)) {
-        directlyCalledFunctions.add(callee);
-        return;
-      }
-      if (callee.type !== "Identifier") return;
-      const binding = bindings.resolve(getName(callee) ?? "", callee);
-      if (binding) directlyCalledBindings.add(binding.id);
+      if (node.type === "CallExpression") constantInvocations.push(node);
+    },
+    TaggedTemplateExpression(node) {
+      if (node.type === "TaggedTemplateExpression") constantInvocations.push(node);
     },
   });
-  for (const id of directlyCalledBindings) {
-    for (const fn of directFunctionOrigins.get(id) ?? []) {
-      referenceWork += 1;
-      directlyCalledFunctions.add(fn);
+
+  // Origin edges order isolated inspection; only a selected runtime invocation
+  // can suppress it. A future assignment or a skipped call is not evidence.
+  const rememberInspectionOrder = (
+    invocation: ESTree.CallExpression | ESTree.TaggedTemplateExpression,
+    callee: ImmediateFunction,
+  ): void => {
+    spendWork(budget);
+    const caller = bindings.executionBoundaryForNode(invocation)?.block;
+    if (!caller || !isFunctionLike(caller)) return;
+    const callees = functionCallees.get(caller) ?? new Set<ImmediateFunction>();
+    if (callees.has(callee)) return;
+    callees.add(callee);
+    functionCallees.set(caller, callees);
+    const callers = functionCallers.get(callee) ?? new Set<ImmediateFunction>();
+    callers.add(caller);
+    functionCallers.set(callee, callers);
+  };
+
+  const rememberInspectionFunctions = (state: EnvState<T>, fn: ImmediateFunction): void => {
+    if (!analyzeUncalledFunctions) return;
+    const pending = [fn];
+    const seen = new Set<ImmediateFunction>();
+    while (pending.length) {
+      spendWork(budget);
+      const current = pending.pop();
+      if (!current || seen.has(current) || inspectedFunctions.has(current)) continue;
+      seen.add(current);
+      const functions = inspectionFunctions.get(current) ?? new Map<BindingId, CallableValues>();
+      for (const id of capturesOf(current, budget)) {
+        const prior = functions.get(id) ?? [];
+        const captured = state.functions.get(id) ?? [undefined];
+        spendWork(budget, 1 + prior.length + captured.length * 2);
+        functions.set(id, [...new Set([...prior, ...captured])]);
+        for (const callable of captured) {
+          if (callable && isFunctionLike(callable)) pending.push(callable);
+        }
+      }
+      inspectionFunctions.set(current, functions);
     }
-  }
+  };
+
+  const deferFunctionInspection = (fn: ImmediateFunction, state: EnvState<T>): void => {
+    if (invokedFunctions.has(fn) || inspectedFunctions.has(fn)) return;
+    rememberInspectionFunctions(state, fn);
+    if (pendingFunctions.has(fn)) return;
+    let callers = 0;
+    for (const caller of functionCallers.get(fn) ?? []) {
+      spendWork(budget);
+      if (pendingFunctions.has(caller)) callers += 1;
+    }
+    pendingFunctions.set(fn, callers);
+    for (const callee of functionCallees.get(fn) ?? []) {
+      spendWork(budget);
+      const count = pendingFunctions.get(callee);
+      if (count !== undefined) pendingFunctions.set(callee, count + 1);
+    }
+    if (!callers) readyFunctions.push(fn);
+  };
 
   const ensure = (state: EnvState<T>, objectId: ObjectId): SharedRecord<T> => {
     const existing = state.objects.get(objectId);
@@ -561,6 +631,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
   };
 
   const escapeCaptured = (state: EnvState<T>, fn: ESTree.Node): void => {
+    if (isFunctionLike(fn)) rememberInspectionFunctions(state, fn);
     forgetCapturedConstants(state, fn);
     for (const capturedId of capturesOf(fn)) {
       const objectId = state.env.get(capturedId);
@@ -747,8 +818,12 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
     value: EvaluatedValue,
   ): void => {
     if (runCorrelated(state, (path) => bindParameterValue(path, pattern, value))) return;
-    bindPattern(state, pattern, value.objectId);
     const target = unwrapExpression(pattern);
+    if (isNode(target) && target.type !== "Identifier") {
+      visitPatternExpressions(state, target);
+      if (state.completion !== "normal") return;
+    }
+    bindPattern(state, pattern, value.objectId);
     if (!isNode(target) || target.type !== "Identifier") return;
     const binding = resolveBinding(bindings, target, ancestors);
     if (!binding) return;
@@ -875,6 +950,159 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
     return true;
   };
 
+  const invokeKnownFunction = (
+    caller: EnvState<T>,
+    fn: ImmediateFunction,
+    args: InvocationArguments,
+    execution: FunctionExecution,
+  ): EnvState<T>[] => {
+    invokedFunctions.add(fn);
+    activeFunctions.add(fn);
+    const invocation = snapshotState(caller, cloneData, budget);
+    const { params } = fn;
+    ancestors.push(fn);
+    if (hasLogicalAssignments && fn.type !== "ArrowFunctionExpression") {
+      const argumentObject = argumentObjectId(fn);
+      const mapped: BindingId[] = [];
+      if (hasMappedArguments(fn)) {
+        const providedCount = args.kind === "positional" ? args.values.length : params.length;
+        for (let index = 0; index < Math.min(params.length, providedCount); index += 1) {
+          spendWork(budget);
+          const binding = resolveBinding(bindings, params[index], ancestors);
+          if (binding && constantBindings.has(binding.id)) mapped.push(binding.id);
+        }
+      }
+      mappedArguments.set(argumentObject, mapped);
+      invocation.env.set(-argumentObject, argumentObject);
+      const declaredArguments = fn.body ? bindings.resolve("arguments", fn.body, ancestors) : null;
+      if (declaredArguments?.kind === "var")
+        invocation.env.set(declaredArguments.id, argumentObject);
+    }
+    for (let index = 0; index < params.length; index += 1) {
+      if (invocation.completion !== "normal") break;
+      spendWork(budget);
+      const param = unwrapExpression(params[index]);
+      const value: EvaluatedValue =
+        args.kind === "uncertain"
+          ? { objectId: undefined, functions: [undefined], constant: null }
+          : (args.values[index] ?? {
+              objectId: undefined,
+              functions: [undefined],
+              constant: { truthy: false, nullish: true, nullishValue: "undefined" },
+            });
+      const bindParameter = (path: EnvState<T>): void => {
+        if (runCorrelated(path, bindParameter) || path.completion !== "normal") return;
+        if (isNode(param) && param.type === "AssignmentPattern") {
+          const nullishValue = value.constant?.nullish ? value.constant.nullishValue : undefined;
+          const defaultRuns = nullishValue === "undefined";
+          const provided = value.constant?.nullish === false || nullishValue === "null";
+          if (provided) {
+            bindParameterValue(path, param.left, value);
+            return;
+          }
+          const withDefault = defaultRuns ? path : snapshotState(path, cloneData, budget);
+          visit(param.right, withDefault, false);
+          const bindDefault = (result: EnvState<T>): void => {
+            bindParameterValue(result, param.left, valueFromExpr(result, param.right));
+          };
+          if (!runCorrelated(withDefault, bindDefault) && withDefault.completion === "normal")
+            bindDefault(withDefault);
+          if (!defaultRuns) {
+            bindParameterValue(path, param.left, value);
+            joinInto(path, [pathWithoutAlternatives(path, cloneData, budget), withDefault]);
+          }
+        } else {
+          bindParameterValue(path, params[index], value);
+        }
+      };
+      bindParameter(invocation);
+    }
+    if (execution === "body") visit(fn.body, invocation, false);
+    ancestors.pop();
+    const returned = completionPaths(invocation, cloneData, budget);
+    if (execution === "body") {
+      for (const path of returned) {
+        if (
+          path.completion === "return" ||
+          path.completion === "suspend" ||
+          (fn.async && path.completion === "throw")
+        )
+          setCompletion(path, "normal");
+      }
+    }
+    const capturedIds = new Set(capturesOf(fn));
+    for (const id of capturedIds) {
+      if (id >= 0) continue;
+      for (const mapped of mappedArguments.get(-id) ?? []) {
+        spendWork(budget);
+        capturedIds.add(mapped);
+      }
+    }
+    const projected = returned.map((path) => {
+      const result = snapshotState(caller, cloneData, budget);
+      result.objects = new Map(path.objects);
+      result.exposedCallables = new Set(path.exposedCallables);
+      if (hasLogicalAssignments) {
+        const scalarIds = new Set([...caller.env.keys(), ...capturedIds]);
+        spendWork(budget, scalarIds.size);
+        for (const id of scalarIds) {
+          const constant = path.constants.get(id);
+          if (constant !== undefined) result.constants.set(id, constant);
+          else result.constants.delete(id);
+        }
+      }
+      for (const id of capturedIds) {
+        result.env.set(id, path.env.get(id));
+        const values = path.functions.get(id);
+        if (values) result.functions.set(id, values);
+        else result.functions.delete(id);
+      }
+      setCompletion(result, path.completion, path.completionLabel ?? null);
+      return result;
+    });
+    activeFunctions.delete(fn);
+    return projected;
+  };
+
+  const initializeInstanceFields = (state: EnvState<T>, cls: ESTree.Class): void => {
+    if (activeFunctions.has(cls)) return;
+    activeFunctions.add(cls);
+    spendWork(budget, state.assignmentResults.size + state.callableResults.size);
+    const enclosingAssignments = new Map(state.assignmentResults);
+    const enclosingCallables = new Map(state.callableResults);
+    const restoreEnclosingResults = (path: EnvState<T>): void => {
+      spendWork(budget, 1 + enclosingAssignments.size + enclosingCallables.size);
+      for (const [expression, value] of enclosingAssignments)
+        path.assignmentResults.set(expression, value);
+      for (const [expression, value] of enclosingCallables)
+        path.callableResults.set(expression, value);
+      for (const alternative of path.callablePaths) restoreEnclosingResults(alternative);
+      for (const paths of path.abrupt.values()) {
+        for (const alternative of paths) restoreEnclosingResults(alternative);
+      }
+    };
+    ancestors.push(cls, cls.body);
+    for (const element of cls.body.body) {
+      if (state.completion !== "normal") break;
+      spendWork(budget);
+      if (
+        (element.type === "PropertyDefinition" || element.type === "AccessorProperty") &&
+        !element.static &&
+        element.value
+      ) {
+        ancestors.push(element);
+        visit(element.value, state, false);
+        if (state.completion === "normal") markEscape(state, element.value);
+        finishExpressionResults(state);
+        restoreEnclosingResults(state);
+        ancestors.pop();
+      }
+    }
+    ancestors.pop();
+    ancestors.pop();
+    activeFunctions.delete(cls);
+  };
+
   const visitControlFlow = createControlFlowVisitor<T>({
     visit: (node, state, traverseRoot) => visit(node, state, traverseRoot),
     budget,
@@ -898,25 +1126,17 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
     if (runCorrelated(state, (path) => visit(node, path, traverseRoot))) return;
 
     if (isFunctionLike(node) && !traverseRoot) {
-      // Analyze local syntax once, without definition-time outer values. A
-      // proven direct call below replays it with invocation-time arguments.
+      // Wait for actual invocation before deciding whether local syntax needs
+      // separate inspection without outer values or invocation-time arguments.
       if (
         analyzeUncalledFunctions &&
-        !directlyCalledFunctions.has(node) &&
         !(
           node.params.length === 0 &&
           node.body?.type === "BlockStatement" &&
           node.body.body.length === 0
         )
       ) {
-        const local = snapshotState(state, cloneData, budget);
-        local.env.clear();
-        local.constants.clear();
-        local.assignmentResults.clear();
-        local.objects.clear();
-        local.callablePaths = [];
-        local.callableResults.clear();
-        visit(node, local, true);
+        deferFunctionInspection(node, state);
       }
       return;
     }
@@ -1202,8 +1422,17 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
           visitChildren(node, (child) => visit(child, state, false));
           break;
         }
-        recordPossibleThrow(state);
         const tag = unwrapExpression(tagged.tag);
+        const recordLookupThrow = (path: EnvState<T>): void => {
+          if (isNode(tag) && isFunctionLike(tag)) return;
+          if (isNode(tag) && tag.type === "Identifier") {
+            const functions = functionsFromExpr(path, tag);
+            spendWork(budget, functions.length);
+            if (functions.length && functions.every((fn) => fn !== undefined)) return;
+          }
+          recordPossibleThrow(path);
+        };
+        if (!runCorrelated(state, recordLookupThrow)) recordLookupThrow(state);
         let receiver: ESTree.Node | null = null;
         if (isNode(tag) && tag.type === "MemberExpression") {
           ancestors.push(tag);
@@ -1237,20 +1466,47 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
           for (const fn of (receiver && path.assignmentResults.get(receiver)?.functions) ?? []) {
             if (fn) escapeCaptured(path, fn);
           }
-          for (const fn of functionsFromExpr(path, tag)) {
-            if (!fn) continue;
-            if (isFunctionLike(fn) && fn.generator) {
-              spendWork(budget, fn.params.length);
-              if (!discarded) escapeCaptured(path, fn);
-              else if (fn.params.some((param) => param.type !== "Identifier"))
-                escapeCaptured(path, fn);
+          const functions = functionsFromExpr(path, tag);
+          const tagPaths: EnvState<T>[] = [];
+          for (const fn of functions) {
+            const caller = functions.length === 1 ? path : snapshotState(path, cloneData, budget);
+            let projected: EnvState<T>[];
+            if (fn && isFunctionLike(fn) && fn.generator && !activeFunctions.has(fn)) {
+              spendWork(budget, tagged.quasi.expressions.length);
+              const args: InvocationArguments = {
+                kind: "positional",
+                values: [
+                  {
+                    objectId: undefined,
+                    functions: [undefined],
+                    constant: { truthy: true, nullish: false },
+                  },
+                  ...tagged.quasi.expressions.map(
+                    (expression) =>
+                      savedExpressionValue(caller, expression) ?? valueFromExpr(caller, expression),
+                  ),
+                ],
+              };
+              projected = invokeKnownFunction(caller, fn, args, "parameters");
+              if (!discarded) {
+                for (const result of projected) {
+                  if (result.completion === "normal") escapeCaptured(result, fn);
+                }
+              }
             } else {
-              escapeCaptured(path, fn);
+              if (fn) escapeCaptured(caller, fn);
+              projected = [caller];
             }
+            for (const result of projected) {
+              if (result.completion === "normal") {
+                for (const expression of tagged.quasi.expressions) markEscape(result, expression);
+                recordPossibleThrow(result);
+              }
+              result.callableResults.delete(tag);
+            }
+            tagPaths.push(...projected);
           }
-          for (const expression of tagged.quasi.expressions) markEscape(path, expression);
-          recordPossibleThrow(path);
-          path.callableResults.delete(tag);
+          if (tagPaths.length !== 1 || tagPaths[0] !== path) joinInto(path, tagPaths);
         };
         if (state.completion === "normal") invokeTag(state);
         break;
@@ -1329,158 +1585,42 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
           const callPaths: EnvState<T>[] = [];
           for (const fn of functions) {
             const caller = functions.length === 1 ? state : snapshotState(state, cloneData, budget);
-            const deferred = Boolean(fn && isFunctionLike(fn) && fn.generator);
-            if (fn && isFunctionLike(fn) && !deferred && !activeFunctions.has(fn)) {
-              activeFunctions.add(fn);
-              const invocation = snapshotState(caller, cloneData, budget);
-              const { params } = fn;
-              const hasSpreadArgument = call.arguments.some(
-                (argument) => argument.type === "SpreadElement",
+            if (fn && isFunctionLike(fn) && !activeFunctions.has(fn)) {
+              const values: EvaluatedValue[] = [];
+              let args: InvocationArguments = { kind: "positional", values };
+              for (const [index, argument] of call.arguments.entries()) {
+                spendWork(budget);
+                if (argument.type === "SpreadElement") {
+                  args = { kind: "uncertain" };
+                  break;
+                }
+                values.push(
+                  savedExpressionValue(caller, argument) ?? {
+                    objectId: argumentIds[index],
+                    functions: [undefined],
+                    constant: isDefinitelyUndefinedValue(argument, bindings)
+                      ? { truthy: false, nullish: true, nullishValue: "undefined" }
+                      : constantValue(argument),
+                  },
+                );
+              }
+              const projected = invokeKnownFunction(
+                caller,
+                fn,
+                args,
+                fn.generator ? "parameters" : "body",
               );
-              ancestors.push(fn);
-              if (hasLogicalAssignments && fn.type !== "ArrowFunctionExpression") {
-                let argumentObject = argumentObjectIds.get(fn);
-                if (argumentObject === undefined) {
-                  argumentObject = alloc();
-                  argumentObjectIds.set(fn, argumentObject);
-                }
-                const mapped: BindingId[] = [];
-                if (hasMappedArguments(fn)) {
-                  for (
-                    let index = 0;
-                    index <
-                    Math.min(
-                      params.length,
-                      hasSpreadArgument ? params.length : call.arguments.length,
-                    );
-                    index += 1
-                  ) {
-                    spendWork(budget);
-                    const binding = resolveBinding(bindings, params[index], ancestors);
-                    if (binding && constantBindings.has(binding.id)) mapped.push(binding.id);
-                  }
-                }
-                mappedArguments.set(argumentObject, mapped);
-                invocation.env.set(-argumentObject, argumentObject);
-                const declaredArguments = fn.body
-                  ? bindings.resolve("arguments", fn.body, ancestors)
-                  : null;
-                if (declaredArguments?.kind === "var")
-                  invocation.env.set(declaredArguments.id, argumentObject);
-              }
-              for (let index = 0; index < params.length; index += 1) {
-                const param = unwrapExpression(params[index]);
-                const argument = call.arguments[index];
-                const value: EvaluatedValue = hasSpreadArgument
-                  ? { objectId: undefined, functions: [undefined], constant: null }
-                  : ((argument && invocation.assignmentResults.get(argument)) ?? {
-                      objectId: argumentIds[index],
-                      functions: [undefined],
-                      constant: argument
-                        ? null
-                        : { truthy: false, nullish: true, nullishValue: "undefined" },
-                    });
-                const bindParameter = (path: EnvState<T>): void => {
-                  if (runCorrelated(path, bindParameter)) return;
-                  if (isNode(param) && param.type === "AssignmentPattern") {
-                    const nullishValue = value.constant?.nullish
-                      ? value.constant.nullishValue
-                      : undefined;
-                    const defaultRuns =
-                      !hasSpreadArgument &&
-                      (!argument ||
-                        nullishValue === "undefined" ||
-                        isDefinitelyUndefinedValue(argument, bindings));
-                    const provided =
-                      !hasSpreadArgument &&
-                      argument &&
-                      (value.constant?.nullish === false || nullishValue === "null");
-                    if (!defaultRuns && provided) {
-                      bindParameterValue(path, param.left, value);
-                      return;
-                    }
-                    const withDefault = defaultRuns ? path : snapshotState(path, cloneData, budget);
-                    visit(param.right, withDefault, false);
-                    const bindDefault = (result: EnvState<T>): void => {
-                      bindParameterValue(result, param.left, valueFromExpr(result, param.right));
-                    };
-                    if (
-                      !runCorrelated(withDefault, bindDefault) &&
-                      withDefault.completion === "normal"
-                    )
-                      bindDefault(withDefault);
-                    if (!defaultRuns) {
-                      bindParameterValue(path, param.left, value);
-                      joinInto(path, [
-                        pathWithoutAlternatives(path, cloneData, budget),
-                        withDefault,
-                      ]);
-                    }
-                  } else {
-                    bindParameterValue(path, params[index], value);
-                  }
-                };
-                bindParameter(invocation);
-              }
-              const { body } = fn;
-              visit(body, invocation, false);
-              ancestors.pop();
-              const returned = completionPaths(invocation, cloneData, budget);
-              const asyncFunction = Boolean(fn.async);
-              for (const path of returned) {
-                if (
-                  path.completion === "return" ||
-                  path.completion === "suspend" ||
-                  (asyncFunction && path.completion === "throw")
-                ) {
-                  setCompletion(path, "normal");
+              if (fn.generator) {
+                const parent = ancestors[ancestors.length - 2];
+                const discarded =
+                  parent?.type === "ExpressionStatement" && parent.expression === call;
+                for (const path of projected) {
+                  if (path.completion !== "normal") continue;
+                  if (!discarded) escapeCaptured(path, fn);
+                  for (const arg of call.arguments) markEscape(path, arg);
                 }
               }
-              const capturedIds = new Set(capturesOf(fn));
-              for (const id of capturedIds) {
-                if (id >= 0) continue;
-                for (const mapped of mappedArguments.get(-id) ?? []) {
-                  spendWork(budget);
-                  capturedIds.add(mapped);
-                }
-              }
-              const projected = returned.map((path) => {
-                const result = snapshotState(caller, cloneData, budget);
-                result.objects = new Map(path.objects);
-                result.exposedCallables = new Set(path.exposedCallables);
-                if (hasLogicalAssignments) {
-                  const scalarIds = new Set([...caller.env.keys(), ...capturedIds]);
-                  spendWork(budget, scalarIds.size);
-                  for (const id of scalarIds) {
-                    const constant = path.constants.get(id);
-                    if (constant !== undefined) result.constants.set(id, constant);
-                    else result.constants.delete(id);
-                  }
-                }
-                for (const id of capturedIds) {
-                  result.env.set(id, path.env.get(id));
-                  const values = path.functions.get(id);
-                  if (values) result.functions.set(id, values);
-                  else result.functions.delete(id);
-                }
-                setCompletion(result, path.completion, path.completionLabel ?? null);
-                return result;
-              });
               callPaths.push(...projected);
-              activeFunctions.delete(fn);
-            } else if (fn && deferred) {
-              const parent = ancestors[ancestors.length - 2];
-              const discarded =
-                parent?.type === "ExpressionStatement" &&
-                (parent as ESTree.ExpressionStatement).expression === call;
-              if (!discarded) escapeCaptured(caller, fn);
-              else if (isFunctionLike(fn)) {
-                spendWork(budget, fn.params.length);
-                if (fn.params.some((param) => param.type !== "Identifier"))
-                  escapeCaptured(caller, fn);
-              }
-              for (const arg of call.arguments) markEscape(caller, arg);
-              callPaths.push(caller);
             } else {
               if (fn) escapeCaptured(caller, fn);
               for (const arg of call.arguments) markEscape(caller, arg);
@@ -1527,16 +1667,28 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
         }
         const construct = (path: EnvState<T>): void => {
           if (runCorrelated(path, construct)) return;
-          for (const fn of functionsFromExpr(path, expr.callee)) {
-            if (fn?.type === "ClassDeclaration" || fn?.type === "ClassExpression")
-              escapeCaptured(path, fn);
-            else if (fn) forgetCapturedConstants(path, fn);
+          const functions = functionsFromExpr(path, expr.callee);
+          spendWork(budget, functions.length);
+          const constructed: EnvState<T>[] = [];
+          for (const fn of functions) {
+            const invocation =
+              functions.length === 1 ? path : snapshotState(path, cloneData, budget);
+            const knownClass = fn?.type === "ClassDeclaration" || fn?.type === "ClassExpression";
+            if (knownClass) initializeInstanceFields(invocation, fn);
+            const finishConstruction = (result: EnvState<T>): void => {
+              if (runCorrelated(result, finishConstruction)) return;
+              if (knownClass) escapeCaptured(result, fn);
+              else if (fn) forgetCapturedConstants(result, fn);
+              for (const arg of expr.arguments) markEscape(result, arg);
+              // Construction can throw after field and argument evaluation but before allocation.
+              recordPossibleThrow(result);
+              objectFromExpr(result, expr);
+              if (isNode(callee)) result.callableResults.delete(callee);
+            };
+            if (invocation.completion === "normal") finishConstruction(invocation);
+            constructed.push(invocation);
           }
-          for (const arg of expr.arguments) markEscape(path, arg);
-          // Construction can throw after argument evaluation but before allocation.
-          recordPossibleThrow(path);
-          objectFromExpr(path, expr);
-          if (isNode(callee)) path.callableResults.delete(callee);
+          if (constructed.length !== 1 || constructed[0] !== path) joinInto(path, constructed);
         };
         if (state.completion === "normal") construct(state);
         break;
@@ -1612,11 +1764,11 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
     spendWork(budget, referenceWork);
     if (hasLogicalAssignments) {
       const dependencies = new Map<BindingId, Set<BindingId>>();
-      for (const source of constantSources) {
-        spendWork(budget);
-        const target = resolveBinding(bindings, source.left, []);
-        if (!target) continue;
-        const pending = [{ value: source.right, depth: 0 }];
+      const visitValueSources = (
+        expression: ESTree.Node | null | undefined,
+        consume: (value: ESTree.Node) => void,
+      ): void => {
+        const pending = [{ value: expression, depth: 0 }];
         while (pending.length) {
           spendWork(budget);
           const candidate = pending.pop();
@@ -1642,17 +1794,25 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
               { value: value.left, depth: nextDepth },
               { value: value.right, depth: nextDepth },
             );
-          } else if (isFunctionLike(value)) {
+          } else consume(value);
+        }
+      };
+      for (const source of constantSources) {
+        spendWork(budget);
+        const target = resolveBinding(bindings, source.left, []);
+        if (!target) continue;
+        visitValueSources(source.right, (value) => {
+          if (isFunctionLike(value)) {
             rememberFunctionOrigin(target.id, value);
             callableBindings.add(target.id);
-          } else {
-            const origin = resolveBinding(bindings, value, []);
-            if (!origin) continue;
-            const sources = dependencies.get(target.id) ?? new Set<BindingId>();
-            sources.add(origin.id);
-            dependencies.set(target.id, sources);
+            return;
           }
-        }
+          const origin = resolveBinding(bindings, value, []);
+          if (!origin) return;
+          const sources = dependencies.get(target.id) ?? new Set<BindingId>();
+          sources.add(origin.id);
+          dependencies.set(target.id, sources);
+        });
       }
       const dependents = new Map<BindingId, Set<BindingId>>();
       for (const [target, sources] of dependencies) {
@@ -1689,9 +1849,11 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
         for (const fn of functions) addCallableOrigin(id, fn);
       }
       propagateCallableOrigins();
-      for (const call of constantCalls) {
+      const indexedDefaultArguments = new WeakSet<ESTree.Node>();
+      for (const call of constantInvocations) {
         spendWork(budget);
-        const callee = unwrapExpression(call.callee);
+        const tagged = call.type === "TaggedTemplateExpression";
+        const callee = unwrapExpression(tagged ? call.tag : call.callee);
         const functions = new Set<ImmediateFunction>();
         if (isNode(callee) && isFunctionLike(callee)) functions.add(callee);
         const binding = resolveBinding(bindings, callee, []);
@@ -1700,7 +1862,8 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
           functions.add(fn);
         }
         for (const fn of functions) {
-          directlyCalledFunctions.add(fn);
+          if (tagged && !fn.generator) continue;
+          rememberInspectionOrder(call, fn);
           for (let index = 0; index < fn.params.length; index += 1) {
             spendWork(budget);
             const param = unwrapExpression(fn.params[index]);
@@ -1709,7 +1872,22 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
               isNode(param) && param.type === "AssignmentPattern" ? param.left : param,
               [],
             );
-            const origin = resolveBinding(bindings, call.arguments[index], []);
+            if (target && isNode(param) && param.type === "AssignmentPattern")
+              constantBindings.add(target.id);
+            const argument = tagged ? call.quasi.expressions[index - 1] : call.arguments[index];
+            const origin = resolveBinding(bindings, argument, []);
+            if (
+              isNode(param) &&
+              param.type === "AssignmentPattern" &&
+              isNode(argument) &&
+              !indexedDefaultArguments.has(argument)
+            ) {
+              indexedDefaultArguments.add(argument);
+              visitValueSources(argument, (value) => {
+                const source = resolveBinding(bindings, value, []);
+                if (source) constantBindings.add(source.id);
+              });
+            }
             if (!target || !origin) continue;
             const sources = dependencies.get(target.id) ?? new Set<BindingId>();
             if (sources.has(origin.id)) continue;
@@ -1738,8 +1916,73 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
           pending.push(source);
         }
       }
+    } else if (analyzeUncalledFunctions) {
+      for (const call of constantInvocations) {
+        spendWork(budget);
+        if (call.type !== "CallExpression") continue;
+        const callee = unwrapExpression(call.callee);
+        if (isNode(callee) && isFunctionLike(callee)) rememberInspectionOrder(call, callee);
+        const binding = resolveBinding(bindings, callee, []);
+        for (const fn of (binding && directFunctionOrigins.get(binding.id)) || [])
+          rememberInspectionOrder(call, fn);
+      }
     }
     visit(program, finalState, true);
+    // Inspect uninvoked callers before their known callees, so a helper replay
+    // supplies arguments before its body could be inspected in isolation.
+    // Cycles choose one pending body; each body and origin edge is visited once.
+    while (pendingFunctions.size) {
+      spendWork(budget);
+      let fn = readyFunctions[nextReadyFunction];
+      if (nextReadyFunction < readyFunctions.length) nextReadyFunction += 1;
+      if (fn && pendingFunctions.get(fn) !== 0) continue;
+      fn ??= pendingFunctions.keys().next().value;
+      if (!fn) break;
+      pendingFunctions.delete(fn);
+      for (const callee of functionCallees.get(fn) ?? []) {
+        spendWork(budget);
+        const callers = pendingFunctions.get(callee);
+        if (callers === undefined) continue;
+        pendingFunctions.set(callee, callers - 1);
+        if (callers === 1) readyFunctions.push(callee);
+      }
+      if (invokedFunctions.has(fn) || inspectedFunctions.has(fn)) continue;
+      inspectedFunctions.add(fn);
+      spendWork(budget, finalState.functions.size + finalState.exposedCallables.size);
+      const local: EnvState<T> = {
+        env: new Map(),
+        functions: new Map(finalState.functions),
+        constants: new Map(),
+        exposedCallables: new Set(finalState.exposedCallables),
+        assignmentResults: new Map(),
+        callableResults: new Map(),
+        objects: new Map(),
+        callablePaths: [],
+        completion: "normal",
+        abrupt: new Map(),
+      };
+      // Import remembered captures before replay. Writes made by the body then
+      // dominate normally; importing at each call would resurrect old values.
+      const pendingCaptures = [fn];
+      const seenCaptures = new Set<ImmediateFunction>();
+      while (pendingCaptures.length) {
+        spendWork(budget);
+        const current = pendingCaptures.pop();
+        if (!current || seenCaptures.has(current)) continue;
+        seenCaptures.add(current);
+        for (const [id, prior] of inspectionFunctions.get(current) ?? []) {
+          const existing = local.functions.get(id) ?? [undefined];
+          spendWork(budget, 1 + prior.length + existing.length);
+          const values = [...new Set([...prior, ...existing])];
+          local.functions.set(id, values);
+          spendWork(budget, values.length);
+          for (const captured of values) {
+            if (captured && isFunctionLike(captured)) pendingCaptures.push(captured);
+          }
+        }
+      }
+      visit(fn, local, true);
+    }
     if (onExit) {
       onExit(
         completionPaths(finalState, cloneData, budget).map((path) => ({
