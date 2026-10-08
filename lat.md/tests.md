@@ -217,6 +217,12 @@ Proven local callable lookups and function literals do not create catch paths be
 
 An alias assigned inside a scalar substitution remains trusted across catch joins. Passing the record value itself retains the existing argument escape policy; callable rebinding and parameter initialization do not change the selected tag.
 
+### Member template tag lookup preserves receiver and key effects
+
+Member tag lookups create catch paths after completed receiver and computed-key effects. Substitutions remain later, and abrupt operand evaluation skips the lookup while preserving earlier effects.
+
+Receiver and key alias assignments remain trusted through catch joins, including without logical assignment selectors. Getter and proxy lookup throws retain these earlier effects. Throwing receiver and key helpers stop later evaluation; no-catch and passed-record controls preserve existing diagnostics and escape behavior.
+
 ### Logical assignments export their selected values
 
 Returned and thrown logical assignments export only the selected object or callback on each path. Skipped operands neither execute cursor advances nor escape captures; retained aliases and mutable scalar selectors keep their runtime facts.
@@ -314,6 +320,12 @@ Alternative and correlated bases run on separate paths; helper-created and repea
 Unused class definitions share immutable evaluated heritage values across helper calls and branches. Long known superclass chains execute without exhausting the syntax depth limit or dropping unrelated later diagnostics.
 
 The exact fifteen-hundred-class and fifteen-hundred-helper workload retains its later bulk-operation finding, as do branch snapshots. Chains of 128, 129, 257 and 1,024 classes retain both base-field and later findings within the unchanged work budget. Repeated sites preserve saved and current class bases in both directions, equal definitions converge at loop fixpoints, and helper-created class values retain scalar correlations. Record and scalar capture effects follow frozen bases and their callable aliases rather than replacements; array, object, return and throw exports preserve the same boundary.
+
+### Explicit constructor boundaries constrain field replay
+
+Implicit and trivial constructors retain known field replay. Opaque derived constructors defer their entire field chain; opaque base constructors retain already initialized own fields before stopping deterministic derived replay.
+
+Throwing, missing-super, returning, default, destructuring, rest and scalar-mutating constructor bodies retain the existing opaque policy. Plain parameters with an empty base body or a single zero-argument derived super call preserve replay. Base alternatives keep their eligibility correlated with scalar facts, saved constructors and frozen superclass versions remain authoritative, and outer completion is not inferred from constructor bodies.
 
 ### Class definitions evaluate only immediate class effects
 

@@ -42,6 +42,7 @@ import {
 import type { ESTree } from "@oxlint/plugins";
 import {
   getName,
+  getStringValue,
   isNode,
   isValueReference,
   propertyKeyName,
@@ -91,13 +92,21 @@ interface ClassValueCache {
   value?: ClassValue;
 }
 
+type ClassFieldReplay = "continue" | "opaque";
+
+interface ClassFieldPath<T> {
+  readonly state: EnvState<T>;
+  readonly replay: ClassFieldReplay;
+}
+
 interface ClassFieldFrame<T> {
   readonly state: EnvState<T>;
   readonly value: ClassValue;
   readonly bases: CallableValues;
-  readonly paths: EnvState<T>[];
+  readonly replay: ClassFieldReplay;
+  readonly paths: ClassFieldPath<T>[];
+  readonly pending: ClassFieldPath<T>[];
   nextBase: number;
-  current: EnvState<T> | undefined;
 }
 
 function scopeContains(scope: ScopeNode | null, block: ESTree.Node): boolean {
@@ -213,6 +222,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
   const argumentObjectIds = new WeakMap<ImmediateFunction, ObjectId>();
   const argumentIdentities = new Set<ObjectId>();
   const classValues = new WeakMap<ESTree.Class, ClassValueCache>();
+  const classConstructorReplay = new WeakMap<ESTree.Class, ClassFieldReplay>();
   const callableIdentities = new WeakMap<ImmediateFunction | ClassValue, ObjectId>();
   const activeClasses = new Set<ClassValue>();
   const callableIdentity = (value: ImmediateFunction | ClassValue | undefined): ObjectId => {
@@ -1518,43 +1528,145 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
     ancestors.pop();
   };
 
+  const constructorFieldReplay = (cls: ESTree.Class): ClassFieldReplay => {
+    spendWork(budget);
+    const cached = classConstructorReplay.get(cls);
+    if (cached) return cached;
+    let replay: ClassFieldReplay = "continue";
+    for (const element of cls.body.body) {
+      spendWork(budget);
+      if (element.type !== "MethodDefinition" || element.static || element.kind !== "constructor")
+        continue;
+      replay = "opaque";
+      const fn = element.value;
+      if (!isFunctionLike(fn) || fn.body?.type !== "BlockStatement") break;
+      spendWork(budget, fn.params.length);
+      if (!fn.params.every((param) => param.type === "Identifier")) break;
+      let forwardingCalls = 0;
+      let harmless = true;
+      for (const statement of fn.body.body) {
+        spendWork(budget);
+        if (statement.type === "EmptyStatement") continue;
+        const expression =
+          statement.type === "ExpressionStatement" ? unwrapExpression(statement.expression) : null;
+        if (
+          isNode(expression) &&
+          expression.type === "Literal" &&
+          getStringValue(expression) !== null
+        )
+          continue;
+        if (
+          cls.superClass &&
+          isNode(expression) &&
+          expression.type === "CallExpression" &&
+          expression.callee.type === "Super" &&
+          expression.arguments.length === 0 &&
+          forwardingCalls === 0
+        ) {
+          forwardingCalls += 1;
+          continue;
+        }
+        harmless = false;
+        break;
+      }
+      if (harmless && (!cls.superClass || forwardingCalls === 1)) replay = "continue";
+      break;
+    }
+    classConstructorReplay.set(cls, replay);
+    return replay;
+  };
+
+  const groupClassFieldPaths = (paths: ClassFieldPath<T>[]): ClassFieldPath<T>[] => {
+    spendWork(budget, 1 + paths.length);
+    if (paths.length <= 1) return paths;
+    const groups = new Map<ClassFieldReplay, EnvState<T>[]>();
+    for (const path of paths) {
+      const states = groups.get(path.replay) ?? [];
+      states.push(path.state);
+      groups.set(path.replay, states);
+    }
+    const grouped: ClassFieldPath<T>[] = [];
+    for (const [replay, states] of groups) {
+      spendWork(budget, states.length);
+      const first = states[0];
+      if (!first) continue;
+      if (states.length > 1) joinInto(first, states);
+      grouped.push({ state: first, replay });
+    }
+    return grouped;
+  };
+
+  const escapeConstructorCaptures = (state: EnvState<T>, value: ClassValue): void => {
+    if (state.completion !== "normal") return;
+    if (runCorrelated(state, (path) => escapeConstructorCaptures(path, value))) return;
+    escapeCaptured(state, value);
+  };
+
   const initializeInstanceFields = (state: EnvState<T>, value: ClassValue): void => {
     if (state.completion !== "normal") return;
     if (runCorrelated(state, (path) => initializeInstanceFields(path, value))) return;
     // Inheritance length is independent of the syntax nesting depth limit.
     const frames: ClassFieldFrame<T>[] = [];
-    const enter = (path: EnvState<T>, selected: ClassValue): void => {
+    const enter = (path: EnvState<T>, selected: ClassValue): ClassFieldPath<T> | undefined => {
       spendWork(budget, 1 + selected.bases.length);
-      if (activeClasses.has(selected)) return;
+      if (activeClasses.has(selected)) return { state: path, replay: "continue" };
+      const replay = constructorFieldReplay(selected.node);
+      if (selected.node.superClass && replay === "opaque") {
+        escapeConstructorCaptures(path, selected);
+        return { state: path, replay };
+      }
       activeClasses.add(selected);
       frames.push({
         state: path,
         value: selected,
         bases: selected.bases.length ? selected.bases : [undefined],
+        replay,
         paths: [],
+        pending: [],
         nextBase: 0,
-        current: undefined,
       });
+      return undefined;
     };
-    enter(state, value);
+    if (enter(state, value)) return;
     while (frames.length) {
       spendWork(budget);
       const frame = frames.at(-1);
       if (!frame) break;
-      if (frame.current) {
-        initializeOwnInstanceFields(frame.current, frame.value.node);
-        frame.paths.push(frame.current);
-        frame.current = undefined;
+      const current = frame.pending.pop();
+      if (current) {
+        let replay = current.replay;
+        if (replay === "continue") {
+          initializeOwnInstanceFields(current.state, frame.value.node);
+          if (current.state.completion === "normal" && frame.replay === "opaque") {
+            // Base fields precede constructor parameters and the body. Those
+            // opaque effects cannot establish a precise descendant field path.
+            escapeConstructorCaptures(current.state, frame.value);
+            replay = "opaque";
+          }
+        }
+        frame.paths.push({ state: current.state, replay });
       } else if (frame.nextBase >= frame.bases.length) {
-        if (frame.paths.length > 1) joinInto(frame.state, frame.paths);
         activeClasses.delete(frame.value);
         frames.pop();
+        const grouped = groupClassFieldPaths(frame.paths);
+        const parent = frames.at(-1);
+        if (parent) {
+          spendWork(budget, grouped.length);
+          for (const path of grouped) parent.pending.push(path);
+        } else if (grouped.length > 1 || grouped[0]?.state !== state) {
+          spendWork(budget, grouped.length);
+          joinInto(
+            state,
+            grouped.map((path) => path.state),
+          );
+        }
       } else {
         const base = frame.bases[frame.nextBase++];
         const path =
           frame.bases.length === 1 ? frame.state : snapshotState(frame.state, cloneData, budget);
-        frame.current = path;
-        if (base?.type === "ClassValue") enter(path, base);
+        const initialized: ClassFieldPath<T> | undefined =
+          base?.type === "ClassValue" ? enter(path, base) : { state: path, replay: "continue" };
+        if (initialized) frame.pending.push(initialized);
       }
     }
   };
@@ -1906,9 +2018,10 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
           }
           recordPossibleThrow(path);
         };
-        if (!runCorrelated(state, recordLookupThrow)) recordLookupThrow(state);
+        const memberTag = isNode(tag) && tag.type === "MemberExpression";
+        if (!memberTag && !runCorrelated(state, recordLookupThrow)) recordLookupThrow(state);
         let receiver: ESTree.Node | null = null;
-        if (isNode(tag) && tag.type === "MemberExpression") {
+        if (memberTag) {
           ancestors.push(tag);
           visit(tag.object, state, false);
           if (state.completion === "normal") {
@@ -1921,6 +2034,9 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
           visit(tagged.tag, state, false);
         }
         if (state.completion !== "normal" || !isNode(tag)) break;
+        // Member GetValue follows receiver and computed-key effects, while
+        // substitutions are evaluated only after the lookup succeeds.
+        if (memberTag && !runCorrelated(state, recordLookupThrow)) recordLookupThrow(state);
         const captureTag = (path: EnvState<T>): void => {
           const functions = functionsFromExpr(path, tag);
           spendWork(budget, functions.length);
