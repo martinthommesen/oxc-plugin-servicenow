@@ -88,10 +88,10 @@ describe("explicit constructor field boundaries", () => {
       0,
     );
   });
-  it("keeps nontrivial statements after super outside deterministic field replay", () => {
+  it("replays fields before a post-super throw while keeping constructor completion opaque", () => {
     findings(
       `class Base { ${baseField} } class Derived extends Base { constructor() { super(); throw 0; } ${derivedField} } new Derived();`,
-      0,
+      2,
     );
   });
   it("retains the existing unknown-superclass field policy for implicit construction", () => {
@@ -190,6 +190,105 @@ describe("explicit constructor field boundaries", () => {
       findings(
         `class Base { ${baseField} constructor() { throw 0; } } ${chain} new Derived${count - 1}(); new GlideRecord("later").deleteMultiple();`,
         2,
+      );
+    });
+  }
+  for (const [name, statement] of [
+    ["object return", "return {};"],
+    ["unknown call", "external();"],
+    ["second super", "super();"],
+  ] as const) {
+    it(`retains base and own fields before an opaque post-super ${name}`, () => {
+      findings(
+        `class Base { ${baseField} } class Derived extends Base { constructor() { super(); ${statement} } ${derivedField} } new Derived();`,
+        2,
+      );
+    });
+  }
+  it("selects own fields before an opaque post-super scalar write", () => {
+    findings(
+      'var run = true; class Base {} class Derived extends Base { constructor() { super(); run = false; } field = run &&= new GlideRecord("task").deleteMultiple(); } new Derived();',
+      1,
+    );
+  });
+  it("reports an own-field advance before a later opaque constructor query", () => {
+    const { messages, analysis } = lintWithAnalysis(
+      'var records = new GlideRecord("task"); class Base {} class Derived extends Base { field = records.next(); constructor() { super(); records.query(); } } new Derived();',
+      "require-query-before-next",
+    );
+    assert.equal(analysis.pathBudgetExhausted, false);
+    assert.equal(messages.length, 1);
+    assert.ok(messages.every((message) => message.messageId === "missingQuery"));
+  });
+  it("stops grandchild fields after replaying a post-super opaque child", () => {
+    findings(
+      `class Base { ${baseField} } class Child extends Base { constructor() { super(); throw 0; } ${derivedField} } class Grandchild extends Child { field = new GlideRecord("grandchild").deleteMultiple(); } new Grandchild();`,
+      2,
+    );
+  });
+  it("skips the post-super capture boundary when an own initializer throws", () => {
+    const { messages, analysis } = lintWithAnalysis(
+      'var records = new GlideRecord("task"); function fail() { throw 0; } class Base {} class Derived extends Base { field = fail(); constructor() { super(); records.query(); } } try { new Derived(); } catch (error) {} records.next();',
+      "require-query-before-next",
+    );
+    assert.equal(analysis.pathBudgetExhausted, false);
+    assert.equal(messages.length, 1);
+    assert.ok(messages.every((message) => message.messageId === "missingQuery"));
+  });
+  it("invalidates constructor captures after normal own initializer completion", () => {
+    const { messages, analysis } = lintWithAnalysis(
+      'var records = new GlideRecord("task"); class Base {} class Derived extends Base { field = 0; constructor() { super(); records.query(); } } new Derived(); records.next();',
+      "require-query-before-next",
+    );
+    assert.equal(analysis.pathBudgetExhausted, false);
+    assert.deepEqual(messages, []);
+  });
+  it("keeps post-super opacity separate from a replayable scalar alternative", () => {
+    findings(
+      'var run = false; class Base {} var Parent; if (external) { run = true; Parent = class extends Base { constructor() { super(); throw 0; } field = run &&= new GlideRecord("parent").deleteMultiple(); }; } else { Parent = class {}; } class Grandchild extends Parent { field = run &&= new GlideRecord("grandchild").deleteMultiple(); } new Grandchild();',
+      1,
+    );
+  });
+  it("retains the selected post-super constructor before an argument replacement", () => {
+    findings(
+      `class Base { ${baseField} } var Derived = class extends Base { constructor() { super(); throw 0; } ${derivedField} }; new Derived(Derived = class {});`,
+      2,
+    );
+  });
+  it("retains the saved post-super superclass after its binding is replaced", () => {
+    findings(
+      `class Base { ${baseField} } var Parent = class extends Base { constructor() { super(); throw 0; } ${derivedField} }; class Grandchild extends Parent { field = new GlideRecord("grandchild").deleteMultiple(); } Parent = class {}; new Grandchild();`,
+      2,
+    );
+  });
+  it("keeps nonempty super arguments outside the prefix proof", () => {
+    findings(
+      `class Base { ${baseField} } class Derived extends Base { constructor() { super(0); throw 0; } ${derivedField} } new Derived();`,
+      0,
+    );
+  });
+  it("keeps supplied default parameters outside the prefix proof", () => {
+    findings(
+      `class Base { ${baseField} } class Derived extends Base { constructor(value = 0) { super(); throw 0; } ${derivedField} } new Derived(false);`,
+      0,
+    );
+  });
+  it("accepts harmless prefixes and ordinary parameters before the first super", () => {
+    findings(
+      `class Base { ${baseField} } class Derived extends Base { constructor(value) { ; "harmless"; super(); throw 0; } ${derivedField} } new Derived(false);`,
+      2,
+    );
+  });
+  for (const count of [129, 1024]) {
+    it(`propagates post-super opacity through ${count} descendants within the work budget`, () => {
+      const chain = Array.from(
+        { length: count },
+        (_, index) =>
+          `class Descendant${index} extends ${index === 0 ? "Parent" : `Descendant${index - 1}`} { field = new GlideRecord("descendant").deleteMultiple(); }`,
+      ).join(" ");
+      findings(
+        `class Base { ${baseField} } class Parent extends Base { constructor() { super(); throw 0; } ${derivedField} } ${chain} new Descendant${count - 1}(); new GlideRecord("later").deleteMultiple();`,
+        3,
       );
     });
   }

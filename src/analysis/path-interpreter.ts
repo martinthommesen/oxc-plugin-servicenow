@@ -45,6 +45,7 @@ import {
   getStringValue,
   isNode,
   isValueReference,
+  objectProperty,
   propertyKeyName,
   TRANSPARENT_WRAPPER_TYPES,
   unwrapExpression,
@@ -57,7 +58,11 @@ import {
   type ImmediateFunction,
   type ScopeNode,
 } from "./bindings.js";
-import { isDefinitelyUndefinedValue, staticPropertyName } from "./members.js";
+import {
+  isDefinitelyNonCallable,
+  isDefinitelyUndefinedValue,
+  staticPropertyName,
+} from "./members.js";
 import { constantValue } from "./constant-value.js";
 import { directPlatformGlobalName, GLOBAL_OBJECT_NAMES } from "./globals.js";
 
@@ -92,7 +97,35 @@ interface ClassValueCache {
   value?: ClassValue;
 }
 
+type StaticAccessorKind = "get" | "set";
+type StaticPropertyKey = string | null;
+type StaticPropertyPresence = "absent" | "possible" | "present";
+type StaticPropertyEvent =
+  | { readonly property: null; readonly order: number; readonly kind: "opaque" }
+  | { readonly property: StaticPropertyKey; readonly order: number; readonly kind: "data" }
+  | {
+      readonly property: StaticPropertyKey;
+      readonly order: number;
+      readonly kind: StaticAccessorKind;
+      readonly fn: ImmediateFunction;
+    };
+
+interface StaticAccessors {
+  readonly getters: readonly ImmediateFunction[];
+  readonly setters: readonly ImmediateFunction[];
+}
+
+interface StaticMemberReference {
+  readonly values: readonly ClassValue[];
+  readonly property: StaticPropertyKey;
+}
+
+interface OwnStaticAccessors extends StaticAccessors {
+  readonly presence: StaticPropertyPresence;
+}
+
 type ClassFieldReplay = "continue" | "opaque";
+type ClassConstructorReplay = ClassFieldReplay | "opaque-after-fields";
 
 interface ClassFieldPath<T> {
   readonly state: EnvState<T>;
@@ -103,7 +136,7 @@ interface ClassFieldFrame<T> {
   readonly state: EnvState<T>;
   readonly value: ClassValue;
   readonly bases: CallableValues;
-  readonly replay: ClassFieldReplay;
+  readonly replay: ClassConstructorReplay;
   readonly paths: ClassFieldPath<T>[];
   readonly pending: ClassFieldPath<T>[];
   nextBase: number;
@@ -222,7 +255,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
   const argumentObjectIds = new WeakMap<ImmediateFunction, ObjectId>();
   const argumentIdentities = new Set<ObjectId>();
   const classValues = new WeakMap<ESTree.Class, ClassValueCache>();
-  const classConstructorReplay = new WeakMap<ESTree.Class, ClassFieldReplay>();
+  const classConstructorReplay = new WeakMap<ESTree.Class, ClassConstructorReplay>();
   const callableIdentities = new WeakMap<ImmediateFunction | ClassValue, ObjectId>();
   const activeClasses = new Set<ClassValue>();
   const callableIdentity = (value: ImmediateFunction | ClassValue | undefined): ObjectId => {
@@ -365,7 +398,10 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
   let objectPrototypeUncertain = false;
   const constantBindings = new Set<BindingId>();
   const constantSources: Array<{ left: ESTree.Node; right: ESTree.Node | null }> = [];
-  const constantInvocations: Array<ESTree.CallExpression | ESTree.TaggedTemplateExpression> = [];
+  const constantInvocations: Array<
+    ESTree.CallExpression | ESTree.NewExpression | ESTree.TaggedTemplateExpression
+  > = [];
+  const withCaptureBindings = new WeakMap<ESTree.Node, readonly BindingId[]>();
   const tryThrowPaths: EnvState<T>[][] = [];
   const mergePolicy: MergePolicy<T> = {
     budget,
@@ -409,12 +445,10 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
     directFunctionOrigins.set(id, functions);
   };
 
-  const noteLiteralIntrinsicReference = (node: ESTree.Node): void => {
-    if (arrayIterationUncertain && objectPrototypeUncertain) return;
-    const name = directPlatformGlobalName(node, bindings);
-    const sensitiveProperty = LITERAL_INTRINSIC_PROPERTIES.get(name ?? "");
-    const namespace = GLOBAL_OBJECT_NAMES.has(name ?? "");
-    if (sensitiveProperty === undefined && !namespace) return;
+  const literalIntrinsicMayEscape = (
+    node: ESTree.Node,
+    sensitiveProperty: string | undefined,
+  ): boolean => {
     let child = node;
     let index = prepassAncestors.length - 2;
     let parent = prepassAncestors[index];
@@ -431,8 +465,63 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
     }
     if (parent?.type === "MemberExpression" && parent.object === child) {
       const property = staticPropertyName(parent);
-      if (property !== null && (namespace || property !== sensitiveProperty)) return;
+      if (property !== null && property !== sensitiveProperty) return false;
     }
+    return true;
+  };
+
+  const isIntrinsicPrototypeLookup = (node: unknown): boolean => {
+    const callee = unwrapExpression(node);
+    if (
+      !isNode(callee) ||
+      callee.type !== "MemberExpression" ||
+      staticPropertyName(callee) !== "getPrototypeOf"
+    )
+      return false;
+    const receiver = directPlatformGlobalName(callee.object, bindings);
+    return receiver === "Object" || receiver === "Reflect";
+  };
+
+  const literalPrototypeAncestryExposed = (node: ESTree.Node): boolean => {
+    let child = node;
+    let index = prepassAncestors.length - 2;
+    for (let depth = 0; depth < MAX_PATH_DEPTH; depth += 1) {
+      const parent = prepassAncestors[index--];
+      if (!parent) return false;
+      referenceWork += 1;
+      if (
+        TRANSPARENT_WRAPPER_TYPES.has(parent.type) &&
+        "expression" in parent &&
+        parent.expression === child
+      ) {
+        child = parent;
+        continue;
+      }
+      if (parent.type === "MemberExpression" && parent.object === child) {
+        const property = staticPropertyName(parent);
+        if (property === null || property === "__proto__") return true;
+        child = parent;
+        continue;
+      }
+      return (
+        parent.type === "CallExpression" &&
+        parent.arguments[0] === child &&
+        isIntrinsicPrototypeLookup(parent.callee)
+      );
+    }
+    return true;
+  };
+
+  const noteLiteralIntrinsicReference = (node: ESTree.Node): void => {
+    if (arrayIterationUncertain && objectPrototypeUncertain) return;
+    const name = directPlatformGlobalName(node, bindings);
+    const sensitiveProperty = LITERAL_INTRINSIC_PROPERTIES.get(name ?? "");
+    const namespace = GLOBAL_OBJECT_NAMES.has(name ?? "");
+    if (
+      (sensitiveProperty === undefined && !namespace) ||
+      !literalIntrinsicMayEscape(node, sensitiveProperty)
+    )
+      return;
     if (namespace) {
       arrayIterationUncertain = true;
       objectPrototypeUncertain = true;
@@ -471,8 +560,49 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
       MemberExpression(node) {
         referenceWork += 1;
         if (node.type !== "MemberExpression") return;
-        if (LITERAL_INTRINSIC_PROPERTIES.has(staticPropertyName(node) ?? ""))
-          noteLiteralIntrinsicReference(node);
+        if (arrayIterationUncertain && objectPrototypeUncertain) return;
+        const property = staticPropertyName(node);
+        const receiver = unwrapExpression(node.object);
+        let ownNonIntrinsicConstructor = false;
+        if (
+          property === "constructor" &&
+          isNode(receiver) &&
+          receiver.type === "ObjectExpression"
+        ) {
+          referenceWork += receiver.properties.length;
+          const own = objectProperty(receiver, property);
+          ownNonIntrinsicConstructor =
+            own.kind === "known" &&
+            own.property.kind === "init" &&
+            (isFunctionLike(unwrapExpression(own.property.value)) ||
+              isDefinitelyNonCallable(own.property.value, bindings)) &&
+            !literalPrototypeAncestryExposed(node);
+        }
+        if (
+          (property === "constructor" || property === "__proto__") &&
+          isNode(receiver) &&
+          (receiver.type === "ObjectExpression" || receiver.type === "ArrayExpression") &&
+          !ownNonIntrinsicConstructor &&
+          (property === "__proto__" || literalIntrinsicMayEscape(node, "prototype"))
+        ) {
+          arrayIterationUncertain = true;
+          objectPrototypeUncertain = true;
+        }
+        if (LITERAL_INTRINSIC_PROPERTIES.has(property ?? "")) noteLiteralIntrinsicReference(node);
+      },
+      CallExpression(node) {
+        referenceWork += 1;
+        if (node.type !== "CallExpression" || (arrayIterationUncertain && objectPrototypeUncertain))
+          return;
+        if (!isIntrinsicPrototypeLookup(node.callee)) return;
+        const argument = unwrapExpression(node.arguments[0]);
+        if (
+          isNode(argument) &&
+          (argument.type === "ObjectExpression" || argument.type === "ArrayExpression")
+        ) {
+          arrayIterationUncertain = true;
+          objectPrototypeUncertain = true;
+        }
       },
       AssignmentExpression(node) {
         if (node.type !== "AssignmentExpression") return;
@@ -527,6 +657,9 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
     CallExpression(node) {
       if (node.type === "CallExpression") constantInvocations.push(node);
     },
+    NewExpression(node) {
+      if (node.type === "NewExpression") constantInvocations.push(node);
+    },
     TaggedTemplateExpression(node) {
       if (node.type === "TaggedTemplateExpression") constantInvocations.push(node);
     },
@@ -535,7 +668,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
   // Origin edges order isolated inspection; only a selected runtime invocation
   // can suppress it. A future assignment or a skipped call is not evidence.
   const rememberInspectionOrder = (
-    invocation: ESTree.CallExpression | ESTree.TaggedTemplateExpression,
+    invocation: ESTree.CallExpression | ESTree.NewExpression | ESTree.TaggedTemplateExpression,
     callee: ImmediateFunction,
   ): void => {
     spendWork(budget);
@@ -847,6 +980,249 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
         if (captured) captured.escaped = true;
       }
     }
+  };
+
+  const staticPropertyEvents = new WeakMap<
+    ESTree.Class,
+    ReadonlyMap<StaticPropertyKey, readonly StaticPropertyEvent[]>
+  >();
+  const ownStaticAccessorCache = new WeakMap<
+    ESTree.Class,
+    Map<StaticPropertyKey, OwnStaticAccessors>
+  >();
+  const staticAccessorCache = new WeakMap<ClassValue, Map<StaticPropertyKey, StaticAccessors>>();
+
+  const degradedStaticProperties = new WeakMap<ClassValue, Set<StaticPropertyKey>>();
+  const staticAccessorDependents = new WeakMap<
+    ClassValue,
+    Map<StaticPropertyKey, Set<ClassValue>>
+  >();
+
+  const staticEvents = (
+    node: ESTree.Class,
+  ): ReadonlyMap<StaticPropertyKey, readonly StaticPropertyEvent[]> => {
+    const cached = staticPropertyEvents.get(node);
+    if (cached) return cached;
+    const methods: StaticPropertyEvent[] = [];
+    const fields: StaticPropertyEvent[] = [];
+    spendWork(budget, node.body.body.length);
+    for (const element of node.body.body) {
+      if (element.type === "StaticBlock") {
+        if (element.body.length)
+          fields.push({ property: null, order: fields.length, kind: "opaque" });
+        continue;
+      }
+      if (!("static" in element) || !element.static || !("key" in element)) continue;
+      if (element.key.type === "PrivateIdentifier") continue;
+      const property = propertyKeyName(element);
+      if (element.type === "MethodDefinition") {
+        const order = methods.length;
+        if (element.kind === "get" || element.kind === "set")
+          methods.push({ property, order, kind: element.kind, fn: element.value });
+        else methods.push({ property, order, kind: "data" });
+      } else if (element.type === "PropertyDefinition")
+        fields.push({ property, order: fields.length, kind: "data" });
+    }
+    // Static fields are initialized after all method descriptors are installed.
+    spendWork(budget, methods.length + fields.length);
+    const events = new Map<StaticPropertyKey, StaticPropertyEvent[]>();
+    for (const event of methods) {
+      const selected = events.get(event.property) ?? [];
+      selected.push(event);
+      events.set(event.property, selected);
+    }
+    for (const field of fields) {
+      const selected = events.get(field.property) ?? [];
+      selected.push({ ...field, order: methods.length + field.order });
+      events.set(field.property, selected);
+    }
+    staticPropertyEvents.set(node, events);
+    return events;
+  };
+
+  const ownStaticAccessors = (
+    node: ESTree.Class,
+    property: StaticPropertyKey,
+  ): OwnStaticAccessors => {
+    const cache =
+      ownStaticAccessorCache.get(node) ?? new Map<StaticPropertyKey, OwnStaticAccessors>();
+    ownStaticAccessorCache.set(node, cache);
+    const cached = cache.get(property);
+    if (cached) return cached;
+    const index = staticEvents(node);
+    const getters = new Set<ImmediateFunction>();
+    const setters = new Set<ImmediateFunction>();
+    let presence: StaticPropertyPresence = "absent";
+    if (property === null) {
+      const unknown = index.get(null) ?? [];
+      spendWork(budget, index.size + unknown.length);
+      for (const event of unknown) {
+        if (event.kind === "get") getters.add(event.fn);
+        else if (event.kind === "set") setters.add(event.fn);
+      }
+      for (const key of index.keys()) {
+        if (key === null) continue;
+        spendWork(budget);
+        const known = ownStaticAccessors(node, key);
+        spendWork(budget, known.getters.length + known.setters.length);
+        for (const fn of known.getters) getters.add(fn);
+        for (const fn of known.setters) setters.add(fn);
+      }
+      if (index.size) presence = "possible";
+    } else {
+      const known = index.get(property) ?? [];
+      const unknown = index.get(null) ?? [];
+      spendWork(budget, known.length + unknown.length);
+      let knownIndex = 0;
+      let unknownIndex = 0;
+      while (knownIndex < known.length || unknownIndex < unknown.length) {
+        const nextKnown = known[knownIndex];
+        const nextUnknown = unknown[unknownIndex];
+        const event =
+          nextKnown && (!nextUnknown || nextKnown.order < nextUnknown.order)
+            ? known[knownIndex++]
+            : unknown[unknownIndex++];
+        if (!event) continue;
+        if (event.property === null) {
+          if (event.kind === "opaque" || presence === "absent") presence = "possible";
+          if (event.kind === "get") getters.add(event.fn);
+          else if (event.kind === "set") setters.add(event.fn);
+        } else {
+          presence = "present";
+          if (event.kind === "data") {
+            getters.clear();
+            setters.clear();
+          } else if (event.kind === "get") {
+            getters.clear();
+            getters.add(event.fn);
+          } else {
+            setters.clear();
+            setters.add(event.fn);
+          }
+        }
+      }
+    }
+    spendWork(budget, getters.size + setters.size);
+    const accessors = { presence, getters: [...getters], setters: [...setters] };
+    cache.set(property, accessors);
+    return accessors;
+  };
+
+  const classStaticAccessors = (
+    value: ClassValue,
+    property: StaticPropertyKey,
+  ): StaticAccessors => {
+    const cache = staticAccessorCache.get(value) ?? new Map<StaticPropertyKey, StaticAccessors>();
+    staticAccessorCache.set(value, cache);
+    const cached = cache.get(property);
+    if (cached) return cached;
+    const pending = [value];
+    const seen = new Set<ClassValue>();
+    const getters = new Set<ImmediateFunction>();
+    const setters = new Set<ImmediateFunction>();
+    while (pending.length) {
+      spendWork(budget);
+      const current = pending.pop();
+      if (!current || seen.has(current)) continue;
+      seen.add(current);
+      const own = ownStaticAccessors(current.node, property);
+      spendWork(budget, own.getters.length + own.setters.length);
+      for (const fn of own.getters) getters.add(fn);
+      for (const fn of own.setters) setters.add(fn);
+      const degraded = degradedStaticProperties.get(current);
+      if (own.presence !== "present" || degraded?.has(null) || degraded?.has(property)) {
+        spendWork(budget, current.bases.length);
+        for (const base of current.bases) {
+          if (base?.type !== "ClassValue") continue;
+          const dependencies =
+            staticAccessorDependents.get(base) ?? new Map<StaticPropertyKey, Set<ClassValue>>();
+          const parents = dependencies.get(property) ?? new Set<ClassValue>();
+          parents.add(current);
+          dependencies.set(property, parents);
+          staticAccessorDependents.set(base, dependencies);
+          pending.push(base);
+        }
+      }
+    }
+    spendWork(budget, getters.size + setters.size);
+    const accessors = { getters: [...getters], setters: [...setters] };
+    cache.set(property, accessors);
+    return accessors;
+  };
+
+  const selectedStaticAccessors = (
+    state: EnvState<T>,
+    member: ESTree.MemberExpression,
+  ): StaticMemberReference => {
+    const functions = functionsFromExpr(state, member.object);
+    const values: ClassValue[] = [];
+    spendWork(budget, functions.length);
+    for (const value of functions) {
+      if (value?.type === "ClassValue") values.push(value);
+    }
+    return { values, property: staticPropertyName(member) };
+  };
+
+  const degradeStaticShadow = (reference: StaticMemberReference): void => {
+    spendWork(budget, reference.values.length);
+    for (const value of reference.values) {
+      const degraded = degradedStaticProperties.get(value) ?? new Set<StaticPropertyKey>();
+      if (degraded.has(null) || degraded.has(reference.property)) continue;
+      degraded.add(reference.property);
+      degradedStaticProperties.set(value, degraded);
+      const cached = staticAccessorCache.get(value);
+      const dependencies = staticAccessorDependents.get(value);
+      if (reference.property === null)
+        spendWork(budget, (cached?.size ?? 0) + (dependencies?.size ?? 0));
+      const keys =
+        reference.property === null
+          ? new Set([...(cached?.keys() ?? []), ...(dependencies?.keys() ?? [])])
+          : new Set([reference.property, null]);
+      spendWork(budget, keys.size);
+      const pending: { readonly value: ClassValue; readonly property: StaticPropertyKey }[] = [];
+      for (const property of keys) pending.push({ value, property });
+      const seen = new Map<ClassValue, Set<StaticPropertyKey>>();
+      while (pending.length) {
+        spendWork(budget);
+        const current = pending.pop();
+        if (!current) continue;
+        const visited = seen.get(current.value) ?? new Set<StaticPropertyKey>();
+        if (visited.has(current.property)) continue;
+        visited.add(current.property);
+        seen.set(current.value, visited);
+        staticAccessorCache.get(current.value)?.delete(current.property);
+        const parents = staticAccessorDependents.get(current.value)?.get(current.property);
+        spendWork(budget, parents?.size ?? 0);
+        for (const parent of parents ?? [])
+          pending.push({ value: parent, property: current.property });
+      }
+    }
+  };
+
+  const applyStaticAccessors = (
+    state: EnvState<T>,
+    reference: StaticMemberReference,
+    kind: StaticAccessorKind,
+  ): void => {
+    const functions = new Set<ImmediateFunction>();
+    spendWork(budget, reference.values.length);
+    for (const value of reference.values) {
+      const accessors = classStaticAccessors(value, reference.property);
+      const selected = kind === "get" ? accessors.getters : accessors.setters;
+      spendWork(budget, selected.length);
+      for (const fn of selected) functions.add(fn);
+    }
+    if (!functions.size) return;
+    const apply = (path: EnvState<T>): void => {
+      recordPossibleThrow(path);
+      spendWork(budget, functions.size);
+      for (const fn of functions) {
+        capturesOf(fn, budget);
+        escapeCaptured(path, fn);
+      }
+      recordPossibleThrow(path);
+    };
+    if (!runCorrelated(state, apply) && state.completion === "normal") apply(state);
   };
 
   const literalArgumentValue = (node: unknown, depth: number): LiteralArgumentValue => {
@@ -1366,6 +1742,51 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
     return true;
   };
 
+  const visitMemberReference = (
+    state: EnvState<T>,
+    member: ESTree.MemberExpression,
+    consume: (path: EnvState<T>, accessors: StaticMemberReference) => void,
+    captureReceiver?: (path: EnvState<T>) => void,
+  ): void => {
+    const entered = ancestors.at(-1) !== member;
+    if (entered) ancestors.push(member);
+    visit(member.object, state, false);
+    const evaluateKey = (path: EnvState<T>): void => {
+      const accessors = selectedStaticAccessors(path, member);
+      captureReceiver?.(path);
+      if (member.computed) visit(member.property, path, false);
+      const complete = (result: EnvState<T>): void => {
+        if (entered) ancestors.pop();
+        consume(result, accessors);
+        if (entered) ancestors.push(member);
+      };
+      if (!runCorrelated(path, complete) && path.completion === "normal") complete(path);
+    };
+    if (!runCorrelated(state, evaluateKey) && state.completion === "normal") evaluateKey(state);
+    if (entered) ancestors.pop();
+  };
+
+  const evaluatedArguments = (
+    state: EnvState<T>,
+    args: ESTree.CallExpression["arguments"],
+  ): InvocationArguments => {
+    const values: EvaluatedValue[] = [];
+    for (const argument of args) {
+      spendWork(budget);
+      if (argument.type === "SpreadElement") return { kind: "uncertain" };
+      values.push(
+        savedExpressionValue(state, argument) ?? {
+          objectId: objectFromExpr(state, argument),
+          functions: [undefined],
+          constant: isDefinitelyUndefinedValue(argument, bindings)
+            ? { truthy: false, nullish: true, nullishValue: "undefined" }
+            : constantValue(argument),
+        },
+      );
+    }
+    return { kind: "positional", values };
+  };
+
   const invokeKnownFunction = (
     caller: EnvState<T>,
     fn: ImmediateFunction,
@@ -1528,11 +1949,11 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
     ancestors.pop();
   };
 
-  const constructorFieldReplay = (cls: ESTree.Class): ClassFieldReplay => {
+  const constructorFieldReplay = (cls: ESTree.Class): ClassConstructorReplay => {
     spendWork(budget);
     const cached = classConstructorReplay.get(cls);
     if (cached) return cached;
-    let replay: ClassFieldReplay = "continue";
+    let replay: ClassConstructorReplay = "continue";
     for (const element of cls.body.body) {
       spendWork(budget);
       if (element.type !== "MethodDefinition" || element.static || element.kind !== "constructor")
@@ -1567,6 +1988,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
           continue;
         }
         harmless = false;
+        if (forwardingCalls === 1) replay = "opaque-after-fields";
         break;
       }
       if (harmless && (!cls.superClass || forwardingCalls === 1)) replay = "continue";
@@ -1637,9 +2059,10 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
         let replay = current.replay;
         if (replay === "continue") {
           initializeOwnInstanceFields(current.state, frame.value.node);
-          if (current.state.completion === "normal" && frame.replay === "opaque") {
-            // Base fields precede constructor parameters and the body. Those
-            // opaque effects cannot establish a precise descendant field path.
+          if (current.state.completion === "normal" && frame.replay !== "continue") {
+            // Base fields precede parameters/body; a proven derived super
+            // prefix also initializes own fields before opaque trailing code.
+            // Neither opaque boundary proves a descendant field path.
             escapeConstructorCaptures(current.state, frame.value);
             replay = "opaque";
           }
@@ -1716,11 +2139,48 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
       return;
     }
     switch (node.type) {
-      case "WithStatement":
+      case "WithStatement": {
         visit(node.object, state, false);
         finishExpressionResults(state);
+        if (state.completion !== "normal") break;
+        let captures = withCaptureBindings.get(node.body);
+        if (!captures && hasLogicalAssignments) {
+          const candidates = new Set(capturesOf(node.body, budget));
+          walk(node.body, {
+            "*": () => spendWork(budget),
+            VariableDeclarator(declaration) {
+              if (declaration.type !== "VariableDeclarator" || !declaration.init) return;
+              walk(declaration.id, {
+                "*": () => spendWork(budget),
+                Identifier(identifier) {
+                  const binding = resolveBinding(bindings, identifier, []);
+                  const scope = binding ? bindings.scopeById(binding.scopeId) : null;
+                  if (binding && !scopeContains(scope, node.body)) candidates.add(binding.id);
+                },
+              });
+            },
+          });
+          spendWork(budget, candidates.size);
+          captures = [...candidates];
+          withCaptureBindings.set(node.body, captures);
+        }
+        if (captures) {
+          const forgetSelectors = (path: EnvState<T>): void => {
+            spendWork(budget, captures.length);
+            for (const id of captures) {
+              if (constantBindings.has(id)) path.constants.set(id, null);
+              const functions = path.functions.get(id) ?? [];
+              spendWork(budget, functions.length);
+              for (const fn of functions) {
+                if (fn) forgetCapturedConstants(path, fn);
+              }
+            }
+          };
+          if (!runCorrelated(state, forgetSelectors)) forgetSelectors(state);
+        }
         visit(node.body, state, false);
         break;
+      }
       case "ClassExpression":
       case "ClassDeclaration": {
         const enclosingAssignments = state.assignmentResults;
@@ -1925,85 +2385,102 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
         const assign = node as ESTree.AssignmentExpression;
         const logicalAssignment = ["&&=", "||=", "??="].includes(assign.operator);
         const target = unwrapExpression(assign.left);
-        if (isNode(target) && target.type === "MemberExpression") {
-          visit(target.object, state, false);
-          if (state.completion !== "normal") break;
-          preserveWriteReceiver(state, target.object);
-          if (target.computed) visit(target.property, state, false);
-        } else if (assign.operator !== "=") {
-          visit(assign.left, state, false);
-        }
-        if (state.completion !== "normal") break;
-        if (logicalAssignment) {
-          const leftValue = valueFromExpr(state, assign.left);
-          const rightRuns = leftValue.constant
-            ? assign.operator === "&&="
-              ? leftValue.constant.truthy
-              : assign.operator === "||="
-                ? !leftValue.constant.truthy
-                : leftValue.constant.nullish
-            : null;
-          if (rightRuns === false) {
-            state.assignmentResults.set(assign, leftValue);
-            break;
-          }
-          const skipped = rightRuns === null ? snapshotState(state, cloneData, budget) : null;
-          if (skipped) skipped.assignmentResults.set(assign, leftValue);
-          visit(assign.right, state, false);
-          const paths = completionPaths(state, cloneData, budget);
-          for (const path of paths) {
-            if (path.completion !== "normal") continue;
-            const right = normalValueFromExpr(path, assign.right);
-            if (right === null) continue;
-            const value = valueFromExpr(path, right);
-            assignFrom(path, assign.left, right);
-            path.assignmentResults.set(assign, value);
-          }
-          joinInto(state, skipped ? [skipped, ...paths] : paths);
-          break;
-        }
-        visit(assign.right, state, false);
-        if (stopAtAwait) {
-          const paths = completionPaths(state, cloneData, budget);
-          for (const path of paths) {
-            if (path.completion !== "normal") continue;
-            if (assign.operator === "=") {
-              visitPatternExpressions(path, assign.left);
-              if (path.completion !== "normal") continue;
-              const value = normalValueFromExpr(path, assign.right);
-              if (value !== null) assignFrom(path, assign.left, value);
-            } else {
-              invalidatePattern(path, assign.left);
+        const assignValue = (state: EnvState<T>, accessors: StaticMemberReference): void => {
+          if (state.completion !== "normal") return;
+          if (logicalAssignment) {
+            const leftValue = valueFromExpr(state, assign.left);
+            const rightRuns = leftValue.constant
+              ? assign.operator === "&&="
+                ? leftValue.constant.truthy
+                : assign.operator === "||="
+                  ? !leftValue.constant.truthy
+                  : leftValue.constant.nullish
+              : null;
+            if (rightRuns === false) {
+              state.assignmentResults.set(assign, leftValue);
+              return;
             }
+            const skipped = rightRuns === null ? snapshotState(state, cloneData, budget) : null;
+            if (skipped) skipped.assignmentResults.set(assign, leftValue);
+            visit(assign.right, state, false);
+            const paths = completionPaths(state, cloneData, budget);
+            for (const path of paths) {
+              if (path.completion !== "normal") continue;
+              const right = normalValueFromExpr(path, assign.right);
+              if (right === null) continue;
+              const value = valueFromExpr(path, right);
+              applyStaticAccessors(path, accessors, "set");
+              assignFrom(path, assign.left, right);
+              path.assignmentResults.set(assign, value);
+            }
+            joinInto(state, skipped ? [skipped, ...paths] : paths);
+            return;
           }
-          joinInto(state, paths);
-          break;
-        }
-        if (state.completion !== "normal") break;
-        if (assign.operator === "=") {
-          visitPatternExpressions(state, assign.left);
-          assignFrom(state, assign.left, assign.right);
+          visit(assign.right, state, false);
+          if (stopAtAwait) {
+            const paths = completionPaths(state, cloneData, budget);
+            for (const path of paths) {
+              if (path.completion !== "normal") continue;
+              if (assign.operator === "=") {
+                visitPatternExpressions(path, assign.left);
+                if (path.completion !== "normal") continue;
+                const value = normalValueFromExpr(path, assign.right);
+                if (value !== null) {
+                  applyStaticAccessors(path, accessors, "set");
+                  assignFrom(path, assign.left, value);
+                }
+              } else {
+                applyStaticAccessors(path, accessors, "set");
+                invalidatePattern(path, assign.left);
+              }
+            }
+            joinInto(state, paths);
+            return;
+          }
+          if (state.completion !== "normal") return;
+          if (assign.operator === "=") {
+            visitPatternExpressions(state, assign.left);
+            if (state.completion !== "normal") return;
+            applyStaticAccessors(state, accessors, "set");
+            assignFrom(state, assign.left, assign.right);
+          } else {
+            applyStaticAccessors(state, accessors, "set");
+            invalidatePattern(state, assign.left);
+          }
+        };
+        if (isNode(target) && target.type === "MemberExpression") {
+          visitMemberReference(
+            state,
+            target,
+            (path, accessors) => {
+              if (assign.operator !== "=") applyStaticAccessors(path, accessors, "get");
+              assignValue(path, accessors);
+            },
+            (path) => preserveWriteReceiver(path, target.object),
+          );
         } else {
-          invalidatePattern(state, assign.left);
+          if (assign.operator !== "=") visit(assign.left, state, false);
+          assignValue(state, { values: [], property: null });
         }
         break;
       }
       case "UpdateExpression": {
         const update = node as ESTree.UpdateExpression;
         const target = unwrapExpression(update.argument);
+        const updateValue = (path: EnvState<T>, accessors: StaticMemberReference): void => {
+          applyStaticAccessors(path, accessors, "get");
+          if (path.completion !== "normal") return;
+          invalidatePattern(path, update.argument);
+          applyStaticAccessors(path, accessors, "set");
+        };
         if (isNode(target) && target.type === "MemberExpression") {
-          visit(target.object, state, false);
-          if (state.completion !== "normal") break;
-          preserveWriteReceiver(state, target.object);
-          if (target.computed) visit(target.property, state, false);
+          visitMemberReference(state, target, updateValue, (path) =>
+            preserveWriteReceiver(path, target.object),
+          );
         } else {
           visit(update.argument, state, false);
+          updateValue(state, { values: [], property: null });
         }
-        if (state.completion !== "normal") break;
-        // Both prefix and postfix update coerce the old value and write a
-        // number back to the binding. The expression result is never the
-        // tracked object identity.
-        invalidatePattern(state, update.argument);
         break;
       }
       case "TaggedTemplateExpression": {
@@ -2022,14 +2499,17 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
         if (!memberTag && !runCorrelated(state, recordLookupThrow)) recordLookupThrow(state);
         let receiver: ESTree.Node | null = null;
         if (memberTag) {
-          ancestors.push(tag);
-          visit(tag.object, state, false);
-          if (state.completion === "normal") {
-            receiver = tag.object;
-            preserveArgumentValue(state, receiver);
-            if (tag.computed) visit(tag.property, state, false);
-          }
-          ancestors.pop();
+          visitMemberReference(
+            state,
+            tag,
+            (path, accessors) => {
+              applyStaticAccessors(path, accessors, "get");
+            },
+            (path) => {
+              receiver = tag.object;
+              preserveArgumentValue(path, tag.object);
+            },
+          );
         } else {
           visit(tagged.tag, state, false);
         }
@@ -2113,26 +2593,26 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
           // JavaScript captures the member receiver before evaluating a
           // computed property or any arguments. Preserve that identity even
           // when those later expressions reassign its binding.
-          ancestors.push(member);
-          visit(member.object, state, false);
-          if (state.completion === "normal") {
-            const object = unwrapExpression(member.object);
-            receiver = isNode(object) ? object : null;
-            objectName = getName(object);
-            receiverId = objectFromExpr(state, object);
-            if (
-              hasLogicalAssignments &&
-              isNode(object) &&
-              (state.callablePaths.length > 0 || state.assignmentResults.has(object))
-            ) {
-              const captureReceiver = (path: EnvState<T>): void => {
+          visitMemberReference(
+            state,
+            member,
+            (path, accessors) => {
+              applyStaticAccessors(path, accessors, "get");
+            },
+            (path) => {
+              const object = unwrapExpression(member.object);
+              receiver = isNode(object) ? object : null;
+              objectName = getName(object);
+              receiverId = objectFromExpr(path, object);
+              if (
+                hasLogicalAssignments &&
+                isNode(object) &&
+                (state.callablePaths.length > 0 || path.assignmentResults.has(object))
+              ) {
                 path.assignmentResults.set(object, valueFromExpr(path, object));
-              };
-              if (!runCorrelated(state, captureReceiver)) captureReceiver(state);
-            } else if (hasLogicalAssignments) receiverFunctions = functionsFromExpr(state, object);
-            if (member.computed) visit(member.property, state, false);
-          }
-          ancestors.pop();
+              } else if (hasLogicalAssignments) receiverFunctions = functionsFromExpr(path, object);
+            },
+          );
         } else {
           visit(call.callee, state, false);
         }
@@ -2143,11 +2623,9 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
           };
           if (!runCorrelated(state, captureCallee)) captureCallee(state);
         }
-        const argumentIds: Array<ObjectId | undefined> = [];
         for (const arg of call.arguments) {
           visit(arg, state, false);
           if (state.completion !== "normal") break;
-          argumentIds.push(objectFromExpr(state, arg));
           preserveArgumentValue(state, arg);
         }
         if (state.completion !== "normal") break;
@@ -2174,28 +2652,10 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
           for (const fn of functions) {
             const caller = functions.length === 1 ? state : snapshotState(state, cloneData, budget);
             if (fn && isFunctionLike(fn) && !activeFunctions.has(fn)) {
-              const values: EvaluatedValue[] = [];
-              let args: InvocationArguments = { kind: "positional", values };
-              for (const [index, argument] of call.arguments.entries()) {
-                spendWork(budget);
-                if (argument.type === "SpreadElement") {
-                  args = { kind: "uncertain" };
-                  break;
-                }
-                values.push(
-                  savedExpressionValue(caller, argument) ?? {
-                    objectId: argumentIds[index],
-                    functions: [undefined],
-                    constant: isDefinitelyUndefinedValue(argument, bindings)
-                      ? { truthy: false, nullish: true, nullishValue: "undefined" }
-                      : constantValue(argument),
-                  },
-                );
-              }
               const projected = invokeKnownFunction(
                 caller,
                 fn,
-                args,
+                evaluatedArguments(caller, call.arguments),
                 fn.generator ? "parameters" : "body",
               );
               if (fn.generator) {
@@ -2260,19 +2720,36 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
             const invocation =
               functions.length === 1 ? path : snapshotState(path, cloneData, budget);
             const knownClass = fn?.type === "ClassValue";
+            const knownFunction =
+              fn &&
+              isFunctionLike(fn) &&
+              fn.type !== "ArrowFunctionExpression" &&
+              !fn.async &&
+              !fn.generator &&
+              !activeFunctions.has(fn);
             if (knownClass) initializeInstanceFields(invocation, fn);
+            const results = knownFunction
+              ? invokeKnownFunction(
+                  invocation,
+                  fn,
+                  evaluatedArguments(invocation, expr.arguments),
+                  "body",
+                )
+              : [invocation];
             const finishConstruction = (result: EnvState<T>): void => {
               if (runCorrelated(result, finishConstruction)) return;
               if (knownClass) escapeCaptured(result, fn);
-              else if (fn) forgetCapturedConstants(result, fn);
+              else if (fn && !knownFunction) forgetCapturedConstants(result, fn);
               for (const arg of expr.arguments) markEscape(result, arg);
               // Construction can throw after field and argument evaluation but before allocation.
               recordPossibleThrow(result);
               objectFromExpr(result, expr);
               if (isNode(callee)) result.callableResults.delete(callee);
             };
-            if (invocation.completion === "normal") finishConstruction(invocation);
-            constructed.push(invocation);
+            for (const result of results) {
+              if (result.completion === "normal") finishConstruction(result);
+              constructed.push(result);
+            }
           }
           if (constructed.length !== 1 || constructed[0] !== path) joinInto(path, constructed);
         };
@@ -2318,10 +2795,30 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
         }
         break;
       }
-      case "MemberExpression":
+      case "MemberExpression": {
         objectFromExpr(state, node);
-        visitChildren(node, (child) => visit(child, state, false));
+        let child: ESTree.Node = node;
+        let deleted = false;
+        for (let index = ancestors.length - 2; index >= 0; index -= 1) {
+          spendWork(budget);
+          const parent = ancestors[index];
+          if (!parent) break;
+          if (TRANSPARENT_WRAPPER_TYPES.has(parent.type)) {
+            child = parent;
+            continue;
+          }
+          deleted =
+            parent.type === "UnaryExpression" &&
+            parent.operator === "delete" &&
+            parent.argument === child;
+          break;
+        }
+        visitMemberReference(state, node, (path, accessors) => {
+          if (deleted) degradeStaticShadow(accessors);
+          else applyStaticAccessors(path, accessors, "get");
+        });
         break;
+      }
       default:
         visitChildren(node, (child) => visit(child, state, false));
     }
@@ -2505,7 +3002,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
     } else if (analyzeUncalledFunctions) {
       for (const call of constantInvocations) {
         spendWork(budget);
-        if (call.type !== "CallExpression") continue;
+        if (call.type !== "CallExpression" && call.type !== "NewExpression") continue;
         const callee = unwrapExpression(call.callee);
         if (isNode(callee) && isFunctionLike(callee)) rememberInspectionOrder(call, callee);
         const binding = resolveBinding(bindings, callee, []);

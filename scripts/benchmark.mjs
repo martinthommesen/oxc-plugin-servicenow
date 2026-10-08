@@ -317,6 +317,48 @@ ${glideRecordBlock(0)}`;
  * @param {number} count
  * @returns {string}
  */
+function privateConstructorPrototypes(count) {
+  return `${"({ constructor: { prototype: {} } }).constructor.prototype.value = true;\n".repeat(count)}
+${glideRecordBlock(0)}
+rec0.deleteMultiple();`;
+}
+
+/**
+ * @param {number} levels
+ * @param {number} count
+ * @returns {string}
+ */
+function inheritedStaticAccessorLookups(levels, count) {
+  const classes = Array.from(
+    { length: levels },
+    (_, index) =>
+      `class Child${index + 1} extends ${index === 0 ? "Base" : `Child${index}`} { ${index === levels - 1 ? "static flag = false;" : ""} }`,
+  );
+  return `class Base { static get flag() { return false; } }
+${classes.join("\n")}
+var Alias = Child${levels}; var read = Alias.flag; gs.info(read);
+delete Alias.flag;
+${"read = Alias.flag; gs.info(read);\n".repeat(count)}
+${glideRecordBlock(0)}
+rec0.deleteMultiple();`;
+}
+
+/**
+ * @param {number} count
+ * @returns {string}
+ */
+function withSelectorScopes(count) {
+  return `/* eslint-disable no-with -- Dynamic scope is the measured workload. */
+var run = true; var records = new GlideRecord("task"); records.addQuery("active", true);
+${"with ({ run: 0 }) { run = false; }\n".repeat(count)}
+run &&= records.query(); gs.info(run);
+records.deleteMultiple();`;
+}
+
+/**
+ * @param {number} count
+ * @returns {string}
+ */
 function sequenceSelectors(count) {
   let condition = "flag";
   for (let depth = 0; depth < 8; depth += 1) condition = `(0, ${condition})`;
@@ -402,6 +444,15 @@ function generateFixtures(directory) {
     derivedClassHelperCalls(1500),
   );
   writeFileSync(join(directory, "classic/empty-argument-calls.br.js"), emptyArgumentCalls(1500));
+  writeFileSync(
+    join(directory, "classic/private-constructor-prototypes.br.js"),
+    privateConstructorPrototypes(500),
+  );
+  writeFileSync(
+    join(directory, "classic/inherited-static-accessor-lookups.br.js"),
+    inheritedStaticAccessorLookups(128, 500),
+  );
+  writeFileSync(join(directory, "classic/with-selector-scopes.br.js"), withSelectorScopes(500));
   writeFileSync(join(directory, "fluent/large.now.ts"), fluentRecords(80));
   writeFileSync(join(directory, "fluent/aliases.now.ts"), fluentAliases(120));
   writeFileSync(join(directory, "classic/counters.br.js"), counterBlocks(40));
@@ -661,6 +712,24 @@ async function main() {
         "recommended",
         configs.recommended,
         [join(work, "classic/generator-parameter-joins.br.js")],
+      ],
+      [
+        "private-constructor-prototypes/recommended",
+        "recommended",
+        configs.recommended,
+        [join(work, "classic/private-constructor-prototypes.br.js")],
+      ],
+      [
+        "inherited-static-accessor-lookups/recommended",
+        "recommended",
+        configs.recommended,
+        [join(work, "classic/inherited-static-accessor-lookups.br.js")],
+      ],
+      [
+        "with-selector-scopes/recommended",
+        "recommended",
+        configs.recommended,
+        [join(work, "classic/with-selector-scopes.br.js")],
       ],
       [
         "fluent-large/recommended",

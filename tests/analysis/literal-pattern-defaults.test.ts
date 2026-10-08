@@ -348,6 +348,153 @@ describe("literal parameter pattern defaults", () => {
       if (name.includes("namespace")) reachableBulkCalls(code, 1);
     });
   }
+  it("retains a normal continuation after a literal-derived prototype supplies an absent key", () => {
+    bulkFindings(
+      'var records = new GlideRecord("task"); ({}).constructor.prototype.value = true; function fail() { throw 0; } function use({value = fail()}) {} use({}); records.deleteMultiple();',
+      1,
+    );
+  });
+  it("retains a normal continuation after Object.getPrototypeOf exposes a literal prototype", () => {
+    bulkFindings(
+      'var records = new GlideRecord("task"); Object.getPrototypeOf({}).value = true; function fail() { throw 0; } function use({value = fail()}) {} use({}); records.deleteMultiple();',
+      1,
+    );
+  });
+  it("retains a normal continuation after a literal exposes its prototype accessor", () => {
+    bulkFindings(
+      'var records = new GlideRecord("task"); ({}).__proto__.value = true; function fail() { throw 0; } function use({value = fail()}) {} use({}); records.deleteMultiple();',
+      1,
+    );
+  });
+  for (const [name, setup] of [
+    ["constructor alias", "var O = ({}).constructor; O.prototype.value = true;"],
+    ["constructor exposure", "external(({}).constructor);"],
+    ["prototype exposure", "external(({}).constructor.prototype);"],
+    ["computed constructor", '({})["constructor"].prototype.value = true;'],
+    ["parenthesized prototype", "(({}).constructor).prototype.value = true;"],
+    ["prototype call alias", "var proto = Object.getPrototypeOf({}); proto.value = true;"],
+    ["Reflect prototype", "Reflect.getPrototypeOf({}).value = true;"],
+    ["qualified Object prototype", "globalThis.Object.getPrototypeOf({}).value = true;"],
+    ["qualified Reflect prototype", "globalThis.Reflect.getPrototypeOf({}).value = true;"],
+  ] as const) {
+    it(`retains absent-property uncertainty after literal-derived ${name}`, () => {
+      bulkFindings(
+        `var records = new GlideRecord("task"); ${setup} function fail() { throw 0; } function use({value = fail()}) {} use({}); records.deleteMultiple();`,
+        1,
+      );
+    });
+  }
+  for (const [name, setup] of [
+    ["array constructor alias", "var A = [].constructor; external(A.prototype);"],
+    ["array prototype exposure", "external([].constructor.prototype);"],
+    ["array prototype accessor", "external([].__proto__);"],
+    ["array Object prototype call", "external(Object.getPrototypeOf([]));"],
+    ["array Reflect prototype call", "external(Reflect.getPrototypeOf([]));"],
+  ] as const) {
+    it(`retains iterator uncertainty after literal-derived ${name}`, () => {
+      bulkFindings(
+        `var run = false; ${setup} function use([value = (run = true)]) {} use([true]); run &&= new GlideRecord("task").deleteMultiple();`,
+        1,
+      );
+    });
+  }
+  for (const [name, setup] of [
+    ["safe literal constructor builtin", "({}).constructor.keys({});"],
+    [
+      "shadowed Object prototype call",
+      "var Object = { getPrototypeOf(value) { return value; } }; Object.getPrototypeOf({});",
+    ],
+    [
+      "shadowed Reflect prototype call",
+      "var Reflect = { getPrototypeOf(value) { return value; } }; Reflect.getPrototypeOf({});",
+    ],
+  ] as const) {
+    it(`preserves ordinary missing-property eligibility for ${name}`, () => {
+      bulkFindings(
+        `var records = new GlideRecord("task"); ${setup} function fail() { throw 0; } function use({value = fail()}) {} use({}); records.deleteMultiple();`,
+        0,
+      );
+    });
+  }
+  it("preserves a safe literal array constructor builtin", () => {
+    bulkFindings(
+      'var run = false; [].constructor.isArray([]); function use([value = (run = true)]) {} use([true]); run &&= new GlideRecord("task").deleteMultiple();',
+      0,
+    );
+  });
+  for (const [value, expected] of [
+    ["true", 1],
+    ["undefined", 0],
+  ] as const) {
+    it(`preserves an explicit own ${value} value after literal-derived prototype exposure`, () => {
+      bulkFindings(
+        `var records = new GlideRecord("task"); external(({}).constructor.prototype); function fail() { throw 0; } function use({value = fail()}) {} use({value: ${value}}); records.deleteMultiple();`,
+        expected,
+      );
+    });
+  }
+  it("retains possible escaping defaults after literal-derived prototype exposure", () => {
+    bulkFindings(
+      'var records = new GlideRecord("task"); ({}).constructor.prototype.value = true; function use({value = [records]}) {} use({}); records.deleteMultiple();',
+      0,
+    );
+  });
+  for (const [name, setup] of [
+    [
+      "own object constructor",
+      "({constructor: {prototype: {}}}).constructor.prototype.value = true;",
+    ],
+    ["own numeric constructor", "external(({constructor: 0}).constructor);"],
+    [
+      "own private function constructor",
+      "({constructor: function Private() {}}).constructor.prototype.value = true;",
+    ],
+    ["trailing own numeric constructor", "external(({...external, constructor: 0}).constructor);"],
+  ] as const) {
+    it(`preserves ordinary missing-key eligibility for ${name}`, () => {
+      bulkFindings(
+        `var records = new GlideRecord("task"); ${setup} function fail() { throw 0; } function use({value = fail()}) {} use({}); records.deleteMultiple();`,
+        0,
+      );
+    });
+  }
+  for (const [name, setup] of [
+    [
+      "private function prototype ancestor",
+      "({constructor: function Private() {}}).constructor.prototype.__proto__.value = true;",
+    ],
+    [
+      "private object prototype ancestor",
+      "({constructor: {prototype: {}}}).constructor.prototype.__proto__.value = true;",
+    ],
+    [
+      "private prototype lookup",
+      "Object.getPrototypeOf(({constructor: function Private() {}}).constructor.prototype).value = true;",
+    ],
+  ] as const) {
+    it(`retains inherited-key uncertainty for ${name}`, () => {
+      bulkFindings(
+        `var records = new GlideRecord("task"); ${setup} function fail() { throw 0; } function use({value = fail()}) {} use({}); records.deleteMultiple();`,
+        1,
+      );
+    });
+  }
+  for (const [name, setup] of [
+    ["unknown constructor", "external(({constructor: external}).constructor);"],
+    ["getter constructor", "external(({get constructor() { return external; }}).constructor);"],
+    ["later spread constructor", "external(({constructor: 0, ...external}).constructor);"],
+    [
+      "unknown private prototype ancestry",
+      "({constructor: function Private() {}}).constructor.prototype[external].value = true;",
+    ],
+  ] as const) {
+    it(`retains absent-key uncertainty for ${name}`, () => {
+      bulkFindings(
+        `var records = new GlideRecord("task"); ${setup} function fail() { throw 0; } function use({value = fail()}) {} use({}); records.deleteMultiple();`,
+        1,
+      );
+    });
+  }
   it("keeps five hundred literal pattern calls complete with the security finding", () => {
     bulkFindings(repeatedCalls(500), 1);
   });
@@ -358,6 +505,22 @@ describe("literal parameter pattern defaults", () => {
       largeLabel: "500 calls",
       small: () => bulkFindings(repeatedCalls(125), 1),
       large: () => bulkFindings(repeatedCalls(500), 1),
+    });
+  });
+  const privateConstructorAccesses = (count: number): string =>
+    'var records = new GlideRecord("task"); ' +
+    "({constructor: function() {}}).constructor.prototype.value = true;".repeat(count) +
+    "records.deleteMultiple();";
+  it("keeps five hundred private constructor property accesses complete", () => {
+    bulkFindings(privateConstructorAccesses(500), 1);
+  });
+  it("stays sub-quadratic when private constructor property accesses quadruple", () => {
+    assertSubQuadratic({
+      label: "literal private constructors",
+      smallLabel: "125 accesses",
+      largeLabel: "500 accesses",
+      small: () => bulkFindings(privateConstructorAccesses(125), 1),
+      large: () => bulkFindings(privateConstructorAccesses(500), 1),
     });
   });
 });

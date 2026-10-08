@@ -1,10 +1,14 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { ESTree } from "@oxlint/plugins";
+import { parseSync } from "oxc-parser";
 import { buildScopeTree } from "../../src/analysis/bindings.js";
+import type { FileAnalysis } from "../../src/analysis/file-analysis.js";
+import { analyzePathBindings } from "../../src/analysis/path-state.js";
 import { isNode, walk } from "../../src/utils/ast.js";
 import { lint, lintWithAnalysis, parse } from "../helpers/rule-tester.js";
 import { assertSubQuadratic } from "../helpers/scaling.js";
+import { applyRules } from "../helpers/apply-rules.js";
 
 function aliasFixture(count: number): string {
   const lines = ['import { Table } from "@servicenow/sdk";'];
@@ -71,6 +75,81 @@ function lintSequenceSelectors(source: string, count: number): void {
   for (let index = 0; index < count; index += 1) assert.ok(reported.has(`unopened${index}`));
 }
 
+function privateConstructorPrototypes(count: number): string {
+  return `${"({ constructor: { prototype: {} } }).constructor.prototype.value = true;\n".repeat(count)}
+var records = new GlideRecord("task"); records.deleteMultiple();`;
+}
+
+function inheritedStaticAccessorLookups(count: number): string {
+  const classes = Array.from(
+    { length: count },
+    (_, index) =>
+      `class Child${index + 1} extends ${index === 0 ? "Base" : `Child${index}`} { ${index === count - 1 ? "static flag = false;" : ""} }`,
+  );
+  return `class Base { static get flag() { return false; } }
+${classes.join("\n")}
+var Alias = Child${count}; var read = Alias.flag; gs.info(read);
+delete Alias.flag;
+${"read = Alias.flag; gs.info(read);\n".repeat(count)}
+var records = new GlideRecord("task"); records.deleteMultiple();`;
+}
+
+function lintCompleteBulk(source: string): void {
+  const { messages, analysis } = lintWithAnalysis(
+    source,
+    "no-unfiltered-gliderecord-bulk-operation",
+  );
+  assert.equal(analysis.pathBudgetExhausted, false, "path budget exhausted; not a valid sample");
+  assert.equal(messages.length, 1);
+  assert.equal(messages[0]?.messageId, "unfiltered");
+}
+
+function withSelectorScopes(count: number): string {
+  return `var run = true; var records = new GlideRecord("task");
+${"with ({ run: 0 }) { run = false; }\n".repeat(count)}
+run &&= records.query(); gs.info(run); records.deleteMultiple();`;
+}
+
+function completeWithCalls(source: string): void {
+  const parsed = parseSync("with.br.js", source, { sourceType: "script", lang: "js" });
+  assert.deepEqual(parsed.errors, []);
+  assert.ok(isNode(parsed.program));
+  let analysis: FileAnalysis | undefined;
+  const messages = applyRules(
+    source,
+    { ast: parsed.program },
+    {
+      filename: "with.br.js",
+      ruleNames: ["no-unfiltered-gliderecord-bulk-operation"],
+      onFileAnalysis: (value) => {
+        analysis = value;
+      },
+    },
+  );
+  assert.ok(analysis);
+  assert.equal(analysis.pathBudgetExhausted, false);
+  assert.equal(messages.length, 0, "with keeps public platform-method authority opaque");
+  let queries = 0;
+  let bulkCalls = 0;
+  const outcome = analyzePathBindings({
+    program: parsed.program,
+    analysis: analysis.provenance,
+    kinds: ["GlideRecord"],
+    emptyData: () => 0,
+    cloneData: (value) => value,
+    mergeData: (left, right) => Math.max(left, right),
+    equalsData: (left, right) => left === right,
+    analyzeUncalledFunctions: false,
+    onCall: ({ rec, property }) => {
+      if (rec && property === "query") queries += 1;
+      if (rec && property === "deleteMultiple") bulkCalls += 1;
+    },
+  });
+  assert.equal(outcome.outcome, "complete");
+  assert.equal(queries, 1);
+  assert.equal(bulkCalls, 1);
+}
+
 // @lat: [[tests#Analysis behavior#Alias resolution scales linearly]]
 describe("alias scaling (FINDINGS.md PER-005)", () => {
   it("stays sub-quadratic when aliases and call sites quadruple", () => {
@@ -108,6 +187,36 @@ describe("alias scaling (FINDINGS.md PER-005)", () => {
       largeLabel: "200 functions",
       small: () => lintSequenceSelectors(small, 50),
       large: () => lintSequenceSelectors(large, 200),
+    });
+  });
+
+  // @lat: [[tests#Analysis behavior#Literal prototype and inherited accessor walks scale with complete findings]]
+  it("keeps literal prototype and inherited accessor walks sub-quadratic with a later finding", () => {
+    for (const [label, fixture] of [
+      ["private own-constructor prototype accesses", privateConstructorPrototypes],
+      ["inherited static accessor hierarchy and lookups", inheritedStaticAccessorLookups],
+    ] as const) {
+      const small = fixture(125);
+      const large = fixture(500);
+      assertSubQuadratic({
+        label,
+        smallLabel: "125",
+        largeLabel: "500",
+        small: () => lintCompleteBulk(small),
+        large: () => lintCompleteBulk(large),
+      });
+    }
+  });
+  // @lat: [[tests#Analysis behavior#With body walks scale with complete operation reachability]]
+  it("keeps cached with-body walks sub-quadratic with possible query and bulk operations", () => {
+    const small = withSelectorScopes(125);
+    const large = withSelectorScopes(500);
+    assertSubQuadratic({
+      label: "with body capture walks",
+      smallLabel: "125 bodies",
+      largeLabel: "500 bodies",
+      small: () => completeWithCalls(small),
+      large: () => completeWithCalls(large),
     });
   });
 });

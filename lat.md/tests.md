@@ -321,11 +321,25 @@ Unused class definitions share immutable evaluated heritage values across helper
 
 The exact fifteen-hundred-class and fifteen-hundred-helper workload retains its later bulk-operation finding, as do branch snapshots. Chains of 128, 129, 257 and 1,024 classes retain both base-field and later findings within the unchanged work budget. Repeated sites preserve saved and current class bases in both directions, equal definitions converge at loop fixpoints, and helper-created class values retain scalar correlations. Record and scalar capture effects follow frozen bases and their callable aliases rather than replacements; array, object, return and throw exports preserve the same boundary.
 
+### Known ordinary constructors replay selected invocation effects
+
+Ordinary function construction replays saved arguments, defaults and body effects after prior direct calls. Scalar and callable alternatives stay paired; abrupt arguments and nonconstructible function kinds retain their existing boundaries.
+
+Truthy and false arguments, aliases saved before later writes, null and undefined default eligibility, query and scalar capture effects, and saved versus replacement constructors produce the expected findings without budget exhaustion. Known body replay replaces isolated inspection rather than hiding a later constructor invocation.
+
+### With scopes retain intercepted selector uncertainty
+
+With scopes cannot prove which outer selector binding a body read or write reaches. The shared traversal retains possible operations while public platform-method authority preserves its established dynamic-scope policy.
+
+Shadowed, empty and unknown objects keep intercepted selectors and callable captures uncertain through continuation, including initialized outer var writes. Body assignments cannot restore certainty; unrelated selectors, body lexical bindings and helper defaults remain precise, and abrupt headers skip body effects. Tests count real shared traversal query operations independently of the public authority gate.
+
 ### Explicit constructor boundaries constrain field replay
 
-Implicit and trivial constructors retain known field replay. Opaque derived constructors defer their entire field chain; opaque base constructors retain already initialized own fields before stopping deterministic derived replay.
+Implicit and trivial constructors retain field replay. A proven first zero-argument super initializes base and own fields before opaque trailing code; earlier opaque derived effects defer the chain.
 
-Throwing, missing-super, returning, default, destructuring, rest and scalar-mutating constructor bodies retain the existing opaque policy. Plain parameters with an empty base body or a single zero-argument derived super call preserve replay. Base alternatives keep their eligibility correlated with scalar facts, saved constructors and frozen superclass versions remain authoritative, and outer completion is not inferred from constructor bodies.
+Before-super effects, missing or argumented super calls and non-simple parameters remain opaque before the chain. Plain parameters and harmless statements can prove the first zero-argument super call. Later throws, returns, scalar writes or calls do not hide completed own fields, but invalidate captures and stop grandchild replay without interpreting constructor completion. Abrupt initializers skip that later capture boundary.
+
+Base alternatives keep eligibility correlated with scalar facts; saved constructors and frozen superclass versions remain authoritative. Opaque base constructors retain their own fields before parameter/body effects. Chains of 129 and 1,024 descendants preserve the post-super boundary and later diagnostics within the unchanged work budget.
 
 ### Class definitions evaluate only immediate class effects
 
@@ -354,6 +368,14 @@ Named and member decorators invalidate selector captures even without an explici
 Raw traversal proves that affected static selectors execute even when target exposure suppresses rule authority. Possible decorator throws retain catch paths before and after capture effects. Empty synchronous non-generator bodies with only ordinary unused parameters retain records and scalar facts and do not invent catch paths. Defaults, destructuring and rest parameters, plus async and generator returns, remain conservative.
 
 Fifty independent discarded keys complete under the existing work budget while one decorator value stays live. Capture scans and transient-map work are charged, with no budget increase.
+
+### Static class accessors invalidate captures in evaluation order
+
+Known static getters and setters expose captures at their read or completed write boundary. Saved receivers, inherited descriptors, shadowing, abrupt keys and RHS effects keep accessor selection and analysis within budget.
+
+Receiver alternatives are captured before computed keys and right-hand sides can replace class bindings. Getters run before compound or logical RHS effects; setters apply only on normal write paths. Calls and tags perform getter effects before arguments or substitutions. Plain data and method descriptors, setter-only reads, getter-only writes and delete references do not invoke unrelated accessors.
+
+Frozen superclass values retain their selected descriptors. Exact own properties mask inherited accessors; unknown keys and opaque static blocks retain possible inherited effects. Executed deletes reveal possible inherited descriptors to subsequent lookups, including cached descendants, aliases and RHS deletes. Skipped or abrupt deletes, different properties and class values, and deletes without later lookups retain unrelated selector facts. Getter return values and accessor bodies remain opaque. Fifty-to-two-hundred distinct plain reads and deep inherited lookups complete without increasing the work budget, while captured-record assertions distinguish getter and setter evaluation order.
 
 ### Logical member receivers retain path-specific values
 
@@ -417,6 +439,10 @@ Explicit Array.prototype or Symbol.iterator references retain possible custom it
 
 Global constructor aliases, exposure, unknown computed members and globalThis-qualified accesses retain prototype uncertainty. Namespace aliases, value exposure and unknown namespace members retain both array and object uncertainty. Object prototype hazards affect absent keys while preserving explicit own values. Safe member reads through transparent wrappers and local shadows retain ordinary literal proofs.
 
+Literal-derived constructor, prototype accessor and proven Object or Reflect prototype-call exposure preserve normal continuation beside a possible throwing default. Constructor and prototype aliases stay uncertain without prototype-value inference; explicit own values, safe constructor builtin reads and local shadows retain their prior eligibility. Unknown inherited values may still execute an escaping default conservatively.
+
+Proven own object, primitive and function-literal constructors preserve ordinary absent-key defaults, including known trailing data properties. Getters, unknown values and later spreads retain uncertainty; explicit private prototype ancestry and prototype lookups remain conservative. Five hundred private constructor accesses retain a later security finding, and quadrupling the workload remains subquadratic.
+
 Unknown computed receiver writes keep the existing rule authority policy; direct path-call assertions isolate reachable defaults when that policy suppresses diagnostics.
 
 ### Return and throw escape evaluated values
@@ -444,6 +470,18 @@ Independent helper choices exhaust deterministic work and suppress earlier findi
 ### Known-node scope construction and lookup scale together
 
 Quadrupling function and block scopes keeps scope construction plus ancestor-free identifier resolution below quadratic growth. Every identifier must retain a binding, so early termination cannot satisfy the scaling check.
+
+### Literal prototype and inherited accessor walks scale with complete findings
+
+Quadrupling private own-constructor prototype accesses and inherited static accessor hierarchy/lookup density from 125 to 500 retains one later unfiltered bulk finding with complete analysis under the existing subquadratic gate.
+
+Private constructors prevent global prototype uncertainty from short-circuiting the measured ancestry walk. Real classes, inherited getters and a used receiver alias exercise charged class-graph lookup and capture work. An initial cached own-field read and one executed shadow deletion exercise affected-cache invalidation before repeated inherited reads. Quiet benchmark counterparts use 500 accesses and a 128-level class hierarchy; positive tests ensure exhaustion cannot masquerade as clean output.
+
+### With body walks scale with complete operation reachability
+
+Quadrupling dynamic-scope bodies from 125 to 500 keeps capture scanning subquadratic and analysis complete, with one possible query and bulk call still reached under fixed method authority.
+
+The real script parser accepts the repeated `with` statements. Public bulk diagnostics retain established dynamic-scope opacity, while the shared interpreter independently proves query and bulk reachability. The quiet host benchmark scopes only a built-in `no-with` exemption and retains parsing and other diagnostic checks.
 
 ### Constant expressions retain the selected alias
 
