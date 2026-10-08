@@ -49,6 +49,17 @@ export function resolveBinding(
   return bindings.resolve(name, expr, ancestors);
 }
 
+/** Read a saved value before unwrapping, so argument wrappers keep their own evaluation. */
+export function savedExpressionValue<T>(
+  state: EnvState<T>,
+  node: unknown,
+): EvaluatedValue | undefined {
+  const saved = isNode(node) ? state.assignmentResults.get(node) : undefined;
+  if (saved) return saved;
+  const expr = unwrapExpression(node);
+  return isNode(expr) ? state.assignmentResults.get(expr) : undefined;
+}
+
 /** Syntax selectors can also consume values already selected during this expression. */
 export function evaluatedConstantValue<T>(
   state: EnvState<T>,
@@ -60,7 +71,7 @@ export function evaluatedConstantValue<T>(
   spendWork(budget);
   const expr = unwrapExpression(node);
   if (!isNode(expr)) return null;
-  const selected = state.assignmentResults.get(expr);
+  const selected = savedExpressionValue(state, node);
   if (selected) return selected.constant;
   const syntax = constantValue(expr);
   if (syntax) return syntax;
@@ -133,7 +144,7 @@ export function createPathValueResolver<T>(context: PathValueContext<T>) {
   const objectFromExpr = (state: EnvState<T>, node: unknown): ObjectId | undefined => {
     const expr = unwrapExpression(node);
     if (!isNode(expr)) return undefined;
-    const result = state.assignmentResults.get(expr);
+    const result = savedExpressionValue(state, node);
     if (result) return result.objectId;
     switch (expr.type) {
       case "Identifier": {
@@ -267,7 +278,7 @@ export function createPathValueResolver<T>(context: PathValueContext<T>) {
     spendWork(budget);
     const expr = unwrapExpression(node);
     if (!isNode(expr)) return [undefined];
-    const assignment = state.assignmentResults.get(expr);
+    const assignment = savedExpressionValue(state, node);
     if (assignment) return assignment.functions;
     const result = state.callableResults.get(expr);
     if (result) return result;
@@ -328,7 +339,7 @@ export function createPathValueResolver<T>(context: PathValueContext<T>) {
     let expr = unwrapExpression(node);
     for (let depth = 0; isNode(expr) && depth < MAX_PATH_DEPTH; depth += 1) {
       spendWork(budget);
-      const result = state.assignmentResults.get(expr);
+      const result = savedExpressionValue(state, depth === 0 ? node : expr);
       if (result) return result.constant;
       const constant = constantValue(expr);
       if (constant) return constant;
@@ -369,7 +380,7 @@ export function createPathValueResolver<T>(context: PathValueContext<T>) {
   const normalValueFromExpr = (state: EnvState<T>, node: unknown): ESTree.Node | null => {
     const expr = unwrapExpression(node);
     if (!isNode(expr)) return null;
-    if (!stopAtAwait || state.assignmentResults.has(expr)) return expr;
+    if (!stopAtAwait || savedExpressionValue(state, node)) return expr;
     switch (expr.type) {
       case "AwaitExpression": {
         return null;

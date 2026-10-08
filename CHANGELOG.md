@@ -9,7 +9,7 @@
 ### Fixed
 
 - Evaluate return and throw expressions before escaping their produced values, and carry selected logical-assignment values through helpers and control flow. Skip defaults for definite null arguments while preserving possible defaults for uncertain values. ([#151](https://github.com/martinthommesen/oxc-plugin-servicenow/pull/151))
-- Preserve argument and member-write evaluation order and discard stale selectors after completed mapped-arguments writes. Retain class decorator, key and static effects at definition time while deferring instance fields until construction. ([#151](https://github.com/martinthommesen/oxc-plugin-servicenow/pull/151))
+- Preserve argument and member-write evaluation order and discard stale selectors after completed mapped-arguments writes or template-tag invocation. Retain class decorator, key and static effects at definition time while deferring instance fields until construction. ([#151](https://github.com/martinthommesen/oxc-plugin-servicenow/pull/151))
 - Reuse bounded helper alias origins and release discarded expression results between class and control headers so repeated aliases and selectors retain diagnostics. ([#151](https://github.com/martinthommesen/oxc-plugin-servicenow/pull/151))
 - Treat platform objects captured by escaping function and arrow literals as untrusted, matching named callbacks and suppressing false positives after an unknown callee receives them.
 

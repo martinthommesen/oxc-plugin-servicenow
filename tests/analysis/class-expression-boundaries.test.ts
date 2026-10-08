@@ -253,6 +253,50 @@ describe("class decorator application effects", () => {
       "var flag = false; function decorate() {} @decorate class C { method() { flag = true; } } flag &&= (gr.next(), gr);",
       0,
     ],
+    ...[
+      "function decorate(value) {}",
+      "function decorate(value, context) {}",
+      "var decorate = function (value) {};",
+      "var decorate = (value, context) => {};",
+      "function decorate(value: unknown, context: unknown) {}",
+    ].map(
+      (declaration) =>
+        [
+          `empty decorators with unused ordinary parameters preserve records: ${declaration}`,
+          `${declaration} @decorate class C { method() { gr.query(); } } gr.next();`,
+          1,
+        ] as const,
+    ),
+    [
+      "empty ordinary-parameter member decorators preserve records",
+      "function decorate(value, context) {} class C { @decorate method() { gr.query(); } } gr.next();",
+      1,
+    ],
+    [
+      "empty ordinary-parameter decorators preserve scalar captures",
+      "var flag = false; function decorate(value, context) {} @decorate class C { method() { flag = true; } } flag &&= (gr.next(), gr);",
+      0,
+    ],
+    [
+      "empty ordinary-parameter decorators do not invent catch paths",
+      "function decorate(value, context) {} try { @decorate class C {} } catch (error) { gr.next(); }",
+      0,
+    ],
+    [
+      "default parameter effects stay conservative",
+      "var flag = false; function decorate(value, context, extra = (flag = true)) {} @decorate class C {} flag &&= (gr.next(), gr);",
+      1,
+    ],
+    [
+      "destructured decorator parameters keep target effects conservative",
+      "function decorate({ prototype }) {} @decorate class C { method() { gr.query(); } } gr.next();",
+      0,
+    ],
+    [
+      "rest decorator parameters keep target effects conservative",
+      "function decorate(...values) {} @decorate class C { method() { gr.query(); } } gr.next();",
+      0,
+    ],
     [
       "application invalidates the current captured record after keys",
       'function decorate(value) { gr.query(); } var prior = gr; @decorate class C { [(gr = new GlideRecord("task"), "key")]() {} } prior.next(); gr.next();',

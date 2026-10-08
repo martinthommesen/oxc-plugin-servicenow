@@ -25,7 +25,7 @@ interface ControlFlowContext<T> {
   stopAtAwait: boolean;
   joinInto: (state: EnvState<T>, paths: EnvState<T>[]) => void;
   invalidatePattern: (state: EnvState<T>, pattern: unknown) => void;
-  rememberCallableResult: (state: EnvState<T>, node: ESTree.Node, value: unknown) => void;
+  rememberExpressionResult: (state: EnvState<T>, node: ESTree.Node, value: unknown) => void;
   finishExpressionResults: (state: EnvState<T>) => void;
 }
 
@@ -42,7 +42,7 @@ export function createControlFlowVisitor<T>(context: ControlFlowContext<T>) {
     stopAtAwait,
     joinInto,
     invalidatePattern,
-    rememberCallableResult,
+    rememberExpressionResult,
     finishExpressionResults,
   } = context;
   const rightRuns = (
@@ -60,7 +60,7 @@ export function createControlFlowVisitor<T>(context: ControlFlowContext<T>) {
       case "ConditionalExpression": {
         visit(node.test, state, false);
         const remember = (path: EnvState<T>, branch: ESTree.Node | null): void => {
-          if (node.type === "ConditionalExpression") rememberCallableResult(path, node, branch);
+          if (node.type === "ConditionalExpression") rememberExpressionResult(path, node, branch);
         };
         const groups = new Map<boolean | null, EnvState<T>[]>();
         const results: EnvState<T>[] = [];
@@ -117,12 +117,12 @@ export function createControlFlowVisitor<T>(context: ControlFlowContext<T>) {
           if (!entry) continue;
           if (selected !== true) {
             const skipped = selected === false ? entry : snapshotState(entry, cloneData, budget);
-            rememberCallableResult(skipped, expr, expr.left);
+            rememberExpressionResult(skipped, expr, expr.left);
             results.push(skipped);
           }
           if (selected !== false) {
             visit(expr.right, entry, false);
-            rememberCallableResult(entry, expr, expr.right);
+            rememberExpressionResult(entry, expr, expr.right);
             results.push(entry);
           }
         }

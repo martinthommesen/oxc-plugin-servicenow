@@ -1,4 +1,9 @@
-import { createPathValueResolver, evaluatedConstantValue, resolveBinding } from "./path-values.js";
+import {
+  createPathValueResolver,
+  evaluatedConstantValue,
+  resolveBinding,
+  savedExpressionValue,
+} from "./path-values.js";
 import { createControlFlowVisitor } from "./path-control-flow.js";
 import type {
   AbruptCompletion,
@@ -141,12 +146,13 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
   const newExpressionIds = new WeakMap<ESTree.Node, ObjectId>();
   const retainedPlatformObjectIds = new Set<ObjectId>();
   const hoistedFunctions = new Map<BindingId, CallableValues>();
-  const declaredFunctions = new Map<BindingId, ImmediateFunction>();
+  const directFunctionOrigins = new Map<BindingId, Set<ImmediateFunction>>();
   const callableBindings = new Set<BindingId>();
   const referencedBindings = new Set<BindingId>();
   const prepassAncestors: ESTree.Node[] = [];
   let referenceWork = 0;
   const directlyCalledFunctions = new WeakSet<ESTree.Node>();
+  const directlyCalledBindings = new Set<BindingId>();
   const activeFunctions = new Set<ESTree.Node>();
   const functionCaptures = new WeakMap<ESTree.Node, readonly BindingId[]>();
   const argumentObjectIds = new WeakMap<ImmediateFunction, ObjectId>();
@@ -206,8 +212,11 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
     while (scope) {
       spendWork(budget);
       if (scope.kind === "class") return false;
-      const block = isFunctionLike(scope.block) ? scope.block.body : scope.block;
-      if (hasStrictDirective(block)) return false;
+      if (
+        (isFunctionLike(scope.block) && hasStrictDirective(scope.block.body)) ||
+        (scope.block.type === "Program" && hasStrictDirective(scope.block))
+      )
+        return false;
       scope = scope.parent;
     }
     return true;
@@ -251,8 +260,14 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
     return captures;
   };
 
-  // Function declarations are callable before their source position. Record
-  // only callable identity here; captured runtime values remain temporal.
+  const rememberFunctionOrigin = (id: BindingId, fn: ImmediateFunction): void => {
+    const functions = directFunctionOrigins.get(id) ?? new Set<ImmediateFunction>();
+    functions.add(fn);
+    directFunctionOrigins.set(id, functions);
+  };
+
+  // Assignment origins are dependency metadata, not hoisted runtime values.
+  // Captured values remain temporal even when a binding has several origins.
   walk(
     program,
     {
@@ -274,17 +289,23 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
       },
       AssignmentExpression(node) {
         if (node.type !== "AssignmentExpression") return;
-        if (["&&=", "||=", "??="].includes(node.operator)) {
+        const logicalAssignment = ["&&=", "||=", "??="].includes(node.operator);
+        if (logicalAssignment) {
           hasLogicalAssignments = true;
           const binding = resolveBinding(bindings, node.left, []);
           if (binding) constantBindings.add(binding.id);
-        } else if (node.operator === "=") {
+        }
+        if (node.operator === "=" || logicalAssignment) {
           constantSources.push({ left: node.left, right: node.right });
         }
         const value = unwrapExpression(node.right);
         if (isNode(value) && (isFunctionLike(value) || value.type === "ClassExpression")) {
           const binding = resolveBinding(bindings, node.left, []);
-          if (binding) callableBindings.add(binding.id);
+          if (binding) {
+            callableBindings.add(binding.id);
+            if (isFunctionLike(value) && (node.operator === "=" || logicalAssignment))
+              rememberFunctionOrigin(binding.id, value);
+          }
         }
       },
       FunctionDeclaration(node) {
@@ -295,7 +316,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
         const binding = bindings.resolve(name, id);
         if (binding) {
           hoistedFunctions.set(binding.id, [node]);
-          declaredFunctions.set(binding.id, node);
+          rememberFunctionOrigin(binding.id, node);
           callableBindings.add(binding.id);
         }
       },
@@ -308,7 +329,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
           return;
         const binding = bindings.resolve(getName(id) ?? "", id);
         if (binding) {
-          declaredFunctions.set(binding.id, init);
+          rememberFunctionOrigin(binding.id, init);
           callableBindings.add(binding.id);
         }
       },
@@ -326,10 +347,15 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
       }
       if (callee.type !== "Identifier") return;
       const binding = bindings.resolve(getName(callee) ?? "", callee);
-      const fn = binding ? declaredFunctions.get(binding.id) : undefined;
-      if (fn) directlyCalledFunctions.add(fn);
+      if (binding) directlyCalledBindings.add(binding.id);
     },
   });
+  for (const id of directlyCalledBindings) {
+    for (const fn of directFunctionOrigins.get(id) ?? []) {
+      referenceWork += 1;
+      directlyCalledFunctions.add(fn);
+    }
+  }
 
   const ensure = (state: EnvState<T>, objectId: ObjectId): SharedRecord<T> => {
     const existing = state.objects.get(objectId);
@@ -411,8 +437,8 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
     if (runCorrelated(state, (path) => markEscape(path, node))) return;
     const expr = unwrapExpression(node);
     if (!isNode(expr)) return;
-    forgetMappedArguments(state, objectFromExpr(state, expr), true);
-    const result = state.assignmentResults.get(expr);
+    const result = savedExpressionValue(state, node);
+    forgetMappedArguments(state, result ? result.objectId : objectFromExpr(state, expr), true);
     if (result) {
       const rec = result.objectId === undefined ? undefined : state.objects.get(result.objectId);
       if (rec) rec.escaped = true;
@@ -541,6 +567,16 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
       const captured = objectId === undefined ? undefined : state.objects.get(objectId);
       if (captured) captured.escaped = true;
     }
+  };
+
+  const preserveArgumentValue = (state: EnvState<T>, node: ESTree.Node): void => {
+    if (!hasLogicalAssignments) return;
+    const preserve = (path: EnvState<T>): void => {
+      spendWork(budget);
+      const value = node.type === "SpreadElement" ? node.argument : node;
+      path.assignmentResults.set(node, valueFromExpr(path, value));
+    };
+    if (!runCorrelated(state, preserve)) preserve(state);
   };
 
   const preserveWriteReceiver = (state: EnvState<T>, receiver: ESTree.Node): void => {
@@ -759,9 +795,43 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
     }
   };
 
-  const rememberCallableResult = (state: EnvState<T>, node: ESTree.Node, value: unknown): void => {
+  const consumesExpressionValue = (node: ESTree.Node): boolean => {
+    let child = node;
+    for (let index = ancestors.length - 2; index >= 0; index -= 1) {
+      spendWork(budget);
+      const parent = ancestors[index];
+      if (!parent || isFunctionLike(parent) || parent.type.endsWith("Statement")) return false;
+      if (parent.type === "CallExpression" || parent.type === "NewExpression") {
+        return true;
+      } else if (parent.type === "MemberExpression" && parent.object === child) {
+        return true;
+      } else if (parent.type === "AssignmentExpression" || parent.type === "UpdateExpression") {
+        const target = unwrapExpression(
+          parent.type === "AssignmentExpression" ? parent.left : parent.argument,
+        );
+        if (isNode(target) && target.type === "MemberExpression" && target.object === child)
+          return true;
+      } else if (parent.type === "TaggedTemplateExpression") {
+        return true;
+      }
+      child = parent;
+    }
+    return false;
+  };
+
+  const rememberExpressionResult = (
+    state: EnvState<T>,
+    node: ESTree.Node,
+    value: unknown,
+  ): void => {
     if (state.callablePaths.length) {
-      for (const path of state.callablePaths) rememberCallableResult(path, node, value);
+      for (const path of state.callablePaths) rememberExpressionResult(path, node, value);
+      return;
+    }
+
+    if (hasLogicalAssignments && consumesExpressionValue(node)) {
+      spendWork(budget);
+      state.assignmentResults.set(node, valueFromExpr(state, value));
       return;
     }
     const values = functionsFromExpr(state, value);
@@ -816,7 +886,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
     stopAtAwait,
     joinInto,
     invalidatePattern,
-    rememberCallableResult,
+    rememberExpressionResult,
     finishExpressionResults,
   });
 
@@ -951,11 +1021,14 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
                   !isFunctionLike(fn) ||
                   fn.async ||
                   ("generator" in fn && fn.generator) ||
-                  fn.params.length !== 0 ||
                   fn.body?.type !== "BlockStatement" ||
                   fn.body.body.length !== 0
                 )
                   exposesTarget = true;
+                else {
+                  spendWork(budget, fn.params.length);
+                  if (fn.params.some((param) => param.type !== "Identifier")) exposesTarget = true;
+                }
               }
               if (exposesTarget) recordPossibleThrow(path);
               for (const fn of functions) {
@@ -1123,6 +1196,65 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
         invalidatePattern(state, update.argument);
         break;
       }
+      case "TaggedTemplateExpression": {
+        const tagged = node as ESTree.TaggedTemplateExpression;
+        if (!hasLogicalAssignments) {
+          visitChildren(node, (child) => visit(child, state, false));
+          break;
+        }
+        recordPossibleThrow(state);
+        const tag = unwrapExpression(tagged.tag);
+        let receiver: ESTree.Node | null = null;
+        if (isNode(tag) && tag.type === "MemberExpression") {
+          ancestors.push(tag);
+          visit(tag.object, state, false);
+          if (state.completion === "normal") {
+            receiver = tag.object;
+            preserveArgumentValue(state, receiver);
+            if (tag.computed) visit(tag.property, state, false);
+          }
+          ancestors.pop();
+        } else {
+          visit(tagged.tag, state, false);
+        }
+        if (state.completion !== "normal" || !isNode(tag)) break;
+        const captureTag = (path: EnvState<T>): void => {
+          const functions = functionsFromExpr(path, tag);
+          spendWork(budget, functions.length);
+          path.callableResults.set(tag, functions);
+        };
+        if (!runCorrelated(state, captureTag)) captureTag(state);
+        for (const expression of tagged.quasi.expressions) {
+          visit(expression, state, false);
+          if (state.completion !== "normal") break;
+          preserveArgumentValue(state, expression);
+        }
+        const invokeTag = (path: EnvState<T>): void => {
+          if (runCorrelated(path, invokeTag)) return;
+          recordPossibleThrow(path);
+          const parent = ancestors[ancestors.length - 2];
+          const discarded = parent?.type === "ExpressionStatement" && parent.expression === tagged;
+          for (const fn of (receiver && path.assignmentResults.get(receiver)?.functions) ?? []) {
+            if (fn) escapeCaptured(path, fn);
+          }
+          for (const fn of functionsFromExpr(path, tag)) {
+            if (!fn) continue;
+            if (isFunctionLike(fn) && fn.generator) {
+              spendWork(budget, fn.params.length);
+              if (!discarded) escapeCaptured(path, fn);
+              else if (fn.params.some((param) => param.type !== "Identifier"))
+                escapeCaptured(path, fn);
+            } else {
+              escapeCaptured(path, fn);
+            }
+          }
+          for (const expression of tagged.quasi.expressions) markEscape(path, expression);
+          recordPossibleThrow(path);
+          path.callableResults.delete(tag);
+        };
+        if (state.completion === "normal") invokeTag(state);
+        break;
+      }
       case "CallExpression": {
         const call = node as ESTree.CallExpression;
         recordPossibleThrow(state);
@@ -1168,19 +1300,11 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
           if (!runCorrelated(state, captureCallee)) captureCallee(state);
         }
         const argumentIds: Array<ObjectId | undefined> = [];
-        const saveArguments =
-          hasLogicalAssignments &&
-          functionsFromExpr(state, call.callee).some((fn) => fn && isFunctionLike(fn));
         for (const arg of call.arguments) {
           visit(arg, state, false);
           if (state.completion !== "normal") break;
           argumentIds.push(objectFromExpr(state, arg));
-          if (saveArguments) {
-            const captureArgument = (path: EnvState<T>): void => {
-              path.assignmentResults.set(arg, valueFromExpr(path, arg));
-            };
-            if (!runCorrelated(state, captureArgument)) captureArgument(state);
-          }
+          preserveArgumentValue(state, arg);
         }
         if (state.completion !== "normal") break;
         const invoke = (state: EnvState<T>): void => {
@@ -1350,6 +1474,11 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
                 parent?.type === "ExpressionStatement" &&
                 (parent as ESTree.ExpressionStatement).expression === call;
               if (!discarded) escapeCaptured(caller, fn);
+              else if (isFunctionLike(fn)) {
+                spendWork(budget, fn.params.length);
+                if (fn.params.some((param) => param.type !== "Identifier"))
+                  escapeCaptured(caller, fn);
+              }
               for (const arg of call.arguments) markEscape(caller, arg);
               callPaths.push(caller);
             } else {
@@ -1394,6 +1523,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
         for (const arg of expr.arguments) {
           visit(arg, state, false);
           if (state.completion !== "normal") break;
+          preserveArgumentValue(state, arg);
         }
         const construct = (path: EnvState<T>): void => {
           if (runCorrelated(path, construct)) return;
@@ -1486,20 +1616,43 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
         spendWork(budget);
         const target = resolveBinding(bindings, source.left, []);
         if (!target) continue;
-        let value = unwrapExpression(source.right);
-        for (let depth = 0; isNode(value) && depth < MAX_PATH_DEPTH; depth += 1) {
+        const pending = [{ value: source.right, depth: 0 }];
+        while (pending.length) {
           spendWork(budget);
-          if (value.type === "SequenceExpression")
-            value = unwrapExpression(value.expressions.at(-1));
-          else if (value.type === "AssignmentExpression" && value.operator === "=")
-            value = unwrapExpression(value.right);
-          else break;
+          const candidate = pending.pop();
+          if (!candidate || candidate.depth >= MAX_PATH_DEPTH) continue;
+          const value = unwrapExpression(candidate.value);
+          if (!isNode(value)) continue;
+          const nextDepth = candidate.depth + 1;
+          if (value.type === "SequenceExpression") {
+            pending.push({ value: value.expressions.at(-1) ?? null, depth: nextDepth });
+          } else if (value.type === "AssignmentExpression" && value.operator === "=") {
+            pending.push({ value: value.right, depth: nextDepth });
+          } else if (value.type === "ConditionalExpression") {
+            pending.push(
+              { value: value.consequent, depth: nextDepth },
+              { value: value.alternate, depth: nextDepth },
+            );
+          } else if (
+            value.type === "LogicalExpression" ||
+            (value.type === "AssignmentExpression" &&
+              ["&&=", "||=", "??="].includes(value.operator))
+          ) {
+            pending.push(
+              { value: value.left, depth: nextDepth },
+              { value: value.right, depth: nextDepth },
+            );
+          } else if (isFunctionLike(value)) {
+            rememberFunctionOrigin(target.id, value);
+            callableBindings.add(target.id);
+          } else {
+            const origin = resolveBinding(bindings, value, []);
+            if (!origin) continue;
+            const sources = dependencies.get(target.id) ?? new Set<BindingId>();
+            sources.add(origin.id);
+            dependencies.set(target.id, sources);
+          }
         }
-        const origin = resolveBinding(bindings, value, []);
-        if (!origin) continue;
-        const sources = dependencies.get(target.id) ?? new Set<BindingId>();
-        sources.add(origin.id);
-        dependencies.set(target.id, sources);
       }
       const dependents = new Map<BindingId, Set<BindingId>>();
       for (const [target, sources] of dependencies) {
@@ -1532,7 +1685,9 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
           }
         }
       };
-      for (const [id, fn] of declaredFunctions) addCallableOrigin(id, fn);
+      for (const [id, functions] of directFunctionOrigins) {
+        for (const fn of functions) addCallableOrigin(id, fn);
+      }
       propagateCallableOrigins();
       for (const call of constantCalls) {
         spendWork(budget);
@@ -1545,6 +1700,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
           functions.add(fn);
         }
         for (const fn of functions) {
+          directlyCalledFunctions.add(fn);
           for (let index = 0; index < fn.params.length; index += 1) {
             spendWork(budget);
             const param = unwrapExpression(fn.params[index]);

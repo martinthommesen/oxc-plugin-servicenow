@@ -201,6 +201,10 @@ A query performed before a no-op helper stays paired with that helper. Querying 
 
 Conditional expression results retain their selected callable through outer assignments and aliases. Argument-created alternatives receive parameter bindings and call effects before joining; unopened controls continue to report.
 
+### Template tags invalidate captured selectors after substitutions
+
+Template tags retain their selected callable before substitutions and expose capture effects after normal evaluation. Saved receivers, rebinding, throwing substitutions and immediate generator defaults preserve execution order.
+
 ### Logical assignments export their selected values
 
 Returned and thrown logical assignments export only the selected object or callback on each path. Skipped operands neither execute cursor advances nor escape captures; retained aliases and mutable scalar selectors keep their runtime facts.
@@ -237,6 +241,24 @@ Two hundred unrelated scalar captures preserve all two hundred counted-loop find
 
 Produced logical-assignment values select the reachable if, conditional, logical and loop paths. Header effects and abrupt alternatives survive consumption, while ordinary unresolved identifiers remain conservative.
 
+### External consumers escape evaluated argument values
+
+Calls, construction and template tags consume argument values saved before later arguments replace their bindings. Unknown and wrapped values retain their own object and callable identities on each completed path.
+
+Saved callbacks still observe capture bindings after all arguments run. Abrupt arguments skip exports, and invocation of a discarded generator invalidates possible parameter-initialization effects while leaving its ordinary body deferred.
+
+### Mapped receiver alternatives retain evaluated identities
+
+Conditional and logical member receivers preserve each selected arguments-object identity before joins. Writes invalidate only possibly mapped parameters; definitely skipped receiver arms retain selector facts.
+
+Fixed-authority execution tests isolate mapping from the existing conservative method-authority policy for unresolved compound receivers. Prefix, compound and direct writes all retain the evaluated receiver before the write occurs.
+
+### Strict directives belong to script and function prologues
+
+Only script and function-body directive prologues enable strict argument semantics. A string expression at the start of an ordinary, nested, conditional or catch block leaves sloppy parameter mapping intact.
+
+Inherited actual strict directives and modules keep parameters independent from argument-object writes. An explicit strict function inside an ordinary block remains strict even when the block itself is not a directive scope.
+
 ### Constructor capture effects follow argument evaluation
 
 Construction saves its callable identity before arguments run and applies capture effects on each completed argument path. Earlier aliases retain trust; newly installed captured records escape, and throwing arguments skip invocation effects.
@@ -263,11 +285,11 @@ Real TypeScript parser nodes run through an active server rule context. Decorato
 
 ### Decorator applications retain saved captures through static initialization
 
-Decorator applications consume saved callable identities after keys, before static initialization. Capture uncertainty survives static writes; empty synchronous, non-generator decorators without parameters preserve deferred class facts.
+Decorator applications consume saved identities after keys, before static initialization. Capture uncertainty survives static writes; empty synchronous non-generator functions with ordinary unused parameters preserve deferred class facts.
 
 Named and member decorators invalidate selector captures even without an explicit call in source. Computed keys cannot replace an earlier selected decorator; opaque factory returns and unknown decorators conservatively expose target captures. Application uses current captured records after keys.
 
-Raw traversal proves that affected static selectors execute even when target exposure suppresses rule authority. Possible decorator throws retain catch paths before and after capture effects; an empty synchronous non-generator decorator invents neither invocation effects nor throw paths. Async and generator returns remain conservative.
+Raw traversal proves that affected static selectors execute even when target exposure suppresses rule authority. Possible decorator throws retain catch paths before and after capture effects. Empty synchronous non-generator bodies with only ordinary unused parameters retain records and scalar facts and do not invent catch paths. Defaults, destructuring and rest parameters, plus async and generator returns, remain conservative.
 
 Fifty independent discarded keys complete under the existing work budget while one decorator value stays live. Capture scans and transient-map work are charged, with no budget increase.
 
@@ -295,6 +317,12 @@ Mapped prefix, postfix and compound writes discard stale selector facts in slopp
 
 Repeated calls through a deep alias chain retain security findings within budget. Quadrupling aliases and calls stays subquadratic; cycles, diamonds and distinct helper arguments preserve dependency facts.
 
+### Assigned helpers preserve every callable origin
+
+Assigned function and arrow expressions retain helper argument facts. Branches and replacements preserve every origin without hoisting runtime values; repeated calls remain active within bounded subquadratic work.
+
+Disabled arguments skip cursor effects for named expressions, defaults, aliases and selected sequence, conditional or logical results. Distinct parameter positions and scalar bindings distinguish successive origins. Enabled and unknown arguments retain reachable diagnostics, while five hundred calls preserve the final cursor finding without exhaustion.
+
 ### Return and throw escape evaluated values
 
 Returned and thrown allocations lose trust after expression evaluation, including captured assignments and sequences. Cursor advances within those expressions remain diagnosed; exporting another value retains the captured object's trust.
@@ -306,6 +334,12 @@ Constant conditional and logical selectors export only the selected value, prese
 Nested sequence classification is bounded and becomes unknown beyond the depth limit. Arithmetic compound assignments export primitive results, retaining trust in captured objects allocated on their right-hand side.
 
 Selected function and arrow literals escape their captured platform objects, including when they are returned or thrown through a sequence or passed to an unknown callee. Known no-op callees retain trusted captured state and remain diagnosable.
+
+### Selected logical assignment literals escape constructed payloads
+
+Constructed array and object payloads escape before their selected logical assignment value is exported. A skipped literal leaves its captured records trusted, preventing structural recursion from changing the selected value.
+
+Returned array, object and nested callback literals preserve construction-time escape effects for selected `||=`, `&&=` and `??=` results. Skipped right-hand sides retain cursor diagnostics; thrown array and object payloads likewise escape their records without budget exhaustion.
 
 ### Callable correlations remain bounded
 
