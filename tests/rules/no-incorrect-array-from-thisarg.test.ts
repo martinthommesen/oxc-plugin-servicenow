@@ -1,9 +1,7 @@
+import { ruleTester } from "../helpers/rule-tester.js";
 import { describe, it } from "node:test";
 import {
   assertDeclinesNonServerSurfaces,
-  assertInvalid,
-  assertValid,
-  assertValidActive,
   AUSTRALIA_ES2021,
   ZURICH_ES2021,
 } from "../helpers/rule-tester.js";
@@ -11,6 +9,12 @@ import {
 const RULE = "no-incorrect-array-from-thisarg" as const;
 
 describe(RULE, () => {
+  const { expectInvalid, expectValid, expectActive } = ruleTester(
+    "no-incorrect-array-from-thisarg",
+    ZURICH_ES2021,
+    { messageId: "primitive" },
+  );
+
   it("reports explicit primitive mapper this arguments in Zurich", () => {
     for (const code of [
       `Array.from(source, function (value) { return value; }, null);`,
@@ -26,7 +30,7 @@ describe(RULE, () => {
       `Array.from([], function (value) { return value; }, null);`,
       `Array.from("", function (value) { return value; }, null);`,
     ]) {
-      assertInvalid(code, RULE, { messageId: "primitive" }, ZURICH_ES2021);
+      expectInvalid(code);
     }
   });
 
@@ -36,7 +40,7 @@ describe(RULE, () => {
       `Array.from(source, function (value) { "use strict"; return value; }, null);`,
       `Array.from(source, function (value) { return this ? value : value; }, "scope");`,
     ]) {
-      assertInvalid(code, RULE, { messageId: "primitive" }, ZURICH_ES2021);
+      expectInvalid(code);
     }
   });
 
@@ -48,7 +52,7 @@ Array.from(source, mapper, null);`,
       `const mapper = function* (value) { return value; };
 Array.from(source, mapper, null);`,
     ]) {
-      assertInvalid(code, RULE, { messageId: "primitive" }, ZURICH_ES2021);
+      expectInvalid(code);
     }
   });
 
@@ -67,7 +71,7 @@ Array.from(source, mapper);`,
       `Array.from(source, function (value) { return class extends this.Base {}; });`,
       `Array.from(source, function (value) { return class { [this.key]() {} }; });`,
     ]) {
-      assertInvalid(code, RULE, { messageId: "omitted" }, ZURICH_ES2021);
+      expectInvalid(code, { messageId: "omitted" });
     }
   });
 
@@ -78,7 +82,7 @@ Array.from(source, mapper);`,
       "`use strict`;\nArray.from(source, function (value) { return this.normalize(value); });",
       "function run() {\n  `use strict`;\n  return Array.from(source, function (value) { return this.normalize(value); });\n}\nrun();",
     ]) {
-      assertInvalid(code, RULE, { messageId: "omitted" }, ZURICH_ES2021);
+      expectInvalid(code, { messageId: "omitted" });
     }
   });
 
@@ -91,7 +95,7 @@ PlatformArray["from"](source, function (value) { return value; }, null);`,
 PlatformArray.from(source, function (value) { return this.normalize(value); });`,
       `Array.from && Array.from(source, function (value) { return value; }, null);`,
     ]) {
-      assertInvalid(code, RULE, {}, ZURICH_ES2021);
+      expectInvalid(code, {});
     }
   });
 
@@ -172,7 +176,7 @@ Array.from(source, function (value) {
   return class { [() => this.key]() {} };
 });`,
     ]) {
-      assertValid(code, RULE, ZURICH_ES2021);
+      expectValid(code);
     }
   });
 
@@ -198,7 +202,7 @@ function convert() {
 convert();
 convert();`,
     ]) {
-      assertInvalid(code, RULE, { messageId: "omitted" }, ZURICH_ES2021);
+      expectInvalid(code, { messageId: "omitted" });
     }
   });
 
@@ -207,7 +211,7 @@ convert();`,
       { length: 1_000 },
       () => `Array.from(source, function (value) { return this.normalize(value); });`,
     );
-    assertValid(`const source = [];\n${calls.join("\n")}`, RULE, ZURICH_ES2021);
+    expectValid(`const source = [];\n${calls.join("\n")}`);
   });
 
   it("accepts object this arguments and conservatively unknown primitives", () => {
@@ -219,7 +223,7 @@ convert();`,
       "Array.from(source, function (value) { return value; }, `scope-${suffix}`);",
       `Array.from(source, function (value) { return value; }, Symbol("scope"));`,
     ]) {
-      assertValid(code, RULE, ZURICH_ES2021);
+      expectValid(code);
     }
   });
 
@@ -240,7 +244,7 @@ later();`,
   return Array.from(source, function (value) { return value; }, undefined);
 }`,
     ]) {
-      assertValid(code, RULE, ZURICH_ES2021);
+      expectValid(code);
     }
   });
 
@@ -254,7 +258,7 @@ Array.from(source, function (value) { return value; }, null);`,
       `Array.from(source, ...mapperArguments);`,
       `Array.from(source, function (value) { return value; }, ...thisArguments);`,
     ]) {
-      assertValidActive(code, RULE, ZURICH_ES2021);
+      expectActive(code);
     }
   });
 
@@ -279,7 +283,7 @@ later();`,
       `eval(sourceText);
 Array.from(source, function (value) { return value; }, null);`,
     ]) {
-      assertValid(code, RULE, ZURICH_ES2021);
+      expectValid(code);
     }
   });
 
@@ -287,11 +291,11 @@ Array.from(source, function (value) { return value; }, null);`,
     const primitive = `Array.from(source, function (value) { return value; }, null);`;
     const omitted = `Array.from(source, function (value) { return this.normalize(value); });`;
     for (const code of [primitive, omitted]) {
-      assertInvalid(code, RULE, {}, ZURICH_ES2021);
-      assertValid(code, RULE, AUSTRALIA_ES2021);
-      assertValid(code, RULE, { settings: { javascriptMode: "es2021" } });
+      expectInvalid(code, {});
+      expectValid(code, AUSTRALIA_ES2021);
+      expectValid(code, { settings: { javascriptMode: "es2021" } });
       for (const javascriptMode of ["compatibility", "es5"] as const) {
-        assertValid(code, RULE, {
+        expectValid(code, {
           settings: { javascriptMode, release: "zurich" },
         });
       }

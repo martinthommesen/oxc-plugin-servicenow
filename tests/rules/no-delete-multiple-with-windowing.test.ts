@@ -1,160 +1,103 @@
+import { ruleTester } from "../helpers/rule-tester.js";
 import { describe, it } from "node:test";
-import {
-  assertInvalid,
-  assertSkipped,
-  assertValid,
-  assertValidActive,
-  ES5,
-  ES2021,
-} from "../helpers/rule-tester.js";
-
-const RULE = "no-delete-multiple-with-windowing" as const;
+import { ES5, ES2021 } from "../helpers/rule-tester.js";
 
 describe("no-delete-multiple-with-windowing", () => {
-  it("flags setLimit then deleteMultiple", () => {
-    assertInvalid(
-      `var stale = new GlideRecord("x_acme_staging");
+  const { expectInvalid, expectValid, expectActive, expectSkipped } = ruleTester(
+    "no-delete-multiple-with-windowing",
+    {},
+    { messageId: "windowed" },
+  );
+
+  it("flags setLimit then deleteMultiple", () =>
+    void expectInvalid(`var stale = new GlideRecord("x_acme_staging");
 stale.addQuery("state", "expired");
 stale.setLimit(100);
-stale.deleteMultiple();`,
-      RULE,
-      { messageId: "windowed" },
-    );
-  });
+stale.deleteMultiple();`));
 
-  it("flags chooseWindow then deleteMultiple", () => {
-    assertInvalid(
-      `var stale = new GlideRecord("x_acme_staging");
+  it("flags chooseWindow then deleteMultiple", () =>
+    void expectInvalid(`var stale = new GlideRecord("x_acme_staging");
 stale.chooseWindow(0, 100);
-stale.deleteMultiple();`,
-      RULE,
-      { messageId: "windowed" },
-    );
-  });
+stale.deleteMultiple();`));
 
-  it("flags both orders of intervening calls", () => {
-    assertInvalid(
-      `var stale = new GlideRecord("x_acme_staging");
+  it("flags both orders of intervening calls", () =>
+    void expectInvalid(`var stale = new GlideRecord("x_acme_staging");
 stale.setLimit(10);
 stale.addQuery("active", true);
-stale.deleteMultiple();`,
-      RULE,
-      { messageId: "windowed" },
-    );
-  });
+stale.deleteMultiple();`));
 
-  it("allows setLimit plus deleteRecord", () => {
-    assertValid(
-      `var stale = new GlideRecord("x_acme_staging");
+  it("allows setLimit plus deleteRecord", () =>
+    void expectValid(`var stale = new GlideRecord("x_acme_staging");
 stale.setLimit(100);
 stale.query();
-if (stale.next()) stale.deleteRecord();`,
-      RULE,
-    );
-  });
+if (stale.next()) stale.deleteRecord();`));
 
-  it("allows deleteMultiple without a window", () => {
-    assertValid(
-      `var stale = new GlideRecord("x_acme_staging");
+  it("allows deleteMultiple without a window", () =>
+    void expectValid(`var stale = new GlideRecord("x_acme_staging");
 stale.addQuery("state", "expired");
-stale.deleteMultiple();`,
-      RULE,
-    );
-  });
+stale.deleteMultiple();`));
 
-  it("allows an unrelated object with the same methods", () => {
-    assertValid(
-      `var stale = { setLimit: function () {}, deleteMultiple: function () {} };
+  it("allows an unrelated object with the same methods", () =>
+    void expectValid(`var stale = { setLimit: function () {}, deleteMultiple: function () {} };
 stale.setLimit(100);
-stale.deleteMultiple();`,
-      RULE,
-    );
-  });
+stale.deleteMultiple();`));
 
-  it("ignores a shadowed GlideRecord", () => {
-    assertValidActive(
-      `function GlideRecord() { this.setLimit = function () {}; this.deleteMultiple = function () {}; }
+  it("ignores a shadowed GlideRecord", () =>
+    void expectActive(`function GlideRecord() { this.setLimit = function () {}; this.deleteMultiple = function () {}; }
 var stale = new GlideRecord("x_acme_staging");
 stale.setLimit(100);
-stale.deleteMultiple();`,
-      RULE,
-    );
-  });
+stale.deleteMultiple();`));
 
   it("tracks a simple alias and resets on reassignment", () => {
-    assertInvalid(
-      `var stale = new GlideRecord("x_acme_staging");
+    expectInvalid(`var stale = new GlideRecord("x_acme_staging");
 var batch = stale;
 batch.setLimit(50);
-batch.deleteMultiple();`,
-      RULE,
-      { messageId: "windowed" },
-    );
-    assertValid(
-      `var stale = new GlideRecord("x_acme_staging");
+batch.deleteMultiple();`);
+    expectValid(`var stale = new GlideRecord("x_acme_staging");
 stale.setLimit(50);
 stale = new GlideRecord("incident");
-stale.deleteMultiple();`,
-      RULE,
-    );
+stale.deleteMultiple();`);
   });
 
-  it("supports static computed members", () => {
-    assertInvalid(
-      `var stale = new GlideRecord("x_acme_staging");
+  it("supports static computed members", () =>
+    void expectInvalid(`var stale = new GlideRecord("x_acme_staging");
 stale["setLimit"](100);
-stale["deleteMultiple"]();`,
-      RULE,
-      { messageId: "windowed" },
-    );
-  });
+stale["deleteMultiple"]();`));
 
-  it("keeps two records independent", () => {
-    assertInvalid(
+  it("keeps two records independent", () =>
+    void expectInvalid(
       `var windowed = new GlideRecord("x_acme_staging");
 var full = new GlideRecord("x_acme_staging");
 windowed.setLimit(10);
 windowed.deleteMultiple();
 full.deleteMultiple();`,
-      RULE,
       { count: 1, messageId: "windowed" },
-    );
-  });
+    ));
 
-  it("stays silent when only one branch windows", () => {
-    assertValidActive(
-      `var stale = new GlideRecord("x_acme_staging");
+  it("stays silent when only one branch windows", () =>
+    void expectActive(`var stale = new GlideRecord("x_acme_staging");
 if (gs.getProperty("x_acme.limit") === "true") {
   stale.setLimit(100);
 }
-stale.deleteMultiple();`,
-      RULE,
-    );
-  });
+stale.deleteMultiple();`));
 
-  it("stays silent after the record escapes to a helper", () => {
-    assertValidActive(
-      `var stale = new GlideRecord("x_acme_staging");
+  it("stays silent after the record escapes to a helper", () =>
+    void expectActive(`var stale = new GlideRecord("x_acme_staging");
 stale.setLimit(100);
 configure(stale);
-stale.deleteMultiple();`,
-      RULE,
-    );
-  });
+stale.deleteMultiple();`));
 
   it("skips client and Fluent files", () => {
-    assertSkipped(
+    expectSkipped(
       `var stale = new GlideRecord("x_acme_staging");
 stale.setLimit(100);
 stale.deleteMultiple();`,
-      RULE,
       { filename: "form.client.js" },
     );
-    assertSkipped(
+    expectSkipped(
       `var stale = new GlideRecord("x_acme_staging");
 stale.setLimit(100);
 stale.deleteMultiple();`,
-      RULE,
       { filename: "cleanup.now.ts" },
     );
   });
@@ -163,30 +106,21 @@ stale.deleteMultiple();`,
     const code = `var stale = new GlideRecord("x_acme_staging");
 stale.setLimit(5);
 stale.deleteMultiple();`;
-    assertInvalid(code, RULE, { messageId: "windowed" }, { settings: ES5 });
-    assertInvalid(code, RULE, { messageId: "windowed" }, { settings: ES2021 });
+    expectInvalid(code, undefined, { settings: ES5 });
+    expectInvalid(code, undefined, { settings: ES2021 });
   });
 
   it("tracks a windowing call on a non-identifier receiver", () => {
     // The assignment expression receiver has no object name. The finder used to
     // skip such calls entirely, so the windowing fact was never recorded and
     // the later deleteMultiple went unreported.
-    assertInvalid(
-      `var stale;
+    expectInvalid(`var stale;
 (stale = new GlideRecord("x_acme_staging")).setLimit(10);
-stale.deleteMultiple();`,
-      RULE,
-      { messageId: "windowed" },
-    );
+stale.deleteMultiple();`);
   });
 
-  it("tracks GlideRecordSecure", () => {
-    assertInvalid(
-      `var stale = new GlideRecordSecure("x_acme_staging");
+  it("tracks GlideRecordSecure", () =>
+    void expectInvalid(`var stale = new GlideRecordSecure("x_acme_staging");
 stale.setLimit(10);
-stale.deleteMultiple();`,
-      RULE,
-      { messageId: "windowed" },
-    );
-  });
+stale.deleteMultiple();`));
 });

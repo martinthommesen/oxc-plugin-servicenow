@@ -1,3 +1,4 @@
+import { decodeFluentFixture } from "./lib/fluent-fixture.mjs";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -40,7 +41,9 @@ import { isMainModule, root } from "./lib/repo.mjs";
  */
 /** @type {CompatMatrix} */
 const matrix = readJson(path.join(root, "scripts/compat-matrix.json"));
-const fluentEvidence = readJson(path.join(root, "tests/fixtures/fluent-sdk-declarations.json"));
+const fluentEvidence = decodeFluentFixture(
+  readJson(path.join(root, "tests/fixtures/fluent-sdk-declarations.json")),
+);
 
 /**
  * @param {string} name

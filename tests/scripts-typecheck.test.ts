@@ -33,7 +33,6 @@ describe("scripts type gate (FINDINGS.md MNT-005)", () => {
     assert.ok(project.include.some((pattern) => pattern.includes("scripts/")));
   });
 
-  it("has no separate declaration files under scripts/", () => {
-    assert.deepEqual(declarationFiles(path.join(repoRoot, "scripts")), []);
-  });
+  it("has no separate declaration files under scripts/", () =>
+    void assert.deepEqual(declarationFiles(path.join(repoRoot, "scripts")), []));
 });

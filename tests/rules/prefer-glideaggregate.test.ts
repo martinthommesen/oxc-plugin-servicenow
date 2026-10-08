@@ -1,104 +1,77 @@
+import { ruleTester } from "../helpers/rule-tester.js";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { assertInvalid, assertValidActive, lint } from "../helpers/rule-tester.js";
+import { lint } from "../helpers/rule-tester.js";
 
 const RULE = "prefer-glideaggregate" as const;
 
 describe(RULE, () => {
-  it("flags getRowCount", () => {
-    assertInvalid(
+  const { expectInvalid, expectActive } = ruleTester(
+    "prefer-glideaggregate",
+    {},
+    { messageId: "iterateCount" },
+  );
+
+  it("flags getRowCount", () =>
+    void expectInvalid(
       `var gr = new GlideRecord("incident");\ngr.query();\nvar n = gr.getRowCount();`,
-      RULE,
-      { messageId: "getRowCount" },
-    );
-  });
+      {
+        messageId: "getRowCount",
+      },
+    ));
 
-  it("flags getRowCount on GlideRecordSecure", () => {
-    assertInvalid(
+  it("flags getRowCount on GlideRecordSecure", () =>
+    void expectInvalid(
       `var gr = new GlideRecordSecure("incident");\ngr.query();\nvar n = gr.getRowCount();`,
-      RULE,
       { messageId: "getRowCount" },
-    );
-  });
+    ));
 
-  it("allows GlideAggregate", () => {
-    assertValidActive(
+  it("allows GlideAggregate", () =>
+    void expectActive(
       `var ga = new GlideAggregate("incident");\nga.addAggregate("COUNT");\nga.query();`,
-      RULE,
-    );
-  });
+    ));
 
   it("flags iterate-to-count loops", () => {
-    assertInvalid(
+    expectInvalid(
       `var gr = new GlideRecord("incident");\ngr.query();\nvar n = 0;\nwhile (gr.next()) { n++; }`,
-      RULE,
-      { messageId: "iterateCount" },
     );
-    assertInvalid(
-      `var gr = new GlideRecord("incident");
+    expectInvalid(`var gr = new GlideRecord("incident");
 gr._query();
 var n = 0;
-while (gr["_next"]()) { n++; }`,
-      RULE,
-      { messageId: "iterateCount" },
-    );
+while (gr["_next"]()) { n++; }`);
   });
 
-  it("does not treat if (gr.next()) as iterate-to-count", () => {
-    assertValidActive(
+  it("does not treat if (gr.next()) as iterate-to-count", () =>
+    void expectActive(
       `var gr = new GlideRecord("incident");\ngr.query();\nif (gr.next()) {\n  gs.info(gr.number);\n}`,
-      RULE,
-    );
-  });
+    ));
 
   it("requires an actual stable numeric counter proof", () => {
-    assertValidActive(
-      `var gr = new GlideRecord("incident");
+    expectActive(`var gr = new GlideRecord("incident");
 var n = 0;
-while (gr.next()) {}`,
-      RULE,
-    );
-    assertValidActive(
-      `var gr = new GlideRecord("incident");
+while (gr.next()) {}`);
+    expectActive(`var gr = new GlideRecord("incident");
 var n = 0;
-while (gr.next()) { n += calculateRisk(gr); }`,
-      RULE,
-    );
-    assertValidActive(
-      `var gr = new GlideRecord("incident");
+while (gr.next()) { n += calculateRisk(gr); }`);
+    expectActive(`var gr = new GlideRecord("incident");
 var n = 0;
-while (gr.next()) { n++; gs.info(gr.number); }`,
-      RULE,
-    );
-    assertValidActive(
-      `var gr = new GlideRecord("incident");
+while (gr.next()) { n++; gs.info(gr.number); }`);
+    expectActive(`var gr = new GlideRecord("incident");
 var n = 0;
 log(n);
-while (gr.next()) { n++; }`,
-      RULE,
-    );
-    assertInvalid(
-      `var gr = new GlideRecord("incident");
+while (gr.next()) { n++; }`);
+    expectInvalid(`var gr = new GlideRecord("incident");
 var n = 0;
-while (gr.next()) { ++n; }`,
-      RULE,
-      { messageId: "iterateCount" },
-    );
-    assertInvalid(
-      `var gr = new GlideRecord("incident");
+while (gr.next()) { ++n; }`);
+    expectInvalid(`var gr = new GlideRecord("incident");
 var n = 0;
-while (gr.next()) { n += 1; }`,
-      RULE,
-      { messageId: "iterateCount" },
-    );
+while (gr.next()) { n += 1; }`);
   });
 
-  it("does not flag a loop that reads fields", () => {
-    assertValidActive(
+  it("does not flag a loop that reads fields", () =>
+    void expectActive(
       `var gr = new GlideRecord("incident");\ngr.query();\nwhile (gr.next()) {\n  gs.info(gr.number);\n}`,
-      RULE,
-    );
-  });
+    ));
 
   it("allows post-loop reads and reports each count-only loop", () => {
     const code = `var first = new GlideRecord("incident");

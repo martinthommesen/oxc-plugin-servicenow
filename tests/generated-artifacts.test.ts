@@ -13,7 +13,7 @@ describe("generated artifact manifest", () => {
   it("covers every generated documentation family", () => {
     for (const path of [
       "src/version.ts",
-      "docs/rules",
+      "docs/rules.md",
       "README.md",
       "docs/compatibility.md",
       "docs/australia-engine-updates.md",

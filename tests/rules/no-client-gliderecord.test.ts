@@ -1,48 +1,43 @@
+import { ruleTester } from "../helpers/rule-tester.js";
 import { describe, it } from "node:test";
-import {
-  assertInvalid,
-  assertSkipped,
-  assertValid,
-  assertValidActive,
-} from "../helpers/rule-tester.js";
+import {} from "../helpers/rule-tester.js";
 
 const RULE = "no-client-gliderecord" as const;
 const SCOPED_CLIENT = { filename: "form.client.js", settings: { scope: "scoped" } } as const;
 
 describe(RULE, () => {
-  it("flags GlideRecord in a client filename", () => {
-    assertInvalid(
-      `var gr = new GlideRecord("sys_user");`,
-      RULE,
-      { messageId: "glideRecord" },
+  const { expectInvalid, expectValid, expectActive, expectSkipped } = ruleTester(
+    "no-client-gliderecord",
+    {
+      filename: "incident.client.js",
+      settings: { scope: "scoped" },
+    },
+    { messageId: "glideRecord" },
+  );
+
+  it("flags GlideRecord in a client filename", () =>
+    void expectInvalid(`var gr = new GlideRecord("sys_user");`));
+
+  it("flags GlideRecord when g_form is used", () =>
+    void expectInvalid(
+      `g_form.setValue("x", "1");\nvar gr = new GlideRecord("sys_user");`,
+      undefined,
       {
-        filename: "incident.client.js",
+        filename: "onChange.js",
         settings: { scope: "scoped" },
       },
-    );
-  });
+    ));
 
-  it("flags GlideRecord when g_form is used", () => {
-    assertInvalid(
-      `g_form.setValue("x", "1");\nvar gr = new GlideRecord("sys_user");`,
-      RULE,
-      { messageId: "glideRecord" },
-      { filename: "onChange.js", settings: { scope: "scoped" } },
-    );
-  });
-
-  it("flags global namespace and computed constructors", () => {
-    assertInvalid(
+  it("flags global namespace and computed constructors", () =>
+    void expectInvalid(
       `new global.GlideRecord("incident");
 new global["GlideRecordSecure"]("task");`,
-      RULE,
       { messageId: "glideRecord", count: 2 },
       SCOPED_CLIENT,
-    );
-  });
+    ));
 
-  it("flags direct and destructured constructor aliases", () => {
-    assertInvalid(
+  it("flags direct and destructured constructor aliases", () =>
+    void expectInvalid(
       `var GR = GlideRecord;
 const Alias = GR;
 const { GlideRecordSecure: GRS } = global;
@@ -52,36 +47,30 @@ function onLoad() {
   var InnerGR = GlideRecord;
   new InnerGR("problem");
 }`,
-      RULE,
       { messageId: "glideRecord", count: 3 },
       SCOPED_CLIENT,
-    );
-  });
+    ));
 
-  it("flags a stable constructor alias declared inside its use block", () => {
-    assertInvalid(
+  it("flags a stable constructor alias declared inside its use block", () =>
+    void expectInvalid(
       `if (condition) {
   const GR = GlideRecord;
   new GR("incident");
 }`,
-      RULE,
-      { messageId: "glideRecord" },
+      undefined,
       SCOPED_CLIENT,
-    );
-  });
+    ));
 
-  it("forgets a reassigned constructor alias", () => {
-    assertValid(
+  it("forgets a reassigned constructor alias", () =>
+    void expectValid(
       `var GR = GlideRecord;
 GR = LocalRecord;
 new GR("incident");`,
-      RULE,
       SCOPED_CLIENT,
-    );
-  });
+    ));
 
   it("does not merge mutually exclusive constructor assignments", () => {
-    assertValid(
+    expectValid(
       `var GR;
 if (condition) {
   GR = LocalRecord;
@@ -89,10 +78,9 @@ if (condition) {
   GR = GlideRecord;
 }
 new GR("incident");`,
-      RULE,
       SCOPED_CLIENT,
     );
-    assertValid(
+    expectValid(
       `var GR;
 if (condition) {
   GR = GlideRecord;
@@ -100,13 +88,12 @@ if (condition) {
   GR = LocalRecord;
 }
 new GR("incident");`,
-      RULE,
       SCOPED_CLIENT,
     );
   });
 
-  it("stays silent for mutable aliases even when every branch selects a platform constructor", () => {
-    assertValidActive(
+  it("stays silent for mutable aliases even when every branch selects a platform constructor", () =>
+    void expectActive(
       `var GR;
 if (condition) {
   GR = GlideRecord;
@@ -114,149 +101,128 @@ if (condition) {
   GR = GlideRecordSecure;
 }
 new GR("incident");`,
-      RULE,
       SCOPED_CLIENT,
-    );
-  });
+    ));
 
   it("requires an alias initializer to dominate the call in one execution body", () => {
-    assertValid(
+    expectValid(
       `run();
 var GR = GlideRecord;
 function run() {
   new GR("incident");
 }`,
-      RULE,
       SCOPED_CLIENT,
     );
-    assertValid(
+    expectValid(
       `if (condition) {
   var ConditionalGR = GlideRecord;
 }
 new ConditionalGR("incident");`,
-      RULE,
       SCOPED_CLIENT,
     );
   });
 
   it("distinguishes local eval from dynamic global scope", () => {
-    assertInvalid(
+    expectInvalid(
       `function eval() {}
 var GR = GlideRecord;
 eval("GR = LocalRecord");
 new GR("incident");`,
-      RULE,
-      { messageId: "glideRecord" },
+      undefined,
       SCOPED_CLIENT,
     );
-    assertValid(
+    expectValid(
       `var GR = GlideRecord;
 eval("GR = LocalRecord");
 new GR("incident");`,
-      RULE,
       SCOPED_CLIENT,
     );
-    assertValid(
+    expectValid(
       `var GR = GlideRecord;
 eval?.("GR = LocalRecord");
 new GR("incident");`,
-      RULE,
       { ...SCOPED_CLIENT, settings: { javascriptMode: "es2021", scope: "scoped" } },
     );
   });
 
   it("stays silent when the platform constructor can be replaced", () => {
-    assertValidActive(
+    expectActive(
       `GlideRecord = LocalRecord;
 new GlideRecord("incident");`,
-      RULE,
       SCOPED_CLIENT,
     );
-    assertValidActive(
+    expectActive(
       `global.GlideRecord = LocalRecord;
 new GlideRecord("incident");
 new global.GlideRecord("task");`,
-      RULE,
       SCOPED_CLIENT,
     );
-    assertValidActive(
+    expectActive(
       `global = localNamespace;
 new global.GlideRecord("incident");`,
-      RULE,
       SCOPED_CLIENT,
     );
-    assertValidActive(
+    expectActive(
       `Object.defineProperty(global, "GlideRecord", { value: LocalRecord });
 new GlideRecord("incident");`,
-      RULE,
       SCOPED_CLIENT,
     );
-    assertValidActive(
+    expectActive(
       `GlideRecord = null;
 new GlideRecord("incident");`,
-      RULE,
       SCOPED_CLIENT,
     );
-    assertValidActive(
+    expectActive(
       `global.GlideRecord = undefined;
 new global.GlideRecord("incident");`,
-      RULE,
       SCOPED_CLIENT,
     );
-    assertValidActive(
+    expectActive(
       `delete global.GlideRecord;
 new global.GlideRecord("incident");`,
-      RULE,
       SCOPED_CLIENT,
     );
-    assertValidActive(
+    expectActive(
       `Object.defineProperty(global, "GlideRecord", { value: null });
 new GlideRecord("incident");`,
-      RULE,
       SCOPED_CLIENT,
     );
-    assertValidActive(
+    expectActive(
       `Object.assign(global, { GlideRecord: null });
 new GlideRecord("incident");`,
-      RULE,
       SCOPED_CLIENT,
     );
-    assertValidActive(
+    expectActive(
       `new GlideRecord("incident");
 GlideRecord = LocalRecord;`,
-      RULE,
       SCOPED_CLIENT,
     );
   });
 
   it("treats escaping the namespace, but not its constructor value, as a possible mutation", () => {
-    assertValid(
+    expectValid(
       `prepare(global);
 new GlideRecord("incident");
 new global.GlideRecord("task");`,
-      RULE,
       SCOPED_CLIENT,
     );
-    assertInvalid(
+    expectInvalid(
       `prepare(global.GlideRecord);
 new global.GlideRecord("incident");`,
-      RULE,
-      { messageId: "glideRecord" },
+      undefined,
       SCOPED_CLIENT,
     );
-    assertValid(
+    expectValid(
       `var platform = global;
 prepare(platform);
 new GlideRecord("incident");`,
-      RULE,
       SCOPED_CLIENT,
     );
-    assertInvalid(
+    expectInvalid(
       `prepare(platform);
 var platform = global;
 new GlideRecord("incident");`,
-      RULE,
-      { messageId: "glideRecord" },
+      undefined,
       SCOPED_CLIENT,
     );
   });
@@ -284,7 +250,7 @@ new GlideRecord("incident");`,
 prepare(ns);
 new GlideRecord("incident");`,
     ]) {
-      assertValid(code, RULE, SCOPED_CLIENT);
+      expectValid(code, SCOPED_CLIENT);
     }
   });
 
@@ -306,100 +272,93 @@ function replaceLater() { ns = localNamespace; }
 prepare(ns);
 new GlideRecord("incident");`,
     ]) {
-      assertValid(code, RULE, SCOPED_CLIENT);
+      expectValid(code, SCOPED_CLIENT);
     }
   });
 
   it("does not follow definitely reassigned namespace aliases", () => {
-    assertInvalid(
+    expectInvalid(
       `let ns = global;
 ns = localNamespace;
 ns.GlideRecord = null;
 new GlideRecord("incident");`,
-      RULE,
-      { messageId: "glideRecord" },
+      undefined,
       SCOPED_CLIENT,
     );
-    assertValid(
+    expectValid(
       `var ns = global;
 eval("ns = localNamespace");
 ns.GlideRecord = null;
 new GlideRecord("incident");`,
-      RULE,
       SCOPED_CLIENT,
     );
-    assertInvalid(
+    expectInvalid(
       `var ns = global;
 ns = localNamespace;
 prepare(ns);
 new GlideRecord("incident");`,
-      RULE,
-      { messageId: "glideRecord" },
+      undefined,
       SCOPED_CLIENT,
     );
   });
 
   it("rejects destructuring defaults and shadowed namespaces", () => {
-    assertValid(
+    expectValid(
       `const { GlideRecord: GR = LocalRecord } = global;
 new GR("incident");`,
-      RULE,
       SCOPED_CLIENT,
     );
-    assertValid(
+    expectValid(
       `function run(global) {
   new global.GlideRecord("incident");
 }`,
-      RULE,
       SCOPED_CLIENT,
     );
   });
 
   it("stays silent for global or unknown application scope", () => {
-    assertSkipped(`var gr = new GlideRecord("sys_user");`, RULE, {
+    expectSkipped(`var gr = new GlideRecord("sys_user");`, {
       filename: "global.client.js",
       settings: { scope: "global" },
     });
-    assertSkipped(`var gr = new GlideRecord("sys_user");`, RULE, {
+    expectSkipped(`var gr = new GlideRecord("sys_user");`, {
       filename: "unknown.client.js",
     });
-    assertSkipped(`var gr = new GlideRecord("sys_user");`, RULE, {
+    expectSkipped(`var gr = new GlideRecord("sys_user");`, {
       filename: "explicit-unknown.client.js",
       settings: { scope: "unknown" },
     });
   });
 
-  it("allows GlideRecord on the server", () => {
-    assertValid(`var gr = new GlideRecord("incident");\ngr.query();`, RULE, {
+  it("allows GlideRecord on the server", () =>
+    void expectValid(`var gr = new GlideRecord("incident");\ngr.query();`, {
       filename: "incident.br.js",
-    });
-  });
+    }));
 
-  it("allows GlideRecord in a display Business Rule that writes g_scratchpad", () => {
-    assertValid(
+  it("allows GlideRecord in a display Business Rule that writes g_scratchpad", () =>
+    void expectValid(
       `var gr = new GlideRecord("incident");\ngr.query();\ng_scratchpad.count = 1;`,
-      RULE,
-      { filename: "display-stuff.br.js" },
-    );
-  });
+      {
+        filename: "display-stuff.br.js",
+      },
+    ));
 
   it("ignores decoy directory names above the project root (FINDINGS.md COR-001)", () => {
     const code = `var gr = new GlideRecord("incident");\ngr.query();`;
     // A checkout under ~/client/ must not make server code look client-side.
-    assertSkipped(code, RULE, {
+    expectSkipped(code, {
       filename: "/home/alice/client/app/src/list.js",
       cwd: "/home/alice/client/app",
       settings: { scope: "scoped" },
     });
-    assertSkipped(code, RULE, {
+    expectSkipped(code, {
       filename: "/srv/app/src/list.js",
       cwd: "/srv/app",
       settings: { scope: "scoped" },
     });
     // A real project-relative client directory still applies the rule.
-    assertInvalid(
+    expectInvalid(
       code,
-      RULE,
       { count: 1 },
       { filename: "/proj/src/client/list.js", cwd: "/proj", settings: { scope: "scoped" } },
     );

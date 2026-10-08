@@ -69,9 +69,8 @@ describe("Fluent SDK tarball trust boundary", () => {
     );
   });
 
-  it("caps decompressed tarball bytes", () => {
-    assert.throws(() => tarFiles(gzipSync(Buffer.alloc(2_048)), "fixture", 1_024));
-  });
+  it("caps decompressed tarball bytes", () =>
+    void assert.throws(() => tarFiles(gzipSync(Buffer.alloc(2_048)), "fixture", 1_024)));
   it("verifies the pinned SHA-512 digest", () => {
     const bytes = Buffer.from("artifact");
     const digest = createHash("sha512").update(bytes).digest("base64");

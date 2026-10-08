@@ -1,30 +1,27 @@
+import { ruleTester } from "../helpers/rule-tester.js";
 import { describe, it } from "node:test";
-import { assertInvalid, assertValid, assertValidActive, ES5 } from "../helpers/rule-tester.js";
+import { ES5 } from "../helpers/rule-tester.js";
 
 const RULE = "no-proxy" as const;
 
 describe(RULE, () => {
+  const { expectInvalid, expectActive, expectValid } = ruleTester(
+    "no-proxy",
+    {
+      settings: ES5,
+    },
+    { messageId: "revocable" },
+  );
+
   it("reports direct and stable aliased platform uses", () => {
-    assertInvalid(
+    expectInvalid(
       `const P = Proxy;
 const wrapped = new P(target, handler);`,
-      RULE,
       { messageId: "construct" },
-      { settings: ES5 },
     );
-    assertInvalid(
-      `const P = Proxy;
-const pair = P.revocable(target, handler);`,
-      RULE,
-      { messageId: "revocable" },
-      { settings: ES5 },
-    );
-    assertInvalid(
-      `const pair = globalThis.Proxy.revocable(target, handler);`,
-      RULE,
-      { messageId: "revocable" },
-      { settings: ES5 },
-    );
+    expectInvalid(`const P = Proxy;
+const pair = P.revocable(target, handler);`);
+    expectInvalid(`const pair = globalThis.Proxy.revocable(target, handler);`);
   });
 
   it("reports revocable calls through Function helpers", () => {
@@ -33,183 +30,98 @@ const pair = P.revocable(target, handler);`,
       `Proxy.revocable.apply(Proxy, [target, handler]);`,
       `Proxy.revocable.bind(Proxy)(target, handler);`,
     ]) {
-      assertInvalid(code, RULE, { messageId: "revocable", count: 1 }, { settings: ES5 });
+      expectInvalid(code, { messageId: "revocable", count: 1 });
     }
   });
 
   it("keeps shadows, mutable aliases, and cross-execution aliases silent", () => {
-    assertValidActive(
-      `function Proxy(target) { return target; }
-new Proxy(target, handler);`,
-      RULE,
-      { settings: ES5 },
-    );
-    assertValid(
-      `let P = Proxy;
+    expectActive(`function Proxy(target) { return target; }
+new Proxy(target, handler);`);
+    expectValid(`let P = Proxy;
 if (custom) P = LocalProxy;
-new P(target, handler);`,
-      RULE,
-      { settings: ES5 },
-    );
-    assertValid(
-      `const P = Proxy;
+new P(target, handler);`);
+    expectValid(`const P = Proxy;
 function later() { return P.revocable(target, handler); }
-later();`,
-      RULE,
-      { settings: ES5 },
-    );
+later();`);
   });
 
   it("allows structurally dominating availability guards", () => {
-    assertValid(
-      `if (typeof Proxy === "function") {
+    expectValid(`if (typeof Proxy === "function") {
   new Proxy(target, handler);
-}`,
-      RULE,
-      { settings: ES5 },
-    );
-    assertValid(
-      `if (typeof Proxy === "function" && typeof Proxy.revocable === "function") {
+}`);
+    expectValid(`if (typeof Proxy === "function" && typeof Proxy.revocable === "function") {
   Proxy.revocable(target, handler);
-}`,
-      RULE,
-      { settings: ES5 },
-    );
-    assertInvalid(
-      `if (typeof Proxy.revocable === "function") {
+}`);
+    expectInvalid(`if (typeof Proxy.revocable === "function") {
   Proxy.revocable(target, handler);
-}`,
-      RULE,
-      { messageId: "revocable" },
-      { settings: ES5 },
-    );
+}`);
   });
 
   it("requires bare owner aliases to be captured inside a guard", () => {
-    assertInvalid(
-      `const P = Proxy;
+    expectInvalid(`const P = Proxy;
 if (typeof Proxy === "function") {
   P.revocable(target, handler);
-}`,
-      RULE,
-      { messageId: "revocable" },
-      { settings: ES5 },
-    );
-    assertValid(
-      `if (typeof Proxy === "function" && typeof Proxy.revocable === "function") {
+}`);
+    expectValid(`if (typeof Proxy === "function" && typeof Proxy.revocable === "function") {
   const P = Proxy;
   P.revocable(target, handler);
-}`,
-      RULE,
-      { settings: ES5 },
-    );
-    assertInvalid(
+}`);
+    expectInvalid(
       `const P = globalThis.Proxy;
 if (typeof P === "function") {
   new P(target, handler);
 }`,
-      RULE,
       { messageId: "construct" },
-      { settings: ES5 },
     );
   });
 
   it("allows callable polyfills but reports non-callable replacements", () => {
-    assertValid(
-      `Proxy = LocalProxy;
-new Proxy(target, handler);`,
-      RULE,
-      { settings: ES5 },
-    );
-    assertValid(
-      `Proxy.revocable = localRevocable;
-Proxy.revocable(target, handler);`,
-      RULE,
-      { settings: ES5 },
-    );
-    assertValid(
-      `Proxy = { revocable: localRevocable };
-Proxy.revocable(target, handler);`,
-      RULE,
-      { settings: ES5 },
-    );
-    assertInvalid(
+    expectValid(`Proxy = LocalProxy;
+new Proxy(target, handler);`);
+    expectValid(`Proxy.revocable = localRevocable;
+Proxy.revocable(target, handler);`);
+    expectValid(`Proxy = { revocable: localRevocable };
+Proxy.revocable(target, handler);`);
+    expectInvalid(
       `Proxy = null;
 new Proxy(target, handler);`,
-      RULE,
       { messageId: "construct" },
-      { settings: ES5 },
     );
-    assertInvalid(
-      `Proxy.revocable = undefined;
-Proxy.revocable(target, handler);`,
-      RULE,
-      { messageId: "revocable" },
-      { settings: ES5 },
-    );
+    expectInvalid(`Proxy.revocable = undefined;
+Proxy.revocable(target, handler);`);
     for (const replacement of ["{}", "[]"]) {
-      assertInvalid(
+      expectInvalid(
         `Proxy = ${replacement};
 new Proxy(target, handler);`,
-        RULE,
         { messageId: "construct" },
-        { settings: ES5 },
       );
-      assertInvalid(
-        `Object.defineProperty(Proxy, "revocable", { value: ${replacement} });
-Proxy.revocable(target, handler);`,
-        RULE,
-        { messageId: "revocable" },
-        { settings: ES5 },
-      );
+      expectInvalid(`Object.defineProperty(Proxy, "revocable", { value: ${replacement} });
+Proxy.revocable(target, handler);`);
     }
   });
 
   it("does not accept invalidated guards or dynamic scope", () => {
-    assertInvalid(
-      `if (typeof Proxy === "function" && typeof Proxy.revocable === "function") {
+    expectInvalid(`if (typeof Proxy === "function" && typeof Proxy.revocable === "function") {
   Proxy.revocable = null;
   Proxy.revocable(target, handler);
-}`,
-      RULE,
-      { messageId: "revocable" },
-      { settings: ES5 },
-    );
-    assertInvalid(
+}`);
+    expectInvalid(
       `if (typeof Proxy === "function") {
   Object.defineProperty(globalThis, "Proxy", { value: null });
   new Proxy(target, handler);
 }`,
-      RULE,
       { messageId: "construct" },
-      { settings: ES5 },
     );
-    assertInvalid(
-      `if (typeof Proxy === "function" && typeof Proxy.revocable === "function") {
+    expectInvalid(`if (typeof Proxy === "function" && typeof Proxy.revocable === "function") {
   Object.defineProperty(Proxy, "revocable", { value: null });
   Proxy.revocable(target, handler);
-}`,
-      RULE,
-      { messageId: "revocable" },
-      { settings: ES5 },
-    );
-    assertValid(
-      `eval(source);
-Proxy.revocable(target, handler);`,
-      RULE,
-      { settings: ES5 },
-    );
+}`);
+    expectValid(`eval(source);
+Proxy.revocable(target, handler);`);
   });
 
   it("keeps direct Proxy diagnostics after the alias-analysis budget", () => {
     const calls = Array.from({ length: 20_000 }, () => "noop();").join("\n");
-    assertInvalid(
-      `${calls}\nnew Proxy(target, handler);`,
-      RULE,
-      { messageId: "construct" },
-      {
-        settings: ES5,
-      },
-    );
+    expectInvalid(`${calls}\nnew Proxy(target, handler);`, { messageId: "construct" });
   });
 });

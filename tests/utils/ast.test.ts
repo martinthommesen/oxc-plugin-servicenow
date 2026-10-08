@@ -97,12 +97,11 @@ describe("AST value references", () => {
     ]);
   });
 
-  it("counts shorthand property values as reads", () => {
-    assert.deepEqual(
+  it("counts shorthand property values as reads", () =>
+    void assert.deepEqual(
       parentReferences("const value = 1; const record = { value };", "Property", "value"),
       [true, true],
-    );
-  });
+    ));
 
   it("does not treat ExportSpecifier.local as a value read", () => {
     const source = "const value = 1; export { value as published };";

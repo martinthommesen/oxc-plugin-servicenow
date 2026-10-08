@@ -1,9 +1,7 @@
+import { ruleTester } from "../helpers/rule-tester.js";
 import { describe, it } from "node:test";
 import {
   assertDeclinesNonServerSurfaces,
-  assertInvalid,
-  assertValid,
-  assertValidActive,
   AUSTRALIA_ES2021,
   ZURICH_ES2021,
 } from "../helpers/rule-tester.js";
@@ -11,6 +9,12 @@ import {
 const RULE = "no-unhoisted-block-function-use" as const;
 
 describe(RULE, () => {
+  const { expectInvalid, expectValid, expectActive } = ruleTester(
+    "no-unhoisted-block-function-use",
+    ZURICH_ES2021,
+    { messageId: "unhoisted" },
+  );
+
   it("reports reads before nested block function declarations in Zurich", () => {
     for (const code of [
       `{
@@ -50,44 +54,33 @@ describe(RULE, () => {
   function helper() { return "block"; }
 }`,
     ]) {
-      assertInvalid(code, RULE, { messageId: "unhoisted" }, ZURICH_ES2021);
+      expectInvalid(code);
     }
   });
 
-  it("reports each proven pre-declaration read", () => {
-    assertInvalid(
+  it("reports each proven pre-declaration read", () =>
+    void expectInvalid(
       `{
   helper();
   const callback = helper;
   function helper() { return 1; }
 }`,
-      RULE,
       { messageId: "unhoisted", count: 2 },
-      ZURICH_ES2021,
-    );
-  });
+    ));
 
   it("indexes abrupt prefixes once for many reads", () => {
     const reads = Array.from({ length: 1_000 }, () => "helper();").join("\n");
-    assertInvalid(
-      `{\n${reads}\nfunction helper() { return 1; }\n}`,
-      RULE,
-      { messageId: "unhoisted", count: 1_000 },
-      ZURICH_ES2021,
-    );
+    expectInvalid(`{\n${reads}\nfunction helper() { return 1; }\n}`, {
+      messageId: "unhoisted",
+      count: 1_000,
+    });
   });
 
-  it("resolves the declaration in its containing block", () => {
-    assertInvalid(
-      `{
+  it("resolves the declaration in its containing block", () =>
+    void expectInvalid(`{
   helper();
   function helper(helper) { return helper; }
-}`,
-      RULE,
-      { messageId: "unhoisted" },
-      ZURICH_ES2021,
-    );
-  });
+}`));
 
   it("does not report declarations already hoisted by Zurich", () => {
     for (const code of [
@@ -104,7 +97,7 @@ function helper() { return 1; }`,
   }
 }`,
     ]) {
-      assertValid(code, RULE, ZURICH_ES2021);
+      expectValid(code);
     }
   });
 
@@ -128,7 +121,7 @@ function helper() { return 1; }`,
   new Runner().run();
 }`,
     ]) {
-      assertValidActive(code, RULE, ZURICH_ES2021);
+      expectActive(code);
     }
   });
 
@@ -159,20 +152,18 @@ function helper() { return 1; }`,
   function helper() { return 1; }
 }`,
     ]) {
-      assertValidActive(code, RULE, ZURICH_ES2021);
+      expectActive(code);
     }
   });
 
-  it("ignores TypeScript-only pre-declaration references", () => {
-    assertValidActive(
+  it("ignores TypeScript-only pre-declaration references", () =>
+    void expectActive(
       `{
   type Helper = typeof helper;
   function helper() { return 1; }
 }`,
-      RULE,
       { ...ZURICH_ES2021, filename: "test.server.ts" },
-    );
-  });
+    ));
 
   it("requires stable lexical resolution", () => {
     for (const code of [
@@ -204,21 +195,16 @@ function helper() { return 1; }`,
   function helper() { return "second"; }
 }`,
     ]) {
-      assertValid(code, RULE, ZURICH_ES2021);
+      expectValid(code);
     }
   });
 
-  it("keeps direct switch-case declarations outside the proven fix", () => {
-    assertValid(
-      `switch (kind) {
+  it("keeps direct switch-case declarations outside the proven fix", () =>
+    void expectValid(`switch (kind) {
   case "one":
     helper();
     function helper() { return 1; }
-}`,
-      RULE,
-      ZURICH_ES2021,
-    );
-  });
+}`));
 
   it("follows the all-modes release delta without guessing an omitted release", () => {
     const code = `{
@@ -226,17 +212,12 @@ function helper() { return 1; }`,
   function helper() { return 1; }
 }`;
     for (const javascriptMode of ["compatibility", "es5", "es2021"] as const) {
-      assertInvalid(
-        code,
-        RULE,
-        { messageId: "unhoisted" },
-        { settings: { javascriptMode, release: "zurich" } },
-      );
-      assertValid(code, RULE, { settings: { javascriptMode, release: "australia" } });
-      assertValid(code, RULE, { settings: { javascriptMode } });
+      expectInvalid(code, undefined, { settings: { javascriptMode, release: "zurich" } });
+      expectValid(code, { settings: { javascriptMode, release: "australia" } });
+      expectValid(code, { settings: { javascriptMode } });
     }
-    assertInvalid(code, RULE, { messageId: "unhoisted" }, { settings: { release: "zurich" } });
-    assertValid(code, RULE, { settings: { release: "australia" } });
+    expectInvalid(code, undefined, { settings: { release: "zurich" } });
+    expectValid(code, { settings: { release: "australia" } });
   });
 
   it("does not apply server-engine behavior to other execution contexts", () => {
@@ -247,14 +228,12 @@ function helper() { return 1; }`,
     assertDeclinesNonServerSurfaces(code, RULE, ZURICH_ES2021.settings);
   });
 
-  it("accepts the corrected Australia behavior", () => {
-    assertValid(
+  it("accepts the corrected Australia behavior", () =>
+    void expectValid(
       `{
   helper();
   function helper() { return 1; }
 }`,
-      RULE,
       AUSTRALIA_ES2021,
-    );
-  });
+    ));
 });

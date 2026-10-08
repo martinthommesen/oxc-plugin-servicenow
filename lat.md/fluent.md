@@ -32,7 +32,9 @@ The registry maps an SDK semver string to the manifest reviewed for it.
 
 ## Declaration snapshots
 
-`tests/fixtures/fluent-sdk-declarations.json` is the review artifact: it holds every audited field per version. `src/fluent/declaration-snapshots.ts` is generated from it and ships only what the runtime reads.
+`tests/fixtures/fluent-sdk-declarations.json` shares audited evidence while retaining exact per-version artifact identities. The generated runtime ships only the fields it reads.
+
+Schema 2 shares declarations, lifecycle records, inventories and absence lists through named references. Inventory changes inherit prior versions and preserve removals explicitly.
 
 The fixture holds declaration paths, hashes, absent names, and lifecycle evidence. Typos come from `DEFAULT_FLUENT_MANIFEST`, their authored home. The shipped module contains id policies and discovered names with module and introduction version, which is all `registry.ts` reads.
 
@@ -59,3 +61,5 @@ The axes Fluent is orthogonal to, and the gates over this model.
 - [[domain]] — the axes.
 - [[analysis]] — where imports and factories are resolved.
 - [[invariants#Generated files round-trip]] — the manifest and snapshot gates.
+
+The fixture codec in `scripts/lib/fluent-fixture.mjs` reconstructs every original field for audit and manifest checks; decoded versions are independent copies. The shipped runtime also shares equal projections across SDK versions.

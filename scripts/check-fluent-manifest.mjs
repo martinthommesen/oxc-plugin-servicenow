@@ -1,3 +1,4 @@
+import { decodeFluentFixture } from "./lib/fluent-fixture.mjs";
 import assert from "node:assert/strict";
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -215,8 +216,8 @@ if (process.argv.includes("--update-current")) {
   assert.deepEqual(currentSummary, fixture);
 }
 
-const declarationFixture = JSON.parse(
-  await readFile(join(root, "tests/fixtures/fluent-sdk-declarations.json"), "utf8"),
+const declarationFixture = decodeFluentFixture(
+  JSON.parse(await readFile(join(root, "tests/fixtures/fluent-sdk-declarations.json"), "utf8")),
 );
 assert.deepEqual(declarationFixture.reviewedVersions, [...SUPPORTED_FLUENT_SDK_VERSIONS]);
 assert.equal(declarationFixture.defaultVersion, DEFAULT_FLUENT_SDK_VERSION);

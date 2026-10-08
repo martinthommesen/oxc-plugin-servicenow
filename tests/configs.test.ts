@@ -114,12 +114,11 @@ describe("configs", () => {
     assert.ok(recommendedOxfmtConfig.ignorePatterns.includes("**/.now/**"));
   });
 
-  it("keeps the shipped oxfmt JSON synchronized with the TypeScript preset", () => {
-    assert.deepEqual(shippedOxfmtConfig, {
+  it("keeps the shipped oxfmt JSON synchronized with the TypeScript preset", () =>
+    void assert.deepEqual(shippedOxfmtConfig, {
       $schema: "./node_modules/oxfmt/configuration_schema.json",
       ...recommendedOxfmtConfig,
-    });
-  });
+    }));
 
   it("pins the immutable 1.1 preset source and documents every map difference", () => {
     // The 1.1.0 preset sources are vendored under fixtures/presets-1.1.0-source/

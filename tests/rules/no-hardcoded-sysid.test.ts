@@ -1,18 +1,21 @@
+import { ruleTester } from "../helpers/rule-tester.js";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { assertInvalid, assertValid, assertValidActive, lint } from "../helpers/rule-tester.js";
+import { lint } from "../helpers/rule-tester.js";
 
 const RULE = "no-hardcoded-sysid" as const;
 const ID = "97c04b3b1b12100043ab85e5bd0713e2";
 
 describe(RULE, () => {
-  it("flags a string literal sys_id", () => {
-    assertInvalid(`var id = "${ID}";`, RULE, { messageId: "hardcoded" });
-  });
+  const { expectInvalid, expectActive, expectValid } = ruleTester(
+    "no-hardcoded-sysid",
+    {},
+    { messageId: "hardcoded" },
+  );
 
-  it("flags a sys_id inside a template literal", () => {
-    assertInvalid(`var id = \`${ID}\`;`, RULE, { messageId: "hardcoded" });
-  });
+  it("flags a string literal sys_id", () => void expectInvalid(`var id = "${ID}";`));
+
+  it("flags a sys_id inside a template literal", () => void expectInvalid(`var id = \`${ID}\`;`));
 
   // @lat: [[tests#Analysis behavior#Template tokens require known boundaries]]
   it("checks static template runs after unknown interpolations", () => {
@@ -22,7 +25,7 @@ describe(RULE, () => {
       `var url = \`\${prefix}/\${middle}/${ID}\`;`,
       'var url = `${prefix}/97c04b3b${"1b12100043ab85e5bd0713e2"}`;',
     ]) {
-      assertInvalid(code, RULE, { messageId: "hardcoded", count: 1 });
+      expectInvalid(code, { messageId: "hardcoded", count: 1 });
     }
   });
 
@@ -33,23 +36,18 @@ describe(RULE, () => {
       `var url = \`\${prefix}${ID}\${suffix}\`;`,
       "var url = `97c04b3b${unknown}1b12100043ab85e5bd0713e2`;",
     ]) {
-      assertValidActive(code, RULE);
+      expectActive(code);
     }
-    assertInvalid(`var url = \`${ID}/\${suffix}\`;`, RULE, { messageId: "hardcoded", count: 1 });
-    assertInvalid(`var digest = \`\${prefix}/${ID}\`;`, RULE, { messageId: "hardcoded", count: 1 });
+    expectInvalid(`var url = \`${ID}/\${suffix}\`;`, { messageId: "hardcoded", count: 1 });
+    expectInvalid(`var digest = \`\${prefix}/${ID}\`;`, { messageId: "hardcoded", count: 1 });
   });
 
-  it("allows gs.getProperty", () => {
-    assertValid(`var id = gs.getProperty("x_acme.group");`, RULE);
-  });
+  it("allows gs.getProperty", () => void expectValid(`var id = gs.getProperty("x_acme.group");`));
 
-  it("honours allowedSysIds", () => {
-    assertValid(`var id = "${ID}";`, RULE, { options: { [RULE]: [{ allowedSysIds: [ID] }] } });
-  });
+  it("honours allowedSysIds", () =>
+    void expectValid(`var id = "${ID}";`, { options: { [RULE]: [{ allowedSysIds: [ID] }] } }));
 
-  it("ignores obvious hash bindings by default", () => {
-    assertValidActive(`var md5 = "${ID}";`, RULE);
-  });
+  it("ignores obvious hash bindings by default", () => void expectActive(`var md5 = "${ID}";`));
 
   it("ignores every digest-like binding name by default (FINDINGS.md COR-002)", () => {
     for (const name of [
@@ -62,150 +60,110 @@ describe(RULE, () => {
       "contentChecksum",
       "MD5_SUM",
     ]) {
-      assertValidActive(`var ${name} = "${ID}";`, RULE);
+      expectActive(`var ${name} = "${ID}";`);
     }
-    assertValidActive(`var payload = { checksum: "${ID}" };`, RULE);
+    expectActive(`var payload = { checksum: "${ID}" };`);
   });
 
-  it("does not suppress a sys_id for a name without a digest word", () => {
-    assertInvalid(`var groupId = "${ID}";`, RULE, { messageId: "hardcoded" });
-  });
+  it("does not suppress a sys_id for a name without a digest word", () =>
+    void expectInvalid(`var groupId = "${ID}";`));
 
   it("does not treat a digest word inside a name component as a digest (FINDINGS.md COR-008)", () => {
     for (const name of ["sharedSysId", "shardId", "betaGroupId", "shadowRecordId", "dashboardId"]) {
-      assertInvalid(`var ${name} = "${ID}";`, RULE, { messageId: "hardcoded" });
-      assertInvalid(`var payload = { ${name}: "${ID}" };`, RULE, { messageId: "hardcoded" });
+      expectInvalid(`var ${name} = "${ID}";`);
+      expectInvalid(`var payload = { ${name}: "${ID}" };`);
     }
   });
 
   it("resolves hash owners structurally across nested sibling expressions", () => {
-    assertValid(`var expectedMd5 = choose({ encoding: "hex" }, "${ID}");`, RULE);
-    assertValid(`hashes.md5 = choose({ encoding: "hex" }, "${ID}");`, RULE);
+    expectValid(`var expectedMd5 = choose({ encoding: "hex" }, "${ID}");`);
+    expectValid(`hashes.md5 = choose({ encoding: "hex" }, "${ID}");`);
   });
 
   it("uses the nearest value owner", () => {
-    assertInvalid(`var md5 = { sys_id: "${ID}" };`, RULE, {
-      messageId: "hardcoded",
-    });
-    assertInvalid(`hashes.md5 = { sys_id: "${ID}" };`, RULE, {
-      messageId: "hardcoded",
-    });
+    expectInvalid(`var md5 = { sys_id: "${ID}" };`);
+    expectInvalid(`hashes.md5 = { sys_id: "${ID}" };`);
   });
 
   it("does not inherit a hash owner across an execution boundary", () => {
-    assertInvalid(
-      `var md5 = function () {
+    expectInvalid(`var md5 = function () {
   return "${ID}";
-};`,
-      RULE,
-      { messageId: "hardcoded" },
-    );
-    assertInvalid(
-      `var md5 = class {
+};`);
+    expectInvalid(`var md5 = class {
   value() {
     return "${ID}";
   }
-};`,
-      RULE,
-      { messageId: "hardcoded" },
-    );
+};`);
   });
 
   it("recognizes direct and member assignment owners", () => {
-    assertValid(`md5 = "${ID}";`, RULE);
-    assertValid(`hashes.md5 = "${ID}";`, RULE);
-    assertInvalid(`record.sys_id = "${ID}";`, RULE, { messageId: "hardcoded" });
+    expectValid(`md5 = "${ID}";`);
+    expectValid(`hashes.md5 = "${ID}";`);
+    expectInvalid(`record.sys_id = "${ID}";`);
   });
 
   it("recognizes parameter-default and class-field owners without guessing dynamic keys", () => {
-    assertValid(`function digest(md5 = "${ID}") { return md5; }`, RULE);
-    assertInvalid(`function lookup(sysId = "${ID}") { return sysId; }`, RULE, {
-      messageId: "hardcoded",
-    });
-    assertValid(`class Digests { md5 = "${ID}"; }`, RULE);
-    assertValid(`class Digests { ["md5"] = "${ID}"; }`, RULE);
-    assertInvalid(
-      `var md5 = "u_target_field";
-class Configuration { [md5] = "${ID}"; }`,
-      RULE,
-      { messageId: "hardcoded" },
-    );
+    expectValid(`function digest(md5 = "${ID}") { return md5; }`);
+    expectInvalid(`function lookup(sysId = "${ID}") { return sysId; }`);
+    expectValid(`class Digests { md5 = "${ID}"; }`);
+    expectValid(`class Digests { ["md5"] = "${ID}"; }`);
+    expectInvalid(`var md5 = "u_target_field";
+class Configuration { [md5] = "${ID}"; }`);
   });
 
-  it("does not inherit a hash owner into a static block", () => {
-    assertInvalid(
-      `var md5 = class {
+  it("does not inherit a hash owner into a static block", () =>
+    void expectInvalid(`var md5 = class {
   static { consume("${ID}"); }
-};`,
-      RULE,
-      { messageId: "hardcoded" },
-    );
-  });
+};`));
 
-  it("can disable hash-name suppression", () => {
-    assertInvalid(
-      `var md5 = "${ID}";`,
-      RULE,
-      { messageId: "hardcoded" },
-      {
-        options: { [RULE]: [{ ignoreHashNames: false }] },
-      },
-    );
-  });
+  it("can disable hash-name suppression", () =>
+    void expectInvalid(`var md5 = "${ID}";`, undefined, {
+      options: { [RULE]: [{ ignoreHashNames: false }] },
+    }));
 
-  it("flags uppercase sys_ids", () => {
-    assertInvalid('var f = "D41D8CD98F00B204E9800998ECF8427E";', RULE, {
-      messageId: "hardcoded",
-    });
-  });
+  it("flags uppercase sys_ids", () =>
+    void expectInvalid('var f = "D41D8CD98F00B204E9800998ECF8427E";'));
 
   it("flags statically assembled sys_ids", () => {
-    assertInvalid('var id = "97c04b3b" + "1b121000" + "43ab85e5" + "bd0713e2";', RULE, {
+    expectInvalid('var id = "97c04b3b" + "1b121000" + "43ab85e5" + "bd0713e2";', {
       messageId: "hardcoded",
       count: 1,
     });
-    assertInvalid('var id = `97c04b3b${"1b12100043ab85e5bd0713e2"}`;', RULE, {
+    expectInvalid('var id = `97c04b3b${"1b12100043ab85e5bd0713e2"}`;', {
       messageId: "hardcoded",
       count: 1,
     });
   });
 
   it("applies hash-owner suppression to statically assembled values", () => {
-    assertValid('var md5 = "97c04b3b" + "1b121000" + "43ab85e5" + "bd0713e2";', RULE);
-    assertValid('var md5 = `97c04b3b${"1b12100043ab85e5bd0713e2"}`;', RULE);
+    expectValid('var md5 = "97c04b3b" + "1b121000" + "43ab85e5" + "bd0713e2";');
+    expectValid('var md5 = `97c04b3b${"1b12100043ab85e5bd0713e2"}`;');
   });
 
   it("reports template quasi and interpolation sys_ids independently", () => {
     const other = "46f3e38e2f7710004f58e7d9d5d0e0b8";
-    assertInvalid(`var id = \`${ID}-\${"${other}"}\`;`, RULE, {
+    expectInvalid(`var id = \`${ID}-\${"${other}"}\`;`, {
       messageId: "hardcoded",
       count: 2,
     });
   });
 
-  it("reports a cross-boundary sys_id beside a complete child sys_id", () => {
-    assertInvalid(`var id = "${ID}" + "-97c04b3b" + "1b12100043ab85e5bd0713e2";`, RULE, {
+  it("reports a cross-boundary sys_id beside a complete child sys_id", () =>
+    void expectInvalid(`var id = "${ID}" + "-97c04b3b" + "1b12100043ab85e5bd0713e2";`, {
       messageId: "hardcoded",
       count: 2,
-    });
-  });
+    }));
 
   it("suppresses a generic hash-like name by default and reports when disabled", () => {
-    assertValid(`var userHash = "${ID}";`, RULE);
-    assertInvalid(
-      `var userHash = "${ID}";`,
-      RULE,
-      { messageId: "hardcoded" },
-      {
-        options: { [RULE]: [{ ignoreHashNames: false }] },
-      },
-    );
+    expectValid(`var userHash = "${ID}";`);
+    expectInvalid(`var userHash = "${ID}";`, undefined, {
+      options: { [RULE]: [{ ignoreHashNames: false }] },
+    });
   });
 
-  it("rejects an unknown rule option", () => {
-    assert.throws(
+  it("rejects an unknown rule option", () =>
+    void assert.throws(
       () => lint(`var id = "${ID}";`, RULE, { options: { [RULE]: [{ notARealOption: true }] } }),
       /unknown option/,
-    );
-  });
+    ));
 });

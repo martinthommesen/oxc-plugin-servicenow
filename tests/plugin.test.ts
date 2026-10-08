@@ -16,18 +16,16 @@ import { rules } from "../src/rules/index.js";
 
 // @lat: [[tests#The catalog#The export surface is exactly the supported API]]
 describe("plugin export", () => {
-  it("exports only the supported runtime API", () => {
-    assert.deepEqual(Object.keys(publicApi).sort(), ["configs", "default", "plugin"]);
-  });
+  it("exports only the supported runtime API", () =>
+    void assert.deepEqual(Object.keys(publicApi).sort(), ["configs", "default", "plugin"]));
 
   it("has the servicenow plugin name", () => {
     assert.equal(plugin.meta.name, PLUGIN_NAME);
     assert.equal(PACKAGE_NAME, "oxc-plugin-servicenow");
   });
 
-  it("PACKAGE_VERSION matches package.json", () => {
-    assert.equal(PACKAGE_VERSION, readPackageJson().version);
-  });
+  it("PACKAGE_VERSION matches package.json", () =>
+    void assert.equal(PACKAGE_VERSION, readPackageJson().version));
 
   it("every rule implements createOnce", () => {
     for (const [name, rule] of Object.entries(rules)) {
@@ -44,9 +42,9 @@ describe("plugin export", () => {
 
   it("pins every rule document to the package release tag", () => {
     assert.equal(PACKAGE_GIT_REF, `v${PACKAGE_VERSION}`);
-    assert.equal(DOCS_BASE_URL, `${REPOSITORY_URL}/blob/v${PACKAGE_VERSION}/docs/rules`);
+    assert.equal(DOCS_BASE_URL, `${REPOSITORY_URL}/blob/v${PACKAGE_VERSION}/docs/rules.md`);
     for (const entry of ruleCatalog) {
-      const expected = `${DOCS_BASE_URL}/${entry.name}.md`;
+      const expected = `${DOCS_BASE_URL}#${entry.name}`;
       const rule = rules[entry.name] as { meta?: { docs?: { url?: string } } };
       assert.equal(entry.docsUrl, expected, entry.name);
       assert.equal(rule.meta?.docs?.url, expected, entry.name);
@@ -111,9 +109,8 @@ describe("plugin export", () => {
     }
   });
 
-  it("the client flat config includes compound UI Action filenames", () => {
-    assert.ok(configs.flat.client.files.includes("**/*.client.ui-action.js"));
-  });
+  it("the client flat config includes compound UI Action filenames", () =>
+    void assert.ok(configs.flat.client.files.includes("**/*.client.ui-action.js")));
 
   it("the ACL flat config selects ACL names and preserves filename conflict checks", () => {
     assert.ok(configs.flat.acl.files.includes("**/{acl,*[-_.]acl}.{js,cjs,mjs}"));

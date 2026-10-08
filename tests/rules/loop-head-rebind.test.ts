@@ -1,7 +1,6 @@
+import { ruleTester } from "../helpers/rule-tester.js";
 import { describe, it } from "node:test";
 import { assertInvalid, assertValidActive } from "../helpers/rule-tester.js";
-
-const RULE = "no-unfiltered-gliderecord-bulk-operation" as const;
 
 // A for-in or for-of head rebinds its declared name on every iteration, so a
 // tracked GlideRecord shadowed by the loop variable must not keep its object
@@ -9,24 +8,26 @@ const RULE = "no-unfiltered-gliderecord-bulk-operation" as const;
 // regressed because a bare `var` declarator is a runtime no-op
 // (FINDINGS.md COR-013).
 describe("loop-head rebinding (FINDINGS.md COR-013)", () => {
+  const { expectActive, expectInvalid } = ruleTester(
+    "no-unfiltered-gliderecord-bulk-operation",
+    {},
+    {},
+  );
+
   it("does not carry a tracked object into a shadowing for-of body", () => {
-    assertValidActive(
+    expectActive(
       "var gr = new GlideRecord('task');\nfor (var gr of items) { gr.deleteMultiple(); }",
-      RULE,
     );
-    assertValidActive(
+    expectActive(
       "var gr = new GlideRecord('task');\nfor (let gr of items) { gr.deleteMultiple(); }",
-      RULE,
     );
-    assertValidActive(
+    expectActive(
       "var gr = new GlideRecord('task');\nfor (var gr in items) { gr.deleteMultiple(); }",
-      RULE,
     );
   });
 
-  it("still reports the unshadowed bulk operation", () => {
-    assertInvalid("var gr = new GlideRecord('task');\ngr.deleteMultiple();", RULE);
-  });
+  it("still reports the unshadowed bulk operation", () =>
+    void expectInvalid("var gr = new GlideRecord('task');\ngr.deleteMultiple();"));
 
   it("does not analyze code after an infinite do-while as reachable", () => {
     assertValidActive(

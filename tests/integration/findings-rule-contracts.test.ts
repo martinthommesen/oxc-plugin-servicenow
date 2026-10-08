@@ -111,13 +111,15 @@ const cases = [
 // @lat: [[tests#Integration#Correctness proofs agree across lint hosts]]
 describe("finding correctness across lint hosts", () => {
   for (const fixture of cases) {
-    it(fixture.name, () => {
-      assertHostFindings(fixture, {
-        prefix: "findings-rule-",
-        filename: "fixture.server.js",
-        settings: fixture.settings,
-      });
-    });
+    it(
+      fixture.name,
+      () =>
+        void assertHostFindings(fixture, {
+          prefix: "findings-rule-",
+          filename: "fixture.server.js",
+          settings: fixture.settings,
+        }),
+    );
   }
 });
 
@@ -151,12 +153,14 @@ describe("mixed UI Action applicability", () => {
     },
     { rule: "no-promise", code: "Promise.resolve(value);", count: 0 },
   ] satisfies HostFindingCase[]) {
-    it(fixture.rule, () => {
-      assertHostFindings(fixture, {
-        prefix: "findings-mixed-",
-        filename: "fixture.ui-action.js",
-        settings,
-      });
-    });
+    it(
+      fixture.rule,
+      () =>
+        void assertHostFindings(fixture, {
+          prefix: "findings-mixed-",
+          filename: "fixture.ui-action.js",
+          settings,
+        }),
+    );
   }
 });

@@ -16,7 +16,7 @@ This repository is an oxlint and ESLint plugin that lints ServiceNow JavaScript.
 - Evidence. Every catalog claim of ServiceNow behavior needs a release-pinned official URL or an in-repo proof. Flag prose that asserts support.
 - Two version axes. The instance release and the Fluent SDK version are independent. A rule must not claim one when it is versioned by the other.
 - Release safety. Nothing outside `.github/workflows/release.yml` may publish, only the Release Sentinel app may create a `v*` tag, and the merge to `main` is the publish action. Treat any change to workflows, `scripts/release-governance.json`, or `scripts/create-release-tag.mjs` as a security change.
-- Generated files. Rule pages under `docs/rules/`, `src/version.ts`, and the acceptance ledger are generated. A hand edit there is a defect; the source is elsewhere.
+- Generated files. The rule reference at `docs/rules.md` and `src/version.ts` are generated. A hand edit there is a defect; the source is elsewhere.
 
 ## Conventions
 

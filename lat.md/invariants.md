@@ -126,23 +126,10 @@ The NUL-terminated form is required: the line form octal-escapes non-ASCII paths
 
 Each test run writes to its own report path when concurrent execution could occur, and report consumers share one exact-proof definition.
 
-`scripts/lib/test-report.mjs` indexes `file::fullName`, requires one clean pass, and counts outcomes. The acceptance verifier allocates a unique temporary report directory per run and removes it afterward.
+`scripts/lib/test-report.mjs` indexes `file::fullName`, requires one clean pass, and counts outcomes. The documentation evidence verifier allocates a unique temporary report directory per run and removes it afterward.
 
 `writeJsonArtifact` in `scripts/lib/json-artifact.mjs` writes every CI JSON artifact through a temporary file plus a rename, so a concurrent reader never observes a partially written document.
 
-[withAcceptanceLock](../scripts/lib/acceptance-lock.mjs#withAcceptanceLock) serializes the complete acceptance run for one repository root. It publishes a completed owner record and uses a fixed reclamation claim because the test suite rebuilds the shared `dist` tree.
-
-Hard-link publication assumes the temporary and final paths share a local filesystem on one host. Unsupported hard links fail without a fallback.
-
-PID liveness treats only `ESRCH` as proof that an owner is absent. A live or unverifiable PID, a missing owner record, and a malformed owner record remain protected.
-
-The claim file is never reclaimed by age. If its process dies, later runs time out until an operator verifies that no claimant remains and removes the claim.
-
-`tests/acceptance-ledger.test.ts` verifies fresh, stale, abandoned-claim, and publication races across separate Node processes. Direct `npm test` and `npm run build` calls remain outside this lock.
-
-[runAcceptanceTests](../scripts/verify-acceptance-ledger.mjs#runAcceptanceTests) captures offline tests by default. Explicit network capture includes the packed consumer; [acceptanceCaptureMapping](../scripts/verify-acceptance-ledger.mjs#acceptanceCaptureMapping) keeps uncaptured consumer criteria live-pending without rewriting authoritative mappings.
-
-[isTransientRegistryError](../scripts/verify-published-package.mjs#isTransientRegistryError) recognizes native aborts/timeouts, response transport failures and registry 500 errors for bounded retries. Schema, integrity and exact release identity failures remain permanent.
 
 ## The plugin emits no output of its own
 

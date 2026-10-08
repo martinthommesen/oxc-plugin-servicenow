@@ -1,181 +1,99 @@
+import { ruleTester } from "../helpers/rule-tester.js";
 import { describe, it } from "node:test";
-import {
-  assertInvalid,
-  assertSkipped,
-  assertValid,
-  assertValidActive,
-  ES5,
-  ES2021,
-} from "../helpers/rule-tester.js";
+import { ES5, ES2021 } from "../helpers/rule-tester.js";
 
 const RULE = "no-bigint" as const;
 
 describe(RULE, () => {
-  it("flags bigint literals", () => {
-    assertInvalid(`var n = 10n;`, RULE, { messageId: "literal" }, { settings: ES5 });
-  });
+  const { expectInvalid, expectActive, expectValid, expectSkipped } = ruleTester(
+    "no-bigint",
+    { settings: ES5 },
+    { messageId: "ctor" },
+  );
+
+  it("flags bigint literals", () => void expectInvalid(`var n = 10n;`, { messageId: "literal" }));
 
   it("flags direct BigInt calls and construction", () => {
-    assertInvalid(`var n = BigInt(10);`, RULE, { messageId: "ctor" }, { settings: ES5 });
-    assertInvalid(`var n = new BigInt(10);`, RULE, { messageId: "ctor" }, { settings: ES5 });
-    assertInvalid(`var n = globalThis.BigInt(10);`, RULE, { messageId: "ctor" }, { settings: ES5 });
+    expectInvalid(`var n = BigInt(10);`);
+    expectInvalid(`var n = new BigInt(10);`);
+    expectInvalid(`var n = globalThis.BigInt(10);`);
   });
 
   it("reports stable same-execution aliases", () => {
-    assertInvalid(
-      `const ToBigInt = BigInt;
-var n = ToBigInt(10);`,
-      RULE,
-      { messageId: "ctor" },
-      { settings: ES5 },
-    );
-    assertInvalid(
-      `const { BigInt: ToBigInt } = globalThis;
-var n = ToBigInt(10);`,
-      RULE,
-      { messageId: "ctor" },
-      { settings: ES5 },
-    );
-    assertInvalid(
-      `for (const ToBigInt = BigInt; ready; ) {
+    expectInvalid(`const ToBigInt = BigInt;
+var n = ToBigInt(10);`);
+    expectInvalid(`const { BigInt: ToBigInt } = globalThis;
+var n = ToBigInt(10);`);
+    expectInvalid(`for (const ToBigInt = BigInt; ready; ) {
   ToBigInt(10);
-}`,
-      RULE,
-      { messageId: "ctor" },
-      { settings: ES5 },
-    );
-    assertInvalid(
-      `for (var ToBigInt = BigInt; ready; ) {
+}`);
+    expectInvalid(`for (var ToBigInt = BigInt; ready; ) {
   ToBigInt(10);
-}`,
-      RULE,
-      { messageId: "ctor" },
-      { settings: ES5 },
-    );
+}`);
   });
 
   it("keeps shadows, mutable aliases, and cross-execution aliases silent", () => {
-    assertValidActive(
-      `function BigInt(value) { return value; }
-BigInt(10);`,
-      RULE,
-      { settings: ES5 },
-    );
-    assertValid(
-      `let ToBigInt = BigInt;
+    expectActive(`function BigInt(value) { return value; }
+BigInt(10);`);
+    expectValid(`let ToBigInt = BigInt;
 if (custom) ToBigInt = localBigInt;
-ToBigInt(10);`,
-      RULE,
-      { settings: ES5 },
-    );
-    assertValid(
-      `const ToBigInt = BigInt;
+ToBigInt(10);`);
+    expectValid(`const ToBigInt = BigInt;
 function later() { return ToBigInt(10); }
-later();`,
-      RULE,
-      { settings: ES5 },
-    );
+later();`);
   });
 
   it("requires bare aliases to be captured inside an availability guard", () => {
-    assertValid(
-      `if (typeof BigInt === "function") {
+    expectValid(`if (typeof BigInt === "function") {
   BigInt(10);
-}`,
-      RULE,
-      { settings: ES5 },
-    );
-    assertInvalid(
-      `const ToBigInt = BigInt;
+}`);
+    expectInvalid(`const ToBigInt = BigInt;
 if (typeof BigInt === "function") {
   ToBigInt(10);
-}`,
-      RULE,
-      { messageId: "ctor" },
-      { settings: ES5 },
-    );
-    assertValid(
-      `if (typeof BigInt === "function") {
+}`);
+    expectValid(`if (typeof BigInt === "function") {
   const ToBigInt = BigInt;
   ToBigInt(10);
-}`,
-      RULE,
-      { settings: ES5 },
-    );
-    assertInvalid(
-      `const ToBigInt = globalThis.BigInt;
+}`);
+    expectInvalid(`const ToBigInt = globalThis.BigInt;
 if (typeof ToBigInt === "function") {
   ToBigInt(10);
-}`,
-      RULE,
-      { messageId: "ctor" },
-      { settings: ES5 },
-    );
+}`);
   });
 
   it("does not accept availability guards invalidated before use", () => {
-    assertInvalid(
-      `if (typeof BigInt === "function") {
+    expectInvalid(`if (typeof BigInt === "function") {
   BigInt = null;
   BigInt(10);
-}`,
-      RULE,
-      { messageId: "ctor" },
-      { settings: ES5 },
-    );
-    assertInvalid(
-      `if (typeof BigInt === "function") {
+}`);
+    expectInvalid(`if (typeof BigInt === "function") {
   Object.defineProperty(globalThis, "BigInt", { value: null });
   BigInt(10);
-}`,
-      RULE,
-      { messageId: "ctor" },
-      { settings: ES5 },
-    );
-    assertValid(
-      `if (typeof BigInt === "function") {
+}`);
+    expectValid(`if (typeof BigInt === "function") {
   BigInt(10);
   Object.defineProperty(globalThis, "BigInt", { value: null });
-}`,
-      RULE,
-      { settings: ES5 },
-    );
+}`);
   });
 
   it("allows callable polyfills but reports non-callable replacements", () => {
-    assertValid(
-      `BigInt = localBigInt;
-BigInt(10);`,
-      RULE,
-      { settings: ES5 },
-    );
+    expectValid(`BigInt = localBigInt;
+BigInt(10);`);
     for (const replacement of ["null", "{}", "[]"]) {
-      assertInvalid(
-        `BigInt = ${replacement};
-BigInt(10);`,
-        RULE,
-        { messageId: "ctor" },
-        { settings: ES5 },
-      );
+      expectInvalid(`BigInt = ${replacement};
+BigInt(10);`);
     }
   });
 
-  it("stays silent under direct-eval uncertainty", () => {
-    assertValidActive(
-      `eval(source);
-BigInt(10);`,
-      RULE,
-      { settings: ES5 },
-    );
-  });
+  it("stays silent under direct-eval uncertainty", () =>
+    void expectActive(`eval(source);
+BigInt(10);`));
 
-  it("allows Number", () => {
-    assertValidActive(`var n = 10;`, RULE, { settings: ES5 });
-  });
+  it("allows Number", () => void expectActive(`var n = 10;`));
 
   it("skips unknown mode, ES2021, and Fluent metadata", () => {
-    assertSkipped(`BigInt(10);`, RULE);
-    assertSkipped(`BigInt(10);`, RULE, { settings: ES2021 });
-    assertSkipped(`BigInt(10);`, RULE, { filename: "table.now.ts", settings: ES5 });
+    expectSkipped(`BigInt(10);`, {});
+    expectSkipped(`BigInt(10);`, { settings: ES2021 });
+    expectSkipped(`BigInt(10);`, { filename: "table.now.ts", settings: ES5 });
   });
 });

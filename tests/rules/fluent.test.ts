@@ -1,287 +1,258 @@
+import { ruleTester } from "../helpers/rule-tester.js";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import {
-  assertInvalid,
-  assertSkipped,
-  assertValid,
-  assertValidActive,
-  lint,
-} from "../helpers/rule-tester.js";
+import { assertInvalid, lint } from "../helpers/rule-tester.js";
 
 const NOW = "file.now.ts";
 
 describe("fluent-proper-imports", () => {
-  it("flags imports from @servicenow/sdk", () => {
-    assertInvalid(
-      `import { BusinessRule } from "@servicenow/sdk";\nBusinessRule({ $id: Now.ID["x"], table: "incident" });`,
-      "fluent-proper-imports",
-      { messageId: "wrongModule" },
-      { filename: NOW },
-    );
-  });
+  const { expectInvalid, expectValid, expectSkipped } = ruleTester(
+    "fluent-proper-imports",
+    {
+      filename: "legacy.js",
+    },
+    { messageId: "wrongModule" },
+  );
 
-  it("flags a Fluent API used without an import", () => {
-    assertInvalid(
+  it("flags imports from @servicenow/sdk", () =>
+    void expectInvalid(
+      `import { BusinessRule } from "@servicenow/sdk";\nBusinessRule({ $id: Now.ID["x"], table: "incident" });`,
+      undefined,
+      { filename: NOW },
+    ));
+
+  it("flags a Fluent API used without an import", () =>
+    void expectInvalid(
       `BusinessRule({ $id: Now.ID["x"], table: "incident" });`,
-      "fluent-proper-imports",
       { messageId: "missingCore" },
       { filename: NOW },
-    );
-  });
+    ));
 
-  it("allows @servicenow/sdk/core", () => {
-    assertValid(
+  it("allows @servicenow/sdk/core", () =>
+    void expectValid(
       `import { BusinessRule } from "@servicenow/sdk/core";\nBusinessRule({ $id: Now.ID["x"], table: "incident" });`,
-      "fluent-proper-imports",
       { filename: NOW },
-    );
-  });
+    ));
 
-  it("ignores classic scripts", () => {
-    assertSkipped(`BusinessRule({ table: "incident" });`, "fluent-proper-imports", {
-      filename: "legacy.js",
-    });
-  });
+  it("ignores classic scripts", () => void expectSkipped(`BusinessRule({ table: "incident" });`));
 
-  it("allows a Fluent call above its hoisted import", () => {
-    assertValid(
-      'Table({ name: "x_a" });\nimport { Table } from "@servicenow/sdk/core";',
-      "fluent-proper-imports",
-      { filename: NOW },
-    );
-  });
+  it("allows a Fluent call above its hoisted import", () =>
+    void expectValid('Table({ name: "x_a" });\nimport { Table } from "@servicenow/sdk/core";', {
+      filename: NOW,
+    }));
 
-  it("allows an aliased core import", () => {
-    assertValid(
+  it("allows an aliased core import", () =>
+    void expectValid(
       `import { BusinessRule as BR } from "@servicenow/sdk/core";\nBR({ $id: Now.ID["x"], table: "incident" });`,
-      "fluent-proper-imports",
       { filename: NOW },
-    );
-  });
+    ));
 
-  it("allows a namespace import from core", () => {
-    assertValid(
+  it("allows a namespace import from core", () =>
+    void expectValid(
       `import * as core from "@servicenow/sdk/core";\ncore.BusinessRule({ $id: Now.ID["x"], table: "incident" });`,
-      "fluent-proper-imports",
       { filename: NOW },
-    );
-  });
+    ));
 
-  it("flags a namespace import from the wrong module", () => {
-    assertInvalid(
+  it("flags a namespace import from the wrong module", () =>
+    void expectInvalid(
       `import * as sdk from "@servicenow/sdk";\nsdk.BusinessRule({ $id: Now.ID["x"], table: "incident" });`,
-      "fluent-proper-imports",
-      { messageId: "wrongModule" },
+      undefined,
       { filename: NOW },
-    );
-  });
+    ));
 });
 
 describe("require-fluent-id", () => {
-  it("flags a missing $id", () => {
-    assertInvalid(
-      `import { BusinessRule } from "@servicenow/sdk/core";\nBusinessRule({ table: "incident", name: "Log" });`,
-      "require-fluent-id",
-      { messageId: "missing" },
-      { filename: NOW },
-    );
-  });
+  const { expectInvalid, expectValid } = ruleTester(
+    "require-fluent-id",
+    {},
+    { messageId: "missing" },
+  );
 
-  it("flags a raw sys_id $id", () => {
-    assertInvalid(
+  it("flags a missing $id", () =>
+    void expectInvalid(
+      `import { BusinessRule } from "@servicenow/sdk/core";\nBusinessRule({ table: "incident", name: "Log" });`,
+      undefined,
+      { filename: NOW },
+    ));
+
+  it("flags a raw sys_id $id", () =>
+    void expectInvalid(
       `import { Record } from "@servicenow/sdk/core";\nRecord({ $id: "97c04b3b1b12100043ab85e5bd0713e2", table: "incident", data: {} });`,
-      "require-fluent-id",
       { messageId: "rawSysId" },
       { filename: NOW },
-    );
-  });
+    ));
 
-  it("allows Now.ID", () => {
-    assertValid(
+  it("allows Now.ID", () =>
+    void expectValid(
       `import { BusinessRule } from "@servicenow/sdk/core";\nBusinessRule({ $id: Now.ID["log-state"], table: "incident" });`,
-      "require-fluent-id",
       { filename: NOW },
-    );
-  });
+    ));
 
-  it("allows a quoted $id key", () => {
-    assertValid(
+  it("allows a quoted $id key", () =>
+    void expectValid(
       'import { BusinessRule } from "@servicenow/sdk/core";\nBusinessRule({ "$id": Now.ID["x"], table: "incident", name: "n" });',
-      "require-fluent-id",
       { filename: NOW },
-    );
-  });
+    ));
 
-  it("allows a temporal Now.ID alias as $id", () => {
-    assertValid(
+  it("allows a temporal Now.ID alias as $id", () =>
+    void expectValid(
       `import { BusinessRule } from "@servicenow/sdk/core";
 let id = Now.ID["log-state"];
 BusinessRule({ $id: id, table: "incident", name: "Log state" });
 id = "later-reassignment";`,
-      "require-fluent-id",
       { filename: NOW },
-    );
-  });
+    ));
 
-  it("flags a raw $id that is later assigned Now.ID", () => {
-    assertInvalid(
+  it("flags a raw $id that is later assigned Now.ID", () =>
+    void expectInvalid(
       `import { BusinessRule } from "@servicenow/sdk/core";
 let id = "raw-id";
 BusinessRule({ $id: id, table: "incident", name: "Log state" });
 id = Now.ID["log-state"];`,
-      "require-fluent-id",
       { messageId: "preferNowId" },
       { filename: NOW },
-    );
-  });
+    ));
 });
 
 describe("prefer-now-include", () => {
+  const { expectInvalid, expectValid } = ruleTester(
+    "prefer-now-include",
+    {},
+    { messageId: "large" },
+  );
+
   it("flags a large inline script", () => {
     const script = Array.from({ length: 10 }, (_, i) => `    gs.info(${i});`).join("\\n");
-    assertInvalid(
+    expectInvalid(
       `import { BusinessRule } from "@servicenow/sdk/core";\nBusinessRule({ $id: Now.ID["x"], script: \`${script}\` });`,
-      "prefer-now-include",
-      { messageId: "large" },
+      undefined,
       { filename: NOW },
     );
   });
 
-  it("allows Now.include", () => {
-    assertValid(
+  it("allows Now.include", () =>
+    void expectValid(
       `import { BusinessRule } from "@servicenow/sdk/core";\nBusinessRule({ $id: Now.ID["x"], script: Now.include("./x.server.js") });`,
-      "prefer-now-include",
       { filename: NOW },
-    );
-  });
+    ));
 
-  it("allows Now.include through an immutable Now alias", () => {
-    assertValid(
+  it("allows Now.include through an immutable Now alias", () =>
+    void expectValid(
       `import { BusinessRule } from "@servicenow/sdk/core";
 const SDK = Now;
 BusinessRule({ $id: SDK.ID["x"], script: (SDK.include("./x.server.js")) });`,
-      "prefer-now-include",
       { filename: NOW },
-    );
-  });
+    ));
 
   it("flags a large payload under a quoted script key", () => {
     const script = Array.from({ length: 10 }, (_, i) => `    gs.info(${i});`).join("\\n");
-    assertInvalid(
+    expectInvalid(
       `import { BusinessRule } from "@servicenow/sdk/core";\nBusinessRule({ $id: Now.ID["x"], "script": \`${script}\` });`,
-      "prefer-now-include",
-      { messageId: "large" },
+      undefined,
       { filename: NOW },
     );
   });
 });
 
 describe("fluent-naming-convention", () => {
+  const { expectActive, expectInvalid, expectValid } = ruleTester(
+    "fluent-naming-convention",
+    { filename: "log-state.now.ts" },
+    { messageId: "nowId" },
+  );
+
   it("checks the filename convention only for Fluent filenames (FINDINGS.md COR-014)", () => {
     // Explicit Fluent authoring routes non-Fluent filenames into this rule;
     // their stems are outside the convention and must not report.
-    assertValidActive(`export const x = 1;`, "fluent-naming-convention", {
+    expectActive(`export const x = 1;`, {
       filename: "app-module.ts",
       settings: { authoring: "fluent" },
     });
   });
 
-  it("flags a PascalCase filename", () => {
-    assertInvalid(
+  it("flags a PascalCase filename", () =>
+    void expectInvalid(
       `import { BusinessRule } from "@servicenow/sdk/core";\nBusinessRule({ $id: Now.ID["ok-id"] });`,
-      "fluent-naming-convention",
       { messageId: "file" },
       { filename: "LogState.now.ts" },
-    );
-  });
+    ));
 
-  it("flags a PascalCase Now.ID key", () => {
-    assertInvalid(
+  it("flags a PascalCase Now.ID key", () =>
+    void expectInvalid(
       `import { BusinessRule } from "@servicenow/sdk/core";\nBusinessRule({ $id: Now.ID["LogState"] });`,
-      "fluent-naming-convention",
-      { messageId: "nowId" },
-      { filename: "log-state.now.ts" },
-    );
-  });
+    ));
 
-  it("flags a PascalCase key through a Now.ID alias", () => {
-    assertInvalid(
-      `const IDs = Now.ID;
-BusinessRule({ $id: IDs["BadAliasKey"] });`,
-      "fluent-naming-convention",
-      { messageId: "nowId" },
-      { filename: "log-state.now.ts" },
-    );
-  });
+  it("flags a PascalCase key through a Now.ID alias", () =>
+    void expectInvalid(`const IDs = Now.ID;
+BusinessRule({ $id: IDs["BadAliasKey"] });`));
 
-  it("allows kebab-case", () => {
-    assertValid(
+  it("allows kebab-case", () =>
+    void expectValid(
       `import { BusinessRule } from "@servicenow/sdk/core";\nBusinessRule({ $id: Now.ID["log-state"] });`,
-      "fluent-naming-convention",
-      { filename: "log-state.now.ts" },
-    );
-  });
+    ));
 });
 
 describe("no-complex-fluent-logic", () => {
-  it("flags a for loop", () => {
-    assertInvalid(
+  const { expectInvalid, expectValid } = ruleTester(
+    "no-complex-fluent-logic",
+    {},
+    { messageId: "asyncFn", count: 1 },
+  );
+
+  it("flags a for loop", () =>
+    void expectInvalid(
       `import { Record } from "@servicenow/sdk/core";\nfor (var i = 0; i < 3; i++) { Record({ $id: Now.ID["x"] }); }`,
-      "no-complex-fluent-logic",
       { messageId: "banned" },
       { filename: NOW },
-    );
-  });
+    ));
 
   it("flags multi-statement function expressions and arrows at the same threshold", () => {
-    assertInvalid(
+    expectInvalid(
       `export const build = function () {\n  prepare();\n  execute();\n  finish();\n};`,
-      "no-complex-fluent-logic",
       { messageId: "banned", includes: "multi-statement function expressions" },
       { filename: NOW },
     );
-    assertInvalid(
+    expectInvalid(
       `export const build = () => {\n  prepare();\n  execute();\n  finish();\n};`,
-      "no-complex-fluent-logic",
       { messageId: "banned", includes: "multi-statement arrow functions" },
       { filename: NOW },
     );
   });
 
   it("allows short synchronous callbacks but rejects both async forms once", () => {
-    assertValid(
+    expectValid(
       `export const build = function () {\n  prepare();\n  execute();\n};\nexport const finish = () => {\n  prepare();\n  execute();\n};`,
-      "no-complex-fluent-logic",
       { filename: NOW },
     );
-    assertInvalid(
+    expectInvalid(
       `export const build = async function () {\n  prepare();\n  execute();\n  finish();\n};`,
-      "no-complex-fluent-logic",
-      { messageId: "asyncFn", count: 1 },
+      undefined,
       { filename: NOW },
     );
-    assertInvalid(
+    expectInvalid(
       `export const build = async () => {\n  prepare();\n  execute();\n  finish();\n};`,
-      "no-complex-fluent-logic",
-      { messageId: "asyncFn", count: 1 },
+      undefined,
       { filename: NOW },
     );
   });
 
-  it("allows declarative records", () => {
-    assertValid(
+  it("allows declarative records", () =>
+    void expectValid(
       `import { Record } from "@servicenow/sdk/core";\nRecord({ $id: Now.ID["seed"], table: "incident", data: { short_description: "Seed" } });`,
-      "no-complex-fluent-logic",
       { filename: NOW },
-    );
-  });
+    ));
 });
 
 describe("fluent-directives", () => {
+  const { expectInvalid, expectValid } = ruleTester(
+    "fluent-directives",
+    {},
+    { messageId: "misplaced" },
+  );
+
   it("flags a typo", () => {
-    assertInvalid(
+    expectInvalid(
       `// @fluent-ignre\nexport const demo = 1;\n`,
-      "fluent-directives",
       {
         messageId: "typo",
       },
@@ -290,9 +261,8 @@ describe("fluent-directives", () => {
   });
 
   it("flags TypeScript compiler directives without calling them Fluent suppressions", () => {
-    assertInvalid(
+    expectInvalid(
       `// @ts-ignore\nexport const demo = 1;\n`,
-      "fluent-directives",
       {
         messageId: "tsIgnore",
         includes: "TypeScript compiler directive",
@@ -302,67 +272,50 @@ describe("fluent-directives", () => {
   });
 
   it("allows @fluent-disable-sync", () => {
-    assertValid(
+    expectValid(
       `// @fluent-disable-sync\nimport { Record } from "@servicenow/sdk/core";\nRecord({ $id: Now.ID["x"], table: "incident", data: {} });\n`,
-      "fluent-directives",
       { filename: NOW },
     );
   });
 
   it("allows @fluent-disable-sync-for-file on the first line", () => {
-    assertValid(
+    expectValid(
       `// @fluent-disable-sync-for-file\nimport { Record } from "@servicenow/sdk/core";\nRecord({ $id: Now.ID["x"], table: "incident", data: {} });\n`,
-      "fluent-directives",
       { filename: NOW },
     );
   });
 
   it("flags @fluent-disable-sync-for-file after the first line", () => {
-    assertInvalid(
+    expectInvalid(
       `import { Record } from "@servicenow/sdk/core";\n// @fluent-disable-sync-for-file\nRecord({ $id: Now.ID["x"], table: "incident", data: {} });\n`,
-      "fluent-directives",
       { messageId: "firstLine" },
       { filename: NOW },
     );
   });
 
   it("requires exact adjacency", () => {
-    assertInvalid(
-      `// @fluent-ignore\n\nexport const demo = 1;\n`,
-      "fluent-directives",
-      { messageId: "misplaced" },
-      { filename: NOW },
-    );
-    assertInvalid(
-      `// @fluent-disable-sync\n// unrelated\nexport const demo = 1;\n`,
-      "fluent-directives",
-      { messageId: "misplaced" },
-      { filename: NOW },
-    );
+    expectInvalid(`// @fluent-ignore\n\nexport const demo = 1;\n`, undefined, { filename: NOW });
+    expectInvalid(`// @fluent-disable-sync\n// unrelated\nexport const demo = 1;\n`, undefined, {
+      filename: NOW,
+    });
   });
 
   it("attaches inside nested statement lists", () => {
-    assertValid(`function run() {\n  // @fluent-ignore\n  work();\n}\n`, "fluent-directives", {
+    expectValid(`function run() {\n  // @fluent-ignore\n  work();\n}\n`, {
       filename: NOW,
     });
-    assertInvalid(
+    expectInvalid(
       `function run() {\n  // @fluent-ignore\n}\nwork();\n`,
-      "fluent-directives",
       { messageId: "dangling" },
       { filename: NOW },
     );
   });
 
   it("handles one-line and multiline block comments", () => {
-    assertValid(`/* @fluent-ignore */\nexport const demo = 1;\n`, "fluent-directives", {
+    expectValid(`/* @fluent-ignore */\nexport const demo = 1;\n`, {
       filename: NOW,
     });
-    assertInvalid(
-      `/* @fluent-ignore\n */\nexport const demo = 1;\n`,
-      "fluent-directives",
-      { messageId: "misplaced" },
-      { filename: NOW },
-    );
+    expectInvalid(`/* @fluent-ignore\n */\nexport const demo = 1;\n`, undefined, { filename: NOW });
     const file = lint(
       `/* heading\n * @fluent-disable-sync-for-file\n */\nexport const demo = 1;\n`,
       "fluent-directives",
@@ -418,7 +371,7 @@ describe("fluent-directives", () => {
 
   it("does not treat a Fluent SDK directive as a lint disable comment", () => {
     const source = `import { Record } from "@servicenow/sdk/core";\n// @fluent-ignore\nRecord({ table: "incident", data: {} });\n`;
-    assertValid(source, "fluent-directives", { filename: NOW });
+    expectValid(source, { filename: NOW });
     assertInvalid(source, "require-fluent-id", { messageId: "missing" }, { filename: NOW });
   });
 });

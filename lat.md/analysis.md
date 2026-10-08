@@ -40,7 +40,9 @@ A platform global can be overwritten, and a rule must stop trusting the name onc
 
 `x_gs` assigned to `gs`, `SOMETHING.current = null`, or a write through a dynamic key all mean the name no longer stands for the platform value at that point. `MutationQuery` in [[src/analysis/mutations.ts#MutationQuery]] exposes file-wide queries plus `...LostAt` variants for a specific use. The temporal variants ignore only writes proven to occur later in the same execution boundary; writes in another boundary remain conservative.
 
-Destructured and member aliases are bounded while mutation facts are built. Four constants set those bounds: `MAX_NAMESPACE_ESCAPE_DEPTH`, `MAX_REFLECT_APPLY_DEPTH`, and `MAX_GLOBAL_ALIAS_DEPTH` in `src/analysis/mutations.ts`, and `MAX_PLATFORM_GLOBAL_ALIAS_DEPTH` in `src/analysis/globals.ts`.
+`mutation-index.ts` collects callable and authority facts into the shared shape in `mutation-facts.ts`; `mutations.ts` exposes queries and temporal filtering.
+
+Destructured and member aliases are bounded while mutation facts are built. Four constants set those bounds: `MAX_NAMESPACE_ESCAPE_DEPTH`, `MAX_REFLECT_APPLY_DEPTH`, and `MAX_GLOBAL_ALIAS_DEPTH` in `src/analysis/mutation-index.ts`, and `MAX_PLATFORM_GLOBAL_ALIAS_DEPTH` in `src/analysis/globals.ts`.
 
 Only `MAX_GLOBAL_ALIAS_DEPTH` records wildcard authority loss on exhaustion, returning the `"*"` path instead of recursing until the host stack fails. The other three stop their walk and return nothing, which is already the conservative answer: an unresolved alias proves no platform identity, so rules that suppress diagnostics when identity is uncertain stay silent.
 
@@ -58,7 +60,9 @@ Fluent aliases apply writes at their completion offsets, so a call inside a pend
 
 ## Path-sensitive analysis
 
-A method call's meaning can depend on what ran before it. `analyzePathBindings` in [[src/analysis/path-state.ts#analyzePathBindings]] is an abstract interpreter that walks the program with a per-point environment, merges states at control-flow joins, and iterates loops to a fixpoint.
+A method call's meaning can depend on what ran before it. `analyzePathBindings` in [[src/analysis/path-interpreter.ts#analyzePathBindings]] is an abstract interpreter that walks the program with a per-point environment, merges states at control-flow joins, and iterates loops to a fixpoint.
+
+The stable `path-state.ts` entry delegates to `path-interpreter.ts` for traversal, `path-values.ts` for value resolution, `path-control-flow.ts` for branches and loops, `path-environment.ts` for joins, `path-budget.ts` for work bounds, and `path-types.ts` for contracts. `path-domains.ts` supplies reusable domain operations.
 
 Each domain plugs in the hooks it needs — `emptyData`, `cloneData`, `mergeData`, `mergeDistinctData`, `equalsData`, `onCall`, `onRef`, `onValue`, `onExit`. The GlideRecord query lifecycle, `Now.ID` facts, and block function hoisting are all domains over this one interpreter.
 
@@ -66,7 +70,7 @@ Four properties matter for reading rule behavior:
 
 - **Joins converge or give up.** When two incoming branches disagree, `mergeDistinctData` returns `undefined` and the fact becomes unknown rather than picking a branch.
 - **Constant tests select the reachable branch.** A literal, template without substitutions, `void` expression, or object/array/function expression has known truthiness and nullishness. `if`, conditional, loop, and logical expressions use it to visit only the branch JavaScript can execute: `true && f()` always runs `f()`, `false && f()` never does, and `null ?? f()` always does. An operand whose value depends on a binding or call keeps the conservative join (FINDINGS.md COR-003).
-- **Work is budgeted.** [[src/analysis/path-state.ts#defaultMaxWork]] scales work with program size under a floor and ceiling. Payload work is charged before domain cloning, joins, equality and call hooks; traversal depth is bounded.
+- **Work is budgeted.** [[src/analysis/path-budget.ts#defaultMaxWork]] scales work with program size under a floor and ceiling. Payload work is charged before domain cloning, joins, equality and call hooks; traversal depth is bounded.
 - **Exhaustion is explicit.** `analyzePathBindings` returns `complete` or `exhausted`. `collectPathFindings` in [[src/analysis/path-state.ts#collectPathFindings]] owns the findings array and the exhaustion tail for every finder built on it, and file analysis clears its provenance maps. No callback can forget the silence rule. `FileAnalysis` republishes the shared outcome as `pathBudgetExhausted` so hosts can distinguish a fully analyzed file from a budget-truncated one (FINDINGS.md PER-006).
 
 Mutable callable bindings belong to path snapshots and joins, while hoisted declarations form the initial environment. Uncalled-body inspection is isolated; direct helper calls project captured effects back. Constant false loop tests prune entries and backedges after header effects.
@@ -77,7 +81,7 @@ Expression-selected callable values remain correlated until the enclosing statem
 
 [[src/analysis/constant-value.ts#constantValue]] supplies syntax-only truthiness and nullishness to path and availability analysis. It never infers runtime binding values. Benchmarks exercise used lexical bindings and correlated helper branches alongside nested scopes.
 
-Retention has its own deterministic counter for `(node, cursor-state)` traversal and set construction, because distinct cursors can defeat memoization. [[src/analysis/path-state.ts#exhaustedPathAnalysis]] notifies the file owner and the finder discards its complete result.
+Retention has its own deterministic counter for `(node, cursor-state)` traversal and set construction, because distinct cursors can defeat memoization. [[src/analysis/path-budget.ts#exhaustedPathAnalysis]] notifies the file owner and the finder discards its complete result.
 
 ## Per-domain finders
 

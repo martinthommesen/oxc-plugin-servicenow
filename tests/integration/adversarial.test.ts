@@ -78,9 +78,8 @@ function assertHostFinding(input: {
 }
 
 describe("adversarial host binding and control-flow", () => {
-  it("rejects malformed source before filtering plugin diagnostics", () => {
-    assert.throws(() => eslintMessages("var = ;", "invalid.server.js"), /parser|parsing/i);
-  });
+  it("rejects malformed source before filtering plugin diagnostics", () =>
+    void assert.throws(() => eslintMessages("var = ;", "invalid.server.js"), /parser|parsing/i));
 
   it("keeps recommended silent on alias, join, escape, and temporal valid fixtures", () => {
     const files = [
@@ -137,13 +136,12 @@ describe("adversarial host binding and control-flow", () => {
     });
   });
 
-  it("keeps Now.ID analysis temporal on the host", () => {
-    assertHostFinding({
+  it("keeps Now.ID analysis temporal on the host", () =>
+    void assertHostFinding({
       file: "temporal-raw-id.now.ts",
       rule: "servicenow/require-fluent-id",
       messageId: "preferNowId",
       line: 5,
       includes: "Now.ID",
-    });
-  });
+    }));
 });

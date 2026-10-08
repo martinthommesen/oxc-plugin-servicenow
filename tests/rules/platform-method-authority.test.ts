@@ -1,7 +1,14 @@
+import { ruleTester } from "../helpers/rule-tester.js";
 import { describe, it } from "node:test";
 import { ACL, assertInvalid, assertValidActive } from "../helpers/rule-tester.js";
 
 describe("GlideRecord method authority", () => {
+  const { expectActive, expectInvalid } = ruleTester(
+    "require-query-before-next",
+    {},
+    { messageId: "missingQuery" },
+  );
+
   it("suppresses cursor diagnostics after visible identity loss", () => {
     for (const code of [
       `var gr = new GlideRecord("incident");
@@ -34,54 +41,36 @@ gr.query = localQuery;
 gr.query();
 gr.next();`,
     ]) {
-      assertValidActive(code, "require-query-before-next");
+      expectActive(code);
     }
   });
 
-  it("keeps authority after nullish Object.assign sources", () => {
-    assertInvalid(
-      `const absent = null;
+  it("keeps authority after nullish Object.assign sources", () =>
+    void expectInvalid(`const absent = null;
 Object.assign(GlideRecord.prototype, absent, undefined);
 var gr = new GlideRecord("incident");
-gr.next();`,
-      "require-query-before-next",
-      { messageId: "missingQuery" },
-    );
-  });
+gr.next();`));
 
   it("keeps authority mutations scoped to the affected object identity", () => {
-    assertInvalid(
-      `var customized = new GlideRecord("incident");
+    expectInvalid(`var customized = new GlideRecord("incident");
 customized.next = localNext;
 var record = new GlideRecord("incident");
-record.next();`,
-      "require-query-before-next",
-      { messageId: "missingQuery" },
-    );
-    assertInvalid(
-      `function customizeLocal() {
+record.next();`);
+    expectInvalid(`function customizeLocal() {
   var record = { next: localNext };
   record.next = otherNext;
 }
 var record = new GlideRecord("incident");
-record.next();`,
-      "require-query-before-next",
-      { messageId: "missingQuery" },
-    );
+record.next();`);
   });
 
-  it("preserves a definite unopened path beside an uncertain branch", () => {
-    assertInvalid(
-      `var record = new GlideRecord("incident");
+  it("preserves a definite unopened path beside an uncertain branch", () =>
+    void expectInvalid(`var record = new GlideRecord("incident");
 if (condition) {
   record.prepare = maybeQuery;
   record.prepare();
 }
-record.next();`,
-      "require-query-before-next",
-      { messageId: "missingQuery" },
-    );
-  });
+record.next();`));
 
   it("keeps windowing and query lifecycle unknown after custom calls", () => {
     assertValidActive(
@@ -147,8 +136,8 @@ gr.query();`,
     );
   });
 
-  it("reports when a static filter clears branch-local uncertainty", () => {
-    assertInvalid(
+  it("reports when a static filter clears branch-local uncertainty", () =>
+    void assertInvalid(
       `var gr = new GlideRecord("incident");
 if (condition) {
   gr.addEncodedQuery(encoded);
@@ -157,8 +146,7 @@ if (condition) {
 gr.deleteMultiple();`,
       "no-unfiltered-gliderecord-bulk-operation",
       { messageId: "unfiltered" },
-    );
-  });
+    ));
 
   it("suppresses N+1 and counting guidance for replaced methods", () => {
     assertValidActive(
@@ -192,25 +180,23 @@ gr.next = localNext;`,
     );
   });
 
-  it("does not let a later method replacement suppress a security review", () => {
-    assertInvalid(
+  it("does not let a later method replacement suppress a security review", () =>
+    void assertInvalid(
       `var gr = new GlideRecord("incident");
 gr.addSystemQuery("active", true);
 gr.addSystemQuery = localQuery;`,
       "no-system-query-bypass",
       { count: 1, messageId: "bypass" },
-    );
-  });
+    ));
 
-  it("reviews a named bypass call after a visible replacement", () => {
-    assertInvalid(
+  it("reviews a named bypass call after a visible replacement", () =>
+    void assertInvalid(
       `var gr = new GlideRecord("incident");
 gr.addSystemQuery = localQuery;
 gr.addSystemQuery("active", true);`,
       "no-system-query-bypass",
       { count: 1, messageId: "bypass" },
-    );
-  });
+    ));
 
   it("keeps computed security review tied to authoritative bypass candidates", () => {
     assertInvalid(
@@ -233,6 +219,8 @@ gr[method];`,
 });
 
 describe("GlideAggregate method authority", () => {
+  const { expectActive } = ruleTester("validate-glideaggregate-calls", {}, {});
+
   it("keeps query and aggregate tuples unknown after custom calls", () => {
     for (const code of [
       `var ga = new GlideAggregate("incident");
@@ -245,36 +233,33 @@ ga.next();`,
 var ga = new GlideAggregate("incident");
 ga.next();`,
     ]) {
-      assertValidActive(code, "validate-glideaggregate-calls");
+      expectActive(code);
     }
-    assertValidActive(
-      `var ga = new GlideAggregate("incident");
+    expectActive(`var ga = new GlideAggregate("incident");
 ga.query = localQuery;
 ga.query();
-ga.next();`,
-      "validate-glideaggregate-calls",
-    );
-    assertValidActive(
-      `var ga = new GlideAggregate("incident");
+ga.next();`);
+    expectActive(`var ga = new GlideAggregate("incident");
 ga.addAggregate = localAggregate;
 ga.addAggregate("COUNT");
 ga.query();
-ga.getAggregate("SUM", "amount");`,
-      "validate-glideaggregate-calls",
-    );
-    assertValidActive(
-      `var ga = new GlideAggregate("incident");
+ga.getAggregate("SUM", "amount");`);
+    expectActive(`var ga = new GlideAggregate("incident");
 ga.prepare = maybeAddAggregate;
 ga.prepare();
 ga.query();
 ga.query();
-ga.getAggregate("SUM", "amount");`,
-      "validate-glideaggregate-calls",
-    );
+ga.getAggregate("SUM", "amount");`);
   });
 });
 
 describe("other platform method authority", () => {
+  const { expectActive, expectInvalid } = ruleTester(
+    "no-glideelement-in-collection",
+    {},
+    { messageId: "retained" },
+  );
+
   it("suppresses mutated GlideDateTime display methods", () => {
     for (const code of [
       `var date = new GlideDateTime();
@@ -292,28 +277,18 @@ if (date.getDisplayValue() < "2026-01-01") gs.info(date);`,
   });
 
   it("requires authoritative cursor and GlideElement member identities", () => {
-    assertValidActive(
-      `var gr = new GlideRecord("incident");
+    expectActive(`var gr = new GlideRecord("incident");
 var values = [];
 while (gr.next()) values.push(gr.number);
-gr.next = localNext;`,
-      "no-glideelement-in-collection",
-    );
-    assertValidActive(
-      `var gr = new GlideRecord("incident");
+gr.next = localNext;`);
+    expectActive(`var gr = new GlideRecord("incident");
 var values = [];
 while (gr.next()) values.push(gr.getElement("number"));
-gr.getElement = localElement;`,
-      "no-glideelement-in-collection",
-    );
-    assertInvalid(
-      `var gr = new GlideRecord("incident");
+gr.getElement = localElement;`);
+    expectInvalid(`var gr = new GlideRecord("incident");
 gr.number = "INC0010001";
 var values = [];
-while (gr.next()) values.push(gr.number);`,
-      "no-glideelement-in-collection",
-      { messageId: "retained" },
-    );
+while (gr.next()) values.push(gr.number);`);
   });
 
   it("suppresses ACL query diagnostics after relevant method authority is lost", () => {

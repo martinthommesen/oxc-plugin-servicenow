@@ -16,8 +16,8 @@ describe("shared file analysis", () => {
     assert.equal(binding.declarations[1]?.start, 13);
   });
 
-  it("keeps static-block var declarations inside the static block", () => {
-    assertInvalid(
+  it("keeps static-block var declarations inside the static block", () =>
+    void assertInvalid(
       `var rec = new GlideRecord("incident");
 class Cache {
   static { var rec = {}; }
@@ -25,8 +25,7 @@ class Cache {
 rec.next();`,
       "require-query-before-next",
       { messageId: "missingQuery" },
-    );
-  });
+    ));
 
   it("builds lexical and provenance analysis once per source object", () => {
     resetAnalysisPassCount();
@@ -56,8 +55,8 @@ rec.next();`,
     assert.equal(getAnalysisPassCount(), 2);
   });
 
-  it("keeps sibling aliases after one name is reassigned", () => {
-    assertInvalid(
+  it("keeps sibling aliases after one name is reassigned", () =>
+    void assertInvalid(
       `var ajax = new GlideAjax("UserLookup");
 var original = ajax;
 ajax = {};
@@ -65,60 +64,54 @@ original.getAnswer();`,
       "no-glideajax-getanswer",
       { messageId: "getAnswer" },
       { filename: "form.client.js" },
-    );
-  });
+    ));
 
-  it("does not let a later reassignment change an earlier use", () => {
-    assertInvalid(
+  it("does not let a later reassignment change an earlier use", () =>
+    void assertInvalid(
       `var gr = new GlideRecord("incident");
 gr.next();
 gr = {};`,
       "require-query-before-next",
       { messageId: "missingQuery" },
-    );
-  });
+    ));
 
-  it("does not let a later closure capture change an earlier use", () => {
-    assertInvalid(
+  it("does not let a later closure capture change an earlier use", () =>
+    void assertInvalid(
       `var rec = new GlideRecord("incident");
 rec.next();
 var later = function () { return rec; };`,
       "require-query-before-next",
       { messageId: "missingQuery" },
-    );
-  });
+    ));
 
-  it("does not execute an uncalled capturing function", () => {
-    assertInvalid(
+  it("does not execute an uncalled capturing function", () =>
+    void assertInvalid(
       `var rec = new GlideRecord("incident");
 function openLater() { rec.query(); }
 rec.next();`,
       "require-query-before-next",
       { messageId: "missingQuery" },
-    );
-  });
+    ));
 
-  it("propagates direct helper effects at invocation time", () => {
-    assertValid(
+  it("propagates direct helper effects at invocation time", () =>
+    void assertValid(
       `function open(record) { record.query(); }
 var rec = new GlideRecord("incident");
 open(rec);
 rec.next();`,
       "require-query-before-next",
-    );
-  });
+    ));
 
-  it("binds fresh records into directly invoked helpers", () => {
-    assertInvalid(
+  it("binds fresh records into directly invoked helpers", () =>
+    void assertInvalid(
       `function read(record) { record.next(); }
 read(new GlideRecord("incident"));`,
       "require-query-before-next",
       { messageId: "missingQuery", count: 1 },
-    );
-  });
+    ));
 
-  it("keeps direct helper invocations state-specific", () => {
-    assertInvalid(
+  it("keeps direct helper invocations state-specific", () =>
+    void assertInvalid(
       `function read(record) { record.next(); }
 var ready = new GlideRecord("incident");
 ready.query();
@@ -127,11 +120,10 @@ var unopened = new GlideRecord("problem");
 read(unopened);`,
       "require-query-before-next",
       { messageId: "missingQuery", count: 1 },
-    );
-  });
+    ));
 
-  it("escapes closure captures only when the closure escapes", () => {
-    assertInvalid(
+  it("escapes closure captures only when the closure escapes", () =>
+    void assertInvalid(
       `var rec = new GlideRecord("incident");
 rec.next();
 var later = function () { rec.query(); };
@@ -139,11 +131,10 @@ handoff(later);
 rec.next();`,
       "require-query-before-next",
       { messageId: "missingQuery", count: 1 },
-    );
-  });
+    ));
 
-  it("does not treat a default parameter as an outer escape", () => {
-    assertInvalid(
+  it("does not treat a default parameter as an outer escape", () =>
+    void assertInvalid(
       `function wrap(rec = other) {
   return rec;
 }
@@ -151,20 +142,18 @@ var rec = new GlideRecord("incident");
 rec.next();`,
       "require-query-before-next",
       { messageId: "missingQuery" },
-    );
-  });
+    ));
 
-  it("marks destructuring of a record as escaped", () => {
-    assertValid(
+  it("marks destructuring of a record as escaped", () =>
+    void assertValid(
       `var rec = new GlideRecord("incident");
 var { sys_id } = rec;
 rec.next();`,
       "require-query-before-next",
-    );
-  });
+    ));
 
-  it("does not treat a shadowed parameter as an outer escape", () => {
-    assertInvalid(
+  it("does not treat a shadowed parameter as an outer escape", () =>
+    void assertInvalid(
       `var gr = new GlideRecord("incident");
 function identity(gr) {
   return gr;
@@ -172,11 +161,10 @@ function identity(gr) {
 gr.next();`,
       "require-query-before-next",
       { messageId: "missingQuery" },
-    );
-  });
+    ));
 
-  it("does not let a for-of binding shadow GlideRecord after the loop", () => {
-    assertInvalid(
+  it("does not let a for-of binding shadow GlideRecord after the loop", () =>
+    void assertInvalid(
       `for (let GlideRecord of constructors) {
   inspect(GlideRecord);
 }
@@ -184,11 +172,10 @@ var gr = new GlideRecord("incident");
 gr.next();`,
       "require-query-before-next",
       { messageId: "missingQuery" },
-    );
-  });
+    ));
 
-  it("keeps named function-expression bindings inside the function", () => {
-    assertInvalid(
+  it("keeps named function-expression bindings inside the function", () =>
+    void assertInvalid(
       `var local = function GlideRecord() {
   var inner = new GlideRecord("problem");
   inner.next();
@@ -197,11 +184,10 @@ var outer = new GlideRecord("incident");
 outer.next();`,
       "require-query-before-next",
       { messageId: "missingQuery", count: 1 },
-    );
-  });
+    ));
 
-  it("keeps named class-expression bindings inside the class", () => {
-    assertInvalid(
+  it("keeps named class-expression bindings inside the class", () =>
+    void assertInvalid(
       `var Local = class GlideRecord {
   read() {
     var inner = new GlideRecord("problem");
@@ -212,30 +198,27 @@ var outer = new GlideRecord("incident");
 outer.next();`,
       "require-query-before-next",
       { messageId: "missingQuery", count: 1 },
-    );
-  });
+    ));
 });
 
 describe("path identity and completion", () => {
-  it("shares query state across aliases", () => {
-    assertValid(
+  it("shares query state across aliases", () =>
+    void assertValid(
       `var gr = new GlideRecord("incident");
 var alias = gr;
 gr.query();
 alias.next();`,
       "require-query-before-next",
-    );
-  });
+    ));
 
-  it("does not treat a short-circuit query as definite", () => {
-    assertInvalid(
+  it("does not treat a short-circuit query as definite", () =>
+    void assertInvalid(
       `var gr = new GlideRecord("incident");
 ready && gr.query();
 gr.next();`,
       "require-query-before-next",
       { messageId: "missingQuery" },
-    );
-  });
+    ));
 
   // @lat: [[tests#Analysis behavior#Constant logical operands select the reachable branch]]
   describe("constant logical operands (FINDINGS.md COR-003)", () => {
@@ -250,9 +233,8 @@ gr.next();`,
       "void 0 ?? gr.query(); gr.next();",
       "`` || gr.query(); gr.next();",
     ]) {
-      it(`treats a necessarily evaluated right operand as definite: ${tail}`, () => {
-        assertValid(`${opened}\n${tail}`, "require-query-before-next");
-      });
+      it(`treats a necessarily evaluated right operand as definite: ${tail}`, () =>
+        void assertValid(`${opened}\n${tail}`, "require-query-before-next"));
     }
 
     for (const tail of [
@@ -265,9 +247,8 @@ gr.next();`,
       '"" ?? gr.next();',
       "({}) ?? gr.next();",
     ]) {
-      it(`does not report a call on an unreachable right operand: ${tail}`, () => {
-        assertValid(`${opened}\n${tail}`, "require-query-before-next");
-      });
+      it(`does not report a call on an unreachable right operand: ${tail}`, () =>
+        void assertValid(`${opened}\n${tail}`, "require-query-before-next"));
     }
 
     it("keeps facts from a necessarily skipped right operand out of the state", () => {
@@ -307,18 +288,17 @@ gr.next();`,
     });
   });
 
-  it("lets a definite query recover after a branch join", () => {
-    assertValid(
+  it("lets a definite query recover after a branch join", () =>
+    void assertValid(
       `var gr = new GlideRecord("incident");
 if (preload) gr.query();
 gr.query();
 gr.next();`,
       "require-query-before-next",
-    );
-  });
+    ));
 
-  it("reports next on the unopened path after an early return", () => {
-    assertInvalid(
+  it("reports next on the unopened path after an early return", () =>
+    void assertInvalid(
       `function run(ready) {
   var gr = new GlideRecord("incident");
   if (ready) {
@@ -329,11 +309,10 @@ gr.next();`,
 }`,
       "require-query-before-next",
       { messageId: "missingQuery" },
-    );
-  });
+    ));
 
-  it("still reports when an unrelated nested function exists", () => {
-    assertInvalid(
+  it("still reports when an unrelated nested function exists", () =>
+    void assertInvalid(
       `var gr = new GlideRecord("incident");
 function unrelated() {
   return 42;
@@ -341,22 +320,20 @@ function unrelated() {
 gr.next();`,
       "require-query-before-next",
       { messageId: "missingQuery" },
-    );
-  });
+    ));
 
-  it("does not merge different branch objects as one identity", () => {
-    assertValid(
+  it("does not merge different branch objects as one identity", () =>
+    void assertValid(
       `var gr = new GlideRecord("incident");
 if (flag) {
   gr = new GlideRecord("problem");
 }
 gr.deleteMultiple();`,
       "no-unfiltered-gliderecord-bulk-operation",
-    );
-  });
+    ));
 
-  it("preserves alias identity across a no-op join", () => {
-    assertValid(
+  it("preserves alias identity across a no-op join", () =>
+    void assertValid(
       `var gr = new GlideRecord("task");
 var alias = gr;
 if (debug) {
@@ -365,32 +342,29 @@ if (debug) {
 gr.addQuery("active", true);
 alias.deleteMultiple();`,
       "no-unfiltered-gliderecord-bulk-operation",
-    );
-  });
+    ));
 
-  it("does not treat a block-scoped record as the outer binding", () => {
-    assertValid(
+  it("does not treat a block-scoped record as the outer binding", () =>
+    void assertValid(
       `var gr = { deleteMultiple: function () {} };
 {
   let gr = new GlideRecord("task");
 }
 gr.deleteMultiple();`,
       "no-unfiltered-gliderecord-bulk-operation",
-    );
-  });
+    ));
 
-  it("marks object and array storage as escaped", () => {
-    assertValid(
+  it("marks object and array storage as escaped", () =>
+    void assertValid(
       `var rec = new GlideRecord("incident");
 var bag = { rec: rec };
 var list = [rec];
 rec.next();`,
       "require-query-before-next",
-    );
-  });
+    ));
 
-  it("reports when a switch path may skip query", () => {
-    assertInvalid(
+  it("reports when a switch path may skip query", () =>
+    void assertInvalid(
       `var rec = new GlideRecord("incident");
 switch (mode) {
   case "ready":
@@ -399,11 +373,10 @@ switch (mode) {
 }
 rec.next();`,
       "require-query-before-next",
-    );
-  });
+    ));
 
-  it("reports next after a switch that never queries", () => {
-    assertInvalid(
+  it("reports next after a switch that never queries", () =>
+    void assertInvalid(
       `var rec = new GlideRecord("incident");
 switch (mode) {
   case "ready":
@@ -413,29 +386,26 @@ switch (mode) {
 rec.next();`,
       "require-query-before-next",
       { messageId: "missingQuery" },
-    );
-  });
+    ));
 
-  it("marks a stored inline constructor as escaped", () => {
-    assertValid(
+  it("marks a stored inline constructor as escaped", () =>
+    void assertValid(
       `var rec;
 var bag = { rec: (rec = new GlideRecord("incident")) };
 rec.next();`,
       "require-query-before-next",
-    );
-  });
+    ));
 
-  it("retains loop-test side effects on the zero-iteration path", () => {
-    assertValid(
+  it("retains loop-test side effects on the zero-iteration path", () =>
+    void assertValid(
       `var rec = new GlideRecord("incident");
 while ((rec.query(), false)) {}
 rec.next();`,
       "require-query-before-next",
-    );
-  });
+    ));
 
-  it("executes a for update after continue", () => {
-    assertValid(
+  it("executes a for update after continue", () =>
+    void assertValid(
       `var rec = new GlideRecord("incident");
 rec.query();
 for (; rec.next(); rec.query()) {
@@ -443,22 +413,20 @@ for (; rec.next(); rec.query()) {
 }
 rec.next();`,
       "require-query-before-next",
-    );
-  });
+    ));
 
-  it("executes a do-while test after continue", () => {
-    assertValid(
+  it("executes a do-while test after continue", () =>
+    void assertValid(
       `var rec = new GlideRecord("incident");
 do {
   continue;
 } while ((rec.query(), false));
 rec.next();`,
       "require-query-before-next",
-    );
-  });
+    ));
 
-  it("reaches a loop fixed point before evaluating later iterations", () => {
-    assertInvalid(
+  it("reaches a loop fixed point before evaluating later iterations", () =>
+    void assertInvalid(
       `var rec = new GlideRecord("incident");
 rec.query();
 while (more) {
@@ -467,11 +435,10 @@ while (more) {
 }`,
       "no-gliderecord-query-modifier-after-query",
       { messageId: "lateModifier", count: 1 },
-    );
-  });
+    ));
 
-  it("preserves object identity through equivalent expression results", () => {
-    assertValid(
+  it("preserves object identity through equivalent expression results", () =>
+    void assertValid(
       `var rec = new GlideRecord("incident");
 var conditional = flag ? rec : rec;
 var logical = rec && rec;
@@ -483,106 +450,95 @@ logical.next();
 sequence.next();
 assigned.next();`,
       "require-query-before-next",
-    );
-  });
+    ));
 
-  it("does not infer identity through a fallback-only logical result", () => {
-    assertValid(
+  it("does not infer identity through a fallback-only logical result", () =>
+    void assertValid(
       `var rec = new GlideRecord("incident");
 var alias = flag || rec;
 alias.next();`,
       "require-query-before-next",
-    );
-  });
+    ));
 
-  it("invalidates a tracked binding after numeric update coercion", () => {
-    assertValid(
+  it("invalidates a tracked binding after numeric update coercion", () =>
+    void assertValid(
       `var rec = new GlideRecord("incident");
 rec++;
 rec.next();`,
       "require-query-before-next",
-    );
-  });
+    ));
 
-  it("evaluates call arguments before applying the outer call", () => {
-    assertValid(
+  it("evaluates call arguments before applying the outer call", () =>
+    void assertValid(
       `var ajax = new GlideAjax("Lookup");
 ajax.getXMLAnswer(ajax.addParam("sysparm_name", "lookup"));`,
       "require-glideajax-sysparm-name",
       { filename: "form.client.js" },
-    );
-  });
+    ));
 
-  it("evaluates computed assignment targets", () => {
-    assertValid(
+  it("evaluates computed assignment targets", () =>
+    void assertValid(
       `var rec = new GlideRecord("incident");
 cache[rec.query()] = true;
 rec.next();`,
       "require-query-before-next",
-    );
-  });
+    ));
 
-  it("does not treat a logical-assignment right side as definite", () => {
-    assertInvalid(
+  it("does not treat a logical-assignment right side as definite", () =>
+    void assertInvalid(
       `var rec = new GlideRecord("incident");
 ready &&= rec.query();
 rec.next();`,
       "require-query-before-next",
       { messageId: "missingQuery" },
-    );
-  });
+    ));
 
-  it("does not treat a destructuring default as definite", () => {
-    assertInvalid(
+  it("does not treat a destructuring default as definite", () =>
+    void assertInvalid(
       `var rec = new GlideRecord("incident");
 var { value = rec.query() } = source;
 rec.next();`,
       "require-query-before-next",
       { messageId: "missingQuery" },
-    );
-  });
+    ));
 
-  it("evaluates computed destructuring keys before the binding write", () => {
-    assertValid(
+  it("evaluates computed destructuring keys before the binding write", () =>
+    void assertValid(
       `var rec = new GlideRecord("incident");
 var { [rec.query()]: value } = source;
 rec.next();`,
       "require-query-before-next",
-    );
-  });
+    ));
 
-  it("does not erase a value for an uninitialized var redeclaration", () => {
-    assertInvalid(
+  it("does not erase a value for an uninitialized var redeclaration", () =>
+    void assertInvalid(
       `var rec = new GlideRecord("incident");
 var rec;
 rec.deleteMultiple();`,
       "no-unfiltered-gliderecord-bulk-operation",
       { messageId: "unfiltered" },
-    );
-  });
+    ));
 
-  it("invalidates an existing for-of assignment target", () => {
-    assertValid(
+  it("invalidates an existing for-of assignment target", () =>
+    void assertValid(
       `var rec = new GlideRecord("incident");
 for (rec of records) {}
 rec.deleteMultiple();`,
       "no-unfiltered-gliderecord-bulk-operation",
-    );
-  });
+    ));
 
-  it("does not fabricate a catch path when no handler exists", () => {
-    assertValid(
+  it("does not fabricate a catch path when no handler exists", () =>
+    void assertValid(
       `var rec = new GlideRecord("incident");
 try {
   rec.query();
 } finally {}
 rec.next();`,
       "require-query-before-next",
-    );
-  });
+    ));
 
-  it("keeps the pre-call state when the call itself may throw", () => {
-    assertInvalid(
+  it("keeps the pre-call state when the call itself may throw", () =>
+    void assertInvalid(
       `var rec = new GlideRecord("incident");
 try {
   throw (rec.query(), new Error("stop"));
@@ -590,11 +546,10 @@ try {
 rec.next();`,
       "require-query-before-next",
       { messageId: "missingQuery" },
-    );
-  });
+    ));
 
-  it("does not run a catch handler on a normal-only path", () => {
-    assertValid(
+  it("does not run a catch handler on a normal-only path", () =>
+    void assertValid(
       `var rec = new GlideRecord("incident");
 try {
   rec.query();
@@ -603,11 +558,10 @@ try {
 }
 rec.next();`,
       "require-query-before-next",
-    );
-  });
+    ));
 
-  it("lets an abrupt finalizer override an earlier normal completion", () => {
-    assertValid(
+  it("lets an abrupt finalizer override an earlier normal completion", () =>
+    void assertValid(
       `function run() {
   var rec = new GlideRecord("incident");
   try {
@@ -618,11 +572,10 @@ rec.next();`,
   rec.next();
 }`,
       "require-query-before-next",
-    );
-  });
+    ));
 
-  it("preserves an earlier abrupt completion through a normal finalizer", () => {
-    assertValid(
+  it("preserves an earlier abrupt completion through a normal finalizer", () =>
+    void assertValid(
       `function run() {
   var rec = new GlideRecord("incident");
   try {
@@ -633,11 +586,10 @@ rec.next();`,
   rec.next();
 }`,
       "require-query-before-next",
-    );
-  });
+    ));
 
-  it("accepts an exhaustive switch when every case opens the cursor", () => {
-    assertValid(
+  it("accepts an exhaustive switch when every case opens the cursor", () =>
+    void assertValid(
       `var rec = new GlideRecord("incident");
 switch (mode) {
   case "one":
@@ -648,11 +600,10 @@ switch (mode) {
 }
 rec.next();`,
       "require-query-before-next",
-    );
-  });
+    ));
 
-  it("keeps switch fallthrough entry paths distinct", () => {
-    assertInvalid(
+  it("keeps switch fallthrough entry paths distinct", () =>
+    void assertInvalid(
       `var rec = new GlideRecord("incident");
 switch (mode) {
   case "one":
@@ -662,11 +613,10 @@ switch (mode) {
 }`,
       "require-query-before-next",
       { messageId: "missingQuery" },
-    );
-  });
+    ));
 
-  it("keeps code after an exhaustive abrupt switch unreachable", () => {
-    assertValid(
+  it("keeps code after an exhaustive abrupt switch unreachable", () =>
+    void assertValid(
       `function run(mode) {
   var rec = new GlideRecord("incident");
   switch (mode) {
@@ -678,11 +628,10 @@ switch (mode) {
   rec.next();
 }`,
       "require-query-before-next",
-    );
-  });
+    ));
 
-  it("continues after a break consumed by its label", () => {
-    assertInvalid(
+  it("continues after a break consumed by its label", () =>
+    void assertInvalid(
       `var rec = new GlideRecord("incident");
 done: {
   break done;
@@ -690,20 +639,18 @@ done: {
 rec.next();`,
       "require-query-before-next",
       { messageId: "missingQuery" },
-    );
-  });
+    ));
 
-  it("keeps code after a provably infinite loop unreachable", () => {
-    assertValid(
+  it("keeps code after a provably infinite loop unreachable", () =>
+    void assertValid(
       `var rec = new GlideRecord("incident");
 while (true) {}
 rec.next();`,
       "require-query-before-next",
-    );
-  });
+    ));
 
-  it("analyzes one finally body across normal and return paths", () => {
-    assertInvalid(
+  it("analyzes one finally body across normal and return paths", () =>
+    void assertInvalid(
       `function run(stop) {
   var rec = new GlideRecord("incident");
   try {
@@ -714,8 +661,7 @@ rec.next();`,
 }`,
       "require-query-before-next",
       { messageId: "missingQuery", count: 1 },
-    );
-  });
+    ));
 
   it("propagates a throw out of a try statement without a catch handler", () => {
     // The injected throw must exit the try statement: if the analysis
@@ -746,11 +692,10 @@ gr.deleteMultiple();`,
     );
   });
 
-  it("stays silent on ordinary JavaScript without ServiceNow context", () => {
-    assertValid(
+  it("stays silent on ordinary JavaScript without ServiceNow context", () =>
+    void assertValid(
       `var gr = new GlideRecord("task");\ngr.deleteMultiple();`,
       "no-unfiltered-gliderecord-bulk-operation",
       { filename: "util.js" },
-    );
-  });
+    ));
 });

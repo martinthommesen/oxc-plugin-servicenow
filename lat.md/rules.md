@@ -1,6 +1,6 @@
 Fifty rules ship in 3.0.0 across three families and ten profiles. This file describes registration, rule shape, and reference documentation.
 
-Per-rule semantics, applicability, options, false positives and negatives, and evidence live in `docs/rules/*.md`. Pages derive from the catalog; their claims still need verification against runtime behavior. Do not restate their content here.
+Per-rule semantics, applicability, options, false positives and negatives, and evidence live in `docs/rules.md`. Sections derive from the catalog; their claims still need verification against runtime behavior. Do not restate their content here.
 
 ## The catalog is the registry
 
@@ -10,7 +10,7 @@ Per-rule semantics, applicability, options, false positives and negatives, and e
 
 The file's comment states the rule: add an implementation file and one descriptor module in `src/catalog/`, never an export in the registry. Shared assembly lives in `src/catalog/entry.ts` with types in `src/catalog/types.ts`. `RuleName` is inferred from the catalog array, so an unregistered rule does not typecheck.
 
-The catalog also drives the profile maps in `src/configs/maps.ts`, `docs/rules/*.md`, the rule tables in the README, and the checked-in example configs.
+The catalog also drives the profile maps in `src/configs/maps.ts`, `docs/rules.md`, the rule tables in the README, and the checked-in example configs.
 
 ## Three catalog axes
 
@@ -66,7 +66,7 @@ Mixed UI Action behavior is rule-specific. Explicit client/server surfaces can e
 
 Each rule's evidence records carry a URL or test path, a claim, a `verifiedBy` kind, a date, and a per-rule verification id.
 
-`docs/rules/*.md` renders them, and `scripts/check-catalog-docs.mjs` enforces roughly forty invariants over them — release-review completeness, against-placeholder URLs, date sanity, and the requirement that an `error`-severity recommended rule cite both normative external evidence and an automated in-repo proof. See [[invariants#Evidence resolves to a passing test]].
+`docs/rules.md` renders them, and `scripts/check-catalog-docs.mjs` enforces roughly forty invariants over them — release-review completeness, against-placeholder URLs, date sanity, and the requirement that an `error`-severity recommended rule cite both normative external evidence and an automated in-repo proof. See [[invariants#Evidence resolves to a passing test]].
 
 ## Related
 

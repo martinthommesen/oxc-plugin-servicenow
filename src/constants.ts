@@ -17,10 +17,10 @@ export const REPOSITORY_URL = "https://github.com/martinthommesen/oxc-plugin-ser
 /** Immutable Git ref created and verified before the corresponding package is published. */
 export const PACKAGE_GIT_REF = `v${PACKAGE_VERSION}`;
 
-export const DOCS_BASE_URL = `${REPOSITORY_URL}/blob/${PACKAGE_GIT_REF}/docs/rules`;
+export const DOCS_BASE_URL = `${REPOSITORY_URL}/blob/${PACKAGE_GIT_REF}/docs/rules.md`;
 
 export function ruleDocsUrl(ruleName: string): string {
-  return `${DOCS_BASE_URL}/${ruleName}.md`;
+  return `${DOCS_BASE_URL}#${ruleName}`;
 }
 
 /** Properties that typically hold large script / markup payloads in Fluent. */

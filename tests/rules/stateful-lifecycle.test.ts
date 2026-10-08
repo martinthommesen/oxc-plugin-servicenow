@@ -1,14 +1,19 @@
+import { ruleTester } from "../helpers/rule-tester.js";
 import { describe, it } from "node:test";
 import { SUPPORTED_SERVICENOW_RELEASES } from "../../src/settings/releases.js";
-import { assertInvalid, assertValid, assertValidActive } from "../helpers/rule-tester.js";
+import { assertInvalid, assertValid } from "../helpers/rule-tester.js";
 
 const SERVER = { filename: "incident.br.js" };
 
 describe("validate-glideaggregate-calls lifecycle", () => {
-  const RULE = "validate-glideaggregate-calls" as const;
+  const { expectInvalid, expectValid, expectActive } = ruleTester(
+    "validate-glideaggregate-calls",
+    {},
+    { messageId: "unknownAggregate" },
+  );
 
-  it("does not treat a one-branch tuple as definite", () => {
-    assertInvalid(
+  it("does not treat a one-branch tuple as definite", () =>
+    void expectInvalid(
       `var ga = new GlideAggregate("incident");
 if (includePriority) {
   ga.addAggregate("COUNT", "priority");
@@ -16,73 +21,65 @@ if (includePriority) {
 ga.query();
 ga.next();
 ga.getAggregate("COUNT", "priority");`,
-      RULE,
-      { messageId: "unknownAggregate" },
+      undefined,
       SERVER,
-    );
-  });
+    ));
 
-  it("does not let type-only COUNT satisfy a field-specific read", () => {
-    assertInvalid(
+  it("does not let type-only COUNT satisfy a field-specific read", () =>
+    void expectInvalid(
       `var ga = new GlideAggregate("incident");
 ga.addAggregate("COUNT");
 ga.query();
 ga.next();
 ga.getAggregate("COUNT", "priority");`,
-      RULE,
-      { messageId: "unknownAggregate" },
+      undefined,
       SERVER,
-    );
-  });
+    ));
 
   it("does not accept addAggregate after query for the open result", () => {
-    assertInvalid(
+    expectInvalid(
       `var ga = new GlideAggregate("incident");
 ga.addAggregate("COUNT");
 ga.query();
 ga.addAggregate("SUM", "amount");
 ga.next();
 ga.getAggregate("SUM", "amount");`,
-      RULE,
-      { messageId: "unknownAggregate" },
+      undefined,
       SERVER,
     );
-    assertInvalid(
+    expectInvalid(
       `var ga = new GlideAggregate("incident");
 ga.addAggregate("COUNT");
 ga.query();
 ga.addAggregate(kind);
 ga.getAggregate("SUM", "amount");`,
-      RULE,
-      { messageId: "unknownAggregate" },
+      undefined,
       SERVER,
     );
   });
 
   it("preserves correlated static and dynamic branch alternatives", () => {
-    assertInvalid(
+    expectInvalid(
       `var ga = new GlideAggregate("incident");
 if (dynamic) ga.addAggregate(kind);
 else ga.addAggregate("COUNT");
 ga.query();
 ga.getAggregate("SUM", "amount");`,
-      RULE,
-      { messageId: "unknownAggregate" },
+      undefined,
       SERVER,
     );
-    assertValid(
+    expectValid(
       `var ga = new GlideAggregate("incident");
 if (dynamic) ga.addAggregate(kind);
 else ga.addAggregate("SUM", "amount");
 ga.query();
 ga.getAggregate("SUM", "amount");`,
-      RULE,
       SERVER,
     );
   });
 
   it("retains earlier aggregates on a later query epoch", () => {
-    assertValid(
+    expectValid(
       `var ga = new GlideAggregate("incident");
 ga.addAggregate("COUNT");
 ga.query();
@@ -93,86 +90,79 @@ ga.query();
 ga.next();
 ga.getAggregate("COUNT");
 ga.getAggregate("SUM", "amount");`,
-      RULE,
       SERVER,
     );
-    assertInvalid(
+    expectInvalid(
       `var ga = new GlideAggregate("incident");
 ga.addAggregate("COUNT");
 ga.query();
 ga.next();
 ga.getAggregate("SUM", "amount");`,
-      RULE,
-      { messageId: "unknownAggregate" },
+      undefined,
       SERVER,
     );
   });
 
-  it("tracks aliases and sibling reassignment", () => {
-    assertInvalid(
+  it("tracks aliases and sibling reassignment", () =>
+    void expectInvalid(
       `var ga = new GlideAggregate("incident");
 var alias = ga;
 ga = other;
 alias.next();`,
-      RULE,
       { messageId: "missingQuery" },
       SERVER,
-    );
-  });
+    ));
 
-  it("stays silent after helper escape", () => {
-    assertValidActive(
+  it("stays silent after helper escape", () =>
+    void expectActive(
       `var ga = new GlideAggregate("incident");
 prepare(ga);
 ga.getAggregate("COUNT");`,
-      RULE,
       SERVER,
-    );
-  });
+    ));
 });
 
 describe("no-unfiltered-gliderecord-bulk-operation filters", () => {
-  const RULE = "no-unfiltered-gliderecord-bulk-operation" as const;
+  const { expectInvalid, expectValid, expectActive } = ruleTester(
+    "no-unfiltered-gliderecord-bulk-operation",
+    {},
+    { messageId: "unfiltered" },
+  );
 
   it("flags missing and empty filter arguments", () => {
-    assertInvalid(
+    expectInvalid(
       `var gr = new GlideRecord("task");
 gr.addQuery();
 gr.deleteMultiple();`,
-      RULE,
-      { messageId: "unfiltered" },
+      undefined,
       SERVER,
     );
-    assertInvalid(
+    expectInvalid(
       `var gr = new GlideRecord("task");
 gr.addEncodedQuery("");
 gr.updateMultiple();`,
-      RULE,
-      { messageId: "unfiltered" },
+      undefined,
       SERVER,
     );
-    assertInvalid(
+    expectInvalid(
       `var gr = new GlideRecord("task");
 gr.addEncodedQuery(null);
 gr.deleteMultiple();`,
-      RULE,
-      { messageId: "unfiltered" },
+      undefined,
       SERVER,
     );
-    assertInvalid(
+    expectInvalid(
       `var gr = new GlideRecord("task");
 gr.addQuery(42);
 gr.deleteMultiple();`,
-      RULE,
-      { messageId: "unfiltered" },
+      undefined,
       SERVER,
     );
-    assertInvalid(
+    expectInvalid(
       `var gr = new GlideRecord("task");
 gr.addEncodedQuery(false);
 gr.deleteMultiple();`,
-      RULE,
-      { messageId: "unfiltered" },
+      undefined,
       SERVER,
     );
   });
@@ -181,74 +171,64 @@ gr.deleteMultiple();`,
     // `(gr = new GlideRecord(...))` has no object name. The finder used to skip
     // such calls, losing the filter fact and reporting the bulk operation as
     // unfiltered.
-    assertValid(
+    expectValid(
       `var gr;
 (gr = new GlideRecord("task")).addQuery("active", true);
 gr.deleteMultiple();`,
-      RULE,
       SERVER,
     );
   });
 
-  it("stays silent for a shadowed undefined filter", () => {
-    assertValidActive(
+  it("stays silent for a shadowed undefined filter", () =>
+    void expectActive(
       `function run(undefined) {
   var gr = new GlideRecord("task");
   gr.addQuery(undefined);
   gr.deleteMultiple();
 }`,
-      RULE,
       SERVER,
-    );
-  });
+    ));
 
-  it("stays silent for a dynamic filter argument", () => {
-    assertValidActive(
+  it("stays silent for a dynamic filter argument", () =>
+    void expectActive(
       `var gr = new GlideRecord("task");
 gr.addQuery(fieldName, value);
 gr.deleteMultiple();`,
-      RULE,
       SERVER,
-    );
-  });
+    ));
 
-  it("stays silent after an unknown method follows merged filter state", () => {
-    assertValidActive(
+  it("stays silent after an unknown method follows merged filter state", () =>
+    void expectActive(
       `var gr = new GlideRecord("task");
 if (ready) gr.addQuery("active", true);
 gr.unknownMethod();
 gr.deleteMultiple();`,
-      RULE,
       SERVER,
-    );
-  });
+    ));
 
   it("does not treat shape or executor calls as filters", () => {
-    assertInvalid(
+    expectInvalid(
       `var gr = new GlideRecord("task");
 gr.chooseWindow(0, 10);
 gr.setLimit(10);
 gr.query();
 gr.deleteMultiple();`,
-      RULE,
-      { messageId: "unfiltered" },
+      undefined,
       SERVER,
     );
     for (const release of SUPPORTED_SERVICENOW_RELEASES) {
-      assertInvalid(
+      expectInvalid(
         `var gr = new GlideRecord("task");
 gr._query();
 gr.deleteMultiple();`,
-        RULE,
-        { messageId: "unfiltered" },
+        undefined,
         { ...SERVER, settings: { scope: "scoped", release } },
       );
-      assertInvalid(
+      expectInvalid(
         `var gr = new GlideRecord("task");
 gr.queryNoDomain();
 gr.deleteMultiple();`,
-        RULE,
-        { messageId: "unfiltered" },
+        undefined,
         { ...SERVER, settings: { scope: "global", release } },
       );
     }
@@ -256,55 +236,38 @@ gr.deleteMultiple();`,
 });
 
 describe("require-glideajax-sysparm-name values", () => {
-  const RULE = "require-glideajax-sysparm-name" as const;
+  const { expectInvalid, expectActive, expectValid } = ruleTester(
+    "require-glideajax-sysparm-name",
+    {},
+    { messageId: "emptyValue" },
+  );
 
   it("flags a missing or empty sysparm_name value", () => {
-    assertInvalid(
-      `var ajax = new GlideAjax("x_acme.UserLookup");
+    expectInvalid(`var ajax = new GlideAjax("x_acme.UserLookup");
 ajax.addParam("sysparm_name");
-ajax.getXMLAnswer(handleAnswer);`,
-      RULE,
-      { messageId: "emptyValue" },
-    );
-    assertInvalid(
-      `var ajax = new GlideAjax("x_acme.UserLookup");
+ajax.getXMLAnswer(handleAnswer);`);
+    expectInvalid(`var ajax = new GlideAjax("x_acme.UserLookup");
 ajax.addParam("sysparm_name", "");
-ajax.getXML(handleResponse);`,
-      RULE,
-      { messageId: "emptyValue" },
-    );
-    assertInvalid(
-      `var ajax = new GlideAjax("x_acme.UserLookup");
+ajax.getXML(handleResponse);`);
+    expectInvalid(`var ajax = new GlideAjax("x_acme.UserLookup");
 ajax.addParam("sysparm_name", null);
-ajax.getXMLWait();`,
-      RULE,
-      { messageId: "emptyValue" },
-    );
-    assertInvalid(
-      `var ajax = new GlideAjax("x_acme.UserLookup");
+ajax.getXMLWait();`);
+    expectInvalid(`var ajax = new GlideAjax("x_acme.UserLookup");
 ajax.addParam("sysparm_name", undefined);
-ajax.getXMLAnswer(handleAnswer);`,
-      RULE,
-      { messageId: "emptyValue" },
-    );
+ajax.getXMLAnswer(handleAnswer);`);
   });
 
-  it("stays silent for a dynamic method value", () => {
-    assertValidActive(
-      `var ajax = new GlideAjax("x_acme.UserLookup");
+  it("stays silent for a dynamic method value", () =>
+    void expectActive(`var ajax = new GlideAjax("x_acme.UserLookup");
 ajax.addParam("sysparm_name", methodName);
-ajax.getXMLAnswer(handleAnswer);`,
-      RULE,
-    );
-  });
+ajax.getXMLAnswer(handleAnswer);`));
 
   it("flags a statically non-string method value", () => {
     for (const value of ["false", "42", "{}", "[]"]) {
-      assertInvalid(
+      expectInvalid(
         `var ajax = new GlideAjax("x_acme.UserLookup");
 ajax.addParam("sysparm_name", ${value});
 ajax.getXMLAnswer(handleAnswer);`,
-        RULE,
         { messageId: "invalidValue" },
       );
     }
@@ -312,52 +275,45 @@ ajax.getXMLAnswer(handleAnswer);`,
 
   it("treats missing and non-string keys as definitely absent", () => {
     for (const key of ["", "null", "false", "42", "{}", "[]"]) {
-      assertInvalid(
+      expectInvalid(
         `var ajax = new GlideAjax("x_acme.UserLookup");
 ajax.addParam(${key});
 ajax.getXMLAnswer(handleAnswer);`,
-        RULE,
         { messageId: "missingName" },
       );
     }
   });
 
   it("keeps sibling aliases after one name is reassigned", () => {
-    assertValid(
-      `var ajax = new GlideAjax("x_acme.UserLookup");
+    expectValid(`var ajax = new GlideAjax("x_acme.UserLookup");
 var original = ajax;
 ajax.addParam("sysparm_name", "getManager");
 ajax = {};
-original.getXMLAnswer(handleAnswer);`,
-      RULE,
-    );
-    assertInvalid(
+original.getXMLAnswer(handleAnswer);`);
+    expectInvalid(
       `var ajax = new GlideAjax("x_acme.UserLookup");
 var original = ajax;
 ajax = {};
 original.getXMLWait();`,
-      RULE,
       { messageId: "missingName" },
     );
   });
 
-  it("requires a new usable name for a later request", () => {
-    assertInvalid(
+  it("requires a new usable name for a later request", () =>
+    void expectInvalid(
       `var ajax = new GlideAjax("x_acme.UserLookup");
 ajax.addParam("sysparm_name", "getManager");
 ajax.getXMLAnswer(handleAnswer);
 ajax.getXMLWait();`,
-      RULE,
       { count: 1, messageId: "missingName" },
-    );
-  });
+    ));
 });
 
 describe("prefer-setnocount-with-choosewindow epochs", () => {
   const RULE = "prefer-setnocount-with-choosewindow" as const;
 
-  it("does not let an earlier getRowCount justify a later windowed query", () => {
-    assertInvalid(
+  it("does not let an earlier getRowCount justify a later windowed query", () =>
+    void assertInvalid(
       `var gr = new GlideRecord("incident");
 gr.query();
 gr.getRowCount();
@@ -366,11 +322,10 @@ gr.query();`,
       RULE,
       { messageId: "missing" },
       SERVER,
-    );
-  });
+    ));
 
-  it("still honors getRowCount on the same query after a no-op branch", () => {
-    assertValid(
+  it("still honors getRowCount on the same query after a no-op branch", () =>
+    void assertValid(
       `var gr = new GlideRecord("incident");
 gr.chooseWindow(0, 100);
 gr.query();
@@ -380,26 +335,27 @@ if (debug) {
 gr.getRowCount();`,
       RULE,
       SERVER,
-    );
-  });
+    ));
 });
 
 describe("no-gliderecord-query-in-loop receivers", () => {
-  const RULE = "no-gliderecord-query-in-loop" as const;
+  const { expectValid, expectInvalid } = ruleTester(
+    "no-gliderecord-query-in-loop",
+    {},
+    { messageId: "nestedQuery" },
+  );
 
-  it("does not treat an unrelated iterator as a Glide cursor", () => {
-    assertValid(
+  it("does not treat an unrelated iterator as a Glide cursor", () =>
+    void expectValid(
       `while (customIterator.next()) {
   var gr = new GlideRecord("task");
   gr.query();
 }`,
-      RULE,
       SERVER,
-    );
-  });
+    ));
 
-  it("flags a nested query when the outer next is a proven cursor alias", () => {
-    assertInvalid(
+  it("flags a nested query when the outer next is a proven cursor alias", () =>
+    void expectInvalid(
       `var incident = new GlideRecord("incident");
 var cursor = incident;
 incident.query();
@@ -407,124 +363,109 @@ while (cursor.next()) {
   var caller = new GlideRecord("sys_user");
   caller.get(incident.getValue("caller_id"));
 }`,
-      RULE,
-      { messageId: "nestedQuery" },
+      undefined,
       SERVER,
-    );
-  });
+    ));
 
   it("recognizes documented executor and cursor aliases", () => {
-    assertInvalid(
+    expectInvalid(
       `var incident = new GlideRecord("incident");
 incident._query();
 while (incident._next()) {
   var caller = new GlideRecord("sys_user");
   caller["_query"]();
 }`,
-      RULE,
-      { messageId: "nestedQuery" },
+      undefined,
       { ...SERVER, settings: { scope: "scoped", release: "zurich" } },
     );
-    assertInvalid(
+    expectInvalid(
       `var incident = new GlideRecord("incident");
 incident.query();
 while (incident._next()) {
   var caller = new GlideRecord("sys_user");
   caller.queryNoDomain();
 }`,
-      RULE,
-      { messageId: "nestedQuery" },
+      undefined,
       { ...SERVER, settings: { scope: "global", release: "zurich" } },
     );
   });
 
-  it("does not assume a global-only nested executor at unknown scope", () => {
-    assertValid(
+  it("does not assume a global-only nested executor at unknown scope", () =>
+    void expectValid(
       `var incident = new GlideRecord("incident");
 incident.query();
 while (incident.next()) {
   var caller = new GlideRecord("sys_user");
   caller.queryNoDomain();
 }`,
-      RULE,
       { ...SERVER, settings: { scope: "unknown", release: "zurich" } },
-    );
-  });
+    ));
 
   it("does not project undocumented GlideRecord aliases onto GlideAggregate", () => {
-    assertValid(
+    expectValid(
       `var aggregate = new GlideAggregate("incident");
 aggregate.query();
 while (aggregate._next()) {
   var caller = new GlideRecord("sys_user");
   caller.query();
 }`,
-      RULE,
       SERVER,
     );
-    assertValid(
+    expectValid(
       `var incident = new GlideRecord("incident");
 incident.query();
 while (incident.next()) {
   var aggregate = new GlideAggregate("task");
   aggregate._query();
 }`,
-      RULE,
       SERVER,
     );
-    assertValid(
+    expectValid(
       `var incident = new GlideRecord("incident");
 incident.query();
 while (incident.next()) {
   var aggregate = new GlideAggregate("task");
   aggregate.get("abc");
 }`,
-      RULE,
       SERVER,
     );
   });
 
-  it("does not treat an undocumented getAsync as a nested query", () => {
-    assertValid(
+  it("does not treat an undocumented getAsync as a nested query", () =>
+    void expectValid(
       `var incident = new GlideRecord("incident");
 incident.query();
 while (incident.next()) {
   var caller = new GlideRecord("sys_user");
   caller.getAsync(incident.getValue("caller_id"));
 }`,
-      RULE,
       { ...SERVER, settings: { scope: "global", release: "zurich" } },
-    );
-  });
+    ));
 
-  it("recognizes boolean-comparison cursor conditions", () => {
-    assertInvalid(
+  it("recognizes boolean-comparison cursor conditions", () =>
+    void expectInvalid(
       `var incident = new GlideRecord("incident");
 incident.query();
 while (incident.next() === true) {
   var caller = new GlideRecord("sys_user");
   caller.query();
 }`,
-      RULE,
-      { messageId: "nestedQuery" },
+      undefined,
       SERVER,
-    );
-  });
+    ));
 
-  it("flags a query after next in a loop test", () => {
-    assertInvalid(
+  it("flags a query after next in a loop test", () =>
+    void expectInvalid(
       `var incident = new GlideRecord("incident");
 var caller = new GlideRecord("sys_user");
 incident.query();
 while (incident.next() && caller.query()) {}`,
-      RULE,
-      { messageId: "nestedQuery" },
+      undefined,
       SERVER,
-    );
-  });
+    ));
 
-  it("keeps an invoked function expression inside the cursor loop", () => {
-    assertInvalid(
+  it("keeps an invoked function expression inside the cursor loop", () =>
+    void expectInvalid(
       `var incident = new GlideRecord("incident");
 incident.query();
 while (incident.next()) {
@@ -533,36 +474,32 @@ while (incident.next()) {
     caller.query();
   })();
 }`,
-      RULE,
-      { messageId: "nestedQuery" },
+      undefined,
       SERVER,
-    );
-  });
+    ));
 
   it("evaluates invoked-function parameter defaults inside the cursor loop", () => {
-    assertInvalid(
+    expectInvalid(
       `var incident = new GlideRecord("incident");
 var caller = new GlideRecord("sys_user");
 incident.query();
 while (incident.next()) {
   (function (value = caller.query()) {})();
 }`,
-      RULE,
-      { messageId: "nestedQuery" },
+      undefined,
       SERVER,
     );
-    assertValid(
+    expectValid(
       `var incident = new GlideRecord("incident");
 var caller = new GlideRecord("sys_user");
 incident.query();
 while (incident.next()) {
   (function (value = caller.query()) {})("supplied");
 }`,
-      RULE,
       SERVER,
     );
     for (const argument of ["undefined", "void 0", "missing"]) {
-      assertInvalid(
+      expectInvalid(
         `var incident = new GlideRecord("incident");
 var caller = new GlideRecord("sys_user");
 const missing = undefined;
@@ -570,12 +507,11 @@ incident.query();
 while (incident.next()) {
   (function (value = caller.query()) {})(${argument});
 }`,
-        RULE,
-        { messageId: "nestedQuery" },
+        undefined,
         SERVER,
       );
     }
-    assertValid(
+    expectValid(
       `var undefined = "supplied";
 var incident = new GlideRecord("incident");
 var caller = new GlideRecord("sys_user");
@@ -583,10 +519,9 @@ incident.query();
 while (incident.next()) {
   (function (value = caller.query()) {})(undefined);
 }`,
-      RULE,
       SERVER,
     );
-    assertValid(
+    expectValid(
       `var incident = new GlideRecord("incident");
 var caller = new GlideRecord("sys_user");
 incident.query();
@@ -594,13 +529,12 @@ while (incident.next()) {
   (function (value = caller.query()) {})(missing);
 }
 const missing = undefined;`,
-      RULE,
       SERVER,
     );
   });
 
-  it("does not revisit a do-while body after an unconditional exit", () => {
-    assertValid(
+  it("does not revisit a do-while body after an unconditional exit", () =>
+    void expectValid(
       `var incident = new GlideRecord("incident");
 incident.query();
 do {
@@ -608,13 +542,11 @@ do {
   caller.query();
   break;
 } while (incident.next());`,
-      RULE,
       SERVER,
-    );
-  });
+    ));
 
-  it("revisits a do-while body when continue can reach the cursor test", () => {
-    assertInvalid(
+  it("revisits a do-while body when continue can reach the cursor test", () =>
+    void expectInvalid(
       `var incident = new GlideRecord("incident");
 var caller = new GlideRecord("sys_user");
 incident.query();
@@ -623,103 +555,95 @@ do {
   if (skip) continue;
   break;
 } while (incident.next());`,
-      RULE,
-      { messageId: "nestedQuery" },
+      undefined,
       SERVER,
-    );
-  });
+    ));
 });
 
 describe("require-query-before-next executors", () => {
-  const RULE = "require-query-before-next" as const;
+  const { expectValid, expectInvalid, expectActive } = ruleTester(
+    "require-query-before-next",
+    {},
+    { messageId: "missingQuery" },
+  );
 
-  it("accepts _query before either documented cursor advancer", () => {
-    assertValid(
+  it("accepts _query before either documented cursor advancer", () =>
+    void expectValid(
       `var gr = new GlideRecord("incident");
 var alias = gr;
 alias["_query"]();
 gr._next();`,
-      RULE,
       { ...SERVER, settings: { scope: "scoped", release: "zurich" } },
-    );
-  });
+    ));
 
   it("accepts queryNoDomain when global scope is explicit or possible", () => {
     const code = `var gr = new GlideRecord("incident");
 gr.queryNoDomain();
 gr.next();`;
-    assertValid(code, RULE, {
+    expectValid(code, {
       ...SERVER,
       settings: { scope: "global", release: "zurich" },
     });
-    assertValid(code, RULE, {
+    expectValid(code, {
       ...SERVER,
       settings: { scope: "unknown", release: "zurich" },
     });
   });
 
   it("requires _query on every reachable path", () => {
-    assertInvalid(
+    expectInvalid(
       `var gr = new GlideRecord("incident");
 if (ready) gr._query();
 gr._next();`,
-      RULE,
-      { messageId: "missingQuery" },
+      undefined,
       SERVER,
     );
-    assertValid(
+    expectValid(
       `var gr = new GlideRecord("incident");
 if (ready) gr._query();
 else gr.query();
 gr._next();`,
-      RULE,
       SERVER,
     );
   });
 
   it("stays silent after an unresolved computed call", () => {
-    assertValidActive(
+    expectActive(
       `var gr = new GlideRecord("incident");
 gr[executor]();
 gr._next();`,
-      RULE,
       SERVER,
     );
-    assertValidActive(
+    expectActive(
       `var first = new GlideRecord("incident");
 var original = first;
 var second = new GlideRecord("problem");
 var method = "_query";
 first[(first = second, method)]();
 original.next();`,
-      RULE,
       SERVER,
     );
   });
 
   it("does not treat an undocumented getAsync as an opener", () => {
-    assertInvalid(
+    expectInvalid(
       `var gr = new GlideRecord("incident");
 gr.getAsync(id);
 gr.next();`,
-      RULE,
-      { messageId: "missingQuery" },
+      undefined,
       { ...SERVER, settings: { scope: "global", release: "zurich" } },
     );
-    assertInvalid(
+    expectInvalid(
       `var gr = new GlideRecord("incident");
 gr.getAsync(id);
 gr.next();`,
-      RULE,
-      { messageId: "missingQuery" },
+      undefined,
       { ...SERVER, settings: { scope: "scoped", release: "zurich" } },
     );
   });
 
-  it("lets an unconditional query restore the cursor state", () => {
-    assertValid(
+  it("lets an unconditional query restore the cursor state", () =>
+    void expectValid(
       `var gr = new GlideRecord("incident"); if (ready) gr.query(); gr.query(); gr.next();`,
-      RULE,
-    );
-  });
+    ));
 });

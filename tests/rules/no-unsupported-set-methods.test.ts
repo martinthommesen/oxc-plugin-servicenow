@@ -1,9 +1,7 @@
+import { ruleTester } from "../helpers/rule-tester.js";
 import { describe, it } from "node:test";
 import {
   assertDeclinesNonServerSurfaces,
-  assertInvalid,
-  assertValid,
-  assertValidActive,
   AUSTRALIA_ES2021,
   ZURICH_ES2021,
 } from "../helpers/rule-tester.js";
@@ -20,12 +18,18 @@ const METHODS = [
 ] as const;
 
 describe(RULE, () => {
+  const { expectInvalid, expectValid, expectActive } = ruleTester(
+    "no-unsupported-set-methods",
+    ZURICH_ES2021,
+    { messageId: "unsupported" },
+  );
+
   it("follows the Zurich and Australia release delta for all seven methods", () => {
     for (const method of METHODS) {
       const code = `new Set(left).${method}(right);`;
-      assertInvalid(code, RULE, { messageId: "unsupported", includes: method }, ZURICH_ES2021);
-      assertValid(code, RULE, AUSTRALIA_ES2021);
-      assertValid(code, RULE, { settings: { javascriptMode: "es2021" } });
+      expectInvalid(code, { messageId: "unsupported", includes: method });
+      expectValid(code, AUSTRALIA_ES2021);
+      expectValid(code, { settings: { javascriptMode: "es2021" } });
     }
   });
 
@@ -41,7 +45,7 @@ describe(RULE, () => {
       `const values = new Set(); function later() { return values.union(other); } later();`,
       `const values = new Set(); (() => values.intersection(other))();`,
     ]) {
-      assertInvalid(code, RULE, { messageId: "unsupported" }, ZURICH_ES2021);
+      expectInvalid(code);
     }
   });
 
@@ -61,7 +65,7 @@ describe(RULE, () => {
       `eval(source); new Set().union(other);`,
       `new Set()[method](other);`,
     ]) {
-      assertValid(code, RULE, ZURICH_ES2021);
+      expectValid(code);
     }
   });
 
@@ -80,7 +84,7 @@ describe(RULE, () => {
       `const values = new Set(); const union = values.union; if (union) values.union(other);`,
       `const values = new Set(); const alias = values; if (alias.union) values.union(other);`,
     ]) {
-      assertValid(code, RULE, ZURICH_ES2021);
+      expectValid(code);
     }
   });
 
@@ -92,7 +96,7 @@ describe(RULE, () => {
       `const values = new Set(); Set.prototype.intersection && values.union(other);`,
       `const values = new Set(); values?.union(other);`,
     ]) {
-      assertInvalid(code, RULE, { messageId: "unsupported" }, ZURICH_ES2021);
+      expectInvalid(code);
     }
   });
 
@@ -107,43 +111,36 @@ describe(RULE, () => {
       `const values = new Set(); delete values.union; values.union(other);`,
       `const values = new Set(); if (values.union) { values.union = undefined; values.union(other); }`,
     ]) {
-      assertValidActive(code, RULE, ZURICH_ES2021);
+      expectActive(code);
     }
   });
 
-  it("keeps instance mutation tied to the affected Set identity", () => {
-    assertInvalid(
+  it("keeps instance mutation tied to the affected Set identity", () =>
+    void expectInvalid(
       `const customized = new Set(); customized.union = localUnion; customized.union(other);
 const values = new Set(); values.union(other);`,
-      RULE,
       { messageId: "unsupported", count: 1 },
-      ZURICH_ES2021,
-    );
-  });
+    ));
 
   it("handles many receivers without rebuilding block guard indexes", () => {
     const guards = Array.from({ length: 64 }, () => `if (false) return;`);
     const calls = Array.from({ length: 128 }, () => `new Set().union(other);`);
-    assertInvalid(
-      `function combine() {\n${[...guards, ...calls].join("\n")}\n}`,
-      RULE,
-      { messageId: "unsupported", count: 128 },
-      ZURICH_ES2021,
-    );
+    expectInvalid(`function combine() {\n${[...guards, ...calls].join("\n")}\n}`, {
+      messageId: "unsupported",
+      count: 128,
+    });
   });
 
   it("keeps extracted invocations and unsupported execution contexts silent", () => {
-    assertValid(
+    expectValid(
       `const values = new Set(); const union = values.union.bind(values); union(other); values.union.call(values, other);`,
-      RULE,
-      ZURICH_ES2021,
     );
     for (const javascriptMode of ["compatibility", "es5"] as const) {
-      assertValid(`new Set().union(other);`, RULE, {
+      expectValid(`new Set().union(other);`, {
         settings: { javascriptMode, release: "zurich" },
       });
     }
     assertDeclinesNonServerSurfaces(`new Set().union(other);`, RULE, ZURICH_ES2021.settings);
-    assertValid(`new Set().union(other);`, RULE);
+    expectValid(`new Set().union(other);`, {});
   });
 });

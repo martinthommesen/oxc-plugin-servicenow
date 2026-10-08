@@ -31,8 +31,8 @@ describe("test report queries", () => {
     assert.equal(exactProof(indexOutcomes({ tests: [outcome()] }), FILE, NAME).status, "ok");
   });
 
-  it("summarizes report outcomes with clean-pass semantics", () => {
-    assert.deepEqual(
+  it("summarizes report outcomes with clean-pass semantics", () =>
+    void assert.deepEqual(
       outcomeSummary({
         tests: [
           outcome(),
@@ -42,6 +42,5 @@ describe("test report queries", () => {
         ],
       }),
       { total: 4, passed: 1, failed: 1, skipped: 1, todo: 1 },
-    );
-  });
+    ));
 });

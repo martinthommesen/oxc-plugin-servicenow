@@ -1,9 +1,16 @@
+import { ruleTester } from "../helpers/rule-tester.js";
 import { describe, it } from "node:test";
-import { assertInvalid, assertValidActive, ES5 } from "../helpers/rule-tester.js";
+import { ES5 } from "../helpers/rule-tester.js";
 
 const RULE = "no-at-method" as const;
 
 describe(`${RULE} polyfill authority`, () => {
+  const { expectActive, expectInvalid } = ruleTester(
+    "no-at-method",
+    { settings: ES5 },
+    { messageId: "at", count: 1 },
+  );
+
   it("allows visible Array and String prototype replacements", () => {
     for (const code of [
       `Array.prototype.at = localAt; [1, 2].at(-1);`,
@@ -16,33 +23,17 @@ describe(`${RULE} polyfill authority`, () => {
       `prepare(Array.prototype); [1, 2].at(-1);`,
       `eval(source); [1, 2].at(-1);`,
     ]) {
-      assertValidActive(code, RULE, { settings: ES5 });
+      expectActive(code);
     }
   });
 
-  it("scopes own replacements to their literal receiver", () => {
-    assertInvalid(
-      `const custom = [1, 2]; custom.at = localAt; custom.at(-1);
-const native = [1, 2]; native.at(-1);`,
-      RULE,
-      { messageId: "at", count: 1 },
-      { settings: ES5 },
-    );
-  });
+  it("scopes own replacements to their literal receiver", () =>
+    void expectInvalid(`const custom = [1, 2]; custom.at = localAt; custom.at(-1);
+const native = [1, 2]; native.at(-1);`));
 
   it("keeps Array and String authority independent", () => {
-    assertInvalid(
-      `Array.prototype.at = localAt; [1, 2].at(-1); "text".at(0);`,
-      RULE,
-      { messageId: "at", count: 1 },
-      { settings: ES5 },
-    );
-    assertInvalid(
-      `String.prototype.at = localAt; "text".at(0); [1, 2].at(-1);`,
-      RULE,
-      { messageId: "at", count: 1 },
-      { settings: ES5 },
-    );
+    expectInvalid(`Array.prototype.at = localAt; [1, 2].at(-1); "text".at(0);`);
+    expectInvalid(`String.prototype.at = localAt; "text".at(0); [1, 2].at(-1);`);
   });
 
   it("allows structurally dominating prototype availability guards", () => {
@@ -56,29 +47,17 @@ const native = [1, 2]; native.at(-1);`,
 }`,
       `[1, 2].at?.(-1);`,
     ]) {
-      assertValidActive(code, RULE, { settings: ES5 });
+      expectActive(code);
     }
   });
 
   it("does not accept unrelated or shadowed guards", () => {
-    assertInvalid(
-      `if (custom.at) { [1, 2].at(-1); }`,
-      RULE,
-      { messageId: "at" },
-      { settings: ES5 },
-    );
-    assertInvalid(
+    expectInvalid(`if (custom.at) { [1, 2].at(-1); }`, { messageId: "at" });
+    expectInvalid(
       `const Array = { prototype: { at: localAt } };
 if (Array.prototype.at) { [1, 2].at(-1); }`,
-      RULE,
       { messageId: "at" },
-      { settings: ES5 },
     );
-    assertInvalid(
-      `prepare(Array.prototype.at); [1, 2].at(-1);`,
-      RULE,
-      { messageId: "at" },
-      { settings: ES5 },
-    );
+    expectInvalid(`prepare(Array.prototype.at); [1, 2].at(-1);`, { messageId: "at" });
   });
 });

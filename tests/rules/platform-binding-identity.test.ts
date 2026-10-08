@@ -1,3 +1,4 @@
+import { ruleTester } from "../helpers/rule-tester.js";
 import { describe, it } from "node:test";
 import {
   assertInvalid,
@@ -7,19 +8,21 @@ import {
 } from "../helpers/rule-tester.js";
 
 describe("current and gs binding identity in Business Rules", () => {
+  const { expectInvalid, expectActive } = ruleTester("no-br-current-update", FULL_SCRIPT, {
+    messageId: "update",
+  });
+
   it("tracks proven current and gs aliases without matching shadowed parameters", () => {
-    assertInvalid(
+    expectInvalid(
       `var record = current;
 record.update();`,
-      "no-br-current-update",
-      { messageId: "update" },
+      undefined,
       BUSINESS_RULE,
     );
-    assertValidActive(
+    expectActive(
       `function save(current) {
   current.update();
 }`,
-      "no-br-current-update",
       BUSINESS_RULE,
     );
     assertInvalid(
@@ -38,171 +41,107 @@ service.now();`,
     );
   });
 
-  it("accepts a directive prologue before the canonical wrapper", () => {
-    assertValidActive(
+  it("accepts a directive prologue before the canonical wrapper", () =>
+    void assertValidActive(
       `"use strict";
 (function executeRule(current, previous) {
   current.short_description = "ok";
 })(current, previous);`,
       "require-business-rule-wrapper",
       FULL_SCRIPT,
-    );
-  });
+    ));
 
   it("recognizes current only in the canonical full-script wrapper", () => {
-    assertInvalid(
-      `(function executeRule(current, previous) {
+    expectInvalid(`(function executeRule(current, previous) {
   current.update();
-})(current, previous);`,
-      "no-br-current-update",
-      { messageId: "update" },
-      FULL_SCRIPT,
-    );
-    assertValidActive(
-      `(function executeRule(current, previous) {
+})(current, previous);`);
+    expectActive(`(function executeRule(current, previous) {
   current.update();
-})(localCurrent, previous);`,
-      "no-br-current-update",
-      FULL_SCRIPT,
-    );
-    assertInvalid(
-      `(function executeRule(current, previous) {
+})(localCurrent, previous);`);
+    expectInvalid(`(function executeRule(current, previous) {
   var record = current;
   record.update();
-})(current, previous);`,
-      "no-br-current-update",
-      { messageId: "update" },
-      FULL_SCRIPT,
-    );
-    assertValidActive(
-      `(function executeRule(current, previous) {
+})(current, previous);`);
+    expectActive(`(function executeRule(current, previous) {
   var record = current;
   record.update();
-})(localCurrent, previous);`,
-      "no-br-current-update",
-      FULL_SCRIPT,
-    );
-    assertValidActive(
-      `(function executeRule(current, previous) {
+})(localCurrent, previous);`);
+    expectActive(`(function executeRule(current, previous) {
   var record = current;
   prepare(record);
   record.update();
-})(current, previous);`,
-      "no-br-current-update",
-      FULL_SCRIPT,
-    );
+})(current, previous);`);
   });
 
-  it("forgets a reassigned canonical current wrapper parameter", () => {
-    assertValidActive(
+  it("forgets a reassigned canonical current wrapper parameter", () =>
+    void expectActive(
       `(function executeRule(current, previous) {\n  current = getOtherRecord();\n  current.update();\n})(current, previous);`,
-      "no-br-current-update",
-      FULL_SCRIPT,
-    );
-  });
+    ));
 
   it("keeps canonical current authority temporal and method-specific", () => {
-    assertValidActive(
-      `(function executeRule(current, previous) {
+    expectActive(`(function executeRule(current, previous) {
   prepare(current);
   current.update();
-})(current, previous);`,
-      "no-br-current-update",
-      FULL_SCRIPT,
-    );
-    assertValidActive(
-      `(function executeRule(current, previous) {
+})(current, previous);`);
+    expectActive(`(function executeRule(current, previous) {
   current.update = localUpdate;
   current.update();
-})(current, previous);`,
-      "no-br-current-update",
-      FULL_SCRIPT,
-    );
-    assertValidActive(
-      `(function executeRule(current, previous) {
+})(current, previous);`);
+    expectActive(`(function executeRule(current, previous) {
   globalThis.current.update = localUpdate;
   current.update();
-})(current, previous);`,
-      "no-br-current-update",
-      FULL_SCRIPT,
-    );
-    assertValidActive(
-      `(function executeRule(current, previous) {
+})(current, previous);`);
+    expectActive(`(function executeRule(current, previous) {
   prepare(globalThis.current);
   current.update();
-})(current, previous);`,
-      "no-br-current-update",
-      FULL_SCRIPT,
-    );
-    assertValidActive(
-      `(function executeRule(current, previous) {
+})(current, previous);`);
+    expectActive(`(function executeRule(current, previous) {
   GlideRecord.prototype.update = localUpdate;
   current.update();
-})(current, previous);`,
-      "no-br-current-update",
-      FULL_SCRIPT,
-    );
-    assertInvalid(
-      `(function executeRule(current, previous) {
+})(current, previous);`);
+    expectInvalid(`(function executeRule(current, previous) {
   current.update();
   prepare(current);
-})(current, previous);`,
-      "no-br-current-update",
-      { messageId: "update" },
-      FULL_SCRIPT,
-    );
+})(current, previous);`);
   });
 });
 
 describe("identity-based stateful rule consumers", () => {
+  const { expectInvalid, expectActive } = ruleTester(
+    "no-glideelement-in-collection",
+    BUSINESS_RULE,
+    { messageId: "retained" },
+  );
+
   it("retains GlideElements by cursor ObjectId across aliases", () => {
-    assertInvalid(
-      `var rec = new GlideRecord("incident");
+    expectInvalid(`var rec = new GlideRecord("incident");
 var gr = rec;
 rec.query();
 while (gr.next()) {
   values.push(rec.number);
-}`,
-      "no-glideelement-in-collection",
-      { messageId: "retained" },
-      BUSINESS_RULE,
-    );
-    assertInvalid(
-      `var rec = new GlideRecord("incident");
+}`);
+    expectInvalid(`var rec = new GlideRecord("incident");
 var alias = rec;
 rec.query();
 while (alias.next()) {
   values.push(rec.getElement("number"));
-}`,
-      "no-glideelement-in-collection",
-      { messageId: "retained" },
-      BUSINESS_RULE,
-    );
-    assertInvalid(
-      `var rec = new GlideRecord("incident");
+}`);
+    expectInvalid(`var rec = new GlideRecord("incident");
 rec.query();
 while (rec.next()) {
   helper(rec.getElement("number"));
   values.push(rec.number);
-}`,
-      "no-glideelement-in-collection",
-      { messageId: "retained" },
-      BUSINESS_RULE,
-    );
-    assertValidActive(
-      `var rec = new GlideRecord("incident");
+}`);
+    expectActive(`var rec = new GlideRecord("incident");
 rec.query();
 while (rec.next()) {
   function nested(rec) { values.push(rec.number); }
   nested(rec);
-}`,
-      "no-glideelement-in-collection",
-      BUSINESS_RULE,
-    );
+}`);
   });
 
   it("tracks local GlideElement values through aliases and all-path joins", () => {
-    assertInvalid(
+    expectInvalid(
       `var rec = new GlideRecord("incident");
 var values = [];
 rec.query();
@@ -212,11 +151,9 @@ while (rec.next()) {
   prepare(alias);
   values.push({ field: alias });
 }`,
-      "no-glideelement-in-collection",
       { messageId: "retained", includes: "alias" },
-      BUSINESS_RULE,
     );
-    assertInvalid(
+    expectInvalid(
       `var rec = new GlideRecord("incident");
 var values = [];
 rec.query();
@@ -226,26 +163,21 @@ while (rec.next()) {
   else field = rec.short_description;
   values.push(field);
 }`,
-      "no-glideelement-in-collection",
       { messageId: "retained", includes: "field" },
-      BUSINESS_RULE,
     );
-    assertInvalid(
+    expectInvalid(
       `var rec = new GlideRecord("incident");
 var values = [];
 rec.query();
 while (rec.next()) {
   (function (field) { values.push(field); })(rec.getElement("number"));
 }`,
-      "no-glideelement-in-collection",
       { messageId: "retained", includes: "field" },
-      BUSINESS_RULE,
     );
   });
 
   it("invalidates uncertain or converted GlideElement aliases", () => {
-    assertValidActive(
-      `var rec = new GlideRecord("incident");
+    expectActive(`var rec = new GlideRecord("incident");
 var values = [];
 var stale;
 rec.query();
@@ -253,12 +185,8 @@ while (rec.next()) {
   var fresh = rec.number;
   if (capture) stale = fresh;
   values.push(stale);
-}`,
-      "no-glideelement-in-collection",
-      BUSINESS_RULE,
-    );
-    assertValidActive(
-      `var rec = new GlideRecord("incident");
+}`);
+    expectActive(`var rec = new GlideRecord("incident");
 var other = new GlideRecord("task");
 var values = [];
 rec.query();
@@ -268,24 +196,16 @@ while (rec.next() && other.next()) {
   if (useIncident) field = rec.number;
   else field = other.number;
   values.push(field);
-}`,
-      "no-glideelement-in-collection",
-      BUSINESS_RULE,
-    );
-    assertValidActive(
-      `var rec = new GlideRecord("incident");
+}`);
+    expectActive(`var rec = new GlideRecord("incident");
 var values = [];
 rec.query();
 while (rec.next()) {
   var field = rec.number;
   field = field.toString();
   values.push(field);
-}`,
-      "no-glideelement-in-collection",
-      BUSINESS_RULE,
-    );
-    assertValidActive(
-      `var rec = new GlideRecord("incident");
+}`);
+    expectActive(`var rec = new GlideRecord("incident");
 var values = [];
 rec.query();
 while (rec.next()) {
@@ -293,33 +213,22 @@ while (rec.next()) {
   if (includeField) field = rec.number;
   else field = "safe";
   values.push(field);
-}`,
-      "no-glideelement-in-collection",
-      BUSINESS_RULE,
-    );
-    assertValidActive(
-      `var rec = new GlideRecord("incident");
+}`);
+    expectActive(`var rec = new GlideRecord("incident");
 var values = [];
 rec.query();
 while (rec.next()) {
   var field = rec.number;
   field++;
   values.push(field);
-}`,
-      "no-glideelement-in-collection",
-      BUSINESS_RULE,
-    );
-    assertValidActive(
-      `var rec = new GlideRecord("incident");
+}`);
+    expectActive(`var rec = new GlideRecord("incident");
 var values = [];
 rec.query();
 while (rec.next()) {
   var field = rec.number;
   { let field = "safe"; values.push(field); }
-}`,
-      "no-glideelement-in-collection",
-      BUSINESS_RULE,
-    );
+}`);
   });
 
   it("keys prefer-glideaggregate state by ObjectId, not names", () => {

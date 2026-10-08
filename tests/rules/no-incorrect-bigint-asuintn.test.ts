@@ -1,9 +1,7 @@
+import { ruleTester } from "../helpers/rule-tester.js";
 import { describe, it } from "node:test";
 import {
   assertDeclinesNonServerSurfaces,
-  assertInvalid,
-  assertValid,
-  assertValidActive,
   AUSTRALIA_ES2021,
   ZURICH_ES2021,
 } from "../helpers/rule-tester.js";
@@ -11,6 +9,12 @@ import {
 const RULE = "no-incorrect-bigint-asuintn" as const;
 
 describe(RULE, () => {
+  const { expectInvalid, expectValid, expectActive } = ruleTester(
+    "no-incorrect-bigint-asuintn",
+    ZURICH_ES2021,
+    { messageId: "incorrect" },
+  );
+
   it("reports the statically proven Zurich early-return cases", () => {
     for (const code of [
       `BigInt.asUintN(8, -1n);`,
@@ -21,7 +25,7 @@ describe(RULE, () => {
       `BigInt.asUintN(64, -0x1n);`,
       `BigInt["asUintN"](64, -(1n));`,
     ]) {
-      assertInvalid(code, RULE, { messageId: "incorrect" }, ZURICH_ES2021);
+      expectInvalid(code);
     }
   });
 
@@ -37,17 +41,17 @@ describe(RULE, () => {
       `BigInt.asUintN(64, 18446744073709551616n);`,
       `BigInt.asUintN(64, -(-1n));`,
     ]) {
-      assertValid(code, RULE, ZURICH_ES2021);
+      expectValid(code);
     }
   });
 
   it("follows the Zurich and Australia release delta without guessing omission", () => {
     const code = `BigInt.asUintN(64, -1n);`;
-    assertInvalid(code, RULE, { messageId: "incorrect" }, ZURICH_ES2021);
-    assertValid(code, RULE, AUSTRALIA_ES2021);
-    assertValid(code, RULE, { settings: { javascriptMode: "es2021" } });
+    expectInvalid(code);
+    expectValid(code, AUSTRALIA_ES2021);
+    expectValid(code, { settings: { javascriptMode: "es2021" } });
     for (const javascriptMode of ["compatibility", "es5"] as const) {
-      assertValid(code, RULE, {
+      expectValid(code, {
         settings: { javascriptMode, release: "zurich" },
       });
     }
@@ -59,7 +63,7 @@ describe(RULE, () => {
       `const PlatformBigInt = BigInt; PlatformBigInt.asUintN(64, -1n);`,
       `const { BigInt: PlatformBigInt } = globalThis; PlatformBigInt["asUintN"](64, -1n);`,
     ]) {
-      assertInvalid(code, RULE, { messageId: "incorrect" }, ZURICH_ES2021);
+      expectInvalid(code);
     }
   });
 
@@ -70,9 +74,9 @@ describe(RULE, () => {
       `BigInt.asUintN.bind(null, 64)(-1n);`,
       `Reflect.apply(BigInt.asUintN, null, [64, -1n]);`,
     ]) {
-      assertInvalid(code, RULE, { messageId: "incorrect" }, ZURICH_ES2021);
+      expectInvalid(code);
     }
-    assertValid(`BigInt.asUintN.call(null, 7, -1n);`, RULE, ZURICH_ES2021);
+    expectValid(`BigInt.asUintN.call(null, 7, -1n);`);
   });
 
   it("does not mistake availability checks for semantic repairs", () => {
@@ -81,7 +85,7 @@ describe(RULE, () => {
       `typeof BigInt.asUintN === "function" && BigInt.asUintN(64, -1n);`,
       `if (BigInt.asUintN) BigInt.asUintN(64, -1n);`,
     ]) {
-      assertInvalid(code, RULE, { messageId: "incorrect" }, ZURICH_ES2021);
+      expectInvalid(code);
     }
   });
 
@@ -95,7 +99,7 @@ describe(RULE, () => {
       `BigInt.asUintN(4097, -1n);`,
       `BigInt.asIntN(64, -1n);`,
     ]) {
-      assertValidActive(code, RULE, ZURICH_ES2021);
+      expectActive(code);
     }
   });
 
@@ -113,15 +117,10 @@ describe(RULE, () => {
       `const PlatformBigInt = BigInt; function later() { return PlatformBigInt.asUintN(64, -1n); } later();`,
       `eval(source); BigInt.asUintN(64, -1n);`,
     ]) {
-      assertValid(code, RULE, ZURICH_ES2021);
+      expectValid(code);
     }
 
-    assertInvalid(
-      `BigInt.asIntN = localAsIntN; BigInt.asUintN(64, -1n);`,
-      RULE,
-      { messageId: "incorrect" },
-      ZURICH_ES2021,
-    );
+    expectInvalid(`BigInt.asIntN = localAsIntN; BigInt.asUintN(64, -1n);`);
   });
 
   it("does not apply server-engine behavior to other execution contexts", () => {

@@ -1,7 +1,8 @@
+import { ruleTester } from "../helpers/rule-tester.js";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { parseSync } from "oxc-parser";
-import { lint, assertValidActive, assertInvalid } from "../helpers/rule-tester.js";
+import { lint, assertValidActive } from "../helpers/rule-tester.js";
 import { lintReshaped, stripOffsets, toRangeOnly } from "../helpers/host-shapes.js";
 import {
   deepFluentAliasFixture,
@@ -79,6 +80,12 @@ describe("Fluent directive branch attachment", () => {
 });
 
 describe("Fluent iterative origin traversal", () => {
+  const { expectActive, expectInvalid } = ruleTester(
+    "require-fluent-id",
+    {},
+    { messageId: "missing" },
+  );
+
   // @lat: [[tests#Analysis behavior#Deep Fluent alias chains are stack safe]]
   it("resolves a finite 6000-alias chain without exhausting the host stack", () => {
     const code = deepFluentAliasFixture();
@@ -89,24 +96,20 @@ describe("Fluent iterative origin traversal", () => {
     );
   });
 
-  it("keeps alias cycles conservative", () => {
-    assertValidActive(
+  it("keeps alias cycles conservative", () =>
+    void expectActive(
       'import { BusinessRule } from "@servicenow/sdk/core";\nlet A = B; let B = A;\nA({ name: "x_test" });',
-      "require-fluent-id",
       { filename: FILENAME },
-    );
-  });
+    ));
 
   it("retains namespace member identity through immutable aliases", () => {
-    assertInvalid(
+    expectInvalid(
       'import * as sdk from "@servicenow/sdk/core";\nconst namespace = sdk; const factory = namespace.BusinessRule; const alias = factory;\nalias({ name: "x_test" });',
-      "require-fluent-id",
-      { messageId: "missing" },
+      undefined,
       { filename: FILENAME },
     );
-    assertValidActive(
+    expectActive(
       'import * as sdk from "unrelated";\nconst namespace = sdk; const factory = namespace.BusinessRule; const alias = factory;\nalias({ name: "x_test" });',
-      "require-fluent-id",
       { filename: FILENAME },
     );
   });
