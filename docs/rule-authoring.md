@@ -7,10 +7,10 @@ This guide is for contributors who add or change a rule in `oxc-plugin-serviceno
 1. Implement the visitor in `src/rules/<name>.ts` with `defineRule` and `createOnce`.
 2. Add one catalog descriptor in `src/catalog/<name>.ts` and register it in `src/catalog.ts`. Import the implementation in that descriptor. The rule registry and `rulePlacements` (`src/configs/maps.ts`) are derived from the catalog.
 3. Add tests that cover the matrix below. Use exact diagnostic counts and `messageId` values.
-4. Run `npm run docs` so generated rule pages, README tables, and recommended oxlintrc copies update.
+4. Run `npm run docs` so the generated [rule reference](rules.md), README tables, and recommended oxlintrc copies update.
 5. Run `npm run validate`.
 
-Do not edit `docs/rules/*.md`, README rule tables, or recommended `.oxlintrc.json` copies by hand. `npm run docs` owns those files.
+Do not edit `docs/rules.md`, README rule tables, or recommended `.oxlintrc.json` copies by hand. `npm run docs` owns those files.
 
 ## Analysis rules
 

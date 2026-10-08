@@ -36,7 +36,7 @@ That command checks workflow action pins and the compatibility matrix; runs lint
 4. Run `npm run docs`. It regenerates `docs/rules.md`, README rule tables, and recommended oxlintrc copies.
 5. Run `npm run validate`.
 
-Do not edit generated rule pages, README rule tables, or recommended `.oxlintrc.json` copies by hand.
+Do not edit the generated [rule reference](docs/rules.md), README rule tables, or recommended `.oxlintrc.json` copies by hand.
 
 Read [Non-goals and rejected rule ideas](docs/non-goals.md) before you propose a rule. The proposal must say why it is not a documented non-goal.
 

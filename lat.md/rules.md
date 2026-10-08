@@ -54,9 +54,9 @@ The five rules that take options declare them once, in `src/options/rule-options
 
 Each descriptor carries an applicability block built by `classic(...)`, `engine(...)`, or `fluent(...)` in `src/catalog-metadata.ts`.
 
-These produce the *documented* applicability — surfaces, JavaScript modes, scopes, releases, and `minimumSurfaceConfidence` — which the generated rule pages render.
+These produce the *documented* applicability — surfaces, JavaScript modes, scopes, releases, and `minimumSurfaceConfidence` — which the generated [rule-reference sections](../docs/rules.md) render.
 
-The documented applicability and the runtime predicates in [[context]] must agree, but they are separate artifacts: the metadata is what users read, the predicates are what runs. `Minimum surface confidence` on a rule page is where the two meet, and it is a `ContextConfidence` value — `inferred` unless the rule passes a stronger floor to its gate.
+The documented applicability and the runtime predicates in [[context]] must agree, but they are separate artifacts: the metadata is what users read, the predicates are what runs. The `confidence` value in each rule-reference section is where the two meet, and it is a `ContextConfidence` value — `inferred` unless the rule passes a stronger floor to its gate.
 
 Mixed UI Action behavior is rule-specific. Explicit client/server surfaces can enable classic checks; engine gates suppress mixed execution regions. [[src/catalog-metadata.ts#formatSurfaces]] qualifies common prose without promising universal silence.
 

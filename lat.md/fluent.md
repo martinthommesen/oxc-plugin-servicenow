@@ -52,7 +52,7 @@ A Fluent call is only a platform call if it came from the SDK, so each call site
 
 The `@fluent-*` directives are read from comments rather than from the AST's bindings, so they are handled separately.
 
-`fluent-directives` validates placement and flags a dangling directive. `docs/rules/*.md` records the placement rules per directive.
+`fluent-directives` validates placement and flags a dangling directive. The [fluent-directives section](../docs/rules.md#fluent-directives) records the placement rules per directive.
 
 ## Related
 

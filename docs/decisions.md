@@ -26,7 +26,7 @@ No rule ships a fix or suggestion. Reintroduce fix machinery only with a semanti
 
 ## Historical remediation tracking is retired
 
-The PR #51 ledger and plans tracked a past workstream rather than the current product contract. The simplification removes the ledger, its private lock, generated reports and duplicate CI runs.
+The PR #51 ledger and plans tracked a past workstream rather than the current product contract. The simplification removes the historical status report, its private lock, generated reports and duplicate CI runs. A compact [finding rationale index](../FINDINGS.md) preserves the IDs cited by current code, tests and knowledge-graph documentation.
 
 Historical records remain at commit `c510575` and on `archive/pr51-b87972a`. Outstanding historical live-audit and approval criteria are retired as tracking obligations, not asserted to have passed.
 

@@ -25,7 +25,7 @@ One file can be executed in more than one place. `ScriptSurface` in [[src/types.
 
 Surfaces form a set, not a single value, because a UI Action can run on the client, the server, or both. `ui-action` is deliberately different in kind from the rest: it names the record type the code belongs to rather than where it executes, so it composes with `client` and `server` instead of replacing them. A file with only `ui-action` evidence is not treated as server-capable.
 
-`isServerInstanceContext` in [[src/context/resolve.ts#isServerInstanceContext]] expands a server check across the six server-only surfaces and requires explicit `server` evidence on a UI Action. `isMixedUiActionContext` identifies the client-and-server case. `docs/rules/*.md` records which surfaces each rule applies to.
+`isServerInstanceContext` in [[src/context/resolve.ts#isServerInstanceContext]] expands a server check across the six server-only surfaces and requires explicit `server` evidence on a UI Action. `isMixedUiActionContext` identifies the client-and-server case. Each section in the [rule reference](../docs/rules.md) records which surfaces that rule applies to.
 
 ## JavaScript modes
 
@@ -55,7 +55,7 @@ The instance release and the Fluent SDK version describe different things and mu
 
 Other version-shaped values are not axes a user sets. `PACKAGE_VERSION` names this package's own release and `DEFAULT_FLUENT_MANIFEST_VERSION` names the reviewed manifest snapshot; neither is a setting and neither selects platform behavior.
 
-A Fluent file is built by the SDK and deployed to an instance; both axes apply to it and neither derives from the other. `docs/rules/*.md` states this per rule — Fluent-SDK-versioned rules carry a `fluentSdkRange` and no instance release claim.
+A Fluent file is built by the SDK and deployed to an instance; both axes apply to it and neither derives from the other. Each section in the [rule reference](../docs/rules.md) states this per rule — Fluent-SDK-versioned rules carry a `fluentSdkRange` and no instance release claim.
 
 ## Application scope
 

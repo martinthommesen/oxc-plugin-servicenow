@@ -53,6 +53,8 @@ Each rule's evidence entries carry a unique verification id and must resolve to 
 
 The package exports named `servicenow`, `PACKAGE_VERSION` matches `package.json`, every catalogued rule is present, and every rule's documentation URL is pinned to the release tag rather than a branch.
 
+Version 3.1.0 preserves historical per-rule pages; a simulated 3.1.1 module targets the consolidated anchor.
+
 ### Declared applicability implies an implemented gate
 
 Every rule whose catalog entry restricts surfaces or modes must call the corresponding gate helper in its implementation, so removing a gate fails the catalog check (FINDINGS.md COR-015).

@@ -106,8 +106,9 @@ describe("packed package consumer", () => {
       assert.ok(pkg.exports["./oxfmt"]);
       assert.ok(pkg.exports["./oxfmt.recommended.json"]);
       const installedReadme = readFileSync(path.join(installed, "README.md"), "utf8");
-      assert.ok(installedReadme.includes(`/blob/v${pkg.version}/docs/rules.md#`));
-      assert.equal(installedReadme.includes("/blob/main/docs/rules.md#"), false);
+      const ruleDocsPath = pkg.version === "3.1.0" ? "rules/" : "rules.md#";
+      assert.ok(installedReadme.includes(`/blob/v${pkg.version}/docs/${ruleDocsPath}`));
+      assert.equal(installedReadme.includes("/blob/main/docs/rules"), false);
       assert.doesNotMatch(
         installedReadme,
         /\]\((?:docs\/|examples\/|CONTRIBUTING\.md)/,

@@ -10,7 +10,7 @@ The context's overall `confidence` is the *weakest* of the four dimensions, not 
 
 `ContextSourceMap` records each dimension. `confidenceAtLeast(source, minimum)` compares one dimension against the shared ordering, so applicability checks cannot substitute the weaker overall confidence.
 
-`Minimum surface confidence` on a generated rule page is a `ContextConfidence` value: the floor that rule's own gate enforces, which is `inferred` unless the rule passes a stronger `minimum`. The gate check in `scripts/lib/catalog-gates.mjs` verifies the pair, so a page cannot advertise a floor the rule does not apply.
+The `confidence` value in each generated [rule-reference section](../docs/rules.md) is a `ContextConfidence`: the floor that rule's own gate enforces, which is `inferred` unless the rule passes a stronger `minimum`. The gate check in `scripts/lib/catalog-gates.mjs` verifies the pair, so a section cannot advertise a floor the rule does not apply.
 
 ## Authoring
 
@@ -72,7 +72,7 @@ Rules do not read `ctx.surfaces` and decide for themselves. They call the predic
 - `isClientCapableContext(ctx)` — a client surface at `inferred` or stronger. An unknown surface is not client-capable.
 - `appliesToInstanceScripts(ctx)` — any non-Fluent file with at least one known dimension. Used by rules for features ServiceNow documents as unavailable in every mode.
 
-The confidence floor is per call site, so a rule that changes behavior on weak evidence can demand `explicit` while a conservative rule accepts `inferred`. `Minimum surface confidence` in each `docs/rules/*.md` page records the floor a rule chose.
+The confidence floor is per call site, so a rule that changes behavior on weak evidence can demand `explicit` while a conservative rule accepts `inferred`. The `confidence` value in each [rule-reference section](../docs/rules.md) records the floor a rule chose.
 
 `src/context/index.ts` exposes only the eight predicates — the seven in `resolve.ts` plus `isFluentFile`. The context record itself is reached through `getScriptContext` on the analysis entry point, not from here.
 

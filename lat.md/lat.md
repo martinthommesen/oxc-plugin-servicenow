@@ -6,6 +6,7 @@ The graph answers "what does this plugin model, and why". Consumer instructions 
 
 - `README.md` — quick starts, navigation, and concise configuration guidance; detailed settings, generated rule tables, and historical migration are expandable references.
 - `docs/rules.md` — one generated reference with a section per rule, with applicability, false-positive and false-negative ledgers, and evidence. Authoritative for rule-level detail.
+- `FINDINGS.md` — compact rationale index for historical IDs still cited by current code and tests.
 - `docs/decisions.md` — lifecycle decisions with their 3.0 reassessment triggers.
 - `docs/non-goals.md` — rejected rule ideas and the conditions that would reopen them.
 - `docs/release.md` — release mechanics and governance.
