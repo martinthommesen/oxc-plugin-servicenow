@@ -8,7 +8,7 @@ Stateful GlideRecord analysis must keep the recommended large/small scale ratio 
 npm run bench
 ```
 
-The command generates deterministic fixtures and times 29 registered cases with the real `oxlint` executable. It measures:
+The command generates deterministic fixtures and times 30 registered cases with the real `oxlint` executable. It measures:
 
 - small, medium, and large classic GlideRecord files
 - branch-heavy alias and try/catch analysis
@@ -25,7 +25,8 @@ The command generates deterministic fixtures and times 29 registered cases with 
 - an initial cached own-field lookup, one shadow deletion, and five hundred inherited static accessor lookups through an alias of a 128-level class hierarchy
 - five hundred `with` bodies followed by a possible query and a filtered bulk operation
 - five hundred try blocks invoking a local helper directly, through `.call(null, true)`, as an ordinary template tag and through class-expression construction with a deferred method and field
-- five hundred distinct derived constructors supplying six harmless literal or empty-creation arguments to a known base
+- five hundred distinct derived constructors alternating standalone and returned super calls with plain or rest parameters, supplying six harmless literal or creation arguments
+- five hundred constructions alternating an implicit ordinary-superclass chain and explicit true or false super arguments after earlier pruned base calls
 - three hundred assigned helpers whose false arguments skip calls through a linear capture chain
 - large Fluent metadata
 - Fluent factory calls through mutable aliases

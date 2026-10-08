@@ -81,7 +81,6 @@ describe("safe base constructor returns", () => {
     "constructor() { external(); return {}; }",
     "constructor(value = external()) { return {}; }",
     "constructor({value}) { return {}; }",
-    "constructor(...values) { return {}; }",
     "constructor() { return fail(); }",
     "constructor() { return { [fail()]: 0 }; }",
     "constructor() { return [fail()]; }",
@@ -93,6 +92,12 @@ describe("safe base constructor returns", () => {
       );
     });
   }
+  it("continues a safe base return after plain rest parameter allocation", () => {
+    findings(
+      `class Base { constructor(...values) { return {}; } ${baseField} } class Derived extends Base { ${derivedField} } new Derived();`,
+      2,
+    );
+  });
   it("does not make a safe object return before super initialize derived fields", () => {
     findings(
       `class Base { ${baseField} } class Derived extends Base { constructor() { return {}; } ${derivedField} } new Derived();`,

@@ -126,6 +126,10 @@ interface OwnStaticAccessors extends StaticAccessors {
 
 type ClassFieldReplay = "continue" | "opaque";
 type ClassConstructorReplay = ClassFieldReplay | "opaque-after-fields";
+type ClassSuperArguments =
+  | { readonly kind: "implicit" }
+  | { readonly kind: "explicit"; readonly arguments: ESTree.CallExpression["arguments"] }
+  | { readonly kind: "opaque" };
 type CallableEscapePolicy = "inspect" | "captures-only";
 
 interface ClassFieldPath<T> {
@@ -138,6 +142,7 @@ interface ClassFieldFrame<T> {
   readonly value: ClassValue;
   readonly bases: CallableValues;
   readonly replay: ClassConstructorReplay;
+  readonly arguments: InvocationArguments;
   readonly paths: ClassFieldPath<T>[];
   readonly pending: ClassFieldPath<T>[];
   nextBase: number;
@@ -258,6 +263,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
   const argumentIdentities = new Set<ObjectId>();
   const classValues = new WeakMap<ESTree.Class, ClassValueCache>();
   const classConstructorReplay = new WeakMap<ESTree.Class, ClassConstructorReplay>();
+  const classSuperArguments = new WeakMap<ESTree.Class, ClassSuperArguments>();
   const callableIdentities = new WeakMap<ImmediateFunction | ClassValue, ObjectId>();
   const activeClasses = new Set<ClassValue>();
   const callableIdentity = (value: ImmediateFunction | ClassValue | undefined): ObjectId => {
@@ -397,6 +403,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
   };
   let hasLogicalAssignments = false;
   let hasWithStatement = false;
+  let hasClassHeritage = false;
   let arrayIterationUncertain = false;
   let objectPrototypeUncertain = false;
   const constantBindings = new Set<BindingId>();
@@ -661,6 +668,14 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
     prepassAncestors,
   );
   walk(program, {
+    ClassDeclaration(node) {
+      referenceWork += 1;
+      if (node.type === "ClassDeclaration" && node.superClass) hasClassHeritage = true;
+    },
+    ClassExpression(node) {
+      referenceWork += 1;
+      if (node.type === "ClassExpression" && node.superClass) hasClassHeritage = true;
+    },
     CallExpression(node) {
       if (node.type === "CallExpression") constantInvocations.push(node);
     },
@@ -1282,9 +1297,9 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
       return { kind: "undefined" };
     const constant = constantValue(inner);
     if (!constant) return { kind: "unknown" };
-    return constant.nullish && constant.nullishValue === "undefined"
-      ? { kind: "undefined" }
-      : { kind: "defined" };
+    if (!constant.nullish) return { kind: "defined" };
+    if (constant.nullishValue === "undefined") return { kind: "undefined" };
+    return { kind: constant.nullishValue === "null" ? "null" : "unknown" };
   };
 
   const literalShapeFromExpr = (node: unknown, depth = 0): LiteralArgumentShape | undefined => {
@@ -1501,8 +1516,15 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
     if (depth >= MAX_PATH_DEPTH) throw BUDGET_EXCEEDED;
     const inner = unwrapExpression(pattern);
     if (!isNode(inner)) return;
+    if (
+      (inner.type === "ObjectPattern" || inner.type === "ArrayPattern") &&
+      (value.kind === "null" || value.kind === "undefined")
+    ) {
+      setCompletion(state, "throw");
+      return;
+    }
     if (inner.type === "AssignmentPattern") {
-      if (value.kind === "defined") {
+      if (value.kind === "defined" || value.kind === "null") {
         visitPatternExpressions(state, inner.left, value, depth + 1);
         return;
       }
@@ -1616,7 +1638,9 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
         target,
         value.literalShape
           ? { kind: "defined", literalShape: value.literalShape }
-          : { kind: "unknown" },
+          : value.constant?.nullish
+            ? { kind: value.constant.nullishValue === "undefined" ? "undefined" : "null" }
+            : { kind: "unknown" },
       );
       if (state.completion !== "normal") return;
     }
@@ -2080,20 +2104,51 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
     );
   };
 
+  const safeReturnedSuperCall = (
+    argument: ESTree.Node | null,
+  ): ESTree.CallExpression | undefined => {
+    let expression = argument;
+    for (let depth = 0; depth < MAX_PATH_DEPTH; depth += 1) {
+      spendWork(budget);
+      if (expression === null) return undefined;
+      if (TRANSPARENT_WRAPPER_TYPES.has(expression.type) && "expression" in expression) {
+        const inner = expression.expression;
+        if (!isNode(inner)) return undefined;
+        expression = inner;
+        continue;
+      }
+      return expression.type === "CallExpression" &&
+        expression.callee.type === "Super" &&
+        safeConstructorArguments(expression.arguments)
+        ? expression
+        : undefined;
+    }
+    throw BUDGET_EXCEEDED;
+  };
+
   const constructorFieldReplay = (cls: ESTree.Class): ClassConstructorReplay => {
     spendWork(budget);
     const cached = classConstructorReplay.get(cls);
     if (cached) return cached;
     let replay: ClassConstructorReplay = "continue";
+    let superArguments: ClassSuperArguments = { kind: "implicit" };
     for (const element of cls.body.body) {
       spendWork(budget);
       if (element.type !== "MethodDefinition" || element.static || element.kind !== "constructor")
         continue;
       replay = "opaque";
+      superArguments = { kind: "opaque" };
       const fn = element.value;
       if (!isFunctionLike(fn) || fn.body?.type !== "BlockStatement") break;
       spendWork(budget, fn.params.length);
-      if (!fn.params.every((param) => param.type === "Identifier")) break;
+      if (
+        !fn.params.every(
+          (param) =>
+            param.type === "Identifier" ||
+            (param.type === "RestElement" && param.argument.type === "Identifier"),
+        )
+      )
+        break;
       let forwardingCalls = 0;
       let harmless = true;
       for (const statement of fn.body.body) {
@@ -2116,6 +2171,16 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
           harmless = false;
           break;
         }
+        const returnedSuper =
+          cls.superClass && forwardingCalls === 0 && statement.type === "ReturnStatement"
+            ? safeReturnedSuperCall(statement.argument)
+            : undefined;
+        if (returnedSuper) {
+          superArguments = { kind: "explicit", arguments: returnedSuper.arguments };
+          replay = "continue";
+          harmless = false;
+          break;
+        }
         if (
           cls.superClass &&
           isNode(expression) &&
@@ -2124,6 +2189,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
           forwardingCalls === 0 &&
           safeConstructorArguments(expression.arguments)
         ) {
+          superArguments = { kind: "explicit", arguments: expression.arguments };
           forwardingCalls += 1;
           continue;
         }
@@ -2135,6 +2201,7 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
       break;
     }
     classConstructorReplay.set(cls, replay);
+    classSuperArguments.set(cls, superArguments);
     return replay;
   };
 
@@ -2164,12 +2231,51 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
     escapeCaptured(state, value);
   };
 
-  const initializeInstanceFields = (state: EnvState<T>, value: ClassValue): void => {
+  const superclassArguments = (
+    cls: ESTree.Class,
+    outer: InvocationArguments,
+  ): InvocationArguments => {
+    spendWork(budget);
+    const forwarding = classSuperArguments.get(cls);
+    if (forwarding?.kind === "implicit") return outer;
+    if (forwarding?.kind !== "explicit") return { kind: "uncertain" };
+    const values: EvaluatedValue[] = [];
+    for (const argument of forwarding.arguments) {
+      spendWork(budget);
+      const expression = unwrapExpression(argument);
+      if (!isNode(expression)) return { kind: "uncertain" };
+      // Creating a callable has no capture effects. The ordinary helper may
+      // consume it; unmodeled class-constructor parameter facts stay unknown.
+      const functions: CallableValues = isFunctionLike(expression)
+        ? [expression]
+        : expression.type === "ClassExpression"
+          ? [classValue(expression, [])]
+          : [undefined];
+      const literalShape = literalShapeFromExpr(expression);
+      values.push({
+        objectId: undefined,
+        functions,
+        constant: constantValue(expression),
+        ...(literalShape ? { literalShape } : {}),
+      });
+    }
+    return { kind: "positional", values };
+  };
+
+  const initializeInstanceFields = (
+    state: EnvState<T>,
+    value: ClassValue,
+    args: InvocationArguments,
+  ): void => {
     if (state.completion !== "normal") return;
-    if (runCorrelated(state, (path) => initializeInstanceFields(path, value))) return;
+    if (runCorrelated(state, (path) => initializeInstanceFields(path, value, args))) return;
     // Inheritance length is independent of the syntax nesting depth limit.
     const frames: ClassFieldFrame<T>[] = [];
-    const enter = (path: EnvState<T>, selected: ClassValue): ClassFieldPath<T> | undefined => {
+    const enter = (
+      path: EnvState<T>,
+      selected: ClassValue,
+      incoming: InvocationArguments,
+    ): ClassFieldPath<T> | undefined => {
       spendWork(budget, 1 + selected.bases.length);
       if (activeClasses.has(selected)) return { state: path, replay: "continue" };
       const replay = constructorFieldReplay(selected.node);
@@ -2183,13 +2289,14 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
         value: selected,
         bases: selected.bases.length ? selected.bases : [undefined],
         replay,
+        arguments: superclassArguments(selected.node, incoming),
         paths: [],
         pending: [],
         nextBase: 0,
       });
       return undefined;
     };
-    if (enter(state, value)) return;
+    if (enter(state, value, args)) return;
     while (frames.length) {
       spendWork(budget);
       const frame = frames.at(-1);
@@ -2229,8 +2336,23 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
           frame.bases.length === 1 ? frame.state : snapshotState(frame.state, cloneData, budget);
         let initialized: ClassFieldPath<T> | undefined;
         if (base?.type === "ClassValue") {
-          initialized = enter(path, base);
+          initialized = enter(path, base, frame.arguments);
         } else {
+          const knownFunction =
+            frame.value.node.superClass &&
+            base &&
+            isFunctionLike(base) &&
+            base.type !== "ArrowFunctionExpression" &&
+            !base.async &&
+            !base.generator &&
+            !activeFunctions.has(base);
+          if (knownFunction) {
+            for (const result of invokeKnownFunction(path, base, frame.arguments, "body")) {
+              spendWork(budget);
+              frame.pending.push({ state: result, replay: "continue" });
+            }
+            continue;
+          }
           if (frame.value.node.superClass) {
             if (
               !base ||
@@ -2881,7 +3003,12 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
               !fn.async &&
               !fn.generator &&
               !activeFunctions.has(fn);
-            if (knownClass) initializeInstanceFields(invocation, fn);
+            if (knownClass)
+              initializeInstanceFields(
+                invocation,
+                fn,
+                evaluatedArguments(invocation, expr.arguments),
+              );
             const results = knownFunction
               ? invokeKnownFunction(
                   invocation,
@@ -3089,6 +3216,19 @@ export function analyzePathBindings<T>(options: PathAnalysisOptions<T>): PathAna
       const indexedDefaultArguments = new WeakSet<ESTree.Node>();
       for (const call of constantInvocations) {
         spendWork(budget);
+        // Frozen class values carry runtime heritage; the function-origin
+        // index cannot connect these New arguments to ordinary base params.
+        if (hasClassHeritage && call.type === "NewExpression") {
+          for (const argument of call.arguments) {
+            spendWork(budget);
+            if (indexedDefaultArguments.has(argument)) continue;
+            indexedDefaultArguments.add(argument);
+            visitValueSources(argument, (value) => {
+              const source = resolveBinding(bindings, value, []);
+              if (source) constantBindings.add(source.id);
+            });
+          }
+        }
         const tagged = call.type === "TaggedTemplateExpression";
         const callee = unwrapExpression(tagged ? call.tag : call.callee);
         const functions = new Set<ImmediateFunction>();

@@ -49,6 +49,7 @@ export interface EvaluatedValue {
 
 export type LiteralArgumentValue =
   | { readonly kind: "unknown" }
+  | { readonly kind: "null" }
   | { readonly kind: "undefined" }
   | { readonly kind: "defined"; readonly literalShape?: LiteralArgumentShape };
 

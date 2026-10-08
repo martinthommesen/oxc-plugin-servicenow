@@ -377,8 +377,27 @@ function safeSuperArguments(count) {
 ${Array.from(
   { length: count },
   (_, index) =>
-    `class Derived${index} extends Base { constructor() { super(0, false, null, {}, [], function() {}); } field = 0; } new Derived${index}();`,
+    `class Derived${index} extends Base { constructor(${index % 4 >= 2 ? "..._values" : "_value"}) { ${index % 2 ? "return " : ""}super(0, false, null, {}, [], function() {}); } field = 0; } new Derived${index}();`,
 ).join("\n")}
+${glideRecordBlock(0)}
+rec0.deleteMultiple();`;
+}
+
+/**
+ * @param {number} count
+ * @returns {string}
+ */
+function ordinarySuperclassCalls(count) {
+  const calls = ["new Implicit(true);", "new ExplicitTrue();", "new ExplicitFalse();"];
+  return `function BaseTrue(run) { run &&= gs.info(run); }
+function BaseFalse(run) { run &&= gs.info(run); }
+BaseTrue(false); BaseFalse(false);
+class LinkOne extends BaseTrue {}
+class LinkTwo extends LinkOne {}
+class Implicit extends LinkTwo { field = 0; }
+class ExplicitTrue extends BaseTrue { constructor() { return super(true); } field = 0; }
+class ExplicitFalse extends BaseFalse { constructor(..._values) { super(false); } field = 0; }
+${Array.from({ length: count }, (_, index) => calls[index % calls.length]).join("\n")}
 ${glideRecordBlock(0)}
 rec0.deleteMultiple();`;
 }
@@ -498,6 +517,10 @@ function generateFixtures(directory) {
   writeFileSync(join(directory, "classic/with-selector-scopes.br.js"), withSelectorScopes(500));
   writeFileSync(join(directory, "classic/guarded-helper-lookups.br.js"), guardedHelperLookups(500));
   writeFileSync(join(directory, "classic/safe-super-arguments.br.js"), safeSuperArguments(500));
+  writeFileSync(
+    join(directory, "classic/ordinary-superclass-calls.br.js"),
+    ordinarySuperclassCalls(500),
+  );
   writeFileSync(join(directory, "classic/pruned-helper-captures.br.js"), prunedHelperCaptures(300));
   writeFileSync(join(directory, "fluent/large.now.ts"), fluentRecords(80));
   writeFileSync(join(directory, "fluent/aliases.now.ts"), fluentAliases(120));
@@ -788,6 +811,12 @@ async function main() {
         "recommended",
         configs.recommended,
         [join(work, "classic/safe-super-arguments.br.js")],
+      ],
+      [
+        "ordinary-superclass-calls/recommended",
+        "recommended",
+        configs.recommended,
+        [join(work, "classic/ordinary-superclass-calls.br.js")],
       ],
       [
         "pruned-helper-captures/recommended",

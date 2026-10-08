@@ -176,7 +176,7 @@ function safeSuperArguments(count: number): string {
 ${Array.from(
   { length: count },
   (_, index) =>
-    `class Derived${index} extends Base { constructor() { super(0, false, null, {}, [], function() {}); } field = new GlideRecord("task").deleteMultiple(); } new Derived${index}();`,
+    `class Derived${index} extends Base { constructor(${index % 4 >= 2 ? "..._values" : "_value"}) { ${index % 2 ? "return " : ""}super(0, false, null, {}, [], function() {}); } field = new GlideRecord("task").deleteMultiple(); } new Derived${index}();`,
 ).join("\n")}
 var records = new GlideRecord("later"); records.deleteMultiple();`;
 }
@@ -191,6 +191,33 @@ function lintSafeSuperArguments(source: string, count: number): void {
   assert.deepEqual(
     messages.map(({ line }) => line).sort((left, right) => left - right),
     Array.from({ length: count + 1 }, (_, index) => index + 2),
+  );
+}
+
+function ordinarySuperclassCalls(count: number): string {
+  const calls = ["new Implicit(true);", "new ExplicitTrue();", "new ExplicitFalse();"];
+  return `function BaseTrue(run) { run &&= new GlideRecord("base").deleteMultiple(); }
+function BaseFalse(run) { run &&= new GlideRecord("skipped").deleteMultiple(); }
+BaseTrue(false); BaseFalse(false);
+class LinkOne extends BaseTrue {}
+class LinkTwo extends LinkOne {}
+class Implicit extends LinkTwo { field = new GlideRecord("implicit").deleteMultiple(); }
+class ExplicitTrue extends BaseTrue { constructor() { return super(true); } field = new GlideRecord("true").deleteMultiple(); }
+class ExplicitFalse extends BaseFalse { constructor(...values) { super(false); } field = new GlideRecord("false").deleteMultiple(); }
+${Array.from({ length: count }, (_, index) => calls[index % calls.length]).join("\n")}
+var records = new GlideRecord("later"); records.deleteMultiple();`;
+}
+
+function lintOrdinarySuperclassCalls(source: string): void {
+  const { messages, analysis } = lintWithAnalysis(
+    source,
+    "no-unfiltered-gliderecord-bulk-operation",
+  );
+  assert.equal(analysis.pathBudgetExhausted, false, "path budget exhausted; not a valid sample");
+  assert.ok(messages.every((message) => message.messageId === "unfiltered"));
+  assert.deepEqual(
+    messages.map(({ line }) => line).sort((left, right) => left - right),
+    [1, 6, 7, 8, source.split("\n").length],
   );
 }
 
@@ -297,6 +324,19 @@ describe("alias scaling (FINDINGS.md PER-005)", () => {
       largeLabel: "500 classes",
       small: () => lintSafeSuperArguments(small, 125),
       large: () => lintSafeSuperArguments(large, 500),
+    });
+  });
+
+  // @lat: [[tests#Analysis behavior#Ordinary superclass calls scale with selected body and field findings]]
+  it("keeps selected ordinary superclass body and field replay sub-quadratic", () => {
+    const small = ordinarySuperclassCalls(125);
+    const large = ordinarySuperclassCalls(500);
+    assertSubQuadratic({
+      label: "selected ordinary superclass calls",
+      smallLabel: "125 calls",
+      largeLabel: "500 calls",
+      small: () => lintOrdinarySuperclassCalls(small),
+      large: () => lintOrdinarySuperclassCalls(large),
     });
   });
 

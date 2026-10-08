@@ -29,7 +29,7 @@ describe("non-class superclass capture boundaries", () => {
       1,
     );
   });
-  it("includes possible superclass parameter-default captures without replaying defaults", () => {
+  it("includes superclass parameter-default effects before derived fields", () => {
     findings(
       `var run = false; function Base(value = (run = true)) {} class Derived extends Base { ${selectedField} } new Derived();`,
       1,

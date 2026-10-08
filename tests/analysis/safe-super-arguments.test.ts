@@ -175,7 +175,6 @@ describe("safe super argument field replay", () => {
   for (const constructor of [
     "constructor(value = 0) { super(0); }",
     "constructor({value}) { super(0); }",
-    "constructor(...values) { super(0); }",
     "constructor() { throw 0; super(0); }",
     "constructor() { external(); super(0); }",
     "constructor() { return {}; super(0); }",
@@ -187,6 +186,12 @@ describe("safe super argument field replay", () => {
       );
     });
   }
+  it("replays safe super arguments after plain rest parameter allocation", () => {
+    findings(
+      `class Base { ${baseField} } class Derived extends Base { constructor(...values) { super(0); } ${derivedField} } new Derived();`,
+      2,
+    );
+  });
   it("does not use safe super arguments to interpret opaque base defaults", () => {
     findings(
       `class Base { ${baseField} constructor(value = fail()) {} } class Derived extends Base { constructor() { super(0); } ${derivedField} } function fail() { throw 0; } new Derived();`,

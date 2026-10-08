@@ -20,7 +20,6 @@ describe("explicit constructor field boundaries", () => {
     ["object return before super", "constructor() { return {}; }"],
     ["throwing parameter default", "constructor(value = fail()) { super(); }"],
     ["destructured parameter", "constructor({value}) { super(); }"],
-    ["rest parameter", "constructor(...values) { super(); }"],
   ] as const) {
     it(`keeps superclass and own fields opaque after ${name}`, () => {
       findings(
@@ -40,7 +39,7 @@ describe("explicit constructor field boundaries", () => {
     ["parameter default throw", "constructor(value = fail()) {}", 1],
     ["safe object return", "constructor() { return {}; }", 2],
     ["destructured parameter", "constructor({value}) {}", 1],
-    ["rest parameter", "constructor(...values) {}", 1],
+    ["rest parameter", "constructor(...values) {}", 2],
   ] as const) {
     it(`retains base fields before ${name} and ${expected === 1 ? "stops" : "continues"} derived replay`, () => {
       findings(
@@ -72,6 +71,7 @@ describe("explicit constructor field boundaries", () => {
   for (const [name, constructor] of [
     ["ordinary", "constructor() { super(); }"],
     ["ordinary parameter", "constructor(value) { super(); }"],
+    ["plain rest parameter", "constructor(...values) { super(); }"],
     ["empty statements", "constructor() { ; super(); ; }"],
     ["harmless directive", 'constructor() { "use strict"; super(); }'],
   ] as const) {

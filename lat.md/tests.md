@@ -343,7 +343,7 @@ Declarations, initialized expressions, literals, aliases and represented alterna
 
 Implicit and trivial constructors retain field replay. A proven first super with harmless arguments initializes base and own fields before opaque trailing code; earlier opaque derived effects defer the chain.
 
-Before-super effects, missing super, unproven or spread arguments and non-simple parameters remain opaque before the chain. Plain parameters and harmless statements can prove the first super call with no arguments or harmless literal and empty-creation arguments. Later throws, returns, scalar writes or calls do not hide completed own fields, but invalidate captures and stop grandchild replay without interpreting constructor completion. Abrupt initializers skip that later capture boundary.
+Before-super effects, missing super, unproven or spread arguments and parameter defaults or destructuring remain opaque before the chain. Plain parameters and harmless statements can prove the first super call with no arguments or harmless literal and empty-creation arguments. Later throws, returns, scalar writes or calls do not hide completed own fields, but invalidate captures and stop grandchild replay without interpreting constructor completion. Abrupt initializers skip that later capture boundary.
 
 Base alternatives keep eligibility correlated with scalar facts; saved constructors and frozen superclass versions remain authoritative. Opaque base constructors retain their own fields before parameter/body effects. A safe bare, primitive or empty-container/function return after harmless statements instead permits derived initialization. Chains of 129 and 1,024 descendants preserve the post-super boundary and later diagnostics within the unchanged work budget.
 
@@ -353,6 +353,18 @@ Ordinary-parameter base constructors with harmless prefixes and safe returns pre
 
 Bare returns and primitive literals use base-constructor return semantics; empty objects and arrays, function literals and proven harmless class creation are safe object-producing expressions. Transparent wrappers retain the proof, while non-simple parameters, opaque prefixes, effectful return expressions and unproven derived super calls retain prior boundaries. Frozen constructor choices, mixed bases and 129-to-1,024-level hierarchies preserve ordered fields within the existing budget.
 
+### Returned super completes field initialization
+
+A first returned super with harmless arguments initializes base and own fields, then permits descendant replay. Charged transparent-wrapper proof stops at that return without inspecting unreachable statements.
+
+Returned calls preserve saved constructors, frozen bases, branch eligibility and source order. A reachable earlier super leaves a returned second call opaque after completed own fields; defaults, destructuring, pre-super effects, impure or spread arguments, other derived returns and sequence or conditional returns keep prior boundaries. TypeScript and dynamic-scope controls use direct traversal where public authority is opaque. Abrupt initializers stop later fields, and long returned-super hierarchies finish within the existing budget.
+
+### Plain rest constructor parameters preserve field replay
+
+Identifier rest parameters allocate argument arrays without evaluating defaults or destructuring. Their cached constructor proof retains harmless base returns and first standalone or returned super field initialization.
+
+Ordinary-plus-rest and rest-only parameters retain base-before-derived order, saved choices and descendant continuation. Rest patterns, preceding defaults or destructuring, spread super arguments and opaque prefixes remain unproven. Abrupt outer arguments skip construction, and post-super opaque code still stops descendants after completed own fields.
+
 ### Safe super arguments preserve field initialization
 
 A first super with proven harmless literal or creation arguments initializes known base and own fields. Charged cached syntax proof preserves opaque boundaries without interpreting argument or constructor bodies.
@@ -361,9 +373,15 @@ Primitive literals, empty objects and arrays, function creation and proven harml
 
 ### Opaque superclass captures precede derived fields
 
-Represented function superclasses invalidate their own captures before derived fields. Unknown superclass paths retain descendant capture uncertainty and a possible throw while preserving possible normal field replay.
+Unmodeled function superclasses invalidate their own captures before derived fields. Unknown superclass paths retain descendant capture uncertainty and a possible throw while preserving possible normal field replay.
 
-Saved superclass identities survive rebinding, and known or unknown alternatives keep separate paths. Parameter-default captures, completed arguments and long unknown heritage graphs retain reachable selector operations within the unchanged budget. Captured records lose stale lifecycle certainty without replaying arbitrary constructor bodies. No heritage, known empty functions, unrelated selectors, deferred construction and abrupt arguments preserve their prior boundaries. Recognized nonconstructible arrow, async and generator bases retain false-selector certainty without new class-definition abrupt inference; captures-only escape does not force isolated body inspection.
+Saved superclass identities survive rebinding, and known or unknown alternatives keep separate paths. Parameter-default effects, completed arguments and long unknown heritage graphs retain reachable selector operations within the unchanged budget. Known ordinary superclasses use the existing helper invocation; unknown captures lose stale lifecycle certainty without arbitrary constructor body replay. No heritage, known empty functions, unrelated selectors, deferred construction and abrupt arguments preserve their prior boundaries. Recognized nonconstructible arrow, async and generator bases retain false-selector certainty without new class-definition abrupt inference; captures-only escape does not force isolated body inspection.
+
+### Ordinary superclasses receive saved constructor arguments
+
+Known ordinary superclasses receive saved arguments through proven class forwarding. True values retain reachable operations; false, zero, null and saved aliases stay quiet, and only normal superclass completions reach derived fields.
+
+Implicit constructors share immutable argument values through the heritage chain. Cached safe standalone or returned super prefixes replace them with their actual primitive or creation arguments; omitted arguments retain ordinary defaults. Frozen superclass and constructor identities survive rebinding. Ordinary helper replay preserves query and scalar effects, body/default throws and skipped argument paths. Safe creations remain deferred unless the ordinary superclass consumes them; class constructor parameter/body facts remain opaque.
 
 ### Harmless class creation preserves constructor proof
 
@@ -471,6 +489,12 @@ Call/apply, tags and exposure before or after a disabled direct call preserve on
 
 Retained generator values keep bodies deferred and do not invent skipped defaults; exposing the actual generator function follows the existing opaque callback policy. Five hundred exposed empty zero-parameter functions preserve a later security finding without exhausting the shared budget.
 
+### Nullish parameter patterns stop invocation before later effects
+
+Definite null or undefined object and array bindings throw before computed keys, nested defaults, later parameters or body operations. Completed arguments and applicable defaults remain visible to catch continuations.
+
+Ordinary calls, known constructors and generator Call or Tag parameter replay use the same completion boundary. Empty and nested patterns, saved tracked aliases and mixed nullish paths cannot invent later operations; scalar null, rest arrays, safe outer defaults and unknown arguments retain possible normal paths.
+
 ### Known default patterns preserve argument facts
 
 Known Call and generator Tag pattern defaults distinguish definite null from undefined even when their target has no single binding identity, preserving literal and aliased argument facts.
@@ -537,7 +561,13 @@ The real script parser accepts the repeated `with` statements. Public bulk diagn
 
 Quadrupling classes from 125 to 500 preserves every derived field's unfiltered bulk finding and a later independent finding. Empty known bases separate safe argument proof work from opaque superclass effects.
 
-Each distinct constructor supplies six harmless literal or empty-creation arguments, exercising the cached, charged proof. Complete budgets and exact finding lines accompany the existing subquadratic timing gate.
+Each distinct constructor alternates standalone or returned super with ordinary or plain-rest parameters and supplies six harmless literal or creation arguments, exercising the cached, charged proof. Complete budgets and exact finding lines accompany the existing subquadratic timing gate.
+
+### Ordinary superclass calls scale with selected body and field findings
+
+Quadrupling constructions from 125 to 500 retains precise ordinary-base body effects, three derived field sites and an independent later finding. False arguments keep their base body quiet after earlier pruned calls.
+
+The positive fixture alternates an implicit two-link hierarchy and explicit returned true or standalone false super arguments. Complete budgets and exact diagnostic lines accompany the subquadratic gate; the real-host counterpart uses quiet body sinks and field values with a filtered later bulk operation.
 
 ### Pruned helper call density scales with complete findings
 
