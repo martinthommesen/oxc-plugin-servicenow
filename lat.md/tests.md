@@ -259,6 +259,12 @@ Known generator calls bind saved arguments and execute applicable defaults befor
 
 Earlier parameters feed later defaults, argument replacements cannot rewrite saved values, and definite default writes project back to the caller. Nested pattern defaults and computed keys retain possible immediate effects. Retained iterators preserve the existing capture boundary; ordinary and async generator default throws skip later caller effects.
 
+### Discarded generator values keep bodies deferred
+
+Generator calls and tags discard iterator values through void, parentheses and non-final sequences while preserving immediate parameter effects. Enclosing discarded logical and conditional results also keep their body captures deferred.
+
+Retained bindings, arguments, condition tests and assignments inside void preserve the conservative capture boundary. Defaults still query, mutate selectors or throw synchronously; transparent TypeScript wrappers preserve whether a result is retained.
+
 ### External consumers escape evaluated argument values
 
 Calls, construction and template tags consume argument values saved before later arguments replace their bindings. Unknown and wrapped values retain their own object and callable identities on each completed path.
@@ -296,6 +302,12 @@ Spread arguments and replacement of the constructor binding preserve evaluation 
 Known construction runs instance field values in source order after normal arguments. Saved constructor alternatives retain their class; unconstructed fields stay deferred, and static values and computed keys execute only at definition.
 
 Ordered scalar fields preserve reachable operations; abrupt arguments skip every field, and a throwing initializer skips later fields while retaining earlier effects. Each constructor alternative keeps its own record state, recursion terminates conservatively, and locally queried initializers stay quiet. Completed field values escape before later fields, and fifty independent selectors release temporary correlations while preserving enclosing argument snapshots. Instance properties and constructor bodies retain their existing opaque policy.
+
+### Known construction retains evaluated superclass field chains
+
+Known superclass fields run before derived fields using the heritage value saved at class definition. Rebinding, keys and static effects cannot replace that value; unknown bases retain their existing opaque policy.
+
+Alternative and correlated bases run on separate paths; helper-created and repeated class sites preserve saved heritage. Abrupt arguments skip every field, while a thrown base initializer skips derived fields and retains prior effects. Static values and computed keys remain definition-only. Recursive construction and fifty known hierarchy levels complete within the existing budget, and field cleanup preserves enclosing constructor and argument values.
 
 ### Class definitions evaluate only immediate class effects
 
@@ -344,6 +356,12 @@ Fixed-authority tests distinguish an unknown receiver later replaced by argument
 ### Mapped arguments compound writes invalidate selectors
 
 Mapped prefix, postfix and compound writes discard stale selector facts in sloppy simple-parameter helpers. Strict, non-simple and absent-argument cases remain independent, and writes retain their receiver before key or right-hand-side effects.
+
+### Mapped arguments retain positional ownership
+
+Only supplied last-occurrence parameter positions map to arguments. Earlier duplicates, missing final positions and unrelated properties retain selector facts; known mapped indices invalidate only their owning selector.
+
+Numeric and canonical string indices, aliases, lexical arrows, unknown keys and unknown arity obey positional ownership. Direct, compound and update writes preserve the evaluated receiver; right-hand-side key rewrites cannot introduce stale precision. Strict and non-simple functions remain independent. Duplicate initialization uses the final parameter value, and every public-rule control asserts complete analysis.
 
 ### Selector alias dependencies reuse callable origins
 
@@ -422,6 +440,12 @@ Known nodes resolve through their indexed lexical scope even when callers supply
 ### Mapped arguments identities survive preceding joins
 
 Implicit arguments objects and aliases retain their owner identity through branches, catches and loops without becoming domain records. Replaced and strict arguments remain independent; possible mapped receivers retain correlated paths.
+
+### Known parameter replay retains evaluated arguments without selectors
+
+Earlier callable arguments retain their evaluated identities when later arguments replace their bindings, even without logical assignments. Known ordinary calls and generator defaults invoke the original callback without executing deferred bodies.
+
+Provided second arguments skip their defaults, including the exact reviewed example. Missing and explicit undefined defaults execute; explicit null skips them. Selected sequence, conditional and logical values retain callbacks, generator tags evaluate defaults, and unknown or originally empty callbacks remain conservative. Five hundred repeated saved-argument defaults retain the final bulk-operation finding within the existing budget.
 
 ## Integration
 
