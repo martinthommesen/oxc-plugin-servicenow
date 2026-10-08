@@ -68,6 +68,8 @@ Each rule's evidence records carry a URL or test path, a claim, a `verifiedBy` k
 
 `docs/rules.md` renders them, and `scripts/check-catalog-docs.mjs` enforces roughly forty invariants over them — release-review completeness, against-placeholder URLs, date sanity, and the requirement that an `error`-severity recommended rule cite both normative external evidence and an automated in-repo proof. See [[invariants#Evidence resolves to a passing test]].
 
+Missing section headings and stale verification dates identify the affected `docs/rules.md#<rule>` section in gate diagnostics.
+
 ## Related
 
 Contributor material and the subsystems the catalog gates.

@@ -394,11 +394,11 @@ for (const rule of ruleCatalog) {
   checkMarkdownTables(page, `docs/rules.md#${rule.name}`);
   for (const heading of ["### Applicability", "### Boundaries", "### Evidence"]) {
     if (!page.includes(heading)) {
-      fail(`${rule.name}.md is missing ${heading}`);
+      fail(`docs/rules.md#${rule.name} is missing ${heading}`);
     }
   }
   if (!page.includes(`**Last verified:** ${rule.lastVerified}`)) {
-    fail(`${rule.name}.md lastVerified is stale`);
+    fail(`docs/rules.md#${rule.name} lastVerified is stale`);
   }
 }
 
