@@ -61,6 +61,41 @@ const cases = [
     expected: [],
   },
   {
+    name: "returned-logical-assignment-retains-object",
+    code: `var gr = new GlideRecord("task"); var alias = gr; function expose() { return (alias ||= new GlideRecord("incident")); } expose(); gr.next();`,
+    expected: [],
+  },
+  {
+    name: "thrown-logical-assignment-retains-object",
+    code: `var gr = new GlideRecord("task"); var alias = gr; function expose() { try { throw (alias ??= new GlideRecord("incident")); } finally { gr.next(); } } try { expose(); } catch (error) {}`,
+    expected: [],
+  },
+  {
+    name: "returned-logical-assignment-skips-object",
+    code: `var gr = new GlideRecord("task"); var flag = false; function expose() { try { return (flag &&= gr); } finally { gr.next(); } } expose();`,
+    expected: ["servicenow/require-query-before-next"],
+  },
+  {
+    name: "thrown-logical-assignment-skips-cursor-advance",
+    code: `var gr = new GlideRecord("task"); var flag = true; function expose() { throw (flag ||= (gr.next(), gr)); } try { expose(); } catch (error) {}`,
+    expected: [],
+  },
+  {
+    name: "returned-logical-assignment-selects-object",
+    code: `var gr = new GlideRecord("task"); var flag = true; function expose() { return (flag &&= gr); } expose(); gr.next();`,
+    expected: [],
+  },
+  {
+    name: "returned-logical-assignment-skips-capture",
+    code: `var gr = new GlideRecord("task"); var fn = function () {}; function expose() { try { return (fn ||= function () { gr.query(); }); } finally { gr.next(); } } expose();`,
+    expected: ["servicenow/require-query-before-next"],
+  },
+  {
+    name: "escaped-callback-invalidates-scalar-selector",
+    code: `var gr = new GlideRecord("task"); var flag = false; function flip() { flag = true; } external(flip); flag &&= (gr.next(), gr);`,
+    expected: ["servicenow/require-query-before-next"],
+  },
+  {
     name: "returned-captured-allocation",
     code: `var gr; function allocate() { return (gr = new GlideRecord("task")); } allocate(); gr.next();`,
     expected: [],

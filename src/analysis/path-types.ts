@@ -1,4 +1,5 @@
 import type { ESTree } from "@oxlint/plugins";
+import type { ConstantValue } from "./constant-value.js";
 import type { ImmediateFunction } from "./bindings.js";
 import type { ProvenanceKind, ProvenanceQuery } from "./provenance.js";
 
@@ -31,15 +32,25 @@ export interface PathRefInput<T> {
 }
 
 export type AbruptCompletion = Exclude<InternalCompletion, "normal">;
-export type CallableValues = readonly (ImmediateFunction | undefined)[];
+export type CallableValues = readonly (ImmediateFunction | ESTree.Class | undefined)[];
+
+export interface EvaluatedValue {
+  readonly objectId: ObjectId | undefined;
+  readonly functions: CallableValues;
+  readonly constant: ConstantValue | null;
+}
 
 export interface EnvState<T> {
   env: Map<BindingId, ObjectId | undefined>;
   functions: Map<BindingId, CallableValues>;
+  /** Null marks a capture whose future writes cannot restore scalar certainty. */
+  constants: Map<BindingId, ConstantValue | null>;
+  /** Selected logical-assignment values retained until their statement completes. */
+  assignmentResults: Map<ESTree.Node, EvaluatedValue>;
   /** Callable values selected by expressions in the current statement. */
   callableResults: Map<ESTree.Node, CallableValues>;
   objects: Map<ObjectId, SharedRecord<T>>;
-  /** Normal alternatives whose callable bindings differ, retaining their record correlations. */
+  /** Normal alternatives with different callable or selected assignment values. */
   callablePaths: EnvState<T>[];
   completion: InternalCompletion;
   /** Label on break/continue completions, if any. */

@@ -9,11 +9,12 @@ import {
   type ProvenanceKind,
   type ProvenanceQuery,
 } from "./provenance.js";
-import { constantValue, logicalRightOperandRuns } from "./constant-value.js";
-import { spendWork, type WorkBudget } from "./path-budget.js";
+import { constantValue, logicalRightOperandRuns, type ConstantValue } from "./constant-value.js";
+import { MAX_PATH_DEPTH, spendWork, type WorkBudget } from "./path-budget.js";
 import type {
   CallableValues,
   EnvState,
+  EvaluatedValue,
   ObjectId,
   PathRefInput,
   SharedRecord,
@@ -84,6 +85,8 @@ export function createPathValueResolver<T>(context: PathValueContext<T>) {
   const objectFromExpr = (state: EnvState<T>, node: unknown): ObjectId | undefined => {
     const expr = unwrapExpression(node);
     if (!isNode(expr)) return undefined;
+    const result = state.assignmentResults.get(expr);
+    if (result) return result.objectId;
     switch (expr.type) {
       case "Identifier": {
         const binding = resolveBinding(bindings, expr, ancestors);
@@ -207,9 +210,17 @@ export function createPathValueResolver<T>(context: PathValueContext<T>) {
     spendWork(budget);
     const expr = unwrapExpression(node);
     if (!isNode(expr)) return [undefined];
+    const assignment = state.assignmentResults.get(expr);
+    if (assignment) return assignment.functions;
     const result = state.callableResults.get(expr);
     if (result) return result;
-    if (isFunctionLike(expr)) return [expr];
+    if (
+      isFunctionLike(expr) ||
+      expr.type === "ClassExpression" ||
+      expr.type === "ClassDeclaration"
+    ) {
+      return [expr];
+    }
     switch (expr.type) {
       case "Identifier": {
         const binding = resolveBinding(bindings, expr, ancestors);
@@ -249,10 +260,39 @@ export function createPathValueResolver<T>(context: PathValueContext<T>) {
     return [undefined];
   };
 
+  const constantFromExpr = (state: EnvState<T>, node: unknown): ConstantValue | null => {
+    let expr = unwrapExpression(node);
+    for (let depth = 0; isNode(expr) && depth < MAX_PATH_DEPTH; depth += 1) {
+      spendWork(budget);
+      const result = state.assignmentResults.get(expr);
+      if (result) return result.constant;
+      const constant = constantValue(expr);
+      if (constant) return constant;
+      if (expr.type === "Identifier") {
+        const binding = resolveBinding(bindings, expr, ancestors);
+        return (binding && state.constants.get(binding.id)) || null;
+      }
+      if (expr.type === "SequenceExpression") {
+        expr = unwrapExpression(expr.expressions.at(-1));
+      } else if (expr.type === "AssignmentExpression" && expr.operator === "=") {
+        expr = unwrapExpression(expr.right);
+      } else {
+        return null;
+      }
+    }
+    return null;
+  };
+
+  const valueFromExpr = (state: EnvState<T>, node: unknown): EvaluatedValue => ({
+    objectId: objectFromExpr(state, node),
+    functions: functionsFromExpr(state, node),
+    constant: constantFromExpr(state, node),
+  });
+
   const normalValueFromExpr = (state: EnvState<T>, node: unknown): ESTree.Node | null => {
     const expr = unwrapExpression(node);
     if (!isNode(expr)) return null;
-    if (!stopAtAwait) return expr;
+    if (!stopAtAwait || state.assignmentResults.has(expr)) return expr;
     switch (expr.type) {
       case "AwaitExpression": {
         return null;
@@ -305,5 +345,11 @@ export function createPathValueResolver<T>(context: PathValueContext<T>) {
     return expr;
   };
 
-  return { objectFromExpr, functionsFromExpr, normalValueFromExpr };
+  return {
+    objectFromExpr,
+    functionsFromExpr,
+    constantFromExpr,
+    valueFromExpr,
+    normalValueFromExpr,
+  };
 }

@@ -137,6 +137,8 @@ Quadrupling counted cursor loops with post-loop counter writes must stay well be
 
 The measured growth is about n^1.5 against a 9x budget for 4x input, so the guard proves sub-quadratic rather than strictly linear scaling.
 
+Logical-assignment selectors stay within budget when counted loops grow from fifty to two hundred, retain all expected findings, and meet the same subquadratic timing gate.
+
 ### Nested cursor loops stay linear
 
 Nested loops sharing one cursor avoid repeated traversal through `(node, cursor-state)` memoization. Distinct cursor subsets instead obey [[tests#Analysis behavior#Independent retention work is bounded]] and can explicitly exhaust.
@@ -198,6 +200,12 @@ Mutable helper identities are cloned and joined with path state. Conditional rea
 A query performed before a no-op helper stays paired with that helper. Querying helpers retain the unopened branch they repair. Both branch orders and helper aliases prove every actual path queries without budget exhaustion.
 
 Conditional expression results retain their selected callable through outer assignments and aliases. Argument-created alternatives receive parameter bindings and call effects before joining; unopened controls continue to report.
+
+### Logical assignments export their selected values
+
+Returned and thrown logical assignments export only the selected object or callback on each path. Skipped operands neither execute cursor advances nor escape captures; retained aliases and mutable scalar selectors keep their runtime facts.
+
+Direct and nested helper writes update captured selectors. Updates, destructuring, differing branch facts, escaped callbacks and unmodeled constructor or callable-method invocation discard certainty. Escaped captures remain uncertain after later scalar writes; constructor arguments cannot replace the callee before its capture effects are considered. Wrapper callbacks, cycles, exposed helper replacements and opaque class effects cannot restore false scalar certainty. Unused and unreachable class bodies preserve surrounding selector facts. Real ESLint and Oxlint fixtures exercise selected objects, skipped effects and captures, and callback invalidation.
 
 ### Return and throw escape evaluated values
 

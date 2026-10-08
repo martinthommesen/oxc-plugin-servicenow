@@ -20,6 +20,8 @@ const ALWAYS_OBJECT_EXPRESSIONS = new Set([
   "FunctionExpression",
   "ArrowFunctionExpression",
   "ClassExpression",
+  "ClassDeclaration",
+  "NewExpression",
 ]);
 
 export function constantValue(node: unknown): ConstantValue | null {

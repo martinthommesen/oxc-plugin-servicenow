@@ -179,6 +179,173 @@ describe("callable execution state", () => {
     ));
 });
 
+// @lat: [[tests#Analysis behavior#Logical assignments export their selected values]]
+describe("logical assignment values", () => {
+  for (const completion of ["return", "throw"]) {
+    for (const [setup, expression, expected] of [
+      ["var alias = gr;", 'alias ||= new GlideRecord("task")', 0],
+      ["var alias = gr;", 'alias ??= new GlideRecord("task")', 0],
+      ["var alias = gr;", "alias &&= 0", 1],
+      ["var flag = false;", "flag &&= gr", 1],
+      ["var flag = true;", "flag ||= gr", 1],
+      ["var flag = 0;", "flag ??= gr", 1],
+      ["var flag = false;", "flag ||= gr", 0],
+      ["var flag = true;", "flag &&= gr", 0],
+      ["var flag = null;", "flag ??= gr", 0],
+      ["var flag = true; flag = false;", "flag &&= gr", 1],
+      ["var flag = false; flag = true;", "flag &&= gr", 0],
+    ] as const) {
+      it(`exports only the selected value in ${completion} (${expression}) after ${setup}`, () => {
+        assert.equal(
+          missingQueries(
+            `var gr = new GlideRecord("task"); ${setup} function expose() { try { ${completion} (${expression}); } finally { gr.next(); } } try { expose(); } catch (error) {}`,
+          ),
+          expected,
+        );
+      });
+    }
+
+    for (const [setup, expression] of [
+      ["var alias = gr;", "alias ||= (gr.next(), 0)"],
+      ["var alias = gr;", "alias ??= (gr.next(), 0)"],
+      ["var flag = false;", "flag &&= (gr.next(), gr)"],
+      ["var flag = true;", "flag ||= (gr.next(), gr)"],
+      ["var flag = 0;", "flag ??= (gr.next(), gr)"],
+    ]) {
+      it(`skips cursor advances in ${completion} (${expression}) after ${setup}`, () => {
+        assert.equal(
+          missingQueries(
+            `var gr = new GlideRecord("task"); ${setup} function expose() { ${completion} (${expression}); } try { expose(); } catch (error) {}`,
+          ),
+          0,
+        );
+      });
+    }
+
+    for (const operator of ["||=", "??="]) {
+      it(`escapes the retained callable in ${completion} (fn ${operator} function () {})`, () => {
+        assert.equal(
+          missingQueries(
+            `var gr = new GlideRecord("task"); var fn = function () { gr.query(); }; function expose() { try { ${completion} (fn ${operator} function () {}); } finally { gr.next(); } } try { expose(); } catch (error) {}`,
+          ),
+          0,
+        );
+      });
+      it(`ignores skipped callback captures in ${completion} (fn ${operator} function () { gr.query(); })`, () => {
+        assert.equal(
+          missingQueries(
+            `var gr = new GlideRecord("task"); var fn = function () {}; function expose() { try { ${completion} (fn ${operator} function () { gr.query(); }); } finally { gr.next(); } } try { expose(); } catch (error) {}`,
+          ),
+          1,
+        );
+      });
+    }
+  }
+
+  it("forgets a scalar selector captured by a named callback sent to an unknown callee", () => {
+    assert.equal(
+      missingQueries(
+        `var gr = new GlideRecord("task"); var flag = false; function flip() { flag = true; } external(flip); flag &&= (gr.next(), gr);`,
+      ),
+      1,
+    );
+  });
+
+  for (const effect of [
+    "external(flip); flag = false; external();",
+    "function expose() { flip(); } expose();",
+    "function expose() { external(flip); } expose();",
+    "new flip();",
+    "var C = flip; new C(C = function () {});",
+    "flip.call(null);",
+    "flip.apply(null, []);",
+    "external(flip.bind(null));",
+  ]) {
+    it(`does not retain false certainty after ${effect}`, () => {
+      assert.equal(
+        missingQueries(
+          `var gr = new GlideRecord("task"); var flag = false; function flip() { flag = true; } ${effect} flag &&= (gr.next(), gr);`,
+        ),
+        1,
+      );
+    });
+  }
+
+  for (const effect of [
+    "function Wrapper() { flip(); } new Wrapper();",
+    "function Wrapper() { flip(); } Wrapper.call(null);",
+    "function Wrapper() { flip(); } Wrapper.apply(null, []);",
+    "function Wrapper() { flip(); } external(Wrapper);",
+    "function Wrapper() { flip(); } external(Wrapper); flag = false; external();",
+    "class Wrapper { constructor() { flag = true; } } new Wrapper();",
+    "class Wrapper { constructor() { flip(); } } new Wrapper();",
+    "new (class { constructor() { flag = true; } })();",
+    "class Wrapper { static flip() { flag = true; } } Wrapper.flip();",
+    "class Wrapper { flip() { flag = true; } } new Wrapper().flip();",
+    "function first() { second(); } function second() { flag = true; first(); } external(first);",
+  ]) {
+    it(`forgets transitive or opaque scalar effects after ${effect}`, () => {
+      assert.equal(
+        missingQueries(
+          `var gr = new GlideRecord("task"); var flag = false; function flip() { flag = true; } ${effect} flag &&= (gr.next(), gr);`,
+        ),
+        1,
+      );
+    });
+  }
+
+  for (const declaration of [
+    "class Wrapper { flip() { flag = true; } }",
+    "if (false) { class Wrapper { flip() { flag = true; } } }",
+    "class Wrapper { flip() { flip(); } }",
+  ]) {
+    it(`retains a false selector when class code is unused: ${declaration}`, () => {
+      assert.equal(
+        missingQueries(
+          `var gr = new GlideRecord("task"); var flag = false; function flip() { flag = true; } ${declaration} flag &&= (gr.next(), gr);`,
+        ),
+        0,
+      );
+    });
+  }
+
+  it("forgets newly captured scalar bindings when an exposed helper is replaced", () => {
+    assert.equal(
+      missingQueries(
+        `var gr = new GlideRecord("task"); var flag = false; var mutate = function () {}; function Wrapper() { mutate(); } external(Wrapper); mutate = function () { flag = true; }; external(); flag &&= (gr.next(), gr);`,
+      ),
+      1,
+    );
+  });
+
+  for (const [setup, expected] of [
+    ["var flag = false; function flip() { flag = true; } flip();", 1],
+    ["var flag = true; function flip() { flag = false; } flip();", 0],
+    ["var flag = false; flag++;", 1],
+    ["var flag = false; ({ flag } = external);", 1],
+    ["var flag = false; if (condition) flag = true;", 1],
+    ["var flag = false; external(function () { flag = true; });", 1],
+  ] as const) {
+    it(`keeps a conservative scalar selector after ${setup}`, () => {
+      assert.equal(
+        missingQueries(`var gr = new GlideRecord("task"); ${setup} flag &&= (gr.next(), gr);`),
+        expected,
+      );
+    });
+  }
+
+  for (const operator of ["||=", "??="]) {
+    it(`keeps the receiver binding after a skipped ${operator} assignment`, () => {
+      assert.equal(
+        missingQueries(
+          `var gr = new GlideRecord("task"); var alias = gr; alias ${operator} new GlideRecord("incident"); alias.next();`,
+        ),
+        1,
+      );
+    });
+  }
+});
+
 // @lat: [[tests#Analysis behavior#Return and throw escape evaluated values]]
 describe("return and throw escape order", () => {
   for (const completion of ["return", "throw"]) {

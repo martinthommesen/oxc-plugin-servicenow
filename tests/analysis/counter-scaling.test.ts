@@ -48,6 +48,27 @@ describe("counter scaling (FINDINGS.md PER-005)", () => {
     });
   });
 
+  it("keeps logical-assignment analysis active when counted loops quadruple", () => {
+    const fixture = (count: number): string =>
+      `var selector = false; selector &&= 0;\n${counterFixture(count).replaceAll(/\ncount\d+ \+= 1;/g, "")}`;
+    const lint = (code: string, expectedCount: number): void => {
+      const { messages, analysis } = lintWithAnalysis(code, "prefer-glideaggregate", {
+        filename: "logical-counters.br.js",
+      });
+      assert.equal(analysis.pathBudgetExhausted, false);
+      assert.equal(messages.length, expectedCount);
+    };
+    const small = fixture(50);
+    const large = fixture(200);
+    assertSubQuadratic({
+      label: "logical assignment counter scaling",
+      smallLabel: "50 loops",
+      largeLabel: "200 loops",
+      small: () => lint(small, 50),
+      large: () => lint(large, 200),
+    });
+  });
+
   it("still reports each counted loop without a post-loop write", () => {
     const source = counterFixture(20).replaceAll(/\ncount\d+ \+= 1;/g, "");
     const { messages, analysis } = lintWithAnalysis(source, "prefer-glideaggregate", {
