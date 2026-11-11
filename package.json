@@ -124,7 +124,7 @@
     "oxc-parser": "^0.152.0",
     "oxfmt": "^0.71.0",
     "oxlint": "^1.83.0",
-    "sigstore": "5.0.0",
+    "sigstore": "5.0.1",
     "tsx": "^4.23.13",
     "typescript": "^7.0.2",
     "yaml": "2.9.1"
