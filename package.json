@@ -117,7 +117,7 @@
   },
   "devDependencies": {
     "@sigstore/core": "4.0.1",
-    "@sigstore/mock": "0.13.0",
+    "@sigstore/mock": "0.13.1",
     "@sigstore/verify": "4.1.2",
     "@types/node": "^22.20.4",
     "eslint": "^10.11.0",
